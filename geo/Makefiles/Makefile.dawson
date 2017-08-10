@@ -1,0 +1,25 @@
+# Host: Dawson (G5 cluster)
+
+COMPILER=xl
+
+include Makefile.G5
+
+include Makefile.$(COMPILER)
+
+FC = xlf95
+
+F90FLAGS = -qmoddir=/tmp/bdorland -I/tmp/bdorland
+
+ifdef USE_MPI
+	MPI_INC=-I/u/local/mpi/mpilam/include
+	MPI_LIB=-L/u/local/mpi/mpilam/lib -llammpio -llamf77mpi -lmpi -llam
+endif
+
+ifeq ($(USE_FFT),fftw)
+	FFT_LIB=-L/u/home2/nfl/FFTW/lib -lfftw -lrfftw
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC=-I/u/local/apps/netcdf/include
+	NETCDF_LIB=-L/u/local/apps/netcdf/lib -lnetcdf
+endif

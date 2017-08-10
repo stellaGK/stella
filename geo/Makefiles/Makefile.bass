@@ -1,0 +1,28 @@
+# Host: bass at UMD (Core2Duo Linux)
+# Lahey and NAG compilers testing platform
+
+COMPILER ?= gnu-gfortran
+CHIP=core2
+
+ifdef FFTW_LIB
+	USE_FFT = fftw
+else
+	override USE_FFT =
+endif
+ifdef NETCDF_LIB
+	USE_NETCDF = on
+else
+	override USE_NETCDF =
+endif
+ifdef H5FC_par
+	USE_HDF5 = on
+else
+	override USE_HDF5 =
+endif
+
+include Makefile.$(COMPILER)
+
+ifeq ($(USE_FFT),fftw)
+	FFT_INC = $$FFTW_INC
+	FFT_LIB = $$FFTW_LIB
+endif

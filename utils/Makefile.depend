@@ -1,0 +1,433 @@
+#
+# Auto-generated file by fortdep. Do not edit!
+#
+agk_fields_plot_mod = \
+	 agk_fields_plot.o \
+	 agk_heating.o \
+	 agk_heating_index.o \
+	 agk_layouts.o \
+	 agk_layouts_type.o \
+	 agk_mem.o \
+	 agk_save.o \
+	 agk_time.o \
+	 agk_transforms.o \
+	 antenna.o \
+	 antenna_data.o \
+	 collisions.o \
+	 command_line.o \
+	 constants.o \
+	 convert.o \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fft_work.o \
+	 fields_arrays.o \
+	 fields_plot_utils.o \
+	 file_utils.o \
+	 hyper.o \
+	 job_manage.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 netcdf_utils.o \
+	 nonlinear_terms.o \
+	 pgplot_utils.o \
+	 ran.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 text_options.o \
+	 theta_grid.o 
+
+astrogk_mod = \
+	 agk.o \
+	 agk_diagnostics.o \
+	 agk_dist_io.o \
+	 agk_heating.o \
+	 agk_heating_index.o \
+	 agk_io.o \
+	 agk_layouts.o \
+	 agk_layouts_type.o \
+	 agk_mem.o \
+	 agk_reinit.o \
+	 agk_save.o \
+	 agk_time.o \
+	 agk_transforms.o \
+	 antenna.o \
+	 antenna_data.o \
+	 collisions.o \
+	 command_line.o \
+	 constants.o \
+	 convert.o \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fft_work.o \
+	 fields.o \
+	 fields_arrays.o \
+	 fields_implicit.o \
+	 file_utils.o \
+	 hdf_wrapper.o \
+	 hyper.o \
+	 init_g.o \
+	 job_manage.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 netcdf_utils.o \
+	 nonlinear_terms.o \
+	 ran.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 spl.o \
+	 text_options.o \
+	 theta_grid.o 
+
+slice_g_mod = \
+	 command_line.o \
+	 constants.o \
+	 convert.o \
+	 file_utils.o \
+	 hdf_wrapper.o \
+	 slice_g.o 
+
+agk.o: \
+	 agk_diagnostics.o \
+	 agk_mem.o \
+	 agk_reinit.o \
+	 agk_save.o \
+	 agk_time.o \
+	 dist_fn_arrays.o \
+	 fields.o \
+	 file_utils.o \
+	 init_g.o \
+	 job_manage.o \
+	 mp.o \
+	 redistribute.o \
+	 run_parameters.o 
+agk_diagnostics.o: \
+	 agk_dist_io.o \
+	 agk_heating.o \
+	 agk_heating_index.o \
+	 agk_io.o \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 agk_save.o \
+	 agk_time.o \
+	 agk_transforms.o \
+	 antenna.o \
+	 collisions.o \
+	 constants.o \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fields.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 hdf_wrapper.o \
+	 init_g.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 nonlinear_terms.o \
+	 run_parameters.o \
+	 species.o \
+	 spl.o \
+	 theta_grid.o 
+agk_dist_io.o: \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 agk_time.o \
+	 agk_transforms.o \
+	 collisions.o \
+	 convert.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 hdf_params.inc \
+	 hdf_wrapper.o \
+	 job_manage.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 run_parameters.o \
+	 species.o \
+	 theta_grid.o 
+agk_fields_plot.o: \
+	 agk_mem.o \
+	 command_line.o \
+	 dist_fn.o \
+	 fields_plot_utils.o \
+	 file_utils.o \
+	 kgrids.o \
+	 mp.o \
+	 netcdf_utils.o \
+	 pgplot_utils.o \
+	 run_parameters.o 
+agk_heating.o: \
+	 agk_heating_index.o \
+	 mp.o \
+	 species.o 
+agk_heating_index.o: 
+agk_io.o: \
+	 agk_heating_index.o \
+	 agk_layouts.o \
+	 agk_transforms.o \
+	 constants.o \
+	 convert.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 netcdf_utils.o \
+	 nonlinear_terms.o \
+	 run_parameters.o \
+	 species.o \
+	 theta_grid.o 
+agk_layouts.o: \
+	 agk_layouts_type.o \
+	 file_utils.o \
+	 mp.o 
+agk_layouts_type.o: 
+agk_mem.o: \
+	 agk_time.o \
+	 constants.o \
+	 file_utils.o \
+	 mp.o 
+agk_reinit.o: \
+	 agk_save.o \
+	 agk_time.o \
+	 antenna.o \
+	 collisions.o \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fields.o \
+	 fields_implicit.o \
+	 file_utils.o \
+	 init_g.o \
+	 mp.o \
+	 nonlinear_terms.o \
+	 run_parameters.o 
+agk_save.o: \
+	 agk_layouts.o \
+	 agk_layouts_type.o \
+	 agk_mem.o \
+	 antenna_data.o \
+	 constants.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 kgrids.o \
+	 mp.o \
+	 netcdf_utils.o \
+	 theta_grid.o 
+agk_time.o: 
+agk_transforms.o: \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 fft_work.o \
+	 kgrids.o \
+	 mp.o \
+	 redistribute.o \
+	 theta_grid.o 
+antenna.o: \
+	 agk_mem.o \
+	 agk_save.o \
+	 agk_time.o \
+	 antenna_data.o \
+	 constants.o \
+	 file_utils.o \
+	 kgrids.o \
+	 mp.o \
+	 ran.o \
+	 run_parameters.o \
+	 species.o \
+	 theta_grid.o 
+antenna_data.o: 
+collisions.o: \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 agk_time.o \
+	 constants.o \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 text_options.o \
+	 theta_grid.o 
+command_line.o: 
+constants.o: 
+convert.o: 
+dist_fn.o: \
+	 agk_heating.o \
+	 agk_heating_index.o \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 agk_time.o \
+	 agk_transforms.o \
+	 antenna.o \
+	 collisions.o \
+	 constants.o \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 hyper.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 nonlinear_terms.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 text_options.o \
+	 theta_grid.o 
+dist_fn_arrays.o: 
+fft_work.o: \
+	 constants.o 
+fields.o: \
+	 agk_mem.o \
+	 antenna.o \
+	 constants.o \
+	 dist_fn.o \
+	 fields_arrays.o \
+	 fields_implicit.o \
+	 init_g.o \
+	 kgrids.o \
+	 mp.o \
+	 nonlinear_terms.o \
+	 run_parameters.o \
+	 theta_grid.o 
+fields_arrays.o: 
+fields_implicit.o: \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 antenna.o \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
+	 kgrids.o \
+	 mp.o \
+	 run_parameters.o \
+	 theta_grid.o 
+fields_plot_utils.o: \
+	 agk_transforms.o \
+	 constants.o \
+	 convert.o \
+	 dist_fn_arrays.o \
+	 fft_work.o \
+	 file_utils.o \
+	 kgrids.o \
+	 netcdf_utils.o \
+	 pgplot_utils.o \
+	 run_parameters.o 
+file_utils.o: \
+	 command_line.o 
+hdf_wrapper.o: \
+	 constants.o \
+	 convert.o \
+	 file_utils.o 
+hyper.o: \
+	 agk_layouts.o \
+	 agk_time.o \
+	 dist_fn_arrays.o \
+	 file_utils.o \
+	 kgrids.o \
+	 mp.o \
+	 run_parameters.o \
+	 species.o \
+	 text_options.o \
+	 theta_grid.o 
+init_g.o: \
+	 agk_layouts.o \
+	 agk_save.o \
+	 agk_transforms.o \
+	 constants.o \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 ran.o \
+	 run_parameters.o \
+	 species.o \
+	 text_options.o \
+	 theta_grid.o 
+job_manage.o: \
+	 file_utils.o \
+	 mp.o 
+kgrids.o: \
+	 file_utils.o \
+	 mp.o \
+	 text_options.o 
+le_grids.o: \
+	 agk_layouts.o \
+	 agk_layouts_type.o \
+	 agk_mem.o \
+	 constants.o \
+	 file_utils.o \
+	 kgrids.o \
+	 mp.o \
+	 species.o \
+	 spfunc.o \
+	 theta_grid.o 
+mds.o: \
+	 constants.o 
+mp.o: \
+	 constants.o 
+netcdf_utils.o: \
+	 constants.o \
+	 file_utils.o 
+nonlinear_terms.o: \
+	 agk_layouts.o \
+	 agk_mem.o \
+	 agk_time.o \
+	 agk_transforms.o \
+	 constants.o \
+	 dist_fn_arrays.o \
+	 file_utils.o \
+	 kgrids.o \
+	 le_grids.o \
+	 mp.o \
+	 run_parameters.o \
+	 species.o \
+	 text_options.o \
+	 theta_grid.o 
+pgplot_utils.o: \
+	 constants.o 
+ran.o: 
+redistribute.o: \
+	 job_manage.o \
+	 mp.o 
+run_parameters.o: \
+	 agk_save.o \
+	 agk_time.o \
+	 file_utils.o \
+	 kgrids.o \
+	 mp.o \
+	 text_options.o 
+slice_g.o: \
+	 command_line.o \
+	 convert.o \
+	 file_utils.o \
+	 hdf_params.inc \
+	 hdf_wrapper.o 
+species.o: \
+	 file_utils.o \
+	 mp.o \
+	 text_options.o 
+spfunc.o: \
+	 constants.o 
+spl.o: 
+text_options.o: 
+theta_grid.o: \
+	 constants.o \
+	 file_utils.o \
+	 mp.o 

@@ -1,0 +1,62 @@
+# Host: bassi at NERSC (IBM POWER 5) **decommissioned**
+
+COMPILER=xl
+ifdef FFTW
+	USE_FFT = fftw
+else
+	override USE_FFT =
+endif
+ifdef NETCDF
+	USE_NETCDF = on
+else
+	override USE_NETCDF =
+endif
+ifdef HDF5
+	USE_HDF5 = on
+else
+	override USE_HDF5 =
+endif
+ifdef PGPLOT
+	PGPLOT_LIB = $$PGPLOT
+endif
+ifeq ($(PROJECT),gs2)
+	USE_HDF5=on
+endif
+# Bassi's default choice of special functions
+ifndef USE_LOCAL_SPFUNC
+#	USE_NAGLIB+=spfunc
+endif
+
+ifdef STATIC
+$(warning STATIC is not supported on bassi)
+	override STATIC=
+endif
+
+ifeq ($(PROJECT),gs2)
+	include Makefile.RS6000
+endif
+
+include Makefile.$(COMPILER)
+
+ifdef USE_MPI
+	MPIFC = mpxlf90_r
+	MPICC = mpcc_r
+endif
+
+ifeq ($(USE_FFT),fftw)
+	FFT_INC = $$FFTW
+	ifdef DBLE
+		FFT_LIB = $$FFTW -ldfftw -ldrfftw
+	else
+		FFT_LIB = $$FFTW -lsfftw -lsrfftw
+	endif
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I$$NETCDF_DIR/include  
+	NETCDF_LIB = $$NETCDF
+endif
+
+ifdef USE_NAGLIB
+	NAG_LIB = $$NAG
+endif

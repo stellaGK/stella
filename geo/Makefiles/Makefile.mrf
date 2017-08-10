@@ -1,0 +1,19 @@
+# Host: mrf Mr Fusion Maryland local intel machine
+
+COMPILER=intel
+CHIP=core2
+
+include Makefile.$(COMPILER)
+
+ifeq ($(USE_FFT),fftw)
+	FFT_LIB = -L/usr/local/lib -lrfftw -lfftw
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I/usr/local/include/netcdf 
+	NETCDF_LIB = -L/usr/local/lib -lnetcdf
+endif
+
+ifeq ($(findstring ipm,$(PROF)),ipm)
+	IPM_LIB =
+endif

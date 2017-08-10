@@ -1,0 +1,44 @@
+# Host: HPC-FF (part of JuRoPA) at Juelich Supercomputing Center (Xeon Cluster)
+#
+# modules:
+# fftw
+#
+COMPILER = intel
+
+F90FLAGS += -g
+
+USE_NETCDF = true
+USE_HDF5 = true 
+
+ifdef FFTW_ROOT
+	USE_FFT = fftw3
+else
+	USE_FFT = mkl_fftw
+endif
+ifdef PGPLOT_DIR
+	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
+endif
+
+include Makefile.$(COMPILER)
+FFT_TEMP_LIB = -L$(USE_FFT)
+ifeq ($(USE_FFT),fftw3)
+	CPPFLAGS   += -I$$FFTW_ROOT/include
+        FFT_LIB = -L$$FFTW_ROOT/lib -lfftw3 
+endif
+ifeq ($(USE_FFT),mkl_fftw)
+	ifdef DBLE
+		FFT_LIB = -L$$MKLPATH -lmkl_intel_lp64 -lmkl_intel_thread -lguide -lmkl_core -L$$MKLPATH/fftw2_double -lfftw2xf_intel
+	else
+		FFT_LIB = -L$$MKLPATH -lmkl_intel_lp64 -lmkl_intel_thread -lguide -lmkl_core -L$$MKLPATH/fftw2_single -lfftw2xf_intel
+	endif
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC=-I/usr/local/netcdf/v4.0.1/include
+	NETCDF_LIB=-L/usr/local/netcdf/v4.0.1/lib -lnetcdf
+endif
+
+ifdef USE_HDF5
+	H5FC_par=/usr/local/hdf5/bin/h5pfc
+	H5CC_par=/usr/local/hdf5/bin/h5cc
+endif

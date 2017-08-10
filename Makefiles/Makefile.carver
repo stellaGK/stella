@@ -1,0 +1,51 @@
+# Host: carver at NERSC (IBM iDataPlex)
+#
+# modules:
+# fftw (version 2)
+# netcdf
+# hdf5-parallel
+#
+
+COMPILER?=pgi
+
+ifdef FFTW_ROOT
+	USE_FFT = fftw
+else
+	override USE_FFT =
+endif
+ifdef NETCDF_DIR
+	USE_NETCDF = on
+else
+	override USE_NETCDF =
+endif
+ifdef HDF5_DIR
+	USE_HDF5 = on
+else
+	override USE_HDF5 =
+endif
+ifdef PGPLOT_DIR
+	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
+endif
+ifeq ($(findstring ipm,$(PROF)),ipm)
+	STATIC=on
+	ifdef IPM
+		IPM_LIB = $(IPM)
+	else
+$(warning IPM module is not loaded)
+	endif
+endif
+
+include Makefile.$(COMPILER)
+
+ifeq ($(USE_FFT),fftw)
+	FFT_INC = -I$$FFTW_INC
+	ifdef DBLE
+		FFT_LIB = -L$$FFTW_LIBDIR -ldfftw -ldrfftw
+	else
+		FFT_LIB = -L$$FFTW_LIBDIR -lsfftw -lsrfftw
+	endif
+endif
+ifeq ($(USE_NETCDF),on)
+	NETCDF_INC = -I$$NETCDF_DIR/include
+	NETCDF_LIB = $$NETCDF
+endif

@@ -1,0 +1,16 @@
+        !COMPILER-GENERATED INTERFACE MODULE: Sun Nov  3 19:30:30 2013
+        MODULE MHDBALLN__genmod
+          INTERFACE 
+            SUBROUTINE MHDBALLN(NTGRID,BETA_PRIME,DIFFSCHEME,IUNSTABLE, &
+     &PSIEND,CFLMAX,CFLMIN,PSI)
+              INTEGER(KIND=4) :: NTGRID
+              REAL(KIND=8) :: BETA_PRIME
+              REAL(KIND=8) :: DIFFSCHEME
+              INTEGER(KIND=4) :: IUNSTABLE
+              REAL(KIND=8) :: PSIEND
+              REAL(KIND=8) :: CFLMAX
+              REAL(KIND=8) :: CFLMIN
+              REAL(KIND=8) :: PSI(-NTGRID:NTGRID)
+            END SUBROUTINE MHDBALLN
+          END INTERFACE 
+        END MODULE MHDBALLN__genmod

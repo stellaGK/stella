@@ -1,0 +1,64 @@
+# Host: helios at IFERC-CSC (Bull B510)
+#// Specifically target the backend processors (gains ~10% decrease in execution time)
+# modules:
+# bullxmpi
+# fftw (version 2.1.5 or 3.3.3 if compiling with USE_FFT=fftw3)
+# netcdf (or netcdf_p if compiling with USE_PARALLEL_NETCDF=on)
+# hdf5_p
+#
+# These module must be loaded at RUN TIME as well 
+# at compile time. EGH
+#
+#
+COMPILER=intel
+CHIP=sandy-bridge
+
+define STANDARD_SYSTEM_CONFIGURATION
+module purge;\
+module load oscar-modules/1.0.3;\
+module load bullxmpi;\
+module load intel;\
+module load netcdf_p/4.2/default;\
+module load hdf5_p;\
+module load fftw/3.3.3/default;\
+module load scalasca;\
+module load papi;\
+module load srun;\
+echo Module configuration complete;\
+export MAKEFLAGS='-j -I Makefiles USE_PARALLEL_NETCDF=on';\
+export TESTEXEC='srun -n 16';
+endef
+
+# This line disables the automated checking
+# of the intel version which is slow and 
+# doesn't work in interactive mode
+DBLESIZEOPT = -double-size 128
+
+#ifdef FFTW_DIR
+	#USE_FFT = fftw
+#endif
+ifdef NETCDF_DIR
+	USE_NETCDF = on
+endif
+ifdef HDF5
+	USE_HDF5 = on
+endif
+ifdef PGPLOT_DIR
+	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR /usr/lib64/libpng.so.3
+endif
+
+include Makefile.$(COMPILER)
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I$$NETCDF_DIR/include
+	NETCDF_LIB = -L$$NETCDF_DIR/lib -lnetcdf -lnetcdff 
+endif
+ifeq ($(USE_FFT), fftw)
+	FFT_INC = -I$(FFTW_DIR)/include
+	FFT_LIB = -L$(FFTW_DIR)/lib -lrfftw -lfftw
+endif
+ifeq ($(USE_FFT), fftw3)
+	FFT_INC = -I$$FFTW_DIR/include
+	FFT_LIB = -L$$FFTW_DIR/lib -lfftw3 -lfftw3_mpi
+endif
+SIMPLEDATAIO_CONF_ARCHIVEONLY=true

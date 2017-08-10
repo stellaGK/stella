@@ -1,0 +1,35 @@
+# Host: helios at IFERC-CSC (Bull B510)
+#// Specifically target the backend processors (gains ~10% decrease in execution time)
+# modules:
+# bullxmpi
+# fftw (version 2.1.5)
+# netcdf
+# hdf5_p
+#
+# These module must be loaded at RUN TIME as well 
+# at compile time. EGH
+#
+#
+COMPILER=intel
+CHIP=sandy-bridge
+
+ifdef FFTW_DIR
+	USE_FFT = fftw
+endif
+ifdef NETCDF_DIR
+	USE_NETCDF = on
+endif
+ifdef HDF5
+	USE_HDF5 = on
+endif
+
+include Makefile.$(COMPILER)
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I$$NETCDF_DIR/include
+	NETCDF_LIB = -L$$NETCDF_DIR/lib -lnetcdf -lnetcdff 
+endif
+ifdef USE_FFT
+	FFT_INC = -I$$FFTW_DIR/include
+	FFT_LIB = -L$$FFTW_DIR/lib -lfftw -lrfftw
+endif

@@ -1,0 +1,83 @@
+# Host: HECToR service UK (Cray XE6) front end
+
+# Modifications for earlier XT4 service:
+# (c) The Numerical Algorithms Group (NAG) Ltd, 2009 on behalf of the HECToR project
+
+
+# for tools we want static linking
+
+system_help:
+		# 
+		# This is a Makefile to build executables for the HECToR frontend.
+		#
+                # You MUST FIRST swap a module from your default environment before running make:
+		#  % module swap xtpe-interlagos xtpe-istanbul 
+		#  % make GK_SYSTEM=hector_fe
+		#  % module swap xtpe-istanbul xtpe-interlagos
+		# NB REMEMBER to swap modules back again, for building for HECToR itself!
+
+STATIC = on
+
+COMPILER=pgi_la
+
+ifdef COMPILER
+      NETCDF_DIR=/home/e122/e122/joachim/netcdf/pkg/netcdf-4.1.1
+      OWN_NETCDF=true
+else 
+      COMPILER=pgi_la
+      NETCDF_DIR=/home/e122/e122/joachim/netcdf/pkg/netcdf-4.1.1
+      OWN_NETCDF=true
+endif
+
+ifdef FFTW_DIR
+	USE_FFT = fftw3
+else
+	override USE_FFT =
+endif
+
+# on Hector switch on netcdf
+ifdef NETCDF_DIR
+	USE_NETCDF = on
+else
+	ifdef CRAY_NETCDF_DIR
+		CRAY_NETCDF = on
+		USE_NETCDF = on
+	else
+		override USE_NETCDF =
+	endif
+endif
+
+
+# include Makefile.XT5
+
+include Makefile.$(COMPILER)
+
+# serial compile: unset USE_MPI
+
+override USE_MPI = 
+
+ifdef USE_MPI
+	MPIFC=ftn
+	MPICC=cc
+endif
+
+FC=ftn
+
+ifeq ($(USE_FFT),fftw)
+	FFT_INC = 
+	ifdef DBLE
+		FFT_LIB = -ldfftw -ldrfftw
+	else
+		FFT_LIB = -lsfftw -lsrfftw
+	endif
+endif
+ifeq ($(USE_FFT),fftw3)	
+        CPPFLAGS   += -I $$FFTW_INC
+        FFT_LIB = -L$(FFTW_DIR) -lfftw3 -lfftw3f
+endif	
+ifdef USE_NETCDF
+  ifdef OWN_NETCDF
+	NETCDF_INC = -I $(NETCDF_DIR)/include/
+	NETCDF_LIB = -L $(NETCDF_DIR)/lib -lnetcdf
+  endif
+endif

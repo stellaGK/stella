@@ -1,0 +1,32 @@
+# Host: helios at IFERC-CSC (Bull B510)
+#   //Use this makefile to create executables which will run on the login nodes
+#   //as well as the backend nodes (at expense of ~10% execution time)
+# modules:
+# bullxmpi
+# fftw (version 2)
+# netcdf
+# hdf5_p
+#
+#
+COMPILER=intel
+
+ifdef FFTW_DIR
+	USE_FFT = fftw
+endif
+ifdef NETCDF_DIR
+	USE_NETCDF = on
+endif
+ifdef HDF5
+	USE_HDF5 = on
+endif
+
+include Makefile.$(COMPILER)
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I$$NETCDF_DIR/include
+	NETCDF_LIB = -L$$NETCDF_DIR/lib -lnetcdf -lnetcdff
+endif
+ifdef USE_FFT
+	FFT_INC = -I$$FFTW_DIR/include
+	FFT_LIB = -L$$FFTW_DIR/lib -lfftw -lrfftw
+endif

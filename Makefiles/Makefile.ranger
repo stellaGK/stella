@@ -1,0 +1,40 @@
+# Host: ranger at TACC (Sun Constellation Linux cluster with opteron)
+
+COMPILER ?= intel
+#COMPILER ?= pgi
+ifdef TACC_FFTW2_DIR
+	USE_FFT = fftw
+else
+	override USE_FFT =
+endif
+ifdef TACC_NETCDF_DIR
+	USE_NETCDF = on
+else
+	override USE_NETCDF =
+endif
+ifdef TACC_HDF5_DIR
+	USE_HDF5 = on
+else
+	override USE_HDF5 =
+endif
+ifdef PGPLOT_DIR
+	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
+endif
+
+include Makefile.$(COMPILER)
+
+ifeq ($(USE_FFT),fftw)
+	FFT_LIB = -L$$TACC_FFTW2_LIB -lrfftw -lfftw
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I$$TACC_NETCDF_INC
+	NETCDF_LIB = -L$$TACC_NETCDF_LIB -lnetcdf
+endif
+ifdef USE_HDF5
+#	H5FC_par = mpif90
+#	H5CC_par = mpicc
+#	HDF5_INC = -I$$TACC_HDF5_INC
+#	HDF5_INC = -I$$TACC_HDF5_LIB
+#	HDF5_LIB = -Wl,-rpath,$$TACC_HDF5_LIB -L$$TACC_HDF5_LIB -lhdf5_fortran -lhdf5 -lz
+endif
