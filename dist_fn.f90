@@ -84,7 +84,7 @@ contains
     use vpamu_grids, only: vpa
     use vpamu_grids, only: anon, integrate_vmu
     use species, only: spec
-    use kt_grids, only: naky, ntheta0, aky
+    use kt_grids, only: naky, ntheta0, aky, akx
 
     implicit none
 
@@ -129,6 +129,9 @@ contains
           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
              if (aky(1) < epsilon(0.)) then
                 do it = 1, ntheta0
+                   ! avoid divide by zero for kx=ky=0 mode,
+                   ! which we do not need anyway
+                   if (abs(akx(it)) < epsilon(0.)) cycle
                    tmp = nine/tite-sum(dl_over_b/gamtot(1,it,:))
                    gamtot3(it,:) = 1./(gamtot(1,it,:)*tmp)
                 end do
@@ -819,6 +822,7 @@ contains
     if (.not.allocated(stream)) allocate (stream(-ntgrid:ntgrid,-nvgrid:nvgrid,nspec)) ; stream = 0.
     if (.not.allocated(stream_sign)) allocate (stream_sign(-nvgrid:nvgrid)) ; stream_sign = 0
 
+    ! sign of stream corresponds to appearing on RHS of GK equation
     stream = -streamknob*code_dt*spread(spread(spec%stm,1,2*ntgrid+1),2,nvpa) &
          * spread(spread(vpa,1,2*ntgrid+1)*spread(gradpar,2,nvpa),3,nspec)
 
@@ -1417,6 +1421,7 @@ contains
     complex, dimension (:), intent (out) :: gleft, gright
 
     ! stream_sign > 0 --> stream speed < 0
+
     if (iseg == 1) then
        ! zero BC for g for theta < theta_min and vpa > 0
        gleft = 0.0

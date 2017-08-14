@@ -281,7 +281,7 @@ contains
     real, intent (in) :: norm!, eps
     real, dimension (:), intent (in) :: wgt
     logical :: error=.false.
-    integer :: n, nh, i
+    integer :: n, nh
     real :: s
 
     n = size(wgt)
@@ -412,6 +412,9 @@ contains
        end do
        stop
     end if
+
+    call check_laguerre_zeros (zero)
+    call check_laguerre_weights (wgt,eps=1.0e-7)
 
     if (error) call mp_abort ('STOP in get_laguerre_grids')
 

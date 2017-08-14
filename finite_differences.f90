@@ -60,17 +60,15 @@ contains
           df(i) = -(2.*f(i-1)+3.*f(i)-6.*f(i+1))/(6.*del)
        else
           i = ulim
-          ! NEED TO CHECK FR(2) VS FR(1) BELOW
-          df(i) = -(2.*f(i-1)+3*f(i)-6.*fr(2)+fr(1))/(6.*del)
+          df(i) = -(2.*f(i-1)+3.*f(i)-6.*fr(1)+fr(2))/(6.*del)
           i = ulim-1
-          df(i) = -(2.*f(i-1)+3*f(i)-6.*f(i+1)+fr(2))/(6.*del)
+          df(i) = -(2.*f(i-1)+3.*f(i)-6.*f(i+1)+fr(1))/(6.*del)
        end if
        if (iseg == 1) then
           i = llim
           df(i) = (f(i+1)-f(i))/del
        else
           i = llim
-          ! NEED TO CHECK FL(2) VS FL(1) BELOW
           df(i) = -(2.*fl(2)+3*f(i)-6.*f(i+1)+f(i+2))/(6.*del)
        end if
        istart = ulim
@@ -83,7 +81,6 @@ contains
           df(i) = (2.*f(i+1)+3.*f(i)-6.*f(i-1))/(6.*del)
        else
           i = llim
-          ! CHECK FL(1) VS FL(2) BELOW
           df(i) = (2.*f(i+1)+3*f(i)-6.*fl(2)+fl(1))/(6.*del)
           i = llim+1
           df(i) = (2.*f(i+1)+3*f(i)-6.*f(i-1)+fl(2))/(6.*del)
@@ -93,7 +90,6 @@ contains
           df(i) = (f(i)-f(i-1))/del
        else
           i = ulim
-          ! CHECK FR(1) VS FR(2) BELOW
           df(i) = (2.*fr(1)+3*f(i)-6.*f(i-1)+f(i-2))/(6.*del)
        end if
        istart = llim

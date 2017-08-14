@@ -14,6 +14,8 @@ module stella_diagnostics
   logical :: write_gvmus
   logical :: write_gzvs
 
+  integer :: stdout_unit
+
   ! arrays needed for averaging in x,y,z
   real, dimension (:), allocatable :: fac
   real, dimension (:), allocatable :: dl_over_b
@@ -73,6 +75,7 @@ contains
     ! note that init_averages needs ntg_out, defined in read_parameters
     call init_averages
     call init_stella_io (write_phi_vs_time, write_gvmus, write_gzvs)
+    call open_loop_ascii_files
     
   end subroutine init_stella_diagnostics
   
@@ -146,6 +149,26 @@ contains
 
   end subroutine init_averages
 
+  subroutine open_loop_ascii_files
+
+    use file_utils, only: open_output_file
+
+    implicit none
+
+    call open_output_file (stdout_unit,'.out')
+
+  end subroutine open_loop_ascii_files
+
+  subroutine close_loop_ascii_files
+    
+    use file_utils, only: close_output_file
+    
+    implicit none
+    
+    call close_output_file (stdout_unit)
+
+  end subroutine close_loop_ascii_files
+
   subroutine diagnose_stella (istep)
 
     use mp, only: proc0
@@ -176,6 +199,7 @@ contains
        call volume_average (apar, apar2)
        write (*,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
             'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
+       call write_loop_ascii_files (istep, phi2, apar2)
     end if
 
     if (proc0) then
@@ -317,7 +341,10 @@ contains
 
     implicit none
 
-    if (proc0) call write_ascii_files
+    if (proc0) then
+       call write_final_ascii_files
+       call close_loop_ascii_files
+    end if
     call finish_stella_io
     call finish_averages
     call deallocate_arrays
@@ -327,7 +354,21 @@ contains
 
   end subroutine finish_stella_diagnostics
 
-  subroutine write_ascii_files
+  subroutine write_loop_ascii_files (istep, phi2, apar2)
+
+    use stella_time, only: code_time
+
+    implicit none
+    
+    integer, intent (in) :: istep
+    real, intent (in) :: phi2, apar2
+
+    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)'), 'istep=', istep, &
+         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
+
+  end subroutine write_loop_ascii_files
+
+  subroutine write_final_ascii_files
 
     use file_utils, only: open_output_file, close_output_file
     use fields_arrays, only: phi, apar
@@ -342,8 +383,10 @@ contains
     integer :: ik, it, ig
 
     call open_output_file (tmpunit,'.final_fields')
-    do it = 1, ntheta0
-       do ik = 1, naky
+    write (tmpunit,'(8a12)') '# theta', 'thet-thet0', 'aky', 'akx', &
+         'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)'
+    do ik = 1, naky
+       do it = 1, ntheta0
           do ig = -ntgrid, ntgrid
              write (tmpunit,'(8e12.4)') theta(ig), theta(ig)-theta0(ik,it), aky(ik), akx(it), &
                   real(phi(ik,it,ig)), aimag(phi(ik,it,ig)), &
@@ -353,8 +396,8 @@ contains
        end do
     end do
     call close_output_file (tmpunit)
-
-  end subroutine write_ascii_files
+    
+  end subroutine write_final_ascii_files
 
   subroutine finish_averages
 
