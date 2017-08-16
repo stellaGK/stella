@@ -129,7 +129,7 @@ contains
   subroutine define_dims
 
     use file_utils, only: num_input_lines
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
     use theta_grid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
@@ -145,7 +145,7 @@ contains
     ! and a variable which is later used to store these sizes in the NetCDF file, e.g. naky_dim, nakx_dim
     status = nf90_def_dim (ncid, 'ky', naky, naky_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='ky')
-    status = nf90_def_dim (ncid, 'kx', ntheta0, nakx_dim)
+    status = nf90_def_dim (ncid, 'kx', nakx, nakx_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='kx')
     status = nf90_def_dim (ncid, 'theta', 2*ntgrid+1, nttot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='theta')
@@ -171,7 +171,7 @@ contains
   subroutine nc_grids
 
     use theta_grid, only: ntgrid, theta
-    use kt_grids, only: naky, ntheta0, theta0, akx, aky
+    use kt_grids, only: naky, nakx, theta0, akx, aky
     use species, only: nspec
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
 !    use nonlinear_terms, only: nonlin
@@ -187,7 +187,7 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nttot_id)
     status = nf90_put_var (ncid, naky_id, naky)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, naky_id)
-    status = nf90_put_var (ncid, nakx_id, ntheta0)
+    status = nf90_put_var (ncid, nakx_id, nakx)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nakx_id)
     status = nf90_put_var (ncid, nspec_id, nspec)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nspec_id)
@@ -212,7 +212,7 @@ contains
 !    if (nonlin) then
 !       nmesh = (2*ntgrid+1)*(2*nvgrid+1)*nmu*nx*ny*nspec
 !    else
-       nmesh = (2*ntgrid+1)*(2*nvgrid+1)*nmu*ntheta0*naky*nspec
+       nmesh = (2*ntgrid+1)*(2*nvgrid+1)*nmu*nakx*naky*nspec
 !    end if
 
     status = nf90_put_var (ncid, nmesh_id, nmesh)
@@ -270,7 +270,7 @@ contains
 
     use mp, only: nproc
     use species, only: nspec
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
     use run_parameters, only: fphi, fapar, fbpar
 # ifdef NETCDF
     use netcdf, only: nf90_char, nf90_int, nf90_global
@@ -633,7 +633,7 @@ contains
        status = nf90_def_var &
             (ncid, 'phi2_by_mode', netcdf_real, mode_dim, phi2_by_mode_id)
        if (status /= nf90_noerr) call netcdf_error (status, var='phi2_by_mode')
-       if (ntheta0 > 1) then
+       if (nakx > 1) then
           status = nf90_def_var &
                (ncid, 'phi2_by_kx', netcdf_real, kx_dim, phi2_by_kx_id)
           if (status /= nf90_noerr) &
@@ -1625,7 +1625,7 @@ contains
 
     use convert, only: c2r
     use theta_grid, only: ntgrid
-    use kt_grids, only: ntheta0, naky
+    use kt_grids, only: nakx, naky
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 # endif
@@ -1644,11 +1644,11 @@ contains
     start(5) = nout
     count(1) = 2
     count(2) = naky
-    count(3) = ntheta0
+    count(3) = nakx
     count(4) = 2*ntgrid+1
     count(5) = 1
 
-    allocate (phi_ri(2, naky, ntheta0, 2*ntgrid+1))
+    allocate (phi_ri(2, naky, nakx, 2*ntgrid+1))
     call c2r (phi, phi_ri)
     status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id)

@@ -14,10 +14,10 @@ module dist_fn_arrays
 
   ! dist fn
   complex, dimension (:,:,:,:), allocatable :: gnew, gold
-  ! (naky, ntheta0, -ntgrid:ntgrid, -gxyz-layout-)
+  ! (naky, nakx, -ntgrid:ntgrid, -gxyz-layout-)
 
   complex, dimension (:,:,:,:), allocatable :: g1, g2
-  ! (naky, ntheta0, -ntgrid:ntgrid, -gxyz-layout-)
+  ! (naky, nakx, -ntgrid:ntgrid, -gxyz-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (-nvgrid:nvgrid, nmu, nspec, -gvmu-layout-)
@@ -26,7 +26,7 @@ module dist_fn_arrays
   ! (-ntgrid:ntgrid, -gxyz-layout-)
 
   real, dimension (:,:,:,:), allocatable :: aj0x
-  ! (naky, ntheta0, -ntgrid:ntgrid, -gxyz-layout-)
+  ! (naky, nakx, -ntgrid:ntgrid, -gxyz-layout-)
 
   real, dimension (:,:), allocatable :: aj0v
   ! (nmu, -gvmus-layout-)
@@ -47,14 +47,14 @@ contains
     use vpamu_grids, only: anon, vpa
     use stella_layouts, only: gxyz_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
 
     implicit none
     complex, dimension (:,:,-ntgrid:,gxyz_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-ntgrid:), intent (in) :: phi, apar
     real, intent (in) :: facphi, facapar
 
-    integer :: ixyz, ig, ik, it, is, imu, iv
+    integer :: ixyz, ig, iky, ikx, is, imu, iv
     complex :: adj
 
     do ixyz = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
@@ -62,11 +62,11 @@ contains
        imu = imu_idx(gxyz_lo,ixyz)
        is = is_idx(gxyz_lo,ixyz)
        do ig = -ntgrid, ntgrid
-          do it = 1, ntheta0
-             do ik = 1, naky
-                adj = aj0x(ik,it,ig,ixyz)*spec(is)%zt*anon(ig,iv,imu) &
-                     * ( facphi*phi(ik,it,ig) - facapar*vpa(iv)*spec(is)%stm*apar(ik,it,ig) )
-                g(ik,it,ig,ixyz) = g(ik,it,ig,ixyz) + adj
+          do ikx = 1, nakx
+             do iky = 1, naky
+                adj = aj0x(iky,ikx,ig,ixyz)*spec(is)%zt*anon(ig,iv,imu) &
+                     * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
+                g(iky,ikx,ig,ixyz) = g(iky,ikx,ig,ixyz) + adj
              end do
           end do
        end do
@@ -80,25 +80,25 @@ contains
     use vpamu_grids, only: anon, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: gvmu_lo
-    use stella_layouts, only: ik_idx, it_idx, ig_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, ig_idx, is_idx
 
     implicit none
     complex, dimension (-nvgrid:,:,gvmu_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-ntgrid:), intent (in) :: phi, apar
     real, intent (in) :: facphi, facapar
 
-    integer :: ivmu, ig, ik, it, is, imu, iv
+    integer :: ivmu, ig, iky, ikx, is, imu, iv
     complex :: adj
 
     do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
        ig = ig_idx(gvmu_lo,ivmu)
-       it = it_idx(gvmu_lo,ivmu)
-       ik = ik_idx(gvmu_lo,ivmu)
+       ikx = ikx_idx(gvmu_lo,ivmu)
+       iky = iky_idx(gvmu_lo,ivmu)
        is = is_idx(gvmu_lo,ivmu)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              adj = aj0v(imu,ivmu)*spec(is)%zt*anon(ig,iv,imu) &
-                  * ( facphi*phi(ik,it,ig) - facapar*vpa(iv)*spec(is)%stm*apar(ik,it,ig) )
+                  * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
              g(iv,imu,ivmu) = g(iv,imu,ivmu) + adj
           end do
        end do

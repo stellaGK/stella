@@ -114,14 +114,14 @@ contains
   subroutine allocate_arrays
 
     use species, only: nspec
-    use kt_grids, only: ntheta0, naky
+    use kt_grids, only: nakx, naky
 
     implicit none
 
-    if (.not.allocated(pflux)) allocate(pflux (ntheta0,naky,nspec)) ; pflux = 0.
-    if (.not.allocated(qflux)) allocate(qflux (ntheta0,naky,nspec)) ; qflux = 0.
-    if (.not.allocated(vflux)) allocate(vflux (ntheta0,naky,nspec)) ; vflux = 0.
-    if (.not.allocated(exchange)) allocate(exchange (ntheta0,naky,nspec)) ; exchange = 0.
+    if (.not.allocated(pflux)) allocate(pflux (nakx,naky,nspec)) ; pflux = 0.
+    if (.not.allocated(qflux)) allocate(qflux (nakx,naky,nspec)) ; qflux = 0.
+    if (.not.allocated(vflux)) allocate(vflux (nakx,naky,nspec)) ; vflux = 0.
+    if (.not.allocated(exchange)) allocate(exchange (nakx,naky,nspec)) ; exchange = 0.
     if (.not.allocated(pflux_avg)) allocate(pflux_avg(nspec)) ; pflux_avg = 0.
     if (.not.allocated(qflux_avg)) allocate(qflux_avg(nspec)) ; qflux_avg = 0.
     if (.not.allocated(vflux_avg)) allocate(vflux_avg(nspec)) ; vflux_avg = 0.
@@ -132,7 +132,7 @@ contains
   subroutine init_averages
 
     use theta_grid, only: delthet, jacob
-    use kt_grids, only: aky, naky
+    use kt_grids, only: akx, nakx
 
     implicit none
 
@@ -143,8 +143,8 @@ contains
     end if
 
     if (.not.allocated(fac)) then
-       allocate (fac(naky)) ; fac = 2.0
-       if (aky(1)<epsilon(0.)) fac(1) = 1.0
+       allocate (fac(nakx)) ; fac = 2.0
+       if (akx(1)<epsilon(0.)) fac(1) = 1.0
     end if
 
   end subroutine init_averages
@@ -235,20 +235,20 @@ contains
   subroutine volume_average (unavg, avg)
 
     use theta_grid, only: ntgrid
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
 
     implicit none
 
     complex, dimension (:,:,-ntgrid:), intent (in) :: unavg
     real, intent (out) :: avg
 
-    integer :: ik, it, ig
+    integer :: iky, ikx, ig
 
     avg = 0.
     do ig = -ntgrid, ntgrid
-       do it = 1, ntheta0
-          do ik = 1, naky
-             avg = avg + real(unavg(ik,it,ig)*conjg(unavg(ik,it,ig)))*fac(ik)*dl_over_b(ig)
+       do ikx = 1, nakx
+          do iky = 1, naky
+             avg = avg + real(unavg(iky,ikx,ig)*conjg(unavg(iky,ikx,ig)))*fac(ikx)*dl_over_b(ig)
           end do
        end do
     end do
@@ -261,7 +261,7 @@ contains
 
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: gvmu_lo
-    use stella_layouts, only: is_idx, ik_idx, ig_idx
+    use stella_layouts, only: is_idx, ikx_idx, ig_idx
     use vpamu_grids, only: nvgrid, nmu
 
     implicit none
@@ -269,21 +269,21 @@ contains
     complex, dimension (-nvgrid:,:,gvmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gv
 
-    integer :: ivmu, iv, is, imu, ig, ik, ivp
+    integer :: ivmu, iv, is, imu, ig, ikx, ivp
 
     ! when doing volume averages, note the following:
-    ! int dxdy g(x,y)^2 = sum_kx |g(kx,ky=0)|^2 + 2 * sum_{kx,ky} |g(kx,ky>0)|^2
+    ! int dxdy g(x,y)^2 = sum_kx |g(kx=0,ky)|^2 + 2 * sum_{kx,ky} |g(kx>0,ky)|^2
     ! factor of 2 accounted for in fac
 
     gv = 0.
     do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
        is = is_idx(gvmu_lo,ivmu)
-       ik = ik_idx(gvmu_lo,ivmu)
+       ikx = ikx_idx(gvmu_lo,ivmu)
        ig = ig_idx(gvmu_lo,ivmu)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              ivp = iv+nvgrid+1
-             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ivmu)*conjg(g(iv,imu,ivmu)))*fac(ik)*dl_over_b(ig)
+             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ivmu)*conjg(g(iv,imu,ivmu)))*fac(ikx)*dl_over_b(ig)
           end do
        end do
     end do
@@ -299,14 +299,14 @@ contains
     use theta_grid, only: ntgrid
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_mu
-    use kt_grids, only: ntheta0, naky
+    use kt_grids, only: nakx, naky
 
     implicit none
 
     complex, dimension (:,:,-ntgrid:,gxyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gz
 
-    integer :: ixyz, ig, it, ik, igp
+    integer :: ixyz, ig, ikx, iky, igp
 
     real, dimension (:,:), allocatable :: gtmp
 
@@ -318,9 +318,9 @@ contains
 
     gtmp = 0.
     do ixyz = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-       do it = 1, ntheta0
-          do ik = 1, naky
-             gtmp(:,ixyz) = gtmp(:,ixyz) + real(g(ik,it,:,ixyz)*conjg(g(ik,it,:,ixyz)))*fac(ik)
+       do ikx = 1, nakx
+          do iky = 1, naky
+             gtmp(:,ixyz) = gtmp(:,ixyz) + real(g(iky,ikx,:,ixyz)*conjg(g(iky,ikx,:,ixyz)))*fac(ikx)
           end do
        end do
     end do
@@ -374,23 +374,23 @@ contains
     use fields_arrays, only: phi, apar
     use theta_grid, only: ntgrid
     use theta_grid, only: theta
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
 
     implicit none
 
     integer :: tmpunit
-    integer :: ik, it, ig
+    integer :: iky, ikx, ig
 
     call open_output_file (tmpunit,'.final_fields')
     write (tmpunit,'(8a12)') '# theta', 'thet-thet0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)'
-    do ik = 1, naky
-       do it = 1, ntheta0
+    do iky = 1, naky
+       do ikx = 1, nakx
           do ig = -ntgrid, ntgrid
-             write (tmpunit,'(8e12.4)') theta(ig), theta(ig)-theta0(ik,it), aky(ik), akx(it), &
-                  real(phi(ik,it,ig)), aimag(phi(ik,it,ig)), &
-                  real(apar(ik,it,ig)), aimag(apar(ik,it,ig))
+             write (tmpunit,'(8e12.4)') theta(ig), theta(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
+                  real(phi(iky,ikx,ig)), aimag(phi(iky,ikx,ig)), &
+                  real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig))
           end do
           write (tmpunit,*)
        end do

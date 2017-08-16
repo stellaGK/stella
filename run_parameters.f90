@@ -43,7 +43,7 @@ contains
 
   subroutine init_run_parameters
 
-    use kt_grids, only: init_kt_grids, naky, nakx => ntheta0
+    use kt_grids, only: init_kt_grids, naky, nakx
     use stella_time, only: init_delt
     
     implicit none

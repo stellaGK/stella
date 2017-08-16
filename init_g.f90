@@ -28,10 +28,6 @@ module init_g
   character(300), public :: restart_file
   character (len=150) :: restart_dir
 
-  !>  This is used  in linear runs with flow shear  in order to track the
-  !! evolution of a single Lagrangian mode.
-  integer :: ikx_init
-
   logical :: debug = .false.
   logical :: initialized = .false.
   logical :: exist
@@ -144,8 +140,7 @@ contains
          restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
          den0, upar0, tpar0, tperp0, imfac, refac, even, &
          den1, upar1, tpar1, tperp1, &
-         den2, upar2, tpar2, tperp2, &
-         ikx_init
+         den2, upar2, tpar2, tperp2
 
     integer :: ierr, in_file
 
@@ -189,48 +184,51 @@ contains
 
     use species, only: spec
     use theta_grid, only: ntgrid, theta, bmag
-    use kt_grids, only: naky, ntheta0, theta0, aky, reality
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: theta0, aky
+    use kt_grids, only: reality
     use vpamu_grids, only: nvpa, vpa, mu, nmu
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: gvmu_lo, ig_idx, it_idx, ik_idx, is_idx
+    use stella_layouts, only: gvmu_lo, ig_idx, ikx_idx, iky_idx, is_idx
 
     implicit none
 
-    complex, dimension (naky,ntheta0,-ntgrid:ntgrid) :: phi
+    complex, dimension (naky,nakx,-ntgrid:ntgrid) :: phi
     logical :: right
     integer :: ivmu
-    integer :: ig, ik, it, is
+    integer :: ig, iky, ikx, is
 
     right = .not. left
 
     do ig = -ntgrid, ntgrid
-       phi(:,:,ig) = exp(-((theta(ig)-theta0(:,:))/width0)**2)*cmplx(1.0,1.0)
+       phi(:,:,ig) = exp(-((theta(ig)-theta0)/width0)**2)*cmplx(1.0,1.0)
+       ! necessary to match similar initial condition from
+       ! codes with kx +/- and ky >= 0
+       phi(naky/2+2,:,ig) = conjg(phi(naky/2+2,:,ig))
     end do
+
     if (chop_side .and. left) phi(:,:,:-1) = 0.0
     if (chop_side .and. right) phi(:,:,1:) = 0.0
     
     if (reality) then
        phi(1,1,:) = 0.0
 
-       if (naky > 1 .and. aky(1) < epsilon(0.0)) then
+       if (naky > 1 .and. abs(aky(1)) < epsilon(0.0)) then
           phi(1,:,:) = 0.0
        end if
 
-! not used:
-! reality condition for k_theta = 0 component:
-       do it = 1, ntheta0/2
-          phi(1,it+(ntheta0+1)/2,:) = conjg(phi(1,(ntheta0+1)/2+1-it,:))
+       ! reality condition for k_x = 0 component:
+       do iky = naky/2+2, naky
+          phi(iky,1,:) = conjg(phi(naky-iky+2,1,:))
        enddo
     end if
 
     do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
        ig = ig_idx(gvmu_lo,ivmu)
-       it = it_idx(gvmu_lo,ivmu)
-       ik = ik_idx(gvmu_lo,ivmu)
+       ikx = ikx_idx(gvmu_lo,ivmu)
+       iky = iky_idx(gvmu_lo,ivmu)
        is = is_idx(gvmu_lo,ivmu)
-!          gnew(:,it,:,ivmu) = spread(exp(-2.0*mu(imu)*bmag),2,naky)**phi(:,it,:) &
-       gvmu(:,:,ivmu) = spread(exp(-2.0*mu*bmag(ig)),1,nvpa)*phi(ik,it,ig) &
-!       gvmu(:,:,ivmu) = phi(ik,it,ig) &
+       gvmu(:,:,ivmu) = spread(exp(-2.0*mu*bmag(ig)),1,nvpa)*phi(iky,ikx,ig) &
             *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
     end do
 
@@ -429,25 +427,25 @@ contains
 
 !    use species, only: spec, has_electron_species
     use theta_grid, only: ntgrid, theta
-    use kt_grids, only: naky, ntheta0, theta0
+    use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2, anon
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: gvmu_lo, ik_idx, it_idx, ig_idx
+    use stella_layouts, only: gvmu_lo, iky_idx, ikx_idx, ig_idx
     use constants, only: zi
 
     implicit none
 
-    complex, dimension (naky,ntheta0,-ntgrid:ntgrid) :: phi, odd
+    complex, dimension (naky,nakx,-ntgrid:ntgrid) :: phi, odd
     real, dimension (-ntgrid:ntgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ivmu
-    integer :: ig, ik, it, imu, iv
+    integer :: ig, iky, ikx, imu, iv
     
     phi = 0.
     odd = 0.
     if (width0 > 0.) then
        do ig = -ntgrid, ntgrid
-          phi(:,:,ig) = exp(-((theta(ig)-theta0(:,:))/width0)**2)*cmplx(refac, imfac)
+          phi(:,:,ig) = exp(-((theta(ig)-theta0)/width0)**2)*cmplx(refac, imfac)
        end do
     else
        do ig = -ntgrid, ntgrid
@@ -463,24 +461,24 @@ contains
     end if
     
     odd = zi * phi
-        
+    
     dfac     = den0   + den1 * cos(theta) + den2 * cos(2.*theta) 
     ufac     = upar0  + upar1* sin(theta) + upar2* sin(2.*theta) 
     tparfac  = tpar0  + tpar1* cos(theta) + tpar2* cos(2.*theta) 
     tperpfac = tperp0 + tperp1*cos(theta) + tperp2*cos(2.*theta) 
-
-! charge dependence keeps initial Phi from being too small
+    
+    ! charge dependence keeps initial Phi from being too small
     do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
-       ik = ik_idx(gvmu_lo,ivmu)
-       it = it_idx(gvmu_lo,ivmu)
+       iky = iky_idx(gvmu_lo,ivmu)
+       ikx = ikx_idx(gvmu_lo,ivmu)
        ig = ig_idx(gvmu_lo,ivmu)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              gvmu(iv,imu,ivmu) = phiinit*anon(ig,iv,imu) &
-                  * ( dfac(ig)*phi(ik,it,ig) &
-                  + 2.0*vpa(iv)*ufac(ig)*odd(ik,it,ig) &
-                  + (vpa(iv)**2-0.5)*tparfac(ig)*phi(ik,it,ig) &
-                  + tperpfac(ig)*(vperp2(ig,imu)-1.)*phi(ik,it,ig) )
+                  * ( dfac(ig)*phi(iky,ikx,ig) &
+                  + 2.0*vpa(iv)*ufac(ig)*odd(iky,ikx,ig) &
+                  + (vpa(iv)**2-0.5)*tparfac(ig)*phi(iky,ikx,ig) &
+                  + tperpfac(ig)*(vperp2(ig,imu)-1.)*phi(iky,ikx,ig) )
           end do
        end do
     end do

@@ -64,7 +64,7 @@ contains
 
 # ifdef NETCDF
     use fields_arrays, only: phi, apar
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
 # else
     use mp, only: proc0
 # endif    
@@ -223,7 +223,7 @@ contains
              goto 1
           end if
           
-          istatus = nf90_def_dim (ncid, "akx", ntheta0, kxid)
+          istatus = nf90_def_dim (ncid, "akx", nakx, kxid)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
              write(ierr,*) "nf90_def_dim akx error: ", nf90_strerror(istatus)
@@ -419,8 +419,8 @@ contains
        if(save_many .or. iproc == 0) then
 # endif
 
-          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,ntheta0,2*ntgrid+1))
-          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,ntheta0,2*ntgrid+1))
+          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*ntgrid+1))
+          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*ntgrid+1))
           
           if (fphi > epsilon(0.)) then
              ftmpr = real(phi)
@@ -481,7 +481,7 @@ contains
 # ifdef NETCDF
     use mp, only: iproc
     use fields_arrays, only: phi, apar
-    use kt_grids, only: naky, ntheta0
+    use kt_grids, only: naky, nakx
 # endif
     use theta_grid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
@@ -552,7 +552,7 @@ contains
        
        istatus = nf90_inquire_dimension (ncid, kxid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=kxid)
-       if (i /= ntheta0) write(*,*) 'Restart error: ntheta0=? ',i,' : ',ntheta0,' : ',iproc
+       if (i /= nakx) write(*,*) 'Restart error: nakx=? ',i,' : ',nakx,' : ',iproc
        
        istatus = nf90_inquire_dimension (ncid, gloid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=gloid)
@@ -636,8 +636,8 @@ contains
 
     g = cmplx(tmpr, tmpi)
     
-    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,ntheta0,2*ntgrid+1))
-    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,ntheta0,2*ntgrid+1))
+    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*ntgrid+1))
+    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*ntgrid+1))
 
 !    if (allocated(kx_shift)) then   ! MR begin
 !       if (.not. allocated(stmp)) allocate (stmp(naky))   ! MR 

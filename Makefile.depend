@@ -177,6 +177,7 @@ hdf_wrapper.o: \
 ideq.o: \
 	 spl.o 
 init_g.o: \
+	 constants.o \
 	 dist_fn_arrays.o \
 	 file_utils.o \
 	 kt_grids.o \
@@ -211,20 +212,6 @@ mt19937.o:
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
-nonlinear_terms.o: \
-	 constants.o \
-	 dist_fn_arrays.o \
-	 fields_arrays.o \
-	 file_utils.o \
-	 geometry.o \
-	 kt_grids.o \
-	 mp.o \
-	 run_parameters.o \
-	 species.o \
-	 stella_layouts.o \
-	 text_options.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
 peq.o: \
 	 constants.o \
 	 netcdf_utils.o \
