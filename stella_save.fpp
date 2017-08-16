@@ -70,16 +70,16 @@ contains
 # endif    
     use mp, only: iproc, barrier
     use theta_grid, only: ntgrid
-    ! Must include gvmus_layout_type here to avoid obscure bomb while compiling
+    ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
-    use stella_layouts, only: gvmu_lo, layout
-    use layouts_type, only: gvmu_layout_type
+    use stella_layouts, only: kxkyz_lo, layout
+    use layouts_type, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvgrid, nmu
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,gvmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, intent (in) :: t0, delt0
     real, intent (in) :: fphi, fapar
     integer, intent (out) :: istatus
@@ -111,8 +111,8 @@ contains
 !      call system("echo 'start' >> filelist.txt; ls nc/* >> filelist.txt;  ")
 !    end if
 
-    n_elements = gvmu_lo%ulim_proc-gvmu_lo%llim_proc+1
-    total_elements = gvmu_lo%ulim_world+1
+    n_elements = kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1
+    total_elements = kxkyz_lo%ulim_world+1
 
     if (n_elements <= 0) return
 
@@ -380,7 +380,7 @@ contains
     if (n_elements > 0) then
 
        if (.not. allocated(tmpr)) &
-            allocate (tmpr(2*nvgrid+1,nmu,gvmu_lo%llim_proc:gvmu_lo%ulim_alloc))
+            allocate (tmpr(2*nvgrid+1,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        
        tmpr = real(g)
 
@@ -393,7 +393,7 @@ contains
           istatus = nf90_var_par_access(ncid, gr_id, NF90_COLLECTIVE)
           istatus = nf90_var_par_access(ncid, gi_id, NF90_COLLECTIVE)
 
-          start_pos = (/1,1,gvmu_lo%llim_proc+1/)
+          start_pos = (/1,1,kxkyz_lo%llim_proc+1/)
           counts = (/2*nvgrid+1, nmu, n_elements/)
 
           istatus = nf90_put_var (ncid, gr_id, tmpr, start=start_pos, count=counts)
@@ -485,13 +485,13 @@ contains
 # endif
     use theta_grid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
-    use stella_layouts, only: gvmu_lo
+    use stella_layouts, only: kxkyz_lo
     use file_utils, only: error_unit
     use species, only: nspec
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,gvmu_lo%llim_proc:), intent (out) :: g
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (out) :: g
     real, intent (in) :: scale
     integer, intent (out) :: istatus
     real, intent (in) :: fphi, fapar
@@ -504,7 +504,7 @@ contains
     integer :: i, n_elements, ierr
     real :: fac
     
-    n_elements = gvmu_lo%ulim_proc-gvmu_lo%llim_proc+1
+    n_elements = kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1
     if (n_elements <= 0) return
     
     if (.not.initialized) then
@@ -559,10 +559,10 @@ contains
 #ifdef NETCDF_PARALLEL       
        if(read_many) then
 #endif
-          if (i /= gvmu_lo%ulim_proc-gvmu_lo%llim_proc+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
+          if (i /= kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
 #ifdef NETCDF_PARALLEL
        else
-          if (i /= gvmu_lo%ulim_world+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
+          if (i /= kxkyz_lo%ulim_world+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
        endif
 #endif
        
@@ -603,9 +603,9 @@ contains
     end if
     
     if (.not. allocated(tmpr)) &
-         allocate (tmpr(2*nvgrid+1,nmu,gvmu_lo%llim_proc:gvmu_lo%ulim_alloc))
+         allocate (tmpr(2*nvgrid+1,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     if (.not. allocated(tmpi)) &
-         allocate (tmpi(2*nvgrid+1,nmu,gvmu_lo%llim_proc:gvmu_lo%ulim_alloc))
+         allocate (tmpi(2*nvgrid+1,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
     tmpr = 0.; tmpi = 0.
 # ifdef NETCDF_PARALLEL
@@ -614,7 +614,7 @@ contains
        istatus = nf90_get_var (ncid, gr_id, tmpr)
 #ifdef NETCDF_PARALLEL
     else
-       start_pos = (/1,1,gvmu_lo%llim_proc+1/)
+       start_pos = (/1,1,kxkyz_lo%llim_proc+1/)
        counts = (/2*nvgrid+1, nmu, n_elements/)
        istatus = nf90_get_var (ncid, gr_id, tmpr, start=start_pos, count=counts)
     end if

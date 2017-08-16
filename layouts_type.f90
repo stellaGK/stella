@@ -4,12 +4,12 @@ module layouts_type
 
   implicit none
 
-  type :: gvmu_layout_type
+  type :: kxkyz_layout_type
      sequence
      integer :: iproc
      integer :: ntgrid, ntheta, naky, nakx, nvgrid, nvpa, nmu, nspec
      integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
-  end type gvmu_layout_type
+  end type kxkyz_layout_type
 
   type :: gy_layout_type
      sequence
@@ -21,12 +21,12 @@ module layouts_type
      integer, dimension (5) :: compound_count
   end type gy_layout_type
 
-  type :: gxyz_layout_type
+  type :: vmu_layout_type
      sequence
      logical :: xyz
      integer :: iproc
      integer :: ntgrid, ntheta, naky, nakx, nvgrid, nvpa, nmu, nspec
      integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
-  end type gxyz_layout_type
+  end type vmu_layout_type
 
 end module layouts_type

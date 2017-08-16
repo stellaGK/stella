@@ -25,7 +25,7 @@ module vpamu_grids
   real, dimension (:,:,:), allocatable :: energy, anon
 
   interface integrate_species
-     module procedure integrate_species_gxyz
+     module procedure integrate_species_vmu
      module procedure integrate_species_local_complex
      module procedure integrate_species_local_real
   end interface
@@ -161,25 +161,25 @@ contains
   subroutine integrate_mu_nonlocal (ig, g, total)
 
     use mp, only: nproc, sum_reduce
-    use stella_layouts, only: gxyz_lo
+    use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, imu_idx, iv_idx
     use theta_grid, only: bmag
 
     implicit none
 
     integer, intent (in) :: ig
-    real, dimension (gxyz_lo%llim_proc:), intent (in) :: g
+    real, dimension (vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:), intent (out) :: total
 
-    integer :: is, imu, iv, ixyz
+    integer :: is, imu, iv, ivmu
 
     total = 0.
     
-    do ixyz = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-       is = is_idx(gxyz_lo,ixyz)
-       imu = imu_idx(gxyz_lo,ixyz)
-       iv = iv_idx(gxyz_lo,ixyz) + nvgrid+1
-       total(iv,is) = total(iv,is) + wgts_mu(imu)*bmag(ig)*g(ixyz)
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       is = is_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu) + nvgrid+1
+       total(iv,is) = total(iv,is) + wgts_mu(imu)*bmag(ig)*g(ivmu)
     end do
 
     if (nproc > 1) call sum_reduce (total,0)
@@ -283,35 +283,35 @@ contains
   end subroutine integrate_species_local_complex
 
   ! integrave over v-space and sum over species
-  subroutine integrate_species_gxyz (g, weights, total)
+  subroutine integrate_species_vmu (g, weights, total)
 
     use mp, only: sum_allreduce
-    use stella_layouts, only: gxyz_lo, iv_idx, imu_idx, is_idx
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use theta_grid, only: ntgrid, bmag
 
     implicit none
 
-    integer :: iglo, iv, ig, is, imu
+    integer :: ivmu, iv, ig, is, imu
 
-    complex, dimension (-ntgrid:,:,:,gxyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (-ntgrid:,:,:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
     complex, dimension (-ntgrid:,:,:), intent (out) :: total
 
     total = 0.
 
-    do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-       iv = iv_idx(gxyz_lo,iglo)
-       imu = imu_idx(gxyz_lo,iglo)
-       is = is_idx(gxyz_lo,iglo)
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
        do ig = -ntgrid, ntgrid
           total(ig,:,:) = total(ig,:,:) + &
-               wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(ig,:,:,iglo)*weights(is)
+               wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(ig,:,:,ivmu)*weights(is)
        end do
     end do
 
     call sum_allreduce (total)
 
-  end subroutine integrate_species_gxyz
+  end subroutine integrate_species_vmu
 
   subroutine finish_vpa_grid
 

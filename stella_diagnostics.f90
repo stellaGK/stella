@@ -260,30 +260,30 @@ contains
   subroutine get_gvmus (g, gv)
 
     use mp, only: nproc, sum_reduce
-    use stella_layouts, only: gvmu_lo
+    use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: is_idx, ikx_idx, ig_idx
     use vpamu_grids, only: nvgrid, nmu
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,gvmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gv
 
-    integer :: ivmu, iv, is, imu, ig, ikx, ivp
+    integer :: ikxkyz, iv, is, imu, ig, ikx, ivp
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_kx |g(kx=0,ky)|^2 + 2 * sum_{kx,ky} |g(kx>0,ky)|^2
     ! factor of 2 accounted for in fac
 
     gv = 0.
-    do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
-       is = is_idx(gvmu_lo,ivmu)
-       ikx = ikx_idx(gvmu_lo,ivmu)
-       ig = ig_idx(gvmu_lo,ivmu)
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       is = is_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       ig = ig_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              ivp = iv+nvgrid+1
-             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ivmu)*conjg(g(iv,imu,ivmu)))*fac(ikx)*dl_over_b(ig)
+             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(ikx)*dl_over_b(ig)
           end do
        end do
     end do
@@ -295,7 +295,7 @@ contains
   ! get_gzvs takes g(kx,ky,theta,vpa,mu,s) and returns int dmudxdy g(x,y,theta,vpa,mu,s)^2
   subroutine get_gzvs (g, gz)
 
-    use stella_layouts, only: gxyz_lo
+    use stella_layouts, only: vmu_lo
     use theta_grid, only: ntgrid
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_mu
@@ -303,24 +303,24 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,gxyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gz
 
-    integer :: ixyz, ig, ikx, iky, igp
+    integer :: ivmu, ig, ikx, iky, igp
 
     real, dimension (:,:), allocatable :: gtmp
 
-    allocate (gtmp(-ntgrid:ntgrid,gxyz_lo%llim_proc:gxyz_lo%ulim_alloc))
+    allocate (gtmp(-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_kx |g(kx,ky=0)|^2 + 2 * sum_{kx,ky} |g(kx,ky>0)|^2
     ! factor of 2 accounted for in fac
 
     gtmp = 0.
-    do ixyz = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do ikx = 1, nakx
           do iky = 1, naky
-             gtmp(:,ixyz) = gtmp(:,ixyz) + real(g(iky,ikx,:,ixyz)*conjg(g(iky,ikx,:,ixyz)))*fac(ikx)
+             gtmp(:,ivmu) = gtmp(:,ivmu) + real(g(iky,ikx,:,ivmu)*conjg(g(iky,ikx,:,ivmu)))*fac(ikx)
           end do
        end do
     end do

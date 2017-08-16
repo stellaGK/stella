@@ -270,7 +270,7 @@ module kt_grids
   public :: gridopt_switch, grid_option
   public :: gridopt_range, gridopt_box
   public :: lx, ly
-  public :: alpha_local
+  public :: alpha_global
 
   private
 
@@ -279,9 +279,9 @@ module kt_grids
   real, dimension (:), allocatable :: aky, akx
   integer :: naky, nakx, ntheta0, nx, ny, jtwist_out
   character(20) :: grid_option
-  logical :: alpha_local
+  logical :: alpha_global
 
-  namelist /kt_grids_knobs/ grid_option, alpha_local
+  namelist /kt_grids_knobs/ grid_option, alpha_global
 
   ! internal variables
   integer :: gridopt_switch
@@ -321,7 +321,7 @@ contains
     call broadcast (ntheta0)
     call broadcast (ny)
     call broadcast (nx)
-    call broadcast (alpha_local)
+    call broadcast (alpha_global)
     call allocate_arrays
 
     if (proc0) call get_grids
@@ -352,7 +352,7 @@ contains
             text_option('nonlinear', gridopt_box) /)
     integer :: ierr, in_file
 
-    alpha_local = .true.
+    alpha_global = .false.
     grid_option = 'default'
 
     in_file = input_unit_exist ("kt_grids_knobs", nml_exist)

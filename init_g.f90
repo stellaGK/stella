@@ -189,13 +189,13 @@ contains
     use kt_grids, only: reality
     use vpamu_grids, only: nvpa, vpa, mu, nmu
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: gvmu_lo, ig_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, only: kxkyz_lo, ig_idx, ikx_idx, iky_idx, is_idx
 
     implicit none
 
     complex, dimension (naky,nakx,-ntgrid:ntgrid) :: phi
     logical :: right
-    integer :: ivmu
+    integer :: ikxkyz
     integer :: ig, iky, ikx, is
 
     right = .not. left
@@ -223,12 +223,12 @@ contains
        enddo
     end if
 
-    do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
-       ig = ig_idx(gvmu_lo,ivmu)
-       ikx = ikx_idx(gvmu_lo,ivmu)
-       iky = iky_idx(gvmu_lo,ivmu)
-       is = is_idx(gvmu_lo,ivmu)
-       gvmu(:,:,ivmu) = spread(exp(-2.0*mu*bmag(ig)),1,nvpa)*phi(iky,ikx,ig) &
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       ig = ig_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(ig)),1,nvpa)*phi(iky,ikx,ig) &
             *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
     end do
 
@@ -431,14 +431,14 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2, anon
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: gvmu_lo, iky_idx, ikx_idx, ig_idx
+    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, ig_idx
     use constants, only: zi
 
     implicit none
 
     complex, dimension (naky,nakx,-ntgrid:ntgrid) :: phi, odd
     real, dimension (-ntgrid:ntgrid) :: dfac, ufac, tparfac, tperpfac
-    integer :: ivmu
+    integer :: ikxkyz
     integer :: ig, iky, ikx, imu, iv
     
     phi = 0.
@@ -468,13 +468,13 @@ contains
     tperpfac = tperp0 + tperp1*cos(theta) + tperp2*cos(2.*theta) 
     
     ! charge dependence keeps initial Phi from being too small
-    do ivmu = gvmu_lo%llim_proc, gvmu_lo%ulim_proc
-       iky = iky_idx(gvmu_lo,ivmu)
-       ikx = ikx_idx(gvmu_lo,ivmu)
-       ig = ig_idx(gvmu_lo,ivmu)
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       ig = ig_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             gvmu(iv,imu,ivmu) = phiinit*anon(ig,iv,imu) &
+             gvmu(iv,imu,ikxkyz) = phiinit*anon(ig,iv,imu) &
                   * ( dfac(ig)*phi(iky,ikx,ig) &
                   + 2.0*vpa(iv)*ufac(ig)*odd(iky,ikx,ig) &
                   + (vpa(iv)**2-0.5)*tparfac(ig)*phi(iky,ikx,ig) &
