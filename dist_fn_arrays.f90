@@ -22,8 +22,11 @@ module dist_fn_arrays
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (-nvgrid:nvgrid, nmu, nspec, -kxkyz-layout-)
 
-  real, dimension (:,:), allocatable :: wstar, wdriftx, wdrifty
+  real, dimension (:,:), allocatable :: wstar
   ! (-ntgrid:ntgrid, -vmu-layout-)
+
+  real, dimension (:,:,:), allocatable :: wdriftx, wdrifty
+  ! (ny_ffs, -ntgrid:ntgrid, -vmu-layout-)
 
   real, dimension (:,:,:,:), allocatable :: aj0x
   ! (naky, nakx, -ntgrid:ntgrid, -vmu-layout-)

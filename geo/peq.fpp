@@ -361,7 +361,7 @@ contains
     integer, intent(out) :: nthg
 !    integer :: initeq, nthg
 !    real :: psi_0_out, psi_a_out, rmaj, B_T0, avgrmid, d, R_geo
-    real :: d, R_geo
+    real :: R_geo
 !    logical :: in_nt
     logical, intent(in) :: in_nt
 

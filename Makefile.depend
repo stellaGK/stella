@@ -47,6 +47,7 @@ stella_mod = \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 eeq.o \
+	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
@@ -76,6 +77,7 @@ stella_mod = \
 	 stella_layouts.o \
 	 stella_save.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 theta_grid.o \
 	 theta_grid_params.o \
@@ -107,6 +109,7 @@ dist_fn.o: \
 	 spfunc.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 theta_grid.o \
 	 vpamu_grids.o 
@@ -195,7 +198,6 @@ job_manage.o: \
 kt_grids.o: \
 	 constants.o \
 	 file_utils.o \
-	 geometry.o \
 	 mp.o \
 	 text_options.o \
 	 theta_grid.o 
@@ -290,6 +292,9 @@ stella_save.o: \
 	 theta_grid.o \
 	 vpamu_grids.o 
 stella_time.o: 
+stella_transforms.o: \
+	 fft_work.o \
+	 stella_layouts.o 
 text_options.o: 
 theta_grid.o: \
 	 constants.o \

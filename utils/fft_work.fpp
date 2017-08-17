@@ -28,12 +28,8 @@ module fft_work
   end interface
 
   type :: fft_type
-! TT>
-!     integer :: n, plan, is, type
      integer :: n, is, type
      integer (kind_id) :: plan
-
-! <TT
 # if FFT == _FFTW3_
      integer :: howmany
      logical :: strided
@@ -121,7 +117,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # if FFT == _FFTW3_
-  subroutine init_ccfftw (fft, is, n, howmany, data_array)
+  subroutine init_ccfftw (fft, is, n, howmany, data_in, data_out)
 # else
   subroutine init_ccfftw (fft, is, n)
 # endif
@@ -131,9 +127,9 @@ contains
     integer, intent (in) :: is, n
 # if FFT == _FFTW3_
     integer, optional, intent (in) :: howmany
-    complex, optional, dimension(:,:), intent(inout) :: data_array 
+    complex, dimension(:), intent(inout) :: data_in, data_out
     integer, dimension(1) :: array_n
-# endif    
+# endif
 
     integer :: j
     
@@ -143,26 +139,26 @@ contains
     if (is > 0) fft%scale = 1.
     fft%type = 1
 # if FFT == _FFTW3_
-    if (present(howmany) .and. present(data_array)) then
+    if (present(howmany)) then
        fft%howmany = howmany
        fft%strided = .false.
     else
-       call mp_abort ("no howmany or data_array in init_ccfftw: FIX!")
+       call mp_abort ("no howmany in init_ccfftw: FIX!")
     endif
 # endif
-    
     
 # if FFT == _FFTW_
     j = fftw_in_place + fftw_measure + fftw_use_wisdom
     call fftw_f77_create_plan(fft%plan,n,is,j)
 # elif FFT == _FFTW3_
-    ! the planer expects this as an array of size 1
+    ! the planner expects this as an array of size 1
     array_n = n
     j = FFTW_PATIENT
-    call dfftw_plan_many_dft(fft%plan, 1, array_n, howmany, &
-         data_array, array_n, 1, n, &
-         data_array, array_n, 1, n, &
-         is, j)
+    call dfftw_plan_dft_1d(fft%plan, n, data_in, data_out, is, j)
+!    call dfftw_plan_many_dft(fft%plan, 1, array_n, howmany, &
+!         data_array, array_n, 1, n, &
+!         data_array, array_n, 1, n, &
+!         is, j)
 # endif
 
   end subroutine init_ccfftw
@@ -202,7 +198,6 @@ contains
     ! a few things required for FFTW3 over FFTW2    
 
     integer, dimension(1) :: vector_sizes_real, vector_sizes_complex
-    integer :: stride
 
     ! we need two dummy arrays for the planner.  Since at 
     ! present we are not using SSE instructions, these are save
@@ -298,7 +293,6 @@ contains
     ! a few things required for FFTW3 over FFTW2    
 
     integer, dimension(1) :: vector_sizes_real, vector_sizes_complex
-    integer :: stride
 
     ! we need two dummy arrays for the planner.  Since at 
     ! present we are not using SSE instructions, these are save
