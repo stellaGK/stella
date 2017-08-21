@@ -45,9 +45,6 @@ stella_mod = \
 	 theta_grid_params.o \
 	 vpamu_grids.o 
 
-ceq.o: \
-	 constants.o \
-	 spl.o 
 command_line.o: 
 constants.o: 
 convert.o: 
@@ -158,10 +155,6 @@ neoclassical_terms.o: \
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
-newgeo.o: \
-	 file_utils.o \
-	 mp.o \
-	 text_options.o 
 peq.o: \
 	 constants.o \
 	 netcdf_utils.o \

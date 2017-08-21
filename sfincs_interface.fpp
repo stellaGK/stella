@@ -56,7 +56,8 @@ contains
 # endif
 
   end subroutine get_neo_from_sfincs
-  
+
+# ifdef USE_SFINCS  
   subroutine read_sfincs_parameters
 
     use mp, only: nproc
@@ -175,5 +176,6 @@ contains
 !     end if
 
   end subroutine pass_geometry_to_sfincs
+# endif
 
 end module sfincs_interface
