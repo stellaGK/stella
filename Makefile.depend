@@ -1,49 +1,10 @@
 #
 # Auto-generated file by fortdep. Do not edit!
 #
-ball_mod = \
-	 ball.o \
-	 ceq.o \
-	 command_line.o \
-	 constants.o \
-	 deq.o \
-	 eeq.o \
-	 file_utils.o \
-	 geometry.o \
-	 geq.o \
-	 ideq.o \
-	 leq.o \
-	 netcdf_utils.o \
-	 peq.o \
-	 read_chease.o \
-	 spl.o 
-
-ediff_mod = \
-	 ediff.o 
-
-eiktest_mod = \
-	 ceq.o \
-	 command_line.o \
-	 constants.o \
-	 deq.o \
-	 eeq.o \
-	 et.o \
-	 file_utils.o \
-	 geometry.o \
-	 geq.o \
-	 ideq.o \
-	 leq.o \
-	 netcdf_utils.o \
-	 peq.o \
-	 read_chease.o \
-	 spl.o 
-
 stella_mod = \
-	 ceq.o \
 	 command_line.o \
 	 constants.o \
 	 convert.o \
-	 deq.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 eeq.o \
@@ -63,11 +24,12 @@ stella_mod = \
 	 layouts_type.o \
 	 leq.o \
 	 mp.o \
+	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 peq.o \
-	 read_chease.o \
 	 redistribute.o \
 	 run_parameters.o \
+	 sfincs_interface.o \
 	 species.o \
 	 spfunc.o \
 	 spl.o \
@@ -83,17 +45,12 @@ stella_mod = \
 	 theta_grid_params.o \
 	 vpamu_grids.o 
 
-ball.o: \
-	 geometry.o 
 ceq.o: \
 	 constants.o \
-	 read_chease.o \
 	 spl.o 
 command_line.o: 
 constants.o: 
 convert.o: 
-deq.o: \
-	 spl.o 
 dist_fn.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
@@ -103,6 +60,7 @@ dist_fn.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 neoclassical_terms.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -119,11 +77,8 @@ dist_fn_arrays.o: \
 	 stella_layouts.o \
 	 theta_grid.o \
 	 vpamu_grids.o 
-ediff.o: 
 eeq.o: \
 	 spl.o 
-et.o: \
-	 geometry.o 
 fft_work.o: \
 	 constants.o \
 	 mp.o 
@@ -146,27 +101,11 @@ gauss_quad.o: \
 	 file_utils.o \
 	 mp.o 
 geometry.o: \
-	 ceq.o \
-	 deq.o \
 	 eeq.o \
 	 geq.o \
 	 ideq.o \
 	 leq.o \
 	 peq.o 
-geometry_get_advanced_parameters__genmod.o: \
-	 geometry.o 
-geometry_get_coefficients__genmod.o: \
-	 geometry.o 
-geometry_get_constant_coefficients__genmod.o: \
-	 geometry.o 
-geometry_get_default_advanced_parameters__genmod.o: \
-	 geometry.o 
-geometry_get_miller_parameters__genmod.o: \
-	 geometry.o 
-geometry_set_advanced_parameters__genmod.o: \
-	 geometry.o 
-geometry_set_miller_parameters__genmod.o: \
-	 geometry.o 
 geq.o: \
 	 constants.o \
 	 netcdf_utils.o \
@@ -211,9 +150,18 @@ mp.o: \
 	 constants.o \
 	 file_utils.o 
 mt19937.o: 
+neoclassical_terms.o: \
+	 file_utils.o \
+	 mp.o \
+	 sfincs_interface.o \
+	 text_options.o 
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
+newgeo.o: \
+	 file_utils.o \
+	 mp.o \
+	 text_options.o 
 peq.o: \
 	 constants.o \
 	 netcdf_utils.o \
@@ -222,7 +170,6 @@ pgplot_utils.o: \
 	 constants.o 
 ran.o: \
 	 mt19937.o 
-read_chease.o: 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 
@@ -233,6 +180,11 @@ run_parameters.o: \
 	 stella_save.o \
 	 stella_time.o \
 	 text_options.o 
+sfincs_interface.o: \
+	 file_utils.o \
+	 mp.o \
+	 species.o \
+	 theta_grid.o 
 species.o: \
 	 file_utils.o \
 	 mp.o \

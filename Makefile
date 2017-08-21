@@ -99,14 +99,10 @@ USE_POSIX ?=
 USE_LOCAL_SPFUNC ?= 
 # Use nag libraray (spfunc,undefined)
 USE_NAGLIB ?= 
-# Use BLAS library
-USE_BLAS ?=
 # Make GS2 into a library which can be called by external programs
 MAKE_LIB ?=
-# Include higher-order terms in GK equation arising from low-flow physics
-LOWFLOW ?=
-# Use le_layout for collision operator
-USE_LE_LAYOUT ?=
+# link to sfincs library at compilation
+USE_SFINCS ?=
 #
 # * Targets:
 #
@@ -125,12 +121,14 @@ MAKE		= make
 CPP		= cpp
 CPPFLAGS	= -C -P -traditional
 FC		= f90
+#MPIFC		?= mpif90-mpich-gcc48
 MPIFC		?= mpif90
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
 F90FLAGS	=
 F90OPTFLAGS	=
 CC		= cc
+#MPICC		?= mpicc-mpich-gcc48
 MPICC		?= mpicc
 H5CC		?= h5cc
 H5CC_par	?= h5pcc
@@ -153,8 +151,6 @@ MPI_INC	?=
 MPI_LIB ?=
 FFT_INC ?=
 FFT_LIB ?=
-BLAS_LIB ?=
-BLAS_INC ?=
 NETCDF_INC ?=
 NETCDF_LIB ?=
 HDF5_INC ?=
@@ -164,6 +160,9 @@ NAG_LIB ?=
 NAG_PREC ?= dble
 PGPLOT_LIB ?=
 SFINCS_LIB ?=
+SFINCS_INC ?=
+PETSC_LIB ?=
+PETSC_INC ?=
 
 ################################################### SET COMPILE MODE SWITCHES
 
@@ -210,7 +209,7 @@ endif
 ifeq ($(MAKECMDGOALS),depend)
 # must invoke full functionality when make depend
 	MAKE += USE_HDF5=on USE_FFT=fftw3 USE_NETCDF=on USE_MPI=on \
-		USE_LOCAL_BESSEL=on USE_LOCAL_RAN=mt USE_BLAS=on
+		USE_LOCAL_BESSEL=on USE_LOCAL_RAN=mt
 endif
 
 ifdef USE_SHMEM
@@ -304,19 +303,19 @@ endif
 ifdef MAKE_LIB
 	CPPFLAGS += -DMAKE_LIB
 endif
-ifdef LOWFLOW
-	CPPFLAGS += -DLOWFLOW
+ifdef USE_SFINCS
+	CPPFLAGS += -DUSE_SFINCS
 endif
 ifdef USE_LE_LAYOUT
 	CPPFLAGS += -DUSE_LE_LAYOUT
 endif
 
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
-		$(IPM_LIB) $(NAG_LIB)
-#		$(IPM_LIB) $(NAG_LIB) $(BLAS_LIB) $(SFINCS_LIB)
+		$(IPM_LIB) $(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB)
 PLIBS 	+= $(LIBS) $(PGPLOT_LIB)
 F90FLAGS+= $(F90OPTFLAGS) \
-	   $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) $(BLAS_INC)
+	   $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
+	   $(SFINCS_INC) $(PETSC_INC)
 CFLAGS += $(COPTFLAGS)
 
 DATE=$(shell date +%y%m%d)
@@ -345,7 +344,6 @@ DEPEND_CMD=$(PERL) fortdep
 
 # most common include and library directories
 DEFAULT_INC_LIST = . $(UTILS) $(GEO) .. ../$(UTILS) ../$(GEO)
-#DEFAULT_INC_LIST = . $(UTILS) $(GEO) .. ../$(UTILS) ../$(GEO) \
 #		/usr/include /usr/local/include \
 #	   	/opt/local/include /sw/include
 DEFAULT_LIB_LIST =

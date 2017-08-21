@@ -28,14 +28,12 @@ module mp
   public :: broadcast, sum_reduce, sum_allreduce
   public :: max_reduce, max_allreduce
   public :: min_reduce, min_allreduce
+  public :: comm_split, comm_free
   public :: nproc, iproc, proc0, job
   public :: send, ssend, receive
   public :: barrier
   public :: waitany
-  public :: test_driver_flag
-! JH> new abort method
   public :: mp_abort
-! <JH
 ! MAB> needed by Trinity
   public :: scope, allprocs, subprocs
   public :: all_to_group, group_to_all
@@ -60,6 +58,7 @@ module mp
   logical, pointer :: proc0
   logical, target :: aproc0, gproc0
 
+  integer :: mpi_comm_world_private
   integer, pointer :: mp_comm
   integer, target :: comm_all, comm_group
 
@@ -79,8 +78,6 @@ module mp
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
   logical :: trin_flag = .false.
-
-  logical :: test_driver_flag = .false.
 
   interface broadcast
      module procedure broadcast_integer 
@@ -258,36 +255,27 @@ module mp
 
 contains
 
-!MAB> changed to allow for calling within trinity (coupled flux tubes)
-!  subroutine init_mp
   subroutine init_mp (comm_in)
 # ifdef MPI
     use constants, only: pi, kind_rs, kind_rd
     use file_utils, only: error_unit
     implicit none
 # endif
-    integer, intent (in), optional :: comm_in ! MAB
+    integer, intent (in), optional :: comm_in
 # ifdef MPI
-    integer :: ierror!, rank
-    logical :: init ! MAB
+    integer :: ierror
+    logical :: init
 
-    call mpi_initialized (init, ierror)  ! MAB
-    if (.not. init) call mpi_init (ierror)  ! MAB
-!    call mpi_init (ierror)
-!MAB>
+    call mpi_initialized (init, ierror)
+    if (.not. init) call mpi_init (ierror)
+    call mpi_comm_dup (mpi_comm_world, mpi_comm_world_private, ierror)
     if (present(comm_in)) then
        comm_all = comm_in
-       if (.not. test_driver_flag) trin_flag = .true. 
-       !EGH  we can pass in a communicator if we want to run tests
     else
-       comm_all = mpi_comm_world
+       comm_all = mpi_comm_world_private
     end if
     call mpi_comm_size (comm_all, ntot_proc, ierror)
     call mpi_comm_rank (comm_all, aproc, ierror)
-!    call mpi_comm_size (mpi_comm_world, ntot_proc, ierror)
-!    call mpi_comm_rank (mpi_comm_world, aproc, ierror)
-!    comm_all = mpi_comm_world
-!<MAB
     aproc0 = aproc == 0
 
     call scope (allprocs)
@@ -1212,6 +1200,24 @@ contains
 # endif
   end subroutine min_allreduce_real_array
 
+  subroutine comm_split (color, comm_out, ierr)
+    implicit none
+    integer, intent (in) :: color
+    integer, intent (out) :: comm_out, ierr
+# ifdef MPI
+    call mpi_comm_split (mp_comm, color, iproc, comm_out, ierr)
+#endif
+  end subroutine comm_split
+
+  subroutine comm_free (comm_in, ierr)
+    implicit none
+    integer, intent (in) :: comm_in
+    integer, intent (out) :: ierr
+# ifdef MPI
+    call mpi_comm_free (comm_in, ierr)
+# endif
+  end subroutine comm_free
+
 ! ********************* barrier **********************
 
   subroutine barrier
@@ -1849,7 +1855,7 @@ contains
 
 ! nrows is # of processors per job (or group)    
     nrows = ntot_proc/ncolumns
-    dims=(/ ncolumns, nrows /)     
+    dims=(/ ncolumns, nrows /)
     if(ntot_proc /= ncolumns*nrows) then
        ierr = 1
        if(aproc0) write(*,*) 'Number of processes must be divisible by number of groups'
@@ -1861,7 +1867,6 @@ contains
     
     period=(/ .false., .false. /)  !! no circular shift
 
-!    call mpi_cart_create(mpi_comm_world, ndim, dims, period, reorder, comm2d, ierr)
     call mpi_cart_create(comm_all, ndim, dims, period, reorder, comm2d, ierr)
     call mpi_comm_rank(comm2d, id2d, ierr)
     call mpi_cart_coords(comm2d, id2d, ndim, coords2d, ierr)

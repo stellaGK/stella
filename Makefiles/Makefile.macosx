@@ -25,25 +25,24 @@ USE_LOCAL_SPFUNC=on
 #override USE_FFT = fftw
 
 ifeq ($(USE_FFT),fftw3)
-#	FFT_LIB = -L/Data/macports/michaelbarnes/lib -ldfftw -ldrfftw
-#	FFT_LIB = -L/Data/macports/michaelbarnes/lib -lfftw3
-#	FFT_LIB = -L$(FFTW_LIB_DIR) -ldfftw -ldrfftw
 	FFT_LIB = -L$(FFTW_LIB_DIR) -lfftw3
 	FFT_INC = -I$(FFTW_INC_DIR)
-#	FFT_LIB = -L/Users/michaelbarnes/bin/fftw-3.3.3/.libs -lfftw3
 endif
 
 ifdef USE_NETCDF
-#	NETCDF_INC = -I/Data/macports/michaelbarnes/include 
-#	NETCDF_LIB = -L/Data/macports/michaelbarnes/lib -lnetcdff
 	NETCDF_INC = -I$(NETCDF_INC_DIR)
 	NETCDF_LIB = -L$(NETCDF_LIB_DIR) -lnetcdff
 endif
 
-ifdef USE_BLAS
-#      F90FLAGS += -framework Accelerate
-#       BLAS_LIB = -L/Users/michaelbarnes/bin/openblas -lopenblas
-	BLAS_LIB = -L$(BLAS_LIB_DIR) -lopenblas
-endif
+ifdef USE_SFINCS
+      SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs
+      SFINCS_INC = -I$(SFINCS_DIR)
 
-SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs
+      #include ${PETSC_DIR}/lib/petsc/conf/variables
+      #include $(PETSC_DIR)/lib/petsc/conf/rules
+
+      PETSC_INC = -I$(PETSC_DIR)/include
+      PETSC_LIB = -L$(PETSC_DIR)/lib -lpetsc
+
+      HDF5_LIB = -L$(HDF5_DIR) -lhdf5hl_fortran -lhdf5_fortran
+endif

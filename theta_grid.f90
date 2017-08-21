@@ -575,7 +575,7 @@ if (debug) write(6,*) 'eik_get_grids: end'
     use geometry, only: nperiod
     use geometry, only: rhoc
     use geometry, only: itor, iflux, irho
-    use geometry, only: ppl_eq, gen_eq, efit_eq, eqfile, local_eq, dfit_eq, gs2d_eq
+    use geometry, only: ppl_eq, gen_eq, efit_eq, eqfile, local_eq, gs2d_eq
     use geometry, only: equal_arc, transp_eq, idfit_eq
     use geometry, only: bishop
     use geometry, only: s_hat_input
@@ -599,7 +599,7 @@ if (debug) write(6,*) 'eik_get_grids: end'
     integer :: in_file
 
     namelist /theta_grid_eik_knobs/ itor, iflux, irho, &
-         ppl_eq, gen_eq, efit_eq, eqfile, dfit_eq, &
+         ppl_eq, gen_eq, efit_eq, eqfile, &
          equal_arc, bishop, local_eq, idfit_eq, gs2d_eq, transp_eq, &
          s_hat_input, alpha_input, invLp_input, beta_prime_input, dp_mult, &
          delrho, rmin, rmax, isym, writelots, &
@@ -832,6 +832,7 @@ module theta_grid
   public :: Rplot, Zplot, aplot, Rprime, Zprime, aprime, Bpol
   public :: shape, gb_to_cv
   public :: shat_zero
+  public :: drhotor2dr
 
   private
 
@@ -847,6 +848,7 @@ module theta_grid
   
   real :: bmin, bmax, eps, shat, drhodpsi, kxfac, qval
   real :: shat_zero
+  real :: drhotor2dr
   integer :: ntheta, ntgrid, nperiod, nbset
   logical :: gb_to_cv
 
@@ -913,6 +915,7 @@ if (debug) write(6,*) "init_theta_grid: call finish_init"
     call broadcast (ntgrid)
     call broadcast (nperiod)
     call broadcast (nbset)
+    call broadcast (drhotor2dr)
 
     if (.not. proc0) then
        call allocate_arrays
@@ -1154,6 +1157,7 @@ if (debug) write(6,*) 'get_sizes: done'
     use theta_grid_salpha, only: salpha_get_grids
     use theta_grid_file, only: file_get_grids
     use theta_grid_params, only: eps, btor_slab
+    use theta_grid_params, only: drhotor2dr_in => drhotor2dr
 
     implicit none
 
@@ -1187,6 +1191,7 @@ if (debug) write(6,*) 'get_grids: call file_get_grids'
     end select
     kxfac = abs(kxfac)
     qval = abs(qval)
+    drhotor2dr = drhotor2dr_in
 
     itor_over_B=0.
 !CMR, 2/2/2011: 

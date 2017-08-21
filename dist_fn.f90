@@ -121,6 +121,9 @@ contains
           gamtot(iky,ikx,ig) = gamtot(iky,ikx,ig) + tmp*wgt
        end do
        call sum_allreduce (gamtot)
+       ! avoid divide by zero when kx=ky=0
+       ! do not evolve this mode, so value is irrelevant
+       gamtot(1,1,:) = 1.0
 
        deallocate (g0)
 
@@ -274,6 +277,7 @@ contains
     use vpamu_grids, only: init_vpamu_grids
     use vpamu_grids, only: nvgrid, nmu
     use run_parameters, only: init_run_parameters
+    use neoclassical_terms, only: init_neoclassical_terms
 
     implicit none
 
@@ -322,6 +326,8 @@ contains
     call init_wdrift
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_wstar'
     call init_wstar
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_neoclassical_terms'
+    call init_neoclassical_terms
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_redistribute'
     call init_redistribute
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_cfl'
