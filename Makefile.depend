@@ -15,6 +15,7 @@ stella_mod = \
 	 gauss_quad.o \
 	 geometry.o \
 	 init_g.o \
+	 inputprofiles_interface.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 layouts_type.o \
@@ -69,8 +70,6 @@ dist_fn_arrays.o: \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-eeq.o: \
-	 spl.o 
 fft_work.o: \
 	 constants.o \
 	 mp.o 
@@ -95,19 +94,14 @@ gauss_quad.o: \
 	 mp.o 
 geometry.o: \
 	 file_utils.o \
+	 inputprofiles_interface.o \
 	 millerlocal.o \
 	 mp.o \
 	 text_options.o 
-geq.o: \
-	 constants.o \
-	 netcdf_utils.o \
-	 spl.o 
 hdf_wrapper.o: \
 	 constants.o \
 	 convert.o \
 	 file_utils.o 
-ideq.o: \
-	 spl.o 
 init_g.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
@@ -122,6 +116,11 @@ init_g.o: \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+inputprofiles_interface.o: \
+	 constants.o \
+	 finite_differences.o \
+	 millerlocal.o \
+	 spl.o 
 job_manage.o: \
 	 file_utils.o \
 	 mp.o 
@@ -151,10 +150,6 @@ neoclassical_terms.o: \
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
-peq.o: \
-	 constants.o \
-	 netcdf_utils.o \
-	 spl.o 
 pgplot_utils.o: \
 	 constants.o 
 ran.o: \

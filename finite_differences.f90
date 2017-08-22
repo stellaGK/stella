@@ -4,6 +4,12 @@ module finite_differences
 
   public :: third_order_upwind
   public :: third_order_upwind_zed
+  public :: fd3pt
+
+  interface fd3pt
+     module procedure fd3pt_real
+     module procedure fd3pt_array
+  end interface
 
 contains
   
@@ -103,4 +109,92 @@ contains
 
   end subroutine third_order_upwind_zed
 
+  ! only good for equally-spaced grid-pts
+  subroutine fd3pt_real (prof, profgrad, dr)
+    
+    implicit none
+    
+    real, dimension (:), intent (in) :: prof
+    real, dimension (:), intent (out) :: profgrad
+    real, intent (in) :: dr
+    
+    integer :: ix, npts
+    real, dimension (:), allocatable :: aa, bb, cc
+    
+    npts = size(prof)
+    allocate (aa(npts), bb(npts), cc(npts))
+    
+    aa = 1.0 ; bb = 4.0 ; cc = 1.0
+    aa(1) = 0.0 ; bb(1) = 0.5 ; cc(1) = 0.5
+    aa(npts) = 0.5 ; bb(npts) = 0.5 ; cc(npts) = 0.0
+    
+    do ix = 2, npts-1
+       profgrad(ix) = 3.0 * (prof(ix+1) - prof(ix-1)) / dr
+    end do
+    profgrad(1) = (prof(2)-prof(1))/dr
+    profgrad(npts) = (prof(npts)-prof(npts-1))/dr
+    
+    call tridag (aa, bb, cc, profgrad)
+    
+    deallocate (aa, bb, cc)
+    
+  end subroutine fd3pt_real
+  
+  subroutine fd3pt_array (prof, profgrad, dr)
+    
+    implicit none
+    
+    real, dimension (:), intent (in) :: prof, dr
+    real, dimension (:), intent (out) :: profgrad
+    
+    integer :: ix, npts
+    real, dimension (:), allocatable :: aa, bb, cc
+    
+    npts = size(prof)
+    allocate (aa(npts), bb(npts), cc(npts))
+    
+    do ix = 2, npts-1
+       profgrad(ix) = ((prof(ix)-prof(ix-1))*dr(ix)/dr(ix-1) &
+            + (prof(ix+1)-prof(ix))*dr(ix-1)/dr(ix)) / (dr(ix-1)+dr(ix))
+    end do
+    profgrad(1) = (prof(2)-prof(1))/dr(1)
+    profgrad(npts) = (prof(npts)-prof(npts-1))/dr(npts-1)
+    
+    deallocate (aa, bb, cc)
+    
+  end subroutine fd3pt_array
+
+  subroutine tridag (aa, bb, cc, sol)
+    
+    implicit none
+    
+    real, dimension (:), intent (in) :: aa, bb, cc
+    real, dimension (:), intent (in out) :: sol
+    
+    integer :: ix, npts
+    real :: bet
+    
+    real, dimension (:), allocatable :: gam
+    
+    npts = size(aa)
+    allocate (gam(npts))
+    
+    bet = bb(1)
+    sol(1) = sol(1)/bet
+    
+    do ix = 2, npts
+       gam(ix) = cc(ix-1)/bet
+       bet = bb(ix) - aa(ix)*gam(ix)
+       if (bet == 0.0) write (*,*) 'tridiagonal solve failed'
+       sol(ix) = (sol(ix)-aa(ix)*sol(ix-1))/bet
+    end do
+
+    do ix = npts-1, 1, -1
+       sol(ix) = sol(ix) - gam(ix+1)*sol(ix+1)
+    end do
+
+    deallocate (gam)
+
+  end subroutine tridag
+  
 end module finite_differences

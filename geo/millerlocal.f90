@@ -2,6 +2,7 @@ module millerlocal
 
   implicit none
 
+  public :: init_local_defaults
   public :: read_local_parameters
   public :: get_local_geo
   public :: local
@@ -9,9 +10,17 @@ module millerlocal
 
   private
 
+  integer :: nzed_local
+  real :: rhoc, rmaj, shift
+  real :: kappa, kapprim
+  real :: tri, triprim
+  real :: betaprim, betadbprim
+  real :: qinp, shat, d2qdr2
+  real :: rgeo
+  real :: d2psidr2
+  real :: dpsitordrho
   logical :: write_profile_variation, read_profile_variation
 
-  integer :: nzed_local = 128
   integer :: nz, nz2pi
 
   real :: dIdrho, bi, dqdr, d2Idr2
@@ -39,12 +48,46 @@ module millerlocal
 
   type :: flux_surface
      real :: rmaj, rgeo, kappa, kapprim, tri, triprim, rhoc, dr, &
-          shift, qinp, shat, betaprim, betadbprim, d2qdr2, d2psidr2
+          shift, qinp, shat, betaprim, betadbprim, d2qdr2, d2psidr2, &
+          dpsitordrho
   end type flux_surface
 
   type (flux_surface) :: local
 
+  logical :: defaults_initialized = .false.
+
 contains
+
+  subroutine init_local_defaults
+
+    implicit none
+
+    if (defaults_initialized) return
+    defaults_initialized = .true.
+
+    nzed_local = 128
+    rhoc = 0.5
+    rmaj = 3.0
+    rgeo = 3.0
+    qinp = 1.4
+    shat = 0.8
+    shift = 0.0
+    kappa = 0.0
+    kapprim = 0.0
+    tri = 0.0
+    triprim = 0.0
+    betaprim = 0.0
+    betadbprim = 0.0
+    d2qdr2 = 0.0
+    d2psidr2 = 0.0
+    read_profile_variation = .false.
+    write_profile_variation = .false.
+    
+    ! not an input paramter
+    ! used in conjunction with input.profiles
+    dpsitordrho = 0.0
+
+  end subroutine init_local_defaults
 
   subroutine read_local_parameters (qinp_out, shat_out)
     
@@ -70,23 +113,7 @@ contains
          betadbprim, d2qdr2, d2psidr2, &
          nzed_local, read_profile_variation, write_profile_variation
     
-    nzed_local = 128
-    rhoc = 0.5
-    rmaj = 3.0
-    rgeo = 3.0
-    qinp = 1.4
-    shat = 0.8
-    shift = 0.0
-    kappa = 0.0
-    kapprim = 0.0
-    tri = 0.0
-    triprim = 0.0
-    betaprim = 0.0
-    betadbprim = 0.0
-    d2qdr2 = 0.0
-    d2psidr2 = 0.0
-    read_profile_variation = .false.
-    write_profile_variation = .false.
+    call init_local_defaults
 
     in_file = input_unit_exist("millergeo_parameters", exist)
     if (exist) read (unit=in_file, nml=millergeo_parameters)
@@ -105,7 +132,10 @@ contains
     local%betadbprim = betadbprim
     local%d2qdr2 = d2qdr2
     local%d2psidr2 = d2psidr2
+
+    ! following two variables are not inputs
     local%dr = 1.e-3
+    local%dpsitordrho = dpsitordrho
 
     qinp_out = qinp
     shat_out = shat
@@ -187,10 +217,6 @@ contains
     call get_dthet(Rr(2,:), dRdth)
     call get_dthet(Zr(2,:), dZdth)
 
-    ! I=Btor*R is a flux function
-    ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
-    bi = local%rgeo
-
     ! get second derivatives of R and Z with respect to theta
     call get_d2dthet2 (Rr(2,:), d2Rdth2)
     call get_d2dthet2 (Zr(2,:), d2Zdth2)
@@ -203,8 +229,33 @@ contains
     ! as opposed to jacobian, which is for tranformation from (psi,theta,zeta) to (R,Z,zeta)
     call get_jacrho
 
-    ! get dpsinorm/drho
-    call get_dpsidrho (dpsidrho)
+    ! theta_integrate returns integral from 0 -> 2*pi
+    ! note that dpsidrho here is an intermediary
+    ! that requires manipulation to get final dpsidrho
+    call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsidrho)
+    dpsidrho = dpsidrho/(2.*pi)
+
+    ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
+
+    ! if using input.profiles, we are given
+    ! dpsitordrho and must use it to compute rgeo
+    if (abs(local%dpsitordrho) > epsilon(0.)) then
+       local%rgeo = local%dpsitordrho/dpsidrho
+       dpsidrho = local%dpsitordrho/local%qinp
+       ! I=Btor*R is a flux function
+       ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
+       bi = local%rgeo
+    else
+       ! otherwise, we are given rgeo
+       ! and must use it to compute dpsidrho
+
+       ! I=Btor*R is a flux function
+       ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
+       bi = local%rgeo
+       dpsidrho = dpsidrho*bi/local%qinp
+    end if
+!    ! get dpsinorm/drho
+!    call get_dpsidrho (dpsidrho)
 
     ! get |grad rho| and |grad psi|
     call get_gradrho (dpsidrho, grho)
@@ -338,7 +389,16 @@ contains
     call geo_spline (theta, cvdrift, zed_in, cvdrift_out)
     call geo_spline (theta, cvdrift0, zed_in, cvdrift0_out)
 
-    open (1001,file='leq.out',status='unknown')
+    open (1002,file='millerlocal.input',status='unknown')
+    write (1002,'(12a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp', &
+         '6.shat', '7.kappa', '8.kapprim', '9.tri', '10.triprim', &
+         '11.betaprim', '12.dpsitordrho'
+    write (1002,'(12e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp, &
+         local%shat, local%kappa, local%kapprim, local%tri, local%triprim, &
+         local%betaprim, local%dpsitordrho
+    close (1002)
+
+    open (1001,file='millerlocal.output',status='unknown')
     write (1001,'(a9,e12.4,a11,e12.4,a11,e12.4)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
     write (1001,'(55a13)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
          '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
@@ -368,6 +428,8 @@ contains
     close (1001)
 
     call deallocate_arrays
+
+    defaults_initialized = .false.
 
   end subroutine get_local_geo
 
@@ -507,22 +569,22 @@ contains
 
   end subroutine get_jacrho
 
-  ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
-  subroutine get_dpsidrho (dpsidrho)
+!   ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
+!   subroutine get_dpsidrho (dpsidrho)
 
-    use constants, only: pi
+!     use constants, only: pi
 
-    implicit none
+!     implicit none
     
-    real, intent (out) :: dpsidrho
+!     real, intent (out) :: dpsidrho
 
-    ! theta_integrate returns integral from 0 -> 2*pi
-    call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsidrho)
+!     ! theta_integrate returns integral from 0 -> 2*pi
+!     call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsidrho)
 
-    ! integration done using trapezoidal rule
-    dpsidrho = dpsidrho*bi/(2.*pi*local%qinp)
+!     ! integration done using trapezoidal rule
+!     dpsidrho = dpsidrho*bi/(2.*pi*local%qinp)
 
-  end subroutine get_dpsidrho
+!   end subroutine get_dpsidrho
 
   subroutine get_gradrho (dpsidrho, grho)
 

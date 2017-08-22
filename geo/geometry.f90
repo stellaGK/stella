@@ -35,8 +35,9 @@ contains
   subroutine init_geometry (nzed, nzgrid, zed, dz)
 
     use mp, only: proc0
-    use millerlocal, only: read_local_parameters,  get_local_geo
-!    use inputprofiles_interface, only: read_inputprof
+    use millerlocal, only: read_local_parameters
+    use millerlocal, only: get_local_geo
+    use inputprofiles_interface, only: read_inputprof
 
     implicit none
 
@@ -61,11 +62,17 @@ contains
                gbdrift0, gbdrift, cvdrift0, cvdrift)
           drhodpsi = 1./dpsidrho
        case (geo_option_inputprof)
-!          call read_inputprof
-!          call get_local_geo (nzed, nzgrid, zed, &
-!               dpsidrho, grho, bmag, &
-!               gds2, gds21, gds22, gradpar, &
-!               gbdrift0, gbdrift, cvdrift0, cvdrift)
+          ! first read in some local parameters
+          ! only thing needed really is rhoc
+          call read_local_parameters (qinp, shat)
+          ! now overwrite local parameters
+          ! with those from input.profiles file
+          ! use rhoc from input as surface
+          call read_inputprof (qinp, shat)
+          call get_local_geo (nzed, nzgrid, zed, &
+               dpsidrho, grho, bmag, &
+               gds2, gds21, gds22, gradpar, &
+               gbdrift0, gbdrift, cvdrift0, cvdrift)
           drhodpsi = 1./dpsidrho
        end select
     end if
@@ -124,7 +131,7 @@ contains
 
     geo_option = 'local'
 
-    in_file = input_unit_exist("zgrid_knobs", exist)
+    in_file = input_unit_exist("geo_knobs", exist)
     if (exist) read (unit=in_file, nml=geo_knobs)
 
     ierr = error_unit()
