@@ -73,7 +73,7 @@ contains
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
     use stella_layouts, only: kxkyz_lo, layout
-    use layouts_type, only: kxkyz_layout_type
+    use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvgrid, nmu
 

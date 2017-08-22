@@ -19,6 +19,7 @@ contains
     use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: init_stella_layouts
+    use species, only: init_species
     use geometry, only: init_geometry
     use zgrid, only: init_zgrid
     use zgrid, only: nzed, nzgrid
@@ -44,6 +45,8 @@ contains
     call init_zgrid
     if (debug) write(6,*) "fields::init_fields::init_geometry"
     call init_geometry (nzed, nzgrid, zed, delzed)
+    if (debug) write (*,*) 'fields::init_fields::init_species'
+    call init_species
     if (debug) write(6,*) "fields::init_fields::init_init_g"
     call init_init_g
     if (debug) write(6,*) "fields::init_fields::init_run_parameters"
@@ -100,6 +103,7 @@ contains
 
     use fields_arrays, only: phi
     use fields_arrays, only: apar
+    use species, only: finish_species
     use geometry, only: finish_geometry
     use zgrid, only: finish_zgrid
     use dist_fn, only: finish_get_fields
@@ -109,6 +113,7 @@ contains
     call finish_get_fields
     call finish_geometry
     call finish_zgrid
+    call finish_species
     if (allocated(phi)) deallocate (phi)
     if (allocated(apar)) deallocate (apar)
 

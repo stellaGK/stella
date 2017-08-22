@@ -1,27 +1,14 @@
 module species
+
+  use common_types, only: spec_type
+
   implicit none
 
   public :: init_species, finish_species, reinit_species, init_trin_species
-  public :: nspec, specie, spec
+  public :: nspec, spec
   public :: ion_species, electron_species, slowing_down_species, tracer_species
   public :: has_electron_species, has_slowing_down_species
   public :: ions, electrons, impurity
-
-  type :: specie
-     real :: z
-     real :: mass
-     real :: dens, dens0, u0
-     real :: tpar0,tperp0
-     real :: temp
-     real :: tprim
-     real :: fprim
-     real :: vnewk, nustar
-     real :: nu, nu_h  ! nu will be the preferred collisionality parameter moving forward
-                       ! as it will have a consistent v_t scaling
-                       ! nu_h controls a hyperviscous term embedded in the collision operator
-     real :: stm, zstm, tz, smz, zt
-     integer :: type
-  end type specie
 
   private
 
@@ -30,155 +17,187 @@ module species
   integer, parameter :: slowing_down_species = 3 ! slowing-down distn
   integer, parameter :: tracer_species = 4 ! for test particle diffusion studies
 
+  integer :: species_option_switch
+  integer, parameter :: species_option_stella = 1
+  integer, parameter :: species_option_inputprofs = 2
+
   integer :: nspec
-  type (specie), dimension (:), allocatable :: spec
+  type (spec_type), dimension (:), allocatable :: spec
 
   integer :: ions, electrons, impurity
   integer :: ntspec_trin
   real, dimension (:), allocatable :: dens_trin, temp_trin, fprim_trin, tprim_trin, nu_trin
 
+  character (20) :: species_option
+
   logical :: initialized = .false.
-  logical :: exist
 
 contains
 
   subroutine init_species
-    use mp, only: trin_flag
+
+    use mp, only: trin_flag, proc0, broadcast
+    use inputprofiles_interface, only: read_inputprof_spec
+
     implicit none
-!    logical, save :: initialized = .false.
+
+    integer :: is
 
     if (initialized) return
     initialized = .true.
 
-    call read_parameters
+    if (proc0) call read_species_knobs
+    call broadcast (nspec)
+    allocate (spec(nspec))
+    if (proc0) then
+       select case (species_option_switch)
+       case (species_option_stella)
+          call read_species_stella
+       case (species_option_inputprofs)
+          call read_species_stella
+          call read_inputprof_spec (nspec, spec)
+       end select
+       open (1003,file='species.input',status='unknown')
+       write (1003,'(6a12,a9)') '#1.z', '2.mass', '3.dens', &
+            '4.temp', '5.tprim','6.fprim', '7.type'
+       do is = 1, nspec
+          write (1003,'(6e12.4,i9)') spec(is)%z, spec(is)%mass, &
+               spec(is)%dens, spec(is)%temp, spec(is)%tprim, &
+               spec(is)%fprim, spec(is)%type
+       end do
+       close (1003)
+    end if
+
+    call broadcast_parameters
+
     if (trin_flag) call reinit_species (ntspec_trin, dens_trin, &
          temp_trin, fprim_trin, tprim_trin, nu_trin)
   end subroutine init_species
 
-  subroutine read_parameters
-    use file_utils, only: input_unit, error_unit, get_indexed_namelist_unit, input_unit_exist
+  subroutine read_species_knobs
+
+    use file_utils, only: error_unit, input_unit_exist
     use text_options, only: text_option, get_option_value
-    use mp, only: proc0, broadcast
+
     implicit none
-    real :: z, mass, dens, dens0, u0, temp, tprim, fprim, vnewk, nustar, nu, nu_h
-    real :: tperp0, tpar0
-    character(20) :: type
-    integer :: unit
-    integer :: is
-    namelist /species_knobs/ nspec
-    namelist /species_parameters/ z, mass, dens, dens0, u0, temp, &
-         tprim, fprim, vnewk, nustar, type, nu, nu_h, &
-         tperp0, tpar0
+
     integer :: ierr, in_file
+    logical :: exist
 
-    type (text_option), dimension (9), parameter :: typeopts = &
-         (/ text_option('default', ion_species), &
-            text_option('ion', ion_species), &
-            text_option('electron', electron_species), &
-            text_option('e', electron_species), &
-            text_option('beam', slowing_down_species), &
-            text_option('fast', slowing_down_species), &
-            text_option('alpha', slowing_down_species), &
-            text_option('slowing-down', slowing_down_species), &
-            text_option('trace', tracer_species) /)
+    namelist /species_knobs/ nspec, species_option
 
-    if (proc0) then
-       nspec = 2
-       in_file = input_unit_exist("species_knobs", exist)
-!       if (exist) read (unit=input_unit("species_knobs"), nml=species_knobs)
-       if (exist) read (unit=in_file, nml=species_knobs)
-       if (nspec < 1) then
-          ierr = error_unit()
-          write (unit=ierr, &
-               fmt="('Invalid nspec in species_knobs: ', i5)") nspec
-          stop
-       end if
+    type (text_option), dimension (3), parameter :: specopts = (/ &
+         text_option('default', species_option_stella), &
+         text_option('stella', species_option_stella), &
+         text_option('input.profiles', species_option_inputprofs) /)
+
+    nspec = 2
+    species_option = 'stella'
+    
+    in_file = input_unit_exist("species_knobs", exist)
+    if (exist) read (unit=in_file, nml=species_knobs)
+
+    ierr = error_unit()
+    call get_option_value (species_option, specopts, species_option_switch, &
+         ierr, "species_option in species_knobs")
+
+    if (nspec < 1) then
+       ierr = error_unit()
+       write (unit=ierr, &
+            fmt="('Invalid nspec in species_knobs: ', i5)") nspec
+       stop
     end if
 
-    call broadcast (nspec)
-    allocate (spec(nspec))
+  end subroutine read_species_knobs
 
-    if (proc0) then
-       do is = 1, nspec
-          call get_indexed_namelist_unit (unit, "species_parameters", is)
-          z = 1
-          mass = 1.0
-          dens = 1.0
-          dens0 = 1.0
-          u0 = 1.0
-          tperp0 = 0.
-          tpar0 = 0.
-          temp = 1.0
-          tprim = 6.9
-          fprim = 2.2
-          nustar = -1.0
-          vnewk = 0.0
-          nu = -1.0
-          nu_h = 0.0
-          type = "default"
-          read (unit=unit, nml=species_parameters)
-          close (unit=unit)
+  subroutine read_species_stella
 
-          spec(is)%z = z
-          spec(is)%mass = mass
-          spec(is)%dens = dens
-          spec(is)%dens0 = dens0
-          spec(is)%u0 = u0
-          spec(is)%tperp0 = tperp0
-          spec(is)%tpar0 = tpar0
-          spec(is)%temp = temp
-          spec(is)%tprim = tprim
-          spec(is)%fprim = fprim
-          spec(is)%vnewk = vnewk
-          spec(is)%nustar = nustar
-          spec(is)%nu = nu
-          spec(is)%nu_h = nu_h
+    use file_utils, only: error_unit, get_indexed_namelist_unit
+    use text_options, only: text_option, get_option_value
 
-          spec(is)%stm = sqrt(temp/mass)
-          spec(is)%zstm = z/sqrt(temp*mass)
-          spec(is)%tz = temp/z
-          spec(is)%zt = z/temp
-          spec(is)%smz = abs(sqrt(temp*mass)/z)
+    implicit none
 
-          ierr = error_unit()
-          call get_option_value (type, typeopts, spec(is)%type, ierr, "type in species_parameters_x")
-       end do
-    end if
+    real :: z, mass, dens, temp, tprim, fprim
+    integer :: ierr, unit, is
+
+    namelist /species_parameters/ z, mass, dens, temp, &
+         tprim, fprim, type
+
+    character(20) :: type
+    type (text_option), dimension (9), parameter :: typeopts = (/ &
+         text_option('default', ion_species), &
+         text_option('ion', ion_species), &
+         text_option('electron', electron_species), &
+         text_option('e', electron_species), &
+         text_option('beam', slowing_down_species), &
+         text_option('fast', slowing_down_species), &
+         text_option('alpha', slowing_down_species), &
+         text_option('slowing-down', slowing_down_species), &
+         text_option('trace', tracer_species) /)
+
+    do is = 1, nspec
+       call get_indexed_namelist_unit (unit, "species_parameters", is)
+       z = 1
+       mass = 1.0
+       dens = 1.0
+       temp = 1.0
+       tprim = 6.9
+       fprim = 2.2
+       type = "default"
+       read (unit=unit, nml=species_parameters)
+       close (unit=unit)
+
+       spec(is)%z = z
+       spec(is)%mass = mass
+       spec(is)%dens = dens
+       spec(is)%temp = temp
+       spec(is)%tprim = tprim
+       spec(is)%fprim = fprim
+       
+       ierr = error_unit()
+       call get_option_value (type, typeopts, spec(is)%type, ierr, "type in species_parameters_x")
+    end do
+
+  end subroutine read_species_stella
+
+  subroutine broadcast_parameters
+
+    use mp, only: broadcast
+
+    implicit none
+
+    integer :: is
 
     do is = 1, nspec
        call broadcast (spec(is)%z)
        call broadcast (spec(is)%mass)
        call broadcast (spec(is)%dens)
-       call broadcast (spec(is)%dens0)
-       call broadcast (spec(is)%u0)
-       call broadcast (spec(is)%tperp0)
-       call broadcast (spec(is)%tpar0)
        call broadcast (spec(is)%temp)
        call broadcast (spec(is)%tprim)
        call broadcast (spec(is)%fprim)
-       call broadcast (spec(is)%vnewk)
-       call broadcast (spec(is)%nu)
-       call broadcast (spec(is)%nu_h)
-       call broadcast (spec(is)%nustar)
-       call broadcast (spec(is)%stm)
-       call broadcast (spec(is)%zstm)
-       call broadcast (spec(is)%tz)
-       call broadcast (spec(is)%zt)
-       call broadcast (spec(is)%smz)
        call broadcast (spec(is)%type)
+
+       spec(is)%stm = sqrt(spec(is)%temp/spec(is)%mass)
+       spec(is)%zstm = spec(is)%z/sqrt(spec(is)%temp*spec(is)%mass)
+       spec(is)%tz = spec(is)%temp/spec(is)%z
+       spec(is)%zt = spec(is)%z/spec(is)%temp
+       spec(is)%smz = abs(sqrt(spec(is)%temp*spec(is)%mass)/spec(is)%z)
     end do
-  end subroutine read_parameters
+
+  end subroutine broadcast_parameters
 
   pure function has_electron_species (spec)
+    use common_types, only: spec_type
     implicit none
-    type (specie), dimension (:), intent (in) :: spec
+    type (spec_type), dimension (:), intent (in) :: spec
     logical :: has_electron_species
     has_electron_species = any(spec%type == electron_species)
   end function has_electron_species
 
   pure function has_slowing_down_species (spec)
+    use common_types, only: spec_type
     implicit none
-    type (specie), dimension (:), intent (in) :: spec
+    type (spec_type), dimension (:), intent (in) :: spec
     logical :: has_slowing_down_species
     has_slowing_down_species = any(spec%type == slowing_down_species)
   end function has_slowing_down_species
@@ -250,26 +269,26 @@ contains
           spec(1)%temp = 1.0
           spec(1)%fprim = fprim(1)
           spec(1)%tprim = tprim(1)
-          spec(1)%vnewk = nu(1)
+!          spec(1)%vnewk = nu(1)
        else
           spec(ions)%dens = dens(1)/dens(2)
           spec(ions)%temp = 1.0
           spec(ions)%fprim = fprim(1)
           spec(ions)%tprim = tprim(1)
-          spec(ions)%vnewk = nu(1)
+!          spec(ions)%vnewk = nu(1)
 
           spec(electrons)%dens = 1.0
           spec(electrons)%temp = temp(2)/temp(1)
           spec(electrons)%fprim = fprim(2)
           spec(electrons)%tprim = tprim(2)
-          spec(electrons)%vnewk = nu(2)
+!          spec(electrons)%vnewk = nu(2)
 
           if (nspec > 2) then
              spec(impurity)%dens = dens(3)/dens(2)
              spec(impurity)%temp = temp(3)/temp(1)
              spec(impurity)%fprim = fprim(3)
              spec(impurity)%tprim = tprim(3)
-             spec(impurity)%vnewk = nu(3)
+!             spec(impurity)%vnewk = nu(3)
           end if
        end if
 
@@ -295,7 +314,7 @@ contains
        call broadcast (spec(is)%temp)
        call broadcast (spec(is)%fprim)
        call broadcast (spec(is)%tprim)
-       call broadcast (spec(is)%vnewk)
+!       call broadcast (spec(is)%vnewk)
        call broadcast (spec(is)%stm)
        call broadcast (spec(is)%zstm)
        call broadcast (spec(is)%tz)

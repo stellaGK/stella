@@ -3,6 +3,7 @@
 #
 stella_mod = \
 	 command_line.o \
+	 common_types.o \
 	 constants.o \
 	 convert.o \
 	 dist_fn.o \
@@ -18,7 +19,6 @@ stella_mod = \
 	 inputprofiles_interface.o \
 	 job_manage.o \
 	 kt_grids.o \
-	 layouts_type.o \
 	 millerlocal.o \
 	 mp.o \
 	 neoclassical_terms.o \
@@ -41,6 +41,7 @@ stella_mod = \
 	 zgrid.o 
 
 command_line.o: 
+common_types.o: 
 constants.o: 
 convert.o: 
 dist_fn.o: \
@@ -82,6 +83,7 @@ fields.o: \
 	 kt_grids.o \
 	 mp.o \
 	 run_parameters.o \
+	 species.o \
 	 stella_layouts.o \
 	 zgrid.o 
 fields_arrays.o: 
@@ -117,9 +119,11 @@ init_g.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 inputprofiles_interface.o: \
+	 common_types.o \
 	 constants.o \
 	 finite_differences.o \
 	 millerlocal.o \
+	 mp.o \
 	 spl.o 
 job_manage.o: \
 	 file_utils.o \
@@ -131,7 +135,6 @@ kt_grids.o: \
 	 mp.o \
 	 text_options.o \
 	 zgrid.o 
-layouts_type.o: 
 mds.o: \
 	 constants.o 
 millerlocal.o: \
@@ -167,7 +170,9 @@ run_parameters.o: \
 sfincs_interface.o: \
 	 mp.o 
 species.o: \
+	 common_types.o \
 	 file_utils.o \
+	 inputprofiles_interface.o \
 	 mp.o \
 	 text_options.o 
 spfunc.o: \
@@ -212,14 +217,14 @@ stella_io.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_layouts.o: \
+	 common_types.o \
 	 file_utils.o \
-	 layouts_type.o \
 	 mp.o 
 stella_save.o: \
+	 common_types.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 kt_grids.o \
-	 layouts_type.o \
 	 mp.o \
 	 netcdf_utils.o \
 	 species.o \

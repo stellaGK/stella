@@ -37,7 +37,7 @@ contains
     use mp, only: proc0
     use millerlocal, only: read_local_parameters
     use millerlocal, only: get_local_geo
-    use inputprofiles_interface, only: read_inputprof
+    use inputprofiles_interface, only: read_inputprof_geo
 
     implicit none
 
@@ -68,7 +68,7 @@ contains
           ! now overwrite local parameters
           ! with those from input.profiles file
           ! use rhoc from input as surface
-          call read_inputprof (qinp, shat)
+          call read_inputprof_geo (qinp, shat)
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &
