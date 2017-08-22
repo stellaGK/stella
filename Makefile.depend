@@ -153,12 +153,6 @@ neoclassical_terms.o: \
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
-old_geometry.o: \
-	 eeq.o \
-	 geometry.o \
-	 geq.o \
-	 ideq.o \
-	 peq.o 
 peq.o: \
 	 constants.o \
 	 netcdf_utils.o \
@@ -244,17 +238,6 @@ stella_transforms.o: \
 	 fft_work.o \
 	 stella_layouts.o 
 text_options.o: 
-theta_grid.o: \
-	 constants.o \
-	 file_utils.o \
-	 geometry.o \
-	 gridgen4mod.o \
-	 mp.o \
-	 spl.o \
-	 text_options.o \
-	 theta_grid_params.o 
-theta_grid_params.o: \
-	 file_utils.o 
 vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \
