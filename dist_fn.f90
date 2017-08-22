@@ -548,7 +548,7 @@ contains
 
   subroutine init_connections
 
-    use zgrid, only: nperiod, ntgrid, ntheta
+    use zgrid, only: nperiod, ntgrid, nzed
     use kt_grids, only: ntheta0, nakx, naky
     use kt_grids, only: jtwist_out, aky
     use species, only: nspec
@@ -562,7 +562,7 @@ contains
     integer, dimension (:), allocatable :: ikx_shift_left_kypos, ikx_shift_left_kyneg
     integer, dimension (:,:), allocatable :: ikx_shift
 
-    ntg = ntheta/2
+    ntg = nzed/2
     ! iky_max is the index of the most positive ky
     iky_max = naky/2+1
 
@@ -728,9 +728,9 @@ contains
        ! ig_low(j) is the ig index corresponding to the inboard midplane from below (theta=-pi) within the jth segment
        ! ig_mid(j) is the ig index corresponding to the outboard midplane (theta=0) within the jth segment
        do iseg = 1, nseg_max
-          ig_low(iseg) = -ntgrid + (iseg-1)*ntheta
-          ig_mid(iseg) = ig_low(iseg) + ntheta/2
-          ig_up(iseg) = ig_low(iseg) + ntheta
+          ig_low(iseg) = -ntgrid + (iseg-1)*nzed
+          ig_mid(iseg) = ig_low(iseg) + nzed/2
+          ig_up(iseg) = ig_low(iseg) + nzed
        end do
 
     end select
@@ -1033,7 +1033,7 @@ contains
 
     to_high(1) = vmu_lo%naky
     to_high(2) = vmu_lo%nakx
-    to_high(3) = vmu_lo%ntheta
+    to_high(3) = vmu_lo%nzed
     to_high(4) = vmu_lo%ulim_alloc
 
     call set_redist_character_type (kxkyz2vmu, 'kxkyz2vmu')
@@ -1153,7 +1153,7 @@ contains
 
     to_high(1) = vmu_lo%ny
     to_high(2) = vmu_lo%nakx
-    to_high(3) = vmu_lo%ntheta
+    to_high(3) = vmu_lo%nzed
     to_high(4) = vmu_lo%ulim_alloc
 
     call set_redist_character_type (kxyz2vmu, 'kxkyz2vmu')

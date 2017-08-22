@@ -14,290 +14,290 @@ module splines
 
 contains
 
-  subroutine new_spline (n, x, y, spl)
-    implicit none
-    integer, intent (in) :: n
-    real, dimension (n), intent (in) :: x, y
-    type (spline), intent (out) :: spl
-    real, dimension (n) :: temp
-    integer :: ierr
+!   subroutine new_spline (n, x, y, spl)
+!     implicit none
+!     integer, intent (in) :: n
+!     real, dimension (n), intent (in) :: x, y
+!     type (spline), intent (out) :: spl
+!     real, dimension (n) :: temp
+!     integer :: ierr
 
-    spl%n = n
-    allocate (spl%x(n),spl%y(n))
-    spl%x = x
-    spl%y = y
-    allocate (spl%y2(n))
-    call fitp_curv1 (n, x, y, 0.0, 0.0, 3, spl%y2, temp, 1.0, ierr)
-  end subroutine new_spline
+!     spl%n = n
+!     allocate (spl%x(n),spl%y(n))
+!     spl%x = x
+!     spl%y = y
+!     allocate (spl%y2(n))
+!     call fitp_curv1 (n, x, y, 0.0, 0.0, 3, spl%y2, temp, 1.0, ierr)
+!   end subroutine new_spline
 
-  subroutine new_periodic_spline (n, x, y, period, spl)
-    implicit none
-    integer, intent (in) :: n
-    real, dimension (n), intent (in) :: x, y
-    real, intent (in) :: period
-    type (periodic_spline), intent (out) :: spl
-    real, dimension (2*n) :: temp
-    integer :: ierr
+!   subroutine new_periodic_spline (n, x, y, period, spl)
+!     implicit none
+!     integer, intent (in) :: n
+!     real, dimension (n), intent (in) :: x, y
+!     real, intent (in) :: period
+!     type (periodic_spline), intent (out) :: spl
+!     real, dimension (2*n) :: temp
+!     integer :: ierr
 
-    spl%n = n
-    spl%period = period
-    allocate (spl%x(n),spl%y(n))
-    spl%x = x
-    spl%y = y
-    allocate (spl%y2(n))
-    call fitp_curvp1 (n,x,y,period,spl%y2,temp,1.0,ierr)
-  end subroutine new_periodic_spline
+!     spl%n = n
+!     spl%period = period
+!     allocate (spl%x(n),spl%y(n))
+!     spl%x = x
+!     spl%y = y
+!     allocate (spl%y2(n))
+!     call fitp_curvp1 (n,x,y,period,spl%y2,temp,1.0,ierr)
+!   end subroutine new_periodic_spline
 
-  subroutine delete_spline (spl)
-    implicit none
-    type (spline), intent (in out) :: spl
-    spl%n = 0
-    deallocate (spl%x,spl%y)
-    nullify (spl%x)
-    nullify (spl%y)
-    deallocate (spl%y2)
-    nullify (spl%y2)
-  end subroutine delete_spline
+!   subroutine delete_spline (spl)
+!     implicit none
+!     type (spline), intent (in out) :: spl
+!     spl%n = 0
+!     deallocate (spl%x,spl%y)
+!     nullify (spl%x)
+!     nullify (spl%y)
+!     deallocate (spl%y2)
+!     nullify (spl%y2)
+!   end subroutine delete_spline
 
-  subroutine delete_periodic_spline (spl)
-    implicit none
-    type (periodic_spline), intent (in out) :: spl
-    spl%n = 0
-    spl%period = 0.0
-    deallocate (spl%x,spl%y)
-    nullify (spl%x)
-    nullify (spl%y)
-    deallocate (spl%y2)
-    nullify (spl%y2)
-  end subroutine delete_periodic_spline
+!   subroutine delete_periodic_spline (spl)
+!     implicit none
+!     type (periodic_spline), intent (in out) :: spl
+!     spl%n = 0
+!     spl%period = 0.0
+!     deallocate (spl%x,spl%y)
+!     nullify (spl%x)
+!     nullify (spl%y)
+!     deallocate (spl%y2)
+!     nullify (spl%y2)
+!   end subroutine delete_periodic_spline
 
-  function splint (x, spl)
-    implicit none
-    real, intent (in) :: x
-    type (spline), intent (in) :: spl
-    real :: splint
+!   function splint (x, spl)
+!     implicit none
+!     real, intent (in) :: x
+!     type (spline), intent (in) :: spl
+!     real :: splint
 
-    splint = fitp_curv2 (x, spl%n, spl%x, spl%y, spl%y2, 1.0)
-  end function splint
+!     splint = fitp_curv2 (x, spl%n, spl%x, spl%y, spl%y2, 1.0)
+!   end function splint
 
-  function periodic_splint (x, spl)
-    implicit none
-    real, intent (in) :: x
-    type (periodic_spline), intent (in) :: spl
-    real :: periodic_splint
-    periodic_splint = fitp_curvp2 &
-         (x, spl%n, spl%x, spl%y, spl%period, spl%y2, 1.0)
-  end function periodic_splint
+!   function periodic_splint (x, spl)
+!     implicit none
+!     real, intent (in) :: x
+!     type (periodic_spline), intent (in) :: spl
+!     real :: periodic_splint
+!     periodic_splint = fitp_curvp2 &
+!          (x, spl%n, spl%x, spl%y, spl%period, spl%y2, 1.0)
+!   end function periodic_splint
 
-  function dsplint (x, spl)
-    implicit none
-    real, intent (in) :: x
-    type (spline), intent (in) :: spl
-    real :: dsplint
-    dsplint = fitp_curvd (x, spl%n, spl%x, spl%y, spl%y2, 1.0)
-  end function dsplint
+!   function dsplint (x, spl)
+!     implicit none
+!     real, intent (in) :: x
+!     type (spline), intent (in) :: spl
+!     real :: dsplint
+!     dsplint = fitp_curvd (x, spl%n, spl%x, spl%y, spl%y2, 1.0)
+!   end function dsplint
 
-  function splintint (x0, x1, spl)
-    implicit none
-    real, intent (in) :: x0, x1
-    type (spline), intent (in) :: spl
-    real :: splintint
-    splintint = fitp_curvi (x0,x1,spl%n,spl%x,spl%y,spl%y2,1.0)
-  end function splintint
+!   function splintint (x0, x1, spl)
+!     implicit none
+!     real, intent (in) :: x0, x1
+!     type (spline), intent (in) :: spl
+!     real :: splintint
+!     splintint = fitp_curvi (x0,x1,spl%n,spl%x,spl%y,spl%y2,1.0)
+!   end function splintint
 
-  function periodic_splintint (x0, x1, spl)
-    implicit none
-    real, intent (in) :: x0, x1
-    type (periodic_spline), intent (in) :: spl
-    real :: periodic_splintint
-    periodic_splintint = fitp_curvpi &
-         (x0,x1,spl%n,spl%x,spl%y,spl%period,spl%y2, 1.0)
-  end function periodic_splintint
+!   function periodic_splintint (x0, x1, spl)
+!     implicit none
+!     real, intent (in) :: x0, x1
+!     type (periodic_spline), intent (in) :: spl
+!     real :: periodic_splintint
+!     periodic_splintint = fitp_curvpi &
+!          (x0,x1,spl%n,spl%x,spl%y,spl%period,spl%y2, 1.0)
+!   end function periodic_splintint
 
-  subroutine inter_d_cspl(n,r,data,m,x,dint,ddint)
-    integer n
-    integer m
-    real r(n), data(n), x(m), dint(m), ddint(m)
+!   subroutine inter_d_cspl(n,r,data,m,x,dint,ddint)
+!     integer n
+!     integer m
+!     real r(n), data(n), x(m), dint(m), ddint(m)
 
-    integer max
-    parameter (max=1000)
-    real ddata(max),temp(max)
-    integer i,ierr
+!     integer max
+!     parameter (max=1000)
+!     real ddata(max),temp(max)
+!     integer i,ierr
 
-    if (n .gt. max) then
-       write (*,*) 'error in inter_d_cspl'
-       write (*,*) 'increase max'
-       stop
-    endif
+!     if (n .gt. max) then
+!        write (*,*) 'error in inter_d_cspl'
+!        write (*,*) 'increase max'
+!        stop
+!     endif
     
-    ierr = 0
-    call fitp_curv1(n,r,data,0.0,0.0,3,ddata,temp,1.0,ierr)
-    if (ierr .ne. 0) then
-       if (ierr .eq. 1) then
-          write (*,*) 'FITPACK: curv1 error: n < 2'
-       elseif (ierr .eq. 2) then
-          write (*,*) 'FITPACK: curv1 error: x-values not increasing'
-       else
-          write (*,*) 'FITPACK: curv1 error'
-       endif
-       stop
-    endif
-    do i=1,m
-       dint(i) = fitp_curv2 (x(i),n,r,data,ddata,1.0)
-       ddint(i)= fitp_curvd (x(i),n,r,data,ddata,1.0)
-    enddo
+!     ierr = 0
+!     call fitp_curv1(n,r,data,0.0,0.0,3,ddata,temp,1.0,ierr)
+!     if (ierr .ne. 0) then
+!        if (ierr .eq. 1) then
+!           write (*,*) 'FITPACK: curv1 error: n < 2'
+!        elseif (ierr .eq. 2) then
+!           write (*,*) 'FITPACK: curv1 error: x-values not increasing'
+!        else
+!           write (*,*) 'FITPACK: curv1 error'
+!        endif
+!        stop
+!     endif
+!     do i=1,m
+!        dint(i) = fitp_curv2 (x(i),n,r,data,ddata,1.0)
+!        ddint(i)= fitp_curvd (x(i),n,r,data,ddata,1.0)
+!     enddo
 
-  end subroutine inter_d_cspl
+!   end subroutine inter_d_cspl
 
-  subroutine inter_cspl(n,r,data,m,x,dint)
-    integer n
-    integer m
-    real r(n), data(n), x(m), dint(m)
+!   subroutine inter_cspl(n,r,data,m,x,dint)
+!     integer n
+!     integer m
+!     real r(n), data(n), x(m), dint(m)
 
-    integer max
-    parameter (max=1000)
-    real ddata(max),temp(max)
-    integer i,ierr
+!     integer max
+!     parameter (max=1000)
+!     real ddata(max),temp(max)
+!     integer i,ierr
     
-    if (n .gt. max) then
-       write (*,*) 'error in inter_cspl'
-       write (*,*) 'increase max'
-       stop
-    endif
+!     if (n .gt. max) then
+!        write (*,*) 'error in inter_cspl'
+!        write (*,*) 'increase max'
+!        stop
+!     endif
     
-    ierr = 0
-    call fitp_curv1(n,r,data,0.0,0.0,3,ddata,temp,1.0,ierr)
-    if (ierr .ne. 0) then
-       if (ierr .eq. 1) then
-          write (*,*) 'FITPACK: curv1 error: n < 2'
-       elseif (ierr .eq. 2) then
-          write (*,*) 'FITPACK: curv1 error: x-values not increasing'
-       else
-          write (*,*) 'FITPACK: curv1 error'
-       endif
-       stop
-    endif
-    do i=1,m
-       dint(i) = fitp_curv2 (x(i),n,r,data,ddata,1.0)
-    enddo
+!     ierr = 0
+!     call fitp_curv1(n,r,data,0.0,0.0,3,ddata,temp,1.0,ierr)
+!     if (ierr .ne. 0) then
+!        if (ierr .eq. 1) then
+!           write (*,*) 'FITPACK: curv1 error: n < 2'
+!        elseif (ierr .eq. 2) then
+!           write (*,*) 'FITPACK: curv1 error: x-values not increasing'
+!        else
+!           write (*,*) 'FITPACK: curv1 error'
+!        endif
+!        stop
+!     endif
+!     do i=1,m
+!        dint(i) = fitp_curv2 (x(i),n,r,data,ddata,1.0)
+!     enddo
 
-  end subroutine inter_cspl
+!   end subroutine inter_cspl
 
-  subroutine inter_getspl (n, x, y, y2)
-    integer n
-    real x(n), y(n), y2(n)
+!   subroutine inter_getspl (n, x, y, y2)
+!     integer n
+!     real x(n), y(n), y2(n)
     
-    integer max
-    parameter (max=1000)
-    real temp(max)
-    integer ierr
+!     integer max
+!     parameter (max=1000)
+!     real temp(max)
+!     integer ierr
 
-    if (n .gt. max) then
-       write (*,*) 'error in inter_getspl'
-       write (*,*) 'increase max'
-       stop
-    endif
+!     if (n .gt. max) then
+!        write (*,*) 'error in inter_getspl'
+!        write (*,*) 'increase max'
+!        stop
+!     endif
     
-    ierr = 0
-    call fitp_curv1(n,x,y,0.0,0.0,3,y2,temp,1.0,ierr)
-    if (ierr .ne. 0) then
-       if (ierr .eq. 1) then
-          write (*,*) 'FITPACK: curv1 error: n < 2'
-       elseif (ierr .eq. 2) then
-          write (*,*) 'FITPACK: curv1 error: x-values not increasing'
-       else
-          write (*,*) 'FITPACK: curv1 error'
-       endif
-       stop
-    endif
+!     ierr = 0
+!     call fitp_curv1(n,x,y,0.0,0.0,3,y2,temp,1.0,ierr)
+!     if (ierr .ne. 0) then
+!        if (ierr .eq. 1) then
+!           write (*,*) 'FITPACK: curv1 error: n < 2'
+!        elseif (ierr .eq. 2) then
+!           write (*,*) 'FITPACK: curv1 error: x-values not increasing'
+!        else
+!           write (*,*) 'FITPACK: curv1 error'
+!        endif
+!        stop
+!     endif
 
-  end subroutine inter_getspl
+!   end subroutine inter_getspl
 
-  real function inter_splint (x0, n, x, y, y2)
-    real x0
-    integer n
-    real x(n), y(n), y2(n)
+!   real function inter_splint (x0, n, x, y, y2)
+!     real x0
+!     integer n
+!     real x(n), y(n), y2(n)
     
-    inter_splint = fitp_curv2 (x0, n, x, y, y2, 1.0)
+!     inter_splint = fitp_curv2 (x0, n, x, y, y2, 1.0)
 
-  end function inter_splint
+!   end function inter_splint
   
-  real function inter_dsplint (x0, n, x, y, y2)
-    real x0
-    integer n
-    real x(n), y(n), y2(n)
+!   real function inter_dsplint (x0, n, x, y, y2)
+!     real x0
+!     integer n
+!     real x(n), y(n), y2(n)
     
-    inter_dsplint = fitp_curvd (x0, n, x, y, y2, 1.0)
+!     inter_dsplint = fitp_curvd (x0, n, x, y, y2, 1.0)
 
-  end function inter_dsplint
+!   end function inter_dsplint
 
-  real function inter_d2splint (x0, n, x, y, y2)
-    real x0
-    integer n
-    real x(n), y(n), y2(n)
+!   real function inter_d2splint (x0, n, x, y, y2)
+!     real x0
+!     integer n
+!     real x(n), y(n), y2(n)
 
-    real yx(500)
-    data yx(1)/1.0/
-    save yx
-    integer i
+!     real yx(500)
+!     data yx(1)/1.0/
+!     save yx
+!     integer i
 
-    if (yx(1) .ne. 0.0) then
-       do i=1,500
-          yx(i) = 0.0
-       enddo
-    endif
-    inter_d2splint = fitp_curv2 (x0, n, x, y2, yx, 1e5)
+!     if (yx(1) .ne. 0.0) then
+!        do i=1,500
+!           yx(i) = 0.0
+!        enddo
+!     endif
+!     inter_d2splint = fitp_curv2 (x0, n, x, y2, yx, 1e5)
 
-  end function inter_d2splint
+!   end function inter_d2splint
 
-  subroutine inter_getpspl (n, x, p, y, y2)
-    integer n
-    real x(n), p, y(n), y2(n)
+!   subroutine inter_getpspl (n, x, p, y, y2)
+!     integer n
+!     real x(n), p, y(n), y2(n)
     
-    integer max
-    parameter (max=1000)
-    real temp(max)
-    integer ierr
+!     integer max
+!     parameter (max=1000)
+!     real temp(max)
+!     integer ierr
 
-    if (n .gt. max) then
-       write (*,*) 'error in inter_getpspl'
-       write (*,*) 'increase max'
-       stop
-    endif
+!     if (n .gt. max) then
+!        write (*,*) 'error in inter_getpspl'
+!        write (*,*) 'increase max'
+!        stop
+!     endif
 
-    ierr=0
-    call fitp_curvp1(n,x,y,p,y2,temp,1.0,ierr)
-    if (ierr .ne. 0) then
-       if (ierr .eq. 1) then
-          write (*,*) 'FITPACK: curvp1 error: n < 2'
-       elseif (ierr .eq. 2) then
-          write (*,*) 'FITPACK: curvp1 error: p <= x(n)-x(1)'
-       elseif (ierr .eq. 3) then
-          write (*,*) 'FITPACK: curvp1 error: x-values not increasing'
-       else
-          write (*,*) 'FITPACK: curv1 error'
-       endif
-       stop
-    endif
+!     ierr=0
+!     call fitp_curvp1(n,x,y,p,y2,temp,1.0,ierr)
+!     if (ierr .ne. 0) then
+!        if (ierr .eq. 1) then
+!           write (*,*) 'FITPACK: curvp1 error: n < 2'
+!        elseif (ierr .eq. 2) then
+!           write (*,*) 'FITPACK: curvp1 error: p <= x(n)-x(1)'
+!        elseif (ierr .eq. 3) then
+!           write (*,*) 'FITPACK: curvp1 error: x-values not increasing'
+!        else
+!           write (*,*) 'FITPACK: curv1 error'
+!        endif
+!        stop
+!     endif
 
-  end subroutine inter_getpspl
+!   end subroutine inter_getpspl
 
-  real function inter_psplint (x0, n, x, p, y, y2)
-    real x0
-    integer n
-    real x(n), p, y(n), y2(n)
+!   real function inter_psplint (x0, n, x, p, y, y2)
+!     real x0
+!     integer n
+!     real x(n), p, y(n), y2(n)
 
-    inter_psplint = fitp_curvp2 (x0, n, x, y, p, y2, 1.0)
+!     inter_psplint = fitp_curvp2 (x0, n, x, y, p, y2, 1.0)
 
-  end function inter_psplint
+!   end function inter_psplint
 
-  real function inter_pdsplint (x0, n, x, p, y, y2)
-    real x0
-    integer n
-    real x(n), p, y(n), y2(n)
+!   real function inter_pdsplint (x0, n, x, p, y, y2)
+!     real x0
+!     integer n
+!     real x(n), p, y(n), y2(n)
     
-    inter_pdsplint = fitp_curvpd (x0, n, x, y, p, y2, 1.0)
-  end function inter_pdsplint
+!     inter_pdsplint = fitp_curvpd (x0, n, x, y, p, y2, 1.0)
+!   end function inter_pdsplint
 
 ! From inet!cs.utexas.edu!cline Tue Oct 31 17:10:31 CST 1989
 ! Received: from mojave.cs.utexas.edu by cs.utexas.edu (5.59/1.44)
@@ -1739,7 +1739,7 @@ contains
 !-----------------------------------------------------------
     integer ibak, im1, nm1, np1, i
     real dx1, dy1, diag1, delsnm, slppnx, slppny, delsn
-    real sdiag, diag, diagin, sdiag1, sdiag2, dx2, dy2, diag2
+    real diag, diagin, sdiag1, sdiag2, dx2, dy2, diag2
     real sigmap, slpp1x, slpp1y, dels1, sx, sy, delt
     real c3, dels2, c1, c2
 
@@ -2924,7 +2924,7 @@ contains
 !
 !-----------------------------------------------------------
     integer im1, i, j, jm1
-    real hermz, hermnz, isgmay, zxxi, dummy, zxxim1, zim1, zi
+    real hermz, hermnz, zxxi, dummy, zxxim1, zim1, zi
     real sigmax, fp2, del1, fp1, f1, f2, del2
     real sinhms, sinhm2, sinhm1, dels, sigmay, sigmap
 !
@@ -3929,6 +3929,7 @@ contains
      end if
      go to 1
    end function fitp_intrvl
+
    integer function fitp_intrvp (t,x,n,p,tp)
 
      integer n
@@ -3977,7 +3978,7 @@ contains
      save i
      data i /1/
 
-     nper = (t-x(1))/p
+     nper = int((t-x(1))/p)
      tp = t-real(nper)*p
      if (tp .lt. x(1)) tp = tp+p
      tt = tp

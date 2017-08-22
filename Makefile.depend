@@ -102,8 +102,6 @@ geq.o: \
 	 constants.o \
 	 netcdf_utils.o \
 	 spl.o 
-gridgen4mod.o: \
-	 spl.o 
 hdf_wrapper.o: \
 	 constants.o \
 	 convert.o \

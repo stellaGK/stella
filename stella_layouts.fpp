@@ -196,7 +196,7 @@ contains
    
     kxkyz_lo%iproc = iproc
     kxkyz_lo%ntgrid = ntgrid
-    kxkyz_lo%ntheta = 2*ntgrid+1
+    kxkyz_lo%nzed = 2*ntgrid+1
     kxkyz_lo%naky = naky
     kxkyz_lo%nakx = nakx
     kxkyz_lo%nvgrid = nvgrid
@@ -204,7 +204,7 @@ contains
     kxkyz_lo%nmu = nmu
     kxkyz_lo%nspec = nspec
     kxkyz_lo%llim_world = 0
-    kxkyz_lo%ulim_world = naky*nakx*kxkyz_lo%ntheta*nspec - 1
+    kxkyz_lo%ulim_world = naky*nakx*kxkyz_lo%nzed*nspec - 1
     kxkyz_lo%blocksize = kxkyz_lo%ulim_world/nproc + 1
     kxkyz_lo%llim_proc = kxkyz_lo%blocksize*iproc
     kxkyz_lo%ulim_proc = min(kxkyz_lo%ulim_world, kxkyz_lo%llim_proc + kxkyz_lo%blocksize - 1)
@@ -217,7 +217,7 @@ contains
     integer :: is_idx_kxkyz
     type (kxkyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
-    is_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nakx/lo%naky/lo%ntheta, lo%nspec)
+    is_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nakx/lo%naky/lo%nzed, lo%nspec)
   end function is_idx_kxkyz
 
   elemental function ikx_idx_kxkyz (lo, i)
@@ -236,7 +236,7 @@ contains
     case ('xyzmvs')
        ikx_idx_kxkyz = 1 + mod((i - lo%llim_world), lo%nakx)
     case ('zyxvms')
-       ikx_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%naky/lo%ntheta, lo%nakx)
+       ikx_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%naky/lo%nzed, lo%nakx)
     end select
 
   end function ikx_idx_kxkyz
@@ -256,7 +256,7 @@ contains
     case ('xyzmvs')
        iky_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nakx, lo%naky)
     case ('zyxvms')
-       iky_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%ntheta, lo%naky)
+       iky_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nzed, lo%naky)
     end select
 
   end function iky_idx_kxkyz
@@ -270,13 +270,13 @@ contains
 
     select case (layout)
     case ('vmyxzs')
-       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%ntheta)
+       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
     case ('xyzvms')
-       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%ntheta)
+       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
     case ('xyzmvs')
-       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%ntheta)
+       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
     case ('zyxvms')
-       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world), lo%ntheta)
+       ig_idx_kxkyz = -lo%ntgrid + mod((i - lo%llim_world), lo%nzed)
     end select
 
   end function ig_idx_kxkyz
@@ -301,13 +301,13 @@ contains
 
     select case (layout)
     case ('vmyxzs')
-       idx_kxkyz = iky-1 + lo%naky*(ikx-1 + lo%nakx*(ig+lo%ntgrid + lo%ntheta*(is-1)))
+       idx_kxkyz = iky-1 + lo%naky*(ikx-1 + lo%nakx*(ig+lo%ntgrid + lo%nzed*(is-1)))
     case ('xyzvms')
-       idx_kxkyz = ikx-1 + lo%nakx*(iky-1 + lo%naky*(ig+lo%ntgrid + lo%ntheta*(is-1)))
+       idx_kxkyz = ikx-1 + lo%nakx*(iky-1 + lo%naky*(ig+lo%ntgrid + lo%nzed*(is-1)))
     case ('xyzmvs')
-       idx_kxkyz = ikx-1 + lo%nakx*(iky-1 + lo%naky*(ig+lo%ntgrid + lo%ntheta*(is-1)))
+       idx_kxkyz = ikx-1 + lo%nakx*(iky-1 + lo%naky*(ig+lo%ntgrid + lo%nzed*(is-1)))
     case ('zyxvms')
-       idx_kxkyz = ig+lo%ntgrid + lo%ntheta*(iky-1 + lo%naky*(ikx-1))
+       idx_kxkyz = ig+lo%ntgrid + lo%nzed*(iky-1 + lo%naky*(ikx-1))
     end select
 
   end function idx_kxkyz
@@ -346,7 +346,7 @@ contains
    
     kxyz_lo%iproc = iproc
     kxyz_lo%ntgrid = ntgrid
-    kxyz_lo%ntheta = 2*ntgrid+1
+    kxyz_lo%nzed = 2*ntgrid+1
     kxyz_lo%ny = ny
     kxyz_lo%naky = naky
     kxyz_lo%nakx = nakx
@@ -355,7 +355,7 @@ contains
     kxyz_lo%nmu = nmu
     kxyz_lo%nspec = nspec
     kxyz_lo%llim_world = 0
-    kxyz_lo%ulim_world = ny*nakx*kxyz_lo%ntheta*nspec - 1
+    kxyz_lo%ulim_world = ny*nakx*kxyz_lo%nzed*nspec - 1
     kxyz_lo%blocksize = kxyz_lo%ulim_world/nproc + 1
     kxyz_lo%llim_proc = kxyz_lo%blocksize*iproc
     kxyz_lo%ulim_proc = min(kxyz_lo%ulim_world, kxyz_lo%llim_proc + kxyz_lo%blocksize - 1)
@@ -368,7 +368,7 @@ contains
     integer :: is_idx_kxyz
     type (kxyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
-    is_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%nakx/lo%ny/lo%ntheta, lo%nspec)
+    is_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%nakx/lo%ny/lo%nzed, lo%nspec)
   end function is_idx_kxyz
 
   elemental function ikx_idx_kxyz (lo, i)
@@ -387,7 +387,7 @@ contains
     case ('xyzmvs')
        ikx_idx_kxyz = 1 + mod((i - lo%llim_world), lo%nakx)
     case ('zyxvms')
-       ikx_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%ny/lo%ntheta, lo%nakx)
+       ikx_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%ny/lo%nzed, lo%nakx)
     end select
 
   end function ikx_idx_kxyz
@@ -407,7 +407,7 @@ contains
     case ('xyzmvs')
        iy_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%nakx, lo%ny)
     case ('zyxvms')
-       iy_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%ntheta, lo%ny)
+       iy_idx_kxyz = 1 + mod((i - lo%llim_world)/lo%nzed, lo%ny)
     end select
 
   end function iy_idx_kxyz
@@ -421,13 +421,13 @@ contains
 
     select case (layout)
     case ('vmyxzs')
-       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%ntheta)
+       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
     case ('xyzvms')
-       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%ntheta)
+       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
     case ('xyzmvs')
-       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%ntheta)
+       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
     case ('zyxvms')
-       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world), lo%ntheta)
+       ig_idx_kxyz = -lo%ntgrid + mod((i - lo%llim_world), lo%nzed)
     end select
 
   end function ig_idx_kxyz
@@ -452,13 +452,13 @@ contains
 
     select case (layout)
     case ('vmyxzs')
-       idx_kxyz = iy-1 + lo%ny*(ikx-1 + lo%nakx*(ig+lo%ntgrid + lo%ntheta*(is-1)))
+       idx_kxyz = iy-1 + lo%ny*(ikx-1 + lo%nakx*(ig+lo%ntgrid + lo%nzed*(is-1)))
     case ('xyzvms')
-       idx_kxyz = ikx-1 + lo%nakx*(iy-1 + lo%ny*(ig+lo%ntgrid + lo%ntheta*(is-1)))
+       idx_kxyz = ikx-1 + lo%nakx*(iy-1 + lo%ny*(ig+lo%ntgrid + lo%nzed*(is-1)))
     case ('xyzmvs')
-       idx_kxyz = ikx-1 + lo%nakx*(iy-1 + lo%ny*(ig+lo%ntgrid + lo%ntheta*(is-1)))
+       idx_kxyz = ikx-1 + lo%nakx*(iy-1 + lo%ny*(ig+lo%ntgrid + lo%nzed*(is-1)))
     case ('zyxvms')
-       idx_kxyz = ig+lo%ntgrid + lo%ntheta*(iy-1 + lo%ny*(ikx-1))
+       idx_kxyz = ig+lo%ntgrid + lo%nzed*(iy-1 + lo%ny*(ikx-1))
     end select
 
   end function idx_kxyz
@@ -497,7 +497,7 @@ contains
    
     vmu_lo%xyz = .true.
     vmu_lo%iproc = iproc
-    vmu_lo%ntheta = 2*ntgrid+1
+    vmu_lo%nzed = 2*ntgrid+1
     vmu_lo%ntgrid = ntgrid
     vmu_lo%ny = ny
     vmu_lo%naky = naky

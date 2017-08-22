@@ -56,7 +56,7 @@ contains
 # elif FFT == _FFTW3_
     ! number of ffts to be calculated
     ! equal to number of elements off-processor * number of non-y elements on processor
-    nb_ffts = (vmu_lo%ulim_alloc - vmu_lo%llim_proc + 1)*vmu_lo%nakx*vmu_lo%ntheta
+    nb_ffts = (vmu_lo%ulim_alloc - vmu_lo%llim_proc + 1)*vmu_lo%nakx*vmu_lo%nzed
 
     call init_ccfftw (yf_fft,  1, vmu_lo%ny, nb_ffts, fft_y_in, fft_y_out)
     call init_ccfftw (yb_fft, -1, vmu_lo%ny, nb_ffts, fft_y_in, fft_y_out)

@@ -21,7 +21,7 @@ contains
     use stella_layouts, only: init_stella_layouts
     use geometry, only: init_geometry
     use zgrid, only: init_zgrid
-    use zgrid, only: ntheta, ntgrid
+    use zgrid, only: nzed, ntgrid
     use zgrid, only: delthet, theta
     use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
@@ -43,7 +43,7 @@ contains
     if (debug) write(6,*) "fields::init_fields::init_zgrid"
     call init_zgrid
     if (debug) write(6,*) "fields::init_fields::init_geometry"
-    call init_geometry (ntheta, ntgrid, theta, delthet)
+    call init_geometry (nzed, ntgrid, theta, delthet)
     if (debug) write(6,*) "fields::init_fields::init_init_g"
     call init_init_g
     if (debug) write(6,*) "fields::init_fields::init_run_parameters"

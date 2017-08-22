@@ -3,14 +3,14 @@ module zgrid
   implicit none
 
   public :: init_zgrid, finish_zgrid
-  public :: ntheta, ntgrid, nperiod
+  public :: nzed, ntgrid, nperiod
   public :: theta
   public :: delthet
   public :: shat_zero
 
   private
 
-  integer :: ntheta, ntgrid, nperiod
+  integer :: nzed, ntgrid, nperiod
   real :: shat_zero
   real, dimension (:), allocatable :: theta, delthet
 
@@ -38,7 +38,7 @@ contains
     if (.not.allocated(theta)) allocate (theta(-ntgrid:ntgrid))
     if (.not.allocated(delthet)) allocate (delthet(-ntgrid:ntgrid))
 
-    theta = (/ (i*pi/real(ntheta/2), i=-ntgrid, ntgrid ) /)
+    theta = (/ (i*pi/real(nzed/2), i=-ntgrid, ntgrid ) /)
     delthet(:ntgrid-1) = theta(-ntgrid+1:) - theta(:ntgrid-1)
     delthet(ntgrid) = delthet(-ntgrid)
 
@@ -53,9 +53,9 @@ contains
     integer :: in_file
     logical :: exist
 
-    namelist /zgrid_parameters/ ntheta, nperiod, shat_zero
+    namelist /zgrid_parameters/ nzed, nperiod, shat_zero
 
-    ntheta = 32
+    nzed = 32
     nperiod = 1
     ! set minimum shat value below which we assume
     ! periodic BC
@@ -64,7 +64,7 @@ contains
     in_file = input_unit_exist("zgrid_parameters", exist)
     if (exist) read (unit=in_file, nml=zgrid_parameters)
 
-    ntgrid = ntheta/2 + (nperiod-1)*ntheta
+    ntgrid = nzed/2 + (nperiod-1)*nzed
 
   end subroutine read_parameters
 
@@ -74,7 +74,7 @@ contains
 
     implicit none
 
-    call broadcast (ntheta)
+    call broadcast (nzed)
     call broadcast (ntgrid)
     call broadcast (nperiod)
     call broadcast (shat_zero)

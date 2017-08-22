@@ -83,7 +83,7 @@ contains
 
     use mp, only: proc0
     use file_utils, only: input_unit_exist
-    use zgrid, only: nperiod, ntheta
+    use zgrid, only: nperiod, nzed
 
     implicit none
 
@@ -107,7 +107,7 @@ contains
 
        if (.not. save_for_restart) nsave = -1
     end if
-    ntg_out = ntheta/2 + (nperiod-1)*ntheta
+    ntg_out = nzed/2 + (nperiod-1)*nzed
 
   end subroutine read_parameters
 
