@@ -124,7 +124,7 @@ contains
 
     geo_option = 'local'
 
-    in_file = input_unit_exist("theta_grid_knobs", exist)
+    in_file = input_unit_exist("zgrid_knobs", exist)
     if (exist) read (unit=in_file, nml=geo_knobs)
 
     ierr = error_unit()
@@ -156,9 +156,9 @@ contains
 
   end subroutine broadcast_arrays
 
-  ! given function f(theta:-pi->pi), calculate theta derivative
+  ! given function f(z:-pi->pi), calculate z derivative
   ! second order accurate, with equal grid spacing assumed
-  ! assumes periodic in theta -- may need to change this in future
+  ! assumes periodic in z -- may need to change this in future
   subroutine get_dthet (nz, dz, f, df)
 
     implicit none

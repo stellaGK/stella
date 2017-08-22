@@ -22,7 +22,7 @@ contains
     use geometry, only: init_geometry
     use zgrid, only: init_zgrid
     use zgrid, only: nzed, nzgrid
-    use zgrid, only: delthet, theta
+    use zgrid, only: delzed, zed
     use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
     use dist_fn, only: init_dist_fn
@@ -43,7 +43,7 @@ contains
     if (debug) write(6,*) "fields::init_fields::init_zgrid"
     call init_zgrid
     if (debug) write(6,*) "fields::init_fields::init_geometry"
-    call init_geometry (nzed, nzgrid, theta, delthet)
+    call init_geometry (nzed, nzgrid, zed, delzed)
     if (debug) write(6,*) "fields::init_fields::init_init_g"
     call init_init_g
     if (debug) write(6,*) "fields::init_fields::init_run_parameters"

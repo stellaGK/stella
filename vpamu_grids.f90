@@ -20,7 +20,7 @@ module vpamu_grids
   real :: dvpa
 
   ! vpa-mu related arrays that are declared here
-  ! but allocated and filled elsewhere because they depend on theta, etc.
+  ! but allocated and filled elsewhere because they depend on z, etc.
   real, dimension (:,:), allocatable :: vperp2
   real, dimension (:,:,:), allocatable :: energy, anon
 
@@ -341,13 +341,13 @@ contains
 
     allocate (dmu(nmu-1)) ; dmu = 0.0
     
-    ! dvpe * vpe = d(2*mu*B(theta=0)) * B/2B(theta=0)
+    ! dvpe * vpe = d(2*mu*B(z=0)) * B/2B(z=0)
     
-    ! use Gauss-Laguerre quadrature in 2*mu*bmag(theta=0)
+    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
     call get_laguerre_grids (mu, wgts_mu)
     wgts_mu = wgts_mu*exp(mu)/(2.*bmag(0))
     
-    ! get mu grid from grid in 2*mu*bmag(theta=0)
+    ! get mu grid from grid in 2*mu*bmag(z=0)
     mu = mu/(2.*bmag(0))
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 

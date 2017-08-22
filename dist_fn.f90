@@ -1171,7 +1171,7 @@ contains
     use mp, only: proc0
     use dist_fn_arrays, only: wdriftx, wdrifty
     use stella_time, only: cfl_dt, code_dt, write_dt
-    use zgrid, only: delthet
+    use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky
 
@@ -1185,8 +1185,8 @@ contains
     zero = 100.*epsilon(0.)
 
     cfl_dt_mirror = code_dt*dvpa/max(maxval(abs(mirror)),zero)
-    ! FLAG -- assuming equal spacing in theta!
-    cfl_dt_stream = code_dt*delthet(0)/max(maxval(abs(stream)),zero)
+    ! FLAG -- assuming equal spacing in zed!
+    cfl_dt_stream = code_dt*delzed(0)/max(maxval(abs(stream)),zero)
     cfl_dt_wdriftx = code_dt/max(maxval(akx)*maxval(abs(wdriftx)),zero)
     cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*maxval(abs(wdrifty)),zero)
     cfl_dt = min(cfl_dt_mirror,cfl_dt_stream,cfl_dt_wdriftx,cfl_dt_wdrifty)
@@ -1625,10 +1625,10 @@ contains
 
   subroutine get_dgdz (g, dgdz)
 
-    use finite_differences, only: third_order_upwind_theta
+    use finite_differences, only: third_order_upwind_zed
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use zgrid, only: nzgrid, delthet
+    use zgrid, only: nzgrid, delzed
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1639,7 +1639,7 @@ contains
     integer :: ivmu, iseg, ie, iky, iv
     complex, dimension (2) :: gleft, gright
 
-    ! FLAG -- assuming delta theta is equally spaced below!
+    ! FLAG -- assuming delta zed is equally spaced below!
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        do iky = 1, naky
@@ -1648,10 +1648,10 @@ contains
                 ! if iseg,ie,iky corresponds to negative kx, no need to solve
                 ! as it will be constrained by reality condition
                 if (ikxmod(iseg,ie,iky) > nakx) cycle
-                call fill_theta_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
-                call third_order_upwind_theta (ig_low(iseg), iseg, nsegments(ie,iky), &
+                call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
+                call third_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
                      g(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg),ivmu), &
-                     delthet(0), stream_sign(iv), gleft, gright, &
+                     delzed(0), stream_sign(iv), gleft, gright, &
                      dgdz(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg),ivmu))
              end do
           end do
@@ -1682,7 +1682,7 @@ contains
 
   end subroutine add_stream_term
 
-  subroutine fill_theta_ghost_zones (iseg, ie, iky, g, gleft, gright)
+  subroutine fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
     use kt_grids, only: ntheta0, nakx, naky
@@ -1738,8 +1738,8 @@ contains
     else
        gright = 0.0
     end if
-
-  end subroutine fill_theta_ghost_zones
+    
+  end subroutine fill_zed_ghost_zones
 
   subroutine get_dgdy (g, dgdy)
 

@@ -183,7 +183,7 @@ contains
   subroutine ginit_default
 
     use species, only: spec
-    use zgrid, only: nzgrid, theta
+    use zgrid, only: nzgrid, zed
     use geometry, only: bmag
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0, aky
@@ -202,7 +202,7 @@ contains
     right = .not. left
 
     do ig = -nzgrid, nzgrid
-       phi(:,:,ig) = exp(-((theta(ig)-theta0)/width0)**2)*cmplx(1.0,1.0)
+       phi(:,:,ig) = exp(-((zed(ig)-theta0)/width0)**2)*cmplx(1.0,1.0)
        ! necessary to match similar initial condition from
        ! codes with kx +/- and ky >= 0
        phi(naky/2+2,:,ig) = conjg(phi(naky/2+2,:,ig))
@@ -427,7 +427,7 @@ contains
   subroutine ginit_kpar
 
 !    use species, only: spec, has_electron_species
-    use zgrid, only: nzgrid, theta
+    use zgrid, only: nzgrid, zed
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2, anon
@@ -446,7 +446,7 @@ contains
     odd = 0.
     if (width0 > 0.) then
        do ig = -nzgrid, nzgrid
-          phi(:,:,ig) = exp(-((theta(ig)-theta0)/width0)**2)*cmplx(refac, imfac)
+          phi(:,:,ig) = exp(-((zed(ig)-theta0)/width0)**2)*cmplx(refac, imfac)
        end do
     else
        do ig = -nzgrid, nzgrid
@@ -463,10 +463,10 @@ contains
     
     odd = zi * phi
     
-    dfac     = den0   + den1 * cos(theta) + den2 * cos(2.*theta) 
-    ufac     = upar0  + upar1* sin(theta) + upar2* sin(2.*theta) 
-    tparfac  = tpar0  + tpar1* cos(theta) + tpar2* cos(2.*theta) 
-    tperpfac = tperp0 + tperp1*cos(theta) + tperp2*cos(2.*theta) 
+    dfac     = den0   + den1 * cos(zed) + den2 * cos(2.*zed) 
+    ufac     = upar0  + upar1* sin(zed) + upar2* sin(2.*zed) 
+    tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed) 
+    tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed) 
     
     ! charge dependence keeps initial Phi from being too small
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc

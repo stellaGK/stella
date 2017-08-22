@@ -4,15 +4,15 @@ module zgrid
 
   public :: init_zgrid, finish_zgrid
   public :: nzed, nzgrid, nperiod
-  public :: theta
-  public :: delthet
+  public :: zed
+  public :: delzed
   public :: shat_zero
 
   private
 
   integer :: nzed, nzgrid, nperiod
   real :: shat_zero
-  real, dimension (:), allocatable :: theta, delthet
+  real, dimension (:), allocatable :: zed, delzed
 
   logical :: zgridinit = .false.
 
@@ -35,12 +35,12 @@ contains
     end if
     call broadcast_parameters
 
-    if (.not.allocated(theta)) allocate (theta(-nzgrid:nzgrid))
-    if (.not.allocated(delthet)) allocate (delthet(-nzgrid:nzgrid))
+    if (.not.allocated(zed)) allocate (zed(-nzgrid:nzgrid))
+    if (.not.allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
 
-    theta = (/ (i*pi/real(nzed/2), i=-nzgrid, nzgrid ) /)
-    delthet(:nzgrid-1) = theta(-nzgrid+1:) - theta(:nzgrid-1)
-    delthet(nzgrid) = delthet(-nzgrid)
+    zed = (/ (i*pi/real(nzed/2), i=-nzgrid, nzgrid ) /)
+    delzed(:nzgrid-1) = zed(-nzgrid+1:) - zed(:nzgrid-1)
+    delzed(nzgrid) = delzed(-nzgrid)
 
   end subroutine init_zgrid
 
@@ -85,8 +85,8 @@ contains
 
     implicit none
 
-    if (allocated(theta)) deallocate (theta)
-    if (allocated(delthet)) deallocate (delthet)
+    if (allocated(zed)) deallocate (zed)
+    if (allocated(delzed)) deallocate (delzed)
 
     zgridinit = .false.
 

@@ -35,7 +35,7 @@ module stella_io
   integer, dimension (3) :: mode_dim, phase_dim, loop_phi_dim, heat_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
 
-  integer :: nakx_id, naky_id, nttot_id, akx_id, aky_id, theta_id, nspec_id
+  integer :: nakx_id, naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
   integer :: time_id, phi2_id, apar2_id, bpar2_id, theta0_id, nproc_id, nmesh_id
   integer :: phi2_by_mode_id, apar2_by_mode_id, bpar2_by_mode_id
@@ -146,8 +146,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, dim='ky')
     status = nf90_def_dim (ncid, 'kx', nakx, nakx_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='kx')
-    status = nf90_def_dim (ncid, 'theta', 2*nzgrid+1, nttot_dim)
-    if (status /= nf90_noerr) call netcdf_error (status, dim='theta')
+    status = nf90_def_dim (ncid, 'zed', 2*nzgrid+1, nttot_dim)
+    if (status /= nf90_noerr) call netcdf_error (status, dim='zed')
     status = nf90_def_dim (ncid, 'vpa', 2*nvgrid+1, nvtot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='vpa')
     status = nf90_def_dim (ncid, 'mu', nmu, nmu_dim)
@@ -169,7 +169,7 @@ contains
 
   subroutine nc_grids
 
-    use zgrid, only: nzgrid, theta
+    use zgrid, only: nzgrid, zed
     use kt_grids, only: naky, nakx, theta0, akx, aky
     use species, only: nspec
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
@@ -199,8 +199,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, akx_id)
     status = nf90_put_var (ncid, aky_id, aky)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, aky_id)
-    status = nf90_put_var (ncid, theta_id, theta)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, theta_id)
+    status = nf90_put_var (ncid, zed_id, zed)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, zed_id)
     status = nf90_put_var (ncid, theta0_id, theta0)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, theta0_id)
     status = nf90_put_var (ncid, mu_id, mu)
@@ -563,12 +563,12 @@ contains
     status = nf90_def_var (ncid, 'vpa', netcdf_real, nvtot_dim, vpa_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='vpa')
 
-    status = nf90_def_var (ncid, 'theta', netcdf_real, nttot_dim, theta_id)
-    if (status /= nf90_noerr) call netcdf_error (status, var='theta')
+    status = nf90_def_var (ncid, 'zed', netcdf_real, nttot_dim, zed_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='zed')
 
     status = nf90_def_var (ncid, 'bmag', netcdf_real, nttot_dim, bmag_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='bmag')
-    status = nf90_put_att (ncid, bmag_id, 'long_name', '|B|(theta)')
+    status = nf90_put_att (ncid, bmag_id, 'long_name', '|B|(zed)')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='long_name')
     status = nf90_put_att (ncid, bmag_id, 'units', 'B_0')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='units')
@@ -908,7 +908,7 @@ contains
 
 !     status = nf90_def_var (ncid, 'ntot20', netcdf_real, flux_dim,  ntot20_id)
 !     if (status /= nf90_noerr) call netcdf_error (status, var='ntot20')
-!     status = nf90_put_att (ncid, ntot20_id, 'long_name', 'Density**2 at theta=0')
+!     status = nf90_put_att (ncid, ntot20_id, 'long_name', 'Density**2 at zed=0')
 !     if (status /= nf90_noerr) call netcdf_error (status, ncid, ntot20_id, att='long_name')
 !     status = nf90_def_var (ncid, 'ntot20_by_mode', netcdf_real, fluxk_dim, ntot20_by_mode_id)
 !     if (status /= nf90_noerr) call netcdf_error (status, var='ntot20_by_mode')

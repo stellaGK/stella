@@ -3,7 +3,7 @@ module finite_differences
   implicit none
 
   public :: third_order_upwind
-  public :: third_order_upwind_theta
+  public :: third_order_upwind_zed
 
 contains
   
@@ -36,7 +36,7 @@ contains
 
   end subroutine third_order_upwind
 
-  subroutine third_order_upwind_theta (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+  subroutine third_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
 
     implicit none
     
@@ -51,7 +51,7 @@ contains
 
     ulim = size(f)+llim-1    
     ! if sgn > 0, then stream speed is negative
-    ! so sweep from more positive to more negative theta
+    ! so sweep from more positive to more negative zed
     if (sgn > 0) then
        if (iseg == nseg) then
           i = ulim
@@ -101,6 +101,6 @@ contains
        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
     end do
 
-  end subroutine third_order_upwind_theta
+  end subroutine third_order_upwind_zed
 
 end module finite_differences

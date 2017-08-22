@@ -131,7 +131,7 @@ contains
 
   subroutine init_averages
 
-    use zgrid, only: delthet
+    use zgrid, only: delzed
     use geometry, only: jacob
     use kt_grids, only: akx, nakx
 
@@ -139,7 +139,7 @@ contains
 
     if (.not.allocated(dl_over_b)) then
        allocate (dl_over_b(-ntg_out:ntg_out))
-       dl_over_b = delthet(-ntg_out:ntg_out)*jacob(-ntg_out:ntg_out)
+       dl_over_b = delzed(-ntg_out:ntg_out)*jacob(-ntg_out:ntg_out)
        dl_over_b = dl_over_b / sum(dl_over_b)
     end if
 
@@ -256,7 +256,7 @@ contains
 
   end subroutine volume_average
 
-  ! get_gvmus takes g(kx,ky,theta) and returns average over theta of int dxdy g(x,y,theta)^2
+  ! get_gvmus takes g(kx,ky,z) and returns average over z of int dxdy g(x,y,z)^2
   ! SHOULD MODIFY TO TAKE ADVANTAGE OF FACT THAT G(KY,KX,Z) LOCAL IS AVAILABLE
   subroutine get_gvmus (g, gv)
 
@@ -293,7 +293,7 @@ contains
 
   end subroutine get_gvmus
 
-  ! get_gzvs takes g(kx,ky,theta,vpa,mu,s) and returns int dmudxdy g(x,y,theta,vpa,mu,s)^2
+  ! get_gzvs takes g(kx,ky,z,vpa,mu,s) and returns int dmudxdy g(x,y,z,vpa,mu,s)^2
   subroutine get_gzvs (g, gz)
 
     use stella_layouts, only: vmu_lo
@@ -374,7 +374,7 @@ contains
     use file_utils, only: open_output_file, close_output_file
     use fields_arrays, only: phi, apar
     use zgrid, only: nzgrid
-    use zgrid, only: theta
+    use zgrid, only: zed
     use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
 
@@ -384,12 +384,12 @@ contains
     integer :: iky, ikx, ig
 
     call open_output_file (tmpunit,'.final_fields')
-    write (tmpunit,'(8a12)') '# theta', 'thet-thet0', 'aky', 'akx', &
+    write (tmpunit,'(8a12)') '# z', 'z-thet0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)'
     do iky = 1, naky
        do ikx = 1, nakx
           do ig = -nzgrid, nzgrid
-             write (tmpunit,'(8e12.4)') theta(ig), theta(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
+             write (tmpunit,'(8e12.4)') zed(ig), zed(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,ig)), aimag(phi(iky,ikx,ig)), &
                   real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig))
           end do
