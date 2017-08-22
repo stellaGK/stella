@@ -3,14 +3,14 @@ module zgrid
   implicit none
 
   public :: init_zgrid, finish_zgrid
-  public :: nzed, ntgrid, nperiod
+  public :: nzed, nzgrid, nperiod
   public :: theta
   public :: delthet
   public :: shat_zero
 
   private
 
-  integer :: nzed, ntgrid, nperiod
+  integer :: nzed, nzgrid, nperiod
   real :: shat_zero
   real, dimension (:), allocatable :: theta, delthet
 
@@ -35,12 +35,12 @@ contains
     end if
     call broadcast_parameters
 
-    if (.not.allocated(theta)) allocate (theta(-ntgrid:ntgrid))
-    if (.not.allocated(delthet)) allocate (delthet(-ntgrid:ntgrid))
+    if (.not.allocated(theta)) allocate (theta(-nzgrid:nzgrid))
+    if (.not.allocated(delthet)) allocate (delthet(-nzgrid:nzgrid))
 
-    theta = (/ (i*pi/real(nzed/2), i=-ntgrid, ntgrid ) /)
-    delthet(:ntgrid-1) = theta(-ntgrid+1:) - theta(:ntgrid-1)
-    delthet(ntgrid) = delthet(-ntgrid)
+    theta = (/ (i*pi/real(nzed/2), i=-nzgrid, nzgrid ) /)
+    delthet(:nzgrid-1) = theta(-nzgrid+1:) - theta(:nzgrid-1)
+    delthet(nzgrid) = delthet(-nzgrid)
 
   end subroutine init_zgrid
 
@@ -64,7 +64,7 @@ contains
     in_file = input_unit_exist("zgrid_parameters", exist)
     if (exist) read (unit=in_file, nml=zgrid_parameters)
 
-    ntgrid = nzed/2 + (nperiod-1)*nzed
+    nzgrid = nzed/2 + (nperiod-1)*nzed
 
   end subroutine read_parameters
 
@@ -75,7 +75,7 @@ contains
     implicit none
 
     call broadcast (nzed)
-    call broadcast (ntgrid)
+    call broadcast (nzgrid)
     call broadcast (nperiod)
     call broadcast (shat_zero)
 

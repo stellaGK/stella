@@ -20,17 +20,6 @@ module redistribute
   implicit none
   private
 
-  integer :: naky = 0
-  integer :: ntgrid = 0
-  integer :: nlambda = 0
-  integer :: ntheta0 = 0
-  integer :: negrid = 0
-  integer :: nx = 0
-  integer :: xxf_lo_ulim_proc = 0
-  integer :: yxf_lo_ulim_proc = 0
-  integer :: g_lo_blocksize = 0
-  character (len=5) :: layout = ''
-
   public :: index_list_type, delete_list
   public :: redist_type, delete_redist
 ! TT>

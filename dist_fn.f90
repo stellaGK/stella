@@ -80,7 +80,7 @@ contains
     use run_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
     use geometry, only: dl_over_b
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nvgrid, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: anon, integrate_vmu
@@ -98,16 +98,16 @@ contains
 
     debug = debug .and. proc0
 
-    if (.not.allocated(gamtot)) allocate (gamtot(naky,nakx,-ntgrid:ntgrid)) ; gamtot = 0.
+    if (.not.allocated(gamtot)) allocate (gamtot(naky,nakx,-nzgrid:nzgrid)) ; gamtot = 0.
     if (.not.allocated(gamtot3)) then
        if (.not.has_electron_species(spec) &
             .and. adiabatic_option_switch==adiabatic_option_fieldlineavg) then
-          allocate (gamtot3(nakx,-ntgrid:ntgrid)) ; gamtot3 = 0.
+          allocate (gamtot3(nakx,-nzgrid:nzgrid)) ; gamtot3 = 0.
        else
           allocate (gamtot3(1,1)) ; gamtot3 = 0.
        end if
     end if
-    if (.not.allocated(apar_denom)) allocate (apar_denom(naky,nakx,-ntgrid:ntgrid)) ; apar_denom = 0.
+    if (.not.allocated(apar_denom)) allocate (apar_denom(naky,nakx,-nzgrid:nzgrid)) ; apar_denom = 0.
 
     if (fphi > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
@@ -173,7 +173,7 @@ contains
     use run_parameters, only: fphi, fapar
     use run_parameters, only: beta
     use geometry, only: dl_over_b
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: integrate_vmu
@@ -183,7 +183,7 @@ contains
     implicit none
     
     complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:), intent (out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
@@ -272,7 +272,7 @@ contains
     use species, only: init_species
     use species, only: nspec
     use zgrid, only: init_zgrid
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: init_kt_grids
     use kt_grids, only: naky, nakx, ny
     use kt_grids, only: alpha_global
@@ -309,7 +309,7 @@ contains
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_run_parameters'
     call init_run_parameters
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_dist_fn_layouts'
-    call init_dist_fn_layouts (ntgrid, naky, nakx, nvgrid, nmu, nspec, ny)
+    call init_dist_fn_layouts (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny)
     if (debug) write (*,*) 'dist_fn::init_dist_fn::allocate_arrays'
     call allocate_arrays
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kperp2'
@@ -419,7 +419,7 @@ contains
   subroutine init_kperp2
 
     use geometry, only: gds2, gds21, gds22, shat
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
 
@@ -430,7 +430,7 @@ contains
     if (kp2init) return
     kp2init = .true.
 
-    allocate (kperp2(naky,nakx,-ntgrid:ntgrid))
+    allocate (kperp2(naky,nakx,-nzgrid:nzgrid))
     do iky = 1, naky
        if (abs(aky(iky)) < epsilon(0.)) then
           do ikx = 1, nakx
@@ -454,7 +454,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use species, only: spec
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use geometry, only: cvdrift, gbdrift
     use geometry, only: cvdrift0, gbdrift0, shat
     use vpamu_grids, only: vpa, vperp2
@@ -467,9 +467,9 @@ contains
     wdriftinit = .true.
 
     if (.not.allocated(wdriftx)) &
-         allocate (wdriftx(ny_ffs,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdriftx(ny_ffs,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdrifty)) &
-         allocate (wdrifty(ny_ffs,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdrifty(ny_ffs,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -493,7 +493,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use species, only: spec
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: energy, anon
 
     implicit none
@@ -504,7 +504,7 @@ contains
     wstarinit = .true.
 
     if (.not.allocated(wstar)) &
-         allocate (wstar(-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstar = 0.0
+         allocate (wstar(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstar = 0.0
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
@@ -519,7 +519,7 @@ contains
   subroutine allocate_arrays
 
     use stella_layouts, only: kxkyz_lo, vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: nvgrid, nmu
     use dist_fn_arrays, only: gnew, gold
@@ -529,16 +529,16 @@ contains
     implicit none
 
     if (.not.allocated(gnew)) &
-         allocate (gnew(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (gnew(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     gnew = 0.
     if (.not.allocated(gold)) &
-         allocate (gold(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (gold(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     gold = 0.
     if (.not.allocated(g1)) &
-         allocate (g1(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (g1(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     g1 = 0.
     if (.not.allocated(g2)) &
-         allocate (g2(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (g2(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     g2 = 0.
     if (.not.allocated(gvmu)) &
          allocate (gvmu(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -548,7 +548,7 @@ contains
 
   subroutine init_connections
 
-    use zgrid, only: nperiod, ntgrid, nzed
+    use zgrid, only: nperiod, nzgrid, nzed
     use kt_grids, only: ntheta0, nakx, naky
     use kt_grids, only: jtwist_out, aky
     use species, only: nspec
@@ -693,9 +693,9 @@ contains
        nseg_max = maxval(nsegments)
 
        if (.not. allocated(ig_low)) then
-          allocate (ig_low(nseg_max)) ; ig_low = -ntgrid
+          allocate (ig_low(nseg_max)) ; ig_low = -nzgrid
           allocate (ig_mid(nseg_max)) ; ig_mid = 0
-          allocate (ig_up(nseg_max)) ; ig_up = ntgrid
+          allocate (ig_up(nseg_max)) ; ig_up = nzgrid
        end if
        
     case default
@@ -728,7 +728,7 @@ contains
        ! ig_low(j) is the ig index corresponding to the inboard midplane from below (theta=-pi) within the jth segment
        ! ig_mid(j) is the ig index corresponding to the outboard midplane (theta=0) within the jth segment
        do iseg = 1, nseg_max
-          ig_low(iseg) = -ntgrid + (iseg-1)*nzed
+          ig_low(iseg) = -nzgrid + (iseg-1)*nzed
           ig_mid(iseg) = ig_low(iseg) + nzed/2
           ig_up(iseg) = ig_low(iseg) + nzed
        end do
@@ -767,7 +767,7 @@ contains
   subroutine init_vperp2
 
     use geometry, only: bmag
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, energy, anon
     use vpamu_grids, only: vpa, mu
     use vpamu_grids, only: nmu, nvgrid
@@ -776,14 +776,14 @@ contains
 
     integer :: iv
     
-    if (.not.allocated(vperp2)) allocate (vperp2(-ntgrid:ntgrid,nmu)) ; vperp2 = 0.
-    if (.not.allocated(energy)) allocate (energy(-ntgrid:ntgrid,-nvgrid:nvgrid,nmu)) ; energy = 0.
-    if (.not.allocated(anon)) allocate (anon(-ntgrid:ntgrid,-nvgrid:nvgrid,nmu)) ; anon = 0.
+    if (.not.allocated(vperp2)) allocate (vperp2(-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
+    if (.not.allocated(energy)) allocate (energy(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu)) ; energy = 0.
+    if (.not.allocated(anon)) allocate (anon(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu)) ; anon = 0.
 
-    vperp2 = 2.0*spread(mu,1,2*ntgrid+1)*spread(bmag,2,nmu)
+    vperp2 = 2.0*spread(mu,1,2*nzgrid+1)*spread(bmag,2,nmu)
 
     do iv = -nvgrid, nvgrid
-       energy(:,iv,:) = vpa(iv)**2 + 2.0*spread(mu,1,2*ntgrid+1)*spread(bmag,2,nmu)
+       energy(:,iv,:) = vpa(iv)**2 + 2.0*spread(mu,1,2*nzgrid+1)*spread(bmag,2,nmu)
        anon(:,iv,:) = exp(-energy(:,iv,:))
     end do
 
@@ -794,7 +794,7 @@ contains
     use dist_fn_arrays, only: aj0v, aj0x
     use species, only: spec, nspec
     use geometry, only: bmag
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, nmu
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo, vmu_lo
@@ -813,9 +813,9 @@ contains
     call init_kperp2
 
     allocate (aj0v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)) ; aj0v = 0.
-    allocate (aj0x(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; aj0x = 0.
-!    allocate (aj1(-ntgrid:ntgrid,g_lo%llim_proc:g_lo%ulim_alloc)) ; aj1 = 0.
-!    allocate (aj2(-ntgrid:ntgrid,g_lo%llim_proc:g_lo%ulim_alloc)) ; aj2 = 0.
+    allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; aj0x = 0.
+!    allocate (aj1(-nzgrid:nzgrid,g_lo%llim_proc:g_lo%ulim_alloc)) ; aj1 = 0.
+!    allocate (aj2(-nzgrid:nzgrid,g_lo%llim_proc:g_lo%ulim_alloc)) ; aj2 = 0.
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -834,7 +834,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
-       do ig = -ntgrid, ntgrid
+       do ig = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
                 arg = spec(is)%smz*sqrt(vperp2(ig,imu)*kperp2(iky,ikx,ig))/bmag(ig)
@@ -855,7 +855,7 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nmu
     use vpamu_grids, only: mu
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use geometry, only: dbdthet, gradpar
 
     implicit none
@@ -865,15 +865,15 @@ contains
     if (mirrorinit) return
     mirrorinit = .true.
     
-    if (.not.allocated(mirror)) allocate (mirror(ny_ffs,-ntgrid:ntgrid,nmu,nspec)) ; mirror = 0.
-    if (.not.allocated(mirror_sign)) allocate (mirror_sign(ny_ffs,-ntgrid:ntgrid)) ; mirror_sign = 0
+    if (.not.allocated(mirror)) allocate (mirror(ny_ffs,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
+    if (.not.allocated(mirror_sign)) allocate (mirror_sign(ny_ffs,-nzgrid:nzgrid)) ; mirror_sign = 0
 
     do iy = 1, ny_ffs
-       mirror(iy,:,:,:) = mirrorknob*code_dt*spread(spread(spec%stm,1,2*ntgrid+1),2,nmu) &
-            *spread(spread(mu,1,2*ntgrid+1)*spread(dbdthet*gradpar,2,nmu),3,nspec)
+       mirror(iy,:,:,:) = mirrorknob*code_dt*spread(spread(spec%stm,1,2*nzgrid+1),2,nmu) &
+            *spread(spread(mu,1,2*nzgrid+1)*spread(dbdthet*gradpar,2,nmu),3,nspec)
        ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
        ! NB: mirror_sign = -1 corresponds to positive advection velocity
-       do ig = -ntgrid, ntgrid
+       do ig = -nzgrid, nzgrid
           mirror_sign(iy,ig) = int(sign(1.0,mirror(iy,ig,1,1)))
        end do
     end do
@@ -886,7 +886,7 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: vpa, nvpa
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use geometry, only: gradpar
 
     implicit none
@@ -896,12 +896,12 @@ contains
     if (streaminit) return
     streaminit = .true.
 
-    if (.not.allocated(stream)) allocate (stream(-ntgrid:ntgrid,-nvgrid:nvgrid,nspec)) ; stream = 0.
+    if (.not.allocated(stream)) allocate (stream(-nzgrid:nzgrid,-nvgrid:nvgrid,nspec)) ; stream = 0.
     if (.not.allocated(stream_sign)) allocate (stream_sign(-nvgrid:nvgrid)) ; stream_sign = 0
 
     ! sign of stream corresponds to appearing on RHS of GK equation
-    stream = -streamknob*code_dt*spread(spread(spec%stm,1,2*ntgrid+1),2,nvpa) &
-         * spread(spread(vpa,1,2*ntgrid+1)*spread(gradpar,2,nvpa),3,nspec)
+    stream = -streamknob*code_dt*spread(spread(spec%stm,1,2*nzgrid+1),2,nvpa) &
+         * spread(spread(vpa,1,2*nzgrid+1)*spread(gradpar,2,nvpa),3,nspec)
 
     ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     ! NB: stream_sign = -1 corresponds to positive advection velocity
@@ -935,7 +935,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvgrid, nmu
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -1028,7 +1028,7 @@ contains
 
     to_low(1) = 1
     to_low(2) = 1
-    to_low(3) = -ntgrid
+    to_low(3) = -nzgrid
     to_low(4) = vmu_lo%llim_proc
 
     to_high(1) = vmu_lo%naky
@@ -1055,7 +1055,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvgrid, nmu
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -1148,7 +1148,7 @@ contains
 
     to_low(1) = 1
     to_low(2) = 1
-    to_low(3) = -ntgrid
+    to_low(3) = -nzgrid
     to_low(4) = vmu_lo%llim_proc
 
     to_high(1) = vmu_lo%ny
@@ -1256,15 +1256,15 @@ contains
     use stella_transforms, only: transform_y2ky
     use redistribute, only: gather, scatter
     use run_parameters, only: fphi, fapar
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use kt_grids, only: nakx, ny
     use kt_grids, only: alpha_global
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gin
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (out), target :: rhs_ky
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gin
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out), target :: rhs_ky
 
     complex, dimension (:,:,:,:), allocatable, target :: rhs_y
     complex, dimension (:,:,:,:), pointer :: rhs
@@ -1272,7 +1272,7 @@ contains
     rhs_ky = 0.
 
     if (alpha_global) then
-       allocate (rhs_y(ny,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+       allocate (rhs_y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_proc))
        rhs_y = 0.
        rhs => rhs_y
     else
@@ -1322,11 +1322,11 @@ contains
     use redistribute, only: scatter
     use dist_fn_arrays, only: gvmu
     use fields_arrays, only: phi, apar
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
 
     ! time the communications + field solve
     if (proc0) call time_message(.false.,time_gke(:,1),' fields')
@@ -1347,17 +1347,17 @@ contains
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:,:), allocatable :: g0
 
-    allocate (g0(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
     ! get dg/dz, with z the parallel coordinate and store in g0_kykxz
@@ -1377,16 +1377,16 @@ contains
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:,:), allocatable :: g0
 
-    allocate (g0(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! omega_* stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
     ! get d<chi>/dy
@@ -1408,15 +1408,15 @@ contains
     use job_manage, only: time_message
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
     use stella_transforms, only: transform_ky2y
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: alpha_global
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvgrid, nmu
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:), allocatable :: g0x
@@ -1425,7 +1425,7 @@ contains
     ! the mirror term is most complicated of all when doing full flux surface
     if (alpha_global) then
        allocate (g0v(-nvgrid:nvgrid,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-       allocate (g0x(ny,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
        ! for upwinding, need to evaluate dh/dvpa in y-space
        ! first must take h(ky) and transform to h(y)
@@ -1440,7 +1440,7 @@ contains
        call add_mirror_term_global (g0x, gout)
     else
        allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-       allocate (g0x(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
        ! get dg/dvpa and store in g0_vmu
        if (debug) write (*,*) 'dist_fn::advance_stella::get_dgdvpa'
@@ -1462,25 +1462,25 @@ contains
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:,:), allocatable :: g0k, g0y
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
-    allocate (g0k(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdy'
     call get_dgdy (g, g0k)
     if (alpha_global) then
-       allocate (g0y(ny,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        call transform_ky2y (g0k, g0y)
        call add_dgdy_term_global (g0y, gout)
        deallocate (g0y)
@@ -1500,25 +1500,25 @@ contains
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:,:), allocatable :: g0k, g0y
 
     ! psi-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
-    allocate (g0k(naky,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdx'
     call get_dgdx (g, g0k)
     if (alpha_global) then
-       allocate (g0y(ny,nakx,-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        call transform_ky2y (g0k, g0y)
        call add_dgdx_term_global (g0y, gout)
        deallocate (g0y)
@@ -1583,13 +1583,13 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
 
@@ -1605,13 +1605,13 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
 
@@ -1628,13 +1628,13 @@ contains
     use finite_differences, only: third_order_upwind_theta
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use zgrid, only: ntgrid, delthet
+    use zgrid, only: nzgrid, delthet
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
 
     integer :: ivmu, iseg, ie, iky, iv
     complex, dimension (2) :: gleft, gright
@@ -1664,13 +1664,13 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: iv, is, ivmu
 
@@ -1684,14 +1684,14 @@ contains
 
   subroutine fill_theta_ghost_zones (iseg, ie, iky, g, gleft, gright)
 
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: ntheta0, nakx, naky
     use kt_grids, only: aky
 
     implicit none
 
     integer, intent (in) :: iseg, ie, iky
-    complex, dimension (:,:,-ntgrid:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
     complex, dimension (:), intent (out) :: gleft, gright
 
     integer :: ikxneg, ikyneg
@@ -1745,18 +1745,18 @@ contains
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx, aky
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (out) :: dgdy
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdy
 
     integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       dgdy(:,:,:,ivmu) = zi*spread(spread(aky,2,nakx),3,2*ntgrid+1)*g(:,:,:,ivmu)
+       dgdy(:,:,:,ivmu) = zi*spread(spread(aky,2,nakx),3,2*nzgrid+1)*g(:,:,:,ivmu)
     end do
 
   end subroutine get_dgdy
@@ -1765,13 +1765,13 @@ contains
 
     use dist_fn_arrays, only: wdrifty
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 
@@ -1785,13 +1785,13 @@ contains
 
     use dist_fn_arrays, only: wdrifty
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 
@@ -1805,18 +1805,18 @@ contains
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, akx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (out) :: dgdx
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdx
 
     integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       dgdx(:,:,:,ivmu) = zi*spread(spread(akx,1,naky),3,2*ntgrid+1)*g(:,:,:,ivmu)
+       dgdx(:,:,:,ivmu) = zi*spread(spread(akx,1,naky),3,2*nzgrid+1)*g(:,:,:,ivmu)
     end do
 
   end subroutine get_dgdx
@@ -1825,13 +1825,13 @@ contains
 
     use dist_fn_arrays, only: wdriftx
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 
@@ -1845,13 +1845,13 @@ contains
 
     use dist_fn_arrays, only: wdriftx
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 
@@ -1869,21 +1869,21 @@ contains
     use stella_layouts, only: is_idx, iv_idx
     use run_parameters, only: fphi, fapar
     use species, only: spec
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: vpa
     use kt_grids, only: nakx, aky
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:), intent (in) :: phi, apar
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (out) :: dchidy
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dchidy
 
     integer :: ivmu, iv, is
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       dchidy(:,:,:,ivmu) = zi*spread(spread(aky,2,nakx),3,2*ntgrid+1)*aj0x(:,:,:,ivmu) &
+       dchidy(:,:,:,ivmu) = zi*spread(spread(aky,2,nakx),3,2*nzgrid+1)*aj0x(:,:,:,ivmu) &
             * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
     end do
 
@@ -1893,13 +1893,13 @@ contains
 
     use dist_fn_arrays, only: wstar
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 

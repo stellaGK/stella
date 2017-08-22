@@ -130,7 +130,7 @@ contains
   subroutine pass_geometry_to_sfincs
 
     use species, only: spec, nspec
-    use zgrid, only: ntgrid!, drhotor2dr
+    use zgrid, only: nzgrid!, drhotor2dr
     use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
     use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
     use globalVariables, only: magneticDriftScheme_sfincs => magneticDriftScheme
@@ -162,7 +162,7 @@ contains
 !     ! I think nzeta will be 2*nzgrid+1
 !     ! and ntheta will be ny_ffs
     Nzeta = 1
-    Ntheta = 2*ntgrid+1
+    Ntheta = 2*nzgrid+1
 !     ! FLAG -- this currently assumes we are using Miller specification
 !    if (inputRadialCoordinateForGradients == 1) then
 !        ! radial density gradient with respect to psitor/psitor_LCFS

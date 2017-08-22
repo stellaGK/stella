@@ -183,7 +183,7 @@ contains
   subroutine ginit_default
 
     use species, only: spec
-    use zgrid, only: ntgrid, theta
+    use zgrid, only: nzgrid, theta
     use geometry, only: bmag
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0, aky
@@ -194,14 +194,14 @@ contains
 
     implicit none
 
-    complex, dimension (naky,nakx,-ntgrid:ntgrid) :: phi
+    complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
     logical :: right
     integer :: ikxkyz
     integer :: ig, iky, ikx, is
 
     right = .not. left
 
-    do ig = -ntgrid, ntgrid
+    do ig = -nzgrid, nzgrid
        phi(:,:,ig) = exp(-((theta(ig)-theta0)/width0)**2)*cmplx(1.0,1.0)
        ! necessary to match similar initial condition from
        ! codes with kx +/- and ky >= 0
@@ -240,7 +240,7 @@ contains
 
 !     use mp, only: proc0
 !     use species, only: spec
-!     use zgrid, only: ntgrid, bmag
+!     use zgrid, only: nzgrid, bmag
 !     use kt_grids, only: naky, ntheta0
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold
@@ -248,7 +248,7 @@ contains
 
 !     implicit none
 
-!     complex, dimension (-ntgrid:ntgrid,ntheta0,naky) :: phi
+!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky) :: phi
 !     logical :: right
 !     integer :: iglo
 !     integer :: ig, ik, it, is, iv, imu
@@ -261,7 +261,7 @@ contains
 !     end if
 
 !     phi = 0.0
-!     do ig = -ntgrid, ntgrid
+!     do ig = -nzgrid, nzgrid
 !        phi(ig,2,2) = 1.0!exp(-((theta(ig)-theta0(2,2))/width0)**2)*cmplx(1.0,1.0)
 !     end do
     
@@ -313,11 +313,11 @@ contains
 !   !> Initialise with only the kparallel = 0 mode.
   
 !   subroutine single_initial_kx(phi)
-!     use zgrid, only: ntgrid 
+!     use zgrid, only: nzgrid 
 !     use kt_grids, only: naky, ntheta0
 !     use mp, only: mp_abort
 !     implicit none
-!     complex, dimension (-ntgrid:ntgrid,ntheta0,naky), intent(inout) :: phi
+!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky), intent(inout) :: phi
 !     real :: a, b
 !     integer :: ig, ik, it
 
@@ -328,7 +328,7 @@ contains
 !     do it = 1, ntheta0
 !       if (it .ne. ikx_init) then 
 !          do ik = 1, naky
-!             do ig = -ntgrid, ntgrid
+!             do ig = -nzgrid, nzgrid
 !                a = 0.0
 !                b = 0.0 
 !                phi(ig,it,ik) = cmplx(a,b)
@@ -346,7 +346,7 @@ contains
 
 !     use mp, only: proc0, broadcast
 !     use species, only: spec
-!     use zgrid, only: ntgrid, bmag
+!     use zgrid, only: nzgrid, bmag
 !     use kt_grids, only: naky, ntheta0, aky, reality
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold, kperp2
@@ -356,7 +356,7 @@ contains
 
 !     implicit none
 
-!     complex, dimension (-ntgrid:ntgrid,ntheta0,naky) :: phi
+!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky) :: phi
 !     real :: a, b, kmin
 !     integer :: iglo, ig, ik, it, imu, is, iv
 
@@ -367,7 +367,7 @@ contains
 !        !Fill phi with random (complex) numbers between -0.5 and 0.5
 !        do it = 1, ntheta0
 !           do ik = 1, naky
-!              do ig = -ntgrid, ntgrid
+!              do ig = -nzgrid, nzgrid
 !                 a = ranf()-0.5
 !                 b = ranf()-0.5
 !                 ! don't populate high k's with large amplitudes
@@ -404,7 +404,7 @@ contains
 
 !     end if
 
-!     do ig = -ntgrid, ntgrid
+!     do ig = -nzgrid, nzgrid
 !        call broadcast (phi(ig,:,:))
 !     end do
 
@@ -427,7 +427,7 @@ contains
   subroutine ginit_kpar
 
 !    use species, only: spec, has_electron_species
-    use zgrid, only: ntgrid, theta
+    use zgrid, only: nzgrid, theta
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2, anon
@@ -437,19 +437,19 @@ contains
 
     implicit none
 
-    complex, dimension (naky,nakx,-ntgrid:ntgrid) :: phi, odd
-    real, dimension (-ntgrid:ntgrid) :: dfac, ufac, tparfac, tperpfac
+    complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi, odd
+    real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ikxkyz
     integer :: ig, iky, ikx, imu, iv
     
     phi = 0.
     odd = 0.
     if (width0 > 0.) then
-       do ig = -ntgrid, ntgrid
+       do ig = -nzgrid, nzgrid
           phi(:,:,ig) = exp(-((theta(ig)-theta0)/width0)**2)*cmplx(refac, imfac)
        end do
     else
-       do ig = -ntgrid, ntgrid
+       do ig = -nzgrid, nzgrid
           phi(:,:,ig) = cmplx(refac, imfac)
        end do
     end if
@@ -495,7 +495,7 @@ contains
 !   subroutine ginit_rh
 
 !     use species, only: spec, has_electron_species
-!     use zgrid, only: ntgrid, bmag
+!     use zgrid, only: nzgrid, bmag
 !     use kt_grids, only: naky, ntheta0
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold, kperp2
@@ -505,7 +505,7 @@ contains
 
 !     implicit none
 
-!     complex, dimension (-ntgrid:ntgrid,ntheta0,naky) :: phi
+!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky) :: phi
 !     integer :: iglo
 !     integer :: iv, it, imu, is
     
@@ -561,12 +561,12 @@ contains
 !   subroutine flae (g, gavg)
 
 !     use species, only: spec, electron_species 
-!     use zgrid, only: ntgrid, delthet, jacob
+!     use zgrid, only: nzgrid, delthet, jacob
 !     use kt_grids, only: aky, ntheta0
 !     use vpamu_grids, only: nvgrid
 !     use stella_layouts, only: gxyz_lo, is_idx
-!     complex, dimension (-ntgrid:,:,:,gxyz_lo%llim_proc:), intent (in) :: g
-!     complex, dimension (-ntgrid:,:,:,gxyz_lo%llim_proc:), intent (out) :: gavg
+!     complex, dimension (-nzgrid:,:,:,gxyz_lo%llim_proc:), intent (in) :: g
+!     complex, dimension (-nzgrid:,:,:,gxyz_lo%llim_proc:), intent (out) :: gavg
 
 !     real :: wgt
 !     integer :: iglo, it, ik

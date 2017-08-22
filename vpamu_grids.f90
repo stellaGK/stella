@@ -287,16 +287,16 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use geometry, only: bmag
 
     implicit none
 
     integer :: ivmu, iv, ig, is, imu
 
-    complex, dimension (-ntgrid:,:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (-nzgrid:,:,:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
-    complex, dimension (-ntgrid:,:,:), intent (out) :: total
+    complex, dimension (-nzgrid:,:,:), intent (out) :: total
 
     total = 0.
 
@@ -304,7 +304,7 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do ig = -ntgrid, ntgrid
+       do ig = -nzgrid, nzgrid
           total(ig,:,:) = total(ig,:,:) + &
                wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(ig,:,:,ivmu)*weights(is)
        end do

@@ -21,7 +21,7 @@ contains
     use stella_layouts, only: init_stella_layouts
     use geometry, only: init_geometry
     use zgrid, only: init_zgrid
-    use zgrid, only: nzed, ntgrid
+    use zgrid, only: nzed, nzgrid
     use zgrid, only: delthet, theta
     use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
@@ -43,7 +43,7 @@ contains
     if (debug) write(6,*) "fields::init_fields::init_zgrid"
     call init_zgrid
     if (debug) write(6,*) "fields::init_fields::init_geometry"
-    call init_geometry (nzed, ntgrid, theta, delthet)
+    call init_geometry (nzed, nzgrid, theta, delthet)
     if (debug) write(6,*) "fields::init_fields::init_init_g"
     call init_init_g
     if (debug) write(6,*) "fields::init_fields::init_run_parameters"
@@ -80,17 +80,17 @@ contains
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
     if (.not.allocated(phi)) then
-       allocate (phi(naky,nakx,-ntgrid:ntgrid))
+       allocate (phi(naky,nakx,-nzgrid:nzgrid))
        phi = 0.
     end if
     if (.not. allocated(apar)) then
-       allocate (apar(naky,nakx,-ntgrid:ntgrid))
+       allocate (apar(naky,nakx,-nzgrid:nzgrid))
        apar = 0.
     end if
 

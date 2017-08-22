@@ -4,6 +4,6 @@ module fields_arrays
 
   complex, dimension (:,:,:), allocatable :: phi
   complex, dimension (:,:,:), allocatable :: apar
-  ! (naky, nakx, -ntgrid:ntgrid)
+  ! (naky, nakx, -nzgrid:nzgrid)
 
 end module fields_arrays

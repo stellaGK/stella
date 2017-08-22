@@ -69,7 +69,7 @@ contains
     use mp, only: proc0
 # endif    
     use mp, only: iproc, barrier
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
     use stella_layouts, only: kxkyz_lo, layout
@@ -180,7 +180,7 @@ contains
 # endif
        
        if (n_elements > 0) then
-          istatus = nf90_def_dim (ncid, "theta", 2*ntgrid+1, thetaid)
+          istatus = nf90_def_dim (ncid, "theta", 2*nzgrid+1, thetaid)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
              write(ierr,*) "nf90_def_dim theta error: ", nf90_strerror(istatus)
@@ -419,8 +419,8 @@ contains
        if(save_many .or. iproc == 0) then
 # endif
 
-          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*ntgrid+1))
-          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*ntgrid+1))
+          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1))
+          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1))
           
           if (fphi > epsilon(0.)) then
              ftmpr = real(phi)
@@ -483,7 +483,7 @@ contains
     use fields_arrays, only: phi, apar
     use kt_grids, only: naky, nakx
 # endif
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use file_utils, only: error_unit
@@ -544,7 +544,7 @@ contains
               
        istatus = nf90_inquire_dimension (ncid, thetaid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=thetaid)
-       if (i /= 2*ntgrid + 1) write(*,*) 'Restart error: ntgrid=? ',i,' : ',ntgrid,' : ',iproc
+       if (i /= 2*nzgrid + 1) write(*,*) 'Restart error: nzgrid=? ',i,' : ',nzgrid,' : ',iproc
 
        istatus = nf90_inquire_dimension (ncid, kyid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=kyid)
@@ -636,8 +636,8 @@ contains
 
     g = cmplx(tmpr, tmpi)
     
-    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*ntgrid+1))
-    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*ntgrid+1))
+    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1))
+    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1))
 
 !    if (allocated(kx_shift)) then   ! MR begin
 !       if (.not. allocated(stmp)) allocate (stmp(naky))   ! MR 

@@ -129,7 +129,7 @@ contains
 
     use file_utils, only: num_input_lines
     use kt_grids, only: naky, nakx
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
 # ifdef NETCDF
@@ -146,7 +146,7 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, dim='ky')
     status = nf90_def_dim (ncid, 'kx', nakx, nakx_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='kx')
-    status = nf90_def_dim (ncid, 'theta', 2*ntgrid+1, nttot_dim)
+    status = nf90_def_dim (ncid, 'theta', 2*nzgrid+1, nttot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='theta')
     status = nf90_def_dim (ncid, 'vpa', 2*nvgrid+1, nvtot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='vpa')
@@ -169,7 +169,7 @@ contains
 
   subroutine nc_grids
 
-    use zgrid, only: ntgrid, theta
+    use zgrid, only: nzgrid, theta
     use kt_grids, only: naky, nakx, theta0, akx, aky
     use species, only: nspec
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
@@ -182,7 +182,7 @@ contains
     real :: nmesh
 
     ! Store the size of the grid dimensions (as defined in def_dims), in the NetCDF file
-    status = nf90_put_var (ncid, nttot_id, 2*ntgrid+1)
+    status = nf90_put_var (ncid, nttot_id, 2*nzgrid+1)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nttot_id)
     status = nf90_put_var (ncid, naky_id, naky)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, naky_id)
@@ -209,9 +209,9 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, vpa_id)
 
 !    if (nonlin) then
-!       nmesh = (2*ntgrid+1)*(2*nvgrid+1)*nmu*nx*ny*nspec
+!       nmesh = (2*nzgrid+1)*(2*nvgrid+1)*nmu*nx*ny*nspec
 !    else
-       nmesh = (2*ntgrid+1)*(2*nvgrid+1)*nmu*nakx*naky*nspec
+       nmesh = (2*nzgrid+1)*(2*nvgrid+1)*nmu*nakx*naky*nspec
 !    end if
 
     status = nf90_put_var (ncid, nmesh_id, nmesh)
@@ -976,16 +976,16 @@ contains
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
 !     use fields_arrays, only: phiold!, aparold, bparold
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 ! # endif
 !     complex, dimension(:,:), intent (in) :: phase
 ! # ifdef NETCDF
-!     complex, dimension(-ntgrid:ntgrid, ntheta0, naky) :: tmp
+!     complex, dimension(-nzgrid:nzgrid, ntheta0, naky) :: tmp
 !     real, dimension(2, ntheta0, naky) :: ri2
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky) :: ri3
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky) :: ri3
 !     integer :: status, ig
 
 !     call c2r (phase, ri2)
@@ -993,7 +993,7 @@ contains
 !     if (status /= nf90_noerr) call netcdf_error (status, ncid, phase_id)
 
 !     if (fphi > zero) then
-!        do ig = -ntgrid, ntgrid
+!        do ig = -nzgrid, nzgrid
 !           tmp(ig,:,:) = phiold(ig,:,:)/phase(:,:)
 !        end do
 !        call c2r (tmp, ri3)
@@ -1002,7 +1002,7 @@ contains
 !     end if
 
 ! !     if (fapar > zero) then
-! !        do ig = -ntgrid, ntgrid
+! !        do ig = -nzgrid, nzgrid
 ! !           tmp(ig,:,:) = aparold(ig,:,:)/phase(:,:)
 ! !        end do
 ! !        call c2r (tmp, ri3)
@@ -1011,7 +1011,7 @@ contains
 ! !     end if
 
 ! !     if (fbpar > zero) then
-! !        do ig = -ntgrid, ntgrid
+! !        do ig = -nzgrid, nzgrid
 ! !           tmp(ig,:,:) = bparold(ig,:,:)/phase(:,:)
 ! !        end do
 ! !        call c2r (tmp, ri3)
@@ -1024,15 +1024,15 @@ contains
 !   subroutine nc_write_fields (nout, phinew, aparnew, bparnew)
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 ! # endif
 !     complex, dimension (:,:,:), intent (in) :: phinew, aparnew, bparnew
 !     integer, intent (in) :: nout
-! !    real, dimension (2, 2*ntgrid+1, ntheta0, naky, 1) :: ri4
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky) :: ri3
+! !    real, dimension (2, 2*nzgrid+1, ntheta0, naky, 1) :: ri4
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky) :: ri3
 !     integer, dimension (5) :: start5, count5
 !     integer :: status
 ! # ifdef NETCDF
@@ -1043,7 +1043,7 @@ contains
 !     start5(5) = nout
     
 !     count5(1) = 2
-!     count5(2) = 2*ntgrid+1
+!     count5(2) = 2*nzgrid+1
 !     count5(3) = ntheta0
 !     count5(4) = naky
 !     count5(5) = 1
@@ -1064,7 +1064,7 @@ contains
 
 !   subroutine nc_write_moments (nout, ntot)
 !     use convert, only: c2r
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 !     use species, only: nspec
 ! # ifdef NETCDF
@@ -1072,7 +1072,7 @@ contains
 ! # endif
 !     complex, dimension (:,:,:,:), intent (in) :: ntot
 !     integer, intent (in) :: nout
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky, nspec) :: ri4
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky, nspec) :: ri4
 !     integer, dimension (6) :: start6, count6
 !     integer :: status
 ! # ifdef NETCDF
@@ -1084,7 +1084,7 @@ contains
 !     start6(6) = nout
     
 !     count6(1) = 2
-!     count6(2) = 2*ntgrid+1
+!     count6(2) = 2*nzgrid+1
 !     count6(3) = ntheta0
 !     count6(4) = naky
 !     count6(5) = nspec
@@ -1102,12 +1102,12 @@ contains
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
 !     use fields_arrays, only: phiold!, aparold, bparold
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky) :: ri3
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky) :: ri3
 !     integer :: status
 
 !     if (fphi > zero) then
@@ -1134,14 +1134,14 @@ contains
 
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 ! # endif
 !     complex, dimension (:,:,:), intent (in) :: epar
 ! # ifdef NETCDF
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky) :: ri3
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky) :: ri3
 !     integer :: status
 
 !     call c2r (epar, ri3)
@@ -1153,7 +1153,7 @@ contains
 !   subroutine nc_final_moments (ntot, density, upar, tpar, tperp, qparflux, pperpj1, qpperpj1)
 
 !     use convert, only: c2r
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 !     use species, only: nspec
 ! # ifdef NETCDF
@@ -1162,7 +1162,7 @@ contains
 !     complex, dimension (:,:,:,:), intent (in) :: ntot, density, upar, tpar, tperp
 !     complex, dimension (:,:,:,:), intent (in) :: qparflux, pperpj1, qpperpj1
 ! # ifdef NETCDF
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky, nspec) :: ri4
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky, nspec) :: ri4
 !     integer :: status
 
 !     call c2r (ntot, ri4)
@@ -1204,7 +1204,7 @@ contains
 !        phi00, ntot00, density00, upar00, tpar00, tperp00, tpar2_by_mode, tperp2_by_mode)
 
 !     use convert, only: c2r
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 !     use species, only: nspec
 ! # ifdef NETCDF
@@ -1302,14 +1302,14 @@ contains
 
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 ! # endif
 !     complex, dimension (:,:,:) :: antot, antota, antotp ! intent?
 ! # ifdef NETCDF
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky) :: ri3
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky) :: ri3
 !     integer :: status
 
 !     if (fphi > zero) then
@@ -1563,12 +1563,12 @@ contains
 !     use convert, only: c2r
 !     use run_parameters, only: fphi
 !     use kt_grids, only: ntheta0, naky, jtwist_out
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 ! # endif
 !     integer, intent (in) :: nout
-!     complex, dimension (-ntgrid:,:), intent (in) :: phi_2pi_corr
+!     complex, dimension (-nzgrid:,:), intent (in) :: phi_2pi_corr
 ! # ifdef NETCDF
 !     integer, dimension (4) :: start4, count4
 !     integer :: status
@@ -1581,7 +1581,7 @@ contains
 !     start4(4) = nout
 
 !     count4(1) = 2
-!     count4(2) = 2*ntgrid+1
+!     count4(2) = 2*nzgrid+1
 !     count4(3) = naky
 !     count4(4) = 1
 
@@ -1617,7 +1617,7 @@ contains
   subroutine write_phi_nc (nout, phi)
 
     use convert, only: c2r
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -1626,7 +1626,7 @@ contains
     implicit none
 
     integer, intent (in) :: nout
-    complex, dimension (:,:,-ntgrid:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
 
 # ifdef NETCDF
     integer :: status
@@ -1638,10 +1638,10 @@ contains
     count(1) = 2
     count(2) = naky
     count(3) = nakx
-    count(4) = 2*ntgrid+1
+    count(4) = 2*nzgrid+1
     count(5) = 1
 
-    allocate (phi_ri(2, naky, nakx, 2*ntgrid+1))
+    allocate (phi_ri(2, naky, nakx, 2*nzgrid+1))
     call c2r (phi, phi_ri)
     status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id)
@@ -1683,7 +1683,7 @@ contains
 
   subroutine write_gzvs_nc (nout, g)
 
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid
     use species, only: nspec
 # ifdef NETCDF
@@ -1701,7 +1701,7 @@ contains
 
     start(1:3) = 1
     start(4) = nout
-    count(1) = 2*ntgrid+1
+    count(1) = 2*nzgrid+1
     count(2) = 2*nvgrid+1
     count(3) = nspec
     count(4) = 1
@@ -1720,7 +1720,7 @@ contains
 
 !     use run_parameters, only: fphi, fapar, fbpar
 !     use kt_grids, only: naky, ntheta0
-!     use zgrid, only: ntgrid
+!     use zgrid, only: nzgrid
 !     use species, only: nspec
 !     use convert, only: c2r
 !     use fields_arrays, only: phiold!, aparold, bparold
@@ -1747,7 +1747,7 @@ contains
 !     integer, dimension (2) :: startx, countx, starty, county, starts, counts
 !     integer :: status, it, ik
 
-!     real, dimension (2, 2*ntgrid+1, ntheta0, naky) :: ri3
+!     real, dimension (2, 2*nzgrid+1, ntheta0, naky) :: ri3
 !     integer, dimension (5) :: start5, count5
 
 !     start5(1) = 1
@@ -1757,7 +1757,7 @@ contains
 !     start5(5) = nout
   
 !     count5(1) = 2
-!     count5(2) = 2*ntgrid+1
+!     count5(2) = 2*nzgrid+1
 !     count5(3) = ntheta0
 !     count5(4) = naky
 !     count5(5) = 1

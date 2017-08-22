@@ -180,7 +180,7 @@ contains
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_time, only: code_time
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
 
@@ -221,7 +221,7 @@ contains
        deallocate (gvmus)
     end if
     if (write_gzvs) then
-       allocate (gzvs(2*ntgrid+1,2*nvgrid+1,nspec))
+       allocate (gzvs(2*nzgrid+1,2*nvgrid+1,nspec))
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::get_gzvs'
        call get_gzvs (gnew, gzvs)
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_gzvs_nc'
@@ -235,18 +235,18 @@ contains
 
   subroutine volume_average (unavg, avg)
 
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:), intent (in) :: unavg
+    complex, dimension (:,:,-nzgrid:), intent (in) :: unavg
     real, intent (out) :: avg
 
     integer :: iky, ikx, ig
 
     avg = 0.
-    do ig = -ntgrid, ntgrid
+    do ig = -nzgrid, nzgrid
        do ikx = 1, nakx
           do iky = 1, naky
              avg = avg + real(unavg(iky,ikx,ig)*conjg(unavg(iky,ikx,ig)))*fac(ikx)*dl_over_b(ig)
@@ -297,21 +297,21 @@ contains
   subroutine get_gzvs (g, gz)
 
     use stella_layouts, only: vmu_lo
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_mu
     use kt_grids, only: nakx, naky
 
     implicit none
 
-    complex, dimension (:,:,-ntgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gz
 
     integer :: ivmu, ig, ikx, iky, igp
 
     real, dimension (:,:), allocatable :: gtmp
 
-    allocate (gtmp(-ntgrid:ntgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (gtmp(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_kx |g(kx,ky=0)|^2 + 2 * sum_{kx,ky} |g(kx,ky>0)|^2
@@ -326,8 +326,8 @@ contains
        end do
     end do
 
-    do ig = -ntgrid, ntgrid
-       igp = ig+ntgrid+1
+    do ig = -nzgrid, nzgrid
+       igp = ig+nzgrid+1
        call integrate_mu (ig, gtmp(ig,:), gz(igp,:,:))
     end do
 
@@ -373,7 +373,7 @@ contains
 
     use file_utils, only: open_output_file, close_output_file
     use fields_arrays, only: phi, apar
-    use zgrid, only: ntgrid
+    use zgrid, only: nzgrid
     use zgrid, only: theta
     use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
@@ -388,7 +388,7 @@ contains
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)'
     do iky = 1, naky
        do ikx = 1, nakx
-          do ig = -ntgrid, ntgrid
+          do ig = -nzgrid, nzgrid
              write (tmpunit,'(8e12.4)') theta(ig), theta(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,ig)), aimag(phi(iky,ikx,ig)), &
                   real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig))

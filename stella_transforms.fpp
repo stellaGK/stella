@@ -70,8 +70,8 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-vmu_lo%ntgrid:,vmu_lo%llim_proc:), intent (in) :: gky_unpad
-    complex, dimension (:,:,-vmu_lo%ntgrid:,vmu_lo%llim_proc:), intent (out) :: gy
+    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (in) :: gky_unpad
+    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (out) :: gy
 
     integer :: iky_max, ipad_up
     integer :: ikx, ig, ivmu
@@ -83,7 +83,7 @@ contains
 
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       do ig = -vmu_lo%ntgrid, vmu_lo%ntgrid
+       do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
           do ikx = 1, vmu_lo%nakx
              fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx,ig,ivmu)
              fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx,ig,ivmu)
@@ -102,8 +102,8 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-vmu_lo%ntgrid:,vmu_lo%llim_proc:), intent (in out) :: gy
-    complex, dimension (:,:,-vmu_lo%ntgrid:,vmu_lo%llim_proc:), intent (out) :: gky
+    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gy
+    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (out) :: gky
 
     integer :: iky_max, ipad_up
     integer :: ikx, ig, ivmu
@@ -112,7 +112,7 @@ contains
     ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       do ig = -vmu_lo%ntgrid, vmu_lo%ntgrid
+       do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
           do ikx = 1, vmu_lo%nakx
              fft_y_in = gy(:,ikx,ig,ivmu)
              call dfftw_execute_dft(yb_fft%plan, fft_y_in, fft_y_out)
