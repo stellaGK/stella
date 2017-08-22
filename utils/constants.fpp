@@ -9,7 +9,7 @@ module constants
 !
   implicit none
 
-  public :: size_of
+!  public :: size_of
   public :: kind_is, kind_id, kind_rs, kind_rd
   public :: zi, pi, twopi, dpi, dtwopi
 # ifdef NAG_PREC
@@ -30,16 +30,16 @@ module constants
   ! There is a selected_real_kind bug in xlf and the following doesn't work
   integer, parameter :: kind_rq = selected_real_kind (p=24)
 
-  integer, parameter :: sizeof_i1 = 1
-  integer, parameter :: sizeof_ih = 2
-  integer, parameter :: sizeof_is = 4
-  integer, parameter :: sizeof_id = 8
-  integer, parameter :: sizeof_rs = 4
-  integer, parameter :: sizeof_rd = 8
-  integer, parameter :: sizeof_rq = 16
-  integer, parameter :: sizeof_cs = 8
-  integer, parameter :: sizeof_cd = 16
-  integer, parameter :: sizeof_cq = 32
+!   integer, parameter :: sizeof_i1 = 1
+!   integer, parameter :: sizeof_ih = 2
+!   integer, parameter :: sizeof_is = 4
+!   integer, parameter :: sizeof_id = 8
+!   integer, parameter :: sizeof_rs = 4
+!   integer, parameter :: sizeof_rd = 8
+!   integer, parameter :: sizeof_rq = 16
+!   integer, parameter :: sizeof_cs = 8
+!   integer, parameter :: sizeof_cd = 16
+!   integer, parameter :: sizeof_cq = 32
 
 # if NAG_PREC == _NAGDBLE_
   integer, parameter :: nag_kind=kind_rd
@@ -84,63 +84,63 @@ module constants
 ! overloaded procedures (i.e., the "module procedure" statements).
 !
 
-  interface size_of
-     module procedure size_of_i1, size_of_ih, size_of_is, size_of_id
-     module procedure size_of_rs, size_of_rd
-     module procedure size_of_cs, size_of_cd
-!!$# ifdef QUAD
-!!$     module procedure size_of_rq, size_of_cq
-!!$# endif
-  end interface
+!   interface size_of
+!      module procedure size_of_i1, size_of_ih, size_of_is, size_of_id
+!      module procedure size_of_rs, size_of_rd
+!      module procedure size_of_cs, size_of_cd
+! !!$# ifdef QUAD
+! !!$     module procedure size_of_rq, size_of_cq
+! !!$# endif
+!   end interface
 
 contains
 
-  integer function size_of_i1 (arg)
-    integer (kind_i1) :: arg
-    size_of_i1 = sizeof_i1
-  end function size_of_i1
+!   integer function size_of_i1 (arg)
+!     integer (kind_i1) :: arg
+!     size_of_i1 = sizeof_i1
+!   end function size_of_i1
 
-  integer function size_of_ih (arg)
-    integer (kind_ih) :: arg
-    size_of_ih = sizeof_ih
-  end function size_of_ih
+!   integer function size_of_ih (arg)
+!     integer (kind_ih) :: arg
+!     size_of_ih = sizeof_ih
+!   end function size_of_ih
 
-  integer function size_of_is (arg)
-    integer (kind_is) :: arg
-    size_of_is = sizeof_is
-  end function size_of_is
+!   integer function size_of_is (arg)
+!     integer (kind_is) :: arg
+!     size_of_is = sizeof_is
+!   end function size_of_is
 
-  integer function size_of_id (arg)
-    integer (kind_id) :: arg
-    size_of_id = sizeof_id
-  end function size_of_id
+!   integer function size_of_id (arg)
+!     integer (kind_id) :: arg
+!     size_of_id = sizeof_id
+!   end function size_of_id
 
-  integer function size_of_rs (arg)
-    real (kind_rs) :: arg
-    size_of_rs = sizeof_rs
-  end function size_of_rs
+!   integer function size_of_rs (arg)
+!     real (kind_rs) :: arg
+!     size_of_rs = sizeof_rs
+!   end function size_of_rs
 
-  integer function size_of_rd (arg)
-    real (kind_rd) :: arg
-    size_of_rd = sizeof_rd
-  end function size_of_rd
+!   integer function size_of_rd (arg)
+!     real (kind_rd) :: arg
+!     size_of_rd = sizeof_rd
+!   end function size_of_rd
 
-!!$# ifdef QUAD
-!!$  integer function size_of_rq (arg)
-!!$    real (kind_rq) :: arg
-!!$    size_of_rq = sizeof_rq
-!!$  end function size_of_rq
-!!$# endif
+! !!$# ifdef QUAD
+! !!$  integer function size_of_rq (arg)
+! !!$    real (kind_rq) :: arg
+! !!$    size_of_rq = sizeof_rq
+! !!$  end function size_of_rq
+! !!$# endif
 
-  integer function size_of_cs (arg)
-    complex (kind_rs) :: arg
-    size_of_cs = sizeof_cs
-  end function size_of_cs
+!   integer function size_of_cs (arg)
+!     complex (kind_rs) :: arg
+!     size_of_cs = sizeof_cs
+!   end function size_of_cs
 
-  integer function size_of_cd (arg)
-    complex (kind_rd) :: arg
-    size_of_cd = sizeof_cd
-  end function size_of_cd
+!   integer function size_of_cd (arg)
+!     complex (kind_rd) :: arg
+!     size_of_cd = sizeof_cd
+!   end function size_of_cd
 
 !!$# ifdef QUAD
 !!$  integer function size_of_cq (arg)

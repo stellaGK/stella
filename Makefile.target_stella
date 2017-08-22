@@ -36,7 +36,7 @@ utils.a: $(UTIL_OBJ)
 #geo_all: geo.a eiktest ball
 geo_all: geo.a
 
-GEO_OBJ = geometry.o geq.o eeq.o peq.o leq.o ideq.o
+GEO_OBJ = geometry.o #geq.o eeq.o peq.o leq.o ideq.o
 
 geo.a: $(GEO_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^

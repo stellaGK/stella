@@ -32,7 +32,7 @@ contains
 
   subroutine init_stella_diagnostics (nstep)
 
-    use theta_grid, only: init_theta_grid
+    use zgrid, only: init_theta_grid
     use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
     use species, only: init_species
@@ -83,7 +83,7 @@ contains
 
     use mp, only: proc0
     use file_utils, only: input_unit_exist
-    use theta_grid, only: nperiod, ntheta
+    use zgrid, only: nperiod, ntheta
 
     implicit none
 
@@ -131,7 +131,8 @@ contains
 
   subroutine init_averages
 
-    use theta_grid, only: delthet, jacob
+    use zgrid, only: delthet
+    use geometry, only: jacob
     use kt_grids, only: akx, nakx
 
     implicit none
@@ -179,7 +180,7 @@ contains
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_time, only: code_time
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
 
@@ -234,7 +235,7 @@ contains
 
   subroutine volume_average (unavg, avg)
 
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -296,7 +297,7 @@ contains
   subroutine get_gzvs (g, gz)
 
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_mu
     use kt_grids, only: nakx, naky
@@ -372,8 +373,8 @@ contains
 
     use file_utils, only: open_output_file, close_output_file
     use fields_arrays, only: phi, apar
-    use theta_grid, only: ntgrid
-    use theta_grid, only: theta
+    use zgrid, only: ntgrid
+    use zgrid, only: theta
     use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
 

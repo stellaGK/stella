@@ -183,7 +183,8 @@ contains
   subroutine ginit_default
 
     use species, only: spec
-    use theta_grid, only: ntgrid, theta, bmag
+    use zgrid, only: ntgrid, theta
+    use geometry, only: bmag
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0, aky
     use kt_grids, only: reality
@@ -239,7 +240,7 @@ contains
 
 !     use mp, only: proc0
 !     use species, only: spec
-!     use theta_grid, only: ntgrid, bmag
+!     use zgrid, only: ntgrid, bmag
 !     use kt_grids, only: naky, ntheta0
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold
@@ -283,7 +284,7 @@ contains
 
 !     use constants, only: zi
 !     use species, only: spec
-!     use theta_grid, only: itor_over_b
+!     use zgrid, only: itor_over_b
 !     use kt_grids, only: ntheta0, akx, naky
 !     use vpamu_grids, only: nvgrid, energy, vpa
 !     use dist_fn_arrays, only: gnew, gold
@@ -312,7 +313,7 @@ contains
 !   !> Initialise with only the kparallel = 0 mode.
   
 !   subroutine single_initial_kx(phi)
-!     use theta_grid, only: ntgrid 
+!     use zgrid, only: ntgrid 
 !     use kt_grids, only: naky, ntheta0
 !     use mp, only: mp_abort
 !     implicit none
@@ -345,7 +346,7 @@ contains
 
 !     use mp, only: proc0, broadcast
 !     use species, only: spec
-!     use theta_grid, only: ntgrid, bmag
+!     use zgrid, only: ntgrid, bmag
 !     use kt_grids, only: naky, ntheta0, aky, reality
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold, kperp2
@@ -426,7 +427,7 @@ contains
   subroutine ginit_kpar
 
 !    use species, only: spec, has_electron_species
-    use theta_grid, only: ntgrid, theta
+    use zgrid, only: ntgrid, theta
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2, anon
@@ -494,7 +495,7 @@ contains
 !   subroutine ginit_rh
 
 !     use species, only: spec, has_electron_species
-!     use theta_grid, only: ntgrid, bmag
+!     use zgrid, only: ntgrid, bmag
 !     use kt_grids, only: naky, ntheta0
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold, kperp2
@@ -560,7 +561,7 @@ contains
 !   subroutine flae (g, gavg)
 
 !     use species, only: spec, electron_species 
-!     use theta_grid, only: ntgrid, delthet, jacob
+!     use zgrid, only: ntgrid, delthet, jacob
 !     use kt_grids, only: aky, ntheta0
 !     use vpamu_grids, only: nvgrid
 !     use stella_layouts, only: gxyz_lo, is_idx

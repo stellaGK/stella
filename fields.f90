@@ -19,7 +19,10 @@ contains
     use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: init_stella_layouts
-    use theta_grid, only: init_theta_grid
+    use geometry, only: init_geometry
+    use zgrid, only: init_theta_grid
+    use zgrid, only: ntheta, ntgrid
+    use zgrid, only: delthet, theta
     use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
     use dist_fn, only: init_dist_fn
@@ -39,6 +42,8 @@ contains
     
     if (debug) write(6,*) "fields::init_fields::init_theta_grid"
     call init_theta_grid
+    if (debug) write(6,*) "fields::init_fields::init_geometry"
+    call init_geometry (ntheta, ntgrid, theta, delthet)
     if (debug) write(6,*) "fields::init_fields::init_init_g"
     call init_init_g
     if (debug) write(6,*) "fields::init_fields::init_run_parameters"
@@ -75,7 +80,7 @@ contains
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -95,12 +100,14 @@ contains
 
     use fields_arrays, only: phi
     use fields_arrays, only: apar
-    use theta_grid, only: finish_theta_grid
+    use geometry, only: finish_geometry
+    use zgrid, only: finish_theta_grid
     use dist_fn, only: finish_get_fields
 
     implicit none
 
     call finish_get_fields
+    call finish_geometry
     call finish_theta_grid
     if (allocated(phi)) deallocate (phi)
     if (allocated(apar)) deallocate (apar)

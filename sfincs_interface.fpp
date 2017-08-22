@@ -56,7 +56,8 @@ contains
 # endif
 
   end subroutine get_neo_from_sfincs
-  
+
+# ifdef USE_SFINCS  
   subroutine read_sfincs_parameters
 
     use mp, only: nproc
@@ -129,7 +130,7 @@ contains
   subroutine pass_geometry_to_sfincs
 
     use species, only: spec, nspec
-    use theta_grid, only: ntgrid, drhotor2dr
+    use zgrid, only: ntgrid!, drhotor2dr
     use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
     use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
     use globalVariables, only: magneticDriftScheme_sfincs => magneticDriftScheme
@@ -175,5 +176,6 @@ contains
 !     end if
 
   end subroutine pass_geometry_to_sfincs
+# endif
 
 end module sfincs_interface

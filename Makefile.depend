@@ -7,7 +7,6 @@ stella_mod = \
 	 convert.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
-	 eeq.o \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
@@ -15,18 +14,14 @@ stella_mod = \
 	 finite_differences.o \
 	 gauss_quad.o \
 	 geometry.o \
-	 geq.o \
-	 gridgen4mod.o \
-	 ideq.o \
 	 init_g.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 layouts_type.o \
-	 leq.o \
+	 millerlocal.o \
 	 mp.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
-	 peq.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
@@ -41,13 +36,9 @@ stella_mod = \
 	 stella_time.o \
 	 stella_transforms.o \
 	 text_options.o \
-	 theta_grid.o \
-	 theta_grid_params.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 
-ceq.o: \
-	 constants.o \
-	 spl.o 
 command_line.o: 
 constants.o: 
 convert.o: 
@@ -57,6 +48,7 @@ dist_fn.o: \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 geometry.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
@@ -69,14 +61,14 @@ dist_fn.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 text_options.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 dist_fn_arrays.o: \
 	 kt_grids.o \
 	 species.o \
 	 stella_layouts.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 eeq.o: \
 	 spl.o 
 fft_work.o: \
@@ -86,12 +78,13 @@ fields.o: \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
+	 geometry.o \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
 	 run_parameters.o \
 	 stella_layouts.o \
-	 theta_grid.o 
+	 zgrid.o 
 fields_arrays.o: 
 file_utils.o: \
 	 command_line.o 
@@ -101,11 +94,10 @@ gauss_quad.o: \
 	 file_utils.o \
 	 mp.o 
 geometry.o: \
-	 eeq.o \
-	 geq.o \
-	 ideq.o \
-	 leq.o \
-	 peq.o 
+	 file_utils.o \
+	 millerlocal.o \
+	 mp.o \
+	 text_options.o 
 geq.o: \
 	 constants.o \
 	 netcdf_utils.o \
@@ -122,6 +114,7 @@ init_g.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 file_utils.o \
+	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
 	 run_parameters.o \
@@ -129,23 +122,25 @@ init_g.o: \
 	 stella_layouts.o \
 	 stella_save.o \
 	 text_options.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 job_manage.o: \
 	 file_utils.o \
 	 mp.o 
 kt_grids.o: \
 	 constants.o \
 	 file_utils.o \
+	 geometry.o \
 	 mp.o \
 	 text_options.o \
-	 theta_grid.o 
+	 zgrid.o 
 layouts_type.o: 
-leq.o: \
-	 constants.o \
-	 spl.o 
 mds.o: \
 	 constants.o 
+millerlocal.o: \
+	 constants.o \
+	 file_utils.o \
+	 spl.o 
 mp.o: \
 	 constants.o \
 	 file_utils.o 
@@ -158,10 +153,12 @@ neoclassical_terms.o: \
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
-newgeo.o: \
-	 file_utils.o \
-	 mp.o \
-	 text_options.o 
+old_geometry.o: \
+	 eeq.o \
+	 geometry.o \
+	 geq.o \
+	 ideq.o \
+	 peq.o 
 peq.o: \
 	 constants.o \
 	 netcdf_utils.o \
@@ -181,10 +178,7 @@ run_parameters.o: \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
-	 file_utils.o \
-	 mp.o \
-	 species.o \
-	 theta_grid.o 
+	 mp.o 
 species.o: \
 	 file_utils.o \
 	 mp.o \
@@ -207,6 +201,7 @@ stella_diagnostics.o: \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 geometry.o \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
@@ -215,19 +210,20 @@ stella_diagnostics.o: \
 	 stella_io.o \
 	 stella_layouts.o \
 	 stella_time.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 stella_io.o: \
 	 constants.o \
 	 convert.o \
 	 file_utils.o \
+	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
 	 run_parameters.o \
 	 species.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 stella_layouts.o: \
 	 file_utils.o \
 	 layouts_type.o \
@@ -241,8 +237,8 @@ stella_save.o: \
 	 netcdf_utils.o \
 	 species.o \
 	 stella_layouts.o \
-	 theta_grid.o \
-	 vpamu_grids.o 
+	 vpamu_grids.o \
+	 zgrid.o 
 stella_time.o: 
 stella_transforms.o: \
 	 fft_work.o \
@@ -263,7 +259,12 @@ vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \
 	 gauss_quad.o \
+	 geometry.o \
 	 mp.o \
 	 species.o \
 	 stella_layouts.o \
-	 theta_grid.o 
+	 zgrid.o 
+zgrid.o: \
+	 constants.o \
+	 file_utils.o \
+	 mp.o 

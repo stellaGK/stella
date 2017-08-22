@@ -4212,10 +4212,10 @@ contains
      return
    end function dedge
 
-   subroutine lf_spline (x,y,xint,yint,yintp)
+   subroutine geo_spline (x,y,xint,yint)
      implicit none
      real, dimension (:), intent (in) :: x,y,xint
-     real, dimension (:), intent (out) :: yint, yintp
+     real, dimension (:), intent (out) :: yint
      integer :: n, ierr, ix
      real :: dum1, dum2, sigma
      real, dimension (:), allocatable :: ypp, dum3
@@ -4225,10 +4225,9 @@ contains
      call fitp_curv1 (n,x,y,dum1,dum2,3,ypp,dum3,sigma,ierr)
      do ix = 1, size(xint)
         yint(ix) = fitp_curv2 (xint(ix),n,x,y,ypp,sigma)
-        yintp(ix) = fitp_curvd (xint(ix),n,x,y,ypp,sigma)
      end do
      deallocate (ypp, dum3)
-   end subroutine lf_spline
+   end subroutine geo_spline
 
  end module splines
 

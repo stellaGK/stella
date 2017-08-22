@@ -46,7 +46,7 @@ contains
   subroutine g_adjust_vmu (g, phi, apar, facphi, facapar)
 
     use species, only: spec
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: anon, vpa
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -79,7 +79,7 @@ contains
   subroutine g_adjust_kxkyz (g, phi, apar, facphi, facapar)
 
     use species, only: spec
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: anon, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo

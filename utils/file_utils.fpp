@@ -208,61 +208,22 @@ contains
 
   end subroutine init_run_name
 
-! TT>
-!  subroutine init_job_name (njobs, group0, job_list)
-!    use command_line
-!    use mp
-!    use mp, only: scope, subprocs, job
   subroutine init_job_name (jobname)
-! <TT
     implicit none
-! TT>
-!    integer, intent (in) :: njobs
-!    integer, intent (in), dimension(0:) :: group0
-!    character (len=500), dimension(0:) :: job_list
     character (len=500), intent (in) :: jobname
-! <TT
-    logical :: err = .true., inp = .true.
-
-! TT>
-!    call scope (subprocs)
-!    job_name = trim(job_list(job))
     job_name = trim(jobname)
-! <TT
     run_name => job_name
-
-! MAB>
-! can't call these here because we're on all processors
-! and only want to init on proc0.  instead called
-! from within job_manage
-!    call init_error_unit (err)
-!    call init_input_unit (inp)
-! <MAB
-
   end subroutine init_job_name
 
   subroutine get_unused_unit (unit)
     ! <doc> Get an unused ''unit number'' for I/O. </doc>
     implicit none
     integer, intent (out) :: unit
-! TT>
-!    character(20) :: read, write, readwrite
     logical :: od
-! <TT
     unit = 50
     do
-! TT>
-!       inquire (unit=unit, read=read, write=write, readwrite=readwrite)
-!       if (read == "UNKNOWN" .and. write == "UNKNOWN" &
-!            .and. readwrite == "UNKNOWN") &
-!       then
-!          return
-!       end if
-       ! TT: Can we do the same thing like this?
-       ! TT: The above fails in gfortran/g95.
        inquire (unit=unit, opened=od)
        if (.not.od) return
-! <TT
        unit = unit + 1
     end do
   end subroutine get_unused_unit
@@ -286,10 +247,9 @@ contains
     close (unit=unit)
   end subroutine close_output_file
 
-  subroutine flush_output_file (unit, ext)
+  subroutine flush_output_file (unit)
     implicit none
     integer, intent (in) :: unit
-    character (*), intent (in), optional :: ext
     character (len=500) :: fname
     inquire(unit,name=fname)
 # if FCOMPILER == _XL_

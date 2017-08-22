@@ -73,9 +73,8 @@ module stella_io
   integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
   integer :: vnewk_id, spec_type_id
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
-  integer :: cdrift_id, cdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
-  integer :: grho_id, jacob_id, shat_id, eps_id, drhodpsi_id, q_id, surfarea_id
+  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, surfarea_id
   integer :: beta_id
   integer :: code_id, datestamp_id, timestamp_id, timezone_id
   integer, dimension (5) :: mom_dim
@@ -130,7 +129,7 @@ contains
 
     use file_utils, only: num_input_lines
     use kt_grids, only: naky, nakx
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
 # ifdef NETCDF
@@ -170,7 +169,7 @@ contains
 
   subroutine nc_grids
 
-    use theta_grid, only: ntgrid, theta
+    use zgrid, only: ntgrid, theta
     use kt_grids, only: naky, nakx, theta0, akx, aky
     use species, only: nspec
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
@@ -584,10 +583,6 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, var='cvdrift')
     status = nf90_def_var (ncid, 'cvdrift0', netcdf_real, nttot_dim, cvdrift0_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='cvdrift0')
-    status = nf90_def_var (ncid, 'cdrift', netcdf_real, nttot_dim, cdrift_id)
-    if (status /= nf90_noerr) call netcdf_error (status, var='cdrift')
-    status = nf90_def_var (ncid, 'cdrift0', netcdf_real, nttot_dim, cdrift0_id)
-    if (status /= nf90_noerr) call netcdf_error (status, var='cdrift0')
 
     status = nf90_def_var (ncid, 'gds2', netcdf_real, nttot_dim, gds2_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds2')
@@ -604,8 +599,6 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, var='q')
     status = nf90_put_att (ncid, q_id, 'long_name', 'local safety factor')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, q_id, att='long_name')
-    status = nf90_def_var (ncid, 'eps', netcdf_real, eps_id)
-    if (status /= nf90_noerr) call netcdf_error (status, var='eps')
     status = nf90_def_var (ncid, 'beta', netcdf_real, beta_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='beta')
     status = nf90_put_att (ncid, beta_id, 'long_name', 'reference beta')
@@ -983,7 +976,7 @@ contains
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
 !     use fields_arrays, only: phiold!, aparold, bparold
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
@@ -1031,7 +1024,7 @@ contains
 !   subroutine nc_write_fields (nout, phinew, aparnew, bparnew)
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
@@ -1071,7 +1064,7 @@ contains
 
 !   subroutine nc_write_moments (nout, ntot)
 !     use convert, only: c2r
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 !     use species, only: nspec
 ! # ifdef NETCDF
@@ -1109,7 +1102,7 @@ contains
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
 !     use fields_arrays, only: phiold!, aparold, bparold
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
@@ -1141,7 +1134,7 @@ contains
 
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
@@ -1160,7 +1153,7 @@ contains
 !   subroutine nc_final_moments (ntot, density, upar, tpar, tperp, qparflux, pperpj1, qpperpj1)
 
 !     use convert, only: c2r
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 !     use species, only: nspec
 ! # ifdef NETCDF
@@ -1211,7 +1204,7 @@ contains
 !        phi00, ntot00, density00, upar00, tpar00, tperp00, tpar2_by_mode, tperp2_by_mode)
 
 !     use convert, only: c2r
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 !     use species, only: nspec
 ! # ifdef NETCDF
@@ -1309,7 +1302,7 @@ contains
 
 !     use convert, only: c2r
 !     use run_parameters, only: fphi, fapar, fbpar
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use kt_grids, only: naky, ntheta0
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
@@ -1570,7 +1563,7 @@ contains
 !     use convert, only: c2r
 !     use run_parameters, only: fphi
 !     use kt_grids, only: ntheta0, naky, jtwist_out
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 ! # ifdef NETCDF
 !     use netcdf, only: nf90_put_var
 ! # endif
@@ -1624,7 +1617,7 @@ contains
   subroutine write_phi_nc (nout, phi)
 
     use convert, only: c2r
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx, naky
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -1690,7 +1683,7 @@ contains
 
   subroutine write_gzvs_nc (nout, g)
 
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid
     use species, only: nspec
 # ifdef NETCDF
@@ -1727,7 +1720,7 @@ contains
 
 !     use run_parameters, only: fphi, fapar, fbpar
 !     use kt_grids, only: naky, ntheta0
-!     use theta_grid, only: ntgrid
+!     use zgrid, only: ntgrid
 !     use species, only: nspec
 !     use convert, only: c2r
 !     use fields_arrays, only: phiold!, aparold, bparold
@@ -2032,9 +2025,9 @@ contains
 
   subroutine nc_geo
 
-    use theta_grid, only: bmag, gradpar, gbdrift, gbdrift0, &
+    use geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
          cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
-         shat, drhodpsi, eps, cdrift, cdrift0, qval
+         shat, drhodpsi, qinp
     use run_parameters, only: beta
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -2055,10 +2048,6 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, cvdrift_id)
     status = nf90_put_var (ncid, cvdrift0_id, cvdrift0)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, cvdrift0_id)
-    status = nf90_put_var (ncid, cdrift_id, cdrift)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, cdrift_id)
-    status = nf90_put_var (ncid, cdrift0_id, cdrift0)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, cdrift0_id)
     status = nf90_put_var (ncid, gds2_id, gds2)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds2_id)
     status = nf90_put_var (ncid, gds21_id, gds21)
@@ -2072,12 +2061,10 @@ contains
 
     status = nf90_put_var (ncid, beta_id, beta)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, beta_id)
-    status = nf90_put_var (ncid, q_id, qval)
+    status = nf90_put_var (ncid, q_id, qinp)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, q_id)
     status = nf90_put_var (ncid, shat_id, shat)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id)
-    status = nf90_put_var (ncid, eps_id, eps)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, eps_id)
     status = nf90_put_var (ncid, drhodpsi_id, drhodpsi)   
     if (status /= nf90_noerr) call netcdf_error (status, ncid, drhodpsi_id)
 # endif

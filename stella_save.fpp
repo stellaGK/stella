@@ -69,7 +69,7 @@ contains
     use mp, only: proc0
 # endif    
     use mp, only: iproc, barrier
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
     use stella_layouts, only: kxkyz_lo, layout
@@ -483,7 +483,7 @@ contains
     use fields_arrays, only: phi, apar
     use kt_grids, only: naky, nakx
 # endif
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use file_utils, only: error_unit

@@ -53,7 +53,8 @@ contains
 
   subroutine range_get_grids (aky, theta0, akx)
     use mp, only: mp_abort
-    use theta_grid, only: shat, shat_zero
+    use zgrid, only: shat_zero
+    use geometry, only: shat
     implicit none
     real, dimension (:), intent (out) :: akx, aky
     real, dimension (:,:), intent (out) :: theta0
@@ -132,7 +133,8 @@ module kt_grids_box
 contains
 
   subroutine init_kt_grids_box
-    use theta_grid, only: init_theta_grid, shat
+    use zgrid, only: init_theta_grid
+    use geometry, only: shat
     use file_utils, only: input_unit, input_unit_exist
     use constants
     implicit none
@@ -185,7 +187,8 @@ contains
   end subroutine box_get_sizes
 
   subroutine box_get_grids (aky, theta0, akx)
-    use theta_grid, only: shat, shat_zero
+    use zgrid, only: shat_zero
+    use geometry, only: shat
     use constants
     implicit none
     real, dimension (:), intent (out) :: akx, aky
@@ -295,7 +298,8 @@ contains
 
   subroutine init_kt_grids
 
-    use theta_grid, only: init_theta_grid, shat
+    use zgrid, only: init_theta_grid
+    use geometry, only: shat
     use mp, only: proc0, broadcast
     use constants, only: pi
 

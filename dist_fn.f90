@@ -79,7 +79,8 @@ contains
     use run_parameters, only: fphi, fapar
     use run_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
-    use theta_grid, only: ntgrid, dl_over_b
+    use geometry, only: dl_over_b
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvpa, nvgrid, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: anon, integrate_vmu
@@ -171,7 +172,8 @@ contains
     use dist_fn_arrays, only: aj0v
     use run_parameters, only: fphi, fapar
     use run_parameters, only: beta
-    use theta_grid, only: ntgrid, dl_over_b
+    use geometry, only: dl_over_b
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid, nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: integrate_vmu
@@ -269,8 +271,8 @@ contains
     use stella_transforms, only: init_transforms
     use species, only: init_species
     use species, only: nspec
-    use theta_grid, only: init_theta_grid
-    use theta_grid, only: ntgrid
+    use zgrid, only: init_theta_grid
+    use zgrid, only: ntgrid
     use kt_grids, only: init_kt_grids
     use kt_grids, only: naky, nakx, ny
     use kt_grids, only: alpha_global
@@ -342,7 +344,8 @@ contains
   subroutine read_parameters
 
     use file_utils, only: input_unit, error_unit, input_unit_exist
-    use theta_grid, only: shat, shat_zero
+    use geometry, only: shat
+    use zgrid, only: shat_zero
     use text_options, only: text_option, get_option_value
     use species, only: nspec
     use mp, only: proc0, broadcast
@@ -415,7 +418,8 @@ contains
 
   subroutine init_kperp2
 
-    use theta_grid, only: ntgrid, gds2, gds21, gds22, shat
+    use geometry, only: gds2, gds21, gds22, shat
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
 
@@ -450,9 +454,9 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use species, only: spec
-    use theta_grid, only: ntgrid
-    use theta_grid, only: cvdrift, gbdrift
-    use theta_grid, only: cvdrift0, gbdrift0, shat
+    use zgrid, only: ntgrid
+    use geometry, only: cvdrift, gbdrift
+    use geometry, only: cvdrift0, gbdrift0, shat
     use vpamu_grids, only: vpa, vperp2
 
     implicit none
@@ -489,7 +493,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use species, only: spec
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: energy, anon
 
     implicit none
@@ -515,7 +519,7 @@ contains
   subroutine allocate_arrays
 
     use stella_layouts, only: kxkyz_lo, vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: nvgrid, nmu
     use dist_fn_arrays, only: gnew, gold
@@ -544,7 +548,7 @@ contains
 
   subroutine init_connections
 
-    use theta_grid, only: nperiod, ntgrid, ntheta
+    use zgrid, only: nperiod, ntgrid, ntheta
     use kt_grids, only: ntheta0, nakx, naky
     use kt_grids, only: jtwist_out, aky
     use species, only: nspec
@@ -762,7 +766,8 @@ contains
 
   subroutine init_vperp2
 
-    use theta_grid, only: ntgrid, bmag
+    use geometry, only: bmag
+    use zgrid, only: ntgrid
     use vpamu_grids, only: vperp2, energy, anon
     use vpamu_grids, only: vpa, mu
     use vpamu_grids, only: nmu, nvgrid
@@ -788,7 +793,8 @@ contains
 
     use dist_fn_arrays, only: aj0v, aj0x
     use species, only: spec, nspec
-    use theta_grid, only: bmag, ntgrid
+    use geometry, only: bmag
+    use zgrid, only: ntgrid
     use vpamu_grids, only: vperp2, nmu
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo, vmu_lo
@@ -849,8 +855,8 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nmu
     use vpamu_grids, only: mu
-    use theta_grid, only: ntgrid
-    use theta_grid, only: dbdthet, gradpar
+    use zgrid, only: ntgrid
+    use geometry, only: dbdthet, gradpar
 
     implicit none
 
@@ -880,8 +886,8 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: vpa, nvpa
-    use theta_grid, only: ntgrid
-    use theta_grid, only: gradpar
+    use zgrid, only: ntgrid
+    use geometry, only: gradpar
 
     implicit none
 
@@ -929,7 +935,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvgrid, nmu
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
 
     implicit none
 
@@ -1049,7 +1055,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvgrid, nmu
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
 
     implicit none
 
@@ -1165,7 +1171,7 @@ contains
     use mp, only: proc0
     use dist_fn_arrays, only: wdriftx, wdrifty
     use stella_time, only: cfl_dt, code_dt, write_dt
-    use theta_grid, only: delthet
+    use zgrid, only: delthet
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky
 
@@ -1250,7 +1256,7 @@ contains
     use stella_transforms, only: transform_y2ky
     use redistribute, only: gather, scatter
     use run_parameters, only: fphi, fapar
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: nvgrid, nmu
     use kt_grids, only: nakx, ny
     use kt_grids, only: alpha_global
@@ -1281,20 +1287,6 @@ contains
     ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
     call g_adjust (gin, phi, apar, fphi, fapar)
     call g_adjust (gvmu, phi, apar, fphi, fapar)
-    
-    ! TMP FOR TESTING
-!     call transform_ky2y (gin, rhs_y)
-!     call transform_y2ky (rhs_y, rhs_ky)
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        do ig = -ntgrid, ntgrid
-!           do ikx = 1, nakx
-!              do iky = 1, naky
-!                 write (*,*) 'gin, rhs_ky', iky, ikx, ig, ivmu, cabs(gin(iky,ikx,ig,ivmu)), cabs(rhs_ky(iky,ikx,ig,ivmu))
-!              end do
-!           end do
-!        end do
-!     end do
-!     stop
 
     ! calculate and add mirror term to RHS of GK eqn
     call advance_mirror (gin, rhs)
@@ -1330,7 +1322,7 @@ contains
     use redistribute, only: scatter
     use dist_fn_arrays, only: gvmu
     use fields_arrays, only: phi, apar
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
 
     implicit none
 
@@ -1355,7 +1347,7 @@ contains
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1385,7 +1377,7 @@ contains
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1416,7 +1408,7 @@ contains
     use job_manage, only: time_message
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
     use stella_transforms, only: transform_ky2y
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: alpha_global
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvgrid, nmu
@@ -1470,7 +1462,7 @@ contains
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
 
@@ -1508,7 +1500,7 @@ contains
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
 
@@ -1591,7 +1583,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1613,7 +1605,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx
 
     implicit none
@@ -1636,7 +1628,7 @@ contains
     use finite_differences, only: third_order_upwind_theta
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use theta_grid, only: ntgrid, delthet
+    use zgrid, only: ntgrid, delthet
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1672,7 +1664,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1692,7 +1684,7 @@ contains
 
   subroutine fill_theta_ghost_zones (iseg, ie, iky, g, gleft, gright)
 
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: ntheta0, nakx, naky
     use kt_grids, only: aky
 
@@ -1753,7 +1745,7 @@ contains
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx, aky
 
     implicit none
@@ -1773,7 +1765,7 @@ contains
 
     use dist_fn_arrays, only: wdrifty
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1793,7 +1785,7 @@ contains
 
     use dist_fn_arrays, only: wdrifty
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx
 
     implicit none
@@ -1813,7 +1805,7 @@ contains
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, akx
 
     implicit none
@@ -1833,7 +1825,7 @@ contains
 
     use dist_fn_arrays, only: wdriftx
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -1853,7 +1845,7 @@ contains
 
     use dist_fn_arrays, only: wdriftx
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: nakx
 
     implicit none
@@ -1877,7 +1869,7 @@ contains
     use stella_layouts, only: is_idx, iv_idx
     use run_parameters, only: fphi, fapar
     use species, only: spec
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use vpamu_grids, only: vpa
     use kt_grids, only: nakx, aky
 
@@ -1901,7 +1893,7 @@ contains
 
     use dist_fn_arrays, only: wstar
     use stella_layouts, only: vmu_lo
-    use theta_grid, only: ntgrid
+    use zgrid, only: ntgrid
     use kt_grids, only: naky, nakx
 
     implicit none

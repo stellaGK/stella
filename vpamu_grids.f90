@@ -137,7 +137,7 @@ contains
   subroutine integrate_mu_local (ig, g, total)
 
     use species, only: nspec
-    use theta_grid, only: bmag
+    use geometry, only: bmag
 
     implicit none
 
@@ -163,7 +163,7 @@ contains
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, imu_idx, iv_idx
-    use theta_grid, only: bmag
+    use geometry, only: bmag
 
     implicit none
 
@@ -188,7 +188,7 @@ contains
 
   subroutine integrate_vmu_real (g, ig, total)
 
-    use theta_grid, only: bmag
+    use geometry, only: bmag
 
     implicit none
 
@@ -210,7 +210,7 @@ contains
 
   subroutine integrate_vmu_complex (g, ig, total)
 
-    use theta_grid, only: bmag
+    use geometry, only: bmag
 
     implicit none
 
@@ -233,7 +233,7 @@ contains
   subroutine integrate_species_local_real (g, weights, ig, total)
 
     use species, only: nspec
-    use theta_grid, only: bmag
+    use geometry, only: bmag
 
     implicit none
 
@@ -259,7 +259,7 @@ contains
   subroutine integrate_species_local_complex (g, weights, ig, total)
 
     use species, only: nspec
-    use theta_grid, only: bmag
+    use geometry, only: bmag
 
     implicit none
 
@@ -287,7 +287,8 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use theta_grid, only: ntgrid, bmag
+    use zgrid, only: ntgrid
+    use geometry, only: bmag
 
     implicit none
 
@@ -326,7 +327,7 @@ contains
 
     use constants, only: pi
     use gauss_quad, only: get_laguerre_grids
-    use theta_grid, only: bmag
+    use geometry, only: bmag
     
     implicit none
 
