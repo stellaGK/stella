@@ -2,7 +2,7 @@ module zgrid
 
   implicit none
 
-  public :: init_theta_grid, finish_theta_grid
+  public :: init_zgrid, finish_zgrid
   public :: ntheta, ntgrid, nperiod
   public :: theta
   public :: delthet
@@ -18,7 +18,7 @@ module zgrid
 
 contains
 
-  subroutine init_theta_grid
+  subroutine init_zgrid
 
     use mp, only: proc0
     use constants, only: pi
@@ -42,7 +42,7 @@ contains
     delthet(:ntgrid-1) = theta(-ntgrid+1:) - theta(:ntgrid-1)
     delthet(ntgrid) = delthet(-ntgrid)
 
-  end subroutine init_theta_grid
+  end subroutine init_zgrid
 
   subroutine read_parameters
 
@@ -81,7 +81,7 @@ contains
 
   end subroutine broadcast_parameters
 
-  subroutine finish_theta_grid
+  subroutine finish_zgrid
 
     implicit none
 
@@ -90,6 +90,6 @@ contains
 
     zgridinit = .false.
 
-  end subroutine finish_theta_grid
+  end subroutine finish_zgrid
 
 end module zgrid

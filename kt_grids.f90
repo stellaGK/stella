@@ -133,7 +133,7 @@ module kt_grids_box
 contains
 
   subroutine init_kt_grids_box
-    use zgrid, only: init_theta_grid
+    use zgrid, only: init_zgrid
     use geometry, only: shat
     use file_utils, only: input_unit, input_unit_exist
     use constants
@@ -144,7 +144,7 @@ contains
     namelist /kt_grids_box_parameters/ naky, nakx, nx, ny, &
          jtwist, rtwist, x0, y0, ly
 
-    call init_theta_grid
+    call init_zgrid
 
     nakx = 0
     naky = 0
@@ -298,7 +298,7 @@ contains
 
   subroutine init_kt_grids
 
-    use zgrid, only: init_theta_grid
+    use zgrid, only: init_zgrid
     use geometry, only: shat
     use mp, only: proc0, broadcast
     use constants, only: pi
@@ -310,7 +310,7 @@ contains
     if (initialized) return
     initialized = .true.
 
-    call init_theta_grid
+    call init_zgrid
 
     if (proc0) then
        call read_parameters

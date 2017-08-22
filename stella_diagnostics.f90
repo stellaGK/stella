@@ -32,7 +32,7 @@ contains
 
   subroutine init_stella_diagnostics (nstep)
 
-    use zgrid, only: init_theta_grid
+    use zgrid, only: init_zgrid
     use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
     use species, only: init_species
@@ -52,7 +52,7 @@ contains
     
     debug = debug .and. proc0
     
-    call init_theta_grid
+    call init_zgrid
     call init_kt_grids
     call init_run_parameters
     call init_species

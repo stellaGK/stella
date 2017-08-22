@@ -271,7 +271,7 @@ contains
     use stella_transforms, only: init_transforms
     use species, only: init_species
     use species, only: nspec
-    use zgrid, only: init_theta_grid
+    use zgrid, only: init_zgrid
     use zgrid, only: ntgrid
     use kt_grids, only: init_kt_grids
     use kt_grids, only: naky, nakx, ny
@@ -290,8 +290,8 @@ contains
     call init_stella_layouts
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_species'
     call init_species
-    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_theta_grid'
-    call init_theta_grid
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_zgrid'
+    call init_zgrid
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kt_grids'
     call init_kt_grids
 
