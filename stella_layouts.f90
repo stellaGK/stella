@@ -1,5 +1,3 @@
-# include "define.inc"
-
 module stella_layouts
 
   use layouts_type, only: kxkyz_layout_type, vmu_layout_type, kxyz_layout_type
