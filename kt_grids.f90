@@ -54,7 +54,7 @@ contains
   subroutine range_get_grids (aky, theta0, akx)
     use mp, only: mp_abort
     use zgrid, only: shat_zero
-    use geometry, only: shat
+    use geometry, only: geo_surf
     implicit none
     real, dimension (:), intent (out) :: akx, aky
     real, dimension (:,:), intent (out) :: theta0
@@ -77,21 +77,21 @@ contains
     ! if theta0_min and theta0_max have been specified,
     ! use them to determine akx_min and akx_max
     if (theta0_max > theta0_min) then
-       akx_min = theta0_min * shat * aky(1)
-       akx_max = theta0_max * shat * aky(1)
+       akx_min = theta0_min * geo_surf%shat * aky(1)
+       akx_max = theta0_max * geo_surf%shat * aky(1)
     end if
 
 !
 ! BD: Assumption here differs from convention that abs(shat) <= 1.e-5 triggers periodic bc
 !
     ! shat_zero is minimum shat value below which periodic BC is enforced
-    if (abs(shat) > shat_zero) then  ! ie assumes boundary_option .eq. 'linked'
+    if (abs(geo_surf%shat) > shat_zero) then  ! ie assumes boundary_option .eq. 'linked'
        ! if akx_min and akx_max specified in input
        ! instead of theta0_min and theta0_max,
        ! use them to get theta0_min and theta0_max
        if (theta0_min > theta0_max .and. abs(aky(1)) > epsilon(0.)) then
-          theta0_min = akx_min/(shat*aky(1))
-          theta0_max = akx_max/(shat*aky(1))
+          theta0_min = akx_min/(geo_surf%shat*aky(1))
+          theta0_max = akx_max/(geo_surf%shat*aky(1))
        else
           call mp_abort ('ky=0 is inconsistent with kx_min different from kx_max. aborting.')
        end if
@@ -103,7 +103,7 @@ contains
           theta0(j,:) &
                = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
        end do
-       akx = theta0(1,:) * shat * aky(1)
+       akx = theta0(1,:) * geo_surf%shat * aky(1)
     else
        ! here assume boundary_option .eq. 'periodic'
        ! used for periodic finite kx ballooning space runs with shat=0
@@ -134,7 +134,7 @@ contains
 
   subroutine init_kt_grids_box
     use zgrid, only: init_zgrid
-    use geometry, only: shat
+    use geometry, only: geo_surf
     use file_utils, only: input_unit, input_unit_exist
     use constants
     implicit none
@@ -154,7 +154,7 @@ contains
     nx = 0
     ny = 0
 
-    jtwist = max(int(2.0*pi*shat + 0.5),1)
+    jtwist = max(int(2.0*pi*geo_surf%shat + 0.5),1)
     rtwist = 0.0
 
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
@@ -188,7 +188,7 @@ contains
 
   subroutine box_get_grids (aky, theta0, akx)
     use zgrid, only: shat_zero
-    use geometry, only: shat
+    use geometry, only: geo_surf
     use constants
     implicit none
     real, dimension (:), intent (out) :: akx, aky
@@ -205,7 +205,7 @@ contains
 
     ! non-quantized b/c assumed to be periodic instead 
     ! of linked boundary conditions
-    if(abs(shat) <=  shat_zero) then   
+    if(abs(geo_surf%shat) <=  shat_zero) then   
        if (abs(x0) < epsilon(0.)) then          
           if (rtwist > 0) then 
              ratio = rtwist
@@ -222,7 +222,7 @@ contains
        end if
     else
        if (jtwist /= 0) then
-          dkx = dky * 2.0*pi*abs(shat)/real(jtwist)
+          dkx = dky * 2.0*pi*abs(geo_surf%shat)/real(jtwist)
        else
           dkx = dky
        end if
@@ -239,12 +239,12 @@ contains
        akx(i) = real(i-1)*dkx
     end do
 
-    if (abs(shat) > epsilon(0.)) then
+    if (abs(geo_surf%shat) > epsilon(0.)) then
        do i = 1, nakx
           ! set theta0=0 for ky=0
           theta0(1,i) = 0.0
           ! otherwise theta0 = kx/ky/shat
-          theta0(2:,i) = akx(i)/(aky(2:)*shat)
+          theta0(2:,i) = akx(i)/(aky(2:)*geo_surf%shat)
        end do
     else
        do i = 1, nakx
@@ -299,7 +299,7 @@ contains
   subroutine init_kt_grids
 
     use zgrid, only: init_zgrid
-    use geometry, only: shat
+    use geometry, only: geo_surf
     use mp, only: proc0, broadcast
     use constants, only: pi
 
@@ -337,8 +337,8 @@ contains
     end do
 
     ly = 2.*pi*y0
-    if (abs(shat) > epsilon(0.)) then
-       lx = y0*jtwist/shat
+    if (abs(geo_surf%shat) > epsilon(0.)) then
+       lx = y0*jtwist/geo_surf%shat
     else
        lx = ly
     end if

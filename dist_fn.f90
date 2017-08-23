@@ -344,7 +344,7 @@ contains
   subroutine read_parameters
 
     use file_utils, only: input_unit, error_unit, input_unit_exist
-    use geometry, only: shat
+    use geometry, only: geo_surf
     use zgrid, only: shat_zero
     use text_options, only: text_option, get_option_value
     use species, only: nspec
@@ -393,7 +393,7 @@ contains
        in_file = input_unit_exist("dist_fn_knobs", dfexist)
        if (dfexist) read (unit=in_file, nml=dist_fn_knobs)
 
-       if(abs(shat) <=  shat_zero) boundary_option = 'periodic'
+       if(abs(geo_surf%shat) <=  shat_zero) boundary_option = 'periodic'
 
        ierr = error_unit()
        call get_option_value &
@@ -418,7 +418,8 @@ contains
 
   subroutine init_kperp2
 
-    use geometry, only: gds2, gds21, gds22, shat
+    use geometry, only: gds2, gds21, gds22
+    use geometry, only: geo_surf
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
@@ -434,7 +435,7 @@ contains
     do iky = 1, naky
        if (abs(aky(iky)) < epsilon(0.)) then
           do ikx = 1, nakx
-             kperp2(iky,ikx,:) = akx(ikx)*akx(ikx)*gds22/(shat*shat)
+             kperp2(iky,ikx,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
           end do
        else
           do ikx = 1, nakx
@@ -456,7 +457,8 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use geometry, only: cvdrift, gbdrift
-    use geometry, only: cvdrift0, gbdrift0, shat
+    use geometry, only: cvdrift0, gbdrift0
+    use geometry, only: geo_surf
     use vpamu_grids, only: vpa, vperp2
 
     implicit none
@@ -479,7 +481,7 @@ contains
        do iy = 1, ny_ffs
           wdrifty(iy,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
                * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,imu))
-          wdriftx(iy,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/shat &
+          wdriftx(iy,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
                * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,imu))
        end do
     end do

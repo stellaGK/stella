@@ -1,5 +1,7 @@
 module geometry
 
+  use common_types, only: flux_surface_type
+
   implicit none
 
   public :: init_geometry, finish_geometry
@@ -12,11 +14,15 @@ module geometry
   public :: jacob
   public :: drhodpsi
   public :: dl_over_b
-  public :: shat, qinp
+!  public :: shat, qinp, rgeo
+!  public :: rhotor, drhodrhotor
+  public :: geo_surf
 
   private
 
-  real :: drhodpsi, shat, qinp
+  type (flux_surface_type) :: geo_surf
+
+  real :: drhodpsi, rhotor, drhotordrho, shat, qinp, rgeo
   real, dimension (:), allocatable :: grho, bmag, dbdthet
   real, dimension (:), allocatable :: cvdrift, cvdrift0
   real, dimension (:), allocatable :: gbdrift, gbdrift0
@@ -55,7 +61,8 @@ contains
        call read_parameters
        select case (geo_option_switch)
        case (geo_option_local)
-          call read_local_parameters (qinp, shat)
+!          call read_local_parameters (rgeo, qinp, shat, rhotor, drhotordrho)
+          call read_local_parameters (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &
@@ -64,11 +71,13 @@ contains
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
-          call read_local_parameters (qinp, shat)
+!          call read_local_parameters (rgeo, qinp, shat, rhotor, drhotordrho)
+          call read_local_parameters (geo_surf)
           ! now overwrite local parameters
           ! with those from input.profiles file
           ! use rhoc from input as surface
-          call read_inputprof_geo (qinp, shat)
+!          call read_inputprof_geo (rgeo, qinp, shat, rhotor, drhotordrho)
+          call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &

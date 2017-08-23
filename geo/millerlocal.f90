@@ -1,5 +1,7 @@
 module millerlocal
 
+  use common_types, only: flux_surface_type
+
   implicit none
 
   public :: init_local_defaults
@@ -19,6 +21,7 @@ module millerlocal
   real :: rgeo
   real :: d2psidr2
   real :: dpsitordrho
+  real :: rhotor, drhotordrho
   logical :: write_profile_variation, read_profile_variation
 
   integer :: nz, nz2pi
@@ -46,13 +49,13 @@ module millerlocal
 
   real, dimension (:), allocatable :: d2R, d2Z
 
-  type :: flux_surface
-     real :: rmaj, rgeo, kappa, kapprim, tri, triprim, rhoc, dr, &
-          shift, qinp, shat, betaprim, betadbprim, d2qdr2, d2psidr2, &
-          dpsitordrho
-  end type flux_surface
+!  type :: flux_surface_type
+!     real :: rmaj, rgeo, kappa, kapprim, tri, triprim, rhoc, dr, &
+!          shift, qinp, shat, betaprim, betadbprim, d2qdr2, d2psidr2, &
+!          dpsitordrho, rhotor, drhotordrho
+!  end type flux_surface_type
 
-  type (flux_surface) :: local
+  type (flux_surface_type) :: local
 
   logical :: defaults_initialized = .false.
 
@@ -83,30 +86,38 @@ contains
     read_profile_variation = .false.
     write_profile_variation = .false.
     
+    ! only needed for sfincs when not using 
+    ! geo info from file
+    rhotor = rhoc
+    drhotordrho = 1.0
+
     ! not an input paramter
     ! used in conjunction with input.profiles
     dpsitordrho = 0.0
 
   end subroutine init_local_defaults
 
-  subroutine read_local_parameters (qinp_out, shat_out)
+!  subroutine read_local_parameters (qinp_out, shat_out, rhotor_out, drhotor_drho)
+  subroutine read_local_parameters (local_out)
     
     use file_utils, only: input_unit_exist
-    
+    use common_types, only: flux_surface_type
+
     implicit none
-    
-    real, intent (out) :: qinp_out, shat_out
+ 
+    type (flux_surface_type), intent (out) :: local_out
+!    real, intent (out) :: qinp_out, shat_out, rhotor_out, drhotor_drho
 
     integer :: in_file
     logical :: exist
 
-    real :: rhoc, rmaj, shift
-    real :: kappa, kapprim
-    real :: tri, triprim
-    real :: betaprim, betadbprim
-    real :: qinp, shat, d2qdr2
-    real :: rgeo
-    real :: d2psidr2
+!     real :: rhoc, rmaj, shift
+!     real :: kappa, kapprim
+!     real :: tri, triprim
+!     real :: betaprim, betadbprim
+!     real :: qinp, shat, d2qdr2
+!     real :: rgeo
+!     real :: d2psidr2
 
     namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
@@ -135,10 +146,16 @@ contains
 
     ! following two variables are not inputs
     local%dr = 1.e-3
+    local%rhotor = rhotor
+    local%drhotordrho = drhotordrho
     local%dpsitordrho = dpsitordrho
 
-    qinp_out = qinp
-    shat_out = shat
+    local_out = local
+
+!    qinp_out = qinp
+!    shat_out = shat
+!    rhotor_out = rhotor
+!    drhotordrho_out = drhotordrho
 
   end subroutine read_local_parameters
 

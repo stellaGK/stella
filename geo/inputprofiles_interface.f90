@@ -24,16 +24,19 @@ module inputprofiles_interface
 
 contains
 
-  subroutine read_inputprof_geo (qinp_out, shat_out)
+!  subroutine read_inputprof_geo (qinp_out, shat_out, rhotor_out, drhotordrho_out)
+  subroutine read_inputprof_geo (surf)
 
     use constants, only: pi
+    use common_types, only: flux_surface_type
     use finite_differences, only: fd3pt
     use splines, only: geo_spline
     use millerlocal, only: local
 
     implicit none
 
-    real, intent (out) :: qinp_out, shat_out
+!    real, intent (out) :: qinp_out, shat_out, rhotor_out, drhotordrho_out
+    type (flux_surface_type), intent (in out) :: surf
 
     integer :: in_unit = 101
     character (10) :: dum
@@ -162,9 +165,12 @@ contains
     call geo_spline (rhoc, tri, local%rhoc, local%tri)
     call geo_spline (rhoc, triprim, local%rhoc, local%triprim)
     call geo_spline (rhoc, betaprim, local%rhoc, local%betaprim)
+    call geo_spline (rhoc, rhotor, local%rhoc, local%rhotor)
+    call geo_spline (rhoc, drhotordrho, local%rhoc, local%drhotordrho)
 
-    qinp_out = local%qinp
-    shat_out = local%shat
+    surf = local
+!    qinp_out = local%qinp
+!    shat_out = local%shat
 
     call deallocate_arrays_geo
 

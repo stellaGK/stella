@@ -2027,7 +2027,8 @@ contains
 
     use geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
          cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
-         shat, drhodpsi, qinp
+         drhodpsi
+    use geometry, only: geo_surf
     use run_parameters, only: beta
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -2061,9 +2062,9 @@ contains
 
     status = nf90_put_var (ncid, beta_id, beta)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, beta_id)
-    status = nf90_put_var (ncid, q_id, qinp)
+    status = nf90_put_var (ncid, q_id, geo_surf%qinp)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, q_id)
-    status = nf90_put_var (ncid, shat_id, shat)
+    status = nf90_put_var (ncid, shat_id, geo_surf%shat)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id)
     status = nf90_put_var (ncid, drhodpsi_id, drhodpsi)   
     if (status /= nf90_noerr) call netcdf_error (status, ncid, drhodpsi_id)
