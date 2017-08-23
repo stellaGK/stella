@@ -57,13 +57,20 @@ contains
           call read_species_stella
           call read_inputprof_spec (nspec, spec)
        end select
-       open (1003,file='species.input',status='unknown')
-       write (1003,'(6a12,a9)') '#1.z', '2.mass', '3.dens', &
-            '4.temp', '5.tprim','6.fprim', '7.type'
+
        do is = 1, nspec
-          write (1003,'(6e12.4,i9)') spec(is)%z, spec(is)%mass, &
+          ! FLAG -- only contains self-collisions as the moment
+          spec(is)%vnew(is) = spec(1)%vnew_ref*spec(is)%dens*spec(is)%z**4 &
+               / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
+       end do
+
+       open (1003,file='species.input',status='unknown')
+       write (1003,'(7a12,a9)') '#1.z', '2.mass', '3.dens', &
+            '4.temp', '5.tprim','6.fprim', '7.vnewss', '8.type'
+       do is = 1, nspec
+          write (1003,'(7e12.4,i9)') spec(is)%z, spec(is)%mass, &
                spec(is)%dens, spec(is)%temp, spec(is)%tprim, &
-               spec(is)%fprim, spec(is)%type
+               spec(is)%fprim, spec(is)%vnew(is), spec(is)%type
        end do
        close (1003)
     end if
@@ -117,11 +124,11 @@ contains
 
     implicit none
 
-    real :: z, mass, dens, temp, tprim, fprim
+    real :: z, mass, dens, temp, tprim, fprim, vnew_ref
     integer :: ierr, unit, is
 
     namelist /species_parameters/ z, mass, dens, temp, &
-         tprim, fprim, type
+         tprim, fprim, vnew_ref, type
 
     character(20) :: type
     type (text_option), dimension (9), parameter :: typeopts = (/ &
@@ -143,6 +150,7 @@ contains
        temp = 1.0
        tprim = 6.9
        fprim = 2.2
+       vnew_ref = 0.0
        type = "default"
        read (unit=unit, nml=species_parameters)
        close (unit=unit)
@@ -153,7 +161,9 @@ contains
        spec(is)%temp = temp
        spec(is)%tprim = tprim
        spec(is)%fprim = fprim
-       
+       ! FLAG -- assumes vnew_ref specified for first species
+       spec(is)%vnew_ref = vnew_ref
+
        ierr = error_unit()
        call get_option_value (type, typeopts, spec(is)%type, ierr, "type in species_parameters_x")
     end do
@@ -175,6 +185,8 @@ contains
        call broadcast (spec(is)%temp)
        call broadcast (spec(is)%tprim)
        call broadcast (spec(is)%fprim)
+       call broadcast (spec(is)%vnew_ref)
+       call broadcast (spec(is)%vnew)
        call broadcast (spec(is)%type)
 
        spec(is)%stm = sqrt(spec(is)%temp/spec(is)%mass)

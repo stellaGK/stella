@@ -64,9 +64,10 @@ contains
 # ifdef USE_SFINCS
   subroutine read_sfincs_parameters
 
+    use constants, only: pi
     use mp, only: nproc
     use file_utils, only: input_unit_exist
-    use species, only: nspec
+    use species, only: nspec, spec
 
     implicit none
 
@@ -106,7 +107,7 @@ contains
     ! nu_n = nu_ref * aref/vt_ref
     ! nu_ref = 4*sqrt(2*pi)*nref*e**4*loglam/(3*sqrt(mref)*Tref**3/2)
     ! (with nref, Tref, and mref in Gaussian units)
-    nu_N = 0.01 ! FLAG -- should replace with collisionality from stella
+    nu_N = spec(1)%vnew_ref*(4./(3.*pi))
 
     in_file = input_unit_exist("sfincs_input", exist)
     if (exist) read (unit=in_file, nml=sfincs_input)

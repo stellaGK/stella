@@ -46,12 +46,18 @@ module common_types
   end type flux_surface_type
   
   type spec_type
+     integer :: nspec
      real :: z
      real :: mass
      real :: dens, temp
      real :: tprim, fprim
-     real :: vnewk, nustar, nu
+     real :: vnew_ref
      real :: stm, zstm, tz, smz, zt
+     ! pre-2003 Fortran does not support
+     ! allocatable arrays within derived types
+     ! so set size large enough that it should be a problem
+     ! should be nspec large
+     real, dimension (10) :: vnew
      integer :: type
   end type spec_type
   

@@ -95,6 +95,7 @@ gauss_quad.o: \
 	 file_utils.o \
 	 mp.o 
 geometry.o: \
+	 common_types.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
 	 millerlocal.o \
@@ -138,6 +139,7 @@ kt_grids.o: \
 mds.o: \
 	 constants.o 
 millerlocal.o: \
+	 common_types.o \
 	 constants.o \
 	 file_utils.o \
 	 spl.o 
@@ -168,7 +170,11 @@ run_parameters.o: \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
-	 mp.o 
+	 file_utils.o \
+	 geometry.o \
+	 mp.o \
+	 species.o \
+	 zgrid.o 
 species.o: \
 	 common_types.o \
 	 file_utils.o \

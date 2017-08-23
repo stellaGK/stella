@@ -71,7 +71,7 @@ module stella_io
   integer :: phi00_id, ntot00_id, density00_id, upar00_id, tpar00_id, tperp00_id
   integer :: input_id
   integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
-  integer :: vnewk_id, spec_type_id
+  integer :: vnew_id, spec_type_id
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
   integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, surfarea_id
@@ -533,12 +533,12 @@ contains
     status = nf90_put_att (ncid, fprim_id, 'long_name', '-1/rho dn/drho')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, fprim_id, att='long_name')
 
-    status = nf90_def_var (ncid, 'vnewk', netcdf_real, nspec_dim, vnewk_id)
-    if (status /= nf90_noerr) call netcdf_error (status, var='vnewk')
-    status = nf90_put_att (ncid, vnewk_id, 'long_name', 'Collisionality')
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, vnewk_id, att='long_name')
-    status = nf90_put_att (ncid, vnewk_id, 'units', 'v_t/L')
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, vnewk_id, att='units')
+    status = nf90_def_var (ncid, 'vnew', netcdf_real, nspec_dim, vnew_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='vnew')
+    status = nf90_put_att (ncid, vnew_id, 'long_name', 'Collisionality')
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vnew_id, att='long_name')
+    status = nf90_put_att (ncid, vnew_id, 'units', 'v_t/L')
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vnew_id, att='units')
     
     status = nf90_def_var (ncid, 'type_of_species', nf90_int, nspec_dim, spec_type_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='type_of_species')
@@ -1997,11 +1997,18 @@ contains
   subroutine nc_species
 
     use run_parameters, only: beta
-    use species, only: spec
+    use species, only: spec, nspec
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 
     integer :: status
+    integer :: is
+
+    ! FLAG - ignoring cross-species collisions for now
+    real, dimension (nspec) :: vnew
+    do is = 1, nspec
+       vnew(is) = spec(is)%vnew(is)
+    end do
 
     status = nf90_put_var (ncid, charge_id, spec%z)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, charge_id)
@@ -2015,8 +2022,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, tprim_id)
     status = nf90_put_var (ncid, fprim_id, spec%fprim)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, fprim_id)
-    status = nf90_put_var (ncid, vnewk_id, spec%vnewk)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, vnewk_id)
+    status = nf90_put_var (ncid, vnew_id, vnew)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vnew_id)
     status = nf90_put_var (ncid, spec_type_id, spec%type)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, spec_type_id)
 
