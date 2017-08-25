@@ -20,7 +20,6 @@ module millerlocal
   real :: qinp, shat, d2qdr2
   real :: rgeo
   real :: d2psidr2
-  real :: dpsitordrho
   real :: rhotor, drhotordrho
   logical :: write_profile_variation, read_profile_variation
 
@@ -49,12 +48,6 @@ module millerlocal
 
   real, dimension (:), allocatable :: d2R, d2Z
 
-!  type :: flux_surface_type
-!     real :: rmaj, rgeo, kappa, kapprim, tri, triprim, rhoc, dr, &
-!          shift, qinp, shat, betaprim, betadbprim, d2qdr2, d2psidr2, &
-!          dpsitordrho, rhotor, drhotordrho
-!  end type flux_surface_type
-
   type (flux_surface_type) :: local
 
   logical :: defaults_initialized = .false.
@@ -79,7 +72,9 @@ contains
     kapprim = 0.0
     tri = 0.0
     triprim = 0.0
+    ! betaprim = -(4pi/Bref^2)*d(ptot)/drho
     betaprim = 0.0
+    ! betadbprim = -(4pi/Bref^2)*d^2ptot/drho^2
     betadbprim = 0.0
     d2qdr2 = 0.0
     d2psidr2 = 0.0
@@ -90,10 +85,6 @@ contains
     ! geo info from file
     rhotor = rhoc
     drhotordrho = 1.0
-
-    ! not an input paramter
-    ! used in conjunction with input.profiles
-    dpsitordrho = 0.0
 
   end subroutine init_local_defaults
 
@@ -148,7 +139,8 @@ contains
     local%dr = 1.e-3
     local%rhotor = rhotor
     local%drhotordrho = drhotordrho
-    local%dpsitordrho = dpsitordrho
+    local%dpsitordrho = 0.0
+    local%d2psitordrho2 = 0.0
 
     local_out = local
 
@@ -160,9 +152,10 @@ contains
   end subroutine read_local_parameters
 
   subroutine get_local_geo (nzed, nzgrid, zed_in, &
-       dpsidrho, grho_out, bmag_out, &
+       dpsidrho, dIdrho, grho_out, bmag_out, &
        gds2_out, gds21_out, gds22_out, gradpar_out, &
-       gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out)
+       gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
+       dBdrho_out, d2Bdrdth_out, dgradpardrho_out)
     
     use constants, only: pi
     use splines, only: geo_spline
@@ -171,10 +164,11 @@ contains
 
     integer, intent (in) :: nzed, nzgrid
     real, dimension (-nzgrid:), intent (in) :: zed_in
-    real, intent (out) :: dpsidrho
+    real, intent (out) :: dpsidrho, dIdrho
     real, dimension (-nzgrid:), intent (out) :: grho_out, bmag_out, &
          gds2_out, gds21_out, gds22_out, gradpar_out, gbdrift0_out, &
-         gbdrift_out, cvdrift0_out, cvdrift_out
+         gbdrift_out, cvdrift0_out, cvdrift_out, &
+         dBdrho_out, d2Bdrdth_out, dgradpardrho_out
 
     integer :: nr, np
     integer :: i, j
@@ -259,6 +253,8 @@ contains
     if (abs(local%dpsitordrho) > epsilon(0.)) then
        local%rgeo = local%dpsitordrho/dpsidrho
        dpsidrho = local%dpsitordrho/local%qinp
+       local%d2psidr2 = (local%d2psitordrho2-local%dpsitordrho*local%shat/local%rhoc) &
+            / local%qinp
        ! I=Btor*R is a flux function
        ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
        bi = local%rgeo
@@ -395,16 +391,12 @@ contains
     call geo_spline (theta, gds22, zed_in, gds22_out)
     call geo_spline (theta, gradpar, zed_in, gradpar_out)
     call geo_spline (theta, gbdrift, zed_in, gbdrift_out)
-!    do i = -nz, nz
-!       write (*,*) 'fine', theta(i), gbdrift(i)
-!    end do
-!    do i = -nzgrid, nzgrid
-!       write (*,*) 'coarse', zed_in(i), gbdrift_out(i)
-!    end do
-!    stop
     call geo_spline (theta, gbdrift0, zed_in, gbdrift0_out)
     call geo_spline (theta, cvdrift, zed_in, cvdrift_out)
     call geo_spline (theta, cvdrift0, zed_in, cvdrift0_out)
+    call geo_spline (theta, dBdrho, zed_in, dBdrho_out)
+    call geo_spline (theta, d2Bdrdth, zed_in, d2Bdrdth_out)
+    call geo_spline (theta, dgradpardrho, zed_in, dgradpardrho_out)
 
     open (1002,file='millerlocal.input',status='unknown')
     write (1002,'(14a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp', &

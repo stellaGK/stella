@@ -41,6 +41,7 @@ module common_types
      real :: d2qdr2
      real :: d2psidr2
      real :: dpsitordrho
+     real :: d2psitordrho2
      real :: rhotor
      real :: drhotordrho
   end type flux_surface_type
@@ -53,6 +54,7 @@ module common_types
      real :: tprim, fprim
      real :: vnew_ref
      real :: stm, zstm, tz, smz, zt
+     real :: d2ndr2, d2Tdr2
      ! pre-2003 Fortran does not support
      ! allocatable arrays within derived types
      ! so set size large enough that it should be a problem

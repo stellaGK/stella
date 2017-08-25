@@ -5,6 +5,7 @@ module finite_differences
   public :: third_order_upwind
   public :: third_order_upwind_zed
   public :: fd3pt
+  public :: d2_3pt
 
   interface fd3pt
      module procedure fd3pt_real
@@ -163,6 +164,35 @@ contains
     deallocate (aa, bb, cc)
     
   end subroutine fd3pt_array
+
+  ! second derivative using centered differences
+  ! second order accurate
+  subroutine d2_3pt (f, d2f, dr)
+
+    implicit none
+
+    real, dimension (:), intent (in) :: f
+    real, dimension (:), intent (in) :: dr
+    real, dimension (:), intent (out) :: d2f
+
+    real :: a, b, c
+    integer :: i, n
+
+    n = size(f)
+
+    do i = 2, n-1
+       a = 2./(dr(i-1)*(dr(i)+dr(i-1)))
+       b = -2./(dr(i-1)*dr(i))
+       c = 2./(dr(i)*(dr(i)+dr(i-1)))
+       d2f(i) = a*f(i-1)+b*f(i)+c*f(i+1)
+    end do
+    ! FLAG -- this is a hack
+    ! do not anticipate needing 2nd derivatives
+    ! at first and last grid points
+    d2f(1) = d2f(2)
+    d2f(n) = d2f(n-1)
+
+  end subroutine d2_3pt
 
   subroutine tridag (aa, bb, cc, sol)
     

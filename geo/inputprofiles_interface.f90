@@ -13,30 +13,31 @@ module inputprofiles_interface
   real, dimension (:), allocatable :: ni, Ti
   real, dimension (:), allocatable :: dr
   real, dimension (:), allocatable :: rhoc, rmaj, shift
-  real, dimension (:), allocatable :: shat
+  real, dimension (:), allocatable :: shat, d2qdr2
   real, dimension (:), allocatable :: tri, triprim
   real, dimension (:), allocatable :: kapprim
   real, dimension (:), allocatable :: neprim, Teprim
   real, dimension (:), allocatable :: niprim, Tiprim
-  real, dimension (:), allocatable :: betaprim, rgeo
-  real, dimension (:), allocatable :: drhotordrho, dpsitordrho
+  real, dimension (:), allocatable :: nedbprim, Tedbprim
+  real, dimension (:), allocatable :: nidbprim, Tidbprim
+  real, dimension (:), allocatable :: betaprim, betadbprim
+  real, dimension (:), allocatable :: psitor
+  real, dimension (:), allocatable :: drhotordrho, dpsitordrho, d2psitordrho2
   real, dimension (:), allocatable :: pres_tot
   real, dimension (:), allocatable :: loglam
 
 contains
 
-!  subroutine read_inputprof_geo (qinp_out, shat_out, rhotor_out, drhotordrho_out)
   subroutine read_inputprof_geo (surf)
 
     use constants, only: pi
     use common_types, only: flux_surface_type
-    use finite_differences, only: fd3pt
+    use finite_differences, only: fd3pt, d2_3pt
     use splines, only: geo_spline
     use millerlocal, only: local
 
     implicit none
 
-!    real, intent (out) :: qinp_out, shat_out, rhotor_out, drhotordrho_out
     type (flux_surface_type), intent (in out) :: surf
 
     integer :: in_unit = 101
@@ -133,6 +134,9 @@ contains
     call fd3pt (qinp, shat, dr)
     shat = rhoc*shat/qinp
 
+    ! obtain d2q/dr2
+    call d2_3pt (qinp, d2qdr2, dr)
+
     ! obtain d (kappa) / drho
     call fd3pt (kappa, kapprim, dr)
 
@@ -144,34 +148,43 @@ contains
 
     pres_tot = ne*Te+ni*Ti
     call fd3pt (pres_tot, betaprim, dr)
+    call d2_3pt (pres_tot, betadbprim, dr)
 
     mu0 = 4.*pi*1.e-7
     betaprim = -mu0*betaprim*1.6022e3/bt_exp**2
+    betadbprim = -mu0*betadbprim*1.6022e3/bt_exp**2
+
+    ! this is psi_toroidal/(Bref aref**2)/2pi
+    ! assumption here is that Bref = BT_EXP
+    psitor = 0.5*rhotor*rhotor*(arho_exp/aref)**2
 
     ! get drhotordr
     call fd3pt (rhotor, drhotordrho, dr)
+    call fd3pt (psitor, dpsitordrho, dr)
+    call d2_3pt (psitor, d2psitordrho2, dr)
 
     ! this sets the reference B-field to be bt_exp
-    dpsitordrho = rhotor*drhotordrho*(arho_exp/aref)**2
+!    dpsitordrho = rhotor*drhotordrho*(arho_exp/aref)**2
 
     ! next need to pick out the correct flux surface
     ! and assign various local% values
     call geo_spline (rhoc, rmaj, local%rhoc, local%rmaj)
     call geo_spline (rhoc, dpsitordrho, local%rhoc, local%dpsitordrho)
+    call geo_spline (rhoc, d2psitordrho2, local%rhoc, local%d2psitordrho2)
     call geo_spline (rhoc, shift, local%rhoc, local%shift)
     call geo_spline (rhoc, kappa, local%rhoc, local%kappa)
     call geo_spline (rhoc, kapprim, local%rhoc, local%kapprim)
     call geo_spline (rhoc, qinp, local%rhoc, local%qinp)
     call geo_spline (rhoc, shat, local%rhoc, local%shat)
+    call geo_spline (rhoc, d2qdr2, local%rhoc, local%d2qdr2)
     call geo_spline (rhoc, tri, local%rhoc, local%tri)
     call geo_spline (rhoc, triprim, local%rhoc, local%triprim)
     call geo_spline (rhoc, betaprim, local%rhoc, local%betaprim)
+    call geo_spline (rhoc, betadbprim, local%rhoc, local%betadbprim)
     call geo_spline (rhoc, rhotor, local%rhoc, local%rhotor)
     call geo_spline (rhoc, drhotordrho, local%rhoc, local%drhotordrho)
 
     surf = local
-!    qinp_out = local%qinp
-!    shat_out = local%shat
 
     call deallocate_arrays_geo
 
@@ -180,7 +193,7 @@ contains
   subroutine read_inputprof_spec (nspec, spec)
 
     use mp, only: mp_abort
-    use finite_differences, only: fd3pt
+    use finite_differences, only: fd3pt, d2_3pt
     use splines, only: geo_spline
     use common_types, only: spec_type
     use millerlocal, only: local
@@ -281,19 +294,27 @@ contains
     
     ! obtain -d ln(ne) / drho
     call fd3pt (ne, neprim, dr)
+    call d2_3pt (ne, nedbprim, dr)
     neprim = -neprim/ne
+    nedbprim = nedbprim/ne
 
     ! obtain -d ln(Te) / drho
     call fd3pt (Te, Teprim, dr)
+    call d2_3pt (Te, Tedbprim, dr)
     Teprim = -Teprim/Te
+    Tedbprim = Tedbprim/Te
 
     ! obtain -d ln(ni) / drho
     call fd3pt (ni, niprim, dr)
+    call d2_3pt (ni, nidbprim, dr)
     niprim = -niprim/ni
+    nidbprim = nidbprim/ni
 
     ! obtain -d ln(Ti) / drho
     call fd3pt (Ti, Tiprim, dr)
+    call d2_3pt (Ti, Tidbprim, dr)
     Tiprim = -Tiprim/Ti
+    Tidbprim = Tidbprim/Ti
 
     ! next need to pick out the correct flux surface
     ! and assign various local% values
@@ -337,10 +358,14 @@ contains
     do is = 1, nspec
        if (spec(is)%type == electron_species) then
           call geo_spline (rhoc, Teprim, local%rhoc, spec(is)%tprim)
+          call geo_spline (rhoc, Tedbprim, local%rhoc, spec(is)%d2Tdr2)
           call geo_spline (rhoc, neprim, local%rhoc, spec(is)%fprim)
+          call geo_spline (rhoc, nedbprim, local%rhoc, spec(is)%d2ndr2)
        else
           call geo_spline (rhoc, Tiprim, local%rhoc, spec(is)%tprim)
+          call geo_spline (rhoc, Tidbprim, local%rhoc, spec(is)%d2Tdr2)
           call geo_spline (rhoc, niprim, local%rhoc, spec(is)%fprim)
+          call geo_spline (rhoc, nidbprim, local%rhoc, spec(is)%d2ndr2)
        end if
     end do
        
@@ -373,6 +398,7 @@ contains
     implicit none
     
     allocate (rhotor(n_exp))
+    allocate (psitor(n_exp))
     allocate (rmin(n_exp))
     allocate (rmaj_in(n_exp))
     allocate (qinp(n_exp))
@@ -387,15 +413,17 @@ contains
     allocate (Ti(n_exp))
     allocate (dr(n_exp-1))
     allocate (shat(n_exp))
+    allocate (d2qdr2(n_exp))
     allocate (kapprim(n_exp))
     allocate (triprim(n_exp))
     allocate (shift(n_exp))
     allocate (betaprim(n_exp))
+    allocate (betadbprim(n_exp))
     allocate (pres_tot(n_exp))
-    allocate (rgeo(n_exp))
     allocate (drhotordrho(n_exp))
     allocate (dpsitordrho(n_exp))
-    
+    allocate (d2psitordrho2(n_exp))
+
   end subroutine allocate_arrays_geo
   
   subroutine allocate_arrays_spec
@@ -413,9 +441,13 @@ contains
     allocate (Ti(n_exp))
     allocate (dr(n_exp-1))
     allocate (neprim(n_exp))
+    allocate (nedbprim(n_exp))
     allocate (Teprim(n_exp))
+    allocate (Tedbprim(n_exp))
     allocate (niprim(n_exp))
+    allocate (nidbprim(n_exp))
     allocate (Tiprim(n_exp))
+    allocate (Tidbprim(n_exp))
     allocate (loglam(n_exp))
 !    allocate (vnewki(n_exp))
 !    allocate (vnewke(n_exp))
@@ -441,14 +473,16 @@ contains
     deallocate (Ti)
     deallocate (dr)
     deallocate (shat)
+    deallocate (d2qdr2)
     deallocate (kapprim)
     deallocate (triprim)
     deallocate (shift)
     deallocate (betaprim)
+    deallocate (betadbprim)
     deallocate (pres_tot)
-    deallocate (rgeo)
     deallocate (drhotordrho)
     deallocate (dpsitordrho)
+    deallocate (d2psitordrho2)
     
   end subroutine deallocate_arrays_geo
 
@@ -467,9 +501,13 @@ contains
     deallocate (Ti)
     deallocate (dr)
     deallocate (neprim)
+    deallocate (nedbprim)
     deallocate (Teprim)
+    deallocate (Tedbprim)
     deallocate (niprim)
+    deallocate (nidbprim)
     deallocate (Tiprim)
+    deallocate (Tidbprim)
     deallocate (loglam)
 !    deallocate (vnewki)
 !    deallocate (vnewke)

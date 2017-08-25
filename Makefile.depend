@@ -151,7 +151,10 @@ neoclassical_terms.o: \
 	 file_utils.o \
 	 mp.o \
 	 sfincs_interface.o \
-	 text_options.o 
+	 species.o \
+	 text_options.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 netcdf_utils.o: \
 	 constants.o \
 	 file_utils.o 
@@ -170,10 +173,8 @@ run_parameters.o: \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
-	 file_utils.o \
-	 geometry.o \
 	 mp.o \
-	 species.o \
+	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
 	 common_types.o \

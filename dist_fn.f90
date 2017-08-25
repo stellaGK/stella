@@ -72,7 +72,7 @@ contains
 
   subroutine init_get_fields
 
-    use mp, only: sum_allreduce, proc0
+    use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: ig_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: aj0v
@@ -95,8 +95,6 @@ contains
 
     if (get_fields_initialized) return
     get_fields_initialized = .true.
-
-    debug = debug .and. proc0
 
     if (.not.allocated(gamtot)) allocate (gamtot(naky,nakx,-nzgrid:nzgrid)) ; gamtot = 0.
     if (.not.allocated(gamtot3)) then
@@ -267,6 +265,7 @@ contains
 
   subroutine init_dist_fn
 
+    use mp, only: proc0
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use stella_transforms, only: init_transforms
     use species, only: init_species
@@ -286,6 +285,8 @@ contains
     if (dist_fn_initialized) return
     dist_fn_initialized = .true.
 
+    debug = debug .and. proc0
+    
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_species'

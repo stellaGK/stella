@@ -124,11 +124,11 @@ contains
 
     implicit none
 
-    real :: z, mass, dens, temp, tprim, fprim, vnew_ref
+    real :: z, mass, dens, temp, tprim, fprim, vnew_ref, d2ndr2, d2Tdr2
     integer :: ierr, unit, is
 
     namelist /species_parameters/ z, mass, dens, temp, &
-         tprim, fprim, vnew_ref, type
+         tprim, fprim, d2ndr2, d2Tdr2, vnew_ref, type
 
     character(20) :: type
     type (text_option), dimension (9), parameter :: typeopts = (/ &
@@ -151,6 +151,8 @@ contains
        tprim = 6.9
        fprim = 2.2
        vnew_ref = 0.0
+       d2ndr2 = 0.0
+       d2Tdr2 = 0.0
        type = "default"
        read (unit=unit, nml=species_parameters)
        close (unit=unit)
@@ -163,6 +165,10 @@ contains
        spec(is)%fprim = fprim
        ! FLAG -- assumes vnew_ref specified for first species
        spec(is)%vnew_ref = vnew_ref
+       ! this is (1/n_s)*d^2 n_s / drho^2
+       spec(is)%d2ndr2 = d2ndr2
+       ! this is (1/T_s)*d^2 T_s / drho^2
+       spec(is)%d2Tdr2 = d2Tdr2
 
        ierr = error_unit()
        call get_option_value (type, typeopts, spec(is)%type, ierr, "type in species_parameters_x")
@@ -187,6 +193,8 @@ contains
        call broadcast (spec(is)%fprim)
        call broadcast (spec(is)%vnew_ref)
        call broadcast (spec(is)%vnew)
+       call broadcast (spec(is)%d2ndr2)
+       call broadcast (spec(is)%d2Tdr2)
        call broadcast (spec(is)%type)
 
        spec(is)%stm = sqrt(spec(is)%temp/spec(is)%mass)

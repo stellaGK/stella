@@ -14,14 +14,14 @@ module geometry
   public :: jacob
   public :: drhodpsi
   public :: dl_over_b
-!  public :: shat, qinp, rgeo
-!  public :: rhotor, drhodrhotor
+  public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
 
   private
 
   type (flux_surface_type) :: geo_surf
 
+  real :: dIdrho
   real :: drhodpsi, rhotor, drhotordrho, shat, qinp, rgeo
   real, dimension (:), allocatable :: grho, bmag, dbdthet
   real, dimension (:), allocatable :: cvdrift, cvdrift0
@@ -29,6 +29,7 @@ module geometry
   real, dimension (:), allocatable :: gds2, gds21, gds22
   real, dimension (:), allocatable :: jacob, gradpar
   real, dimension (:), allocatable :: dl_over_b
+  real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
 
   integer :: geo_option_switch
   integer, parameter :: geo_option_local = 1
@@ -61,27 +62,29 @@ contains
        call read_parameters
        select case (geo_option_switch)
        case (geo_option_local)
-!          call read_local_parameters (rgeo, qinp, shat, rhotor, drhotordrho)
+          ! read in Miller local parameters
           call read_local_parameters (geo_surf)
+          ! use Miller local parameters to get 
+          ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, grho, bmag, &
+               dpsidrho, dIdrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &
-               gbdrift0, gbdrift, cvdrift0, cvdrift)
+               gbdrift0, gbdrift, cvdrift0, cvdrift, &
+               dBdrho, d2Bdrdth, dgradpardrho)
           drhodpsi = 1./dpsidrho
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
-!          call read_local_parameters (rgeo, qinp, shat, rhotor, drhotordrho)
           call read_local_parameters (geo_surf)
           ! now overwrite local parameters
           ! with those from input.profiles file
           ! use rhoc from input as surface
-!          call read_inputprof_geo (rgeo, qinp, shat, rhotor, drhotordrho)
           call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, grho, bmag, &
+               dpsidrho, dIdrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &
-               gbdrift0, gbdrift, cvdrift0, cvdrift)
+               gbdrift0, gbdrift, cvdrift0, cvdrift, &
+               dBdrho, d2Bdrdth, dgradpardrho)
           drhodpsi = 1./dpsidrho
        end select
     end if
@@ -116,6 +119,9 @@ contains
     if (.not.allocated(gbdrift0)) allocate (gbdrift0(-nzgrid:nzgrid))
     if (.not.allocated(cvdrift)) allocate (cvdrift(-nzgrid:nzgrid))
     if (.not.allocated(cvdrift0)) allocate (cvdrift0(-nzgrid:nzgrid))
+    if (.not.allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
+    if (.not.allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
+    if (.not.allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
 
   end subroutine allocate_arrays
 
@@ -159,6 +165,7 @@ contains
     call broadcast (qinp)
     call broadcast (shat)
     call broadcast (drhodpsi)
+    call broadcast (dIdrho)
     call broadcast (grho)
     call broadcast (bmag)
     call broadcast (gradpar)
@@ -169,6 +176,28 @@ contains
     call broadcast (gbdrift)
     call broadcast (cvdrift0)
     call broadcast (cvdrift)
+    call broadcast (dBdrho)
+    call broadcast (d2Bdrdth)
+    call broadcast (dgradpardrho)
+
+    call broadcast (geo_surf%rmaj)
+    call broadcast (geo_surf%rgeo)
+    call broadcast (geo_surf%kappa)
+    call broadcast (geo_surf%kapprim)
+    call broadcast (geo_surf%tri)
+    call broadcast (geo_surf%triprim)
+    call broadcast (geo_surf%rhoc)
+    call broadcast (geo_surf%dr)
+    call broadcast (geo_surf%shift)
+    call broadcast (geo_surf%qinp)
+    call broadcast (geo_surf%shat)
+    call broadcast (geo_surf%betaprim)
+    call broadcast (geo_surf%betadbprim)
+    call broadcast (geo_surf%d2qdr2)
+    call broadcast (geo_surf%d2psidr2)
+    call broadcast (geo_surf%dpsitordrho)
+    call broadcast (geo_surf%rhotor)
+    call broadcast (geo_surf%drhotordrho)
 
   end subroutine broadcast_arrays
 
@@ -208,6 +237,9 @@ contains
     if (allocated(gbdrift0)) deallocate (gbdrift0)
     if (allocated(cvdrift)) deallocate (cvdrift)
     if (allocated(cvdrift0)) deallocate (cvdrift0)
+    if (allocated(dBdrho)) deallocate (dBdrho)
+    if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
+    if (allocated(dgradpardrho)) deallocate (dgradpardrho)
 
     geoinit = .false.
 
