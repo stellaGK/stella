@@ -8,6 +8,7 @@ module run_parameters
   public :: init_run_parameters, finish_run_parameters
   public :: beta, zeff, tite, nine
   public :: fphi, fapar, fbpar
+  public :: nonlinear
   public :: code_delt_max, wunits, woutunits, tunits
   public :: nstep, wstar_units, eqzip, margin
   public :: secondary, tertiary, harris
@@ -20,6 +21,7 @@ module run_parameters
   real :: beta, zeff, tite, nine
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max, margin
+  logical :: nonlinear
   real, dimension (:), allocatable :: wunits, woutunits, tunits
   real :: avail_cpu_time
   integer :: nstep
@@ -105,10 +107,13 @@ contains
     namelist /parameters/ beta, zeff, tite, nine, teti, k0
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, wstar_units, eqzip, &
          delt_option, margin, secondary, tertiary, harris, &
-         avail_cpu_time, eqzip_option
+         avail_cpu_time, eqzip_option, nonlinear
 
     if (proc0) then
+       fphi = 1.0
+       fapar = 1.0
        fbpar = -1.0
+       nonlinear = .false.
        beta = 0.0
        zeff = 1.0
        tite = 1.0
@@ -174,6 +179,7 @@ contains
     call broadcast (fphi)
     call broadcast (fapar)
     call broadcast (fbpar)
+    call broadcast (nonlinear)
     call broadcast (nstep)
     call broadcast (wstar_units)
     call broadcast (eqzip)
