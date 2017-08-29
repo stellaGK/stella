@@ -274,6 +274,7 @@ module kt_grids
   public :: gridopt_range, gridopt_box
   public :: lx, ly
   public :: alpha_global
+  public :: iky_max
 
   private
 
@@ -281,6 +282,7 @@ module kt_grids
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
   integer :: naky, nakx, ntheta0, nx, ny, jtwist_out
+  integer :: iky_max
   character(20) :: grid_option
   logical :: alpha_global
 
@@ -342,6 +344,8 @@ contains
     else
        lx = ly
     end if
+
+    iky_max = naky/2+1
 
   end subroutine init_kt_grids
 
