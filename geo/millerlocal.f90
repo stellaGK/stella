@@ -399,12 +399,19 @@ contains
     call geo_spline (theta, dgradpardrho, zed_in, dgradpardrho_out)
 
     open (1002,file='millerlocal.input',status='unknown')
-    write (1002,'(14a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp', &
-         '6.shat', '7.kappa', '8.kapprim', '9.tri', '10.triprim', &
-         '11.betaprim', '12.dpsitordrho', '13.rhotor', '14.drhotordrho'
-    write (1002,'(14e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp, &
-         local%shat, local%kappa, local%kapprim, local%tri, local%triprim, &
-         local%betaprim, local%dpsitordrho, local%rhotor, local%drhotordrho
+    write (1002,'(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'
+    write (1002,'(5e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp
+    write (1002,*)
+    write (1002,'(5a16)') '#6.shat', '7.kappa', '8.kapprim', '9.tri', '10.triprim'
+    write (1002,'(5e16.8)') local%shat, local%kappa, local%kapprim, local%tri, local%triprim
+    write (1002,*)
+    write (1002,'(5a16)') '11.betaprim', '12.dpsitordrho', '13.rhotor', &
+         '14.drhotordrho', '15.d2qdr2'
+    write (1002,'(5e16.8)') local%betaprim, local%dpsitordrho, local%rhotor, &
+         local%drhotordrho, local%d2qdr2
+    write (1002,*)
+    write (1002,'(2a16)') '16.d2psidr2', '17.betadbprim'
+    write (1002,'(2e16.8)') local%d2psidr2, local%betadbprim
     close (1002)
 
     open (1001,file='millerlocal.output',status='unknown')
