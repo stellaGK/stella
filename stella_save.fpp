@@ -72,7 +72,7 @@ contains
     use zgrid, only: nzgrid
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
-    use stella_layouts, only: kxkyz_lo, layout
+    use stella_layouts, only: kxkyz_lo, xyzs_layout, vms_layout
     use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvgrid, nmu
@@ -170,7 +170,13 @@ contains
 
 # ifdef NETCDF_PARALLEL
        if(.not.save_many) then
-          istatus = nf90_put_att(ncid, NF90_GLOBAL, 'layout', layout)
+          istatus = nf90_put_att(ncid, NF90_GLOBAL, 'xyzs_layout', xyzs_layout)
+          if (istatus /= NF90_NOERR) then
+             ierr = error_unit()
+             write(ierr,*) "nf90_put_attr error: ", nf90_strerror(istatus)
+             goto 1
+          end if
+          istatus = nf90_put_att(ncid, NF90_GLOBAL, 'vms_layout', vms_layout)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
              write(ierr,*) "nf90_put_attr error: ", nf90_strerror(istatus)

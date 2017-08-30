@@ -25,7 +25,7 @@ module millerlocal
 
   integer :: nz, nz2pi
 
-  real :: dIdrho, bi, dqdr, d2Idr2
+  real :: bi, dqdr, d2Idr2
   real, dimension (:), allocatable :: grho, bmag, gradpar
   real, dimension (:), allocatable :: gds2, gds21, gds22
   real, dimension (:), allocatable :: gbdrift0, gbdrift
@@ -274,10 +274,10 @@ contains
     call get_dthet (drz, drzdth)
 
     ! get dI/drho
-    call get_dIdrho (dpsidrho, grho)
+    call get_dIdrho (dpsidrho, grho, dIdrho)
 
     ! get djacobian/drho*dpsi/drho and djacr/drho
-    call get_djacdrho (dpsidrho, grho)
+    call get_djacdrho (dpsidrho, dIdrho, grho)
 
     ! get d2R/drho2 and d2Z/drho2
     call get_d2RZdr2
@@ -310,7 +310,7 @@ contains
     call get_dgr2dr (dpsidrho, grho)
 
     ! get dB/drho and d2B/drho2
-    call get_dBdrho (bmag)
+    call get_dBdrho (bmag, dIdrho)
 
     ! d (b . grad theta) / drho
     dgradpardrho = -gradpar*(dBdrho/bmag + djacdrho/jacrho)
@@ -325,7 +325,7 @@ contains
     call get_varthet (dpsidrho)
 
     ! obtain dvarthet/drho
-    call get_dvarthdr (dpsidrho)
+    call get_dvarthdr (dpsidrho, dIdrho)
 
     ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
     call get_graddotgrad (dpsidrho, grho)
@@ -358,16 +358,16 @@ contains
     gbdrift0 = cvdrift0
 
     ! get d^2I/drho^2 and d^2 Jac / dr^2
-    call get_d2Idr2_d2jacdr2 (grho)
+    call get_d2Idr2_d2jacdr2 (grho, dIdrho)
 
     ! get d^2varhteta/drho^2
-    call get_d2varthdr2 (dpsidrho)
+    call get_d2varthdr2 (dpsidrho, dIdrho)
 
     ! get d2B/drho^2
-    call get_d2Bdr2 (bmag)
+    call get_d2Bdr2 (bmag, dIdrho)
 
     ! get d/dr [(grad alpha x B) . grad theta]
-    call get_dcrossdr (dpsidrho, grho)
+    call get_dcrossdr (dpsidrho, dIdrho, grho)
 
     ! dgbdriftdrho is d/drho (bhat/B x (grad B) . grad alpha) * 2 * dpsiN/drho
     dgbdriftdrho = 2.0*(local%d2psidr2*dBdrho/dpsidrho - d2Bdr2 &
@@ -615,7 +615,7 @@ contains
 
   end subroutine get_gradrho
 
-  subroutine get_dIdrho (dpsidrho, grho)
+  subroutine get_dIdrho (dpsidrho, grho, dIdrho)
 
     use constants, only: pi
 
@@ -623,6 +623,7 @@ contains
 
     real, intent (in) :: dpsidrho
     real, dimension (-nz:), intent (in) :: grho
+    real, intent (out) :: dIdrho
 
     real :: num1, num2, denom
     real, dimension (:), allocatable :: dum
@@ -646,11 +647,11 @@ contains
 
   end subroutine get_dIdrho
 
-  subroutine get_djacdrho (dpsidrho, grho)
+  subroutine get_djacdrho (dpsidrho, dIdrho, grho)
 
     implicit none
 
-    real, intent (in) :: dpsidrho
+    real, intent (in) :: dpsidrho, dIdrho
     real, dimension (-nz:), intent (in) :: grho
 
     ! this is dpsi/dr * d/dr (jacobian)
@@ -734,11 +735,12 @@ contains
 
   end subroutine get_gds
 
-  subroutine get_dBdrho (bmag)
+  subroutine get_dBdrho (bmag, dIdrho)
 
     implicit none
 
     real, dimension (-nz:), intent (in) :: bmag
+    real, intent (in) :: dIdrho
 
     ! dB/drho
     dBdrho = ( bi*dIdrho + 0.5*dgpsi2dr ) / (bmag*Rr(2,:)**2) &
@@ -757,11 +759,11 @@ contains
 
   end subroutine get_varthet
 
-  subroutine get_dvarthdr (dpsidrho)
+  subroutine get_dvarthdr (dpsidrho, dIdrho)
 
     implicit none
 
-    real, intent (in) :: dpsidrho
+    real, intent (in) :: dpsidrho, dIdrho
 
     real, dimension (-nz:nz) :: dum
 
@@ -772,13 +774,14 @@ contains
 
   end subroutine get_dvarthdr
 
-  subroutine get_d2Idr2_d2jacdr2 (grho)
+  subroutine get_d2Idr2_d2jacdr2 (grho, dIdrho)
 
     use constants, only: pi
 
     implicit none
 
     real, dimension (-nz:), intent (in) :: grho
+    real, intent (in) :: dIdrho
 
     real :: denom, num1, num2, num3, num4
     real, dimension (-nz:nz) :: tmp, tmp2
@@ -825,11 +828,11 @@ contains
 
   end subroutine get_d2Idr2_d2jacdr2
 
-  subroutine get_d2varthdr2 (dpsidrho)
+  subroutine get_d2varthdr2 (dpsidrho, dIdrho)
 
     implicit none
 
-    real, intent (in) :: dpsidrho
+    real, intent (in) :: dpsidrho, dIdrho
 
     real, dimension (-nz:nz) :: dum
 
@@ -844,11 +847,12 @@ contains
 
   end subroutine get_d2varthdr2
 
-  subroutine get_d2Bdr2 (bmag)
+  subroutine get_d2Bdr2 (bmag, dIdrho)
 
     implicit none
 
     real, dimension (-nz:), intent (in) :: bmag
+    real, intent (in) :: dIdrho
 
     ! d2gpsidr2 = 2.*( dgr2dr*(dRdrho/Rr(2,:) - djacdrho/jacrho) &
     !      + grho**2*(d2Rdr2/Rr(2,:) - (dRdrho/Rr(2,:))**2 - d2jacdr2/jacrho &
@@ -878,11 +882,11 @@ contains
 
   end subroutine get_d2Bdr2
 
-  subroutine get_dcrossdr (dpsidrho, grho)
+  subroutine get_dcrossdr (dpsidrho, dIdrho, grho)
 
     implicit none
 
-    real, intent (in) :: dpsidrho
+    real, intent (in) :: dpsidrho, dIdrho
     real, dimension (-nz:), intent (in) :: grho
 
     ! dgr2 = d/drho (|grad rho|^2)
