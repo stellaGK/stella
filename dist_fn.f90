@@ -927,14 +927,17 @@ contains
 
     use stella_time, only: code_dt
     use species, only: spec, nspec
-    use vpamu_grids, only: nvgrid
-    use vpamu_grids, only: vpa, nvpa
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use dist_fn_arrays, only: stream_source
+    use vpamu_grids, only: nvgrid, nvpa
+    use vpamu_grids, only: vpa, anon
     use zgrid, only: nzgrid
     use geometry, only: gradpar
 
     implicit none
 
-    integer :: iv
+    integer :: iv, imu, is, ivmu
 
     if (streaminit) return
     streaminit = .true.
@@ -950,6 +953,15 @@ contains
     ! NB: stream_sign = -1 corresponds to positive advection velocity
     do iv = -nvgrid, nvgrid
        stream_sign(iv) = int(sign(1.0,stream(0,iv,1)))
+    end do
+
+    if (.not.allocated(stream_source)) &
+         allocate (stream_source(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       stream_source(:,ivmu) = -streamknob*code_dt*spec(is)%zstm*gradpar*anon(:,iv,imu)*vpa(iv)
     end do
 
   end subroutine init_parstream
@@ -1314,7 +1326,8 @@ contains
 
     use job_manage, only: time_message
     use dist_fn_arrays, only: gvmu
-    use dist_fn_arrays, only: g_adjust
+!    use dist_fn_arrays, only: gbar_to_h
+    use dist_fn_arrays, only: gbar_to_g
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
     use stella_transforms, only: transform_y2ky
@@ -1351,20 +1364,29 @@ contains
     call advance_fields (gin)
     
     ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
-    call g_adjust (gin, phi, apar, fphi, fapar)
-    call g_adjust (gvmu, phi, apar, fphi, fapar)
+!    call gbar_to_h (gin, phi, apar, fphi, fapar)
+!    call gbar_to_h (gvmu, phi, apar, fphi, fapar)
+    call gbar_to_g (gin, apar, fapar)
+    call gbar_to_g (gvmu,apar, fapar)
 
     ! calculate and add ExB nonlinearity to RHS of GK eqn
     ! do this first, as the CFL condition may require a change in time step
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
-    if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    if (nonlinear) then
+       call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    else
+       restart_time_step = .false.
+    end if
     if (.not.restart_time_step) then
        ! calculate and add mirror term to RHS of GK eqn
        call advance_mirror (gin, rhs)
+!       write (*,*) 'rhs1', sum(cabs(rhs))
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
        call advance_wdrifty (gin, rhs)
+!       write (*,*) 'rhs2', sum(cabs(rhs))
        ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
        call advance_wdriftx (gin, rhs)
+!       write (*,*) 'rhs3', sum(cabs(rhs))
        
        if (alpha_global) then
           call transform_y2ky (rhs_y, rhs_ky)
@@ -1373,14 +1395,18 @@ contains
        
        ! calculate and add parallel streaming term to RHS of GK eqn
        call advance_parallel_streaming (gin, rhs_ky)
+!       write (*,*) 'rhs4', sum(cabs(rhs_ky))
        ! calculate and add omega_* term to RHS of GK eqn
        call advance_wstar (rhs_ky)
+!       write (*,*) 'rhs5', sum(cabs(rhs_ky))
        ! calculate and add collision term to RHS of GK eqn
        !    call advance_collisions
     end if
+!    stop
 
     ! switch from h back to g
-    call g_adjust (gin, phi, apar, -fphi, -fapar)
+!    call gbar_to_h (gin, phi, apar, -fphi, -fapar)
+    call gbar_to_g (gin, apar, -fapar)
 
     nullify (rhs)
 
@@ -1421,6 +1447,7 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
+    use fields_arrays, only: phi
 
     implicit none
 
@@ -1432,12 +1459,15 @@ contains
     allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
-    ! get dg/dz, with z the parallel coordinate and store in g0_kykxz
+    ! get dg/dz, with z the parallel coordinate and store in g0
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdz'
     call get_dgdz (g, g0)
     ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
     if (debug) write (*,*) 'dist_fn::solve_gke::add_stream_term'
     call add_stream_term (g0, gout)
+    ! get d<phi>/dz and store in g0
+    call get_dphidz (phi, g0)
+    call add_stream_source_term (g0, gout)
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
     deallocate (g0)
 
@@ -1534,15 +1564,21 @@ contains
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use species, only: spec
+    use fields_arrays, only: phi
+    use dist_fn_arrays, only: aj0x
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
+    use vpamu_grids, only: anon
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
+    integer :: ivmu, iv, imu, is
     complex, dimension (:,:,:,:), allocatable :: g0k, g0y
 
     ! alpha-component of magnetic drift (requires ky -> y)
@@ -1550,7 +1586,16 @@ contains
 
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdy'
-    call get_dgdy (g, g0k)
+    ! construct g + <phi> = h
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g0k(:,:,:,ivmu) = g(:,:,:,ivmu) &
+            + aj0x(:,:,:,ivmu)*phi*spec(is)%zt*spread(spread(anon(:,iv,imu),1,naky),2,nakx)
+    end do
+    call get_dgdy (g0k, g0k)
+!    call get_dgdy (g, g0k)
     if (alpha_global) then
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        call transform_ky2y (g0k, g0y)
@@ -1572,15 +1617,21 @@ contains
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use species, only: spec
+    use fields_arrays, only: phi
+    use dist_fn_arrays, only: aj0x
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
+    use vpamu_grids, only: anon
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
+    integer :: ivmu, iv, imu, is
     complex, dimension (:,:,:,:), allocatable :: g0k, g0y
 
     ! psi-component of magnetic drift (requires ky -> y)
@@ -1588,7 +1639,17 @@ contains
 
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdx'
-    call get_dgdx (g, g0k)
+    ! construct g + <phi> = h
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g0k(:,:,:,ivmu) = g(:,:,:,ivmu) &
+            + aj0x(:,:,:,ivmu)*phi*spec(is)%zt*spread(spread(anon(:,iv,imu),1,naky),2,nakx)
+    end do
+    call get_dgdx (g0k, g0k)
+!    call get_dgdx (g, g0k)
+
     if (alpha_global) then
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        call transform_ky2y (g0k, g0y)
@@ -1790,6 +1851,7 @@ contains
     use finite_differences, only: third_order_upwind_zed
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
+    use dist_fn_arrays, only: aj0x
     use zgrid, only: nzgrid, delzed
     use kt_grids, only: naky, nakx
 
@@ -1810,7 +1872,9 @@ contains
                 ! if iseg,ie,iky corresponds to negative kx, no need to solve
                 ! as it will be constrained by reality condition
                 if (ikxmod(iseg,ie,iky) > nakx) cycle
+                ! first fill in ghost zones at boundaries in g(z)
                 call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
+                ! now get dg/dz
                 call third_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
                      g(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg),ivmu), &
                      delzed(0), stream_sign(iv), gleft, gright, &
@@ -1821,6 +1885,55 @@ contains
     end do
 
   end subroutine get_dgdz
+
+  subroutine get_dphidz (phi, dphidz)
+
+    use finite_differences, only: third_order_upwind_zed
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx
+    use dist_fn_arrays, only: aj0x
+    use zgrid, only: nzgrid, delzed
+    use kt_grids, only: naky, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dphidz
+
+    integer :: ivmu, iseg, ie, iky, iv
+    complex, dimension (2) :: gleft, gright
+
+    complex, dimension (:,:,:), allocatable :: gyrophi
+
+    allocate (gyrophi(naky,nakx,-nzgrid:nzgrid))
+
+    ! FLAG -- assuming delta zed is equally spaced below!
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       ! get gyro-average of potential for streaming source term
+       gyrophi = phi*aj0x(:,:,:,ivmu)
+       do iky = 1, naky
+          do ie = 1, neigen(iky)
+             do iseg = 1, nsegments(ie,iky)
+                ! if iseg,ie,iky corresponds to negative kx, no need to solve
+                ! as it will be constrained by reality condition
+                if (ikxmod(iseg,ie,iky) > nakx) cycle
+                ! fill in ghost zones at boundaries in <phi>(z)
+                call fill_zed_ghost_zones (iseg, ie, iky, gyrophi, gleft, gright)
+                ! now get d<phi>/dx
+                ! FLAG -- no real need to upwind here
+                call third_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
+                     gyrophi(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg)), &
+                     delzed(0), stream_sign(iv), gleft, gright, &
+                     dphidz(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg),ivmu))
+             end do
+          end do
+       end do
+    end do
+    
+    deallocate (gyrophi)
+
+  end subroutine get_dphidz
 
   subroutine add_stream_term (g, src)
 
@@ -1843,6 +1956,29 @@ contains
     end do
 
   end subroutine add_stream_term
+
+  subroutine add_stream_source_term (g, src)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use dist_fn_arrays, only: stream_source
+    use zgrid, only: nzgrid
+    use kt_grids, only: naky, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+
+    integer :: iv, is, ivmu
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(stream_source(:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
+    end do
+
+  end subroutine add_stream_source_term
 
   subroutine fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
 
@@ -2184,10 +2320,13 @@ contains
 
   subroutine finish_stream
 
+    use dist_fn_arrays, only: stream_source
+
     implicit none
 
     if (allocated(stream)) deallocate (stream)
     if (allocated(stream_sign)) deallocate (stream_sign)
+    if (allocated(stream_source)) deallocate (stream_source)
 
     streaminit = .false.
 

@@ -4,7 +4,8 @@ module species
 
   implicit none
 
-  public :: init_species, finish_species, reinit_species, init_trin_species
+  public :: init_species, finish_species
+!  public :: reinit_species, init_trin_species
   public :: nspec, spec
   public :: ion_species, electron_species, slowing_down_species, tracer_species
   public :: has_electron_species, has_slowing_down_species
@@ -36,7 +37,8 @@ contains
 
   subroutine init_species
 
-    use mp, only: trin_flag, proc0, broadcast
+!    use mp, only: trin_flag
+    use mp, only: proc0, broadcast
     use inputprofiles_interface, only: read_inputprof_spec
 
     implicit none
@@ -77,8 +79,8 @@ contains
 
     call broadcast_parameters
 
-    if (trin_flag) call reinit_species (ntspec_trin, dens_trin, &
-         temp_trin, fprim_trin, tprim_trin, nu_trin)
+!    if (trin_flag) call reinit_species (ntspec_trin, dens_trin, &
+!         temp_trin, fprim_trin, tprim_trin, nu_trin)
   end subroutine init_species
 
   subroutine read_species_knobs
@@ -232,140 +234,140 @@ contains
 
   end subroutine finish_species
 
-  subroutine reinit_species (ntspec, dens, temp, fprim, tprim, nu)
+!   subroutine reinit_species (ntspec, dens, temp, fprim, tprim, nu)
 
-    use mp, only: broadcast, proc0
+!     use mp, only: broadcast, proc0
 
-    implicit none
+!     implicit none
 
-    integer, intent (in) :: ntspec
-    real, dimension (:), intent (in) :: dens, fprim, temp, tprim, nu
+!     integer, intent (in) :: ntspec
+!     real, dimension (:), intent (in) :: dens, fprim, temp, tprim, nu
 
-    integer :: is
-    logical, save :: first = .true.
+!     integer :: is
+!     logical, save :: first = .true.
 
-    if (first) then
-       if (nspec == 1) then
-          ions = 1
-          electrons = 0
-          impurity = 0
-       else
-          ! if 2 or more species in GS2 calculation, figure out which is main ion
-          ! and which is electron via mass (main ion mass assumed to be one)
-          do is = 1, nspec
-             if (abs(spec(is)%mass-1.0) <= epsilon(0.0)) then
-                ions = is
-             else if (spec(is)%mass < 0.3) then
-                ! for electrons, assuming electrons are at least a factor of 3 less massive
-                ! than main ion and other ions are no less than 30% the mass of the main ion
-                electrons = is
-             else if (spec(is)%mass > 1.0 + epsilon(0.0)) then
-                impurity = is
-             else
-                if (proc0) write (*,*) &
-                     "Error: TRINITY requires the main ions to have mass 1", &
-                     "and the secondary ions to be impurities (mass > 1)"
-                stop
-             end if
-          end do
-       end if
-       first = .false.
-    end if
+!     if (first) then
+!        if (nspec == 1) then
+!           ions = 1
+!           electrons = 0
+!           impurity = 0
+!        else
+!           ! if 2 or more species in GS2 calculation, figure out which is main ion
+!           ! and which is electron via mass (main ion mass assumed to be one)
+!           do is = 1, nspec
+!              if (abs(spec(is)%mass-1.0) <= epsilon(0.0)) then
+!                 ions = is
+!              else if (spec(is)%mass < 0.3) then
+!                 ! for electrons, assuming electrons are at least a factor of 3 less massive
+!                 ! than main ion and other ions are no less than 30% the mass of the main ion
+!                 electrons = is
+!              else if (spec(is)%mass > 1.0 + epsilon(0.0)) then
+!                 impurity = is
+!              else
+!                 if (proc0) write (*,*) &
+!                      "Error: TRINITY requires the main ions to have mass 1", &
+!                      "and the secondary ions to be impurities (mass > 1)"
+!                 stop
+!              end if
+!           end do
+!        end if
+!        first = .false.
+!     end if
 
-    if (proc0) then
+!     if (proc0) then
 
-       nspec = ntspec
+!        nspec = ntspec
 
-       ! TRINITY passes in species in following order: main ion, electron, impurity (if present)
+!        ! TRINITY passes in species in following order: main ion, electron, impurity (if present)
 
-       ! for now, hardwire electron density to be reference density
-       ! main ion temperature is reference temperature
-       ! main ion mass is assumed to be the reference mass
+!        ! for now, hardwire electron density to be reference density
+!        ! main ion temperature is reference temperature
+!        ! main ion mass is assumed to be the reference mass
        
-       ! if only 1 species in the GS2 calculation, it is assumed to be main ion
-       ! and ion density = electron density
-       if (nspec == 1) then
-          spec(1)%dens = 1.0
-          spec(1)%temp = 1.0
-          spec(1)%fprim = fprim(1)
-          spec(1)%tprim = tprim(1)
-!          spec(1)%vnewk = nu(1)
-       else
-          spec(ions)%dens = dens(1)/dens(2)
-          spec(ions)%temp = 1.0
-          spec(ions)%fprim = fprim(1)
-          spec(ions)%tprim = tprim(1)
-!          spec(ions)%vnewk = nu(1)
+!        ! if only 1 species in the GS2 calculation, it is assumed to be main ion
+!        ! and ion density = electron density
+!        if (nspec == 1) then
+!           spec(1)%dens = 1.0
+!           spec(1)%temp = 1.0
+!           spec(1)%fprim = fprim(1)
+!           spec(1)%tprim = tprim(1)
+! !          spec(1)%vnewk = nu(1)
+!        else
+!           spec(ions)%dens = dens(1)/dens(2)
+!           spec(ions)%temp = 1.0
+!           spec(ions)%fprim = fprim(1)
+!           spec(ions)%tprim = tprim(1)
+! !          spec(ions)%vnewk = nu(1)
 
-          spec(electrons)%dens = 1.0
-          spec(electrons)%temp = temp(2)/temp(1)
-          spec(electrons)%fprim = fprim(2)
-          spec(electrons)%tprim = tprim(2)
-!          spec(electrons)%vnewk = nu(2)
+!           spec(electrons)%dens = 1.0
+!           spec(electrons)%temp = temp(2)/temp(1)
+!           spec(electrons)%fprim = fprim(2)
+!           spec(electrons)%tprim = tprim(2)
+! !          spec(electrons)%vnewk = nu(2)
 
-          if (nspec > 2) then
-             spec(impurity)%dens = dens(3)/dens(2)
-             spec(impurity)%temp = temp(3)/temp(1)
-             spec(impurity)%fprim = fprim(3)
-             spec(impurity)%tprim = tprim(3)
-!             spec(impurity)%vnewk = nu(3)
-          end if
-       end if
+!           if (nspec > 2) then
+!              spec(impurity)%dens = dens(3)/dens(2)
+!              spec(impurity)%temp = temp(3)/temp(1)
+!              spec(impurity)%fprim = fprim(3)
+!              spec(impurity)%tprim = tprim(3)
+! !             spec(impurity)%vnewk = nu(3)
+!           end if
+!        end if
 
-       do is = 1, nspec
-          spec(is)%stm = sqrt(spec(is)%temp/spec(is)%mass)
-          spec(is)%zstm = spec(is)%z/sqrt(spec(is)%temp*spec(is)%mass)
-          spec(is)%tz = spec(is)%temp/spec(is)%z
-          spec(is)%zt = spec(is)%z/spec(is)%temp
-          spec(is)%smz = abs(sqrt(spec(is)%temp*spec(is)%mass)/spec(is)%z)
+!        do is = 1, nspec
+!           spec(is)%stm = sqrt(spec(is)%temp/spec(is)%mass)
+!           spec(is)%zstm = spec(is)%z/sqrt(spec(is)%temp*spec(is)%mass)
+!           spec(is)%tz = spec(is)%temp/spec(is)%z
+!           spec(is)%zt = spec(is)%z/spec(is)%temp
+!           spec(is)%smz = abs(sqrt(spec(is)%temp*spec(is)%mass)/spec(is)%z)
 
-!          write (*,100) 'reinit_species', rhoc_ms, spec(is)%temp, spec(is)%fprim, &
-!               spec(is)%tprim, spec(is)%vnewk, real(is)
-       end do
+! !          write (*,100) 'reinit_species', rhoc_ms, spec(is)%temp, spec(is)%fprim, &
+! !               spec(is)%tprim, spec(is)%vnewk, real(is)
+!        end do
 
-    end if
+!     end if
 
-!100 format (a15,9(1x,1pg18.11))
+! !100 format (a15,9(1x,1pg18.11))
 
-    call broadcast (nspec)
+!     call broadcast (nspec)
 
-    do is = 1, nspec
-       call broadcast (spec(is)%dens)
-       call broadcast (spec(is)%temp)
-       call broadcast (spec(is)%fprim)
-       call broadcast (spec(is)%tprim)
-!       call broadcast (spec(is)%vnewk)
-       call broadcast (spec(is)%stm)
-       call broadcast (spec(is)%zstm)
-       call broadcast (spec(is)%tz)
-       call broadcast (spec(is)%zt)
-       call broadcast (spec(is)%smz)
-    end do
+!     do is = 1, nspec
+!        call broadcast (spec(is)%dens)
+!        call broadcast (spec(is)%temp)
+!        call broadcast (spec(is)%fprim)
+!        call broadcast (spec(is)%tprim)
+! !       call broadcast (spec(is)%vnewk)
+!        call broadcast (spec(is)%stm)
+!        call broadcast (spec(is)%zstm)
+!        call broadcast (spec(is)%tz)
+!        call broadcast (spec(is)%zt)
+!        call broadcast (spec(is)%smz)
+!     end do
 
-  end subroutine reinit_species
+!   end subroutine reinit_species
 
-  subroutine init_trin_species (ntspec_in, dens_in, temp_in, fprim_in, tprim_in, nu_in)
+!   subroutine init_trin_species (ntspec_in, dens_in, temp_in, fprim_in, tprim_in, nu_in)
 
-    implicit none
+!     implicit none
 
-    integer, intent (in) :: ntspec_in
-    real, dimension (:), intent (in) :: dens_in, fprim_in, temp_in, tprim_in, nu_in
+!     integer, intent (in) :: ntspec_in
+!     real, dimension (:), intent (in) :: dens_in, fprim_in, temp_in, tprim_in, nu_in
 
-    if (.not. allocated(temp_trin)) then
-       allocate (dens_trin(size(dens_in)))
-       allocate (fprim_trin(size(fprim_in)))
-       allocate (temp_trin(size(temp_in)))
-       allocate (tprim_trin(size(tprim_in)))
-       allocate (nu_trin(size(nu_in)))
-    end if
+!     if (.not. allocated(temp_trin)) then
+!        allocate (dens_trin(size(dens_in)))
+!        allocate (fprim_trin(size(fprim_in)))
+!        allocate (temp_trin(size(temp_in)))
+!        allocate (tprim_trin(size(tprim_in)))
+!        allocate (nu_trin(size(nu_in)))
+!     end if
 
-    ntspec_trin = ntspec_in
-    dens_trin = dens_in
-    temp_trin = temp_in
-    fprim_trin = fprim_in
-    tprim_trin = tprim_in
-    nu_trin = nu_in
+!     ntspec_trin = ntspec_in
+!     dens_trin = dens_in
+!     temp_trin = temp_in
+!     fprim_trin = fprim_in
+!     tprim_trin = tprim_in
+!     nu_trin = nu_in
 
-  end subroutine init_trin_species
+!   end subroutine init_trin_species
 
 end module species

@@ -184,11 +184,13 @@ contains
     use mp, only: proc0
     use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gvmu, gnew
+    use dist_fn_arrays, only: g_to_h
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_time, only: code_time
+    use run_parameters, only: fphi
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
@@ -210,7 +212,9 @@ contains
     allocate (heat_flux(nspec))
 
     ! obtain turbulent fluxes
+    call g_to_h (gvmu, phi, fphi)
     call get_fluxes (gvmu, part_flux, mom_flux, heat_flux)
+    call g_to_h (gvmu, phi, -fphi)
 
     if (proc0) then
        call volume_average (phi, phi2)
@@ -281,7 +285,7 @@ contains
     use mp, only: sum_reduce
     use constants, only: zi
     use dist_fn_arrays, only: aj0v, aj1v
-    use fields_arrays, only: phi
+    use fields_arrays, only: phi, apar
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use species, only: spec
@@ -337,23 +341,47 @@ contains
                / (geo_surf%qinp*geo_surf%shat*bmag(iz)**2))
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), vflx(is))
        end do
-       call sum_reduce (pflx, 0) ; pflx = pflx*spec%dens
-       call sum_reduce (qflx, 0) ; qflx = qflx*spec%dens*spec%temp
-       call sum_reduce (vflx, 0) ; vflx = vflx*spec%dens*sqrt(spec%mass*spec%temp)
+    end if
+    
+    if (fapar > epsilon(0.0)) then
+       ! particle flux
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          
+          ! Apar contribution to particle flux
+          g0 = -g(:,:,ikxkyz)*spread(aj0v(:,ikxkyz),1,nvpa)*spec(is)%stm*spread(vpa,2,nmu)
+          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), pflx(is))
+          
+          ! Apar contribution to heat flux
+          g0 = g0*energy(iz,:,:)
+          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), qflx(is))
+          
+          ! Apar contribution to momentum flux
+          ! parallel component
+          g0 = -spread(vpa,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
+               * (spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu) &
+               * geo_surf%rgeo/bmag(iz) &
+          ! perp component
+               - zi*aky(iky)*spread(aj1v(:,ikxkyz)*vperp2(iz,:),1,nvpa)*geo_surf%rhoc &
+               * (gds21(iz)+theta0(iky,ikx)*gds22(iz))*spec(is)%smz &
+               / (geo_surf%qinp*geo_surf%shat*bmag(iz)**2))
+          ! FLAG -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !!
+
+          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), vflx(is))
+       end do
     end if
 
-!    if (fapar > epsilon(0.0)) then
-!       ! particle flux
-!       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!          g0 = g(:,:,ikxkyz)*spread(aj0v(:,ikxkyz),1,nvpa)
-!          call integrate_vmu (g0,)
-!       end do
-!    end if
+    call sum_reduce (pflx, 0) ; pflx = pflx*spec%dens
+    call sum_reduce (qflx, 0) ; qflx = qflx*spec%dens*spec%temp
+    call sum_reduce (vflx, 0) ; vflx = vflx*spec%dens*sqrt(spec%mass*spec%temp)
 
     deallocate (g0)
     deallocate (flx_norm)
 
-  end subroutine get_fluxes
+ end subroutine get_fluxes
 
   subroutine get_one_flux (iky, ikx, iz, norm, gin, fld, flxout)
 
