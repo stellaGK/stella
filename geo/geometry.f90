@@ -6,7 +6,7 @@ module geometry
 
   public :: init_geometry, finish_geometry
   public :: grho
-  public :: bmag, dbdthet
+  public :: bmag, dbdthet, btor
   public :: gradpar
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
@@ -16,6 +16,7 @@ module geometry
   public :: dl_over_b
   public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
+  public :: Rmajor
 
   private
 
@@ -30,6 +31,7 @@ module geometry
   real, dimension (:), allocatable :: jacob, gradpar
   real, dimension (:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
+  real, dimension (:), allocatable :: btor, Rmajor
 
   integer :: geo_option_switch
   integer, parameter :: geo_option_local = 1
@@ -70,7 +72,8 @@ contains
                dpsidrho, dIdrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &
                gbdrift0, gbdrift, cvdrift0, cvdrift, &
-               dBdrho, d2Bdrdth, dgradpardrho)
+               dBdrho, d2Bdrdth, dgradpardrho, btor, &
+               rmajor)
           drhodpsi = 1./dpsidrho
        case (geo_option_inputprof)
           ! first read in some local parameters
@@ -84,7 +87,8 @@ contains
                dpsidrho, dIdrho, grho, bmag, &
                gds2, gds21, gds22, gradpar, &
                gbdrift0, gbdrift, cvdrift0, cvdrift, &
-               dBdrho, d2Bdrdth, dgradpardrho)
+               dBdrho, d2Bdrdth, dgradpardrho, btor, &
+               rmajor)
           drhodpsi = 1./dpsidrho
        end select
     end if
@@ -108,6 +112,8 @@ contains
 
     if (.not.allocated(grho)) allocate (grho(-nzgrid:nzgrid))
     if (.not.allocated(bmag)) allocate (bmag(-nzgrid:nzgrid))
+    if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
+    if (.not.allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
     if (.not.allocated(dbdthet)) allocate (dbdthet(-nzgrid:nzgrid))
     if (.not.allocated(jacob)) allocate (jacob(-nzgrid:nzgrid))
     if (.not.allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
@@ -168,6 +174,8 @@ contains
     call broadcast (dIdrho)
     call broadcast (grho)
     call broadcast (bmag)
+    call broadcast (btor)
+    call broadcast (rmajor)
     call broadcast (gradpar)
     call broadcast (gds2)
     call broadcast (gds21)
@@ -226,6 +234,8 @@ contains
 
     if (allocated(grho)) deallocate (grho)
     if (allocated(bmag)) deallocate (bmag)
+    if (allocated(bmag)) deallocate (btor)
+    if (allocated(rmajor)) deallocate (rmajor)
     if (allocated(dbdthet)) deallocate (dbdthet)
     if (allocated(jacob)) deallocate (jacob)
     if (allocated(gradpar)) deallocate (gradpar)

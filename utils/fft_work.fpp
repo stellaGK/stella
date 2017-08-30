@@ -12,20 +12,10 @@ module fft_work
   implicit none
 
   public :: fft_type, delete_fft
-  public :: init_ccfftw, init_crfftw, init_rcfftw, init_z
+  public :: init_ccfftw, init_crfftw, init_rcfftw
   public :: FFTW_FORWARD, FFTW_BACKWARD
 
   private
-
-  interface init_crfftw
-     module procedure init_crfftw_1d
-     module procedure init_crfftw_2d
-  end interface
-
-  interface init_rcfftw
-     module procedure init_rcfftw_1d
-     module procedure init_rcfftw_2d
-  end interface
 
   type :: fft_type
      integer :: n, is, type
@@ -58,61 +48,6 @@ module fft_work
 #endif
 
 contains
-
-# if FFT == _FFTW3_  
-  subroutine init_z (fft, is, n, howmany)
-# else
-  subroutine init_z (fft, is, n)
-# endif
-
-    use mp, only: mp_abort
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, n
-# if FFT == _FFTW3_
-    integer, optional, intent (in) :: howmany
-# endif
-    integer :: j
-
-# if FFT == _FFTW3_
-    complex, dimension (:,:), allocatable :: dummy_in_data, dummy_out_data
-    integer, dimension (1) :: array_n, embed
-# endif    
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 1
-# if FFT == _FFTW3_
-    if (present(howmany)) then
-       fft%howmany = howmany
-       fft%strided = .false.
-    else
-       call mp_abort("For FFTW3 howmany needs to be present in init_z")
-    endif
-# endif
-    
-# if FFT == _FFTW_
-    j = fftw_measure + fftw_use_wisdom
-    call fftw_f77_create_plan(fft%plan,n,is,j)
-# elif FFT == _FFTW3_
-    array_n = n
-    embed   = n+1
-    
-    allocate (dummy_in_data(n+1, howmany), dummy_out_data(n+1, howmany))
-
-    j = FFTW_PATIENT + FFTW_UNALIGNED
-    call dfftw_plan_many_dft(fft%plan, 1, array_n, howmany, &
-         dummy_in_data,  embed, 1, n+1, &
-         dummy_out_data, embed, 1, n+1, &
-         is, j)
-
-    deallocate (dummy_in_data, dummy_out_data)
-# endif
-
-  end subroutine init_z
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -165,379 +100,93 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# if FFT == _FFTW_
-
-  subroutine init_rcfftw_1d (fft, is, n)
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, n
-    integer :: j
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 0
-
-
-    j = fftw_measure + fftw_use_wisdom
-    call rfftwnd_f77_create_plan(fft%plan,1,N,is,j)
-
-  end subroutine init_rcfftw_1d
-  
-# elif FFT == _FFTW3_
-
-  subroutine init_rcfftw_1d (fft, is, n, howmany)
+# if FFT == _FFTW3_
+  subroutine init_crfftw (fft, is, n, howmany, data_in, data_out)
+# else
+  subroutine init_crfftw (fft, is, n)
+# endif
+    use mp, only: mp_abort
 
     type (fft_type), intent (out) :: fft
     integer, intent (in) :: is, n
-    integer, intent(in) :: howmany
-    integer :: j
-
-
-    ! a few things required for FFTW3 over FFTW2    
-
-    integer, dimension(1) :: vector_sizes_real, vector_sizes_complex
-
-    ! we need two dummy arrays for the planner.  Since at 
-    ! present we are not using SSE instructions, these are save
-    ! to be local to this routine
-
-    real, dimension(:,:), allocatable :: dummy_real_data
-    complex, dimension (:,:), allocatable :: dummy_complex_data
-
-
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 0
-    fft%howmany = howmany
-    fft%strided = .false.
-
-    allocate (dummy_real_data(N, max (1, howmany)))
-    allocate (dummy_complex_data(N/2+1, max(1, howmany)))
-
-    vector_sizes_real = N
-    vector_sizes_complex = N/2+1
-    j = FFTW_PATIENT ! + FFTW_UNALIGNED 
-    call dfftw_plan_many_dft_r2c (fft%plan, 1, &
-         vector_sizes_real, howmany, &
-         dummy_real_data,    vector_sizes_real,    1, N,     &
-         dummy_complex_data, vector_sizes_complex, 1, N/2+1, &
-         j)
-
-    deallocate (dummy_real_data, dummy_complex_data)
-
-
-  end subroutine init_rcfftw_1d
-
-!<GGH
-#else
-  subroutine init_rcfftw_1d (fft, is, n)
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, n
-    integer :: j
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 0
-
-  end subroutine init_rcfftw_1d
-
-!>GGH
-
+# if FFT == _FFTW3_
+    integer, optional, intent (in) :: howmany
+    complex, dimension(:), intent(in out) :: data_in
+    real, dimension (:), intent (in out) :: data_out
+    integer, dimension(1) :: array_n
 # endif
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-! because of the interface we need different routines for FFTW2 and FFTW3
-
-# if FFT == _FFTW_
-
-  subroutine init_crfftw_1d (fft, is, n)
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, n
     integer :: j
-
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 0
-
-
-    j = fftw_measure + fftw_use_wisdom
-    call rfftwnd_f77_create_plan(fft%plan,1,N,is,j)
-
-
-  end subroutine init_crfftw_1d
-
-
-# elif FFT == _FFTW3_
-
-
-  subroutine init_crfftw_1d (fft, is, n, howmany)
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, n
-    integer, intent(in) :: howmany
-    integer :: j
-
-    ! a few things required for FFTW3 over FFTW2    
-
-    integer, dimension(1) :: vector_sizes_real, vector_sizes_complex
-
-    ! we need two dummy arrays for the planner.  Since at 
-    ! present we are not using SSE instructions, these are save
-    ! to be local to this routine
-
-    real, dimension(:,:), allocatable :: dummy_real_data
-    complex, dimension (:,:), allocatable :: dummy_complex_data
-
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 0
-    fft%howmany = howmany
-    fft%strided = .false.
-
-    allocate (dummy_real_data(N, max (1, howmany)))
-    allocate (dummy_complex_data(N/2+1, max(1, howmany)))
-
-    vector_sizes_real = N
-    vector_sizes_complex = N/2+1
-    j = FFTW_PATIENT ! + FFTW_UNALIGNED 
-    call dfftw_plan_many_dft_c2r (fft%plan, 1, &
-         vector_sizes_real, howmany, &
-         dummy_complex_data, vector_sizes_complex, 1, N/2+1, &
-         dummy_real_data,    vector_sizes_real,    1, N,     &
-         j)
-
-    deallocate (dummy_real_data, dummy_complex_data)
-
-  end subroutine init_crfftw_1d
-
-!<GGH
-# else
-
-  subroutine init_crfftw_1d (fft, is, n)
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, n
-    integer :: j
-
-
-    fft%n = n
-    fft%is = is
-    fft%scale = 1./real(n)
-    if (is > 0) fft%scale = 1.
-    fft%type = 0
-
-  end subroutine init_crfftw_1d
-!>GGH
-
-#endif
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-# if FFT == _FFTW_
-
-  subroutine init_rcfftw_2d (fft, is, m, n)
-       
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, m, n
-    integer :: j
-
-    fft%scale = 1./real(m*n)
-    if (is > 0) fft%scale = 1.
-
-    j = fftw_measure + fftw_use_wisdom
-    call rfftw2d_f77_create_plan(fft%plan,m,n,is,j)
-
-  end subroutine init_rcfftw_2d
-
-
-# elif FFT == _FFTW3_
-
-
-    subroutine init_rcfftw_2d (fft, is, m, n, howmany)
-       
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, m, n
-    integer, intent (in) :: howmany
-    integer :: j
-
-! a few things required for FFTW3 over FFTW2    
-
-    integer, parameter :: fft_dimension = 2
-    integer  :: stride
-
-    ! to pass to FFTW3, we need vector for actual sizes of the real 
-    ! and complex data
-
-    integer, dimension(fft_dimension) :: &
-         vector_sizes_real, vector_sizes_complex 
-
-
-    ! we need two dummy arrays for the planner.  Since at 
-    ! present we are not using SSE instructions, these are save
-    ! to be local to this routine
-
-    real, dimension(:,:), allocatable :: dummy_real_data
-    complex, dimension (:,:), allocatable :: dummy_complex_data
-
-
-
-    fft%scale = 1./real(m*n)
-    if (is > 0) fft%scale = 1.
-    fft%howmany = howmany
-    fft%strided = .true.
-
-    stride  = howmany
-
-    allocate (dummy_real_data(howmany, m*n))
-    allocate (dummy_complex_data(howmany, (m/2+1)*n))
-
-    vector_sizes_real(1) = m
-    vector_sizes_real(2) = n
-
-    vector_sizes_complex(1) = m/2+1
-    vector_sizes_complex(2) = n
-
-    j = FFTW_PATIENT + FFTW_UNALIGNED
-
-    call dfftw_plan_many_dft_r2c(fft%plan, fft_dimension, &
-         vector_sizes_real, howmany, &
-         dummy_real_data, vector_sizes_real, stride, 1, &
-         dummy_complex_data, vector_sizes_complex, stride, 1, &
-         j)
     
-    deallocate (dummy_real_data, dummy_complex_data)
-
-
-  end subroutine init_rcfftw_2d
-!<GGH
-# else
-  subroutine init_rcfftw_2d (fft, is, m, n)
-
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, m, n
-    integer :: j
-
-    fft%scale = 1./real(m*n)
+    fft%n = n
+    fft%is = is
+    fft%scale = 1./real(n)
     if (is > 0) fft%scale = 1.
-
-  end subroutine init_rcfftw_2d
-!>GGH
-
-
+    fft%type = 1
+# if FFT == _FFTW3_
+    if (present(howmany)) then
+       fft%howmany = howmany
+       fft%strided = .false.
+    else
+       call mp_abort ("no howmany in init_ccfftw: FIX!")
+    endif
+# endif
+    
+# if FFT == _FFTW_
+    j = fftw_in_place + fftw_measure + fftw_use_wisdom
+    call fftw_f77_create_plan(fft%plan,n,is,j)
+# elif FFT == _FFTW3_
+    ! the planner expects this as an array of size 1
+    array_n = n
+    j = FFTW_PATIENT
+    call dfftw_plan_dft_c2r_1d(fft%plan, n, data_in, data_out, j)
 # endif
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  end subroutine init_crfftw
 
-# if FFT == _FFTW_
-
-    subroutine init_crfftw_2d (fft, is, m, n)
-    
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, m, n
-    integer :: j
-
-    fft%scale = 1./real(m*n)
-    if (is > 0) fft%scale = 1.
-
-    j = fftw_measure + fftw_use_wisdom
-    call rfftw2d_f77_create_plan(fft%plan,m,n,is,j)
-
-  end subroutine init_crfftw_2d
-
-
-# elif FFT == _FFTW3_
-
-  subroutine init_crfftw_2d (fft, is, m, n, howmany)
-
-    
-    type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, m, n
-    integer, intent (in) :: howmany
-    integer :: j
-
-! a few things required for FFTW3 over FFTW2    
-
-    integer, parameter :: fft_dimension = 2
-    integer  :: stride
-
-
-    ! to pass to FFTW3, we need vector for actual sizes of the real 
-    ! and complex data
-
-    integer, dimension(fft_dimension) :: &
-         vector_sizes_real, vector_sizes_complex 
-
-
-    ! we need two dummy arrays for the planner.  Since at 
-    ! present we are not using SSE instructions, these are save
-    ! to be local to this routine
-
-    real, dimension(:,:), allocatable :: dummy_real_data
-    complex, dimension (:,:), allocatable :: dummy_complex_data
-
-
-
-    fft%scale = 1./real(m*n)
-    if (is > 0) fft%scale = 1.
-    fft%howmany = howmany
-    fft%strided = .true.
-
-    stride  = howmany
-
-    allocate (dummy_real_data(howmany, m*n))
-    allocate (dummy_complex_data(howmany, (m/2+1)*n))
-
-    vector_sizes_real(1) = m
-    vector_sizes_real(2) = n
-
-    vector_sizes_complex(1) = m/2+1
-    vector_sizes_complex(2) = n
-
-    j = FFTW_PATIENT + FFTW_UNALIGNED
-
-    call dfftw_plan_many_dft_c2r(fft%plan, fft_dimension, &
-         vector_sizes_real, howmany, &
-         dummy_complex_data, vector_sizes_complex, stride, 1, &
-         dummy_real_data, vector_sizes_real, stride, 1, &
-         j)
-    
-    deallocate (dummy_real_data, dummy_complex_data)
-
-  end subroutine init_crfftw_2d
-
-!<GGH
+# if FFT == _FFTW3_
+  subroutine init_rcfftw (fft, is, n, howmany, data_in, data_out)
 # else
-
-  subroutine init_crfftw_2d (fft, is, m, n)
+  subroutine init_rcfftw (fft, is, n)
+# endif
+    use mp, only: mp_abort
 
     type (fft_type), intent (out) :: fft
-    integer, intent (in) :: is, m, n
-    integer :: j
-
-    fft%scale = 1./real(m*n)
-    if (is > 0) fft%scale = 1.
-
-  end subroutine init_crfftw_2d
-
-!>GGH
-
+    integer, intent (in) :: is, n
+# if FFT == _FFTW3_
+    integer, optional, intent (in) :: howmany
+    real, dimension(:), intent(in out) :: data_in
+    complex, dimension (:), intent (in out) :: data_out
+    integer, dimension(1) :: array_n
 # endif
+
+    integer :: j
+    
+    fft%n = n
+    fft%is = is
+    fft%scale = 1./real(n)
+    if (is > 0) fft%scale = 1.
+    fft%type = 1
+# if FFT == _FFTW3_
+    if (present(howmany)) then
+       fft%howmany = howmany
+       fft%strided = .false.
+    else
+       call mp_abort ("no howmany in init_ccfftw: FIX!")
+    endif
+# endif
+    
+# if FFT == _FFTW_
+    j = fftw_in_place + fftw_measure + fftw_use_wisdom
+    call fftw_f77_create_plan(fft%plan,n,is,j)
+# elif FFT == _FFTW3_
+    ! the planner expects this as an array of size 1
+    array_n = n
+    j = FFTW_PATIENT
+    call dfftw_plan_dft_r2c_1d(fft%plan, n, data_in, data_out, j)
+# endif
+
+  end subroutine init_rcfftw
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

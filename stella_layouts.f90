@@ -17,7 +17,7 @@ module stella_layouts
   public :: xxfidx2yxfidx, yxfidx2xxfidx
   public :: xxf_ky_is_zero
   
-  public :: ig_idx, iky_idx, ikx_idx, iv_idx, imu_idx, is_idx, iy_idx
+  public :: iz_idx, iky_idx, ikx_idx, iv_idx, imu_idx, is_idx, iy_idx
   public :: idx, proc_id, idx_local
   
   logical :: initialized_x_transform = .false.
@@ -55,11 +55,11 @@ module stella_layouts
 
   type (yxf_layout_type) :: yxf_lo
 
-  interface ig_idx
-     module procedure ig_idx_kxkyz
-     module procedure ig_idx_kxyz
-     module procedure ig_idx_xxf
-     module procedure ig_idx_yxf
+  interface iz_idx
+     module procedure iz_idx_kxkyz
+     module procedure iz_idx_kxyz
+     module procedure iz_idx_xxf
+     module procedure iz_idx_yxf
   end interface
 
   interface iv_idx
@@ -167,15 +167,15 @@ contains
 ! Distribution function layouts
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine init_dist_fn_layouts (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny)
+  subroutine init_dist_fn_layouts (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx)
 
     implicit none
 
-    integer, intent (in) :: nzgrid, naky, nakx, nvgrid, nmu, nspec, ny
+    integer, intent (in) :: nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx
 
     call init_kxkyz_layout (nzgrid, naky, nakx, nvgrid, nmu, nspec)
     call init_kxyz_layout (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny)
-    call init_vmu_layout (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny)
+    call init_vmu_layout (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx)
 
   end subroutine init_dist_fn_layouts
 
@@ -259,25 +259,25 @@ contains
 
   end function iky_idx_kxkyz
 
-  elemental function ig_idx_kxkyz (lo, i)
+  elemental function iz_idx_kxkyz (lo, i)
 
     implicit none
-    integer :: ig_idx_kxkyz
+    integer :: iz_idx_kxkyz
     type (kxkyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
 
     select case (layout)
     case ('vmyxzs')
-       ig_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
+       iz_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
     case ('xyzvms')
-       ig_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
+       iz_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
     case ('xyzmvs')
-       ig_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
+       iz_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%naky, lo%nzed)
     case ('zyxvms')
-       ig_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world), lo%nzed)
+       iz_idx_kxkyz = -lo%nzgrid + mod((i - lo%llim_world), lo%nzed)
     end select
 
-  end function ig_idx_kxkyz
+  end function iz_idx_kxkyz
 
   elemental function proc_id_kxkyz (lo, i)
     implicit none
@@ -410,25 +410,25 @@ contains
 
   end function iy_idx_kxyz
 
-  elemental function ig_idx_kxyz (lo, i)
+  elemental function iz_idx_kxyz (lo, i)
 
     implicit none
-    integer :: ig_idx_kxyz
+    integer :: iz_idx_kxyz
     type (kxyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
 
     select case (layout)
     case ('vmyxzs')
-       ig_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
+       iz_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
     case ('xyzvms')
-       ig_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
+       iz_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
     case ('xyzmvs')
-       ig_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
+       iz_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world)/lo%nakx/lo%ny, lo%nzed)
     case ('zyxvms')
-       ig_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world), lo%nzed)
+       iz_idx_kxyz = -lo%nzgrid + mod((i - lo%llim_world), lo%nzed)
     end select
 
-  end function ig_idx_kxyz
+  end function iz_idx_kxyz
 
   elemental function proc_id_kxyz (lo, i)
     implicit none
@@ -481,13 +481,13 @@ contains
   end function ig_local_kxyz
 
   subroutine init_vmu_layout &
-       (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny)
+       (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx)
     
     use mp, only: iproc, nproc
 
     implicit none
 
-    integer, intent (in) :: nzgrid, naky, nakx, nvgrid, nmu, nspec, ny
+    integer, intent (in) :: nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx
     logical, save :: initialized = .false.
 
     if (initialized) return
@@ -499,6 +499,7 @@ contains
     vmu_lo%nzgrid = nzgrid
     vmu_lo%ny = ny
     vmu_lo%naky = naky
+    vmu_lo%nx = nx
     vmu_lo%nakx = nakx
     vmu_lo%nvgrid = nvgrid
     vmu_lo%nvpa = 2*nvgrid+1
@@ -683,14 +684,14 @@ contains
     iv_idx_xxf = -lo%nvgrid + mod((i - lo%llim_world)/lo%naky/(2*lo%nzgrid + 1), 2*lo%nvgrid + 1)
   end function iv_idx_xxf
 
-  elemental function ig_idx_xxf (lo, i)
+  elemental function iz_idx_xxf (lo, i)
     implicit none
-    integer :: ig_idx_xxf
+    integer :: iz_idx_xxf
     type (xxf_layout_type), intent (in) :: lo
     integer, intent (in) :: i
 
-    ig_idx_xxf = -lo%nzgrid + mod((i - lo%llim_world)/lo%naky, 2*lo%nzgrid + 1)
-  end function ig_idx_xxf
+    iz_idx_xxf = -lo%nzgrid + mod((i - lo%llim_world)/lo%naky, 2*lo%nzgrid + 1)
+  end function iz_idx_xxf
 
   elemental function iky_idx_xxf (lo, i)
     implicit none
@@ -837,13 +838,13 @@ contains
     iv_idx_yxf = -lo%nvgrid + mod((i-lo%llim_world)/lo%iv_comp, lo%nvgridtotal)
   end function iv_idx_yxf
 
-  elemental function ig_idx_yxf (lo, i)
+  elemental function iz_idx_yxf (lo, i)
     implicit none
-    integer :: ig_idx_yxf
+    integer :: iz_idx_yxf
     type (yxf_layout_type), intent (in) :: lo
     integer, intent (in) :: i
-    ig_idx_yxf = -lo%nzgrid + mod((i-lo%llim_world)/lo%ig_comp, lo%nzgridtotal)
-  end function ig_idx_yxf
+    iz_idx_yxf = -lo%nzgrid + mod((i-lo%llim_world)/lo%ig_comp, lo%nzgridtotal)
+  end function iz_idx_yxf
 
   elemental function ikx_idx_yxf (lo, i)
     implicit none
@@ -922,7 +923,7 @@ contains
 
     iky = iky_idx(kxkyz_lo,ikxkyz)
     ikx = ikx_idx(kxkyz_lo,ikxkyz)
-    ig = ig_idx(kxkyz_lo,ikxkyz)
+    ig = iz_idx(kxkyz_lo,ikxkyz)
     ivmu = idx(vmu_lo, iv, imu, is_idx(kxkyz_lo,ikxkyz))
   end subroutine kxkyzidx2vmuidx
 
@@ -935,7 +936,7 @@ contains
 
     iy = iy_idx(kxyz_lo,ikxyz)
     ikx = ikx_idx(kxyz_lo,ikxyz)
-    ig = ig_idx(kxyz_lo,ikxyz)
+    ig = iz_idx(kxyz_lo,ikxyz)
     ivmu = idx(vmu_lo, iv, imu, is_idx(kxyz_lo,ikxyz))
   end subroutine kxyzidx2vmuidx
 
@@ -947,7 +948,7 @@ contains
     integer, intent (out) :: iky, iyxf
 
     iky = iky_idx(xxf_lo,ixxf)
-    iyxf = idx(yxf_lo, ig_idx(xxf_lo,ixxf), iv_idx(xxf_lo,ixxf), &
+    iyxf = idx(yxf_lo, iz_idx(xxf_lo,ixxf), iv_idx(xxf_lo,ixxf), &
          ikx, imu_idx(xxf_lo,ixxf), is_idx(xxf_lo,ixxf))
   end subroutine xxfidx2yxfidx
 
@@ -967,7 +968,7 @@ contains
     end if
 
     ikx = ikx_idx(yxf_lo,iyxf)
-    ixxf = idx(xxf_lo, ig_idx(yxf_lo,iyxf), iv_idx(yxf_lo,iyxf), &
+    ixxf = idx(xxf_lo, iz_idx(yxf_lo,iyxf), iv_idx(yxf_lo,iyxf), &
          iky0, imu_idx(yxf_lo,iyxf), is_idx(yxf_lo,iyxf))
   end subroutine yxfidx2xxfidx
 

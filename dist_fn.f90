@@ -13,6 +13,21 @@ module dist_fn
 
   private
 
+  interface get_dgdy
+     module procedure get_dgdy_4d
+     module procedure get_dgdy_2d
+  end interface
+
+  interface get_dgdx
+     module procedure get_dgdx_4d
+     module procedure get_dgdx_2d
+  end interface
+
+  interface get_dchidy
+     module procedure get_dchidy_4d
+     module procedure get_dchidy_2d
+  end interface
+
   logical :: get_fields_initialized = .false.
   logical :: dist_fn_initialized = .false.
   logical :: gxyz_initialized = .false.
@@ -58,8 +73,11 @@ module dist_fn
   integer, dimension (:,:,:), allocatable :: ikxmod
   logical, dimension (:), allocatable :: periodic
 
+  ! geometrical factor multiplying ExB nonlinearity
+  real :: nonlin_fac
+
   ! needed for timing various pieces of gke solve
-  real, dimension (2,6) :: time_gke
+  real, dimension (2,7) :: time_gke
 
   type (redist_type) :: kxkyz2vmu
   type (redist_type) :: kxyz2vmu
@@ -74,7 +92,7 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, onlY: ig_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: aj0v
     use run_parameters, only: fphi, fapar
     use run_parameters, only: tite, nine, beta
@@ -112,7 +130,7 @@ contains
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-          ig = ig_idx(kxkyz_lo,ikxkyz)
+          ig = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa)*anon(ig,:,:)
           wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
@@ -147,7 +165,7 @@ contains
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-          ig = ig_idx(kxkyz_lo,ikxkyz)
+          ig = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
@@ -166,7 +184,7 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: ig_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: aj0v
     use run_parameters, only: fphi, fapar
     use run_parameters, only: beta
@@ -192,7 +210,7 @@ contains
     if (fphi > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          ig = ig_idx(kxkyz_lo,ikxkyz)
+          ig = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
@@ -221,7 +239,7 @@ contains
     if (fapar > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          ig = ig_idx(kxkyz_lo,ikxkyz)
+          ig = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
@@ -273,11 +291,12 @@ contains
     use zgrid, only: init_zgrid
     use zgrid, only: nzgrid
     use kt_grids, only: init_kt_grids
-    use kt_grids, only: naky, nakx, ny
+    use kt_grids, only: naky, nakx, ny, nx
     use kt_grids, only: alpha_global
     use vpamu_grids, only: init_vpamu_grids
     use vpamu_grids, only: nvgrid, nmu
     use run_parameters, only: init_run_parameters
+    use run_parameters, only: nonlinear
     use neoclassical_terms, only: init_neoclassical_terms
 
     implicit none
@@ -310,7 +329,7 @@ contains
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_run_parameters'
     call init_run_parameters
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_dist_fn_layouts'
-    call init_dist_fn_layouts (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny)
+    call init_dist_fn_layouts (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx)
     if (debug) write (*,*) 'dist_fn::init_dist_fn::allocate_arrays'
     call allocate_arrays
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kperp2'
@@ -329,13 +348,15 @@ contains
     call init_wdrift
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_wstar'
     call init_wstar
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_ExB_nonlinearity'
+    if (nonlinear) call init_ExB_nonlinearity
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_neoclassical_terms'
     call init_neoclassical_terms
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_redistribute'
     call init_redistribute
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_cfl'
     call init_cfl
-    if (alpha_global) then
+    if (nonlinear .or. alpha_global) then
        if (debug) write (*,*) 'dist_fn::init_dist_fn::init_transforms'
        call init_transforms
     end if
@@ -518,6 +539,16 @@ contains
     end do
 
   end subroutine init_wstar
+
+  subroutine init_ExB_nonlinearity
+
+    use geometry, only: geo_surf, drhodpsi
+
+    implicit none
+
+    nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
+
+  end subroutine init_ExB_nonlinearity
 
   subroutine allocate_arrays
 
@@ -794,15 +825,16 @@ contains
 
   subroutine init_bessel
 
-    use dist_fn_arrays, only: aj0v, aj0x
+    use dist_fn_arrays, only: aj0v, aj1v
+    use dist_fn_arrays, only: aj0x
     use species, only: spec, nspec
     use geometry, only: bmag
     use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, nmu
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo, vmu_lo
-    use stella_layouts, only: iky_idx, ikx_idx, ig_idx, is_idx, imu_idx
-    use spfunc, only: j0!, j1
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
+    use spfunc, only: j0, j1
 
     implicit none
 
@@ -815,22 +847,30 @@ contains
 
     call init_kperp2
 
-    allocate (aj0v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)) ; aj0v = 0.
-    allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; aj0x = 0.
-!    allocate (aj1(-nzgrid:nzgrid,g_lo%llim_proc:g_lo%ulim_alloc)) ; aj1 = 0.
-!    allocate (aj2(-nzgrid:nzgrid,g_lo%llim_proc:g_lo%ulim_alloc)) ; aj2 = 0.
-
+    if (.not.allocated(aj0v)) then
+       allocate (aj0v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+       aj0v = 0.
+    end if
+    if (.not.allocated(aj0x)) then
+       allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       aj0x = 0.
+    end if
+    if (.not.allocated(aj1v)) then
+       allocate (aj1v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+       aj1v = 0.
+    end if
+    
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       ig = ig_idx(kxkyz_lo,ikxkyz)
+       ig = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           arg = spec(is)%smz*sqrt(vperp2(ig,imu)*kperp2(iky,ikx,ig))/bmag(ig)
           aj0v(imu,ikxkyz) = j0(arg)
-             ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
-!             aj1(ig,ikxkyz) = j1(arg)
-!             aj2(ig,ikxkyz) = 2.0*aj1(ig,ikxkyz)-aj0(ig,ikxkyz)
+          ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
+          aj1v(imu,ikxkyz) = j1(arg)
+          !             aj2(ig,ikxkyz) = 2.0*aj1(ig,ikxkyz)-aj0(ig,ikxkyz)
        end do
     end do
 
@@ -1194,7 +1234,7 @@ contains
     cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*maxval(abs(wdrifty)),zero)
     cfl_dt = min(cfl_dt_mirror,cfl_dt_stream,cfl_dt_wdriftx,cfl_dt_wdrifty)
     
-    if (proc0) write (*,'(a43,4e12.4)') 'cfl_dt (mirror, stream, wdriftx, wdrifty):', &
+    if (proc0) write (*,'(a50,4e12.4)') 'linear cfl_dt (mirror, stream, wdriftx, wdrifty):', &
          cfl_dt_mirror, cfl_dt_stream, cfl_dt_wdriftx, cfl_dt_wdrifty
 
     if (code_dt > cfl_dt) then
@@ -1235,21 +1275,42 @@ contains
 
     implicit none
 
+    integer :: icnt
+    logical :: restart_time_step
+
+    ! if CFL condition is violated by nonlinear term
+    ! then must modify time step size and restart time step
+    ! assume false and test
+    restart_time_step = .false.
+
+    icnt = 1
     ! SSP rk3 algorithm
     ! if GK equation written as dg/dt = rhs,
     ! solve_gke returns rhs*dt
-    call solve_gke (gold, g1)
-    g1 = gold + g1
-    call solve_gke (g1, g2)
-    g2 = g1 + g2
-    call solve_gke (g2, gnew)
-    gnew = gold/3. + 0.5*g1 + (g2 + gnew)/6.
+    do while (icnt <= 3)
+       select case (icnt)
+       case (1)
+          call solve_gke (gold, g1, restart_time_step)
+       case (2)
+          g1 = gold + g1
+          call solve_gke (g1, g2, restart_time_step)
+       case (3)
+          g2 = g1 + g2
+          call solve_gke (g2, gnew, restart_time_step)
+       end select
+       if (restart_time_step) then
+          icnt = 1
+       else
+          icnt = icnt + 1
+       end if
+    end do
 
+    gnew = gold/3. + 0.5*g1 + (g2 + gnew)/6.
     gold = gnew
 
   end subroutine advance_stella
 
-  subroutine solve_gke (gin, rhs_ky)
+  subroutine solve_gke (gin, rhs_ky, restart_time_step)
 
     use job_manage, only: time_message
     use dist_fn_arrays, only: gvmu
@@ -1259,6 +1320,7 @@ contains
     use stella_transforms, only: transform_y2ky
     use redistribute, only: gather, scatter
     use run_parameters, only: fphi, fapar
+    use run_parameters, only: nonlinear
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use kt_grids, only: nakx, ny
@@ -1268,6 +1330,7 @@ contains
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gin
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out), target :: rhs_ky
+    logical, intent (out) :: restart_time_step
 
     complex, dimension (:,:,:,:), allocatable, target :: rhs_y
     complex, dimension (:,:,:,:), pointer :: rhs
@@ -1291,24 +1354,30 @@ contains
     call g_adjust (gin, phi, apar, fphi, fapar)
     call g_adjust (gvmu, phi, apar, fphi, fapar)
 
-    ! calculate and add mirror term to RHS of GK eqn
-    call advance_mirror (gin, rhs)
-    ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-    call advance_wdrifty (gin, rhs)
-    ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-    call advance_wdriftx (gin, rhs)
-
-    if (alpha_global) then
-       call transform_y2ky (rhs_y, rhs_ky)
-       deallocate (rhs_y)
+    ! calculate and add ExB nonlinearity to RHS of GK eqn
+    ! do this first, as the CFL condition may require a change in time step
+    ! and thus recomputation of mirror, wdrift, wstar, and parstream
+    if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    if (.not.restart_time_step) then
+       ! calculate and add mirror term to RHS of GK eqn
+       call advance_mirror (gin, rhs)
+       ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+       call advance_wdrifty (gin, rhs)
+       ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
+       call advance_wdriftx (gin, rhs)
+       
+       if (alpha_global) then
+          call transform_y2ky (rhs_y, rhs_ky)
+          deallocate (rhs_y)
+       end if
+       
+       ! calculate and add parallel streaming term to RHS of GK eqn
+       call advance_parallel_streaming (gin, rhs_ky)
+       ! calculate and add omega_* term to RHS of GK eqn
+       call advance_wstar (rhs_ky)
+       ! calculate and add collision term to RHS of GK eqn
+       !    call advance_collisions
     end if
-
-    ! calculate and add parallel streaming term to RHS of GK eqn
-    call advance_parallel_streaming (gin, rhs_ky)
-    ! calculate and add omega_* term to RHS of GK eqn
-    call advance_wstar (rhs_ky)
-    ! calculate and add collision term to RHS of GK eqn
-!    call advance_collisions
 
     ! switch from h back to g
     call g_adjust (gin, phi, apar, -fphi, -fapar)
@@ -1534,10 +1603,100 @@ contains
 
   end subroutine advance_wdriftx
 
+  subroutine advance_ExB_nonlinearity (g, gout, restart_time_step)
+
+    use mp, only: proc0, min_allreduce
+    use stella_layouts, only: vmu_lo
+    use job_manage, only: time_message
+    use fields_arrays, only: phi, apar
+    use stella_transforms, only: transform_ky2y, transform_y2ky
+    use stella_transforms, only: transform_kx2x, transform_x2kx
+    use stella_time, only: cfl_dt, code_dt
+    use zgrid, only: nzgrid
+    use kt_grids, only: nakx, naky, nx, ny
+    use kt_grids, only: akx, aky
+    use kt_grids, only: alpha_global, iky_max
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    logical, intent (out) :: restart_time_step
+    
+    integer :: ivmu, iz
+
+    complex, dimension (:,:), allocatable :: g0k, g0kxy
+    real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
+
+    ! alpha-component of magnetic drift (requires ky -> y)
+    if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
+
+    restart_time_step = .false.
+
+    allocate (g0k(naky,nakx))
+    allocate (g0kxy(ny,nakx))
+    allocate (g0xy(ny,nx))
+    allocate (g1xy(ny,nx))
+    allocate (bracket(ny,nx))
+
+    ! FLAG -- NEED TO ADD IN EQUIVALENT OF KXFAC!!!
+    ! something like q/rho/drhodpsin, possibly with factor of 1/2
+
+    if (debug) write (*,*) 'dist_fn::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       do iz = -nzgrid, nzgrid
+          call get_dgdy (g(:,:,iz,ivmu), g0k)
+          call transform_ky2y (g0k, g0kxy)
+          call transform_kx2x (g0kxy, g0xy)
+          call get_dchidx (iz, ivmu, phi(:,:,iz), apar(:,:,iz), g0k)
+          call transform_ky2y (g0k, g0kxy)
+          call transform_kx2x (g0kxy, g1xy)
+          g1xy = g1xy*nonlin_fac
+          bracket = -g0xy*g1xy
+          cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*aky(iky_max)))
+
+          call get_dgdx (g(:,:,iz,ivmu), g0k)
+          call transform_ky2y (g0k, g0kxy)
+          call transform_kx2x (g0kxy, g0xy)
+          call get_dchidy (iz, ivmu, phi(:,:,iz), apar(:,:,iz), g0k)
+          call transform_ky2y (g0k, g0kxy)
+          call transform_kx2x (g0kxy, g1xy)
+          g1xy = g1xy*nonlin_fac
+          bracket = bracket + g0xy*g1xy
+          cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*akx(nakx)))
+
+          call transform_x2kx (bracket, g0kxy)
+          if (alpha_global) then
+             gout(:,:,iz,ivmu) = g0kxy
+          else
+             call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
+          end if
+       end do
+    end do
+    deallocate (g0k, g0kxy, g0xy, g1xy, bracket)
+
+    call min_allreduce (cfl_dt)
+
+    if (code_dt > cfl_dt) then
+       if (proc0) then
+          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
+          write (*,*) 'setting code_dt=cfl_dt and restarting time step'
+       end if
+       code_dt = cfl_dt
+       call reset_dt
+       restart_time_step = .true.
+    else
+       gout = code_dt*gout
+    end if
+
+    if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
+
+  end subroutine advance_ExB_nonlinearity
+
   subroutine get_dgdvpa (g, dgdv)
 
     use finite_differences, only: third_order_upwind
-    use stella_layouts, only: kxkyz_lo, ig_idx
+    use stella_layouts, only: kxkyz_lo, iz_idx
     use vpamu_grids, only: nvgrid, nmu, dvpa
 
     implicit none
@@ -1548,7 +1707,7 @@ contains
     integer :: ikxkyz, imu, ig
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = ig_idx(kxkyz_lo,ikxkyz)
+       ig = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           call third_order_upwind (-nvgrid,g(:,imu,ikxkyz),dvpa,mirror_sign(1,ig),dgdv(:,imu,ikxkyz))
        end do
@@ -1559,7 +1718,7 @@ contains
   subroutine get_dgdvpa_global (g)
 
     use finite_differences, only: third_order_upwind
-    use stella_layouts, only: kxyz_lo, ig_idx, iy_idx
+    use stella_layouts, only: kxyz_lo, iz_idx, iy_idx
     use vpamu_grids, only: nvgrid, nmu, dvpa
 
     implicit none
@@ -1571,7 +1730,7 @@ contains
 
     allocate (tmp(-nvgrid:nvgrid))
     do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-       ig = ig_idx(kxyz_lo,ikxyz)
+       ig = iz_idx(kxyz_lo,ikxyz)
        iy = iy_idx(kxyz_lo,ikxyz)
        do imu = 1, nmu
           call third_order_upwind (-nvgrid,g(:,imu,ikxyz),dvpa,mirror_sign(iy,ig),tmp)
@@ -1744,7 +1903,7 @@ contains
     
   end subroutine fill_zed_ghost_zones
 
-  subroutine get_dgdy (g, dgdy)
+  subroutine get_dgdy_4d (g, dgdy)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
@@ -1762,7 +1921,21 @@ contains
        dgdy(:,:,:,ivmu) = zi*spread(spread(aky,2,nakx),3,2*nzgrid+1)*g(:,:,:,ivmu)
     end do
 
-  end subroutine get_dgdy
+  end subroutine get_dgdy_4d
+
+  subroutine get_dgdy_2d (g, dgdy)
+
+    use constants, only: zi
+    use kt_grids, only: nakx, aky
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: g
+    complex, dimension (:,:), intent (out) :: dgdy
+
+    dgdy = zi*spread(aky,2,nakx)*g
+
+  end subroutine get_dgdy_2d
 
   subroutine add_dgdy_term (g, src)
 
@@ -1804,7 +1977,7 @@ contains
 
   end subroutine add_dgdy_term_global
 
-  subroutine get_dgdx (g, dgdx)
+  subroutine get_dgdx_4d (g, dgdx)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
@@ -1822,7 +1995,21 @@ contains
        dgdx(:,:,:,ivmu) = zi*spread(spread(akx,1,naky),3,2*nzgrid+1)*g(:,:,:,ivmu)
     end do
 
-  end subroutine get_dgdx
+  end subroutine get_dgdx_4d
+
+  subroutine get_dgdx_2d (g, dgdx)
+
+    use constants, only: zi
+    use kt_grids, only: naky, akx
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: g
+    complex, dimension (:,:), intent (out) :: dgdx
+
+    dgdx = zi*spread(akx,1,naky)*g
+
+  end subroutine get_dgdx_2d
 
   subroutine add_dgdx_term (g, src)
 
@@ -1864,7 +2051,7 @@ contains
 
   end subroutine add_dgdx_term_global
 
-  subroutine get_dchidy (phi, apar, dchidy)
+  subroutine get_dchidy_4d (phi, apar, dchidy)
 
     use constants, only: zi
     use dist_fn_arrays, only: aj0x
@@ -1890,7 +2077,59 @@ contains
             * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
     end do
 
-  end subroutine get_dchidy
+  end subroutine get_dchidy_4d
+
+  subroutine get_dchidy_2d (iz, ivmu, phi, apar, dchidy)
+
+    use constants, only: zi
+    use dist_fn_arrays, only: aj0x
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: is_idx, iv_idx
+    use run_parameters, only: fphi, fapar
+    use species, only: spec
+    use vpamu_grids, only: vpa
+    use kt_grids, only: nakx, aky
+
+    implicit none
+
+    integer, intent (in) :: ivmu, iz
+    complex, dimension (:,:), intent (in) :: phi, apar
+    complex, dimension (:,:), intent (out) :: dchidy
+
+    integer :: iv, is
+
+    is = is_idx(vmu_lo,ivmu)
+    iv = iv_idx(vmu_lo,ivmu)
+    dchidy = zi*spread(aky,2,nakx)*aj0x(:,:,iz,ivmu) &
+         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+    
+  end subroutine get_dchidy_2d
+
+  subroutine get_dchidx (iz, ivmu, phi, apar, dchidx)
+
+    use constants, only: zi
+    use dist_fn_arrays, only: aj0x
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: is_idx, iv_idx
+    use run_parameters, only: fphi, fapar
+    use species, only: spec
+    use vpamu_grids, only: vpa
+    use kt_grids, only: akx, naky
+
+    implicit none
+
+    integer, intent (in) :: ivmu, iz
+    complex, dimension (:,:), intent (in) :: phi, apar
+    complex, dimension (:,:), intent (out) :: dchidx
+
+    integer :: iv, is
+
+    is = is_idx(vmu_lo,ivmu)
+    iv = iv_idx(vmu_lo,ivmu)
+    dchidx = zi*spread(akx,1,naky)*aj0x(:,:,iz,ivmu) &
+         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+    
+  end subroutine get_dchidx
 
   subroutine add_wstar_term (g, src)
 

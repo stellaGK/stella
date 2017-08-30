@@ -190,7 +190,7 @@ contains
     use kt_grids, only: reality
     use vpamu_grids, only: nvpa, vpa, mu, nmu
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: kxkyz_lo, ig_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
 
     implicit none
 
@@ -225,7 +225,7 @@ contains
     end if
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = ig_idx(kxkyz_lo,ikxkyz)
+       ig = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
@@ -432,7 +432,7 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2, anon
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, ig_idx
+    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx
     use constants, only: zi
 
     implicit none
@@ -472,7 +472,7 @@ contains
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       ig = ig_idx(kxkyz_lo,ikxkyz)
+       ig = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              gvmu(iv,imu,ikxkyz) = phiinit*anon(ig,iv,imu) &

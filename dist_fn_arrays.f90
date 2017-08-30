@@ -7,7 +7,8 @@ module dist_fn_arrays
   public :: gnew, gold
   public :: g1, g2
   public :: gvmu
-  public :: aj0x, aj0v
+  public :: aj0x
+  public :: aj0v, aj1v
   public :: wstar
   public :: wdriftx, wdrifty
   public :: g_adjust
@@ -31,7 +32,7 @@ module dist_fn_arrays
   real, dimension (:,:,:,:), allocatable :: aj0x
   ! (naky, nakx, -nzgrid:nzgrid, -vmu-layout-)
 
-  real, dimension (:,:), allocatable :: aj0v
+  real, dimension (:,:), allocatable :: aj0v, aj1v
   ! (nmu, -kxkyz-layout-)
 
   interface g_adjust
@@ -83,7 +84,7 @@ contains
     use vpamu_grids, only: anon, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, ig_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
 
     implicit none
     complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
@@ -94,7 +95,7 @@ contains
     complex :: adj
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = ig_idx(kxkyz_lo,ikxkyz)
+       ig = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)

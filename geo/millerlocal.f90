@@ -88,7 +88,6 @@ contains
 
   end subroutine init_local_defaults
 
-!  subroutine read_local_parameters (qinp_out, shat_out, rhotor_out, drhotor_drho)
   subroutine read_local_parameters (local_out)
     
     use file_utils, only: input_unit_exist
@@ -97,7 +96,6 @@ contains
     implicit none
  
     type (flux_surface_type), intent (out) :: local_out
-!    real, intent (out) :: qinp_out, shat_out, rhotor_out, drhotor_drho
 
     integer :: in_file
     logical :: exist
@@ -144,18 +142,14 @@ contains
 
     local_out = local
 
-!    qinp_out = qinp
-!    shat_out = shat
-!    rhotor_out = rhotor
-!    drhotordrho_out = drhotordrho
-
   end subroutine read_local_parameters
 
   subroutine get_local_geo (nzed, nzgrid, zed_in, &
        dpsidrho, dIdrho, grho_out, bmag_out, &
        gds2_out, gds21_out, gds22_out, gradpar_out, &
        gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
-       dBdrho_out, d2Bdrdth_out, dgradpardrho_out)
+       dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
+       btor_out, rmajor_out)
     
     use constants, only: pi
     use splines, only: geo_spline
@@ -168,7 +162,8 @@ contains
     real, dimension (-nzgrid:), intent (out) :: grho_out, bmag_out, &
          gds2_out, gds21_out, gds22_out, gradpar_out, gbdrift0_out, &
          gbdrift_out, cvdrift0_out, cvdrift_out, &
-         dBdrho_out, d2Bdrdth_out, dgradpardrho_out
+         dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
+         btor_out, rmajor_out
 
     integer :: nr, np
     integer :: i, j
@@ -267,6 +262,7 @@ contains
        bi = local%rgeo
        dpsidrho = dpsidrho*bi/local%qinp
     end if
+
 !    ! get dpsinorm/drho
 !    call get_dpsidrho (dpsidrho)
 
@@ -397,6 +393,11 @@ contains
     call geo_spline (theta, dBdrho, zed_in, dBdrho_out)
     call geo_spline (theta, d2Bdrdth, zed_in, d2Bdrdth_out)
     call geo_spline (theta, dgradpardrho, zed_in, dgradpardrho_out)
+    call geo_spline (theta, Rr(2,:), zed_in, rmajor_out)
+
+    ! get the toroidal component of the magnetic field
+    ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
+    btor_out = bi/rmajor_out
 
     open (1002,file='millerlocal.input',status='unknown')
     write (1002,'(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'

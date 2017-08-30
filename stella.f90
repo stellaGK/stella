@@ -132,6 +132,7 @@ contains
        write (*,fmt=101) 'dgdx:', time_gke(1,5)/60., 'min'
        write (*,fmt=101) 'dgdy:', time_gke(1,4)/60., 'min'
        write (*,fmt=101) 'wstar:', time_gke(1,6)/60., 'min'
+       write (*,fmt=101) 'nonlinear:', time_gke(1,7)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'
        write (*,*)
     end if
