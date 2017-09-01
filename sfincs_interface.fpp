@@ -59,17 +59,11 @@ contains
     if (iproc < nproc_sfincs) then
        do irad = -nradii/2, nradii/2
           rhoc_neighbor = geo_surf%rhoc + irad*drho
-          write (*,*) 'pre-init_sfincs', irad, nradii/2
           call init_sfincs (sfincs_comm)
-          write (*,*) 'pre-pass_inputoptions'
           call pass_inputoptions_to_sfincs (irad*drho)
-          write (*,*) 'pre-pass_outputoptions'
           call pass_outputoptions_to_sfincs
-          write (*,*) 'pre-prepare_sfincs'
           call prepare_sfincs
-          write (*,*) 'pre-pass_geometry_to_sfincs'
           call pass_geometry_to_sfincs (irad*drho)
-          write (*,*) 'pre-run_sfincs'
           call run_sfincs
           if (proc0) call get_sfincs_output &
                (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))

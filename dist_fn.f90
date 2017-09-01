@@ -55,7 +55,7 @@ module dist_fn
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
   real, dimension (:,:), allocatable :: gamtot3
 
-  real, dimension (:,:,:), allocatable :: kperp2
+!  real, dimension (:,:,:), allocatable :: kperp2
 
   ! needed for mirror term
   integer, dimension (:,:), allocatable :: mirror_sign
@@ -93,7 +93,7 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
-    use dist_fn_arrays, only: aj0v
+    use dist_fn_arrays, only: aj0v, kperp2
     use run_parameters, only: fphi, fapar
     use run_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
@@ -140,7 +140,7 @@ contains
        call sum_allreduce (gamtot)
        ! avoid divide by zero when kx=ky=0
        ! do not evolve this mode, so value is irrelevant
-       gamtot(1,1,:) = 1.0
+       if (aky(1) < epsilon(0.) .and. akx(1) < epsilon(0.)) gamtot(1,1,:) = 1.0
 
        deallocate (g0)
 
@@ -440,6 +440,7 @@ contains
 
   subroutine init_kperp2
 
+    use dist_fn_arrays, only: kperp2
     use geometry, only: gds2, gds21, gds22
     use geometry, only: geo_surf
     use zgrid, only: nzgrid
@@ -827,6 +828,7 @@ contains
 
     use dist_fn_arrays, only: aj0v, aj1v
     use dist_fn_arrays, only: aj0x
+    use dist_fn_arrays, only: kperp2
     use species, only: spec, nspec
     use geometry, only: bmag
     use zgrid, only: nzgrid
@@ -1329,6 +1331,7 @@ contains
 !    use dist_fn_arrays, only: gbar_to_h
     use dist_fn_arrays, only: gbar_to_g
     use fields_arrays, only: phi, apar
+!    use fields_arrays, only: apar
     use stella_layouts, only: vmu_lo
     use stella_transforms, only: transform_y2ky
     use redistribute, only: gather, scatter
@@ -1362,7 +1365,7 @@ contains
 
     ! obtain fields corresponding to g
     call advance_fields (gin)
-    
+
     ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
 !    call gbar_to_h (gin, phi, apar, fphi, fapar)
 !    call gbar_to_h (gvmu, phi, apar, fphi, fapar)
@@ -1380,13 +1383,10 @@ contains
     if (.not.restart_time_step) then
        ! calculate and add mirror term to RHS of GK eqn
        call advance_mirror (gin, rhs)
-!       write (*,*) 'rhs1', sum(cabs(rhs))
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
        call advance_wdrifty (gin, rhs)
-!       write (*,*) 'rhs2', sum(cabs(rhs))
        ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
        call advance_wdriftx (gin, rhs)
-!       write (*,*) 'rhs3', sum(cabs(rhs))
        
        if (alpha_global) then
           call transform_y2ky (rhs_y, rhs_ky)
@@ -1395,14 +1395,11 @@ contains
        
        ! calculate and add parallel streaming term to RHS of GK eqn
        call advance_parallel_streaming (gin, rhs_ky)
-!       write (*,*) 'rhs4', sum(cabs(rhs_ky))
        ! calculate and add omega_* term to RHS of GK eqn
        call advance_wstar (rhs_ky)
-!       write (*,*) 'rhs5', sum(cabs(rhs_ky))
        ! calculate and add collision term to RHS of GK eqn
        !    call advance_collisions
     end if
-!    stop
 
     ! switch from h back to g
 !    call gbar_to_h (gin, phi, apar, -fphi, -fapar)
@@ -1673,6 +1670,7 @@ contains
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
     use stella_time, only: cfl_dt, code_dt
+    use run_parameters, only: cfl_cushion
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, nx, ny
     use kt_grids, only: akx, aky
@@ -1746,6 +1744,13 @@ contains
        code_dt = cfl_dt
        call reset_dt
        restart_time_step = .true.
+    else if (code_dt < cfl_dt*cfl_cushion) then
+       if (proc0) then
+          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
+       end if
+       code_dt = cfl_dt*cfl_cushion
+       call reset_dt
     else
        gout = code_dt*gout
     end if
@@ -1851,7 +1856,6 @@ contains
     use finite_differences, only: third_order_upwind_zed
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use dist_fn_arrays, only: aj0x
     use zgrid, only: nzgrid, delzed
     use kt_grids, only: naky, nakx
 
@@ -2369,6 +2373,8 @@ contains
   end subroutine finish_wstar
 
   subroutine finish_kperp2
+
+    use dist_fn_arrays, only: kperp2
 
     implicit none
 

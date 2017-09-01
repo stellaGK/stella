@@ -13,11 +13,12 @@ module run_parameters
   public :: nstep, wstar_units, eqzip, margin
   public :: secondary, tertiary, harris
   public :: ieqzip
-  public :: k0
+  public :: k0, cfl_cushion
   public :: avail_cpu_time
   
   private
 
+  real :: cfl_cushion
   real :: beta, zeff, tite, nine
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max, margin
@@ -107,7 +108,7 @@ contains
     namelist /parameters/ beta, zeff, tite, nine, teti, k0
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, wstar_units, eqzip, &
          delt_option, margin, secondary, tertiary, harris, &
-         avail_cpu_time, eqzip_option, nonlinear
+         avail_cpu_time, eqzip_option, nonlinear, cfl_cushion
 
     if (proc0) then
        fphi = 1.0
@@ -129,6 +130,7 @@ contains
        delt_option = 'default'
        margin = 0.05
        avail_cpu_time = 1.e10
+       cfl_cushion = 0.5
 
        in_file = input_unit_exist("parameters", rpexist)
        if (rpexist) read (unit=in_file,nml=parameters)
@@ -172,6 +174,7 @@ contains
 
     call broadcast (delt_option_switch)
     call broadcast (delt)
+    call broadcast (cfl_cushion)
     call broadcast (beta)
     call broadcast (zeff)
     call broadcast (tite)

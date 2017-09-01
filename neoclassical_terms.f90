@@ -16,6 +16,7 @@ module neoclassical_terms
   integer, parameter :: neo_option_sfincs = 1
 
   real, dimension (:,:,:,:,:), allocatable :: f_neoclassical
+  real, dimension (:,:,:,:), allocatable :: dfneo_dvpa
   real, dimension (:,:), allocatable :: phi_neoclassical
 
   logical :: neoinit = .false.
@@ -30,7 +31,6 @@ contains
     use species, only: nspec
     use sfincs_interface, only: get_neo_from_sfincs
     
-
     implicit none
     
     if (neoinit) return
@@ -42,10 +42,13 @@ contains
             allocate (f_neoclassical(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec,-nradii/2:nradii/2))
        if (.not.allocated(phi_neoclassical)) &
             allocate (phi_neoclassical(-nzgrid:nzgrid,-nradii/2:nradii/2))
+       if (.not.allocated(dfneo_dvpa)) &
+            allocate (dfneo_dvpa(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
        select case (neo_option_switch)
        case (neo_option_sfincs)
           call get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical)
        end select
+       call get_dfneo_dvpa (f_neoclassical(:,:,:,:,0), dfneo_dvpa)
        if (proc0) call write_neoclassical
     end if
 
@@ -97,6 +100,39 @@ contains
 
   end subroutine read_parameters
 
+  subroutine get_dfneo_dvpa (fneo, dfneo)
+
+    use finite_differences, only: fd5pt
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: nvgrid, nmu, nvpa
+    use vpamu_grids, only: dvpa
+    use species, only: nspec
+
+    implicit none
+
+    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (in) :: fneo
+    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (out) :: dfneo
+
+    integer :: iz, imu, is
+    real, dimension (:), allocatable :: tmp1, tmp2
+
+    allocate (tmp1(nvpa), tmp2(nvpa))
+
+    do is = 1, nspec
+       do imu = 1, nmu
+          do iz = -nzgrid, nzgrid
+             ! hack to avoid dealing with negative indices in fd5pt
+             tmp1 = fneo(iz,:,imu,is)
+             call fd5pt (tmp1, tmp2, dvpa)
+             dfneo(iz,:,imu,is) = tmp2
+          end do
+       end do
+    end do
+
+    deallocate (tmp1, tmp2)
+
+  end subroutine get_dfneo_dvpa
+
   subroutine write_neoclassical
 
     use file_utils, only: open_output_file, close_output_file
@@ -110,14 +146,16 @@ contains
     integer :: irad, is, iz, imu, iv
 
     call open_output_file (neo_unit,'.neoclassical')
-    write (neo_unit,'(2a8,5a12)') '#1.rad', '2.spec', '3.zed', '4.mu', '5.vpa', '6.f_neo', '7.phi_neo'
+    write (neo_unit,'(2a8,6a13)') '#1.rad', '2.spec', '3.zed', '4.mu', '5.vpa', &
+         '6.f_neo', '7.dfdvpa_neo', '8.phi_neo'
     do irad = -nradii/2, nradii/2
        do is = 1, nspec
           do iz = -nzgrid, nzgrid
              do imu = 1, nmu
                 do iv = -nvgrid, nvgrid
-                   write (neo_unit,'(2i8,5e12.4)') irad, is, zed(iz), mu(imu), vpa(iv), &
-                        f_neoclassical(iz,iv,imu,is,irad), phi_neoclassical(iz,irad)
+                   write (neo_unit,'(2i8,6e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
+                        f_neoclassical(iz,iv,imu,is,irad), dfneo_dvpa(iz,iv,imu,is), &
+                        phi_neoclassical(iz,irad)
                 end do
                 write (neo_unit,*)
              end do
@@ -137,6 +175,7 @@ contains
 
     if (allocated(f_neoclassical)) deallocate (f_neoclassical)
     if (allocated(phi_neoclassical)) deallocate (phi_neoclassical)
+    if (allocated(dfneo_dvpa)) deallocate (dfneo_dvpa)
 
     neoinit = .false.
 

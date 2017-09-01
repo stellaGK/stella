@@ -100,10 +100,10 @@ contains
     select case (ginitopt_switch)
     case (ginitopt_default)
        call ginit_default
-!     case (ginitopt_noise)
-!        call ginit_noise
-     case (ginitopt_kpar)
-        call ginit_kpar
+    case (ginitopt_noise)
+       call ginit_noise
+    case (ginitopt_kpar)
+       call ginit_kpar
 !     case (ginitopt_rh)
 !        call ginit_rh
     case (ginitopt_restart_many)
@@ -185,7 +185,7 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid, zed
     use geometry, only: bmag
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, ny
     use kt_grids, only: theta0, aky
     use kt_grids, only: reality
     use vpamu_grids, only: nvpa, vpa, mu, nmu
@@ -205,7 +205,7 @@ contains
        phi(:,:,ig) = exp(-((zed(ig)-theta0)/width0)**2)*cmplx(1.0,1.0)
        ! necessary to match similar initial condition from
        ! codes with kx +/- and ky >= 0
-       phi(naky/2+2,:,ig) = conjg(phi(naky/2+2,:,ig))
+       if (reality) phi(naky/2+2,:,ig) = conjg(phi(naky/2+2,:,ig))
     end do
 
     if (chop_side .and. left) phi(:,:,:-1) = 0.0
@@ -342,87 +342,84 @@ contains
   !! initialisation option. Each different mode is given a random amplitude
   !! between zero and one.
 
-!   subroutine ginit_noise
+  subroutine ginit_noise
 
-!     use mp, only: proc0, broadcast
-!     use species, only: spec
-!     use zgrid, only: nzgrid, bmag
-!     use kt_grids, only: naky, ntheta0, aky, reality
-!     use vpamu_grids, only: nvgrid, vpa, mu
-!     use dist_fn_arrays, only: gnew, gold, kperp2
-!     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx, proc_id
-!     use mp, only: proc0, broadcast
-!     use ran
+    use mp, only: proc0, broadcast
+    use dist_fn_arrays, only: kperp2
+    use species, only: spec
+    use geometry, only: bmag
+    use zgrid, only: nzgrid
+    use kt_grids, only: naky, nakx, aky, reality
+    use vpamu_grids, only: nvgrid, nmu, nvpa
+    use vpamu_grids, only: vpa, mu
+    use dist_fn_arrays, only: gvmu
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use mp, only: proc0, broadcast
+    use ran
 
-!     implicit none
+    implicit none
 
-!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky) :: phi
-!     real :: a, b, kmin
-!     integer :: iglo, ig, ik, it, imu, is, iv
+    complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
+    real :: a, b, kmin
+    integer :: ikxkyz, iz, iky, ikx, is
 
-!     if (proc0) then
-!        ! keep old (it, ik) loop order to get old results exactly: 
-!        kmin = min(minval(kperp2(:,1,2)),minval(kperp2(:,2,1)))
+    if (proc0) then
+       ! keep old (it, ik) loop order to get old results exactly: 
+       if (naky > 1 .and. nakx > 1) &
+            kmin = min(minval(kperp2(1,2,:)),minval(kperp2(2,1,:)))
        
-!        !Fill phi with random (complex) numbers between -0.5 and 0.5
-!        do it = 1, ntheta0
-!           do ik = 1, naky
-!              do ig = -nzgrid, nzgrid
-!                 a = ranf()-0.5
-!                 b = ranf()-0.5
-!                 ! don't populate high k's with large amplitudes
-!                 if (it > 1 .or. ik > 1) phi(ig,it,ik) = cmplx(a,b)*kmin/sqrt(kperp2(ig,it,ik))
-!              end do
-!              if (chop_side) then
-!                 if (left) then
-!                    phi(:-1,it,ik) = 0.0
-!                 else
-!                    phi(1:,it,ik) = 0.0
-!                 endif
-!              end if
-!           end do
-!        end do
+       !Fill phi with random (complex) numbers between -0.5 and 0.5
+       do ikx = 1, nakx
+          do iky = 1, naky
+             do iz = -nzgrid, nzgrid
+                a = ranf()-0.5
+                b = ranf()-0.5
+                ! do not populate high k modes with large amplitudes
+!                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin/sqrt(kperp2(iky,ikx,iz))
+                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,iz)
+             end do
+             if (chop_side) then
+                if (left) then
+                   phi(iky,ikx,:-1) = 0.0
+                else
+                   phi(iky,ikx,1:) = 0.0
+                endif
+             end if
+          end do
+       end do
 
-!        !Wipe out all but one kx if requested
-!        if (ikx_init  > 0) call single_initial_kx(phi)
-       
-!        !Sort out the zonal/self-periodic modes
-!        if (naky .ge. 1 .and. aky(1) < epsilon(0.0)) then
-!           !Apply scaling factor
-!           phi(:,:,1) = phi(:,:,1)*zf_init
+       !Sort out the zonal/self-periodic modes
+       if (naky .ge. 1 .and. aky(1) < epsilon(0.0)) then
+          !Apply scaling factor
+          phi(1,:,:) = phi(1,:,:)*zf_init
           
-!           !Set ky=kx=0.0 mode to zero in amplitude
-!           phi(:,1,1) = 0.0
-!        end if
+          !Set ky=kx=0.0 mode to zero in amplitude
+          phi(1,1,:) = 0.0
+       end if
+       
+       !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
+       if (reality) then
+          do iky = naky/2+2, naky
+             phi(iky,1,:) = conjg(phi(naky-iky+2,1,:))
+          enddo
+       end if
+       
+    end if
 
-!        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
-!        if (reality) then
-!           do it = 1, ntheta0/2
-!              phi(:,it+(ntheta0+1)/2,1) = conjg(phi(:,(ntheta0+1)/2+1-it,1))
-!           enddo
-!        end if
+    call broadcast (phi)
 
-!     end if
+    !Now set g using data in phi
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(iz)),1,nvpa)*phi(iky,ikx,iz) &
+            *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
+    end do
 
-!     do ig = -nzgrid, nzgrid
-!        call broadcast (phi(ig,:,:))
-!     end do
-
-!     !Now set g using data in phi
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-!        iv = iv_idx(gxyz_lo,iglo)
-!        is = is_idx(gxyz_lo,iglo)
-!        imu = imu_idx(gxyz_lo,iglo)
-
-!        do it = 1, ntheta0
-!           gnew(:,it,:,iglo) = -spread(exp(-2.0*mu(imu)*bmag),2,naky)*phi(:,it,:) &
-!                *spec(is)%z*phiinit*exp(-vpa(iv)**2)
-!        end do
-!     end do
-
-!     gold = gnew
-    
-!   end subroutine ginit_noise
+  end subroutine ginit_noise
 
   subroutine ginit_kpar
 

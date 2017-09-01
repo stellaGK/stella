@@ -9,6 +9,7 @@ module dist_fn_arrays
   public :: gvmu
   public :: aj0x
   public :: aj0v, aj1v
+  public :: kperp2
   public :: wstar
   public :: wdriftx, wdrifty
   public :: stream_source
@@ -40,6 +41,8 @@ module dist_fn_arrays
 
   real, dimension (:,:), allocatable :: aj0v, aj1v
   ! (nmu, -kxkyz-layout-)
+
+  real, dimension (:,:,:), allocatable :: kperp2
 
   interface gbar_to_g
      module procedure gbar_to_g_kxkyz
@@ -198,7 +201,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon, vpa
+    use vpamu_grids, only: anon
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -232,7 +235,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon, vpa
+    use vpamu_grids, only: anon
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx

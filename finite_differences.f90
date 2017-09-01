@@ -4,12 +4,17 @@ module finite_differences
 
   public :: third_order_upwind
   public :: third_order_upwind_zed
-  public :: fd3pt
+  public :: fd3pt, fd5pt
   public :: d2_3pt
 
   interface fd3pt
      module procedure fd3pt_real
      module procedure fd3pt_array
+  end interface
+
+  interface fd5pt
+     module procedure fd5pt_real
+     module procedure fd5pt_array
   end interface
 
 contains
@@ -164,6 +169,80 @@ contains
     deallocate (aa, bb, cc)
     
   end subroutine fd3pt_array
+
+  ! boundary points are 2nd-order accurate (2-pt compact difference)
+  ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
+  ! interior points are 6th-order accurate (4-pt centered compact difference)
+  subroutine fd5pt_real (prof, profgrad, dr)
+
+    implicit none
+
+    real, dimension (:), intent (in) :: prof
+    real, dimension (:), intent (out) :: profgrad
+    real, intent (in) :: dr
+
+    integer :: ix, npts
+    real, dimension (:), allocatable :: aa, bb, cc
+
+    npts = size(prof)
+    allocate (aa(npts), bb(npts), cc(npts))
+
+    aa = 1.0 ; bb = 3.0 ; cc = 1.0
+    aa(1) = 0.0 ; bb(1) = 0.5 ; cc(1) = 0.5
+    aa(2) = 1.0 ; bb(2) = 4.0 ; cc(2) = 1.0
+    aa(npts-1) = 1.0 ; bb(npts-1) = 4.0 ; cc(npts-1) = 1.0
+    aa(npts) = 0.5 ; bb(npts) = 0.5 ; cc(npts) = 0.0
+
+    do ix = 3, npts-2
+       profgrad(ix) = (7.*(prof(ix+1) - prof(ix-1)) + 0.25*(prof(ix+2)-prof(ix-2))) / (3.*dr)
+    end do
+    profgrad(1) = (prof(2)-prof(1))/dr
+    profgrad(2) = 3.0*(prof(3) - prof(1))/dr
+    profgrad(npts-1) = 3.0*(prof(npts) - prof(npts-2))/dr
+    profgrad(npts) = (prof(npts)-prof(npts-1))/dr
+
+    call tridag (aa, bb, cc, profgrad)
+
+    deallocate (aa, bb, cc)
+
+  end subroutine fd5pt_real
+
+  ! boundary points are 2nd-order accurate (2-pt compact difference)
+  ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
+  ! interior points are 6th-order accurate (4-pt centered compact difference)
+  subroutine fd5pt_array (prof, profgrad, dr)
+
+    implicit none
+
+    real, dimension (:), intent (in) :: prof, dr
+    real, dimension (:), intent (out) :: profgrad
+
+    integer :: ix, npts
+    real, dimension (:), allocatable :: aa, bb, cc
+
+    npts = size(prof)
+    allocate (aa(npts), bb(npts), cc(npts))
+
+    aa = 1.0 ; bb = 3.0 ; cc = 1.0
+    aa(1) = 0.0 ; bb(1) = 0.5 ; cc(1) = 0.5
+    aa(2) = 1.0 ; bb(2) = 4.0 ; cc(2) = 1.0
+    aa(npts-1) = 1.0 ; bb(npts-1) = 4.0 ; cc(npts-1) = 1.0
+    aa(npts) = 0.5 ; bb(npts) = 0.5 ; cc(npts) = 0.0
+
+    do ix = 3, npts-2
+       profgrad(ix) = (7.*(prof(ix+1) - prof(ix-1)) + 0.25*(prof(ix+2)-prof(ix-2))) / (3.*dr(ix))
+    end do
+    profgrad(1) = (prof(2)-prof(1))/dr(1)
+    profgrad(2) = 3.0*(prof(3) - prof(1))/dr(2)
+    profgrad(npts-1) = 3.0*(prof(npts) - prof(npts-2))/dr(npts-1)
+    profgrad(npts) = (prof(npts)-prof(npts-1))/dr(npts)
+
+    call tridag (aa, bb, cc, profgrad)
+
+    deallocate (aa, bb, cc)
+
+  end subroutine fd5pt_array
+
 
   ! second derivative using centered differences
   ! second order accurate

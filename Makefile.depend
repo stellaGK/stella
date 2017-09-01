@@ -21,8 +21,10 @@ stella_mod = \
 	 kt_grids.o \
 	 millerlocal.o \
 	 mp.o \
+	 mt19937.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
+	 ran.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
@@ -112,6 +114,7 @@ init_g.o: \
 	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
+	 ran.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -149,6 +152,7 @@ mp.o: \
 mt19937.o: 
 neoclassical_terms.o: \
 	 file_utils.o \
+	 finite_differences.o \
 	 mp.o \
 	 sfincs_interface.o \
 	 species.o \
@@ -196,6 +200,7 @@ stella.o: \
 	 stella_diagnostics.o \
 	 stella_time.o 
 stella_diagnostics.o: \
+	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
