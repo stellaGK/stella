@@ -4,13 +4,14 @@ module zgrid
 
   public :: init_zgrid, finish_zgrid
   public :: nzed, nzgrid, nperiod
+  public :: nztot
   public :: zed
   public :: delzed
   public :: shat_zero
 
   private
 
-  integer :: nzed, nzgrid, nperiod
+  integer :: nzed, nzgrid, nperiod, nztot
   real :: shat_zero
   real, dimension (:), allocatable :: zed, delzed
 
@@ -41,6 +42,8 @@ contains
     zed = (/ (i*pi/real(nzed/2), i=-nzgrid, nzgrid ) /)
     delzed(:nzgrid-1) = zed(-nzgrid+1:) - zed(:nzgrid-1)
     delzed(nzgrid) = delzed(-nzgrid)
+
+    nztot = 2*nzgrid+1
 
   end subroutine init_zgrid
 

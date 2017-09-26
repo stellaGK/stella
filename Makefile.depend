@@ -180,6 +180,12 @@ sfincs_interface.o: \
 	 mp.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+sherman_morrison.o: \
+	 finite_differences.o \
+	 kt_grids.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 species.o: \
 	 common_types.o \
 	 file_utils.o \

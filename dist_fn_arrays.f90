@@ -5,32 +5,29 @@
 module dist_fn_arrays
 
   public :: gnew, gold
-  public :: g1, g2
+  public :: g1, g2, g3
   public :: gvmu
   public :: aj0x
   public :: aj0v, aj1v
   public :: kperp2
   public :: wstar
   public :: wdriftx, wdrifty
-  public :: stream_source
   public :: gbar_to_g
   public :: gbar_to_h
+  public :: gstar_to_g
   public :: g_to_h
 
   ! dist fn
   complex, dimension (:,:,:,:), allocatable :: gnew, gold
   ! (naky, nakx, -nzgrid:nzgrid, -vmu-layout-)
 
-  complex, dimension (:,:,:,:), allocatable :: g1, g2
+  complex, dimension (:,:,:,:), allocatable :: g1, g2, g3
   ! (naky, nakx, -nzgrid:nzgrid, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (-nvgrid:nvgrid, nmu, nspec, -kxkyz-layout-)
 
   real, dimension (:,:), allocatable :: wstar
-  ! (-nzgrid:nzgrid, -vmu-layout-)
-
-  real, dimension (:,:), allocatable :: stream_source
   ! (-nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:), allocatable :: wdriftx, wdrifty
@@ -263,5 +260,42 @@ contains
     end do
 
   end subroutine g_to_h_kxkyz
+
+  subroutine gstar_to_g (g, phi, apar, facphi, facapar)
+
+    use constants, only: zi
+    use species, only: spec
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: vpa
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: aky
+
+    implicit none
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
+    real, intent (in) :: facphi, facapar
+
+    integer :: ivmu, iz, iky, ikx, is, iv
+    complex :: adj
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+             do iky = 1, naky
+                ! BACKWARDS DIFFERENCE FLAG
+!                adj = zi*aj0x(iky,ikx,iz,ivmu)*aky(iky)*wstar(iz,ivmu) &
+                adj = zi*aj0x(iky,ikx,iz,ivmu)*aky(iky)*2.0*wstar(iz,ivmu) &
+                     * ( facphi*phi(iky,ikx,iz) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
+                g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) + adj
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine gstar_to_g
 
 end module dist_fn_arrays

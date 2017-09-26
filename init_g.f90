@@ -185,7 +185,7 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid, zed
     use geometry, only: bmag
-    use kt_grids, only: naky, nakx, ny
+    use kt_grids, only: naky, nakx
     use kt_grids, only: theta0, aky
     use kt_grids, only: reality
     use vpamu_grids, only: nvpa, vpa, mu, nmu

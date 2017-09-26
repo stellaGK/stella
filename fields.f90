@@ -17,6 +17,7 @@ contains
 
     use mp, only: proc0
     use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi_old, apar_old
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: init_stella_layouts
     use species, only: init_species
@@ -24,7 +25,7 @@ contains
     use zgrid, only: init_zgrid
     use zgrid, only: nzed, nzgrid
     use zgrid, only: delzed, zed
-    use kt_grids, only: init_kt_grids
+!    use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
     use dist_fn, only: init_dist_fn
     use dist_fn, only: init_get_fields, get_fields
@@ -55,10 +56,10 @@ contains
     call init_dist_fn
     if (debug) write(6,*) "fields::init_fields::allocate_arrays"
     call allocate_arrays
-    if (debug) write(6,*) 'fields::init_fields::init_stella_layouts'
-    call init_stella_layouts
-    if (debug) write(6,*) 'fields::init_fields::init_kt_grids'
-    call init_kt_grids
+!    if (debug) write(6,*) 'fields::init_fields::init_stella_layouts'
+!    call init_stella_layouts
+!    if (debug) write(6,*) 'fields::init_fields::init_kt_grids'
+!    call init_kt_grids
 
 ! Turn on nonlinear terms.
 !    if (debug) write(6,*) "init_fields::nl_finish_init"
@@ -76,13 +77,15 @@ contains
     call init_get_fields
     if (debug) write (*,*) 'fields::init_fields::get_fields'
     ! get initial field from initial distribution function
-    call get_fields (gvmu, phi, apar)
+    call get_fields (gvmu, phi, apar, dist='gbar')
+    phi_old = phi ; apar_old = apar
 
   end subroutine init_fields
 
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi_old, apar_old
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
@@ -96,13 +99,21 @@ contains
        allocate (apar(naky,nakx,-nzgrid:nzgrid))
        apar = 0.
     end if
+    if (.not.allocated(phi_old)) then
+       allocate (phi_old(naky,nakx,-nzgrid:nzgrid))
+       phi_old = 0.
+    end if
+    if (.not. allocated(apar_old)) then
+       allocate (apar_old(naky,nakx,-nzgrid:nzgrid))
+       apar_old = 0.
+    end if
 
   end subroutine allocate_arrays
 
   subroutine finish_fields
 
-    use fields_arrays, only: phi
-    use fields_arrays, only: apar
+    use fields_arrays, only: phi, phi_old
+    use fields_arrays, only: apar, apar_old
     use species, only: finish_species
     use geometry, only: finish_geometry
     use zgrid, only: finish_zgrid
@@ -115,7 +126,9 @@ contains
     call finish_zgrid
     call finish_species
     if (allocated(phi)) deallocate (phi)
+    if (allocated(phi_old)) deallocate (phi_old)
     if (allocated(apar)) deallocate (apar)
+    if (allocated(apar_old)) deallocate (apar_old)
 
     fields_initialized = .false.
 

@@ -273,7 +273,7 @@ module kt_grids
   public :: gridopt_switch, grid_option
   public :: gridopt_range, gridopt_box
   public :: lx, ly
-  public :: alpha_global
+  public :: alpha_global, ny_ffs
   public :: iky_max
 
   private
@@ -284,6 +284,7 @@ module kt_grids
   integer :: naky, nakx, ntheta0, nx, ny, jtwist_out
   integer :: iky_max
   character(20) :: grid_option
+  integer :: ny_ffs = 1
   logical :: alpha_global
 
   namelist /kt_grids_knobs/ grid_option, alpha_global
@@ -346,6 +347,8 @@ contains
     end if
 
     iky_max = naky/2+1
+
+    if (alpha_global) ny_ffs = ny
 
   end subroutine init_kt_grids
 

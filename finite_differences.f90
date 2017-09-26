@@ -2,8 +2,11 @@ module finite_differences
 
   implicit none
 
+  public :: first_order_upwind
   public :: third_order_upwind
   public :: third_order_upwind_zed
+  public :: first_order_upwind_zed
+  public :: second_order_centered_zed
   public :: fd3pt, fd5pt
   public :: d2_3pt
 
@@ -17,9 +20,24 @@ module finite_differences
      module procedure fd5pt_array
   end interface
 
+  interface third_order_upwind
+     module procedure third_order_upwind_complex
+     module procedure third_order_upwind_real
+  end interface
+
+  interface tridag
+     module procedure tridag_real
+     module procedure tridag_complex
+  end interface
+
+  interface second_order_centered_zed
+     module procedure second_order_centered_zed_real
+     module procedure second_order_centered_zed_complex
+  end interface
+
 contains
-  
-  subroutine third_order_upwind (llim, f, del, sgn, df)
+
+  subroutine first_order_upwind (llim, f, del, sgn, df)
     
     implicit none
     
@@ -28,6 +46,86 @@ contains
     real, intent (in) :: del
     integer, intent (in) :: sgn
     complex, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+
+    if (sgn == -1) then
+       istart = llim
+       iend = llim+n-1
+    else
+       istart = llim+n-1
+       iend = llim
+    end if
+
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+    do i = istart-sgn, iend, -sgn
+       df(i) = sgn*(f(i+sgn)-f(i))/del
+    end do
+
+  end subroutine first_order_upwind
+  
+  subroutine third_order_upwind_complex (llim, f, del, sgn, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    complex, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    if (sgn == -1) then
+       istart = llim
+       iend = llim+n-1
+    else
+       istart = llim+n-1
+       iend = llim
+    end if
+
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+    ! zero BC, 3rd order accurate upwind
+    i = istart-sgn
+    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    ! 1st order accurate upwind
+    df(iend) = sgn*(f(iend+sgn)-f(iend))/del
+
+    ! 3rd order accurate upwind
+    do i = istart-2*sgn, iend+sgn, -sgn
+       df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
+    end do
+!     ! zero BC, 1st order accurate upwind
+!     i = -llim*sgn
+!     df(i) = -f(i)*sgn/del
+!     ! zero BC, 3rd order accurate upwind
+!     i = -(llim+1)*sgn
+!     df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+!     ! 1st order accurate upwind
+!     i = llim*sgn
+!     df(i) = sgn*(f(i+sgn)-f(i))/del
+
+!     ! 3rd order accurate upwind
+!     do i = -(llim+2)*sgn, (llim+1)*sgn, -sgn
+!        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
+!     end do
+
+  end subroutine third_order_upwind_complex
+
+  subroutine third_order_upwind_real (llim, f, del, sgn, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    real, dimension (llim:), intent (out) :: df
     
     integer :: i
 
@@ -46,7 +144,7 @@ contains
        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
     end do
 
-  end subroutine third_order_upwind
+  end subroutine third_order_upwind_real
 
   subroutine third_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
 
@@ -114,6 +212,131 @@ contains
     end do
 
   end subroutine third_order_upwind_zed
+
+  subroutine first_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+
+    implicit none
+    
+    integer, intent (in) :: llim, iseg, nseg
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    complex, dimension (:), intent (in) :: fl, fr
+    complex, dimension (llim:), intent (out) :: df
+
+    integer :: i, istart, iend, ulim
+
+    ulim = size(f)+llim-1    
+    ! if sgn > 0, then stream speed is negative
+    ! so sweep from more positive to more negative zed
+    if (sgn > 0) then
+       if (iseg == nseg) then
+          i = ulim
+          df(i) = -f(i)/del
+          i = ulim-1
+          df(i) = (f(i+1)-f(i))/del
+       else
+          i = ulim
+          df(i) = (fr(1)-f(i))/del
+          i = ulim-1
+          df(i) = (f(i+1)-f(i))/del
+       end if
+       i = llim
+       df(i) = (f(i+1)-f(i))/del
+       istart = ulim
+       iend = llim
+    else
+       if (iseg == 1) then
+          i = llim
+          df(i) = f(i)/del
+          i = llim+1
+          df(i) = (f(i)-f(i-1))/del
+       else
+          i = llim
+          df(i) = (f(i)-fl(2))/del
+          i = llim+1
+          df(i) = (f(i)-f(i-1))/del
+       end if
+       i = ulim
+       df(i) = (f(i)-f(i-1))/del
+       istart = llim
+       iend = ulim
+    end if
+
+    ! 3rd order accurate upwind
+    do i = istart-2*sgn, iend+sgn, -sgn
+       df(i) = sgn*(f(i+sgn)-f(i))/del
+    end do
+
+  end subroutine first_order_upwind_zed
+
+  subroutine second_order_centered_zed_real (llim, iseg, nseg, f, del, fl, fr, df)
+
+    implicit none
+    
+    integer, intent (in) :: llim, iseg, nseg
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    real, dimension (:), intent (in) :: fl, fr
+    real, dimension (llim:), intent (out) :: df
+
+    integer :: i, ulim
+
+    ulim = size(f)+llim-1    
+
+    i = llim
+    if (iseg == 1) then
+       df(i) = 0.5*f(i+1)/del
+    else
+       df(i) = 0.5*(f(i+1)-fl(2))/del
+    end if
+
+    i = ulim
+    if (iseg == nseg) then
+       df(i) = -0.5*f(i-1)/del
+    else
+       df(i) = 0.5*(fr(1)-f(i-1))/del
+    end if
+
+    do i = llim+1, ulim-1
+       df(i) = 0.5*(f(i+1)-f(i-1))/del
+    end do
+
+  end subroutine second_order_centered_zed_real
+
+  subroutine second_order_centered_zed_complex (llim, iseg, nseg, f, del, fl, fr, df)
+
+    implicit none
+    
+    integer, intent (in) :: llim, iseg, nseg
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    complex, dimension (:), intent (in) :: fl, fr
+    complex, dimension (llim:), intent (out) :: df
+
+    integer :: i, ulim
+
+    ulim = size(f)+llim-1    
+
+    i = llim
+    if (iseg == 1) then
+       df(i) = 0.5*f(i+1)/del
+    else
+       df(i) = 0.5*(f(i+1)-fl(2))/del
+    end if
+
+    i = ulim
+    if (iseg == nseg) then
+       df(i) = -0.5*f(i-1)/del
+    else
+       df(i) = 0.5*(fr(1)-f(i-1))/del
+    end if
+
+    do i = llim+1, ulim-1
+       df(i) = 0.5*(f(i+1)-f(i-1))/del
+    end do
+
+  end subroutine second_order_centered_zed_complex
 
   ! only good for equally-spaced grid-pts
   subroutine fd3pt_real (prof, profgrad, dr)
@@ -273,7 +496,7 @@ contains
 
   end subroutine d2_3pt
 
-  subroutine tridag (aa, bb, cc, sol)
+  subroutine tridag_real (aa, bb, cc, sol)
     
     implicit none
     
@@ -304,6 +527,40 @@ contains
 
     deallocate (gam)
 
-  end subroutine tridag
+  end subroutine tridag_real
+
+  subroutine tridag_complex (llim, aa, bb, cc, sol)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: aa, bb, cc
+    complex, dimension (llim:), intent (in out) :: sol
+    
+    integer :: ix, npts
+    real :: bet
+    
+    real, dimension (:), allocatable :: gam
+    
+    npts = size(bb)
+    allocate (gam(llim:llim+npts-1))
+    
+    bet = bb(llim)
+    sol(llim) = sol(llim)/bet
+    
+    do ix = llim+1, llim+npts-1
+       gam(ix) = cc(ix-1)/bet
+       bet = bb(ix) - aa(ix)*gam(ix)
+       if (bet == 0.0) write (*,*) 'tridiagonal solve failed'
+       sol(ix) = (sol(ix)-aa(ix)*sol(ix-1))/bet
+    end do
+
+    do ix = llim+npts-2, llim, -1
+       sol(ix) = sol(ix) - gam(ix+1)*sol(ix+1)
+    end do
+
+    deallocate (gam)
+
+  end subroutine tridag_complex
   
 end module finite_differences
