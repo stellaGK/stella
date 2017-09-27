@@ -122,7 +122,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nvgrid, nmu
     use vpamu_grids, only: vpa
-    use vpamu_grids, only: anon, integrate_vmu
+    use vpamu_grids, only: maxwellian, integrate_vmu
     use species, only: spec
     use kt_grids, only: naky, nakx, aky, akx
 
@@ -161,7 +161,7 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa)*anon(iz,:,:)
+          g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa)*spread(maxwellian,2,nmu)
           wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
           call integrate_vmu (g0, iz, tmp)
           gamtot(iky,ikx,iz) = gamtot(iky,ikx,iz) + tmp*wgt
@@ -196,7 +196,7 @@ contains
              ikx = ikx_idx(kxkyz_lo,ikxkyz)
              iz = iz_idx(kxkyz_lo,ikxkyz)
              is = is_idx(kxkyz_lo,ikxkyz)
-             g0 = spread(abs(vpa),2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(iz,:,:)
+             g0 = spread(abs(vpa*maxwellian),2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)
              wgt = spec(is)%z*spec(is)%z*spec(is)%dens*spec(is)%stm/spec(is)%temp &
                   * 0.5*code_dt*gradpar(iz)/gamtot(iky,ikx,iz)
              call integrate_vmu (g0, iz, tmp)
@@ -215,7 +215,7 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(iz,:,:)
+          g0 = spread(maxwellian*vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
           call integrate_vmu (g0, iz, tmp)
           apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
@@ -245,7 +245,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nvgrid, nmu
     use vpamu_grids, only: energy
-    use vpamu_grids, only: anon, integrate_vmu
+    use vpamu_grids, only: maxwellian, integrate_vmu
     use species, only: spec
     use kt_grids, only: naky, nakx, aky, akx
 
@@ -278,7 +278,7 @@ contains
           g0 = -zi*aky(iky)*spec(is)%z*spec(is)%dens*spread(aj0v(:,ikxkyz)**2,1,nvpa) &
                ! BACKWARDS DIFFERENCE FLAG
 !               *anon(ig,:,:)*0.25*code_dt &
-               *anon(ig,:,:)*0.5*code_dt &
+               *spread(maxwellian,2,nmu)*0.5*code_dt &
                *(spec(is)%fprim+spec(is)%tprim*(energy(ig,:,:)-1.5))
           call integrate_vmu (g0, ig, tmp)
           gamtot_wstar(iky,ikx,ig) = gamtot_wstar(iky,ikx,ig) + tmp
@@ -737,7 +737,7 @@ contains
     use stella_time, only: code_dt
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: energy, anon
+    use vpamu_grids, only: energy, maxwellian
 
     implicit none
 
@@ -753,7 +753,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       wstar(:,ivmu) = 0.5*wstarknob*0.5*code_dt*anon(:,iv,imu) &
+       wstar(:,ivmu) = 0.5*wstarknob*0.5*code_dt*maxwellian(iv) &
             * (spec(is)%fprim+spec(is)%tprim*(energy(:,iv,imu)-1.5))
     end do
 
@@ -1027,7 +1027,7 @@ contains
 
     use geometry, only: bmag
     use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp2, energy, anon
+    use vpamu_grids, only: vperp2, energy
     use vpamu_grids, only: vpa, mu
     use vpamu_grids, only: nmu, nvgrid
 
@@ -1037,13 +1037,11 @@ contains
     
     if (.not.allocated(vperp2)) allocate (vperp2(-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
     if (.not.allocated(energy)) allocate (energy(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu)) ; energy = 0.
-    if (.not.allocated(anon)) allocate (anon(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu)) ; anon = 0.
 
     vperp2 = 2.0*spread(mu,1,2*nzgrid+1)*spread(bmag,2,nmu)
 
     do iv = -nvgrid, nvgrid
        energy(:,iv,:) = vpa(iv)**2 + 2.0*spread(mu,1,2*nzgrid+1)*spread(bmag,2,nmu)
-       anon(:,iv,:) = exp(-energy(:,iv,:))
     end do
 
   end subroutine init_vperp2
@@ -1955,6 +1953,7 @@ contains
     use kt_grids, only: alpha_global
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: vpa
 
     implicit none
 
@@ -1963,6 +1962,8 @@ contains
 
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:), allocatable :: g0x
+
+    integer :: iv
 
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
     ! the mirror term is most complicated of all when doing full flux surface
@@ -1975,8 +1976,16 @@ contains
        call transform_ky2y (g, g0x)
        ! second, remap h so velocities are local
        call scatter (kxyz2vmu, g0x, g0v)
-       ! next, take dh/dvpa and multiply with mirror coefficient in y-space.
+       ! next, calculate dh/dvpa
        call get_dgdvpa_global (g0v)
+       ! add in extra term coming from definition of h as h*exp(mu*B/T)
+
+       ! FLAG -- NEED TO REPLACE GVMU BELOW !!!
+       do iv = -nvgrid, nvgrid
+          g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
+       end do
+
+
        ! then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
        ! finally add the mirror term to the RHS of the GK eqn
@@ -1990,6 +1999,10 @@ contains
 !       call get_dgdvpa (gvmu, g0v)
        g0v = gvmu
        call get_dgdvpa_explicit (g0v)
+       ! add in extra term coming from definition of h as h*exp(mu*B/T)
+       do iv = -nvgrid, nvgrid
+          g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
+       end do
        if (debug) write (*,*) 'dist_fn::advance_stella::gather'
        ! swap layouts so that (z,kx,ky) are local
        call gather (kxkyz2vmu, g0v, g0x)
@@ -2226,7 +2239,8 @@ contains
           ! tmp is dh/dvpa
           call third_order_upwind (-nvgrid,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
           ! get h - mirror*dh/dvpa
-          g(:,imu,ikxyz) = g(:,imu,ikxyz) + mirror(iy,iz,imu,is)*tmp
+!          g(:,imu,ikxyz) = g(:,imu,ikxyz) + mirror(iy,iz,imu,is)*tmp
+          g(:,imu,ikxyz) = tmp
        end do
     end do
     deallocate (tmp)
@@ -2254,7 +2268,8 @@ contains
        do imu = 1, nmu
           call third_order_upwind (-nvgrid,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
 !          g(:,imu,ikxkyz) = g(:,imu,ikxkyz) + 2.0*mirror(1,iz,imu,is)*tmp
-          g(:,imu,ikxkyz) = 2.0*mirror(1,iz,imu,is)*tmp
+!          g(:,imu,ikxkyz) = 2.0*mirror(1,iz,imu,is)*tmp
+          g(:,imu,ikxkyz) = tmp
        end do
     end do
 
@@ -2267,7 +2282,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid
-!    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx
 
     implicit none
 
@@ -2279,8 +2294,8 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-!       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(mirror(1,:,imu,is),1,naky),2,nakx)*g(:,:,:,ivmu)
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(2.0*mirror(1,:,imu,is),1,naky),2,nakx)*g(:,:,:,ivmu)
+!       src(:,:,:,ivmu) = src(:,:,:,ivmu) + g(:,:,:,ivmu)
     end do
 
   end subroutine add_mirror_term
@@ -2302,7 +2317,8 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(mirror(:,:,imu,is),2,nakx)*g(:,:,:,ivmu)
+!       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(mirror(:,:,imu,is),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(2.0*mirror(:,:,imu,is),2,nakx)*g(:,:,:,ivmu)
     end do
 
   end subroutine add_mirror_term_global
@@ -2753,7 +2769,7 @@ contains
 
     ! g^{**} is input
     ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-    if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
+!    if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
 
     if (wdrifty_implicit) call advance_wdrifty_implicit (g)
     if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
@@ -2862,174 +2878,174 @@ contains
 
   end subroutine invert_mirror_operator
 
-  subroutine advance_parallel_streaming_implicit (g, phi, apar)
+!   subroutine advance_parallel_streaming_implicit (g, phi, apar)
 
-    use mp, only: proc0, sum_allreduce
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use job_manage, only: time_message
-    use run_parameters, only: fphi, fapar
-    use zgrid, only: nzgrid
-    use dist_fn_arrays, only: gbar_to_h
+!     use mp, only: proc0, sum_allreduce
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx, imu_idx, is_idx
+!     use job_manage, only: time_message
+!     use run_parameters, only: fphi, fapar
+!     use zgrid, only: nzgrid
+!     use dist_fn_arrays, only: gbar_to_h
 
-    implicit none
+!     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+!     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
 
-    ! parallel streaming stays in ky,kx,z space with ky,kx,z local
-    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
+!     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
+!     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
 
-!    do iz = -nzgrid, nzgrid
-!       write (*,*) 'zeroth', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-!    end do
+! !    do iz = -nzgrid, nzgrid
+! !       write (*,*) 'zeroth', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
+! !    end do
 
-    ! input is g^{*}, output is g^{**}
-    ! where (1 + dt*(vpa . grad z)*d/dz) g^{**} = g^{*}
-    call invert_stream_operator (g)
-    ! next get fields corresponding to g^{**} (aka phi^{**})
-    call advance_fields (g, phi, apar, dist='gbar')
+!     ! input is g^{*}, output is g^{**}
+!     ! where (1 + dt*(vpa . grad z)*d/dz) g^{**} = g^{*}
+!     call invert_stream_operator (g)
+!     ! next get fields corresponding to g^{**} (aka phi^{**})
+!     call advance_fields (g, phi, apar, dist='gbar')
 
-!    do iz = -nzgrid, nzgrid
-!       write (*,*) 'first', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-!    end do
+! !    do iz = -nzgrid, nzgrid
+! !       write (*,*) 'first', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
+! !    end do
 
-    ! get phi^{n+1} by operating on g^{n+1} equation with QN operator
-    ! input is phi^{**}, output is phi^{n+1}
-    call invert_stream_phi (phi)
+!     ! get phi^{n+1} by operating on g^{n+1} equation with QN operator
+!     ! input is phi^{**}, output is phi^{n+1}
+!     call invert_stream_phi (phi)
 
-!    do iz = -nzgrid, nzgrid
-!       write (*,*) 'second', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-!       write (*,*) 'second', iz, cabs(phi(1,1,iz)), cabs(g(1,1,iz,1))
-!    end do
+! !    do iz = -nzgrid, nzgrid
+! !       write (*,*) 'second', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
+! !       write (*,*) 'second', iz, cabs(phi(1,1,iz)), cabs(g(1,1,iz,1))
+! !    end do
 
-    ! solve for g^{n+1}, with g^{n+1} = g^{**} - dt*(vpa . grad z)*d(<phi^{n+1}>)/dz * Ze/T * F0
-!    ! note that the phi term modifies g in such a way that it does not change the associated field
-!    ! so phi^{n+1} = phi^{**}
+!     ! solve for g^{n+1}, with g^{n+1} = g^{**} - dt*(vpa . grad z)*d(<phi^{n+1}>)/dz * Ze/T * F0
+! !    ! note that the phi term modifies g in such a way that it does not change the associated field
+! !    ! so phi^{n+1} = phi^{**}
 
-    call add_dphidz_term_to_stream (g, phi)
+!     call add_dphidz_term_to_stream (g, phi)
 
-    ! TMP FOR TESTING -- MAB
-!    call advance_fields (g, phi, apar, dist='gbar')
+!     ! TMP FOR TESTING -- MAB
+! !    call advance_fields (g, phi, apar, dist='gbar')
 
-!    do iz = -nzgrid, nzgrid
-!       write (*,*) 'third', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-!       write (*,*) 'third', iz, cabs(phi(1,1,iz)), cabs(g(1,1,iz,1))
-!    end do
-!    stop
+! !    do iz = -nzgrid, nzgrid
+! !       write (*,*) 'third', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
+! !       write (*,*) 'third', iz, cabs(phi(1,1,iz)), cabs(g(1,1,iz,1))
+! !    end do
+! !    stop
 
-    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
+!     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
 
-  end subroutine advance_parallel_streaming_implicit
+!   end subroutine advance_parallel_streaming_implicit
 
-  subroutine add_dphidz_term_to_stream (g, phi)
+!   subroutine add_dphidz_term_to_stream (g, phi)
 
-    use finite_differences, only: second_order_centered_zed
-    use finite_differences, only: first_order_upwind_zed
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use species, only: spec
-    use zgrid, only: nzgrid, delzed
-    use kt_grids, only: naky, nakx
-    use vpamu_grids, only: anon
-    use dist_fn_arrays, only: aj0x
+!     use finite_differences, only: second_order_centered_zed
+!     use finite_differences, only: first_order_upwind_zed
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx, imu_idx, is_idx
+!     use species, only: spec
+!     use zgrid, only: nzgrid, delzed
+!     use kt_grids, only: naky, nakx
+!     use vpamu_grids, only: maxwellian
+!     use dist_fn_arrays, only: aj0x
 
-    implicit none
+!     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+!     complex, dimension (:,:,-nzgrid:), intent (in) :: phi
 
-    integer :: ivmu, iv, imu, is
-    integer :: iky, ie, iseg
-    integer :: ikx
-    complex, dimension (2) :: gleft, gright
-    real, dimension (2) :: j0left, j0right
-    real, dimension (:), allocatable :: gtmp1
-    complex, dimension (:), allocatable :: gtmp2, gtmp3
-    complex, dimension (:,:), allocatable :: gsave
+!     integer :: ivmu, iv, imu, is
+!     integer :: iky, ie, iseg
+!     integer :: ikx
+!     complex, dimension (2) :: gleft, gright
+!     real, dimension (2) :: j0left, j0right
+!     real, dimension (:), allocatable :: gtmp1
+!     complex, dimension (:), allocatable :: gtmp2, gtmp3
+!     complex, dimension (:,:), allocatable :: gsave
 
-    allocate (gtmp1(-nzgrid:nzgrid))
-    allocate (gtmp2(-nzgrid:nzgrid))
-    allocate (gtmp3(-nzgrid:nzgrid))
-    allocate (gsave(nakx,-nzgrid:nzgrid))
+!     allocate (gtmp1(-nzgrid:nzgrid))
+!     allocate (gtmp2(-nzgrid:nzgrid))
+!     allocate (gtmp3(-nzgrid:nzgrid))
+!     allocate (gsave(nakx,-nzgrid:nzgrid))
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       do iky = 1, naky
-          gsave = g(iky,:,:,ivmu)
-          do ie = 1, neigen(iky)
-             do iseg = 1, nsegments(ie,iky)
-                ! if iseg,ie,iky corresponds to negative kx, no need to solve
-                ! as it will be constrained by reality condition
-                ikx = ikxmod(iseg,ie,iky)
-                if (ikx > nakx) cycle
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        iv = iv_idx(vmu_lo,ivmu)
+!        imu = imu_idx(vmu_lo,ivmu)
+!        is = is_idx(vmu_lo,ivmu)
+!        do iky = 1, naky
+!           gsave = g(iky,:,:,ivmu)
+!           do ie = 1, neigen(iky)
+!              do iseg = 1, nsegments(ie,iky)
+!                 ! if iseg,ie,iky corresponds to negative kx, no need to solve
+!                 ! as it will be constrained by reality condition
+!                 ikx = ikxmod(iseg,ie,iky)
+!                 if (ikx > nakx) cycle
 
-                ! first fill in ghost zones at boundaries in J0
-                call fill_zed_ghost_zones (iseg, ie, iky, aj0x(:,:,:,ivmu), j0left, j0right)
-                ! now get dJ0/dz
-                call second_order_centered_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-                     aj0x(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu), &
-                     delzed(0), j0left, j0right, &
-                     gtmp1(ig_low(iseg):ig_up(iseg)))
+!                 ! first fill in ghost zones at boundaries in J0
+!                 call fill_zed_ghost_zones (iseg, ie, iky, aj0x(:,:,:,ivmu), j0left, j0right)
+!                 ! now get dJ0/dz
+!                 call second_order_centered_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
+!                      aj0x(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu), &
+!                      delzed(0), j0left, j0right, &
+!                      gtmp1(ig_low(iseg):ig_up(iseg)))
 
-                ! fill in ghost zones at boundaries in phi
-                call fill_zed_ghost_zones (iseg, ie, iky, phi, gleft, gright)
-                ! now get dphi/dz with upwinding
-                call first_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-                     phi(iky,ikx,ig_low(iseg):ig_up(iseg)), &
-                     delzed(0), stream_sign(iv), gleft, gright, &
-                     gtmp2(ig_low(iseg):ig_up(iseg)))
-                ! now get dphi/dz centered
-                call second_order_centered_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-                     phi(iky,ikx,ig_low(iseg):ig_up(iseg)), &
-                     delzed(0), gleft, gright, &
-                     gtmp3(ig_low(iseg):ig_up(iseg)))
+!                 ! fill in ghost zones at boundaries in phi
+!                 call fill_zed_ghost_zones (iseg, ie, iky, phi, gleft, gright)
+!                 ! now get dphi/dz with upwinding
+!                 call first_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
+!                      phi(iky,ikx,ig_low(iseg):ig_up(iseg)), &
+!                      delzed(0), stream_sign(iv), gleft, gright, &
+!                      gtmp2(ig_low(iseg):ig_up(iseg)))
+!                 ! now get dphi/dz centered
+!                 call second_order_centered_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
+!                      phi(iky,ikx,ig_low(iseg):ig_up(iseg)), &
+!                      delzed(0), gleft, gright, &
+!                      gtmp3(ig_low(iseg):ig_up(iseg)))
 
-                ! take combination of upwinded and centered derivatives
-                ! at boundaries, use only upwinded values
-                if (iseg == 1 .and. stream_sign(iv) == 1) then
-                   gtmp2(ig_low(iseg)+1:) = stream_upwind*gtmp2(ig_low(iseg)+1:) &
-                        + (1.0-stream_upwind)*gtmp3(ig_low(iseg)+1:)
-                else if (iseg == nsegments(ie,iky) .and. stream_sign(iv) == -1) then
-                   gtmp2(:ig_up(iseg)-1) = stream_upwind*gtmp2(:ig_up(iseg)-1) &
-                        + (1.0-stream_upwind)*gtmp3(:ig_up(iseg)-1)
-                else
-                   gtmp2 = stream_upwind*gtmp2 + (1.0-stream_upwind)*gtmp3
-                end if
+!                 ! take combination of upwinded and centered derivatives
+!                 ! at boundaries, use only upwinded values
+!                 if (iseg == 1 .and. stream_sign(iv) == 1) then
+!                    gtmp2(ig_low(iseg)+1:) = stream_upwind*gtmp2(ig_low(iseg)+1:) &
+!                         + (1.0-stream_upwind)*gtmp3(ig_low(iseg)+1:)
+!                 else if (iseg == nsegments(ie,iky) .and. stream_sign(iv) == -1) then
+!                    gtmp2(:ig_up(iseg)-1) = stream_upwind*gtmp2(:ig_up(iseg)-1) &
+!                         + (1.0-stream_upwind)*gtmp3(:ig_up(iseg)-1)
+!                 else
+!                    gtmp2 = stream_upwind*gtmp2 + (1.0-stream_upwind)*gtmp3
+!                 end if
 
-                ! TMP FOR TESTING -- MAB
-!                gtmp1 = 0.
+!                 ! TMP FOR TESTING -- MAB
+! !                gtmp1 = 0.
 
-!                if (ivmu == 1) then
-!                   do iz = ig_low(iseg), ig_up(iseg)
-!                      write (*,*) 'pre-g', iz, cabs(g(iky,ikx,iz,ivmu)), iky, ikx, ig_low(iseg), ig_up(iseg)
-!                   end do
- !               end if
+! !                if (ivmu == 1) then
+! !                   do iz = ig_low(iseg), ig_up(iseg)
+! !                      write (*,*) 'pre-g', iz, cabs(g(iky,ikx,iz,ivmu)), iky, ikx, ig_low(iseg), ig_up(iseg)
+! !                   end do
+!  !               end if
 
-!                g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) &
-                g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = gsave(ikx,ig_low(iseg):ig_up(iseg)) &
-                     + 2.0*stream(ig_low(iseg):ig_up(iseg),iv,is) &
-                     * (phi(iky,ikx,ig_low(iseg):ig_up(iseg))*gtmp1(ig_low(iseg):ig_up(iseg)) &
-                     + aj0x(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu)*gtmp2(ig_low(iseg):ig_up(iseg))) &
-                     * spec(is)%zt*anon(ig_low(iseg):ig_up(iseg),iv,imu)
+! !                g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) &
+!                 g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = gsave(ikx,ig_low(iseg):ig_up(iseg)) &
+!                      + 2.0*stream(ig_low(iseg):ig_up(iseg),iv,is) &
+!                      * (phi(iky,ikx,ig_low(iseg):ig_up(iseg))*gtmp1(ig_low(iseg):ig_up(iseg)) &
+!                      + aj0x(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu)*gtmp2(ig_low(iseg):ig_up(iseg))) &
+!                      * spec(is)%zt*anon(ig_low(iseg):ig_up(iseg),iv,imu)
 
-!                if (ivmu == 1) then
-!                   do iz = ig_low(iseg), ig_up(iseg)
-!                      write (*,*) 'gtmp2', iz, cabs(gtmp2(iz)), cabs(g(iky,ikx,iz,ivmu)), abs(gtmp1(iz)), cabs(gtmp3(iz)), stream(iz,iv,is), phi(iky,ikx,iz), aj0x(iky,ikx,iz,ivmu), anon(iz,iv,imu)
-!                   end do
-!                end if
+! !                if (ivmu == 1) then
+! !                   do iz = ig_low(iseg), ig_up(iseg)
+! !                      write (*,*) 'gtmp2', iz, cabs(gtmp2(iz)), cabs(g(iky,ikx,iz,ivmu)), abs(gtmp1(iz)), cabs(gtmp3(iz)), stream(iz,iv,is), phi(iky,ikx,iz), aj0x(iky,ikx,iz,ivmu), anon(iz,iv,imu)
+! !                   end do
+! !                end if
 
-             end do
-          end do
-       end do
-    end do
+!              end do
+!           end do
+!        end do
+!     end do
     
-    deallocate (gtmp1, gtmp2, gtmp3)
-    deallocate (gsave)
+!     deallocate (gtmp1, gtmp2, gtmp3)
+!     deallocate (gsave)
 
-  end subroutine add_dphidz_term_to_stream
+!   end subroutine add_dphidz_term_to_stream
 
   subroutine invert_stream_operator (g)
 

@@ -64,7 +64,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon, vpa
+    use vpamu_grids, only: maxwellian, vpa
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -84,7 +84,7 @@ contains
        do ig = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*anon(ig,iv,imu) &
+                adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) &
                      * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
                 g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
              end do
@@ -98,7 +98,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon, vpa
+    use vpamu_grids, only: maxwellian, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -118,7 +118,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             adj = aj0v(imu,ikxkyz)*spec(is)%zt*anon(ig,iv,imu) &
+             adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) &
                   * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
           end do
@@ -131,7 +131,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon, vpa
+    use vpamu_grids, only: maxwellian, vpa
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -151,7 +151,7 @@ contains
        do ig = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                adj = -aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*anon(ig,iv,imu) &
+                adj = -aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) &
                      * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
                 g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
              end do
@@ -165,7 +165,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon, vpa
+    use vpamu_grids, only: maxwellian, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -185,7 +185,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             adj = -aj0v(imu,ikxkyz)*spec(is)%zt*anon(ig,iv,imu) &
+             adj = -aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) &
                   * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
           end do
@@ -198,7 +198,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon
+    use vpamu_grids, only: maxwellian
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -218,7 +218,7 @@ contains
        do ig = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*anon(ig,iv,imu) &
+                adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) &
                      * facphi*phi(iky,ikx,ig)
                 g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
              end do
@@ -232,7 +232,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: anon
+    use vpamu_grids, only: maxwellian
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -252,7 +252,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             adj = aj0v(imu,ikxkyz)*spec(is)%zt*anon(ig,iv,imu) &
+             adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) &
                   * facphi*phi(iky,ikx,ig)
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
           end do

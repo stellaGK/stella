@@ -344,7 +344,7 @@ contains
     use species, only: nspec, spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: energy, vpa, anon
+    use vpamu_grids, only: energy, vpa, maxwellian
     use export_f, only: h_sfincs => delta_f
     use globalVariables, only: nxi_sfincs => nxi
     use globalVariables, only: nx_sfincs => nx
@@ -446,7 +446,7 @@ contains
                 ! if correct, need to multiply by Z_s * Tref/T_s * F_{0,s}
                 ! NB: f_neoclassical has not been scaled up by 1/rho*
                 f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) &
-                     - phi_neoclassical(iz)*spec(is)%z/spec(is)%temp*anon(iz,iv,imu)
+                     - phi_neoclassical(iz)*spec(is)%z/spec(is)%temp*maxwellian(iv)
 
 !                deallocate (xi_stella, hstella, dhstella_dx, legpoly)
                 deallocate (xi_stella, hstella, legpoly)
