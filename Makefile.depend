@@ -8,6 +8,7 @@ stella_mod = \
 	 convert.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
+	 extended_zgrid.o \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
@@ -19,9 +20,9 @@ stella_mod = \
 	 inputprofiles_interface.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 millerlocal.o \
 	 mp.o \
-	 mt19937.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 ran.o \
@@ -49,12 +50,14 @@ convert.o:
 dist_fn.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
+	 extended_zgrid.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 geometry.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 neoclassical_terms.o \
 	 redistribute.o \
@@ -68,9 +71,16 @@ dist_fn.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 dist_fn_arrays.o: \
+	 constants.o \
+	 extended_zgrid.o \
 	 kt_grids.o \
 	 species.o \
 	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+extended_zgrid.o: \
+	 kt_grids.o \
+	 species.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 fft_work.o: \
@@ -79,16 +89,20 @@ fft_work.o: \
 fields.o: \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
+	 extended_zgrid.o \
 	 fields_arrays.o \
 	 geometry.o \
 	 init_g.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
+	 vpamu_grids.o \
 	 zgrid.o 
-fields_arrays.o: 
+fields_arrays.o: \
+	 common_types.o 
 file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
@@ -102,7 +116,8 @@ geometry.o: \
 	 inputprofiles_interface.o \
 	 millerlocal.o \
 	 mp.o \
-	 text_options.o 
+	 text_options.o \
+	 zgrid.o 
 hdf_wrapper.o: \
 	 constants.o \
 	 convert.o \
@@ -139,6 +154,7 @@ kt_grids.o: \
 	 mp.o \
 	 text_options.o \
 	 zgrid.o 
+linear_solve.o: 
 mds.o: \
 	 constants.o 
 millerlocal.o: \
@@ -149,7 +165,6 @@ millerlocal.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
-mt19937.o: 
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
@@ -164,8 +179,7 @@ netcdf_utils.o: \
 	 file_utils.o 
 pgplot_utils.o: \
 	 constants.o 
-ran.o: \
-	 mt19937.o 
+ran.o: 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 
@@ -178,12 +192,6 @@ run_parameters.o: \
 	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
-	 vpamu_grids.o \
-	 zgrid.o 
-sherman_morrison.o: \
-	 finite_differences.o \
-	 kt_grids.o \
-	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
@@ -266,4 +274,5 @@ vpamu_grids.o: \
 zgrid.o: \
 	 constants.o \
 	 file_utils.o \
-	 mp.o 
+	 mp.o \
+	 text_options.o 

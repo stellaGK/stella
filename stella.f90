@@ -133,6 +133,9 @@ contains
        write (*,fmt=101) 'dgdy:', time_gke(1,4)/60., 'min'
        write (*,fmt=101) 'wstar:', time_gke(1,6)/60., 'min'
        write (*,fmt=101) 'nonlinear:', time_gke(1,7)/60., 'min'
+       write (*,fmt=101) 'g-->h-->g:', time_gke(1,10)/60., 'min'
+       write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'
+       write (*,fmt=101) 'total explicit: ', time_gke(1,8)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'
        write (*,*)
     end if

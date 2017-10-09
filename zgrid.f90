@@ -8,12 +8,21 @@ module zgrid
   public :: zed
   public :: delzed
   public :: shat_zero
+  public :: boundary_option_switch
+  public :: boundary_option_zero
+  public :: boundary_option_self_periodic
+  public :: boundary_option_linked
 
   private
 
   integer :: nzed, nzgrid, nperiod, nztot
   real :: shat_zero
   real, dimension (:), allocatable :: zed, delzed
+
+  integer :: boundary_option_switch
+  integer, parameter :: boundary_option_zero = 1, &
+       boundary_option_self_periodic = 2, &
+       boundary_option_linked = 3
 
   logical :: zgridinit = .false.
 
@@ -49,23 +58,43 @@ contains
 
   subroutine read_parameters
 
-    use file_utils, only: input_unit_exist
+    use file_utils, only: input_unit_exist, error_unit
+    use text_options, only: text_option, get_option_value
 
     implicit none
 
-    integer :: in_file
+    integer :: in_file, ierr
     logical :: exist
 
-    namelist /zgrid_parameters/ nzed, nperiod, shat_zero
+    type (text_option), dimension (6), parameter :: boundaryopts = &
+         (/ text_option('default', boundary_option_zero), &
+            text_option('zero', boundary_option_zero), &
+            text_option('unconnected', boundary_option_zero), &
+            text_option('self-periodic', boundary_option_self_periodic), &
+            text_option('periodic', boundary_option_self_periodic), &
+            text_option('linked', boundary_option_linked) /)
+    character(20) :: boundary_option
+
+    namelist /zgrid_parameters/ nzed, nperiod, shat_zero, boundary_option
 
     nzed = 32
     nperiod = 1
+    boundary_option = 'default'
     ! set minimum shat value below which we assume
     ! periodic BC
     shat_zero = 1.e-5
 
     in_file = input_unit_exist("zgrid_parameters", exist)
     if (exist) read (unit=in_file, nml=zgrid_parameters)
+
+    ierr = error_unit()
+    call get_option_value &
+         (boundary_option, boundaryopts, boundary_option_switch, &
+         ierr, "boundary_option in dist_fn_knobs")
+
+    ! note that boundary_option may be changed to self-periodic later
+    ! if magnetic shear is smaller than shat_zero
+    ! cannot do this here as magnetic shear has yet to be input
 
     nzgrid = nzed/2 + (nperiod-1)*nzed
 
@@ -81,6 +110,7 @@ contains
     call broadcast (nzgrid)
     call broadcast (nperiod)
     call broadcast (shat_zero)
+    call broadcast (boundary_option_switch)
 
   end subroutine broadcast_parameters
 

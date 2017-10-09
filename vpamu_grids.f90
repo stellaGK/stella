@@ -8,7 +8,7 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu
-  public :: vperp2, energy, maxwellian
+  public :: vperp2, energy, maxwellian, ztmax
   
   integer :: nvgrid, nvpa
   integer :: nmu
@@ -18,6 +18,7 @@ module vpamu_grids
   real, dimension (:), allocatable :: mu, wgts_mu
   real, dimension (:), allocatable :: vpa, wgts_vpa
   real, dimension (:), allocatable :: maxwellian
+  real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
 
   ! vpa-mu related arrays that are declared here
@@ -27,6 +28,7 @@ module vpamu_grids
 
   interface integrate_species
      module procedure integrate_species_vmu
+     module procedure integrate_species_vmu_single
      module procedure integrate_species_local_complex
      module procedure integrate_species_local_real
   end interface
@@ -92,6 +94,8 @@ contains
 
   subroutine init_vpa_grid
 
+    use species, only: spec, nspec
+
     implicit none
 
     integer :: iv, idx, iseg, nvpa_seg
@@ -105,6 +109,7 @@ contains
        allocate (wgts_vpa(-nvgrid:nvgrid)) ; wgts_vpa = 0.0
        ! this is the Maxwellian in vpa
        allocate (maxwellian(-nvgrid:nvgrid)) ; maxwellian = 0.0
+       allocate (ztmax(-nvgrid:nvgrid,nspec)) ; ztmax = 0.0
     end if
 
     ! velocity grid goes from -vpa_max to vpa_max
@@ -122,6 +127,7 @@ contains
 
     ! this is the equilibrium Maxwellian in vpa
     maxwellian = exp(-vpa*vpa)
+    ztmax = spread(spec%zt,1,nvpa)*spread(maxwellian,2,nspec)
 
     ! get integration weights corresponding to vpa grid points
     ! for now use Simpson's rule; 
@@ -320,6 +326,36 @@ contains
 
   end subroutine integrate_species_vmu
 
+  ! integrave over v-space and sum over species for given (ky,kx,z) point
+  subroutine integrate_species_vmu_single (g, iz, weights, total)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use geometry, only: bmag
+
+    implicit none
+
+    integer :: ivmu, iv, is, imu
+
+    complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in) :: iz
+    real, dimension (:), intent (in) :: weights
+    complex, intent (out) :: total
+
+    total = 0.
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       total = total + &
+            exp(-2.0*mu(imu)*bmag(iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(iz)*g(ivmu)*weights(is)
+    end do
+
+    call sum_allreduce (total)
+
+  end subroutine integrate_species_vmu_single
+
   subroutine finish_vpa_grid
 
     implicit none
@@ -327,6 +363,7 @@ contains
     if (allocated(vpa)) deallocate (vpa)
     if (allocated(wgts_vpa)) deallocate (wgts_vpa)
     if (allocated(maxwellian)) deallocate (maxwellian)
+    if (allocated(ztmax)) deallocate (ztmax)
 
   end subroutine finish_vpa_grid
 

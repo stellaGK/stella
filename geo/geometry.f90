@@ -41,17 +41,18 @@ module geometry
 
 contains
 
-  subroutine init_geometry (nzed, nzgrid, zed, dz)
+  subroutine init_geometry
 
     use mp, only: proc0
     use millerlocal, only: read_local_parameters
     use millerlocal, only: get_local_geo
     use inputprofiles_interface, only: read_inputprof_geo
+    use zgrid, only: nzed, nzgrid
+    use zgrid, only: zed, delzed
+    use zgrid, only: shat_zero
+    use zgrid, only: boundary_option_switch, boundary_option_self_periodic
 
     implicit none
-
-    integer, intent (in) :: nzed, nzgrid
-    real, dimension (-nzgrid:), intent (in) :: zed, dz
 
     real :: dpsidrho
 
@@ -97,10 +98,15 @@ contains
 
     jacob = 1.0/(drhodpsi*gradpar*bmag)
     
-    dl_over_b = dz*jacob
+    dl_over_b = delzed*jacob
     dl_over_b = dl_over_b / sum(dl_over_b)
 
-    call get_dthet (nzgrid, dz, bmag, dbdthet)
+    call get_dthet (nzgrid, delzed, bmag, dbdthet)
+
+    ! if magnetic shear almost zero, override parallel
+    ! boundary condition so that it is periodic
+    if(abs(geo_surf%shat) <=  shat_zero) &
+         boundary_option_switch = boundary_option_self_periodic
 
   end subroutine init_geometry
 

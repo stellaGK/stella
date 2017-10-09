@@ -20,6 +20,11 @@ module finite_differences
      module procedure fd5pt_array
   end interface
 
+  interface first_order_upwind
+     module procedure first_order_upwind_real
+     module procedure first_order_upwind_complex
+  end interface
+
   interface third_order_upwind
      module procedure third_order_upwind_complex
      module procedure third_order_upwind_real
@@ -37,7 +42,37 @@ module finite_differences
 
 contains
 
-  subroutine first_order_upwind (llim, f, del, sgn, df)
+  subroutine first_order_upwind_real (llim, f, del, sgn, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    real, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+
+    if (sgn == -1) then
+       istart = llim
+       iend = llim+n-1
+    else
+       istart = llim+n-1
+       iend = llim
+    end if
+
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+    do i = istart-sgn, iend, -sgn
+       df(i) = sgn*(f(i+sgn)-f(i))/del
+    end do
+
+  end subroutine first_order_upwind_real
+  
+  subroutine first_order_upwind_complex (llim, f, del, sgn, df)
     
     implicit none
     
@@ -65,7 +100,7 @@ contains
        df(i) = sgn*(f(i+sgn)-f(i))/del
     end do
 
-  end subroutine first_order_upwind
+  end subroutine first_order_upwind_complex
   
   subroutine third_order_upwind_complex (llim, f, del, sgn, df)
     

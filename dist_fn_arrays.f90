@@ -54,6 +54,7 @@ module dist_fn_arrays
   interface g_to_h
      module procedure g_to_h_kxkyz
      module procedure g_to_h_vmu
+     module procedure g_to_h_vmu_zext
   end interface
 
   private
@@ -227,6 +228,55 @@ contains
     end do
 
   end subroutine g_to_h_vmu
+
+  subroutine g_to_h_vmu_zext (gext, phiext, facphi, iky, ie)
+
+    use species, only: spec
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: nsegments
+    use vpamu_grids, only: maxwellian
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+
+    implicit none
+    complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
+    complex, dimension (:), intent (in) :: phiext
+    real, intent (in) :: facphi
+    integer, intent (in) :: iky, ie
+
+    integer :: ivmu, iseg, iz, ikx, is, imu, iv
+    integer :: idx
+    complex :: adj
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+
+       idx = 0
+       iseg = 1
+       ikx = ikxmod(iseg,ie,iky)
+       do iz = iz_low(iseg), iz_up(iseg)
+          idx = idx + 1
+          adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwellian(iv) &
+               * facphi*phiext(idx)
+          gext(idx,ivmu) = gext(idx,ivmu) + adj
+       end do
+       if (nsegments(ie,iky) > 1) then
+          do iseg = 2, nsegments(ie,iky)
+             do iz = iz_low(iseg)+1, iz_up(iseg)
+                adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwellian(iv) &
+                     * facphi*phiext(idx)
+                gext(idx,ivmu) = gext(idx,ivmu) + adj
+                idx = idx + 1
+             end do
+          end do
+       end if
+
+    end do
+
+  end subroutine g_to_h_vmu_zext
 
   subroutine g_to_h_kxkyz (g, phi, facphi)
 

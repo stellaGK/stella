@@ -10,6 +10,11 @@ module dist_fn
   public :: init_dist_fn, finish_dist_fn
   public :: advance_stella
   public :: time_gke
+  public :: stream_tridiagonal_solve
+  public :: stream_implicit
+  public :: adiabatic_option_switch
+  public :: adiabatic_option_fieldlineavg
+  public :: gamtot_h, gamtot3_h
 
   private
 
@@ -28,10 +33,10 @@ module dist_fn
      module procedure get_dchidy_2d
   end interface
 
-  interface fill_zed_ghost_zones
-     module procedure fill_zed_ghost_zones_real
-     module procedure fill_zed_ghost_zones_complex
-  end interface
+!  interface fill_zed_ghost_zones
+!     module procedure fill_zed_ghost_zones_real
+!     module procedure fill_zed_ghost_zones_complex
+!  end interface
 
   logical :: get_fields_initialized = .false.
   logical :: get_fields_wstar_initialized = .false.
@@ -45,11 +50,6 @@ module dist_fn
   logical :: streaminit = .false.
   logical :: redistinit = .false.
   logical :: readinit = .false.
-
-  integer :: boundary_option_switch
-  integer, parameter :: boundary_option_zero = 1, &
-       boundary_option_self_periodic = 2, &
-       boundary_option_linked = 3
 
   integer :: adiabatic_option_switch
   integer, parameter :: adiabatic_option_default = 1, &
@@ -87,19 +87,11 @@ module dist_fn
   real, dimension (:,:), allocatable :: stream_tri_a, stream_tri_b, stream_tri_c
   real, dimension (:), allocatable :: stream_tri_diff_a, stream_tri_diff_b, stream_tri_diff_c
 
-  ! these arrays needed to keep track of connections between different
-  ! 2pi segments
-  integer, dimension (:), allocatable :: neigen
-  integer, dimension (:), allocatable :: ig_low, ig_mid, ig_up
-  integer, dimension (:,:), allocatable :: nsegments
-  integer, dimension (:,:,:), allocatable :: ikxmod
-  logical, dimension (:), allocatable :: periodic
-
   ! geometrical factor multiplying ExB nonlinearity
   real :: nonlin_fac
 
   ! needed for timing various pieces of gke solve
-  real, dimension (2,7) :: time_gke
+  real, dimension (2,10) :: time_gke
 
   type (redist_type) :: kxkyz2vmu
   type (redist_type) :: kxyz2vmu
@@ -355,21 +347,21 @@ contains
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
-    integer :: ikxkyz, ig, ikx, iky, is
+    integer :: ikxkyz, iz, ikx, iky, is
     complex :: tmp
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          ig = iz_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*g(:,:,ikxkyz)
           wgt = spec(is)%z*spec(is)%dens
-          call integrate_vmu (g0, ig, tmp)
-          phi(iky,ikx,ig) = phi(iky,ikx,ig) + wgt*tmp
+          call integrate_vmu (g0, iz, tmp)
+          phi(iky,ikx,iz) = phi(iky,ikx,iz) + wgt*tmp
        end do
        call sum_allreduce (phi)
        if (dist == 'h') then
@@ -415,14 +407,14 @@ contains
     if (fapar > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          ig = iz_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
-          call integrate_vmu (g0, ig, tmp)
-          apar(iky,ikx,ig) = apar(iky,ikx,ig) + tmp*wgt
+          call integrate_vmu (g0, iz, tmp)
+          apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
        end do
        call sum_allreduce (apar)
        if (dist == 'h') then
@@ -482,6 +474,7 @@ contains
     use species, only: nspec
     use zgrid, only: init_zgrid
     use zgrid, only: nzgrid
+    use extended_zgrid, only: init_extended_zgrid
     use kt_grids, only: init_kt_grids
     use kt_grids, only: naky, nakx, ny, nx
     use kt_grids, only: alpha_global
@@ -518,8 +511,8 @@ contains
     call allocate_arrays
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kperp2'
     call init_kperp2
-    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_connections'
-    call init_connections
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_extended_zgrid'
+    call init_extended_zgrid
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_vperp2'
     call init_vperp2
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_bessel'
@@ -550,7 +543,6 @@ contains
   subroutine read_parameters
 
     use file_utils, only: input_unit, error_unit, input_unit_exist
-    use geometry, only: geo_surf
     use zgrid, only: shat_zero
     use text_options, only: text_option, get_option_value
     use species, only: nspec
@@ -559,15 +551,6 @@ contains
     implicit none
 
     logical :: dfexist
-
-    type (text_option), dimension (6), parameter :: boundaryopts = &
-         (/ text_option('default', boundary_option_zero), &
-            text_option('zero', boundary_option_zero), &
-            text_option('unconnected', boundary_option_zero), &
-            text_option('self-periodic', boundary_option_self_periodic), &
-            text_option('periodic', boundary_option_self_periodic), &
-            text_option('linked', boundary_option_linked) /)
-    character(20) :: boundary_option
 
     type (text_option), dimension (7), parameter :: adiabaticopts = &
          (/ text_option('default', adiabatic_option_default), &
@@ -579,7 +562,7 @@ contains
             text_option('iphi00=3', adiabatic_option_yavg)/)
     character(30) :: adiabatic_option
             
-    namelist /dist_fn_knobs/ boundary_option, &
+    namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, stream_explicit, wdrifty_explicit, wstar_explicit, &
          adiabatic_option, niter_stream, stream_errtol, explicit_rk4, &
@@ -590,7 +573,6 @@ contains
     readinit = .true.
 
     if (proc0) then
-       boundary_option = 'default'
        adiabatic_option = 'default'
        xdriftknob = 1.0
        ydriftknob = 1.0
@@ -609,20 +591,13 @@ contains
        in_file = input_unit_exist("dist_fn_knobs", dfexist)
        if (dfexist) read (unit=in_file, nml=dist_fn_knobs)
 
-       if(abs(geo_surf%shat) <=  shat_zero) boundary_option = 'periodic'
-
        ierr = error_unit()
-       call get_option_value &
-            (boundary_option, boundaryopts, boundary_option_switch, &
-            ierr, "boundary_option in dist_fn_knobs")
-
        call get_option_value &
             (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
             ierr, "adiabatic_option in dist_fn_knobs")
 
     end if
 
-    call broadcast (boundary_option_switch)
     call broadcast (adiabatic_option_switch)
     call broadcast (xdriftknob)
     call broadcast (ydriftknob)
@@ -805,224 +780,6 @@ contains
 
   end subroutine allocate_arrays
 
-  subroutine init_connections
-
-    use zgrid, only: nperiod, nzgrid, nzed
-    use kt_grids, only: ntheta0, nakx, naky
-    use kt_grids, only: jtwist_out, aky
-    use species, only: nspec
-    use vpamu_grids, only: nmu, nvgrid
-
-    implicit none
-
-    integer :: iseg, iky, ie, ntg, ikx, ikxshiftend
-    integer :: nseg_max, neigen_max
-    integer :: iky_max
-    integer, dimension (:), allocatable :: ikx_shift_left_kypos, ikx_shift_left_kyneg
-    integer, dimension (:,:), allocatable :: ikx_shift
-
-    ntg = nzed/2
-    ! iky_max is the index of the most positive ky
-    iky_max = naky/2+1
-
-    if (.not. allocated(neigen)) allocate (neigen(naky))
-    if (.not. allocated(periodic)) allocate (periodic(naky)) ; periodic = .false.
-
-    if (boundary_option_switch==boundary_option_self_periodic) then
-       periodic = .true.
-    else
-       where (abs(aky) < epsilon(0.0)) periodic = .true.
-    end if
-
-    select case (boundary_option_switch)
-    case (boundary_option_linked)
-
-       ! ntheta0 = 2*(nakx-1) + 1
-       ! nakx includes kx >= 0
-       ! ntheta0 also includes kx < 0
-       neigen(1) = ntheta0
-       if (naky > 1) then
-          do iky = 2, iky_max
-             ! must link different kx values at theta = +/- pi
-             ! neigen is the number of independent eigenfunctions along the field line
-             neigen(iky) = min((iky-1)*jtwist_out,ntheta0)
-          end do
-          ! number of eigenfunctions for -ky is same as for +ky
-          neigen(iky_max+1:) = neigen(iky_max:2:-1)
-       end if
-
-       neigen_max = maxval(neigen)
-
-       if (.not. allocated(ikx_shift_left_kypos)) then
-          allocate (ikx_shift_left_kypos(neigen_max)) ; ikx_shift_left_kypos = 0
-          allocate (ikx_shift_left_kyneg(neigen_max)) ; ikx_shift_left_kyneg = 0
-          allocate (ikx_shift(ntheta0,naky)) ; ikx_shift = 0
-       end if
-
-       ! figure out how much to shift ikx by to get to
-       ! the left-most (theta-theta0) in each set of connected 2pi segments
-       ! note that theta0 goes from 0 to theta0_max and then from theta0_min back
-       ! to -dtheta0
-       do ikx = 1, neigen_max
-          ! first ntheta0/2+1 theta0s are 0 and all positive theta0 values
-          ! remainder are negative theta0s
-          ! note that ntheta0 is always positive for box
-          ! theta_0 = kx / ky / shat
-          ! if ky > 0, then most positive theta_0 corresponds to most positive kx
-          if (ikx <= nakx) then
-             ikx_shift_left_kypos(ikx) = nakx-2*ikx+1
-          else
-             ikx_shift_left_kypos(ikx) = 3*nakx-2*ikx
-          end if
-          ! if ky < 0, most positive theta_0 corresponds to most negative kx
-          if (ikx < nakx) then
-             ikx_shift_left_kyneg(ikx) = nakx
-          else
-             ikx_shift_left_kyneg(ikx) = 1-nakx
-          end if
-       end do
-
-       do iky = 1, naky
-          ! ikx_shift is how much to shift each ikx by to connect
-          ! to the next theta0 (from most positive to most negative)
-
-          ! if ky < 0, then going to more negative theta0
-          ! corresponds to going to more positive kx
-          if (aky(iky) < 0.0) then
-             ! first treat kx positive
-             ! connect to more positive kx neigen away
-             ! but only if not trying to connect to kx
-             ! so positive that ikx is not on grid
-             if (nakx - neigen(iky) > 0) ikx_shift(:nakx-neigen(iky),iky) = neigen(iky)
-             ! next treat kx negative
-             ! if kx sufficiently negative, then 
-             ! shifting by neigen keeps kx negative
-             do ikx = nakx+1, ntheta0
-                if (ikx+neigen(iky) <= ntheta0) then
-                   ikx_shift(ikx,iky) = neigen(iky)
-                   ! if theta0 not sufficiently negative,
-                   ! then must shift to postive theta0
-                else if (ikx+neigen(iky) <= ntheta0+nakx) then
-                   ikx_shift(ikx,iky) = neigen(iky) - ntheta0
-                end if
-             end do
-          else
-             ! if ky > 0, then going to more negative theta0
-             ! corresponds to going to more negative kx
-             do ikx = 1, nakx
-                ! if theta0 is sufficiently positive, shifting to more
-                ! negative theta0 corresponds to decreasing ikx
-                if (ikx-neigen(iky) > 0) then
-                   ikx_shift(ikx,iky) = -neigen(iky)
-                   ! if a positive theta0 connects to a negative theta0
-                   ! must do more complicated mapping of ikx
-                else if (ikx-neigen(iky)+ntheta0 >= nakx+1) then
-                   ikx_shift(ikx,iky) = ntheta0 - neigen(iky)
-                end if
-             end do
-             ! if theta0 is negative, then shifting to more negative
-             ! theta0 corresponds to decreasing ikx
-             do ikx = nakx+1, ntheta0
-                ! if theta0 is sufficiently negative, it has no
-                ! more negative theta0 with which it can connect
-                if (ikx-neigen(iky) >= nakx) then
-                   ikx_shift(ikx,iky) = -neigen(iky)
-                end if
-                ! theta0 is positive
-             end  do
-          end if
-       end do
-
-       if (.not. allocated(nsegments)) then
-          allocate (nsegments(neigen_max,naky))
-       end if
-
-       do iky = 1, naky
-          if (neigen(iky) == 0) then
-             nsegments(:,iky) = 1
-          else
-             nsegments(:,iky) = (ntheta0-1)/neigen(iky)
-
-             do ie = 1, mod(ntheta0-1,neigen(iky))+1
-                nsegments(ie,iky) = nsegments(ie,iky) + 1
-             end do
-          end if
-       end do
-
-       nseg_max = maxval(nsegments)
-
-       if (.not. allocated(ig_low)) then
-          allocate (ig_low(nseg_max)) ; ig_low = -nzgrid
-          allocate (ig_mid(nseg_max)) ; ig_mid = 0
-          allocate (ig_up(nseg_max)) ; ig_up = nzgrid
-       end if
-       
-    case default
-       
-       neigen = ntheta0 ; neigen_max = ntheta0
-       
-       if (.not. allocated(ikx_shift_left_kypos)) then
-          allocate (ikx_shift_left_kypos(neigen_max))
-          allocate (ikx_shift_left_kyneg(neigen_max))
-          allocate (ikx_shift(ntheta0,naky))
-       end if
-       ikx_shift = 0 ; ikx_shift_left_kypos = 0 ; ikx_shift_left_kyneg = 0
-       
-       if (.not. allocated(nsegments)) then
-          allocate (nsegments(neigen_max,naky))
-       end if
-       
-       ! this is the number of 2pi poloidal segments in the extended theta domain,
-       ! which is needed in initializing the reponse matrix and doing the implicit sweep
-       nsegments = 2*(nperiod-1) + 1
-       
-       nseg_max = maxval(nsegments)
-       
-       if (.not. allocated(ig_low)) then
-          allocate (ig_low(nseg_max))
-          allocate (ig_mid(nseg_max))
-          allocate (ig_up(nseg_max))
-       end if
-
-       ! ig_low(j) is the ig index corresponding to the inboard midplane from below (theta=-pi) within the jth segment
-       ! ig_mid(j) is the ig index corresponding to the outboard midplane (theta=0) within the jth segment
-       do iseg = 1, nseg_max
-          ig_low(iseg) = -nzgrid + (iseg-1)*nzed
-          ig_mid(iseg) = ig_low(iseg) + nzed/2
-          ig_up(iseg) = ig_low(iseg) + nzed
-       end do
-
-    end select
-
-    if (.not. allocated(ikxmod)) allocate (ikxmod(nseg_max,neigen_max,naky))
-    do iky = 1, naky
-       ! only do the following once for each independent set of theta0s
-       ! the assumption here is that all kx are on processor and sequential
-       do ikx = 1, neigen(iky)
-          if (aky(iky) < 0.) then
-             ikxshiftend = ikx_shift_left_kyneg(ikx)
-          else
-             ikxshiftend = ikx_shift_left_kypos(ikx)
-          end if
-          ! remap to start at theta0 = theta0_max
-          ! (so that theta-theta0 is most negative)
-          ! for this set of connected theta0s
-          iseg = 1
-          ikxmod(iseg,ikx,iky) = ikx + ikxshiftend
-          if (nsegments(ikx,iky) > 1) then
-             do iseg = 2, nsegments(ikx,iky)
-                ikxmod(iseg,ikx,iky) = ikxmod(iseg-1,ikx,iky) + ikx_shift(ikxmod(iseg-1,ikx,iky),iky)
-             end do
-          end if
-       end do
-    end do
-
-    if (allocated(ikx_shift_left_kypos)) deallocate (ikx_shift_left_kypos)
-    if (allocated(ikx_shift_left_kyneg)) deallocate (ikx_shift_left_kyneg)
-    if (allocated(ikx_shift)) deallocate (ikx_shift)
-
-  end subroutine init_connections
-
   subroutine init_vperp2
 
     use geometry, only: bmag
@@ -1160,11 +917,13 @@ contains
 
   subroutine init_invert_mirror_operator
 
+    use finite_differences, only: first_order_upwind
     use mp, only: mp_abort
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, is_idx
     use vpamu_grids, only: dvpa
     use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: maxwellian
     use kt_grids, only: alpha_global
 
     implicit none
@@ -1172,6 +931,7 @@ contains
     integer :: sgn
     integer :: ikxkyz, iy, iz, is, imu, iv
     real, dimension (:,:), allocatable :: a, b, c
+    real, dimension (:,:), allocatable :: vpafd
 
     allocate (a(-nvgrid:nvgrid,-1:1)) ; a = 0.
     allocate (b(-nvgrid:nvgrid,-1:1)) ; b = 0.
@@ -1183,6 +943,8 @@ contains
        allocate(mirror_tri_c(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)) ; mirror_tri_c = 0.
     end if
 
+    allocate (vpafd(-nvgrid:nvgrid,-1:1)) ; vpafd = 0.
+
     ! corresponds to sign of mirror term positive on RHS of equation
     b(:,1) = -1./dvpa
     c(:nvgrid-1,1) = 1./dvpa
@@ -1190,6 +952,13 @@ contains
     a(-nvgrid+1:,-1) = -1./dvpa
     b(:,-1) = 1./dvpa
 
+    ! get finite difference approximation to d(exp(-vpa^2))/dvpa  = -2*vpa*exp(-vpa^2)
+    call first_order_upwind (-nvgrid, maxwellian, dvpa, 1, vpafd(:,1))
+    call first_order_upwind (-nvgrid, maxwellian, dvpa, -1, vpafd(:,-1))
+
+    ! from above approximation, get vpa
+    vpafd = -0.5*vpafd/spread(maxwellian,2,3)
+    
     if (alpha_global) then
        write (*,*) 'not yet setup for alpha_global'
        call mp_abort ('mirror not yet setup fo alpha_global')
@@ -1204,7 +973,7 @@ contains
              do iv = -nvgrid, nvgrid
 ! BACKWARDS DIFFERENCE FLAG
                 mirror_tri_a(iv,imu,ikxkyz) = -2.0*a(iv,sgn)*mirror(iy,iz,imu,is)
-                mirror_tri_b(iv,imu,ikxkyz) = 1.0-2.0*b(iv,sgn)*mirror(iy,iz,imu,is)
+                mirror_tri_b(iv,imu,ikxkyz) = 1.0-2.0*(b(iv,sgn)+2.0*vpafd(iv,sgn))*mirror(iy,iz,imu,is)
                 mirror_tri_c(iv,imu,ikxkyz) = -2.0*c(iv,sgn)*mirror(iy,iz,imu,is)
              end do
           end do
@@ -1212,6 +981,7 @@ contains
     end if
 
     deallocate (a, b, c)
+    deallocate (vpafd)
 
   end subroutine init_invert_mirror_operator
 
@@ -1252,12 +1022,14 @@ contains
   subroutine init_invert_stream_operator
 
     use zgrid, only: delzed
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: nsegments
 
     implicit none
 
     integer :: nz, nseg_max
 
-    nz = maxval(ig_up-ig_low)
+    nz = maxval(iz_up-iz_low)
     nseg_max = maxval(nsegments)
 
     if (.not.allocated(stream_tri_a)) then
@@ -1644,10 +1416,14 @@ contains
 
   subroutine advance_stella
 
+    use mp, only: proc0
+    use job_manage, only: time_message
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
 
     implicit none
+
+    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
     ! advance the explicit parts of the GKE
     if (.not.fully_implicit) then
@@ -1658,9 +1434,15 @@ contains
        end if
     end if
 
-    ! use operator splitting to seprately evolve
+    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
+
+    if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
+
+    ! use operator splitting to separately evolve
     ! all terms treated implicitly
     if (.not.fully_explicit) call advance_implicit (phi, apar, gnew)
+
+    if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
     gold = gnew
 
@@ -1769,6 +1551,7 @@ contains
 
   subroutine solve_gke (gin, rhs_ky, restart_time_step)
 
+    use mp, only: proc0
     use job_manage, only: time_message
     use dist_fn_arrays, only: gbar_to_h, g_to_h
     use dist_fn_arrays, only: gvmu
@@ -1821,13 +1604,17 @@ contains
        restart_time_step = .false.
     end if
 
-    ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
-    call gbar_to_h (gin, phi, apar, fphi, fapar)
-    call gbar_to_h (gvmu, phi, apar, fphi, fapar)
-
     if (.not.restart_time_step) then
+       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
+       ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
+       call gbar_to_h (gin, phi, apar, fphi, fapar)
+       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
+
        ! calculate and add mirror term to RHS of GK eqn
-       if (mirror_explicit) call advance_mirror_explicit (gin, rhs)
+       if (mirror_explicit) then
+          call gbar_to_h (gvmu, phi, apar, fphi, fapar)
+          call advance_mirror_explicit (gin, rhs)
+       end if
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
        if (wdrifty_explicit) call advance_wdrifty_explicit (gin, rhs)
        ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
@@ -1844,10 +1631,12 @@ contains
        if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
        ! calculate and add collision term to RHS of GK eqn
        !    call advance_collisions
-    end if
 
-    ! switch from h back to gbar
-    call gbar_to_h (gin, phi, apar, -fphi, -fapar)
+       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
+       ! switch from h back to gbar
+       call gbar_to_h (gin, phi, apar, -fphi, -fapar)
+       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
+    end if
 
     nullify (rhs)
 
@@ -1927,17 +1716,19 @@ contains
 
     complex, dimension (:,:,:,:), allocatable :: g0
 
+    if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
+
     allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! omega_* stays in ky,kx,z space with ky,kx,z local
-    if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
     ! get d<chi>/dy
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dchidy'
     call get_dchidy (phi, apar, g0)
     ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
     if (debug) write (*,*) 'dist_fn::solve_gke::add_wstar_term'
     call add_wstar_term (g0, gout)
-    if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
     deallocate (g0)
+
+    if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
 
   end subroutine advance_wstar_explicit
 
@@ -1966,6 +1757,7 @@ contains
     integer :: iv
 
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
+
     ! the mirror term is most complicated of all when doing full flux surface
     if (alpha_global) then
        allocate (g0v(-nvgrid:nvgrid,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
@@ -2010,6 +1802,7 @@ contains
        call add_mirror_term (g0x, gout)
     end if
     deallocate (g0x, g0v)
+
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
 
   end subroutine advance_mirror_explicit
@@ -2086,6 +1879,7 @@ contains
        call add_dgdx_term (g0k, gout)
     end if
     deallocate (g0k)
+
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
   end subroutine advance_wdriftx
@@ -2329,6 +2123,9 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
     use zgrid, only: nzgrid, delzed
+    use extended_zgrid, only: neigen, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -2351,10 +2148,10 @@ contains
                 ! first fill in ghost zones at boundaries in g(z)
                 call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
                 ! now get dg/dz
-                call third_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-                     g(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg),ivmu), &
+                call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
                      delzed(0), stream_sign(iv), gleft, gright, &
-                     dgdz(iky,ikxmod(iseg,ie,iky),ig_low(iseg):ig_up(iseg),ivmu))
+                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
              end do
           end do
        end do
@@ -2384,68 +2181,74 @@ contains
 
   end subroutine add_stream_term
 
-  subroutine fill_zed_ghost_zones_real (iseg, ie, iky, g, gleft, gright)
+!   subroutine fill_zed_ghost_zones_real (iseg, ie, iky, g, gleft, gright)
+
+!     use zgrid, only: nzgrid
+!     use extended_zgrid, only: iz_low, iz_up
+!     use extended_zgrid, only: nsegments
+!     use extended_zgrid, only: ikxmod
+!     use kt_grids, only: ntheta0, nakx, naky
+!     use kt_grids, only: aky
+
+!     implicit none
+
+!     integer, intent (in) :: iseg, ie, iky
+!     real, dimension (:,:,-nzgrid:), intent (in) :: g
+!     real, dimension (:), intent (out) :: gleft, gright
+
+!     integer :: ikxneg, ikyneg
+
+!     ! stream_sign > 0 --> stream speed < 0
+
+!     if (iseg == 1) then
+!        gleft = 0.0
+!     else
+!        ! if trying to connect to a segment that 
+!        ! corresponds to kx negative, use reality
+!        ! condition to connect to positive kx instead
+!        ! (with sign of ky flipped)
+!        if (ikxmod(iseg-1,ie,iky) > nakx) then
+!           ikxneg = ntheta0-ikxmod(iseg-1,ie,iky)+2
+!           if (abs(aky(iky)) < epsilon(0.)) then
+!              ikyneg = iky
+!           else
+!              ikyneg = naky-iky+2
+!           end if
+!           gleft = g(ikyneg,ikxneg,iz_up(iseg-1)-2:iz_up(iseg-1)-1)
+!        else
+!           gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1)
+!        end if
+!     end if
+    
+!     if (nsegments(ie,iky) > iseg) then
+!        ! if trying to connect to a segment that 
+!        ! corresponds to kx negative, use reality
+!        ! condition to connect to positive kx instead
+!        ! (with sign of ky flipped)
+!        if (ikxmod(iseg+1,ie,iky) > nakx) then
+!           ikxneg = ntheta0-ikxmod(iseg+1,ie,iky)+2
+!           if (abs(aky(iky)) < epsilon(0.)) then
+!              ikyneg = iky
+!           else
+!              ikyneg = naky-iky+2
+!           end if
+!           gright = g(ikyneg,ikxneg,iz_low(iseg+1)+1:iz_low(iseg+1)+2)
+!        else
+!           ! connect to segment with larger theta-theta0 (on right)
+!           gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2)
+!        end if
+!     else
+!        gright = 0.0
+!     end if
+    
+!   end subroutine fill_zed_ghost_zones_real
+
+  subroutine fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
-    use kt_grids, only: ntheta0, nakx, naky
-    use kt_grids, only: aky
-
-    implicit none
-
-    integer, intent (in) :: iseg, ie, iky
-    real, dimension (:,:,-nzgrid:), intent (in) :: g
-    real, dimension (:), intent (out) :: gleft, gright
-
-    integer :: ikxneg, ikyneg
-
-    ! stream_sign > 0 --> stream speed < 0
-
-    if (iseg == 1) then
-       gleft = 0.0
-    else
-       ! if trying to connect to a segment that 
-       ! corresponds to kx negative, use reality
-       ! condition to connect to positive kx instead
-       ! (with sign of ky flipped)
-       if (ikxmod(iseg-1,ie,iky) > nakx) then
-          ikxneg = ntheta0-ikxmod(iseg-1,ie,iky)+2
-          if (abs(aky(iky)) < epsilon(0.)) then
-             ikyneg = iky
-          else
-             ikyneg = naky-iky+2
-          end if
-          gleft = g(ikyneg,ikxneg,ig_up(iseg-1)-2:ig_up(iseg-1)-1)
-       else
-          gleft = g(iky,ikxmod(iseg-1,ie,iky),ig_up(iseg-1)-2:ig_up(iseg-1)-1)
-       end if
-    end if
-    
-    if (nsegments(ie,iky) > iseg) then
-       ! if trying to connect to a segment that 
-       ! corresponds to kx negative, use reality
-       ! condition to connect to positive kx instead
-       ! (with sign of ky flipped)
-       if (ikxmod(iseg+1,ie,iky) > nakx) then
-          ikxneg = ntheta0-ikxmod(iseg+1,ie,iky)+2
-          if (abs(aky(iky)) < epsilon(0.)) then
-             ikyneg = iky
-          else
-             ikyneg = naky-iky+2
-          end if
-          gright = g(ikyneg,ikxneg,ig_low(iseg+1)+1:ig_low(iseg+1)+2)
-       else
-          ! connect to segment with larger theta-theta0 (on right)
-          gright = g(iky,ikxmod(iseg+1,ie,iky),ig_low(iseg+1)+1:ig_low(iseg+1)+2)
-       end if
-    else
-       gright = 0.0
-    end if
-    
-  end subroutine fill_zed_ghost_zones_real
-
-  subroutine fill_zed_ghost_zones_complex (iseg, ie, iky, g, gleft, gright)
-
-    use zgrid, only: nzgrid
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: ikxmod
     use kt_grids, only: ntheta0, nakx, naky
     use kt_grids, only: aky
 
@@ -2473,9 +2276,9 @@ contains
           else
              ikyneg = naky-iky+2
           end if
-          gleft = conjg(g(ikyneg,ikxneg,ig_up(iseg-1)-2:ig_up(iseg-1)-1))
+          gleft = conjg(g(ikyneg,ikxneg,iz_up(iseg-1)-2:iz_up(iseg-1)-1))
        else
-          gleft = g(iky,ikxmod(iseg-1,ie,iky),ig_up(iseg-1)-2:ig_up(iseg-1)-1)
+          gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1)
        end if
     end if
     
@@ -2491,16 +2294,16 @@ contains
           else
              ikyneg = naky-iky+2
           end if
-          gright = conjg(g(ikyneg,ikxneg,ig_low(iseg+1)+1:ig_low(iseg+1)+2))
+          gright = conjg(g(ikyneg,ikxneg,iz_low(iseg+1)+1:iz_low(iseg+1)+2))
        else
           ! connect to segment with larger theta-theta0 (on right)
-          gright = g(iky,ikxmod(iseg+1,ie,iky),ig_low(iseg+1)+1:ig_low(iseg+1)+2)
+          gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2)
        end if
     else
        gright = 0.0
     end if
     
-  end subroutine fill_zed_ghost_zones_complex
+  end subroutine fill_zed_ghost_zones
 
   subroutine get_dgdy_4d (g, dgdy)
 
@@ -2769,7 +2572,7 @@ contains
 
     ! g^{**} is input
     ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-!    if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
+    if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
 
     if (wdrifty_implicit) call advance_wdrifty_implicit (g)
     if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
@@ -2878,198 +2681,45 @@ contains
 
   end subroutine invert_mirror_operator
 
-!   subroutine advance_parallel_streaming_implicit (g, phi, apar)
+  subroutine advance_parallel_streaming_implicit (g, phi, apar)
 
-!     use mp, only: proc0, sum_allreduce
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use job_manage, only: time_message
-!     use run_parameters, only: fphi, fapar
-!     use zgrid, only: nzgrid
-!     use dist_fn_arrays, only: gbar_to_h
-
-!     implicit none
-
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
-
-!     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
-!     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
-
-! !    do iz = -nzgrid, nzgrid
-! !       write (*,*) 'zeroth', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-! !    end do
-
-!     ! input is g^{*}, output is g^{**}
-!     ! where (1 + dt*(vpa . grad z)*d/dz) g^{**} = g^{*}
-!     call invert_stream_operator (g)
-!     ! next get fields corresponding to g^{**} (aka phi^{**})
-!     call advance_fields (g, phi, apar, dist='gbar')
-
-! !    do iz = -nzgrid, nzgrid
-! !       write (*,*) 'first', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-! !    end do
-
-!     ! get phi^{n+1} by operating on g^{n+1} equation with QN operator
-!     ! input is phi^{**}, output is phi^{n+1}
-!     call invert_stream_phi (phi)
-
-! !    do iz = -nzgrid, nzgrid
-! !       write (*,*) 'second', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-! !       write (*,*) 'second', iz, cabs(phi(1,1,iz)), cabs(g(1,1,iz,1))
-! !    end do
-
-!     ! solve for g^{n+1}, with g^{n+1} = g^{**} - dt*(vpa . grad z)*d(<phi^{n+1}>)/dz * Ze/T * F0
-! !    ! note that the phi term modifies g in such a way that it does not change the associated field
-! !    ! so phi^{n+1} = phi^{**}
-
-!     call add_dphidz_term_to_stream (g, phi)
-
-!     ! TMP FOR TESTING -- MAB
-! !    call advance_fields (g, phi, apar, dist='gbar')
-
-! !    do iz = -nzgrid, nzgrid
-! !       write (*,*) 'third', iz, cabs(phi(1,1,iz)), sum(cabs(g(1,1,iz,:)))
-! !       write (*,*) 'third', iz, cabs(phi(1,1,iz)), cabs(g(1,1,iz,1))
-! !    end do
-! !    stop
-
-!     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
-
-!   end subroutine advance_parallel_streaming_implicit
-
-!   subroutine add_dphidz_term_to_stream (g, phi)
-
-!     use finite_differences, only: second_order_centered_zed
-!     use finite_differences, only: first_order_upwind_zed
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use species, only: spec
-!     use zgrid, only: nzgrid, delzed
-!     use kt_grids, only: naky, nakx
-!     use vpamu_grids, only: maxwellian
-!     use dist_fn_arrays, only: aj0x
-
-!     implicit none
-
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in) :: phi
-
-!     integer :: ivmu, iv, imu, is
-!     integer :: iky, ie, iseg
-!     integer :: ikx
-!     complex, dimension (2) :: gleft, gright
-!     real, dimension (2) :: j0left, j0right
-!     real, dimension (:), allocatable :: gtmp1
-!     complex, dimension (:), allocatable :: gtmp2, gtmp3
-!     complex, dimension (:,:), allocatable :: gsave
-
-!     allocate (gtmp1(-nzgrid:nzgrid))
-!     allocate (gtmp2(-nzgrid:nzgrid))
-!     allocate (gtmp3(-nzgrid:nzgrid))
-!     allocate (gsave(nakx,-nzgrid:nzgrid))
-
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        do iky = 1, naky
-!           gsave = g(iky,:,:,ivmu)
-!           do ie = 1, neigen(iky)
-!              do iseg = 1, nsegments(ie,iky)
-!                 ! if iseg,ie,iky corresponds to negative kx, no need to solve
-!                 ! as it will be constrained by reality condition
-!                 ikx = ikxmod(iseg,ie,iky)
-!                 if (ikx > nakx) cycle
-
-!                 ! first fill in ghost zones at boundaries in J0
-!                 call fill_zed_ghost_zones (iseg, ie, iky, aj0x(:,:,:,ivmu), j0left, j0right)
-!                 ! now get dJ0/dz
-!                 call second_order_centered_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-!                      aj0x(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu), &
-!                      delzed(0), j0left, j0right, &
-!                      gtmp1(ig_low(iseg):ig_up(iseg)))
-
-!                 ! fill in ghost zones at boundaries in phi
-!                 call fill_zed_ghost_zones (iseg, ie, iky, phi, gleft, gright)
-!                 ! now get dphi/dz with upwinding
-!                 call first_order_upwind_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-!                      phi(iky,ikx,ig_low(iseg):ig_up(iseg)), &
-!                      delzed(0), stream_sign(iv), gleft, gright, &
-!                      gtmp2(ig_low(iseg):ig_up(iseg)))
-!                 ! now get dphi/dz centered
-!                 call second_order_centered_zed (ig_low(iseg), iseg, nsegments(ie,iky), &
-!                      phi(iky,ikx,ig_low(iseg):ig_up(iseg)), &
-!                      delzed(0), gleft, gright, &
-!                      gtmp3(ig_low(iseg):ig_up(iseg)))
-
-!                 ! take combination of upwinded and centered derivatives
-!                 ! at boundaries, use only upwinded values
-!                 if (iseg == 1 .and. stream_sign(iv) == 1) then
-!                    gtmp2(ig_low(iseg)+1:) = stream_upwind*gtmp2(ig_low(iseg)+1:) &
-!                         + (1.0-stream_upwind)*gtmp3(ig_low(iseg)+1:)
-!                 else if (iseg == nsegments(ie,iky) .and. stream_sign(iv) == -1) then
-!                    gtmp2(:ig_up(iseg)-1) = stream_upwind*gtmp2(:ig_up(iseg)-1) &
-!                         + (1.0-stream_upwind)*gtmp3(:ig_up(iseg)-1)
-!                 else
-!                    gtmp2 = stream_upwind*gtmp2 + (1.0-stream_upwind)*gtmp3
-!                 end if
-
-!                 ! TMP FOR TESTING -- MAB
-! !                gtmp1 = 0.
-
-! !                if (ivmu == 1) then
-! !                   do iz = ig_low(iseg), ig_up(iseg)
-! !                      write (*,*) 'pre-g', iz, cabs(g(iky,ikx,iz,ivmu)), iky, ikx, ig_low(iseg), ig_up(iseg)
-! !                   end do
-!  !               end if
-
-! !                g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) &
-!                 g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = gsave(ikx,ig_low(iseg):ig_up(iseg)) &
-!                      + 2.0*stream(ig_low(iseg):ig_up(iseg),iv,is) &
-!                      * (phi(iky,ikx,ig_low(iseg):ig_up(iseg))*gtmp1(ig_low(iseg):ig_up(iseg)) &
-!                      + aj0x(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu)*gtmp2(ig_low(iseg):ig_up(iseg))) &
-!                      * spec(is)%zt*anon(ig_low(iseg):ig_up(iseg),iv,imu)
-
-! !                if (ivmu == 1) then
-! !                   do iz = ig_low(iseg), ig_up(iseg)
-! !                      write (*,*) 'gtmp2', iz, cabs(gtmp2(iz)), cabs(g(iky,ikx,iz,ivmu)), abs(gtmp1(iz)), cabs(gtmp3(iz)), stream(iz,iv,is), phi(iky,ikx,iz), aj0x(iky,ikx,iz,ivmu), anon(iz,iv,imu)
-! !                   end do
-! !                end if
-
-!              end do
-!           end do
-!        end do
-!     end do
-    
-!     deallocate (gtmp1, gtmp2, gtmp3)
-!     deallocate (gsave)
-
-!   end subroutine add_dphidz_term_to_stream
-
-  subroutine invert_stream_operator (g)
-
+    use mp, only: proc0
+    use job_manage, only: time_message
+    use linear_solve, only: lu_back_substitution
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
+    use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, nakx, ntheta0
+    use extended_zgrid, only: neigen
+    use extended_zgrid, only: nsegments, nsegments_poskx
+    use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: iz_low, iz_up
     use kt_grids, only: aky
+    use kt_grids, only: naky, nakx, ntheta0
+    use fields_arrays, only: response_matrix
+    use dist_fn_arrays, only: g1
+    use dist_fn_arrays, only: gbar_to_h
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
 
-    integer :: iky, ie, iseg, ivmu
-    integer :: iv, is
+    integer :: ivmu, iv, is
+    integer :: iky, ie, iseg
+    integer :: ikx
+    integer :: ikyneg, ikxneg
     integer :: llim, ulim
-    integer :: ikx, nz
-    integer :: ikxneg, ikyneg
+    integer :: izl_offset
     complex, dimension (:), allocatable :: gext
 
-    nz = maxval(ig_up-ig_low)
+    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
 
-    allocate (gext(nz*maxval(nsegments)+1))
+    ! save the incoming g, as it will be needed later
+    g1 = g
 
+    ! obtain g on extended zed grid
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
@@ -3080,195 +2730,237 @@ contains
              ikyneg = naky-iky+2
           end if
           do ie = 1, neigen(iky)
-             ! avoid double-counting at boundaries between 2pi segments
-             iseg = 1
-             ikx = ikxmod(iseg,ie,iky)
-             llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
-             if (ikx > nakx) then
-                ! have to do something special here (connect to negative ky)
-                ! in order to finish up the connections
-                ikxneg = ntheta0-ikx+2
-                gext(llim:ulim) = conjg(g(ikyneg,ikxneg,ig_low(iseg):ig_up(iseg),ivmu))
-             else
-                gext(llim:ulim) = g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu)
-             end if
-             if (nsegments(ie,iky) > 1) then
-                do iseg = 2, nsegments(ie,iky)
-                   ikx = ikxmod(iseg,ie,iky)
-                   llim = ulim+1
-                   ulim = llim+ig_up(iseg)-ig_low(iseg)-1
-                   if (ikx > nakx) then
-                      ! have to do something special here (connect to negative ky)
-                      ! in order to finish up the connections
-                      ikxneg = ntheta0-ikx+2
-                      gext(llim:ulim) = conjg(g(ikyneg,ikxneg,ig_low(iseg)+1:ig_up(iseg),ivmu))
-                   else
-                      gext(llim:ulim) = g(iky,ikx,ig_low(iseg)+1:ig_up(iseg),ivmu)
-                   end if
-                end do
-             end if
-
-! BACKWARDS DIFFERENCE FLAG
-!             call get_dgdz_implicit (iky, ie, iv, is, gext(:ulim))
-
+             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+             call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g(:,:,:,ivmu), gext, ulim)
+             ! first solve (I + dt*vpa . grad)h1^{n+1} = g^{n}
              call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
-             
-             iseg = 1
-             ikx = ikxmod(iseg,ie,iky)
-             if (ikx <= nakx) then
-                llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
-                g(iky,ikx,ig_low(iseg):ig_up(iseg),ivmu) = gext(llim:ulim)
-             end if
-             if (nsegments(ie,iky) > 1) then
-                do iseg = 2, nsegments(ie,iky)
-                   ikx = ikxmod(iseg,ie,iky)
-                   if (ikx <= nakx) then
-                      llim = ulim+1
-                      ulim = llim+ig_up(iseg)-ig_low(iseg)-1
-                      g(iky,ikx,ig_low(iseg),ivmu) = gext(llim-1)
-                      g(iky,ikx,ig_low(iseg)+1:ig_up(iseg),ivmu) = gext(llim:ulim)
-                   end if
-                end do
-             end if
+             call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
+             deallocate (gext)
           end do
        end do
     end do
-    
-    deallocate (gext)
-    
-  end subroutine invert_stream_operator
 
-  subroutine invert_stream_phi (phi)
+    ! we now have h1^{n+1}
+    ! calculate associated fields
+    call advance_fields (g, phi, apar, dist='h')
+
+    ! need to put the fields into extended zed grid
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          ! solve response_matrix*phi^{n+1} = phi1^{n+1}
+          ! only need to solve system for sets of connected kx with at least
+          ! one non-negative kx value
+          if (any(ikxmod(:,ie,iky) <= nakx)) then
+             allocate (gext(nsegments_poskx(ie,iky)*nzed_segment+1))
+             call get_fields_on_extended_zgrid (ie, iky, phi(iky,:,:), gext)
+             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
+                  response_matrix(iky)%eigen(ie)%idx, gext)
+             call get_fields_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
+             deallocate (gext)
+          end if
+       end do
+    end do
+
+    ! now have phi for non-negative kx
+    ! obtain h^{*} = g^{n} + Ze/T*F0*<chi^{n+1}>
+    call gbar_to_h (g1, phi, apar, fphi, fapar)
+
+    ! now need to get h^{*} on extended zed grid and invert equation
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do iky = 1, naky
+          if (abs(aky(iky)) < epsilon(0.)) then
+             ikyneg = iky
+          else
+             ikyneg = naky-iky+2
+          end if
+          do ie = 1, neigen(iky)
+             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+             call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g1(:,:,:,ivmu), gext, ulim)
+             ! solve (I + dt*vpa . grad)h1^{n+1} = h^{*}
+             call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
+             call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
+             deallocate (gext)
+          end do
+       end do
+    end do
+
+    ! convert from h to gbar
+    call gbar_to_h (g, phi, apar, -fphi, -fapar)
+
+    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
+
+  end subroutine advance_parallel_streaming_implicit
+
+  subroutine get_distfn_on_extended_zgrid (ie, iky, ikyneg, g, gext, ulim)
 
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, nakx, ntheta0
-    use kt_grids, only: aky
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: nzed_segment, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use kt_grids, only: nakx, ntheta0
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi
+    integer, intent (in) :: ie, iky, ikyneg
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    complex, dimension (:), intent (out) :: gext
+    integer, intent (out) :: ulim
 
-    integer :: iky, ie, iseg
-    integer :: llim, ulim
-    integer :: ikx, nz
-    integer :: ikxneg, ikyneg
-    complex, dimension (:), allocatable :: phiext
+    integer :: iseg, ikx, ikxneg
+    integer :: llim
 
-    nz = maxval(ig_up-ig_low)
-
-    allocate (phiext(nz*maxval(nsegments)+1))
-
-    do iky = 1, naky
-       if (abs(aky(iky)) < epsilon(0.)) then
-          ikyneg = iky
-       else
-          ikyneg = naky-iky+2
-       end if
-       do ie = 1, neigen(iky)
-          ! avoid double-counting at boundaries between 2pi segments
-          iseg = 1
+    ! avoid double-counting at boundaries between 2pi segments
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    llim = 1 ; ulim = nzed_segment+1
+    if (ikx > nakx) then
+       ! have to do something special here (connect to negative ky)
+       ! in order to finish up the connections
+       ikxneg = ntheta0-ikx+2
+       gext(llim:ulim) = conjg(g(ikyneg,ikxneg,iz_low(iseg):iz_up(iseg)))
+    else
+       gext(llim:ulim) = g(iky,ikx,iz_low(iseg):iz_up(iseg))
+    end if
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
           ikx = ikxmod(iseg,ie,iky)
-          llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
+          llim = ulim+1
+          ulim = llim+nzed_segment-1
           if (ikx > nakx) then
              ! have to do something special here (connect to negative ky)
              ! in order to finish up the connections
              ikxneg = ntheta0-ikx+2
-             phiext(llim:ulim) = conjg(phi(ikyneg,ikxneg,ig_low(iseg):ig_up(iseg)))
+             gext(llim:ulim) = conjg(g(ikyneg,ikxneg,iz_low(iseg)+1:iz_up(iseg)))
           else
-             phiext(llim:ulim) = phi(iky,ikx,ig_low(iseg):ig_up(iseg))
-          end if
-          if (nsegments(ie,iky) > 1) then
-             do iseg = 2, nsegments(ie,iky)
-                ikx = ikxmod(iseg,ie,iky)
-                llim = ulim+1
-                ulim = llim+ig_up(iseg)-ig_low(iseg)-1
-                if (ikx > nakx) then
-                   ! have to do something special here (connect to negative ky)
-                   ! in order to finish up the connections
-                   ikxneg = ntheta0-ikx+2
-                   phiext(llim:ulim) = conjg(phi(ikyneg,ikxneg,ig_low(iseg)+1:ig_up(iseg)))
-                else
-                   phiext(llim:ulim) = phi(iky,ikx,ig_low(iseg)+1:ig_up(iseg))
-                end if
-             end do
-          end if
-
-! BACKWARDS DIFFERENCE FLAG
-!             call get_dgdz_implicit (iky, ie, iv, is, gext(:ulim))
-
-          call stream_phi_tridiagonal_solve (iky, ie, phiext(:ulim))
-             
-          iseg = 1
-          ikx = ikxmod(iseg,ie,iky)
-          if (ikx <= nakx) then
-             llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
-             phi(iky,ikx,ig_low(iseg):ig_up(iseg)) = phiext(llim:ulim)
-          end if
-          if (nsegments(ie,iky) > 1) then
-             do iseg = 2, nsegments(ie,iky)
-                ikx = ikxmod(iseg,ie,iky)
-                if (ikx <= nakx) then
-                   llim = ulim+1
-                   ulim = llim+ig_up(iseg)-ig_low(iseg)-1
-                   phi(iky,ikx,ig_low(iseg)) = phiext(llim-1)
-                   phi(iky,ikx,ig_low(iseg)+1:ig_up(iseg)) = phiext(llim:ulim)
-                end if
-             end do
+             gext(llim:ulim) = g(iky,ikx,iz_low(iseg)+1:iz_up(iseg))
           end if
        end do
-    end do
+    end if
+
+  end subroutine get_distfn_on_extended_zgrid
+
+  subroutine get_distfn_from_extended_zgrid (ie, iky, gext, g)
+
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: nzed_segment, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use kt_grids, only: nakx
+
+    implicit none
+
+    integer, intent (in) :: ie, iky
+    complex, dimension (:), intent (in) :: gext
+    complex, dimension (:,-nzgrid:), intent (in out) :: g
+
+    integer :: iseg, ikx
+    integer :: llim, ulim
+
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    llim = 1 ; ulim = nzed_segment+1
+    if (ikx <= nakx) g(ikx,iz_low(iseg):iz_up(iseg)) = gext(llim:ulim)
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          llim = ulim+1
+          ulim = llim+nzed_segment-1
+          ikx = ikxmod(iseg,ie,iky)
+          if (ikx <= nakx) then
+             g(ikx,iz_low(iseg)) = gext(llim-1)
+             g(ikx,iz_low(iseg)+1:iz_up(iseg)) = gext(llim:ulim)
+          end if
+       end do
+    end if
+
+  end subroutine get_distfn_from_extended_zgrid
+
+  subroutine get_fields_on_extended_zgrid (ie, iky, phi, phiext)
+
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: iz_low, iz_up
+    use kt_grids, only: nakx
+
+    implicit none
+
+    integer, intent (in) :: ie, iky
+    complex, dimension (:,-nzgrid:), intent (in) :: phi
+    complex, dimension (:), intent (out) :: phiext
+
+    integer :: llim, ulim
+    integer :: iseg, ikx
+
+    llim = 1 ; ulim = nzed_segment+1
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    if (ikx <= nakx) then
+       phiext(llim:ulim) = phi(ikx,iz_low(iseg):iz_up(iseg))
+       llim = ulim+1
+       ulim = llim+nzed_segment-1
+    end if
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          ikx = ikxmod(iseg,ie,iky)
+          if (ikx > nakx) cycle
+          phiext(llim:ulim) = phi(ikx,iz_up(iseg)-(ulim-llim):iz_up(iseg))
+          llim = ulim+1
+          ulim = llim+nzed_segment-1
+       end do
+    end if
+
+  end subroutine get_fields_on_extended_zgrid
+
+  subroutine get_fields_from_extended_zgrid (ie, iky, phiext, phi)
+
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: iz_low, iz_up
+    use kt_grids, only: nakx
+
+    implicit none
     
-    deallocate (phiext)
+    integer, intent (in) :: ie, iky
+    complex, dimension (:), intent (in) :: phiext
+    complex, dimension (:,-nzgrid:), intent (in out) :: phi
+
+    integer :: llim, ulim
+    integer :: izl_offset
+    integer :: ikx, iseg
+
+    ulim = 0 ; izl_offset=0
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    if (ikx <= nakx) then
+       llim = 1 ; ulim = nzed_segment + 1
+       phi(ikx,iz_low(iseg):iz_up(iseg)) = phiext(llim:ulim)
+       izl_offset = 1
+    end if
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          ikx = ikxmod(iseg,ie,iky)
+          if (ikx <= nakx) then
+             llim = ulim+1
+             ulim = llim+nzed_segment-izl_offset
+             phi(ikx,iz_low(iseg)+izl_offset:iz_up(iseg)) = phiext(llim:ulim)
+             if (izl_offset == 0) izl_offset = 1
+          end if
+       end do
+    end if
     
-  end subroutine invert_stream_phi
-
-!   subroutine get_dgdz_implicit (iky, ie, iv, is, g)
-
-!     use finite_differences, only: first_order_upwind
-!     use zgrid, only: delzed
-
-!     implicit none
-
-!     integer, intent (in) :: iv, is, ie, iky
-!     complex, dimension (:), intent (in out) :: g
-
-!     integer :: n, iseg, llim, ulim
-!     complex, dimension (:), allocatable :: tmp
-
-!     n = size(g)
-
-!     allocate (tmp(n))
-
-!     call first_order_upwind (1,g,delzed(0),stream_sign(iv),tmp)
-
-! !    do iseg = 1, size(tmp)
-! !       write (*,*) 'gimp_2', ivmu, iseg, cabs(tmp(iseg)), cabs(g(iseg))
-! !    end do
-
-!     iseg = 1
-!     llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
-! !    g(llim:ulim) = g(llim:ulim) + 2.*stream(ig_low(iseg):ig_up(iseg),iv,is)*tmp(llim:ulim)
-!     g(llim:ulim) = g(llim:ulim) + stream(ig_low(iseg):ig_up(iseg),iv,is)*tmp(llim:ulim)
-!     if (nsegments(ie,iky) > 1) then
-!        do iseg = 2, nsegments(ie,iky)
-! !          llim = (iseg-1)*nz+2
-! !          ulim = iseg*nz+1
-!           llim = ulim+1
-!           ulim = llim+ig_up(iseg)-ig_low(iseg)-1
-!           g(llim:ulim) = g(llim:ulim) + stream(ig_low(iseg)+1:ig_up(iseg),iv,is)*tmp(llim:ulim)
-! !          g(llim:ulim) = g(llim:ulim) + 2.*stream(ig_low(iseg)+1:ig_up(iseg),iv,is)*tmp(llim:ulim)
-!        end do
-!     end if
-
-! !    write (*,*) 'GETDGDZ', n, ulim
-
-!     deallocate (tmp)
-
-!   end subroutine get_dgdz_implicit
+  end subroutine get_fields_from_extended_zgrid
 
   subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
 
     use finite_differences, only: tridag
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
 
     implicit none
 
@@ -3280,7 +2972,7 @@ contains
     real, dimension (:), allocatable :: a, b, c
 
     ! avoid double-counting at boundaries between 2pi segments
-    nz = maxval(ig_up-ig_low)
+    nz = nzed_segment
     nseg_max = nsegments(ie,iky)
     sgn = stream_sign(iv)
 
@@ -3290,79 +2982,81 @@ contains
     allocate (c(n_ext))
 
     iseg = 1
-    llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
+!    llim = 1 ; ulim = iz_up(iseg)-iz_low(iseg)+1
+    llim = 1 ; ulim = nz+1
     ! BACKWARDS DIFFERENCE FLAG
-    a(llim:ulim) = -2.0*stream(ig_low(iseg):ig_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
-    b(llim:ulim) = 1.0-2.0*stream(ig_low(iseg):ig_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
-    c(llim:ulim) = -2.0*stream(ig_low(iseg):ig_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
+    a(llim:ulim) = -2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
+    b(llim:ulim) = 1.0-2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
+    c(llim:ulim) = -2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
 
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
-          ulim = llim+ig_up(iseg)-ig_low(iseg)-1
+!          ulim = llim+iz_up(iseg)-iz_low(iseg)-1
+          ulim = llim+nz-1
     ! BACKWARDS DIFFERENCE FLAG
-          a(llim:ulim) = -2.0*stream(ig_low(iseg)+1:ig_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
-          b(llim:ulim) = 1.0-2.0*stream(ig_low(iseg)+1:ig_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
-          c(llim:ulim) = -2.0*stream(ig_low(iseg)+1:ig_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
+          a(llim:ulim) = -2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
+          b(llim:ulim) = 1.0-2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
+          c(llim:ulim) = -2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
        end do
     end if
-    a(ulim) = -2.0*stream(ig_up(nsegments(ie,iky)),iv,is)*stream_tri_a(size(stream_tri_a,1),sgn)
-    b(ulim) = 1.0-2.0*stream(ig_up(nsegments(ie,iky)),iv,is)*stream_tri_b(size(stream_tri_b,1),sgn)
+    a(ulim) = -2.0*stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a(size(stream_tri_a,1),sgn)
+    b(ulim) = 1.0-2.0*stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b(size(stream_tri_b,1),sgn)
     call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
 
     deallocate (a, b, c)
 
   end subroutine stream_tridiagonal_solve
 
-  subroutine stream_phi_tridiagonal_solve (iky, ie, phi)
+!   subroutine stream_phi_tridiagonal_solve (iky, ie, phi)
 
-    use finite_differences, only: tridag
+!     use finite_differences, only: tridag
 
-    implicit none
+!     implicit none
 
-    integer, intent (in) :: iky, ie
-    complex, dimension (:), intent (in out) :: phi
+!     integer, intent (in) :: iky, ie
+!     complex, dimension (:), intent (in out) :: phi
 
-    integer :: iseg, ikx, llim, ulim
-    integer :: nz, nseg_max, n_ext
-    real, dimension (:), allocatable :: a, b, c
+!     integer :: iseg, ikx, llim, ulim
+!     integer :: nz, nseg_max, n_ext
+!     real, dimension (:), allocatable :: a, b, c
 
-    ! avoid double-counting at boundaries between 2pi segments
-    nz = maxval(ig_up-ig_low)
-    nseg_max = nsegments(ie,iky)
+!     ! avoid double-counting at boundaries between 2pi segments
+!     nz = maxval(iz_up-iz_low)
+!     nseg_max = nsegments(ie,iky)
 
-    n_ext = nseg_max*nz+1
-    allocate (a(n_ext))
-    allocate (b(n_ext))
-    allocate (c(n_ext))
+!     n_ext = nseg_max*nz+1
+!     allocate (a(n_ext))
+!     allocate (b(n_ext))
+!     allocate (c(n_ext))
 
-    iseg = 1
-    ikx = ikxmod(iseg,ie,iky)
-    llim = 1 ; ulim = ig_up(iseg)-ig_low(iseg)+1
-    ! BACKWARDS DIFFERENCE FLAG
-    a(llim:ulim) = gam_stream(iky,ikx,ig_low(iseg):ig_up(iseg))*stream_tri_diff_a(llim:ulim)
-    b(llim:ulim) = 1.0+gam_stream(iky,ikx,ig_low(iseg):ig_up(iseg))*stream_tri_diff_b(llim:ulim)
-    c(llim:ulim) = gam_stream(iky,ikx,ig_low(iseg):ig_up(iseg))*stream_tri_diff_c(llim:ulim)
+!     iseg = 1
+!     ikx = ikxmod(iseg,ie,iky)
+!     llim = 1 ; ulim = iz_up(iseg)-iz_low(iseg)+1
+!     ! BACKWARDS DIFFERENCE FLAG
+!     a(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg):iz_up(iseg))*stream_tri_diff_a(llim:ulim)
+!     b(llim:ulim) = 1.0+gam_stream(iky,ikx,iz_low(iseg):iz_up(iseg))*stream_tri_diff_b(llim:ulim)
+!     c(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg):iz_up(iseg))*stream_tri_diff_c(llim:ulim)
 
-    if (nsegments(ie,iky) > 1) then
-       do iseg = 2, nsegments(ie,iky)
-          ikx = ikxmod(iseg,ie,iky)
-          llim = ulim+1
-          ulim = llim+ig_up(iseg)-ig_low(iseg)-1
-    ! BACKWARDS DIFFERENCE FLAG
-          a(llim:ulim) = gam_stream(iky,ikx,ig_low(iseg)+1:ig_up(iseg))*stream_tri_diff_a(llim:ulim)
-          b(llim:ulim) = 1.0+gam_stream(iky,ikx,ig_low(iseg)+1:ig_up(iseg))*stream_tri_diff_b(llim:ulim)
-          c(llim:ulim) = gam_stream(iky,ikx,ig_low(iseg)+1:ig_up(iseg))*stream_tri_diff_c(llim:ulim)
-       end do
-    end if
-    ikx = ikxmod(nsegments(ie,iky),ie,iky)
-    a(ulim) = gam_stream(iky,ikx,ig_up(nsegments(ie,iky)))*stream_tri_diff_a(size(stream_tri_diff_a))
-    b(ulim) = 1.0+gam_stream(iky,ikx,ig_up(nsegments(ie,iky)))*stream_tri_diff_b(size(stream_tri_diff_b))
-    call tridag (1, a(:ulim), b(:ulim), c(:ulim), phi)
+!     if (nsegments(ie,iky) > 1) then
+!        do iseg = 2, nsegments(ie,iky)
+!           ikx = ikxmod(iseg,ie,iky)
+!           llim = ulim+1
+!           ulim = llim+iz_up(iseg)-iz_low(iseg)-1
+!     ! BACKWARDS DIFFERENCE FLAG
+!           a(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg)+1:iz_up(iseg))*stream_tri_diff_a(llim:ulim)
+!           b(llim:ulim) = 1.0+gam_stream(iky,ikx,iz_low(iseg)+1:iz_up(iseg))*stream_tri_diff_b(llim:ulim)
+!           c(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg)+1:iz_up(iseg))*stream_tri_diff_c(llim:ulim)
+!        end do
+!     end if
+!     ikx = ikxmod(nsegments(ie,iky),ie,iky)
+!     a(ulim) = gam_stream(iky,ikx,iz_up(nsegments(ie,iky)))*stream_tri_diff_a(size(stream_tri_diff_a))
+!     b(ulim) = 1.0+gam_stream(iky,ikx,iz_up(nsegments(ie,iky)))*stream_tri_diff_b(size(stream_tri_diff_b))
+!     call tridag (1, a(:ulim), b(:ulim), c(:ulim), phi)
 
-    deallocate (a, b, c)
+!     deallocate (a, b, c)
 
-  end subroutine stream_phi_tridiagonal_solve
+!   end subroutine stream_phi_tridiagonal_solve
 
   subroutine advance_wdrifty_implicit (g)
 
@@ -3438,6 +3132,7 @@ contains
 
     use stella_transforms, only: finish_transforms
     use kt_grids, only: alpha_global
+    use extended_zgrid, only: finish_extended_zgrid
     
     implicit none
 
@@ -3452,6 +3147,7 @@ contains
     call finish_bessel
     call finish_wdrift
     call finish_wstar
+    call finish_extended_zgrid
     call finish_kperp2
     call deallocate_arrays
 

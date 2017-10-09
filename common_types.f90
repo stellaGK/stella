@@ -62,5 +62,14 @@ module common_types
      real, dimension (10) :: vnew
      integer :: type
   end type spec_type
-  
+
+  type :: eigen_type
+     complex, dimension (:,:), pointer :: zloc => null()
+     integer, dimension (:), pointer :: idx => null()
+  end type eigen_type
+
+  type :: response_matrix_type
+     type (eigen_type), dimension (:), pointer :: eigen => null()
+  end type response_matrix_type
+
 end module common_types
