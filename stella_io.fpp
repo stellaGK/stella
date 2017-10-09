@@ -20,7 +20,8 @@ module stella_io
 # ifdef NETCDF
   integer (kind_nf) :: ncid
 
-  integer (kind_nf) :: naky_dim, nakx_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim, ncoord_dim, ncoordt_dim
+  integer (kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim, ncoord_dim, ncoordt_dim
+  integer (kind_nf) :: ntheta0_dim, nakx_dim
   integer (kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
   integer (kind_nf) :: nttotext_dim, time_big_dim
 
@@ -35,7 +36,8 @@ module stella_io
   integer, dimension (3) :: mode_dim, phase_dim, loop_phi_dim, heat_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
 
-  integer :: nakx_id, naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
+  integer :: nakx_id, ntheta0_id
+  integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
   integer :: time_id, phi2_id, apar2_id, bpar2_id, theta0_id, nproc_id, nmesh_id
   integer :: phi2_by_mode_id, apar2_by_mode_id, bpar2_by_mode_id
@@ -128,7 +130,7 @@ contains
   subroutine define_dims
 
     use file_utils, only: num_input_lines
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, ntheta0
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
@@ -146,6 +148,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, dim='ky')
     status = nf90_def_dim (ncid, 'kx', nakx, nakx_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='kx')
+    status = nf90_def_dim (ncid, 'theta0', ntheta0, ntheta0_dim)
+    if (status /= nf90_noerr) call netcdf_error (status, dim='theta0')
     status = nf90_def_dim (ncid, 'zed', 2*nzgrid+1, nttot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='zed')
     status = nf90_def_dim (ncid, 'vpa', 2*nvgrid+1, nvtot_dim)
@@ -170,7 +174,8 @@ contains
   subroutine nc_grids
 
     use zgrid, only: nzgrid, zed
-    use kt_grids, only: naky, nakx, theta0, akx, aky
+    use kt_grids, only: naky, nakx, ntheta0
+    use kt_grids, only: theta0, akx, aky
     use species, only: nspec
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
 !    use nonlinear_terms, only: nonlin
@@ -188,6 +193,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, naky_id)
     status = nf90_put_var (ncid, nakx_id, nakx)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nakx_id)
+    status = nf90_put_var (ncid, ntheta0_id, ntheta0)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, ntheta0_id)
     status = nf90_put_var (ncid, nspec_id, nspec)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nspec_id)
     status = nf90_put_var (ncid, nmu_id, nmu)
@@ -287,7 +294,7 @@ contains
     
     integer :: status
 
-    fmode_dim(1) = nakx_dim
+    fmode_dim(1) = ntheta0_dim
     fmode_dim(2) = naky_dim
 
     mode_dim (1) = nakx_dim
@@ -477,6 +484,8 @@ contains
 
     status = nf90_def_var (ncid, 'nkx', nf90_int, nakx_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='nkx')
+    status = nf90_def_var (ncid, 'ntheta0', nf90_int, ntheta0_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='ntheta0')
     status = nf90_def_var (ncid, 'nky', nf90_int, naky_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='nky')
     status = nf90_def_var (ncid, 'nzed_tot', nf90_int, nttot_id)

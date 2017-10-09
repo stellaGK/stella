@@ -702,6 +702,8 @@ contains
        end do
     end do
 
+!    write (*,*) 'maxval', maxval(abs(wdrifty)), code_dt, maxval(spec%tz), maxval(cvdrift), maxval(vpa), maxval(gbdrift), maxval(vperp2)
+
   end subroutine init_wdrift
 
   subroutine init_wstar
@@ -1366,6 +1368,7 @@ contains
        if (nproc > 1) call max_allreduce (wdrifty_max)
        cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*wdrifty_max,zero)
        cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
+!       write (*,*) 'wdrifty_max', wdrifty_max, maxval(abs(aky))
     end if
     
     if (proc0) then
@@ -2694,9 +2697,8 @@ contains
     use extended_zgrid, only: nsegments, nsegments_poskx
     use extended_zgrid, only: nzed_segment
     use extended_zgrid, only: ikxmod
-    use extended_zgrid, only: iz_low, iz_up
     use kt_grids, only: aky
-    use kt_grids, only: naky, nakx, ntheta0
+    use kt_grids, only: naky, nakx
     use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: g1
     use dist_fn_arrays, only: gbar_to_h
@@ -2707,11 +2709,9 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
 
     integer :: ivmu, iv, is
-    integer :: iky, ie, iseg
-    integer :: ikx
-    integer :: ikyneg, ikxneg
-    integer :: llim, ulim
-    integer :: izl_offset
+    integer :: iky, ie
+    integer :: ikyneg
+    integer :: ulim
     complex, dimension (:), allocatable :: gext
 
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
@@ -2750,7 +2750,7 @@ contains
           ! solve response_matrix*phi^{n+1} = phi1^{n+1}
           ! only need to solve system for sets of connected kx with at least
           ! one non-negative kx value
-          if (any(ikxmod(:,ie,iky) <= nakx)) then
+          if (any(ikxmod(:nsegments(ie,iky),ie,iky) <= nakx)) then
              allocate (gext(nsegments_poskx(ie,iky)*nzed_segment+1))
              call get_fields_on_extended_zgrid (ie, iky, phi(iky,:,:), gext)
              call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &

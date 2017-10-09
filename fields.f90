@@ -98,19 +98,24 @@ contains
     use extended_zgrid, only: neigen, ikxmod
     use extended_zgrid, only: nsegments, nsegments_poskx
     use extended_zgrid, only: nzed_segment
-    use dist_fn_arrays, only: aj0x
+
+    ! TMP FOR TESTING -- MAB
+    use kt_grids, only: aky
 
     implicit none
 
-    integer :: iky, ie, iseg, iz, is, iv
-    integer :: ikx, ivmu
+    integer :: iky, ie, iseg, iz
+    integer :: ikx
     integer :: nresponse, nz_ext
     integer :: llim, ulim
-    integer :: idx, idxp
+    integer :: idx
     integer :: izl_offset
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: hext
+
+    ! TMP FOR TESTING -- MAB
+    integer :: i, j
 
     ! for a given ky and set of connected kx values
     ! give a unit impulse to phi at each zed location
@@ -202,10 +207,11 @@ contains
              end do
           end if
 
-          ! FLAG -- SHOULD NOT NEED TO DO THIS FOR IE VALUES SUCH THAT NO POSITIVE KX EXIST
-          ! now that we have the reponse matrix for this ky and set of connected kx values
-          ! get the LU decomposition so we are ready to solve the linear system
-          call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
+          if (any(ikxmod(:nsegments(ie,iky),ie,iky) <= nakx)) then
+             ! now that we have the reponse matrix for this ky and set of connected kx values
+             ! get the LU decomposition so we are ready to solve the linear system
+             call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
+          end if
 
           deallocate (hext, phiext)
        end do
@@ -270,6 +276,7 @@ contains
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: nsegments
     use kt_grids, only: aky
+    use kt_grids, only: nakx
     use vpamu_grids, only: integrate_species
     use dist_fn_arrays, only: aj0x
     use dist_fn, only: adiabatic_option_switch
@@ -283,9 +290,10 @@ contains
     integer, intent (in) :: iky, ie
     
     integer :: idx, iseg, ikx, iz
+    integer :: izl_offset
     real, dimension (nspec) :: wgt
     complex, dimension (:), allocatable :: h0
-    complex, dimension (nspec) :: tmp
+    complex :: tmp
 
     allocate (h0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -296,24 +304,29 @@ contains
     ! BECAUSE ONLY KX>=0 PASSED IN WHICH MAY MEAN 
     ! ISEG = 1, ETC. ARE NOT INCLUDED
 
-    idx = 0
+    idx = 0 ; izl_offset = 0
     iseg = 1
     ikx = ikxmod(iseg,ie,iky)
-    do iz = iz_low(iseg), iz_up(iseg)
-       idx = idx + 1
-       h0 = aj0x(iky,ikx,iz,:)*h(idx,:)
-       call integrate_species (h0, iz, wgt, phi(idx))
-       phi(idx) = phi(idx)/gamtot_h
-    end do
+    if (ikx <= nakx) then
+       do iz = iz_low(iseg), iz_up(iseg)
+          idx = idx + 1
+          h0 = aj0x(iky,ikx,iz,:)*h(idx,:)
+          call integrate_species (h0, iz, wgt, phi(idx))
+          phi(idx) = phi(idx)/gamtot_h
+       end do
+       izl_offset = 1
+    end if
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           ikx = ikxmod(iseg,ie,iky)
-          do iz = iz_low(iseg)+1, iz_up(iseg)
+          if (ikx > nakx) cycle
+          do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
              idx = idx + 1
              h0 = aj0x(iky,ikx,iz,:)*h(idx,:)
              call integrate_species (h0, iz, wgt, phi(idx))
              phi(idx) = phi(idx)/gamtot_h
           end do
+          if (izl_offset == 0) izl_offset = 1
        end do
     end if
 

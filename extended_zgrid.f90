@@ -160,6 +160,7 @@ contains
 
        if (.not. allocated(nsegments)) then
           allocate (nsegments(neigen_max,naky))
+          allocate (nsegments_poskx(neigen_max,naky))
        end if
 
        do iky = 1, naky
@@ -226,7 +227,13 @@ contains
 
     end select
 
-    if (.not. allocated(ikxmod)) allocate (ikxmod(nseg_max,neigen_max,naky))
+    if (.not. allocated(ikxmod)) then
+       allocate (ikxmod(nseg_max,neigen_max,naky))
+       ! initialize ikxmod to ntheta0
+       ! should not be necessary but just in case one tries to access
+       ! a value beyond nsegments(ie,iky)
+       ikxmod = ntheta0
+    end if
     do iky = 1, naky
        ! only do the following once for each independent set of theta0s
        ! the assumption here is that all kx are on processor and sequential
