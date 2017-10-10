@@ -1,6 +1,7 @@
 &zgrid_parameters
  nzed = 16
  nperiod = 2
+ boundary_option="default"
 /
 
 &geo_knobs
@@ -39,15 +40,14 @@
 
 &dist_fn_knobs
  adiabatic_option="iphi00=2"
- boundary_option="default"
  xdriftknob = 1.0
  ydriftknob = 1.0
  streamknob = 1.0
  mirrorknob = 1.0
  wstarknob = 1.0
- stream_upwind = 1.0
- mirror_explicit = .true.
- stream_explicit = .true.
+ stream_upwind = 0.01
+ mirror_explicit = .false.
+ stream_explicit = .false.
  wdrifty_explicit = .true.
  wstar_explicit = .true.
  explicit_rk4 = .false.
