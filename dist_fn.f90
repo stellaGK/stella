@@ -921,8 +921,8 @@ contains
 
     use finite_differences, only: first_order_upwind
     use mp, only: mp_abort
-    use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iz_idx, is_idx
+    use stella_layouts, only: kxkyz_lo, kxyz_lo
+    use stella_layouts, only: iz_idx, is_idx, iy_idx
     use vpamu_grids, only: dvpa
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: maxwellian
@@ -931,7 +931,8 @@ contains
     implicit none
 
     integer :: sgn
-    integer :: ikxkyz, iy, iz, is, imu, iv
+    integer :: ikxkyz, ikxyz, iy, iz, is, imu, iv
+    integer :: llim, ulim
     real, dimension (:,:), allocatable :: a, b, c
     real, dimension (:,:), allocatable :: vpafd
 
@@ -940,9 +941,16 @@ contains
     allocate (c(-nvgrid:nvgrid,-1:1)) ; c = 0.
 
     if (.not.allocated(mirror_tri_a)) then
-       allocate(mirror_tri_a(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)) ; mirror_tri_a = 0.
-       allocate(mirror_tri_b(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)) ; mirror_tri_b = 0.
-       allocate(mirror_tri_c(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)) ; mirror_tri_c = 0.
+       if (alpha_global) then
+          llim = kxyz_lo%llim_proc
+          ulim = kxyz_lo%ulim_proc
+       else
+          llim = kxkyz_lo%llim_proc
+          ulim = kxkyz_lo%ulim_proc
+       end if
+       allocate(mirror_tri_a(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_a = 0.
+       allocate(mirror_tri_b(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_b = 0.
+       allocate(mirror_tri_c(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_c = 0.
     end if
 
     allocate (vpafd(-nvgrid:nvgrid,-1:1)) ; vpafd = 0.
@@ -962,8 +970,20 @@ contains
     vpafd = -0.5*vpafd/spread(maxwellian,2,3)
     
     if (alpha_global) then
-       write (*,*) 'not yet setup for alpha_global'
-       call mp_abort ('mirror not yet setup fo alpha_global')
+       do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+          iy = iy_idx(kxyz_lo,ikxyz)
+          iz = iz_idx(kxyz_lo,ikxyz)
+          is = is_idx(kxyz_lo,ikxyz)
+          sgn = mirror_sign(iy,iz)
+          do imu = 1, nmu
+             do iv = -nvgrid, nvgrid
+! BACKWARDS DIFFERENCE FLAG
+                mirror_tri_a(iv,imu,ikxyz) = -2.0*a(iv,sgn)*mirror(iy,iz,imu,is)
+                mirror_tri_b(iv,imu,ikxyz) = 1.0-2.0*(b(iv,sgn)+2.0*vpafd(iv,sgn))*mirror(iy,iz,imu,is)
+                mirror_tri_c(iv,imu,ikxyz) = -2.0*c(iv,sgn)*mirror(iy,iz,imu,is)
+             end do
+          end do
+       end do
     else
        ! multiply by mirror coefficient
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1780,7 +1800,6 @@ contains
           g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
        end do
 
-
        ! then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
        ! finally add the mirror term to the RHS of the GK eqn
@@ -2571,7 +2590,7 @@ contains
 
     ! g^{*} (coming from explicit solve) is input
     ! get g^{**}, with g^{**}-g^{*} due to mirror term
-    if (mirror_implicit) call advance_mirror_implicit (g, phi, apar)
+    if (mirror_implicit) call advance_mirror_implicit (g)
 
     ! g^{**} is input
     ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2582,17 +2601,14 @@ contains
 
   end subroutine advance_implicit
 
-  subroutine advance_mirror_implicit (g, phi, apar)
+  subroutine advance_mirror_implicit (g)
 
     use mp, only: proc0
     use job_manage, only: time_message
     use redistribute, only: gather, scatter
     use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
-    use stella_layouts, only: iy_idx, iz_idx
     use stella_transforms, only: transform_ky2y, transform_y2ky
-    use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid
-    use dist_fn_arrays, only: gbar_to_h
     use dist_fn_arrays, only: gvmu
     use kt_grids, only: alpha_global
     use kt_grids, only: ny, nakx
@@ -2601,12 +2617,11 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
 
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:), allocatable :: g0x
 
-    integer :: ikxyz, ikxkyz, iy, iz, imu
+    integer :: ikxyz, ikxkyz, imu
 
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
 
@@ -2619,28 +2634,22 @@ contains
     if (alpha_global) then
        allocate (g0v(-nvgrid:nvgrid,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       ! for upwinding, need to evaluate dh^{*}/dvpa in y-space
-       ! first must take h^{*}(ky) and transform to h^{*}(y)
+       ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
+       ! first must take g^{*}(ky) and transform to g^{*}(y)
        call transform_ky2y (g, g0x)
-       ! second, remap h so velocities are local
+       ! second, remap g so velocities are local
        call scatter (kxyz2vmu, g0x, g0v)
-       ! next, take dh^{*}/dvpa and multiply with mirror coefficient in y-space.
-       ! g= h^{*} is input and overwritten with (I-A_0^{-1})h^{*}
-       call get_dgdvpa_global (g0v)
-       ! invert_mirror_operator takes rhs of equation and
-       ! returns h^{n+1}
+
        do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-          iy = iy_idx(kxyz_lo,ikxyz)
-          iz = iz_idx(kxyz_lo,ikxyz)
-!          call invert_mirror_operator (ikxyz, mirror_sign(iy,iz),g0v(:,:,ikxyz))
+          do imu = 1, nmu
+             call invert_mirror_operator (imu, ikxyz, g0v(:,imu,ikxyz))
+          end do
        end do
+
        ! then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
        ! finally transform back from y to ky space
        call transform_y2ky (g0x, g)
-       call scatter (kxyz2vmu, g, gvmu)
-       ! get updated fields corresponding to h^{n+1}
-       call get_fields (gvmu, phi, apar, dist='h')
     else
        ! get g^{*} with v-space on processor
        call scatter (kxkyz2vmu, g, gvmu)
@@ -2654,7 +2663,6 @@ contains
        ! invert_mirror_operator takes rhs of equation and
        ! returns g^{n+1}
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          iz = iz_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
              call invert_mirror_operator (imu, ikxkyz, g0v(:,imu,ikxkyz))
           end do
