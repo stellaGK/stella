@@ -1,0 +1,13 @@
+*.o
+*.mod
+*.MOD
+*.a
+*~
+\#*
+*.pdf
+*.aux
+*.log
+*.out
+*.synctex.gz
+test_vmec_to_gs2_geometry_interface
+geometry.dat
