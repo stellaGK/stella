@@ -49,7 +49,6 @@
  mirror_explicit = .false.
  stream_explicit = .false.
  wdrifty_explicit = .true.
- wstar_explicit = .true.
  explicit_rk4 = .false.
 /
 
