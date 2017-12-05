@@ -18,7 +18,7 @@ module stella_diagnostics
 
   ! arrays needed for averaging in x,y,z
   real, dimension (:), allocatable :: fac
-  real, dimension (:), allocatable :: dl_over_b
+!  real, dimension (:), allocatable :: dl_over_b
 
   real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
   real, dimension (:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
@@ -131,17 +131,9 @@ contains
 
   subroutine init_averages
 
-    use zgrid, only: delzed
-    use geometry, only: jacob
     use kt_grids, only: akx, nakx
 
     implicit none
-
-    if (.not.allocated(dl_over_b)) then
-       allocate (dl_over_b(-ntg_out:ntg_out))
-       dl_over_b = delzed(-ntg_out:ntg_out)*jacob(-ntg_out:ntg_out)
-       dl_over_b = dl_over_b / sum(dl_over_b)
-    end if
 
     if (.not.allocated(fac)) then
        allocate (fac(nakx)) ; fac = 2.0
@@ -260,6 +252,7 @@ contains
 
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
+    use geometry, only: dl_over_b
 
     implicit none
 
@@ -284,7 +277,6 @@ contains
 
     use mp, only: sum_reduce
     use constants, only: zi
-    use dist_fn_arrays, only: aj0v, aj1v
     use fields_arrays, only: phi, apar
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -294,9 +286,10 @@ contains
     use geometry, only: geo_surf
     use zgrid, only: delzed, nzgrid
     use vpamu_grids, only: nvgrid, nvpa, nmu
-    use vpamu_grids, only: vperp2, energy, vpa
+    use vpamu_grids, only: vperp2, vpa
     use run_parameters, only: fphi, fapar
     use kt_grids, only: aky, theta0
+    use dist_fn_arrays, only: aj0v, aj1v
 
     implicit none
 
@@ -328,17 +321,18 @@ contains
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), pflx(is))
           
           ! get heat flux
-          g0 = g0*energy(iz,:,:)
+          ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
+          g0 = g0*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), qflx(is))
 
           ! get momentum flux
           ! parallel component
           g0 = g(:,:,ikxkyz)*(spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu) &
-               * geo_surf%rgeo/bmag(iz) &
+               * geo_surf%rgeo/bmag(1,iz) &
           ! perp component
-               - zi*aky(iky)*spread(aj1v(:,ikxkyz)*vperp2(iz,:),1,nvpa)*geo_surf%rhoc &
-               * (gds21(iz)+theta0(iky,ikx)*gds22(iz))*spec(is)%smz &
-               / (geo_surf%qinp*geo_surf%shat*bmag(iz)**2))
+               - zi*aky(iky)*spread(aj1v(:,ikxkyz)*vperp2(1,iz,:),1,nvpa)*geo_surf%rhoc &
+               * (gds21(1,iz)+theta0(iky,ikx)*gds22(1,iz))*spec(is)%smz &
+               / (geo_surf%qinp*geo_surf%shat*bmag(1,iz)**2))
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), vflx(is))
        end do
     end if
@@ -356,18 +350,18 @@ contains
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), pflx(is))
           
           ! Apar contribution to heat flux
-          g0 = g0*energy(iz,:,:)
+          g0 = g0*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), qflx(is))
           
           ! Apar contribution to momentum flux
           ! parallel component
           g0 = -spread(vpa,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
                * (spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu) &
-               * geo_surf%rgeo/bmag(iz) &
+               * geo_surf%rgeo/bmag(1,iz) &
           ! perp component
-               - zi*aky(iky)*spread(aj1v(:,ikxkyz)*vperp2(iz,:),1,nvpa)*geo_surf%rhoc &
-               * (gds21(iz)+theta0(iky,ikx)*gds22(iz))*spec(is)%smz &
-               / (geo_surf%qinp*geo_surf%shat*bmag(iz)**2))
+               - zi*aky(iky)*spread(aj1v(:,ikxkyz)*vperp2(1,iz,:),1,nvpa)*geo_surf%rhoc &
+               * (gds21(1,iz)+theta0(iky,ikx)*gds22(1,iz))*spec(is)%smz &
+               / (geo_surf%qinp*geo_surf%shat*bmag(1,iz)**2))
           ! FLAG -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !!
 
           call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), vflx(is))
@@ -413,6 +407,7 @@ contains
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: is_idx, ikx_idx, iz_idx
     use vpamu_grids, only: nvgrid, nmu
+    use geometry, only: dl_over_b
 
     implicit none
 
@@ -562,7 +557,7 @@ contains
 
     implicit none
 
-    if (allocated(dl_over_b)) deallocate (dl_over_b)
+!    if (allocated(dl_over_b)) deallocate (dl_over_b)
     if (allocated(fac)) deallocate (fac)
 
   end subroutine finish_averages

@@ -287,9 +287,9 @@ contains
     call init_zero_arrays
 
     q_local = geo_surf%qinp*(1.0+delrho*geo_surf%shat/geo_surf%rhoc)
-    B_local = bmag + delrho*dBdrho
+    B_local = bmag(1,:) + delrho*dBdrho
     dBdth_local = dbdthet + delrho*d2Bdrdth
-    gradpar_local = gradpar + delrho*dgradpardrho
+    gradpar_local = gradpar(1,:) + delrho*dgradpardrho
 
     ! FLAG -- needs to be changed for stellarator runs
     BHat = spread(B_local,2,nzeta)
@@ -341,10 +341,11 @@ contains
 
   subroutine get_sfincs_output (f_neoclassical, phi_neoclassical)
 
+    use mp, only: mp_abort
     use species, only: nspec, spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: energy, vpa, maxwellian
+    use vpamu_grids, only: vpa, maxwellian
     use export_f, only: h_sfincs => delta_f
     use globalVariables, only: nxi_sfincs => nxi
     use globalVariables, only: nx_sfincs => nx
@@ -352,6 +353,7 @@ contains
     use globalVariables, only: phi_sfincs => Phi1Hat
 !    use globalVariables, only: ddx_sfincs => ddx
     use xGrid, only: xGrid_k
+    use dist_fn_arrays, only: vperp2
 
     implicit none
 
@@ -388,7 +390,8 @@ contains
              do iv = 0, nvgrid
                 ! x_stella is the speed 
                 ! corresponding to this (vpa,mu) grid point
-                x_stella = sqrt(energy(iz,iv,imu))
+                ! FLAG -- NEED TO EXTEND SFINCS TREATMENT TO INCLUDE MULTIPLE ALPHAS
+                x_stella = sqrt(vpa(iv)**2+vperp2(1,iz,imu))
                 ! note that with exception of vpa=0
                 ! can use symmetry of vpa grid to see that
                 ! each speed arc has two pitch angles on it

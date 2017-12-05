@@ -229,7 +229,7 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(ig)),1,nvpa)*phi(iky,ikx,ig) &
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,ig)),1,nvpa)*phi(iky,ikx,ig) &
             *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
     end do
 
@@ -415,7 +415,7 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(iz)),1,nvpa)*phi(iky,ikx,iz) &
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz) &
             *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
     end do
 
@@ -476,7 +476,7 @@ contains
                   * ( dfac(ig)*phi(iky,ikx,ig) &
                   + 2.0*vpa(iv)*ufac(ig)*odd(iky,ikx,ig) &
                   + (vpa(iv)**2-0.5)*tparfac(ig)*phi(iky,ikx,ig) &
-                  + tperpfac(ig)*(vperp2(ig,imu)-1.)*phi(iky,ikx,ig) )
+                  + tperpfac(ig)*(vperp2(1,ig,imu)-1.)*phi(iky,ikx,ig) )
           end do
        end do
     end do

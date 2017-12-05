@@ -14,6 +14,7 @@ stella_mod = \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 fzero.o \
 	 gauss_quad.o \
 	 geometry.o \
 	 init_g.o \
@@ -23,6 +24,7 @@ stella_mod = \
 	 linear_solve.o \
 	 millerlocal.o \
 	 mp.o \
+	 mt19937.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 ran.o \
@@ -40,8 +42,15 @@ stella_mod = \
 	 stella_time.o \
 	 stella_transforms.o \
 	 text_options.o \
+	 vmec_geo.o \
+	 vmec_to_gs2_geometry_interface.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+
+test_vmec_to_gs2_geometry_interface_mod = \
+	 fzero.o \
+	 test_vmec_to_gs2_geometry_interface.o \
+	 vmec_to_gs2_geometry_interface.o 
 
 command_line.o: 
 common_types.o: 
@@ -106,6 +115,7 @@ fields_arrays.o: \
 file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
+fzero.o: 
 gauss_quad.o: \
 	 constants.o \
 	 file_utils.o \
@@ -117,6 +127,7 @@ geometry.o: \
 	 millerlocal.o \
 	 mp.o \
 	 text_options.o \
+	 vmec_geo.o \
 	 zgrid.o 
 hdf_wrapper.o: \
 	 constants.o \
@@ -165,6 +176,7 @@ millerlocal.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
+mt19937.o: 
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
@@ -179,7 +191,8 @@ netcdf_utils.o: \
 	 file_utils.o 
 pgplot_utils.o: \
 	 constants.o 
-ran.o: 
+ran.o: \
+	 mt19937.o 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 
@@ -261,7 +274,15 @@ stella_time.o:
 stella_transforms.o: \
 	 fft_work.o \
 	 stella_layouts.o 
+test_vmec_to_gs2_geometry_interface.o: \
+	 vmec_to_gs2_geometry_interface.o 
 text_options.o: 
+vmec_geo.o: \
+	 common_types.o \
+	 file_utils.o \
+	 vmec_to_gs2_geometry_interface.o 
+vmec_to_gs2_geometry_interface.o: \
+	 fzero.o 
 vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \

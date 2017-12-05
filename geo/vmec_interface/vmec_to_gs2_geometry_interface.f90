@@ -101,7 +101,7 @@ contains
     real, parameter :: one = 1.0d+0
     real, parameter :: mu_0 = 4*pi*(1.0d-7)
 
-    integer :: j, index, izeta, ialpha, which_surface, isurf, m, n, imn, imn_nyq
+    integer :: j, index, izeta, ialpha, isurf, m, n, imn, imn_nyq
     real :: angle, sin_angle, cos_angle, temp, edge_toroidal_flux_over_2pi
     real, dimension(:,:), allocatable :: theta_vmec
     integer :: ierr, iopen, fzero_flag
@@ -621,8 +621,8 @@ contains
     !*********************************************************************
 
     do imn_nyq = 1, mnmax_nyq ! All the quantities we need except R, Z, and Lambda use the _nyq mode numbers.
-       m = xm_nyq(imn_nyq)
-       n = xn_nyq(imn_nyq)/nfp
+       m = int(xm_nyq(imn_nyq))
+       n = int(xn_nyq(imn_nyq)/nfp)
 
        if (abs(m) >= mpol .or. abs(n) > ntor) then
           non_Nyquist_mode_available = .false.
@@ -840,7 +840,7 @@ contains
 
                    ! Handle B sup theta:
                    temp = bsupumns(imn_nyq,vmec_radial_index_half(isurf)) * vmec_radial_weight_half(isurf)
-                   temp = temp*scale_factor	
+                   temp = temp*scale_factor
                    B_sup_theta_vmec(ialpha,izeta) = B_sup_theta_vmec(ialpha,izeta) + temp * sin_angle
 
                    ! Handle B sup zeta:

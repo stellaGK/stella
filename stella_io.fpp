@@ -24,6 +24,7 @@ module stella_io
   integer (kind_nf) :: ntheta0_dim, nakx_dim
   integer (kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
   integer (kind_nf) :: nttotext_dim, time_big_dim
+  integer (kind_nf) :: nalpha_dim
 
   integer, dimension (6) :: mom_t_dim
   integer, dimension (5) :: field_dim, final_mom_dim, heatk_dim
@@ -35,6 +36,7 @@ module stella_io
   integer, dimension (3) :: fluxx_dim
   integer, dimension (3) :: mode_dim, phase_dim, loop_phi_dim, heat_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
+  integer, dimension (2) :: flux_surface_dim
 
   integer :: nakx_id, ntheta0_id
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
@@ -132,6 +134,7 @@ contains
     use file_utils, only: num_input_lines
     use kt_grids, only: naky, nakx, ntheta0
     use zgrid, only: nzgrid
+    use geometry, only: nalpha
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
 # ifdef NETCDF
@@ -152,6 +155,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, dim='theta0')
     status = nf90_def_dim (ncid, 'zed', 2*nzgrid+1, nttot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='zed')
+    status = nf90_def_dim (ncid, 'alpha', nalpha, nalpha_dim)
+    if (status /= nf90_noerr) call netcdf_error (status, dim='alpha')
     status = nf90_def_dim (ncid, 'vpa', 2*nvgrid+1, nvtot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='vpa')
     status = nf90_def_dim (ncid, 'mu', nmu, nmu_dim)
@@ -293,6 +298,9 @@ contains
     character (20) :: datestamp, timestamp, timezone
     
     integer :: status
+
+    flux_surface_dim(1) = nalpha_dim
+    flux_surface_dim(2) = nttot_dim
 
     fmode_dim(1) = ntheta0_dim
     fmode_dim(2) = naky_dim
@@ -575,29 +583,29 @@ contains
     status = nf90_def_var (ncid, 'zed', netcdf_real, nttot_dim, zed_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='zed')
 
-    status = nf90_def_var (ncid, 'bmag', netcdf_real, nttot_dim, bmag_id)
+    status = nf90_def_var (ncid, 'bmag', netcdf_real, flux_surface_dim, bmag_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='bmag')
-    status = nf90_put_att (ncid, bmag_id, 'long_name', '|B|(zed)')
+    status = nf90_put_att (ncid, bmag_id, 'long_name', '|B|(alpha,zed)')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='long_name')
     status = nf90_put_att (ncid, bmag_id, 'units', 'B_0')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='units')
 
-    status = nf90_def_var (ncid, 'gradpar', netcdf_real, nttot_dim, gradpar_id)
+    status = nf90_def_var (ncid, 'gradpar', netcdf_real, flux_surface_dim, gradpar_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gradpar')
-    status = nf90_def_var (ncid, 'gbdrift', netcdf_real, nttot_dim, gbdrift_id) 
+    status = nf90_def_var (ncid, 'gbdrift', netcdf_real, flux_surface_dim, gbdrift_id) 
     if (status /= nf90_noerr) call netcdf_error (status, var='gbdrift')
-    status = nf90_def_var (ncid, 'gbdrift0', netcdf_real, nttot_dim, gbdrift0_id)
+    status = nf90_def_var (ncid, 'gbdrift0', netcdf_real, flux_surface_dim, gbdrift0_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gbdrift0')
-    status = nf90_def_var (ncid, 'cvdrift', netcdf_real, nttot_dim, cvdrift_id)
+    status = nf90_def_var (ncid, 'cvdrift', netcdf_real, flux_surface_dim, cvdrift_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='cvdrift')
-    status = nf90_def_var (ncid, 'cvdrift0', netcdf_real, nttot_dim, cvdrift0_id)
+    status = nf90_def_var (ncid, 'cvdrift0', netcdf_real, flux_surface_dim, cvdrift0_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='cvdrift0')
 
-    status = nf90_def_var (ncid, 'gds2', netcdf_real, nttot_dim, gds2_id)
+    status = nf90_def_var (ncid, 'gds2', netcdf_real, flux_surface_dim, gds2_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds2')
-    status = nf90_def_var (ncid, 'gds21', netcdf_real, nttot_dim, gds21_id)
+    status = nf90_def_var (ncid, 'gds21', netcdf_real, flux_surface_dim, gds21_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds21')
-    status = nf90_def_var (ncid, 'gds22', netcdf_real, nttot_dim, gds22_id)
+    status = nf90_def_var (ncid, 'gds22', netcdf_real, flux_surface_dim, gds22_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds22')
     status = nf90_def_var (ncid, 'grho', netcdf_real, nttot_dim, grho_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='grho')
@@ -2045,6 +2053,8 @@ contains
          cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
          drhodpsi
     use geometry, only: geo_surf
+    use geometry, only: nalpha
+    use zgrid, only: nzgrid
     use run_parameters, only: beta
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -2052,24 +2062,29 @@ contains
     implicit none
 
     integer :: status
+    integer, dimension (2) :: start, count
 
-    status = nf90_put_var (ncid, bmag_id, bmag)
+    start = 1
+    count(1) = nalpha
+    count(2) = 2*nzgrid+1
+
+    status = nf90_put_var (ncid, bmag_id, bmag, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id)
-    status = nf90_put_var (ncid, gradpar_id, gradpar)
+    status = nf90_put_var (ncid, gradpar_id, gradpar, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gradpar_id)
-    status = nf90_put_var (ncid, gbdrift_id, gbdrift)
+    status = nf90_put_var (ncid, gbdrift_id, gbdrift, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gbdrift_id)
-    status = nf90_put_var (ncid, gbdrift0_id, gbdrift0)
+    status = nf90_put_var (ncid, gbdrift0_id, gbdrift0, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gbdrift0_id)
-    status = nf90_put_var (ncid, cvdrift_id, cvdrift)
+    status = nf90_put_var (ncid, cvdrift_id, cvdrift, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, cvdrift_id)
-    status = nf90_put_var (ncid, cvdrift0_id, cvdrift0)
+    status = nf90_put_var (ncid, cvdrift0_id, cvdrift0, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, cvdrift0_id)
-    status = nf90_put_var (ncid, gds2_id, gds2)
+    status = nf90_put_var (ncid, gds2_id, gds2, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds2_id)
-    status = nf90_put_var (ncid, gds21_id, gds21)
+    status = nf90_put_var (ncid, gds21_id, gds21, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds21_id)
-    status = nf90_put_var (ncid, gds22_id, gds22)
+    status = nf90_put_var (ncid, gds22_id, gds22, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds22_id)
     status = nf90_put_var (ncid, grho_id, grho)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, grho_id)

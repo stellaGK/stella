@@ -27,8 +27,8 @@ module dist_fn_arrays
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (-nvgrid:nvgrid, nmu, nspec, -kxkyz-layout-)
 
-  real, dimension (:,:), allocatable :: wstar
-  ! (-nzgrid:nzgrid, -vmu-layout-)
+  real, dimension (:,:,:), allocatable :: wstar
+  ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:), allocatable :: wdriftx, wdrifty
   ! (ny_ffs, -nzgrid:nzgrid, -vmu-layout-)
@@ -40,6 +40,8 @@ module dist_fn_arrays
   ! (nmu, -kxkyz-layout-)
 
   real, dimension (:,:,:), allocatable :: kperp2
+
+  real, dimension (:,:,:), allocatable :: vperp2
 
   interface gbar_to_g
      module procedure gbar_to_g_kxkyz
@@ -338,7 +340,7 @@ contains
              do iky = 1, naky
                 ! BACKWARDS DIFFERENCE FLAG
 !                adj = zi*aj0x(iky,ikx,iz,ivmu)*aky(iky)*wstar(iz,ivmu) &
-                adj = zi*aj0x(iky,ikx,iz,ivmu)*aky(iky)*2.0*wstar(iz,ivmu) &
+                adj = zi*aj0x(iky,ikx,iz,ivmu)*aky(iky)*2.0*wstar(1,iz,ivmu) &
                      * ( facphi*phi(iky,ikx,iz) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
                 g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) + adj
              end do

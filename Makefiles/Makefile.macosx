@@ -46,3 +46,8 @@ ifdef USE_SFINCS
 
       HDF5_LIB = -L$(HDF5_DIR) -lhdf5hl_fortran -lhdf5_fortran
 endif
+
+#ifdef USE_VMEC
+#      LIBSTELL_LIB = -L$(LIBSTELL_DIR) -lmini_libstell
+#      LIBSTELL_INC = -I$(LIBSTELL_DIR)
+#endif

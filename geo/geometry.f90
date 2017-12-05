@@ -6,7 +6,7 @@ module geometry
 
   public :: init_geometry, finish_geometry
   public :: grho
-  public :: bmag, dbdthet, btor
+  public :: bmag, dbdzed, btor
   public :: gradpar
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
@@ -17,6 +17,7 @@ module geometry
   public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
   public :: Rmajor
+  public :: nalpha
 
   private
 
@@ -24,11 +25,13 @@ module geometry
 
   real :: dIdrho
   real :: drhodpsi, rhotor, drhotordrho, shat, qinp, rgeo
-  real, dimension (:), allocatable :: grho, bmag, dbdthet
-  real, dimension (:), allocatable :: cvdrift, cvdrift0
-  real, dimension (:), allocatable :: gbdrift, gbdrift0
-  real, dimension (:), allocatable :: gds2, gds21, gds22
-  real, dimension (:), allocatable :: jacob, gradpar
+  real, dimension (:), allocatable :: grho
+  real, dimension (:,:), allocatable :: gradpar
+  real, dimension (:,:), allocatable :: bmag, dbdzed
+  real, dimension (:,:), allocatable :: cvdrift, cvdrift0
+  real, dimension (:,:), allocatable :: gbdrift, gbdrift0
+  real, dimension (:,:), allocatable :: gds2, gds21, gds22
+  real, dimension (:), allocatable :: jacob
   real, dimension (:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
@@ -36,6 +39,11 @@ module geometry
   integer :: geo_option_switch
   integer, parameter :: geo_option_local = 1
   integer, parameter :: geo_option_inputprof = 2
+  integer, parameter :: geo_option_vmec = 3
+
+  ! number of field line labels to include
+  ! default is one (only > 1 for alpha_global = .true.)
+  integer :: nalpha = 1
 
   logical :: geoinit = .false.
 
@@ -44,8 +52,8 @@ contains
   subroutine init_geometry
 
     use mp, only: proc0
-    use millerlocal, only: read_local_parameters
-    use millerlocal, only: get_local_geo
+    use millerlocal, only: read_local_parameters, get_local_geo
+    use vmec_geo, only: read_vmec_parameters, get_vmec_geo
     use inputprofiles_interface, only: read_inputprof_geo
     use zgrid, only: nzed, nzgrid
     use zgrid, only: zed, delzed
@@ -55,11 +63,10 @@ contains
     implicit none
 
     real :: dpsidrho
+    integer :: iy
 
     if (geoinit) return
     geoinit = .true.
-
-    call allocate_arrays (nzgrid)
 
     if (proc0) then
        call read_parameters
@@ -67,12 +74,14 @@ contains
        case (geo_option_local)
           ! read in Miller local parameters
           call read_local_parameters (geo_surf)
+          ! allocate geometry arrays
+          call allocate_arrays (nalpha, nzgrid)
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho, bmag, &
-               gds2, gds21, gds22, gradpar, &
-               gbdrift0, gbdrift, cvdrift0, cvdrift, &
+               dpsidrho, dIdrho, grho, bmag(1,:), &
+               gds2(1,:), gds21(1,:), gds22(1,:), gradpar(1,:), &
+               gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
           drhodpsi = 1./dpsidrho
@@ -80,28 +89,44 @@ contains
           ! first read in some local parameters
           ! only thing needed really is rhoc
           call read_local_parameters (geo_surf)
+          ! allocate geometry arrays
+          call allocate_arrays (nalpha, nzgrid)
           ! now overwrite local parameters
           ! with those from input.profiles file
           ! use rhoc from input as surface
           call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho, bmag, &
-               gds2, gds21, gds22, gradpar, &
-               gbdrift0, gbdrift, cvdrift0, cvdrift, &
+               dpsidrho, dIdrho, grho, bmag(1,:), &
+               gds2(1,:), gds21(1,:), gds22(1,:), gradpar(1,:), &
+               gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
           drhodpsi = 1./dpsidrho
+       case (geo_option_vmec)
+          ! read in input parameters for vmec
+          ! nalpha may be specified via input file
+          call read_vmec_parameters (nalpha)
+          ! allocate geometry arrays
+          call allocate_arrays (nalpha, nzgrid)
+          ! get geometry coefficients from vmec
+          call get_vmec_geo (nzgrid, geo_surf, bmag, gradpar, gds2, gds21, gds22, &
+               gbdrift, gbdrift0, cvdrift, cvdrift0)
+          ! FLAG -- NOT SURE IF THIS IS CORRECT
+          drhodpsi = 1.0
        end select
     end if
 
     call broadcast_arrays
 
-    jacob = 1.0/(drhodpsi*gradpar*bmag)
+    ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION
+    jacob = 1.0/(drhodpsi*gradpar(1,:)*bmag(1,:))
     
     dl_over_b = delzed*jacob
     dl_over_b = dl_over_b / sum(dl_over_b)
 
-    call get_dthet (nzgrid, delzed, bmag, dbdthet)
+    do iy = 1, nalpha
+       call get_dzed (nzgrid, delzed, bmag(iy,:), dbdzed(iy,:))
+    end do
 
     ! if magnetic shear almost zero, override parallel
     ! boundary condition so that it is periodic
@@ -110,27 +135,30 @@ contains
 
   end subroutine init_geometry
 
-  subroutine allocate_arrays (nzgrid)
+  subroutine allocate_arrays (nalpha, nzgrid)
 
     implicit none
 
-    integer, intent (in) :: nzgrid
+    integer, intent (in) :: nalpha, nzgrid
+
+    if (.not.allocated(bmag)) allocate (bmag(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds2)) allocate (gds2(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds21)) allocate (gds21(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds22)) allocate (gds22(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gbdrift)) allocate (gbdrift(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gbdrift0)) allocate (gbdrift0(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(cvdrift0)) allocate (cvdrift0(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dbdzed)) allocate (dbdzed(nalpha,-nzgrid:nzgrid))
+
+    ! FLAG - NEED TO SORT OUT 1D VS 2D FOR GRADPAR
+    if (.not.allocated(gradpar)) allocate (gradpar(nalpha,-nzgrid:nzgrid))
 
     if (.not.allocated(grho)) allocate (grho(-nzgrid:nzgrid))
-    if (.not.allocated(bmag)) allocate (bmag(-nzgrid:nzgrid))
     if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
     if (.not.allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
-    if (.not.allocated(dbdthet)) allocate (dbdthet(-nzgrid:nzgrid))
     if (.not.allocated(jacob)) allocate (jacob(-nzgrid:nzgrid))
-    if (.not.allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
     if (.not.allocated(dl_over_b)) allocate (dl_over_b(-nzgrid:nzgrid))
-    if (.not.allocated(gds2)) allocate (gds2(-nzgrid:nzgrid))
-    if (.not.allocated(gds21)) allocate (gds21(-nzgrid:nzgrid))
-    if (.not.allocated(gds22)) allocate (gds22(-nzgrid:nzgrid))
-    if (.not.allocated(gbdrift)) allocate (gbdrift(-nzgrid:nzgrid))
-    if (.not.allocated(gbdrift0)) allocate (gbdrift0(-nzgrid:nzgrid))
-    if (.not.allocated(cvdrift)) allocate (cvdrift(-nzgrid:nzgrid))
-    if (.not.allocated(cvdrift0)) allocate (cvdrift0(-nzgrid:nzgrid))
     if (.not.allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
     if (.not.allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
     if (.not.allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
@@ -148,11 +176,12 @@ contains
     logical :: exist
 
     character (20) :: geo_option
-    type (text_option), dimension (4), parameter :: geoopts = (/ &
+    type (text_option), dimension (5), parameter :: geoopts = (/ &
          text_option('default', geo_option_local), &
          text_option('miller', geo_option_local), &
          text_option('local', geo_option_local), &
-         text_option('input.profiles', geo_option_inputprof) /)
+         text_option('input.profiles', geo_option_inputprof), &
+         text_option('vmec', geo_option_vmec) /)
 
     namelist /geo_knobs/ geo_option
 
@@ -218,7 +247,7 @@ contains
   ! given function f(z:-pi->pi), calculate z derivative
   ! second order accurate, with equal grid spacing assumed
   ! assumes periodic in z -- may need to change this in future
-  subroutine get_dthet (nz, dz, f, df)
+  subroutine get_dzed (nz, dz, f, df)
 
     implicit none
 
@@ -228,11 +257,12 @@ contains
 
     df(-nz+1:nz-1) = (f(-nz+2:)-f(:nz-2))/(dz(:nz-2)+dz(-nz+1:nz-1))
 
+    ! FLAG -- THIS MAY NEED TO BE CHANGED
     ! use periodicity at boundary
     df(-nz) = (f(-nz+1)-f(nz-1))/(dz(-nz)+dz(nz-1))
     df(nz) = df(-nz)
 
-  end subroutine get_dthet
+  end subroutine get_dzed
 
   subroutine finish_geometry
 
@@ -240,9 +270,9 @@ contains
 
     if (allocated(grho)) deallocate (grho)
     if (allocated(bmag)) deallocate (bmag)
-    if (allocated(bmag)) deallocate (btor)
+    if (allocated(btor)) deallocate (btor)
     if (allocated(rmajor)) deallocate (rmajor)
-    if (allocated(dbdthet)) deallocate (dbdthet)
+    if (allocated(dbdzed)) deallocate (dbdzed)
     if (allocated(jacob)) deallocate (jacob)
     if (allocated(gradpar)) deallocate (gradpar)
     if (allocated(dl_over_b)) deallocate (dl_over_b)

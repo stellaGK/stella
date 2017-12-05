@@ -99,9 +99,6 @@ contains
     use extended_zgrid, only: nsegments, nsegments_poskx
     use extended_zgrid, only: nzed_segment
 
-    ! TMP FOR TESTING -- MAB
-    use kt_grids, only: aky
-
     implicit none
 
     integer :: iky, ie, iseg, iz
@@ -113,9 +110,6 @@ contains
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: hext
-
-    ! TMP FOR TESTING -- MAB
-    integer :: i, j
 
     ! for a given ky and set of connected kx values
     ! give a unit impulse to phi at each zed location

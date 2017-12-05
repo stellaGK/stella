@@ -1,1 +1,0 @@
-# full_surface_gs2_vmec_interface

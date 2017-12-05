@@ -64,15 +64,15 @@ module dist_fn
   logical :: mirror_explicit, mirror_implicit
   logical :: stream_explicit, stream_implicit
   logical :: wdrifty_explicit, wdrifty_implicit
-  logical :: wstar_explicit, wstar_implicit
+!  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
   real :: stream_upwind
   real :: gamtot_h, gamtot3_h
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
   real, dimension (:,:,:), allocatable :: gam_stream
   real, dimension (:,:), allocatable :: gamtot3
-  complex, dimension (:,:,:), allocatable :: gamtot_wstar, apar_denom_wstar
-  complex, dimension (:,:), allocatable :: gamtot3_wstar
+!  complex, dimension (:,:,:), allocatable :: gamtot_wstar, apar_denom_wstar
+!  complex, dimension (:,:), allocatable :: gamtot3_wstar
 
 !  real, dimension (:,:,:), allocatable :: kperp2
 
@@ -190,7 +190,7 @@ contains
              is = is_idx(kxkyz_lo,ikxkyz)
              g0 = spread(abs(vpa*maxwellian),2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)
              wgt = spec(is)%z*spec(is)%z*spec(is)%dens*spec(is)%stm/spec(is)%temp &
-                  * 0.5*code_dt*gradpar(iz)/gamtot(iky,ikx,iz)
+                  * 0.5*code_dt*gradpar(1,iz)/gamtot(iky,ikx,iz)
              call integrate_vmu (g0, iz, tmp)
              gam_stream(iky,ikx,iz) = gam_stream(iky,ikx,iz) + tmp*wgt
           end do
@@ -218,109 +218,109 @@ contains
        deallocate (g0)
     end if
 
-    if (wstar_implicit) call init_get_fields_wstar
+!    if (wstar_implicit) call init_get_fields_wstar
 
   end subroutine init_get_fields
 
-  subroutine init_get_fields_wstar
+!   subroutine init_get_fields_wstar
 
-    use constants, only: zi
-    use mp, only: sum_allreduce, mp_abort
-    use stella_layouts, only: kxkyz_lo
-    use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
-    use dist_fn_arrays, only: aj0v
-    use run_parameters, only: fphi, fapar
-    use run_parameters, only: tite, nine, beta
-    use stella_time, only: code_dt
-    use species, only: spec, has_electron_species
-    use geometry, only: dl_over_b
-    use zgrid, only: nzgrid
-    use vpamu_grids, only: nvpa, nvgrid, nmu
-    use vpamu_grids, only: energy
-    use vpamu_grids, only: maxwellian, integrate_vmu
-    use species, only: spec
-    use kt_grids, only: naky, nakx, aky, akx
+!     use constants, only: zi
+!     use mp, only: sum_allreduce, mp_abort
+!     use stella_layouts, only: kxkyz_lo
+!     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
+!     use dist_fn_arrays, only: aj0v
+!     use run_parameters, only: fphi, fapar
+!     use run_parameters, only: tite, nine, beta
+!     use stella_time, only: code_dt
+!     use species, only: spec, has_electron_species
+!     use geometry, only: dl_over_b
+!     use zgrid, only: nzgrid
+!     use vpamu_grids, only: nvpa, nvgrid, nmu
+!     use vpamu_grids, only: energy
+!     use vpamu_grids, only: maxwellian, integrate_vmu
+!     use species, only: spec
+!     use kt_grids, only: naky, nakx, aky, akx
 
-    implicit none
+!     implicit none
 
-    integer :: ikxkyz, ig, ikx, iky, is
-    complex :: tmp
-    complex, dimension (:,:), allocatable :: g0
+!     integer :: ikxkyz, ig, ikx, iky, is
+!     complex :: tmp
+!     complex, dimension (:,:), allocatable :: g0
 
-    if (get_fields_wstar_initialized) return
-    get_fields_wstar_initialized = .true.
+!     if (get_fields_wstar_initialized) return
+!     get_fields_wstar_initialized = .true.
 
-    if (.not.allocated(gamtot_wstar)) &
-         allocate (gamtot_wstar(naky,nakx,-nzgrid:nzgrid))
-    gamtot_wstar = 0.
-    if (.not.allocated(gamtot3_wstar)) &
-         allocate (gamtot3_wstar(nakx,-nzgrid:nzgrid))
-    gamtot3_wstar = 0.
-    if (.not.allocated(apar_denom_wstar)) &
-         allocate (apar_denom_wstar(naky,nakx,-nzgrid:nzgrid))
-    apar_denom_wstar = 0.
+!     if (.not.allocated(gamtot_wstar)) &
+!          allocate (gamtot_wstar(naky,nakx,-nzgrid:nzgrid))
+!     gamtot_wstar = 0.
+!     if (.not.allocated(gamtot3_wstar)) &
+!          allocate (gamtot3_wstar(nakx,-nzgrid:nzgrid))
+!     gamtot3_wstar = 0.
+!     if (.not.allocated(apar_denom_wstar)) &
+!          allocate (apar_denom_wstar(naky,nakx,-nzgrid:nzgrid))
+!     apar_denom_wstar = 0.
 
-    if (fphi > epsilon(0.0)) then
-       allocate (g0(-nvgrid:nvgrid,nmu))
-       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          iky = iky_idx(kxkyz_lo,ikxkyz)
-          ikx = ikx_idx(kxkyz_lo,ikxkyz)
-          ig = iz_idx(kxkyz_lo,ikxkyz)
-          is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = -zi*aky(iky)*spec(is)%z*spec(is)%dens*spread(aj0v(:,ikxkyz)**2,1,nvpa) &
-               ! BACKWARDS DIFFERENCE FLAG
-!               *anon(ig,:,:)*0.25*code_dt &
-               *spread(maxwellian,2,nmu)*0.5*code_dt &
-               *(spec(is)%fprim+spec(is)%tprim*(energy(ig,:,:)-1.5))
-          call integrate_vmu (g0, ig, tmp)
-          gamtot_wstar(iky,ikx,ig) = gamtot_wstar(iky,ikx,ig) + tmp
-       end do
-       call sum_allreduce (gamtot_wstar)
-
-       gamtot_wstar = gamtot_wstar + gamtot
-
-       deallocate (g0)
-
-       if (.not.has_electron_species(spec)) then
-          ! no need to do anything extra for ky /= 0 because
-          ! already accounted for in gamtot_h
-          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-             if (abs(aky(1)) < epsilon(0.)) then
-                do ikx = 1, nakx
-                   ! do not need kx=ky=0 mode
-                   if (abs(akx(ikx)) < epsilon(0.)) cycle
-                   tmp = nine/tite-sum(dl_over_b/gamtot_wstar(1,ikx,:))
-                   gamtot3_wstar(ikx,:) = 1./(gamtot_wstar(1,ikx,:)*tmp)
-                end do
-             end if
-          end if
-       end if
-    end if
-
-    ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
-     if (fapar > epsilon(0.)) then
-        write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
-        call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
-     end if
-        
+!     if (fphi > epsilon(0.0)) then
 !        allocate (g0(-nvgrid:nvgrid,nmu))
 !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
 !           iky = iky_idx(kxkyz_lo,ikxkyz)
 !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
 !           ig = iz_idx(kxkyz_lo,ikxkyz)
 !           is = is_idx(kxkyz_lo,ikxkyz)
-!           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
-!           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
+!           g0 = -zi*aky(iky)*spec(is)%z*spec(is)%dens*spread(aj0v(:,ikxkyz)**2,1,nvpa) &
+!                ! BACKWARDS DIFFERENCE FLAG
+! !               *anon(ig,:,:)*0.25*code_dt &
+!                *spread(maxwellian,2,nmu)*0.5*code_dt &
+!                *(spec(is)%fprim+spec(is)%tprim*(energy(ig,:,:)-1.5))
 !           call integrate_vmu (g0, ig, tmp)
-!           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
+!           gamtot_wstar(iky,ikx,ig) = gamtot_wstar(iky,ikx,ig) + tmp
 !        end do
-!        call sum_allreduce (apar_denom)
-!        apar_denom = apar_denom + kperp2
+!        call sum_allreduce (gamtot_wstar)
+
+!        gamtot_wstar = gamtot_wstar + gamtot
 
 !        deallocate (g0)
+
+!        if (.not.has_electron_species(spec)) then
+!           ! no need to do anything extra for ky /= 0 because
+!           ! already accounted for in gamtot_h
+!           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+!              if (abs(aky(1)) < epsilon(0.)) then
+!                 do ikx = 1, nakx
+!                    ! do not need kx=ky=0 mode
+!                    if (abs(akx(ikx)) < epsilon(0.)) cycle
+!                    tmp = nine/tite-sum(dl_over_b/gamtot_wstar(1,ikx,:))
+!                    gamtot3_wstar(ikx,:) = 1./(gamtot_wstar(1,ikx,:)*tmp)
+!                 end do
+!              end if
+!           end if
+!        end if
 !     end if
+
+!     ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
+!      if (fapar > epsilon(0.)) then
+!         write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
+!         call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
+!      end if
+        
+! !        allocate (g0(-nvgrid:nvgrid,nmu))
+! !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+! !           iky = iky_idx(kxkyz_lo,ikxkyz)
+! !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+! !           ig = iz_idx(kxkyz_lo,ikxkyz)
+! !           is = is_idx(kxkyz_lo,ikxkyz)
+! !           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
+! !           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
+! !           call integrate_vmu (g0, ig, tmp)
+! !           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
+! !        end do
+! !        call sum_allreduce (apar_denom)
+! !        apar_denom = apar_denom + kperp2
+
+! !        deallocate (g0)
+! !     end if
     
-  end subroutine init_get_fields_wstar
+!   end subroutine init_get_fields_wstar
 
   subroutine get_fields (g, phi, apar, dist)
 
@@ -368,8 +368,8 @@ contains
           phi = phi/gamtot_h
        else if (dist == 'gbar') then
           phi = phi/gamtot
-       else if (dist == 'gstar') then
-          phi = phi/gamtot_wstar
+!       else if (dist == 'gstar') then
+!          phi = phi/gamtot_wstar
        else
           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
           call mp_abort ('unknown dist option in get_fields. aborting')
@@ -388,11 +388,11 @@ contains
                    tmp = sum(dl_over_b*phi(1,ikx,:))
                    phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3(ikx,:)
                 end do
-             else if (dist == 'gstar') then
-                do ikx = 1, nakx
-                   tmp = sum(dl_over_b*phi(1,ikx,:))
-                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_wstar(ikx,:)
-                end do
+!             else if (dist == 'gstar') then
+!                do ikx = 1, nakx
+!                   tmp = sum(dl_over_b*phi(1,ikx,:))
+!                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_wstar(ikx,:)
+!                end do
              else
                 if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
                 call mp_abort ('unknown dist option in get_fields. aborting')
@@ -438,13 +438,13 @@ contains
     implicit none
 
     get_fields_initialized = .false.
-    get_fields_wstar_initialized = .false.
+!    get_fields_wstar_initialized = .false.
     if (allocated(gamtot)) deallocate (gamtot)
     if (allocated(gamtot3)) deallocate (gamtot3)
     if (allocated(apar_denom)) deallocate (apar_denom)
-    if (allocated(gamtot_wstar)) deallocate (gamtot_wstar)
-    if (allocated(gamtot3_wstar)) deallocate (gamtot3_wstar)
-    if (allocated(apar_denom_wstar)) deallocate (apar_denom_wstar)
+!    if (allocated(gamtot_wstar)) deallocate (gamtot_wstar)
+!    if (allocated(gamtot3_wstar)) deallocate (gamtot3_wstar)
+!    if (allocated(apar_denom_wstar)) deallocate (apar_denom_wstar)
     if (allocated(gam_stream)) deallocate (gam_stream)
 
   end subroutine finish_get_fields
@@ -564,7 +564,7 @@ contains
             
     namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
-         mirror_explicit, stream_explicit, wdrifty_explicit, wstar_explicit, &
+         mirror_explicit, stream_explicit, wdrifty_explicit, &!wstar_explicit, &
          adiabatic_option, niter_stream, stream_errtol, explicit_rk4, &
          stream_upwind
     integer :: ierr, in_file
@@ -583,7 +583,7 @@ contains
        mirror_explicit = .false.
        stream_explicit = .false.
        wdrifty_explicit = .true.
-       wstar_explicit = .true.
+!       wstar_explicit = .true.
        explicit_rk4 = .false.
        niter_stream = 2
        stream_errtol = 0.001
@@ -607,7 +607,7 @@ contains
     call broadcast (mirror_explicit)
     call broadcast (stream_explicit)
     call broadcast (wdrifty_explicit)
-    call broadcast (wstar_explicit)
+!    call broadcast (wstar_explicit)
     call broadcast (explicit_rk4)
     call broadcast (niter_stream)
     call broadcast (stream_errtol)
@@ -616,13 +616,14 @@ contains
     mirror_implicit = .not.mirror_explicit
     stream_implicit = .not.stream_explicit
     wdrifty_implicit = .not.wdrifty_explicit
-    wstar_implicit = .not.wstar_explicit
+!    wstar_implicit = .not.wstar_explicit
 
     ! not all terms have implicit options (yet?)
     fully_implicit = .false.
 
     if (mirror_explicit .and. stream_explicit &
-         .and. wdrifty_explicit .and. wstar_explicit) then
+         .and. wdrifty_explicit) then
+!         .and. wdrifty_explicit .and. wstar_explicit) then
        fully_explicit = .true.
     else
        fully_explicit = .false.
@@ -650,13 +651,13 @@ contains
     do iky = 1, naky
        if (abs(aky(iky)) < epsilon(0.)) then
           do ikx = 1, nakx
-             kperp2(iky,ikx,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
+             kperp2(iky,ikx,:) = akx(ikx)*akx(ikx)*gds22(1,:)/(geo_surf%shat**2)
           end do
        else
           do ikx = 1, nakx
              kperp2(iky,ikx,:) = aky(iky)*aky(iky) &
-                  *(gds2 + 2.0*theta0(iky,ikx)*gds21 &
-                  + theta0(iky,ikx)*theta0(iky,ikx)*gds22)
+                  *(gds2(1,:) + 2.0*theta0(iky,ikx)*gds21(1,:) &
+                  + theta0(iky,ikx)*theta0(iky,ikx)*gds22(1,:))
           end do
        end if
     end do
@@ -674,32 +675,30 @@ contains
     use geometry, only: cvdrift, gbdrift
     use geometry, only: cvdrift0, gbdrift0
     use geometry, only: geo_surf
+    use geometry, only: nalpha
     use vpamu_grids, only: vpa, vperp2
-    use kt_grids, only: ny_ffs
 
     implicit none
 
-    integer :: ivmu, iv, imu, is, iy
+    integer :: ivmu, iv, imu, is
 
     if (wdriftinit) return
     wdriftinit = .true.
 
     if (.not.allocated(wdriftx)) &
-         allocate (wdriftx(ny_ffs,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdrifty)) &
-         allocate (wdrifty(ny_ffs,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdrifty(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do iy = 1, ny_ffs
-          wdrifty(iy,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
-               * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,imu))
-          wdriftx(iy,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
-               * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,imu))
-       end do
+       wdrifty(:,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
+            * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,:,imu))
+       wdriftx(:,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
+            * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,:,imu))
     end do
 
 !    write (*,*) 'maxval', maxval(abs(wdrifty)), code_dt, maxval(spec%tz), maxval(cvdrift), maxval(vpa), maxval(gbdrift), maxval(vperp2)
@@ -708,31 +707,38 @@ contains
 
   subroutine init_wstar
 
-    use dist_fn_arrays, only: wstar
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: energy, maxwellian
+    use geometry, only: nalpha
+    use vpamu_grids, only: maxwellian, vperp2, vpa
+    use dist_fn_arrays, only: wstar
 
     implicit none
 
     integer :: is, imu, iv, ivmu
+    real, dimension (:,:), allocatable :: energy
 
     if (wstarinit) return
     wstarinit = .true.
 
     if (.not.allocated(wstar)) &
-         allocate (wstar(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstar = 0.0
+         allocate (wstar(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstar = 0.0
+
+    allocate (energy(nalpha,-nzgrid:nzgrid))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       wstar(:,ivmu) = 0.5*wstarknob*0.5*code_dt*maxwellian(iv) &
-            * (spec(is)%fprim+spec(is)%tprim*(energy(:,iv,imu)-1.5))
+       energy = vpa(iv)**2 + vperp2(:,:,imu)
+       wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt*maxwellian(iv) &
+            * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
     end do
+
+    deallocate (energy)
 
   end subroutine init_wstar
 
@@ -784,23 +790,19 @@ contains
 
   subroutine init_vperp2
 
-    use geometry, only: bmag
+    use geometry, only: nalpha, bmag
     use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp2, energy
-    use vpamu_grids, only: vpa, mu
-    use vpamu_grids, only: nmu, nvgrid
+    use vpamu_grids, only: vperp2, mu
+    use vpamu_grids, only: nmu
 
     implicit none
 
-    integer :: iv
+    integer :: imu
     
-    if (.not.allocated(vperp2)) allocate (vperp2(-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
-    if (.not.allocated(energy)) allocate (energy(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu)) ; energy = 0.
-
-    vperp2 = 2.0*spread(mu,1,2*nzgrid+1)*spread(bmag,2,nmu)
-
-    do iv = -nvgrid, nvgrid
-       energy(:,iv,:) = vpa(iv)**2 + 2.0*spread(mu,1,2*nzgrid+1)*spread(bmag,2,nmu)
+    if (.not.allocated(vperp2)) allocate (vperp2(nalpha,-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
+    
+    do imu = 1, nmu
+       vperp2(:,:,imu) = 2.0*mu(imu)*bmag
     end do
 
   end subroutine init_vperp2
@@ -821,7 +823,7 @@ contains
 
     implicit none
 
-    integer :: ig, iky, ikx, imu, is
+    integer :: iz, iky, ikx, imu, is
     integer :: ikxkyz, ivmu
     real :: arg
 
@@ -846,10 +848,10 @@ contains
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       ig = iz_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          arg = spec(is)%smz*sqrt(vperp2(ig,imu)*kperp2(iky,ikx,ig))/bmag(ig)
+          arg = spec(is)%smz*sqrt(vperp2(1,iz,imu)*kperp2(iky,ikx,iz))/bmag(1,iz)
           aj0v(imu,ikxkyz) = j0(arg)
           ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
           aj1v(imu,ikxkyz) = j1(arg)
@@ -859,13 +861,13 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
-       do ig = -nzgrid, nzgrid
+       do iz = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                arg = spec(is)%smz*sqrt(vperp2(ig,imu)*kperp2(iky,ikx,ig))/bmag(ig)
-                aj0x(iky,ikx,ig,ivmu) = j0(arg)
+                arg = spec(is)%smz*sqrt(vperp2(1,iz,imu)*kperp2(iky,ikx,iz))/bmag(1,iz)
+                aj0x(iky,ikx,iz,ivmu) = j0(arg)
              ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
-!             aj1(ig,ivmu) = j1(arg)
+!             aj1(iz,ivmu) = j1(arg)
              end do
           end do
        end do
@@ -881,7 +883,7 @@ contains
     use vpamu_grids, only: mu
     use zgrid, only: nzgrid
     use kt_grids, only: ny_ffs
-    use geometry, only: dbdthet, gradpar
+    use geometry, only: dbdzed, gradpar, nalpha
 !    use sherman_morrison, only: init_invert_mirror_operator
 
     implicit none
@@ -896,10 +898,10 @@ contains
 
     do is = 1, nspec
        do imu = 1, nmu
-          do iy = 1, ny_ffs
+          do iy = 1, nalpha
              do iz = -nzgrid, nzgrid
                 mirror(iy,iz,imu,is) = mirrorknob*code_dt*spec(is)%stm &
-                     *mu(imu)*dbdthet(iz)*gradpar(iz)*0.5
+                     *mu(imu)*dbdzed(iy,iz)*gradpar(iy,iz)*0.5
              end do
           end do
        end do
@@ -1029,7 +1031,7 @@ contains
 
     ! sign of stream corresponds to appearing on RHS of GK equation
     stream = -streamknob*code_dt*spread(spread(spec%stm,1,2*nzgrid+1),2,nvpa) &
-         * spread(spread(vpa,1,2*nzgrid+1)*spread(gradpar,2,nvpa),3,nspec)*0.5
+         * spread(spread(vpa,1,2*nzgrid+1)*spread(gradpar(1,:),2,nvpa),3,nspec)*0.5
 
     ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     ! NB: stream_sign = -1 corresponds to positive advection velocity
@@ -1121,7 +1123,7 @@ contains
     integer, dimension (3) :: from_low, from_high
     integer, dimension (4) :: to_high, to_low
     integer :: ikxkyz, ivmu
-    integer :: iv, imu, iky, ikx, ig
+    integer :: iv, imu, iky, ikx, iz
     integer :: ip, n
     logical :: initialized = .false.
 
@@ -1134,7 +1136,7 @@ contains
     do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, ig, ivmu)
+             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, ivmu)
              if (idx_local(kxkyz_lo,ikxkyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
              if (idx_local(vmu_lo,ivmu)) &
@@ -1166,7 +1168,7 @@ contains
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              ! obtain corresponding y indices
-             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, ig, ivmu)
+             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, ivmu)
              ! if vmu index local, set:
              ! ip = corresponding y processor
              ! from_list%first-third arrays = iv,imu,ikxkyz  (ie vmu indices)
@@ -1188,7 +1190,7 @@ contains
                 nn_to(ip) = n
                 to_list(ip)%first(n) = iky
                 to_list(ip)%second(n) = ikx
-                to_list(ip)%third(n) = ig
+                to_list(ip)%third(n) = iz
                 to_list(ip)%fourth(n) = ivmu
              end if
           end do
@@ -1241,7 +1243,7 @@ contains
     integer, dimension (3) :: from_low, from_high
     integer, dimension (4) :: to_high, to_low
     integer :: ikxyz, ivmu
-    integer :: iv, imu, iy, ikx, ig
+    integer :: iv, imu, iy, ikx, iz
     integer :: ip, n
     logical :: initialized = .false.
 
@@ -1254,7 +1256,7 @@ contains
     do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, ig, ivmu)
+             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, ivmu)
              if (idx_local(kxyz_lo,ikxyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
              if (idx_local(vmu_lo,ivmu)) &
@@ -1286,7 +1288,7 @@ contains
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              ! obtain corresponding y indices
-             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, ig, ivmu)
+             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, ivmu)
              ! if vmu index local, set:
              ! ip = corresponding y processor
              ! from_list%first-third arrays = iv,imu,ikxyz  (ie vmu indices)
@@ -1308,7 +1310,7 @@ contains
                 nn_to(ip) = n
                 to_list(ip)%first(n) = iy
                 to_list(ip)%second(n) = ikx
-                to_list(ip)%third(n) = ig
+                to_list(ip)%third(n) = iz
                 to_list(ip)%fourth(n) = ivmu
              end if
           end do
@@ -1428,12 +1430,12 @@ contains
     call init_wdrift
     call init_mirror
     call init_parstream
-    if (wstar_implicit) then
-       get_fields_wstar_initialized = .false.
-       ! call to init_get_fields only needed for initial step
-       call init_get_fields
-       call init_get_fields_wstar
-    end if
+!     if (wstar_implicit) then
+!        get_fields_wstar_initialized = .false.
+!        ! call to init_get_fields only needed for initial step
+!        call init_get_fields
+!        call init_get_fields_wstar
+!     end if
 
   end subroutine reset_dt
 
@@ -1642,6 +1644,8 @@ contains
        if (wdrifty_explicit) call advance_wdrifty_explicit (gin, rhs)
        ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
        call advance_wdriftx (gin, rhs)
+       ! calculate and add omega_* term to RHS of GK eqn
+       call advance_wstar_explicit (rhs)
        
        if (alpha_global) then
           call transform_y2ky (rhs_y, rhs_ky)
@@ -1651,7 +1655,8 @@ contains
        ! calculate and add parallel streaming term to RHS of GK eqn
        if (stream_explicit) call advance_parallel_streaming_explicit (gin, rhs_ky)
        ! calculate and add omega_* term to RHS of GK eqn
-       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
+!       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
+!       call advance_wstar_explicit (rhs_ky)
        ! calculate and add collision term to RHS of GK eqn
        !    call advance_collisions
 
@@ -1726,12 +1731,13 @@ contains
 
   subroutine advance_wstar_explicit (gout)
 
-    use mp, only: proc0
+    use mp, only: proc0, mp_abort
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
+    use kt_grids, only: alpha_global
 
     implicit none
 
@@ -1745,10 +1751,15 @@ contains
     ! omega_* stays in ky,kx,z space with ky,kx,z local
     ! get d<chi>/dy
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dchidy'
-    call get_dchidy (phi, apar, g0)
-    ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
-    if (debug) write (*,*) 'dist_fn::solve_gke::add_wstar_term'
-    call add_wstar_term (g0, gout)
+    if (alpha_global) then
+       ! FLAG -- ADD SOMETHING HERE
+       call mp_abort ('wstar term not yet setup for alpha_global = .true. aborting.')
+    else
+       call get_dchidy (phi, apar, g0)
+       ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
+       if (debug) write (*,*) 'dist_fn::solve_gke::add_wstar_term'
+       call add_wstar_term (g0, gout)
+    end if
     deallocate (g0)
 
     if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
@@ -2570,7 +2581,7 @@ contains
     integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + 2.0*spread(spread(wstar(:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + 2.0*spread(spread(wstar(1,:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
     end do
 
   end subroutine add_wstar_term
@@ -2597,7 +2608,7 @@ contains
     if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
 
     if (wdrifty_implicit) call advance_wdrifty_implicit (g)
-    if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
+!    if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
 
   end subroutine advance_implicit
 
@@ -3093,48 +3104,48 @@ contains
 
   end subroutine advance_wdrifty_implicit
 
-  subroutine advance_wstar_implicit (g, phi, apar)
+!   subroutine advance_wstar_implicit (g, phi, apar)
 
-    use constants, only: zi
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
-    use run_parameters, only: fphi, fapar
-    use zgrid, only: nzgrid
-    use dist_fn_arrays, only: gstar_to_g
+!     use constants, only: zi
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx, is_idx
+!     use run_parameters, only: fphi, fapar
+!     use zgrid, only: nzgrid
+!     use dist_fn_arrays, only: gstar_to_g
 
-    implicit none
+!     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+!     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
 
-    ! given g^{*}, obtain phi^{*} and apar^{*}
-!    call advance_fields (g, phi, apar, dist='gbar')
+!     ! given g^{*}, obtain phi^{*} and apar^{*}
+! !    call advance_fields (g, phi, apar, dist='gbar')
 
-    ! solve g^{**} = g^{*}+i*wstar*ky*J0*(chi^{**}+chi^{*})/2
-    ! define gstar^{**} = g^{**} - i*wstar*ky*J0*chi^{**}/2
-    ! so that gstar^{**} = g^{*} + i*wstar*ky*J0*chi^{*}/2
+!     ! solve g^{**} = g^{*}+i*wstar*ky*J0*(chi^{**}+chi^{*})/2
+!     ! define gstar^{**} = g^{**} - i*wstar*ky*J0*chi^{**}/2
+!     ! so that gstar^{**} = g^{*} + i*wstar*ky*J0*chi^{*}/2
 
-    ! BACKWARDS DIFFERENCE FLAG
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        do iz = -nzgrid, nzgrid
-!           do ikx = 1, nakx
-!              do iky = 1, naky
-!                 g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) &
-!                      + zi*aky(iky)*wstar(iz,ivmu)*aj0x(iky,ikx,iz,ivmu) &
-!                      * (fphi*phi(iky,ikx,iz) - fapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz))
-!              end do
-!           end do
-!        end do
-!     end do
+!     ! BACKWARDS DIFFERENCE FLAG
+! !     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+! !        iv = iv_idx(vmu_lo,ivmu)
+! !        is = is_idx(vmu_lo,ivmu)
+! !        do iz = -nzgrid, nzgrid
+! !           do ikx = 1, nakx
+! !              do iky = 1, naky
+! !                 g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) &
+! !                      + zi*aky(iky)*wstar(iz,ivmu)*aj0x(iky,ikx,iz,ivmu) &
+! !                      * (fphi*phi(iky,ikx,iz) - fapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz))
+! !              end do
+! !           end do
+! !        end do
+! !     end do
 
-    ! now that we have gstar^{**}=g^{*}, obtain corresponding fields, phi^{**} and apar^{**}
-    call advance_fields (g, phi, apar, dist='gstar')
-    ! convert from gstar^{**} to g^{**}
-    call gstar_to_g (g, phi, apar, fphi, fapar)
+!     ! now that we have gstar^{**}=g^{*}, obtain corresponding fields, phi^{**} and apar^{**}
+!     call advance_fields (g, phi, apar, dist='gstar')
+!     ! convert from gstar^{**} to g^{**}
+!     call gstar_to_g (g, phi, apar, fphi, fapar)
 
-  end subroutine advance_wstar_implicit
+!   end subroutine advance_wstar_implicit
 
   subroutine finish_dist_fn
 

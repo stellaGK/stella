@@ -100,14 +100,6 @@ contains
     integer :: in_file
     logical :: exist
 
-!     real :: rhoc, rmaj, shift
-!     real :: kappa, kapprim
-!     real :: tri, triprim
-!     real :: betaprim, betadbprim
-!     real :: qinp, shat, d2qdr2
-!     real :: rgeo
-!     real :: d2psidr2
-
     namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
          betadbprim, d2qdr2, d2psidr2, &

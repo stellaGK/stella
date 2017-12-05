@@ -8,7 +8,7 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu
-  public :: vperp2, energy, maxwellian, ztmax
+  public :: vperp2, maxwellian, ztmax
   
   integer :: nvgrid, nvpa
   integer :: nmu
@@ -23,8 +23,7 @@ module vpamu_grids
 
   ! vpa-mu related arrays that are declared here
   ! but allocated and filled elsewhere because they depend on z, etc.
-  real, dimension (:,:), allocatable :: vperp2
-  real, dimension (:,:,:), allocatable :: energy
+  real, dimension (:,:,:), allocatable :: vperp2
 
   interface integrate_species
      module procedure integrate_species_vmu
@@ -146,14 +145,14 @@ contains
 
   end subroutine init_vpa_grid
 
-  subroutine integrate_mu_local (ig, g, total)
+  subroutine integrate_mu_local (iz, g, total)
 
     use species, only: nspec
     use geometry, only: bmag
 
     implicit none
 
-    integer, intent (in) :: ig
+    integer, intent (in) :: iz
     real, dimension (:,:), intent (in) :: g
     real, dimension (:), intent (out) :: total
 
@@ -164,13 +163,13 @@ contains
     do is = 1, nspec
        ! sum over mu
        do imu = 1, nmu
-          total(is) = total(is) + exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*bmag(ig)*g(imu,is)
+          total(is) = total(is) + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*bmag(1,iz)*g(imu,is)
        end do
     end do
 
   end subroutine integrate_mu_local
 
-  subroutine integrate_mu_nonlocal (ig, g, total)
+  subroutine integrate_mu_nonlocal (iz, g, total)
 
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: vmu_lo
@@ -179,7 +178,7 @@ contains
 
     implicit none
 
-    integer, intent (in) :: ig
+    integer, intent (in) :: iz
     real, dimension (vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:), intent (out) :: total
 
@@ -191,21 +190,21 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu) + nvgrid+1
-       total(iv,is) = total(iv,is) + exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*bmag(ig)*g(ivmu)
+       total(iv,is) = total(iv,is) + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*bmag(1,iz)*g(ivmu)
     end do
 
     if (nproc > 1) call sum_reduce (total,0)
 
   end subroutine integrate_mu_nonlocal
 
-  subroutine integrate_vmu_real (g, ig, total)
+  subroutine integrate_vmu_real (g, iz, total)
 
     use geometry, only: bmag
 
     implicit none
 
     real, dimension (-nvgrid:,:), intent (in) :: g
-    integer, intent (in) :: ig
+    integer, intent (in) :: iz
     real, intent (out) :: total
 
     integer :: iv, imu
@@ -214,20 +213,20 @@ contains
     
     do imu = 1, nmu
        do iv = -nvgrid, nvgrid
-          total = total + exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(iv,imu)
+          total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
        end do
     end do
 
   end subroutine integrate_vmu_real
 
-  subroutine integrate_vmu_complex (g, ig, total)
+  subroutine integrate_vmu_complex (g, iz, total)
 
     use geometry, only: bmag
 
     implicit none
 
     complex, dimension (-nvgrid:,:), intent (in) :: g
-    integer, intent (in) :: ig
+    integer, intent (in) :: iz
     complex, intent (out) :: total
 
     integer :: iv, imu
@@ -236,13 +235,13 @@ contains
     
     do imu = 1, nmu
        do iv = -nvgrid, nvgrid
-          total = total + exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(iv,imu)
+          total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
        end do
     end do
 
   end subroutine integrate_vmu_complex
 
-  subroutine integrate_species_local_real (g, weights, ig, total)
+  subroutine integrate_species_local_real (g, weights, iz, total)
 
     use species, only: nspec
     use geometry, only: bmag
@@ -251,7 +250,7 @@ contains
 
     real, dimension (-nvgrid:,:,:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
-    integer, intent (in) :: ig
+    integer, intent (in) :: iz
     real, intent (out) :: total
 
     integer :: iv, imu, is
@@ -261,14 +260,14 @@ contains
     do is = 1, nspec
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             total = total + exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(iv,imu,is)*weights(is)
+             total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
           end do
        end do
     end do
 
   end subroutine integrate_species_local_real
 
-  subroutine integrate_species_local_complex (g, weights, ig, total)
+  subroutine integrate_species_local_complex (g, weights, iz, total)
 
     use species, only: nspec
     use geometry, only: bmag
@@ -277,7 +276,7 @@ contains
 
     complex, dimension (-nvgrid:,:,:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
-    integer, intent (in) :: ig
+    integer, intent (in) :: iz
     complex, intent (out) :: total
 
     integer :: iv, imu, is
@@ -287,7 +286,7 @@ contains
     do is = 1, nspec
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             total = total + exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(iv,imu,is)*weights(is)
+             total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
           end do
        end do
     end do
@@ -304,7 +303,7 @@ contains
 
     implicit none
 
-    integer :: ivmu, iv, ig, is, imu
+    integer :: ivmu, iv, iz, is, imu
 
     complex, dimension (-nzgrid:,:,:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
@@ -316,9 +315,9 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do ig = -nzgrid, nzgrid
-          total(ig,:,:) = total(ig,:,:) + &
-               exp(-2.0*mu(imu)*bmag(ig))*wgts_mu(imu)*wgts_vpa(iv)*bmag(ig)*g(ig,:,:,ivmu)*weights(is)
+       do iz = -nzgrid, nzgrid
+          total(iz,:,:) = total(iz,:,:) + &
+               exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iz,:,:,ivmu)*weights(is)
        end do
     end do
 
@@ -349,7 +348,7 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        total = total + &
-            exp(-2.0*mu(imu)*bmag(iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(iz)*g(ivmu)*weights(is)
+            exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(ivmu)*weights(is)
     end do
 
     call sum_allreduce (total)
@@ -389,10 +388,10 @@ contains
     
     ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
     call get_laguerre_grids (mu, wgts_mu)
-    wgts_mu = wgts_mu*exp(mu)/(2.*bmag(0))
+    wgts_mu = wgts_mu*exp(mu)/(2.*bmag(1,0))
     
     ! get mu grid from grid in 2*mu*bmag(z=0)
-    mu = mu/(2.*bmag(0))
+    mu = mu/(2.*bmag(1,0))
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization

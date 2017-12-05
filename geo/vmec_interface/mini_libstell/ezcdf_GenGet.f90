@@ -933,6 +933,8 @@ SUBROUTINE cdfr_0l(ncid,varnam,varval,ier)
   integer :: varval_i
   character*11, parameter :: logical_name = '__logical__'
  
+  varval_i = 0
+
   call cdfr_0i(ncid,trim(varnam)//logical_name,varval_i,ier)
  
   IF (varval_i == 0) THEN
@@ -940,6 +942,7 @@ SUBROUTINE cdfr_0l(ncid,varnam,varval,ier)
   ELSE
      varval = .true.
   END IF
+
 END SUBROUTINE cdfr_0l
  
 SUBROUTINE cdfr_0d(ncid,varnam,varval,ier)

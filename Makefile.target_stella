@@ -1,5 +1,4 @@
-#stella_all: modules stella rungridgen
-stella_all: modules stella
+stella_all: vmec modules stella
 
 stella: $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -7,64 +6,30 @@ stella: $(stella_mod)
 stella.x: $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-#rungridgen: $(rungridgen_mod)
-#	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+.PHONY: modules utils_all geo_all vmec
 
-regress: $(drive_mod)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-ffttester: $(ffttester_mod)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-.PHONY: modules utils_all geo_all libstella_all
-
-ifdef MAKE_LIB
-modules: utils.a geo.a libstella.a
-else
 modules: utils.a geo.a
-endif
 
 ### UTILS
-utils_all: utils.a 
+utils_all: utils.a
 
 UTIL_OBJ = spl.o constants.o file_utils.o netcdf_utils.o command_line.o
 utils.a: $(UTIL_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^
 	$(RANLIB) $@
 
-### GEO
-#geo_all: geo.a eiktest ball
-geo_all: geo.a
+### VMEC interface
+vmec:
+	$(MAKE) -C $(VMEC)
 
-GEO_OBJ = geometry.o #geq.o eeq.o peq.o leq.o ideq.o
+### GEO
+geo_all: vmec geo.a
+
+GEO_OBJ = geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
 
 geo.a: $(GEO_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^
 	$(RANLIB) $@
 
-# geo_c: geometry_c_driver.o ../geo.a ../utils.a  
-# 	#$(FC) -o  $@ $^ ${F90FLAGS} ${GEO_OBJ} -lnetcdff -lfftw
-# 	#$(FC) -o  geo_c geometry_c_driver.o geo.a ../utils.a  -lnetcdff -lfftw ceq.o read_chease.o command_line.o
-# 	$(FC) -o  geo_c geometry_c_driver.o ../geo.a ../utils.a -Mnomain 
-
-# geo_c.a: geometry_c_interface.o ../geo.a ../utils.a  
-# 	#$(FC) -o  $@ $^ ${F90FLAGS} ${GEO_OBJ} -lnetcdff -lfftw
-# 	#$(FC) -o  geo_c geometry_c_driver.o geo.a ../utils.a  -lnetcdff -lfftw ceq.o read_chease.o command_line.o
-# 	$(FC) -o  geo_c2.a geometry_c_interface.o ../geo.a ../utils.a -Mnomain -Mnostartup -Mnostdlib
-
-# ifdef MAKE_LIB
-### LIBSTELLA
-libstella_all: libstella.a
-
-#libgs2.a: $(LIBGS2_OBJ)
-#libgs2.a: $(gs2_mod)
-libstella.a: $(filter-out stella.o, $(stella_mod))
-	$(ARCH) $(ARCHFLAGS) $@ $^
-	$(RANLIB) $@
-# endif
-
 distclean:
 	-rm -f stella stella.x
-#	-rm -f rungridgen regress
-	-rm -f regress
-	-rm -f ffttester
