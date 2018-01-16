@@ -14,7 +14,8 @@ module dist_fn
   public :: stream_implicit
   public :: adiabatic_option_switch
   public :: adiabatic_option_fieldlineavg
-  public :: gamtot_h, gamtot3_h
+  public :: gamtot, gamtot3
+  public :: stream_upwind
 
   private
 
@@ -700,8 +701,6 @@ contains
        wdriftx(:,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
             * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,:,imu))
     end do
-
-!    write (*,*) 'maxval', maxval(abs(wdrifty)), code_dt, maxval(spec%tz), maxval(cvdrift), maxval(vpa), maxval(gbdrift), maxval(vperp2)
 
   end subroutine init_wdrift
 
@@ -1390,7 +1389,6 @@ contains
        if (nproc > 1) call max_allreduce (wdrifty_max)
        cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*wdrifty_max,zero)
        cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
-!       write (*,*) 'wdrifty_max', wdrifty_max, maxval(abs(aky))
     end if
     
     if (proc0) then
@@ -1448,6 +1446,7 @@ contains
 
     implicit none
 
+    ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
     ! advance the explicit parts of the GKE
@@ -1455,18 +1454,22 @@ contains
        if (explicit_rk4) then
           call advance_explicit_rk4 (gold, gnew)
        else
+          ! default is SSP RK3
           call advance_explicit (gold, gnew)
        end if
     end if
 
+    ! stop the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
+    ! start the timer for the implicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
     ! use operator splitting to separately evolve
     ! all terms treated implicitly
     if (.not.fully_explicit) call advance_implicit (phi, apar, gnew)
 
+    ! stop the timer for the implict part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
     gold = gnew
@@ -1613,7 +1616,6 @@ contains
     ! start with gbar in k-space and (ky,kx,z) local
 
     ! obtain fields corresponding to gbar
-!    call advance_fields (gin, phi, apar, h_in=.false.)
     call advance_fields (gin, phi, apar, dist='gbar')
 
     ! calculate and add ExB nonlinearity to RHS of GK eqn
@@ -2612,6 +2614,7 @@ contains
 
   end subroutine advance_implicit
 
+  ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
   subroutine advance_mirror_implicit (g)
 
     use mp, only: proc0
@@ -2636,8 +2639,8 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
 
-    ! now that we have h^{*}, need to solve
-    ! h^{n+1} = h^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
+    ! now that we have g^{*}, need to solve
+    ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
     ! define A_0^{-1} = dt*mu*bhat.gradB/2
     ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
     ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
@@ -2721,6 +2724,7 @@ contains
     use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: g1
     use dist_fn_arrays, only: gbar_to_h
+    use dist_fn_arrays, only: aj0x
 
     implicit none
 
@@ -2751,7 +2755,7 @@ contains
           do ie = 1, neigen(iky)
              allocate (gext(nsegments(ie,iky)*nzed_segment+1))
              call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g(:,:,:,ivmu), gext, ulim)
-             ! first solve (I + dt*vpa . grad)h1^{n+1} = g^{n}
+             ! first solve (I + dt*vpa . grad)g1^{n+1} = g^{n}
              call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
              call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
              deallocate (gext)
@@ -2759,9 +2763,9 @@ contains
        end do
     end do
 
-    ! we now have h1^{n+1}
+    ! we now have g1^{n+1}
     ! calculate associated fields
-    call advance_fields (g, phi, apar, dist='h')
+    call advance_fields (g, phi, apar, dist='gbar')
 
     ! need to put the fields into extended zed grid
     do iky = 1, naky
@@ -2781,10 +2785,21 @@ contains
     end do
 
     ! now have phi for non-negative kx
-    ! obtain h^{*} = g^{n} + Ze/T*F0*<chi^{n+1}>
-    call gbar_to_h (g1, phi, apar, fphi, fapar)
+    ! obtain RHS of GK eqn; 
+    ! i.e., (1+dt*vpa*gradpar*d/dz)g^{n+1} = g^{n} + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n+1}>/dz
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phi
+       ! get implicit source first gets d(J0*phi)/dz
+       ! and then multiplies by other factors present in source term described above
+       call get_implicit_parstream_source (g(:,:,:,ivmu), ivmu)
+    end do
 
-    ! now need to get h^{*} on extended zed grid and invert equation
+    ! add g^{n} to g = dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n+1}>/dz
+    g1 = g1 + g
+
+!    call gbar_to_h (g1, phi, apar, fphi, fapar)
+
+    ! now need to get g^{*} on extended zed grid and invert equation
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
@@ -2797,7 +2812,7 @@ contains
           do ie = 1, neigen(iky)
              allocate (gext(nsegments(ie,iky)*nzed_segment+1))
              call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g1(:,:,:,ivmu), gext, ulim)
-             ! solve (I + dt*vpa . grad)h1^{n+1} = h^{*}
+             ! solve (1+dt*vpa*gradpar*d/dz)g^{n+1} = g1 = g^{n} + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n+1}>/dz
              call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
              call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
              deallocate (gext)
@@ -2806,7 +2821,7 @@ contains
     end do
 
     ! convert from h to gbar
-    call gbar_to_h (g, phi, apar, -fphi, -fapar)
+!    call gbar_to_h (g, phi, apar, -fphi, -fapar)
 
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
 
@@ -2973,6 +2988,66 @@ contains
     end if
     
   end subroutine get_fields_from_extended_zgrid
+
+  subroutine get_implicit_parstream_source (g, ivmu)
+
+    use finite_differences, only: fd_variable_upwinding_zed
+    use stella_time, only: code_dt
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use zgrid, only: nzgrid, delzed
+    use extended_zgrid, only: neigen, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+    use kt_grids, only: nakx, naky
+    use species, only: spec
+    use vpamu_grids, only: vpa, ztmax
+    use geometry, only: gradpar
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+    integer, intent (in) :: ivmu
+
+    integer :: iky, ie, iseg, iv, is, iz
+    complex, dimension (2) :: gleft, gright
+    complex, dimension (:,:,:), allocatable :: dgdz
+
+    allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
+
+    ! need to know which vpa we are considering
+    ! as sign(vpa) needed for upwinding below
+    iv = iv_idx(vmu_lo,ivmu)
+    is = is_idx(vmu_lo,ivmu)
+
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          do iseg = 1, nsegments(ie,iky)
+             ! if iseg,ie,iky corresponds to negative kx, no need to solve
+             ! as it will be constrained by reality condition
+             if (ikxmod(iseg,ie,iky) > nakx) cycle
+
+             ! first fill in ghost zones at boundaries in g(z)
+             call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
+             ! get finite difference approximation for dg/dz
+             ! with mixture of centered and upwinded scheme
+             ! mixture controlled by stream_upwind (0 = centered, 1 = upwind)
+             ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
+             call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                  g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
+                  delzed(0), stream_sign(iv), stream_upwind, gleft, gright, &
+                  dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+          end do
+       end do
+    end do
+
+    do iz = -nzgrid, nzgrid
+       g(:,:,iz) = -code_dt*spec(is)%stm*vpa(iv)*gradpar(1,iz)*ztmax(iv,is)*dgdz(:,:,iz)
+    end do
+
+    deallocate (dgdz)
+
+  end subroutine get_implicit_parstream_source
 
   subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
 

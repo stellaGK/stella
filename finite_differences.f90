@@ -9,6 +9,7 @@ module finite_differences
   public :: second_order_centered_zed
   public :: fd3pt, fd5pt
   public :: d2_3pt
+  public :: fd_variable_upwinding_zed
 
   interface fd3pt
      module procedure fd3pt_real
@@ -372,6 +373,72 @@ contains
     end do
 
   end subroutine second_order_centered_zed_complex
+
+  subroutine fd_variable_upwinding_zed (llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, df)
+
+    implicit none
+
+    integer, intent (in) :: llim, iseg, nseg
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del, upwnd
+    integer, intent (in) :: sgn
+    complex, dimension (:), intent (in) :: fl, fr
+    complex, dimension (llim:), intent (out) :: df
+
+    integer :: i, istart, iend, ulim
+
+    ! if upwnd is zero or if vpa=0, then use centered differences
+    if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
+       call second_order_centered_zed (llim, iseg, nseg, f, del, fl, fr, df)
+    else
+       ulim = size(f)+llim-1
+       
+       ! if sgn > 0, then stream speed is negative
+       ! so sweep from more positive to more negative zed
+       if (sgn > 0) then
+          if (iseg == nseg) then
+             i = ulim
+             df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i))/del
+          else
+             i = ulim
+             df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i)+0.5*(1.+upwnd)*fr(1))/del
+          end if
+          if (iseg == 1) then
+             i = llim
+             df(i) = (0.5*(1.+upwnd)*f(i+1)-upwnd*f(i))/del
+          else
+             i = llim
+             df(i) = (0.5*(1.+upwnd)*f(i+1)-upwnd*f(i)+0.5*(upwnd-1.)*fl(2))/del
+          end if
+          istart = ulim
+          iend = llim
+       else
+          if (iseg == 1) then
+             i = llim
+             df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i))/del
+          else
+             i = llim
+             df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i)-0.5*(1.+upwnd)*fl(2))/del
+          end if
+          if (iseg == nseg) then
+             i = ulim
+             df(i) = (upwnd*f(i)-0.5*(1.+upwnd)*f(i-1))/del
+          else
+             i = ulim
+             df(i) = (0.5*(1.-upwnd)*fr(1)+upwnd*f(i)-0.5*(1.+upwnd)*f(i-1))/del
+          end if
+          istart = llim
+          iend = ulim
+       end if
+
+       ! mixed centered and 1st order upwind scheme
+       do i = istart-sgn, iend+sgn, -sgn
+          df(i) = sgn*(0.5*(1.+upwnd)*f(i+sgn) - upwnd*f(i) + 0.5*(upwnd-1.)*f(i-sgn))/del
+       end do
+
+    end if
+
+  end subroutine fd_variable_upwinding_zed
 
   ! only good for equally-spaced grid-pts
   subroutine fd3pt_real (prof, profgrad, dr)

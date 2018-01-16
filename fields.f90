@@ -109,7 +109,7 @@ contains
     integer :: izl_offset
     real :: dum
     complex, dimension (:), allocatable :: phiext
-    complex, dimension (:,:), allocatable :: hext
+    complex, dimension (:,:), allocatable :: gext
 
     ! for a given ky and set of connected kx values
     ! give a unit impulse to phi at each zed location
@@ -161,7 +161,7 @@ contains
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) &
                allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
 
-          allocate (hext(nz_ext,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          allocate (gext(nz_ext,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
           allocate (phiext(nresponse))
           ! idx is the index in the extended zed domain 
           ! that we are giving a unit impulse
@@ -182,7 +182,7 @@ contains
           if (ikx <= nakx) then
              do iz = iz_low(iseg), iz_up(iseg)
                 idx = idx + 1
-                call get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, hext)
+                call get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
              end do
              ! once we have used one segments, remaining segments
              ! have one fewer unique zed point
@@ -195,7 +195,7 @@ contains
                 if (ikx > nakx) cycle
                 do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
                    idx = idx + 1
-                   call get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, hext)
+                   call get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
                 end do
                 if (izl_offset == 0) izl_offset = 1
              end do
@@ -207,48 +207,73 @@ contains
              call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
           end if
 
-          deallocate (hext, phiext)
+          deallocate (gext, phiext)
        end do
     end do
 
-    deallocate (ztmax)
-
   end subroutine init_response_matrix
 
-  subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, hext)
+  subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use vpamu_grids, only: ztmax
+    use stella_time, only: code_dt
+    use zgrid, only: delzed
+    use geometry, only: gradpar
+    use vpamu_grids, only: ztmax, vpa
     use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: aj0x
     use dist_fn, only: stream_tridiagonal_solve
+    use dist_fn, only: upwnd => stream_upwind
 
     implicit none
 
     integer, intent (in) :: iky, ikx, iz, ie, idx, llim, ulim
     complex, dimension (:), intent (in out) :: phiext
-    complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: hext
+    complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
     integer :: ivmu, iv, is, idxp
+    integer :: nz_ext
+    integer :: sgn
+    real :: fac
 
-    ! get Ze/T*F0*<phi> corresponding to unit impulse in phi
+    nz_ext = size(gext,1)
+
+    ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       ! initialize h to zero everywhere along extended zed domain
-       hext(:,ivmu) = 0.0
+       ! initialize g to zero everywhere along extended zed domain
+       gext(:,ivmu) = 0.0
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
+
        ! give unit impulse to phi at this zed location
-       ! and compute Ze/T*<phi>*F0 (RHS of streaming part of GKE)
-       hext(idx,ivmu) = aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)
-       ! invert parallel streaming equation to get h^{n+1} on extended zed grid
-       call stream_tridiagonal_solve (iky, ie, iv, is, hext(:,ivmu))
+       ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
+
+       ! note -- assuming equal spacing in zed below
+       fac = code_dt*vpa(iv)*gradpar(1,iz)*aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
+
+       ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
+       ! as this affects upwinding of d<phi>/dz source term
+       if (iv < 0) then
+          sgn = -1
+       else if (iv > 0) then
+          sgn = 1
+       else
+          sgn = 0
+       end if
+
+       gext(idx,ivmu) = sgn*upwnd*fac
+       if (idx > 1) gext(idx-1,ivmu) = 0.5*(1.-sgn*upwnd)*fac
+       if (idx < nz_ext) gext(idx+1,ivmu) = -0.5*(1.+sgn*upwnd)*fac
+
+       ! invert parallel streaming equation to get g^{n+1} on extended zed grid
+       call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
     end do
 
-    ! we now have h on the extended zed domain at this ky and set of connected kx values
+    ! we now have g on the extended zed domain at this ky and set of connected kx values
     ! corresponding to a unit impulse in phi at this location
-    ! obtain the fields associated with this h, but only need it for kx >= 0
-    call get_fields_for_response_matrix (hext(llim:ulim,:), phiext, iky, ie)
+    ! obtain the fields associated with this g, but only need it for kx >= 0
+    call get_fields_for_response_matrix (gext(llim:ulim,:), phiext, iky, ie)
 
     ! next need to create column in response matrix from phiext
     ! negative sign because matrix to be inverted in streaming equation
@@ -260,7 +285,7 @@ contains
 
   end subroutine get_response_matrix_column
 
-  subroutine get_fields_for_response_matrix (h, phi, iky, ie)
+  subroutine get_fields_for_response_matrix (g, phi, iky, ie)
 
     use stella_layouts, only: vmu_lo
     use species, only: nspec, spec
@@ -275,26 +300,26 @@ contains
     use dist_fn_arrays, only: aj0x
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
-    use dist_fn, only: gamtot_h, gamtot3_h
+    use dist_fn, only: gamtot, gamtot3
 
     implicit none
 
-    complex, dimension (:,vmu_lo%llim_proc:), intent (in) :: h
+    complex, dimension (:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:), intent (out) :: phi
     integer, intent (in) :: iky, ie
     
     integer :: idx, iseg, ikx, iz
     integer :: izl_offset
     real, dimension (nspec) :: wgt
-    complex, dimension (:), allocatable :: h0
+    complex, dimension (:), allocatable :: g0
     complex :: tmp
 
-    allocate (h0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     wgt = spec%z*spec%dens
     phi = 0.
 
-    ! FLAG -- DO NOT THINK THIS IS CORRECT FOR TWIST AND SHIFT
+    ! FLAG -- IS THIS CORRECT FOR TWIST AND SHIFT
     ! BECAUSE ONLY KX>=0 PASSED IN WHICH MAY MEAN 
     ! ISEG = 1, ETC. ARE NOT INCLUDED
 
@@ -304,9 +329,9 @@ contains
     if (ikx <= nakx) then
        do iz = iz_low(iseg), iz_up(iseg)
           idx = idx + 1
-          h0 = aj0x(iky,ikx,iz,:)*h(idx,:)
-          call integrate_species (h0, iz, wgt, phi(idx))
-          phi(idx) = phi(idx)/gamtot_h
+          g0 = aj0x(iky,ikx,iz,:)*g(idx,:)
+          call integrate_species (g0, iz, wgt, phi(idx))
+          phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
        end do
        izl_offset = 1
     end if
@@ -316,9 +341,9 @@ contains
           if (ikx > nakx) cycle
           do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
              idx = idx + 1
-             h0 = aj0x(iky,ikx,iz,:)*h(idx,:)
-             call integrate_species (h0, iz, wgt, phi(idx))
-             phi(idx) = phi(idx)/gamtot_h
+             g0 = aj0x(iky,ikx,iz,:)*g(idx,:)
+             call integrate_species (g0, iz, wgt, phi(idx))
+             phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
           end do
           if (izl_offset == 0) izl_offset = 1
        end do
@@ -330,11 +355,11 @@ contains
           ! no connections for ky = 0
           iseg = 1 
           tmp = sum(dl_over_b*phi)
-          phi = phi + tmp*gamtot3_h
+          phi = phi + tmp*gamtot3(ikxmod(1,ie,iky),:)
        end if
     end if
 
-    deallocate (h0)
+    deallocate (g0)
 
   end subroutine get_fields_for_response_matrix
 
