@@ -15,7 +15,7 @@ module dist_fn
   public :: adiabatic_option_switch
   public :: adiabatic_option_fieldlineavg
   public :: gamtot, gamtot3
-  public :: stream_upwind
+  public :: zed_upwind, time_upwind
 
   private
 
@@ -67,7 +67,7 @@ module dist_fn
   logical :: wdrifty_explicit, wdrifty_implicit
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
-  real :: stream_upwind
+  real :: zed_upwind, time_upwind
   real :: gamtot_h, gamtot3_h
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
   real, dimension (:,:,:), allocatable :: gam_stream
@@ -86,7 +86,7 @@ module dist_fn
   integer, dimension (:), allocatable :: stream_sign
   real, dimension (:,:,:), allocatable :: stream
   real, dimension (:,:), allocatable :: stream_tri_a, stream_tri_b, stream_tri_c
-  real, dimension (:), allocatable :: stream_tri_diff_a, stream_tri_diff_b, stream_tri_diff_c
+!  real, dimension (:), allocatable :: stream_tri_diff_a, stream_tri_diff_b, stream_tri_diff_c
 
   ! geometrical factor multiplying ExB nonlinearity
   real :: nonlin_fac
@@ -567,7 +567,7 @@ contains
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, stream_explicit, wdrifty_explicit, &!wstar_explicit, &
          adiabatic_option, niter_stream, stream_errtol, explicit_rk4, &
-         stream_upwind
+         zed_upwind, time_upwind
     integer :: ierr, in_file
 
     if (readinit) return
@@ -580,7 +580,8 @@ contains
        streamknob = 1.0
        mirrorknob = 1.0
        wstarknob = 1.0
-       stream_upwind = 1.0
+       zed_upwind = 0.1
+       time_upwind = 0.1
        mirror_explicit = .false.
        stream_explicit = .false.
        wdrifty_explicit = .true.
@@ -612,7 +613,8 @@ contains
     call broadcast (explicit_rk4)
     call broadcast (niter_stream)
     call broadcast (stream_errtol)
-    call broadcast (stream_upwind)
+    call broadcast (zed_upwind)
+    call broadcast (time_upwind)
 
     mirror_implicit = .not.mirror_explicit
     stream_implicit = .not.stream_explicit
@@ -1060,32 +1062,36 @@ contains
        allocate (stream_tri_b(nz*nseg_max+1,-1:1)) ; stream_tri_b = 0.
        allocate (stream_tri_c(nz*nseg_max+1,-1:1)) ; stream_tri_c = 0.
     end if
-    if (.not.allocated(stream_tri_diff_a)) then
-       allocate (stream_tri_diff_a(nz*nseg_max+1)) ; stream_tri_diff_a = 0.
-       allocate (stream_tri_diff_b(nz*nseg_max+1)) ; stream_tri_diff_b = 0.
-       allocate (stream_tri_diff_c(nz*nseg_max+1)) ; stream_tri_diff_c = 0.
-    end if
+!     if (.not.allocated(stream_tri_diff_a)) then
+!        allocate (stream_tri_diff_a(nz*nseg_max+1)) ; stream_tri_diff_a = 0.
+!        allocate (stream_tri_diff_b(nz*nseg_max+1)) ; stream_tri_diff_b = 0.
+!        allocate (stream_tri_diff_c(nz*nseg_max+1)) ; stream_tri_diff_c = 0.
+!     end if
 
     ! corresponds to sign of stream term positive on RHS of equation
     ! FLAG -- ASSUMING EQUAL SPACING IN Z
-    stream_tri_a(2:,1) = -0.5*(1.0-stream_upwind)/delzed(0)
-    stream_tri_b(2:,1) = -stream_upwind/delzed(0)
-    stream_tri_c(2:,1) = (1.0+stream_upwind)*0.5/delzed(0)
+    stream_tri_a(2:,1) = -0.5*(1.0-zed_upwind)/delzed(0)
+    stream_tri_b(2:,1) = -zed_upwind/delzed(0)
+    stream_tri_c(2:,1) = (1.0+zed_upwind)*0.5/delzed(0)
     ! must treat boundary carefully
     stream_tri_b(1,1) = -1.0/delzed(0)
     stream_tri_c(1,1) = 1.0/delzed(0)
     ! corresponds to sign of stream term negative on RHS of equation
     ! FLAG -- ASSUMING EQUAL SPACING IN Z
-    stream_tri_a(:nz*nseg_max,-1) = -0.5*(1.0+stream_upwind)/delzed(0)
-    stream_tri_b(:nz*nseg_max,-1) = stream_upwind/delzed(0)
-    stream_tri_c(:nz*nseg_max,-1) = 0.5*(1.0-stream_upwind)/delzed(0)
+    stream_tri_a(:nz*nseg_max,-1) = -0.5*(1.0+zed_upwind)/delzed(0)
+    stream_tri_b(:nz*nseg_max,-1) = zed_upwind/delzed(0)
+    stream_tri_c(:nz*nseg_max,-1) = 0.5*(1.0-zed_upwind)/delzed(0)
     ! must treat boundary carefully
     stream_tri_a(nz*nseg_max+1,-1) = -1.0/delzed(0)
     stream_tri_b(nz*nseg_max+1,-1) = 1.0/delzed(0)
 
-    stream_tri_diff_a = stream_tri_a(:,-1)-stream_tri_a(:,1)
-    stream_tri_diff_b = stream_tri_b(:,-1)-stream_tri_b(:,1)
-    stream_tri_diff_c = stream_tri_c(:,-1)-stream_tri_c(:,1)
+    stream_tri_a = 0.5*(1.0+time_upwind)*stream_tri_a
+    stream_tri_b = 0.5*(1.0+time_upwind)*stream_tri_b
+    stream_tri_c = 0.5*(1.0+time_upwind)*stream_tri_c
+
+!    stream_tri_diff_a = stream_tri_a(:,-1)-stream_tri_a(:,1)
+!    stream_tri_diff_b = stream_tri_b(:,-1)-stream_tri_b(:,1)
+!    stream_tri_diff_c = stream_tri_c(:,-1)-stream_tri_c(:,1)
 
   end subroutine init_invert_stream_operator
 
@@ -2710,26 +2716,189 @@ contains
 
     use mp, only: proc0
     use job_manage, only: time_message
-    use linear_solve, only: lu_back_substitution
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
-    use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid
-    use extended_zgrid, only: neigen
-    use extended_zgrid, only: nsegments, nsegments_poskx
-    use extended_zgrid, only: nzed_segment
-    use extended_zgrid, only: ikxmod
-    use kt_grids, only: aky
     use kt_grids, only: naky, nakx
-    use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: g1
-    use dist_fn_arrays, only: gbar_to_h
-    use dist_fn_arrays, only: aj0x
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+
+    complex, dimension (:,:,:), allocatable :: phi1
+
+    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
+
+    allocate (phi1(naky,nakx,-nzgrid:nzgrid))
+
+    ! save the incoming g and phi, as they will be needed later
+    g1 = g
+    phi1 = phi
+
+    ! obtain RHS of inhomogeneous GK eqn;
+    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
+    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+    ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
+    call get_gke_rhs_inhomogeneous (g1, phi1, g)
+
+    ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
+    ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
+    call invert_parstream (g)
+
+    ! we now have g_{inh}^{n+1}
+    ! calculate associated fields (phi_{inh}^{n+1})
+    call advance_fields (g, phi, apar, dist='gbar')
+
+    ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+    ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
+    call invert_parstream_response (phi)
+    
+    ! now have phi^{n+1} for non-negative kx
+    ! obtain RHS of GK eqn; 
+    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
+    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+    ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
+    call get_gke_rhs (g1, phi1, phi, g)
+
+    ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
+    ! g = RHS is input and overwritten by g = g^{n+1}
+    call invert_parstream (g)
+
+    deallocate (phi1)
+
+    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
+
+  end subroutine advance_parallel_streaming_implicit
+
+  subroutine get_gke_rhs_inhomogeneous (gold, phiold, g)
+
+    use stella_time, only: code_dt
+    use zgrid, only: nzgrid
+    use species, only: spec
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use kt_grids, only: naky, nakx
+    use dist_fn_arrays, only: aj0x
+    use vpamu_grids, only: vpa, ztmax
+    use geometry, only: gradpar
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: gold
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phiold
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ivmu, iv, is, iz
+    real :: tupwnd
+    complex, dimension (:,:,:), allocatable :: dgdz, dphidz
+
+    allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
+    allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
+
+    tupwnd = 0.5*(1.0-time_upwind)
+
+    ! obtain RHS of inhomogeneous GK eqn;
+    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
+    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+    ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+
+       ! obtain dg^{n}/dz and store in dgdz
+       call get_dzed (iv,gold(:,:,:,ivmu),dgdz)
+
+       ! construct <phi^{n}>
+       g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phiold
+       ! obtain d<phi^{n}>/dz and store in dphidz
+       call get_dzed (iv,g(:,:,:,ivmu),dphidz)
+
+       ! construct RHS of GK eqn for inhomogeneous g
+       do iz = -nzgrid, nzgrid
+          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - tupwnd*code_dt*vpa(iv)*spec(is)%stm*gradpar(1,iz) &
+               * (dgdz(:,:,iz) + ztmax(iv,is)*dphidz(:,:,iz))
+       end do
+    end do
+
+    deallocate (dgdz, dphidz)
+
+  end subroutine get_gke_rhs_inhomogeneous
+
+  subroutine get_gke_rhs (gold, phiold, phi, g)
+
+    use stella_time, only: code_dt
+    use zgrid, only: nzgrid
+    use species, only: spec
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use kt_grids, only: naky, nakx
+    use dist_fn_arrays, only: aj0x
+    use vpamu_grids, only: vpa, ztmax
+    use geometry, only: gradpar
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: gold
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phiold, phi
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ivmu, iv, is, iz
+    real :: tupwnd1, tupwnd2
+    complex, dimension (:,:,:), allocatable :: dgdz, dphidz
+
+    allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
+    allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
+
+    tupwnd1 = 0.5*(1.0-time_upwind)
+    tupwnd2 = 0.5*(1.0+time_upwind)
+
+    ! now have phi^{n+1} for non-negative kx
+    ! obtain RHS of GK eqn; 
+    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
+    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+    ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+
+       ! obtain dg^{n}/dz and store in dgdz
+       ! NB: could eliminate this calculation at the expense of memory
+       ! as this was calculated previously
+       call get_dzed (iv,gold(:,:,:,ivmu),dgdz)
+
+       ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
+       g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*(tupwnd1*phiold+tupwnd2*phi)
+       ! obtain d<phi>/dz and store in dphidz
+       call get_dzed (iv,g(:,:,:,ivmu),dphidz)
+
+       ! construct RHS of GK eqn
+       do iz = -nzgrid, nzgrid
+          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - code_dt*vpa(iv)*spec(is)%stm*gradpar(1,iz) &
+               * (tupwnd1*dgdz(:,:,iz) + ztmax(iv,is)*dphidz(:,:,iz))
+       end do
+    end do
+
+    deallocate (dgdz, dphidz)
+
+  end subroutine get_gke_rhs
+
+  ! solve (I + (1+alph)/2*dt*vpa . grad)g^{n+1} = RHS
+  ! g = RHS is input and overwritten by g = g^{n+1}
+  subroutine invert_parstream (g)
+
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: neigen
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use kt_grids, only: naky
+    use kt_grids, only: aky
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
     integer :: ivmu, iv, is
     integer :: iky, ie
@@ -2737,12 +2906,6 @@ contains
     integer :: ulim
     complex, dimension (:), allocatable :: gext
 
-    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
-
-    ! save the incoming g, as it will be needed later
-    g1 = g
-
-    ! obtain g on extended zed grid
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
@@ -2754,79 +2917,19 @@ contains
           end if
           do ie = 1, neigen(iky)
              allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+             ! get g on extended domain in zed
              call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g(:,:,:,ivmu), gext, ulim)
-             ! first solve (I + dt*vpa . grad)g1^{n+1} = g^{n}
+             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
              call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
+             ! extract g from extended domain in zed
              call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
              deallocate (gext)
           end do
        end do
     end do
 
-    ! we now have g1^{n+1}
-    ! calculate associated fields
-    call advance_fields (g, phi, apar, dist='gbar')
-
-    ! need to put the fields into extended zed grid
-    do iky = 1, naky
-       do ie = 1, neigen(iky)
-          ! solve response_matrix*phi^{n+1} = phi1^{n+1}
-          ! only need to solve system for sets of connected kx with at least
-          ! one non-negative kx value
-          if (any(ikxmod(:nsegments(ie,iky),ie,iky) <= nakx)) then
-             allocate (gext(nsegments_poskx(ie,iky)*nzed_segment+1))
-             call get_fields_on_extended_zgrid (ie, iky, phi(iky,:,:), gext)
-             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
-                  response_matrix(iky)%eigen(ie)%idx, gext)
-             call get_fields_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
-             deallocate (gext)
-          end if
-       end do
-    end do
-
-    ! now have phi for non-negative kx
-    ! obtain RHS of GK eqn; 
-    ! i.e., (1+dt*vpa*gradpar*d/dz)g^{n+1} = g^{n} + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n+1}>/dz
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phi
-       ! get implicit source first gets d(J0*phi)/dz
-       ! and then multiplies by other factors present in source term described above
-       call get_implicit_parstream_source (g(:,:,:,ivmu), ivmu)
-    end do
-
-    ! add g^{n} to g = dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n+1}>/dz
-    g1 = g1 + g
-
-!    call gbar_to_h (g1, phi, apar, fphi, fapar)
-
-    ! now need to get g^{*} on extended zed grid and invert equation
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       do iky = 1, naky
-          if (abs(aky(iky)) < epsilon(0.)) then
-             ikyneg = iky
-          else
-             ikyneg = naky-iky+2
-          end if
-          do ie = 1, neigen(iky)
-             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
-             call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g1(:,:,:,ivmu), gext, ulim)
-             ! solve (1+dt*vpa*gradpar*d/dz)g^{n+1} = g1 = g^{n} + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n+1}>/dz
-             call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
-             call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
-             deallocate (gext)
-          end do
-       end do
-    end do
-
-    ! convert from h to gbar
-!    call gbar_to_h (g, phi, apar, -fphi, -fapar)
-
-    if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
-
-  end subroutine advance_parallel_streaming_implicit
-
+  end subroutine invert_parstream
+  
   subroutine get_distfn_on_extended_zgrid (ie, iky, ikyneg, g, gext, ulim)
 
     use zgrid, only: nzgrid
@@ -2910,6 +3013,43 @@ contains
 
   end subroutine get_distfn_from_extended_zgrid
 
+  subroutine invert_parstream_response (phi)
+ 
+    use linear_solve, only: lu_back_substitution
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: neigen
+    use extended_zgrid, only: nsegments, nsegments_poskx
+    use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: ikxmod
+    use kt_grids, only: naky, nakx
+    use fields_arrays, only: response_matrix
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi
+
+    integer :: iky, ie
+    complex, dimension (:), allocatable :: gext
+
+    ! need to put the fields into extended zed grid
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+          ! only need to solve system for sets of connected kx with at least
+          ! one non-negative kx value
+          if (any(ikxmod(:nsegments(ie,iky),ie,iky) <= nakx)) then
+             allocate (gext(nsegments_poskx(ie,iky)*nzed_segment+1))
+             call get_fields_on_extended_zgrid (ie, iky, phi(iky,:,:), gext)
+             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
+                  response_matrix(iky)%eigen(ie)%idx, gext)
+             call get_fields_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
+             deallocate (gext)
+          end if
+       end do
+    end do
+
+  end subroutine invert_parstream_response
+
   subroutine get_fields_on_extended_zgrid (ie, iky, phi, phiext)
 
     use zgrid, only: nzgrid
@@ -2989,36 +3129,81 @@ contains
     
   end subroutine get_fields_from_extended_zgrid
 
-  subroutine get_implicit_parstream_source (g, ivmu)
+!   subroutine get_implicit_parstream_rhsphi (g, ivmu)
+
+!     use finite_differences, only: fd_variable_upwinding_zed
+!     use stella_time, only: code_dt
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx, is_idx
+!     use zgrid, only: nzgrid
+!     use kt_grids, only: nakx, naky
+!     use species, only: spec
+!     use vpamu_grids, only: vpa, ztmax
+!     use geometry, only: gradpar
+
+!     implicit none
+
+!     complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+!     integer, intent (in) :: ivmu
+
+!     integer :: iv, is, iz
+!     complex, dimension (:,:,:), allocatable :: dgdz
+
+!     allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
+
+!     ! need to know which vpa we are considering
+!     ! as sign(vpa) needed for upwinding below
+!     iv = iv_idx(vmu_lo,ivmu)
+!     is = is_idx(vmu_lo,ivmu)
+
+!     call get_dzed (iv,g,dgdz)
+
+! !     do iky = 1, naky
+! !        do ie = 1, neigen(iky)
+! !           do iseg = 1, nsegments(ie,iky)
+! !              ! if iseg,ie,iky corresponds to negative kx, no need to solve
+! !              ! as it will be constrained by reality condition
+! !              if (ikxmod(iseg,ie,iky) > nakx) cycle
+
+! !              ! first fill in ghost zones at boundaries in g(z)
+! !              call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
+! !              ! get finite difference approximation for dg/dz
+! !              ! with mixture of centered and upwinded scheme
+! !              ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
+! !              ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
+! !              call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+! !                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
+! !                   delzed(0), stream_sign(iv), zed_upwind, gleft, gright, &
+! !                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+! !           end do
+! !        end do
+! !     end do
+
+!     do iz = -nzgrid, nzgrid
+!        g(:,:,iz) = -code_dt*spec(is)%stm*vpa(iv)*gradpar(1,iz)*ztmax(iv,is)*dgdz(:,:,iz)
+!     end do
+
+!     deallocate (dgdz)
+
+!   end subroutine get_implicit_parstream_rhsphi
+
+  subroutine get_dzed (iv, g, dgdz)
 
     use finite_differences, only: fd_variable_upwinding_zed
-    use stella_time, only: code_dt
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
+    use kt_grids, only: naky, nakx
     use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
-    use kt_grids, only: nakx, naky
-    use species, only: spec
-    use vpamu_grids, only: vpa, ztmax
-    use geometry, only: gradpar
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
-    integer, intent (in) :: ivmu
+    integer, intent (in) :: iv
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: dgdz
 
-    integer :: iky, ie, iseg, iv, is, iz
+    integer :: iky, ie, iseg
     complex, dimension (2) :: gleft, gright
-    complex, dimension (:,:,:), allocatable :: dgdz
-
-    allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
-
-    ! need to know which vpa we are considering
-    ! as sign(vpa) needed for upwinding below
-    iv = iv_idx(vmu_lo,ivmu)
-    is = is_idx(vmu_lo,ivmu)
 
     do iky = 1, naky
        do ie = 1, neigen(iky)
@@ -3031,23 +3216,17 @@ contains
              call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
              ! get finite difference approximation for dg/dz
              ! with mixture of centered and upwinded scheme
-             ! mixture controlled by stream_upwind (0 = centered, 1 = upwind)
+             ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
              ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
              call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                  delzed(0), stream_sign(iv), stream_upwind, gleft, gright, &
+                  delzed(0), stream_sign(iv), zed_upwind, gleft, gright, &
                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
           end do
        end do
     end do
 
-    do iz = -nzgrid, nzgrid
-       g(:,:,iz) = -code_dt*spec(is)%stm*vpa(iv)*gradpar(1,iz)*ztmax(iv,is)*dgdz(:,:,iz)
-    end do
-
-    deallocate (dgdz)
-
-  end subroutine get_implicit_parstream_source
+  end subroutine get_dzed
 
   subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
 

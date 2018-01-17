@@ -45,7 +45,8 @@
  streamknob = 1.0
  mirrorknob = 1.0
  wstarknob = 1.0
- stream_upwind = 0.01
+ zed_upwind = 0.1
+ time_upwind = 0.1
  mirror_explicit = .false.
  stream_explicit = .false.
  wdrifty_explicit = .true.

@@ -10,7 +10,8 @@ module run_parameters
   public :: fphi, fapar, fbpar
   public :: nonlinear
   public :: code_delt_max, wunits, woutunits, tunits
-  public :: nstep, wstar_units, eqzip, margin
+  public :: nstep
+  public :: wstar_units, eqzip, margin
   public :: secondary, tertiary, harris
   public :: ieqzip
   public :: k0, cfl_cushion

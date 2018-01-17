@@ -92,8 +92,6 @@ contains
     use stella_layouts, only: iv_idx, is_idx
     use species, only: nspec
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: nvgrid
-    use vpamu_grids, only: ztmax
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: neigen, ikxmod
     use extended_zgrid, only: nsegments, nsegments_poskx
@@ -219,12 +217,13 @@ contains
     use stella_layouts, only: iv_idx, is_idx
     use stella_time, only: code_dt
     use zgrid, only: delzed
+    use species, only: spec
     use geometry, only: gradpar
     use vpamu_grids, only: ztmax, vpa
     use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: aj0x
     use dist_fn, only: stream_tridiagonal_solve
-    use dist_fn, only: upwnd => stream_upwind
+    use dist_fn, only: zed_upwind, time_upwind
 
     implicit none
 
@@ -250,7 +249,8 @@ contains
        ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
 
        ! note -- assuming equal spacing in zed below
-       fac = code_dt*vpa(iv)*gradpar(1,iz)*aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
+       fac = 0.5*(1.+time_upwind)*code_dt*vpa(iv)*gradpar(1,iz)*spec(is)%stm &
+            *aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
 
        ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
        ! as this affects upwinding of d<phi>/dz source term
@@ -262,9 +262,9 @@ contains
           sgn = 0
        end if
 
-       gext(idx,ivmu) = sgn*upwnd*fac
-       if (idx > 1) gext(idx-1,ivmu) = 0.5*(1.-sgn*upwnd)*fac
-       if (idx < nz_ext) gext(idx+1,ivmu) = -0.5*(1.+sgn*upwnd)*fac
+       gext(idx,ivmu) = sgn*zed_upwind*fac
+       if (idx > 1) gext(idx-1,ivmu) = 0.5*(1.-sgn*zed_upwind)*fac
+       if (idx < nz_ext) gext(idx+1,ivmu) = -0.5*(1.+sgn*zed_upwind)*fac
 
        ! invert parallel streaming equation to get g^{n+1} on extended zed grid
        call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
