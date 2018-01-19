@@ -108,6 +108,7 @@ fields.o: \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
+	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 fields_arrays.o: \

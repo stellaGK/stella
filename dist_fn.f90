@@ -15,7 +15,7 @@ module dist_fn
   public :: adiabatic_option_switch
   public :: adiabatic_option_fieldlineavg
   public :: gamtot, gamtot3
-  public :: zed_upwind, time_upwind
+  public :: zed_upwind, vpa_upwind, time_upwind
 
   private
 
@@ -33,11 +33,6 @@ module dist_fn
      module procedure get_dchidy_4d
      module procedure get_dchidy_2d
   end interface
-
-!  interface fill_zed_ghost_zones
-!     module procedure fill_zed_ghost_zones_real
-!     module procedure fill_zed_ghost_zones_complex
-!  end interface
 
   logical :: get_fields_initialized = .false.
   logical :: get_fields_wstar_initialized = .false.
@@ -67,7 +62,7 @@ module dist_fn
   logical :: wdrifty_explicit, wdrifty_implicit
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
-  real :: zed_upwind, time_upwind
+  real :: zed_upwind, vpa_upwind, time_upwind
   real :: gamtot_h, gamtot3_h
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
   real, dimension (:,:,:), allocatable :: gam_stream
@@ -567,7 +562,7 @@ contains
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, stream_explicit, wdrifty_explicit, &!wstar_explicit, &
          adiabatic_option, niter_stream, stream_errtol, explicit_rk4, &
-         zed_upwind, time_upwind
+         zed_upwind, vpa_upwind, time_upwind
     integer :: ierr, in_file
 
     if (readinit) return
@@ -581,6 +576,7 @@ contains
        mirrorknob = 1.0
        wstarknob = 1.0
        zed_upwind = 0.1
+       vpa_upwind = 0.1
        time_upwind = 0.1
        mirror_explicit = .false.
        stream_explicit = .false.
@@ -614,6 +610,7 @@ contains
     call broadcast (niter_stream)
     call broadcast (stream_errtol)
     call broadcast (zed_upwind)
+    call broadcast (vpa_upwind)
     call broadcast (time_upwind)
 
     mirror_implicit = .not.mirror_explicit
@@ -885,7 +882,6 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: ny_ffs
     use geometry, only: dbdzed, gradpar, nalpha
-!    use sherman_morrison, only: init_invert_mirror_operator
 
     implicit none
 
@@ -922,13 +918,11 @@ contains
 
   subroutine init_invert_mirror_operator
 
-    use finite_differences, only: first_order_upwind
     use mp, only: mp_abort
     use stella_layouts, only: kxkyz_lo, kxyz_lo
     use stella_layouts, only: iz_idx, is_idx, iy_idx
     use vpamu_grids, only: dvpa
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: maxwellian
     use kt_grids, only: alpha_global
 
     implicit none
@@ -936,8 +930,8 @@ contains
     integer :: sgn
     integer :: ikxkyz, ikxyz, iy, iz, is, imu, iv
     integer :: llim, ulim
+    real :: tupwndfac
     real, dimension (:,:), allocatable :: a, b, c
-    real, dimension (:,:), allocatable :: vpafd
 
     allocate (a(-nvgrid:nvgrid,-1:1)) ; a = 0.
     allocate (b(-nvgrid:nvgrid,-1:1)) ; b = 0.
@@ -956,22 +950,26 @@ contains
        allocate(mirror_tri_c(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_c = 0.
     end if
 
-    allocate (vpafd(-nvgrid:nvgrid,-1:1)) ; vpafd = 0.
-
     ! corresponds to sign of mirror term positive on RHS of equation
-    b(:,1) = -1./dvpa
-    c(:nvgrid-1,1) = 1./dvpa
+    a(-nvgrid+1:,1) = -0.5*(1.0-vpa_upwind)/dvpa
+    b(-nvgrid+1:,1) = -vpa_upwind/dvpa
+    c(-nvgrid+1:nvgrid-1,1) = 0.5*(1.0+vpa_upwind)/dvpa
+    ! must treat boundary carefully
+    b(-nvgrid,1) = -1.0/dvpa
+    c(-nvgrid,1) = 1.0/dvpa
     ! corresponds to sign of mirror term negative on RHS of equation
-    a(-nvgrid+1:,-1) = -1./dvpa
-    b(:,-1) = 1./dvpa
+    a(-nvgrid+1:nvgrid-1,-1) = -0.5*(1.0+vpa_upwind)/dvpa
+    b(:nvgrid-1,-1) = vpa_upwind/dvpa
+    c(:nvgrid-1,-1) = 0.5*(1.0-vpa_upwind)/dvpa
+    ! must treat boundary carefully
+    a(nvgrid,-1) = -1.0/dvpa
+    b(nvgrid,-1) = 1./dvpa
 
-    ! get finite difference approximation to d(exp(-vpa^2))/dvpa  = -2*vpa*exp(-vpa^2)
-    call first_order_upwind (-nvgrid, maxwellian, dvpa, 1, vpafd(:,1))
-    call first_order_upwind (-nvgrid, maxwellian, dvpa, -1, vpafd(:,-1))
+    tupwndfac = 0.5*(1.0+time_upwind)
+    a = a*tupwndfac
+    c = c*tupwndfac
+    ! NB: b must be treated a bit differently -- see below
 
-    ! from above approximation, get vpa
-    vpafd = -0.5*vpafd/spread(maxwellian,2,3)
-    
     if (alpha_global) then
        do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
           iy = iy_idx(kxyz_lo,ikxyz)
@@ -980,9 +978,8 @@ contains
           sgn = mirror_sign(iy,iz)
           do imu = 1, nmu
              do iv = -nvgrid, nvgrid
-! BACKWARDS DIFFERENCE FLAG
                 mirror_tri_a(iv,imu,ikxyz) = -2.0*a(iv,sgn)*mirror(iy,iz,imu,is)
-                mirror_tri_b(iv,imu,ikxyz) = 1.0-2.0*(b(iv,sgn)+2.0*vpafd(iv,sgn))*mirror(iy,iz,imu,is)
+                mirror_tri_b(iv,imu,ikxyz) = 1.0-2.0*b(iv,sgn)*mirror(iy,iz,imu,is)*tupwndfac
                 mirror_tri_c(iv,imu,ikxyz) = -2.0*c(iv,sgn)*mirror(iy,iz,imu,is)
              end do
           end do
@@ -996,9 +993,8 @@ contains
           sgn = mirror_sign(iy,iz)
           do imu = 1, nmu
              do iv = -nvgrid, nvgrid
-! BACKWARDS DIFFERENCE FLAG
                 mirror_tri_a(iv,imu,ikxkyz) = -2.0*a(iv,sgn)*mirror(iy,iz,imu,is)
-                mirror_tri_b(iv,imu,ikxkyz) = 1.0-2.0*(b(iv,sgn)+2.0*vpafd(iv,sgn))*mirror(iy,iz,imu,is)
+                mirror_tri_b(iv,imu,ikxkyz) = 1.0-2.0*b(iv,sgn)*mirror(iy,iz,imu,is)*tupwndfac
                 mirror_tri_c(iv,imu,ikxkyz) = -2.0*c(iv,sgn)*mirror(iy,iz,imu,is)
              end do
           end do
@@ -1006,7 +1002,6 @@ contains
     end if
 
     deallocate (a, b, c)
-    deallocate (vpafd)
 
   end subroutine init_invert_mirror_operator
 
@@ -1069,7 +1064,7 @@ contains
 !     end if
 
     ! corresponds to sign of stream term positive on RHS of equation
-    ! FLAG -- ASSUMING EQUAL SPACING IN Z
+    ! NB: assumes equal spacing in zed
     stream_tri_a(2:,1) = -0.5*(1.0-zed_upwind)/delzed(0)
     stream_tri_b(2:,1) = -zed_upwind/delzed(0)
     stream_tri_c(2:,1) = (1.0+zed_upwind)*0.5/delzed(0)
@@ -1077,7 +1072,7 @@ contains
     stream_tri_b(1,1) = -1.0/delzed(0)
     stream_tri_c(1,1) = 1.0/delzed(0)
     ! corresponds to sign of stream term negative on RHS of equation
-    ! FLAG -- ASSUMING EQUAL SPACING IN Z
+    ! NB: assumes equal spacing in zed
     stream_tri_a(:nz*nseg_max,-1) = -0.5*(1.0+zed_upwind)/delzed(0)
     stream_tri_b(:nz*nseg_max,-1) = zed_upwind/delzed(0)
     stream_tri_c(:nz*nseg_max,-1) = 0.5*(1.0-zed_upwind)/delzed(0)
@@ -2626,24 +2621,39 @@ contains
     use mp, only: proc0
     use job_manage, only: time_message
     use redistribute, only: gather, scatter
+    use finite_differences, only: fd_variable_upwinding_vpa
     use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
+    use stella_layouts, only: iz_idx, is_idx, iv_idx
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use zgrid, only: nzgrid
     use dist_fn_arrays, only: gvmu
     use kt_grids, only: alpha_global
     use kt_grids, only: ny, nakx
     use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: dvpa, maxwellian
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
+    integer :: ikxyz, ikxkyz, ivmu
+    integer :: iv, imu, iz, is
+    real :: tupwnd
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:), allocatable :: g0x
 
-    integer :: ikxyz, ikxkyz, imu
-
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
+
+    tupwnd = (1.0-time_upwind)*0.5
+
+    ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
+    ! FOR ALPHA_GLOBAL
+
+    ! convert g to g*exp(m*vpa^2/2*T), as this is what is being advected
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       g(:,:,:,ivmu) = g(:,:,:,ivmu)/maxwellian(iv)
+    end do
 
     ! now that we have g^{*}, need to solve
     ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
@@ -2677,13 +2687,20 @@ contains
        allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(1,1,1,1))
 
-       g0v = gvmu
-! BACKWARDS DIFFERENCE FLAG
-!       call get_dgdvpa (g0v)
        ! invert_mirror_operator takes rhs of equation and
        ! returns g^{n+1}
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
+             ! calculate dg/dvpa
+             call fd_variable_upwinding_vpa (-nvgrid, gvmu(:,imu,ikxkyz), dvpa, &
+                  mirror_sign(1,iz), vpa_upwind, g0v(:,imu,ikxkyz))
+             ! construct RHS of GK equation for mirror advance;
+             ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
+             ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
+             g0v(:,imu,ikxkyz) = gvmu(:,imu,ikxkyz) + 2.0*tupwnd*mirror(1,iz,imu,is)*g0v(:,imu,ikxkyz)
+
              call invert_mirror_operator (imu, ikxkyz, g0v(:,imu,ikxkyz))
           end do
        end do
@@ -2692,6 +2709,12 @@ contains
        call gather (kxkyz2vmu, g0v, g)
     end if
     
+    ! now that we have advanced g*exp(m*vpa^2/2T), convert back to g
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       g(:,:,:,ivmu) = g(:,:,:,ivmu)*maxwellian(iv)
+    end do
+
     deallocate (g0x,g0v)
 
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
@@ -3129,64 +3152,6 @@ contains
     
   end subroutine get_fields_from_extended_zgrid
 
-!   subroutine get_implicit_parstream_rhsphi (g, ivmu)
-
-!     use finite_differences, only: fd_variable_upwinding_zed
-!     use stella_time, only: code_dt
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, is_idx
-!     use zgrid, only: nzgrid
-!     use kt_grids, only: nakx, naky
-!     use species, only: spec
-!     use vpamu_grids, only: vpa, ztmax
-!     use geometry, only: gradpar
-
-!     implicit none
-
-!     complex, dimension (:,:,-nzgrid:), intent (in out) :: g
-!     integer, intent (in) :: ivmu
-
-!     integer :: iv, is, iz
-!     complex, dimension (:,:,:), allocatable :: dgdz
-
-!     allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
-
-!     ! need to know which vpa we are considering
-!     ! as sign(vpa) needed for upwinding below
-!     iv = iv_idx(vmu_lo,ivmu)
-!     is = is_idx(vmu_lo,ivmu)
-
-!     call get_dzed (iv,g,dgdz)
-
-! !     do iky = 1, naky
-! !        do ie = 1, neigen(iky)
-! !           do iseg = 1, nsegments(ie,iky)
-! !              ! if iseg,ie,iky corresponds to negative kx, no need to solve
-! !              ! as it will be constrained by reality condition
-! !              if (ikxmod(iseg,ie,iky) > nakx) cycle
-
-! !              ! first fill in ghost zones at boundaries in g(z)
-! !              call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
-! !              ! get finite difference approximation for dg/dz
-! !              ! with mixture of centered and upwinded scheme
-! !              ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
-! !              ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
-! !              call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-! !                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-! !                   delzed(0), stream_sign(iv), zed_upwind, gleft, gright, &
-! !                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
-! !           end do
-! !        end do
-! !     end do
-
-!     do iz = -nzgrid, nzgrid
-!        g(:,:,iz) = -code_dt*spec(is)%stm*vpa(iv)*gradpar(1,iz)*ztmax(iv,is)*dgdz(:,:,iz)
-!     end do
-
-!     deallocate (dgdz)
-
-!   end subroutine get_implicit_parstream_rhsphi
-
   subroutine get_dzed (iv, g, dgdz)
 
     use finite_differences, only: fd_variable_upwinding_zed
@@ -3255,9 +3220,7 @@ contains
     allocate (c(n_ext))
 
     iseg = 1
-!    llim = 1 ; ulim = iz_up(iseg)-iz_low(iseg)+1
     llim = 1 ; ulim = nz+1
-    ! BACKWARDS DIFFERENCE FLAG
     a(llim:ulim) = -2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
     b(llim:ulim) = 1.0-2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
     c(llim:ulim) = -2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
@@ -3265,9 +3228,7 @@ contains
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
-!          ulim = llim+iz_up(iseg)-iz_low(iseg)-1
           ulim = llim+nz-1
-    ! BACKWARDS DIFFERENCE FLAG
           a(llim:ulim) = -2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
           b(llim:ulim) = 1.0-2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
           c(llim:ulim) = -2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
