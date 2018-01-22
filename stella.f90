@@ -109,8 +109,11 @@ contains
     use mp, only: proc0
     use file_utils, only: finish_file_utils
     use job_manage, only: time_message
-    use fields, only: finish_fields
+    use physics_parameters, only: finish_physics_parameters
+    use run_parameters, only: finish_run_parameters
     use dist_fn, only: time_gke
+    use dist_fn, only: finish_dist_fn
+    use fields, only: finish_fields
     use stella_diagnostics, only: finish_stella_diagnostics
 
     implicit none
@@ -119,6 +122,12 @@ contains
     call finish_stella_diagnostics
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'
     call finish_fields
+    if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'
+    call finish_dist_fn
+    if (debug) write (*,*) 'stella::finish_stella::finish_run_parameters'
+    call finish_run_parameters
+    if (debug) write (*,*) 'stella::finish_stella::finish_physics_parameters'
+    call finish_physics_parameters
     if (debug) write (*,*) 'stella::finish_stella::finish_file_utils'
     if (proc0) then
        call finish_file_utils

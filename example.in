@@ -28,8 +28,10 @@
 /
 
 &parameters
- beta = 0.01
  zeff = 1.0
+ beta = 0.01
+ vnew_ref = 0.01
+ rhostar = 0.01
 /
 
 &vpamu_grids_parameters

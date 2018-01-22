@@ -104,7 +104,7 @@ contains
     use stella_time, only: code_dt
     use dist_fn_arrays, only: aj0v, kperp2
     use run_parameters, only: fphi, fapar
-    use run_parameters, only: tite, nine, beta
+    use physics_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
     use geometry, only: dl_over_b, gradpar
     use zgrid, only: nzgrid
@@ -326,7 +326,7 @@ contains
     use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: aj0v, kperp2
     use run_parameters, only: fphi, fapar
-    use run_parameters, only: beta
+    use physics_parameters, only: beta
     use geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nvpa, nmu
@@ -476,8 +476,10 @@ contains
     use kt_grids, only: alpha_global
     use vpamu_grids, only: init_vpamu_grids
     use vpamu_grids, only: nvgrid, nmu
+    use physics_parameters, only: init_physics_parameters
     use run_parameters, only: init_run_parameters
     use run_parameters, only: nonlinear
+    use geometry, only: geo_surf
     use neoclassical_terms, only: init_neoclassical_terms
 
     implicit none
@@ -489,12 +491,14 @@ contains
     
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_stella_layouts'
     call init_stella_layouts
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_physics_parameters'
+    call init_physics_parameters
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_species'
     call init_species
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_zgrid'
     call init_zgrid
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kt_grids'
-    call init_kt_grids
+    call init_kt_grids (geo_surf%shat)
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write (*,*) 'dist_fn::init_dist_fn::read_parameters'
@@ -2800,11 +2804,13 @@ contains
     use zgrid, only: nzgrid
     use species, only: spec
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax
     use geometry, only: gradpar
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dfneo_dvpa
 
     implicit none
 
@@ -2812,10 +2818,12 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phiold
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ivmu, iv, is, iz
-    real :: tupwnd
+    integer :: ivmu, iv, imu, is, iz
+    real :: tupwnd, fac
+    real, dimension (:), allocatable :: vpadf0dE_fac
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
 
+    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
 
@@ -2827,6 +2835,7 @@ contains
     ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
@@ -2837,13 +2846,28 @@ contains
        ! obtain d<phi^{n}>/dz and store in dphidz
        call get_dzed (iv,g(:,:,:,ivmu),dphidz)
 
+       fac = tupwnd*code_dt*spec(is)%stm
+
+       ! NB: could do this once at beginning of simulation to speed things up
+       ! this is vpa*Z/T*exp(-vpa^2)
+       vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
+       ! if including neoclassical correction to equilibrium distribution function
+       ! then must also account for -vpa*dF_neo/dvpa
+       if (include_neoclassical_terms) then
+          do iz = -nzgrid, nzgrid
+             vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,iv,imu,is)
+          end do
+       end if
+
        ! construct RHS of GK eqn for inhomogeneous g
        do iz = -nzgrid, nzgrid
-          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - tupwnd*code_dt*vpa(iv)*spec(is)%stm*gradpar(1,iz) &
-               * (dgdz(:,:,iz) + ztmax(iv,is)*dphidz(:,:,iz))
+          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - fac*gradpar(1,iz) &
+               * (vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
        end do
+       
     end do
 
+    deallocate (vpadf0dE_fac)
     deallocate (dgdz, dphidz)
 
   end subroutine get_gke_rhs_inhomogeneous
@@ -2854,11 +2878,13 @@ contains
     use zgrid, only: nzgrid
     use species, only: spec
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax
     use geometry, only: gradpar
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dfneo_dvpa
 
     implicit none
 
@@ -2866,10 +2892,12 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phiold, phi
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ivmu, iv, is, iz
-    real :: tupwnd1, tupwnd2
+    integer :: ivmu, iv, imu, is, iz
+    real :: tupwnd1, tupwnd2, fac
+    real, dimension (:), allocatable :: vpadf0dE_fac
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
 
+    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
 
@@ -2883,6 +2911,7 @@ contains
     ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
@@ -2895,13 +2924,27 @@ contains
        ! obtain d<phi>/dz and store in dphidz
        call get_dzed (iv,g(:,:,:,ivmu),dphidz)
 
+       fac = code_dt*spec(is)%stm
+
+       ! NB: could do this once at beginning of simulation to speed things up
+       ! this is vpa*Z/T*exp(-vpa^2)
+       vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
+       ! if including neoclassical correction to equilibrium distribution function
+       ! then must also account for -vpa*dF_neo/dvpa
+       if (include_neoclassical_terms) then
+          do iz = -nzgrid, nzgrid
+             vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,iv,imu,is)
+          end do
+       end if
+
        ! construct RHS of GK eqn
        do iz = -nzgrid, nzgrid
-          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - code_dt*vpa(iv)*spec(is)%stm*gradpar(1,iz) &
-               * (tupwnd1*dgdz(:,:,iz) + ztmax(iv,is)*dphidz(:,:,iz))
+          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - fac*gradpar(1,iz) &
+               * (tupwnd1*vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
        end do
     end do
 
+    deallocate (vpadf0dE_fac)
     deallocate (dgdz, dphidz)
 
   end subroutine get_gke_rhs

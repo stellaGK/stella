@@ -34,12 +34,14 @@ contains
 
     use zgrid, only: init_zgrid
     use kt_grids, only: init_kt_grids
+    use physics_parameters, only: init_physics_parameters
     use run_parameters, only: init_run_parameters
     use species, only: init_species
     use dist_fn, only: init_dist_fn
     use init_g, only: init_init_g
     use stella_io, only: init_stella_io
     use mp, only: broadcast, proc0
+    use geometry, only: geo_surf
 
     implicit none
 
@@ -53,7 +55,8 @@ contains
     debug = debug .and. proc0
     
     call init_zgrid
-    call init_kt_grids
+    call init_physics_parameters
+    call init_kt_grids (geo_surf%shat)
     call init_run_parameters
     call init_species
     call init_init_g

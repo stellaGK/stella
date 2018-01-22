@@ -16,7 +16,7 @@ module sfincs_interface
   integer :: coordinateSystem
   integer :: inputRadialCoordinate
   integer :: inputRadialCoordinateForGradients
-  real :: aHat, psiAHat
+  real :: aHat, psiAHat, Delta
   real :: nu_n
   integer :: nxi, nx
 
@@ -88,7 +88,8 @@ contains
     use constants, only: pi
     use mp, only: nproc
     use file_utils, only: input_unit_exist
-    use species, only: nspec, spec
+    use species, only: nspec
+    use physics_parameters, only: rhostar, vnew_ref
 
     implicit none
 
@@ -102,7 +103,7 @@ contains
          coordinateSystem, &
          inputRadialCoordinate, &
          inputRadialCoordinateForGradients, &
-         aHat, psiAHat, nu_N, nxi, nx
+         aHat, psiAHat, nu_N, nxi, nx, Delta
 
     logical :: exist
     integer :: in_file
@@ -125,10 +126,13 @@ contains
     aHat = 1.0
     ! corresponds to psitor_LCFS = B_ref * a_ref^2
     psiAHat = 1.0
+    ! Delta is rho* = mref*vt_ref/(e*Bref*aref), with reference
+    ! quantities given in SI units
+    Delta = rhostar
     ! nu_n = nu_ref * aref/vt_ref
     ! nu_ref = 4*sqrt(2*pi)*nref*e**4*loglam/(3*sqrt(mref)*Tref**3/2)
     ! (with nref, Tref, and mref in Gaussian units)
-    nu_N = spec(1)%vnew_ref*(4./(3.*pi))
+    nu_N = vnew_ref*(4./(3.*pi))
     ! number of spectral coefficients in pitch angle
     nxi = 64
     ! number of speeds
@@ -169,6 +173,7 @@ contains
     call broadcast (inputRadialCoordinateForGradients)
     call broadcast (aHat)
     call broadcast (psiAHat)
+    call broadcast (Delta)
     call broadcast (nu_N)
     call broadcast (nxi)
     call broadcast (nx)
@@ -198,6 +203,7 @@ contains
     use globalVariables, only: dnHatdrNs, dTHatdrNs, dPhiHatdrN
     use globalVariables, only: aHat_sfincs => aHat
     use globalVariables, only: psiAHat_sfincs => psiAHat
+    use globalVariables, only: Delta_sfincs => Delta
     use globalVariables, only: nu_n_sfincs => nu_n
 
     implicit none
@@ -227,6 +233,7 @@ contains
     nxi_sfincs = nxi
     aHat_sfincs = aHat
     psiAHat_sfincs = psiAHat
+    Delta_sfincs = Delta
     nu_n_sfincs = nu_n
 
     if (inputRadialCoordinate == 3) then
@@ -243,6 +250,8 @@ contains
        dTHatdrNs(:nspec) = -spec%temp/geo_surf%drhotordrho*(spec%tprim - delrho*spec%d2Tdr2)
        ! radial electric field
        dPhiHatdrN = 0.0
+
+       write (*,*) 'sfincsprofs', dnHatdrNs(1), dTHatdrNs(1)
     else
        call mp_abort ('only inputRadialCoordinateForGradients=3 currently supported. aborting.')
     end if
@@ -266,7 +275,7 @@ contains
   subroutine pass_geometry_to_sfincs (delrho)
 
     use zgrid, only: nzgrid
-    use geometry, only: bmag, dbdthet, gradpar
+    use geometry, only: bmag, dbdzed, gradpar
     use geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
     use geometry, only: geo_surf
     use globalVariables, only: BHat
@@ -282,18 +291,18 @@ contains
 
     integer :: nzeta = 1
     real :: q_local
-    real, dimension (-nzgrid:nzgrid) :: B_local, dBdth_local, gradpar_local
+    real, dimension (-nzgrid:nzgrid) :: B_local, dBdz_local, gradpar_local
 
     call init_zero_arrays
 
     q_local = geo_surf%qinp*(1.0+delrho*geo_surf%shat/geo_surf%rhoc)
     B_local = bmag(1,:) + delrho*dBdrho
-    dBdth_local = dbdthet + delrho*d2Bdrdth
+    dBdz_local = dbdzed(1,:) + delrho*d2Bdrdth
     gradpar_local = gradpar(1,:) + delrho*dgradpardrho
 
     ! FLAG -- needs to be changed for stellarator runs
     BHat = spread(B_local,2,nzeta)
-    dBHatdtheta = spread(dBdth_local,2,nzeta)
+    dBHatdtheta = spread(dBdz_local,2,nzeta)
     iota = 1./q_local
     ! this is grad psitor . (grad theta x grad zeta)
     ! note that + sign below relies on B = I grad zeta + grad zeta x grad psi
@@ -340,12 +349,13 @@ contains
   end subroutine init_zero_arrays
 
   subroutine get_sfincs_output (f_neoclassical, phi_neoclassical)
-
+    
+    use constants, only: pi
     use mp, only: mp_abort
     use species, only: nspec, spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: vpa, maxwellian
+    use vpamu_grids, only: vpa, mu, ztmax, vperp2
     use export_f, only: h_sfincs => delta_f
     use globalVariables, only: nxi_sfincs => nxi
     use globalVariables, only: nx_sfincs => nx
@@ -353,7 +363,7 @@ contains
     use globalVariables, only: phi_sfincs => Phi1Hat
 !    use globalVariables, only: ddx_sfincs => ddx
     use xGrid, only: xGrid_k
-    use dist_fn_arrays, only: vperp2
+    use geometry, only: bmag
 
     implicit none
 
@@ -445,11 +455,16 @@ contains
 !                   dfneo_dx(iz,-iv,imu,is) = dhstella_dx(2)
                 end if
 
-                ! FLAG -- I think phi_sfincs is e phi / Tref.  need to ask Matt
-                ! if correct, need to multiply by Z_s * Tref/T_s * F_{0,s}
-                ! NB: f_neoclassical has not been scaled up by 1/rho*
+                ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
+                ! to be consistent with stella distribution functions,
+                ! want H_nc * exp(2*mu*B) / (n_s / vt_s^3 * pi^(3/2))
+                f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) * exp(2.0*mu(imu)*bmag(1,iz)) &
+                     * pi**1.5 * spec(is)%stm**3/spec(is)%dens
+
+                ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
+                ! need to multiply by Z_s * Tref/T_s * exp(-vpa^2)
                 f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) &
-                     - phi_neoclassical(iz)*spec(is)%z/spec(is)%temp*maxwellian(iv)
+                     - phi_neoclassical(iz)*ztmax(iv,is)
 
 !                deallocate (xi_stella, hstella, dhstella_dx, legpoly)
                 deallocate (xi_stella, hstella, legpoly)

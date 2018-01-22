@@ -2013,7 +2013,7 @@ contains
 
   subroutine nc_species
 
-    use run_parameters, only: beta
+    use physics_parameters, only: beta
     use species, only: spec, nspec
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -2055,7 +2055,7 @@ contains
     use geometry, only: geo_surf
     use geometry, only: nalpha
     use zgrid, only: nzgrid
-    use run_parameters, only: beta
+    use physics_parameters, only: beta
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 

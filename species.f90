@@ -39,6 +39,7 @@ contains
 
 !    use mp, only: trin_flag
     use mp, only: proc0, broadcast
+    use physics_parameters, only: vnew_ref
     use inputprofiles_interface, only: read_inputprof_spec
 
     implicit none
@@ -62,7 +63,7 @@ contains
 
        do is = 1, nspec
           ! FLAG -- only contains self-collisions as the moment
-          spec(is)%vnew(is) = spec(1)%vnew_ref*spec(is)%dens*spec(is)%z**4 &
+          spec(is)%vnew(is) = vnew_ref*spec(is)%dens*spec(is)%z**4 &
                / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
        end do
 
@@ -126,11 +127,11 @@ contains
 
     implicit none
 
-    real :: z, mass, dens, temp, tprim, fprim, vnew_ref, d2ndr2, d2Tdr2
+    real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2
     integer :: ierr, unit, is
 
     namelist /species_parameters/ z, mass, dens, temp, &
-         tprim, fprim, d2ndr2, d2Tdr2, vnew_ref, type
+         tprim, fprim, d2ndr2, d2Tdr2, type
 
     character(20) :: type
     type (text_option), dimension (9), parameter :: typeopts = (/ &
@@ -152,7 +153,6 @@ contains
        temp = 1.0
        tprim = 6.9
        fprim = 2.2
-       vnew_ref = 0.0
        d2ndr2 = 0.0
        d2Tdr2 = 0.0
        type = "default"
@@ -165,8 +165,6 @@ contains
        spec(is)%temp = temp
        spec(is)%tprim = tprim
        spec(is)%fprim = fprim
-       ! FLAG -- assumes vnew_ref specified for first species
-       spec(is)%vnew_ref = vnew_ref
        ! this is (1/n_s)*d^2 n_s / drho^2
        spec(is)%d2ndr2 = d2ndr2
        ! this is (1/T_s)*d^2 T_s / drho^2
@@ -193,7 +191,6 @@ contains
        call broadcast (spec(is)%temp)
        call broadcast (spec(is)%tprim)
        call broadcast (spec(is)%fprim)
-       call broadcast (spec(is)%vnew_ref)
        call broadcast (spec(is)%vnew)
        call broadcast (spec(is)%d2ndr2)
        call broadcast (spec(is)%d2Tdr2)

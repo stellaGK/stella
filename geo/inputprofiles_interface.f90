@@ -197,6 +197,7 @@ contains
     use splines, only: geo_spline
     use common_types, only: spec_type
     use millerlocal, only: local
+    use physics_parameters, only: vnew_ref
 
     implicit none
 
@@ -383,7 +384,7 @@ contains
     ! along with the proton charge in the expression
     ! vnew_ref = (aref/vtref)*(4/3)sqrt(2pi)/(4pi*epsilon_0)**2 * nref * e**4 * loglam / sqrt(mref) / Tref**1.5
     ! note that all quantities are given in SI units and epsilon_0 is permittivity of vacuum
-    spec%vnew_ref = 28.5134*(aref/vtref)*local_loglam*nref/(sqrt(mref)*tref**1.5)
+    vnew_ref = 28.5134*(aref/vtref)*local_loglam*nref/(sqrt(mref)*tref**1.5)
 
 !    vnewki = 9.21e-5*aref*zi**4/sqrt(2.)*loglam*ni/ti**2
 !    vnewke = 3.95e-3*aref*zi**2*sqrt(0.5*mi)*loglam*ne &

@@ -3,8 +3,9 @@ module neoclassical_terms
   implicit none
 
   public :: init_neoclassical_terms
-  public :: include_neoclassical_terms
   public :: finish_neoclassical_terms
+  public :: include_neoclassical_terms
+  public :: dfneo_dvpa
 
   private
 
@@ -139,6 +140,7 @@ contains
     use species, only: nspec
     use zgrid, only: nzgrid, zed
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
+    use geometry, only: bmag
 
     implicit none
 
@@ -154,7 +156,7 @@ contains
              do imu = 1, nmu
                 do iv = -nvgrid, nvgrid
                    write (neo_unit,'(2i8,6e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
-                        f_neoclassical(iz,iv,imu,is,irad), dfneo_dvpa(iz,iv,imu,is), &
+                        f_neoclassical(iz,iv,imu,is,irad)*exp(2.0*mu(imu)*bmag(1,iz)), dfneo_dvpa(iz,iv,imu,is), &
                         phi_neoclassical(iz,irad)
                 end do
                 write (neo_unit,*)

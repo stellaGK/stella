@@ -25,6 +25,7 @@ contains
     use zgrid, only: init_zgrid
 !    use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
+    use physics_parameters, only: init_physics_parameters
     use dist_fn, only: init_dist_fn
     use dist_fn, only: init_get_fields, get_fields
     use dist_fn, only: stream_implicit
@@ -46,6 +47,8 @@ contains
     if (debug) write(6,*) "fields::init_fields::init_geometry"
 !    call init_geometry (nzed, nzgrid, zed, delzed)
     call init_geometry
+    if (debug) write(6,*) "fields::init_fields::init_physics_parameters"
+    call init_physics_parameters
     if (debug) write (*,*) 'fields::init_fields::init_species'
     call init_species
     if (debug) write(6,*) "fields::init_fields::init_init_g"

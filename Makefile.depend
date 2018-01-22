@@ -27,6 +27,7 @@ stella_mod = \
 	 mt19937.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
+	 physics_parameters.o \
 	 ran.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -69,6 +70,7 @@ dist_fn.o: \
 	 linear_solve.o \
 	 mp.o \
 	 neoclassical_terms.o \
+	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -105,6 +107,7 @@ fields.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -155,6 +158,7 @@ inputprofiles_interface.o: \
 	 finite_differences.o \
 	 millerlocal.o \
 	 mp.o \
+	 physics_parameters.o \
 	 spl.o 
 job_manage.o: \
 	 file_utils.o \
@@ -162,7 +166,6 @@ job_manage.o: \
 kt_grids.o: \
 	 constants.o \
 	 file_utils.o \
-	 geometry.o \
 	 mp.o \
 	 text_options.o \
 	 zgrid.o 
@@ -181,6 +184,7 @@ mt19937.o:
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
+	 geometry.o \
 	 mp.o \
 	 sfincs_interface.o \
 	 species.o \
@@ -192,6 +196,9 @@ netcdf_utils.o: \
 	 file_utils.o 
 pgplot_utils.o: \
 	 constants.o 
+physics_parameters.o: \
+	 file_utils.o \
+	 mp.o 
 ran.o: \
 	 mt19937.o 
 redistribute.o: \
@@ -199,13 +206,17 @@ redistribute.o: \
 	 mp.o 
 run_parameters.o: \
 	 file_utils.o \
-	 kt_grids.o \
 	 mp.o \
 	 stella_save.o \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
+	 constants.o \
+	 file_utils.o \
+	 geometry.o \
 	 mp.o \
+	 physics_parameters.o \
+	 species.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
@@ -213,6 +224,7 @@ species.o: \
 	 file_utils.o \
 	 inputprofiles_interface.o \
 	 mp.o \
+	 physics_parameters.o \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
@@ -224,6 +236,7 @@ stella.o: \
 	 init_g.o \
 	 job_manage.o \
 	 mp.o \
+	 physics_parameters.o \
 	 run_parameters.o \
 	 stella_diagnostics.o \
 	 stella_time.o 
@@ -237,6 +250,7 @@ stella_diagnostics.o: \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
@@ -252,6 +266,7 @@ stella_io.o: \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
+	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \
 	 vpamu_grids.o \
