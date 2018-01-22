@@ -20,13 +20,15 @@ module dist_fn
   private
 
   interface get_dgdy
-     module procedure get_dgdy_4d
      module procedure get_dgdy_2d
+     module procedure get_dgdy_3d
+     module procedure get_dgdy_4d
   end interface
 
   interface get_dgdx
-     module procedure get_dgdx_4d
      module procedure get_dgdx_2d
+     module procedure get_dgdx_3d
+     module procedure get_dgdx_4d
   end interface
 
   interface get_dchidy
@@ -670,6 +672,8 @@ contains
 
   subroutine init_wdrift
 
+    use dist_fn_arrays, only: wgbdriftx, wcvdriftx
+    use dist_fn_arrays, only: wgbdrifty, wcvdrifty
     use dist_fn_arrays, only: wdriftx, wdrifty
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -685,10 +689,19 @@ contains
     implicit none
 
     integer :: ivmu, iv, imu, is
+    real :: fac
 
     if (wdriftinit) return
     wdriftinit = .true.
 
+    if (.not.allocated(wcvdriftx)) &
+         allocate (wcvdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wcvdrifty)) &
+         allocate (wcvdrifty(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wgbdriftx)) &
+         allocate (wgbdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wgbdrifty)) &
+         allocate (wgbdrifty(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftx)) &
          allocate (wdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdrifty)) &
@@ -699,10 +712,29 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       wdrifty(:,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
-            * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,:,imu))
-       wdriftx(:,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
-            * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,:,imu))
+
+       fac = -ydriftknob*0.5*code_dt*spec(is)%tz
+       ! this is the curvature drift piece of wdrifty with missing factor of vpa
+       ! vpa factor is missing to avoid singularity when including 
+       ! non-Maxwellian corrections to equilibrium
+       wcvdrifty(:,:,ivmu) = fac*cvdrift*vpa(iv)
+       ! this is the grad-B drift piece of wdrifty
+       wgbdrifty(:,:,ivmu) = fac*gbdrift*0.5*vperp2(:,:,imu)
+       wdrifty(:,:,ivmu) = wcvdrifty(:,:,ivmu)*vpa(iv) + wgbdrifty(:,:,ivmu)
+       
+       fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
+       ! this is the curvature drift piece of wdriftx with missing factor of vpa
+       ! vpa factor is missing to avoid singularity when including 
+       ! non-Maxwellian corrections to equilibrium
+       wcvdriftx(:,:,ivmu) = fac*cvdrift0*vpa(iv)
+       ! this is the grad-B drift piece of wdriftx
+       wgbdriftx(:,:,ivmu) = fac*gbdrift0*0.5*vperp2(:,:,imu)
+       wdriftx(:,:,ivmu) = wcvdriftx(:,:,ivmu)*vpa(iv) + wgbdriftx(:,:,ivmu)
+
+!       wdrifty(:,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
+!            * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,:,imu))
+!       wdriftx(:,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
+!            * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,:,imu))
     end do
 
   end subroutine init_wdrift
@@ -1587,7 +1619,7 @@ contains
     use mp, only: proc0
     use job_manage, only: time_message
     use dist_fn_arrays, only: gbar_to_h, g_to_h
-    use dist_fn_arrays, only: gvmu
+!    use dist_fn_arrays, only: gvmu
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
     use stella_transforms, only: transform_y2ky
@@ -1639,18 +1671,18 @@ contains
     if (.not.restart_time_step) then
        if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
        ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
-       call gbar_to_h (gin, phi, apar, fphi, fapar)
+!       call gbar_to_h (gin, phi, apar, fphi, fapar)
        if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
 
        ! calculate and add mirror term to RHS of GK eqn
        if (mirror_explicit) then
-          call gbar_to_h (gvmu, phi, apar, fphi, fapar)
+!          call gbar_to_h (gvmu, phi, apar, fphi, fapar)
           call advance_mirror_explicit (gin, rhs)
        end if
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-       if (wdrifty_explicit) call advance_wdrifty_explicit (gin, rhs)
+       if (wdrifty_explicit) call advance_wdrifty_explicit (gin, phi, rhs)
        ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-       call advance_wdriftx (gin, rhs)
+       call advance_wdriftx (gin, phi, rhs)
        ! calculate and add omega_* term to RHS of GK eqn
        call advance_wstar_explicit (rhs)
        
@@ -1669,7 +1701,7 @@ contains
 
        if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
        ! switch from h back to gbar
-       call gbar_to_h (gin, phi, apar, -fphi, -fapar)
+!       call gbar_to_h (gin, phi, apar, -fphi, -fapar)
        if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
     end if
 
@@ -1847,7 +1879,7 @@ contains
 
   end subroutine advance_mirror_explicit
 
-  subroutine advance_wdrifty_explicit (g, gout)
+  subroutine advance_wdrifty_explicit (g, phi, gout)
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
@@ -1856,36 +1888,62 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
+    use dist_fn_arrays, only: aj0x
+    use dist_fn_arrays, only: wdrifty, wcvdrifty, wgbdrifty
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
+    integer :: ivmu
+    complex, dimension (:,:,:), allocatable :: dphidy
     complex, dimension (:,:,:,:), allocatable :: g0k, g0y
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
+    allocate (dphidy(naky,nakx,-nzgrid:nzgrid))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdy'
     call get_dgdy (g, g0k)
+    call get_dgdy (phi, dphidy)
+
     if (alpha_global) then
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! transform dg/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
-       call add_dgdy_term_global (g0y, gout)
+       ! add vM . grad y dg/dy term to equation
+       call add_dg_term_global (g0y, wdrifty, gout)
+       ! get <dphi/dy> in k-space
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g0k(:,:,:,ivmu) = dphidy*aj0x(:,:,:,ivmu)
+       end do
+       ! transform d<phi>/dy from k-space to y-space
+       call transform_ky2y (g0k, g0y)
+       ! add vM . grad y d<phi>/dy term to equation
+       call add_dphi_term_global (g0y, wcvdrifty, wgbdrifty, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'dist_fn::solve_gke::add_dgdy_term'
-       call add_dgdy_term (g0k, gout)
+       ! add vM . grad y dg/dy term to equation
+       call add_dg_term (g0k, wdrifty(1,:,:), gout)
+       ! get <dphi/dy> in k-space
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g0k(:,:,:,ivmu) = dphidy*aj0x(:,:,:,ivmu)
+       end do
+       ! add vM . grad y d<phi>/dy term to equation
+       call add_dphi_term (g0k, wcvdrifty(1,:,:), wgbdrifty(1,:,:), gout)
     end if
-    deallocate (g0k)
+    deallocate (g0k, dphidy)
 
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
   end subroutine advance_wdrifty_explicit
 
-  subroutine advance_wdriftx (g, gout)
+  subroutine advance_wdriftx (g, phi, gout)
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
@@ -1894,31 +1952,56 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
+    use dist_fn_arrays, only: aj0x
+    use dist_fn_arrays, only: wdriftx, wcvdriftx, wgbdriftx
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
+    integer :: ivmu
+    complex, dimension (:,:,:), allocatable :: dphidx
     complex, dimension (:,:,:,:), allocatable :: g0k, g0y
 
     ! psi-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
+    allocate (dphidx(naky,nakx,-nzgrid:nzgrid))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdx'
     call get_dgdx (g, g0k)
+    call get_dgdx (phi, dphidx)
 
     if (alpha_global) then
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! transform dg/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
-       call add_dgdx_term_global (g0y, gout)
+       ! add vM . grad x dg/dx term to equation
+       call add_dg_term_global (g0y, wdriftx, gout)
+       ! get <dphi/dx> in k-space
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g0k(:,:,:,ivmu) = dphidx*aj0x(:,:,:,ivmu)
+       end do
+       ! transform d<phi>/dx from k-space to y-space
+       call transform_ky2y (g0k, g0y)
+       ! add vM . grad x d<phi>/dx term to equation
+       call add_dphi_term_global (g0y, wcvdriftx, wgbdriftx, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'dist_fn::solve_gke::add_dgdx_term'
-       call add_dgdx_term (g0k, gout)
+       ! add vM . grad x dg/dx term to equation
+       call add_dg_term (g0k, wdriftx(1,:,:), gout)
+       ! get <dphi/dx> in k-space
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g0k(:,:,:,ivmu) = dphidx*aj0x(:,:,:,ivmu)
+       end do
+       ! add vM . grad x d<phi>/dx term to equation
+       call add_dphi_term (g0k, wcvdriftx(1,:,:), wgbdriftx(1,:,:), gout)
     end if
-    deallocate (g0k)
+    deallocate (g0k, dphidx)
 
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
@@ -2345,6 +2428,35 @@ contains
     
   end subroutine fill_zed_ghost_zones
 
+  subroutine get_dgdy_2d (g, dgdy)
+
+    use constants, only: zi
+    use kt_grids, only: nakx, aky
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: g
+    complex, dimension (:,:), intent (out) :: dgdy
+
+    dgdy = zi*spread(aky,2,nakx)*g
+
+  end subroutine get_dgdy_2d
+
+  subroutine get_dgdy_3d (g, dgdy)
+
+    use constants, only: zi
+    use zgrid, only: nzgrid
+    use kt_grids, only: nakx, aky
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: dgdy
+
+    dgdy = zi*spread(spread(aky,2,nakx),3,2*nzgrid+1)*g
+    
+  end subroutine get_dgdy_3d
+
   subroutine get_dgdy_4d (g, dgdy)
 
     use constants, only: zi
@@ -2365,23 +2477,8 @@ contains
 
   end subroutine get_dgdy_4d
 
-  subroutine get_dgdy_2d (g, dgdy)
+  subroutine add_dg_term (g, wdrift_in, src)
 
-    use constants, only: zi
-    use kt_grids, only: nakx, aky
-
-    implicit none
-
-    complex, dimension (:,:), intent (in) :: g
-    complex, dimension (:,:), intent (out) :: dgdy
-
-    dgdy = zi*spread(aky,2,nakx)*g
-
-  end subroutine get_dgdy_2d
-
-  subroutine add_dgdy_term (g, src)
-
-    use dist_fn_arrays, only: wdrifty
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
@@ -2389,19 +2486,19 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift_in
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(wdrifty(1,:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(wdrift_in(:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
     end do
 
-  end subroutine add_dgdy_term
+  end subroutine add_dg_term
 
-  subroutine add_dgdy_term_global (g, src)
+  subroutine add_dg_term_global (g, wdrift_in, src)
 
-    use dist_fn_arrays, only: wdrifty
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: nakx
@@ -2409,15 +2506,134 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift_in
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(wdrifty(:,:,ivmu),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) - spread(wdrift_in(:,:,ivmu),2,nakx)*g(:,:,:,ivmu)
     end do
 
-  end subroutine add_dgdy_term_global
+  end subroutine add_dg_term_global
+
+!   subroutine add_dphidy_term (g, src)
+
+!     use dist_fn_arrays, only: wcvdrifty, wgbdrifty
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx, imu_idx, is_idx
+!     use zgrid, only: nzgrid
+!     use kt_grids, only: naky, nakx
+!     use vpamu_grids, only: ztmax, vpa
+!     use neoclassical_terms, only: include_neoclassical_terms
+!     use neoclassical_terms, only: dfneo_dvpa
+
+!     implicit none
+
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+
+!     integer :: ivmu, iv, imu, is, iz
+!     real, dimension (:), allocatable :: vpadf0dE_fac
+
+!     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        iv = iv_idx(vmu_lo,ivmu)
+!        imu = imu_idx(vmu_lo,ivmu)
+!        is = is_idx(vmu_lo,ivmu)
+!        ! NB: could do this once at beginning of simulation to speed things up
+!        ! this is vpa*Z/T*exp(-vpa^2)
+!        vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
+!        if (include_neoclassical_terms) then
+!           do iz = -nzgrid, nzgrid
+!              ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
+!              vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
+!           end do
+!        end if
+!        src(:,:,:,ivmu) = src(:,:,:,ivmu) &
+!             + ( spread(spread(wcvdrifty(1,:,ivmu)*vpadf0dE_fac,1,naky),2,nakx) &
+!             + spread(spread(wgbdrifty(1,:,ivmu),1,naky),2,nakx)*ztmax(iv,is) ) &
+!             * g(:,:,:,ivmu)
+!     end do
+
+!     deallocate (vpadf0dE_fac)
+
+!   end subroutine add_dphidy_term
+
+!   subroutine add_dphidy_term_global (g, src)
+
+!     use dist_fn_arrays, only: wcvdrifty, wgbdrifty
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx, imu_idx, is_idx
+!     use zgrid, only: nzgrid
+!     use kt_grids, only: nakx
+!     use vpamu_grids, only: ztmax, vpa
+!     use neoclassical_terms, only: include_neoclassical_terms
+!     use neoclassical_terms, only: dfneo_dvpa
+!     use geometry, only: nalpha
+
+!     implicit none
+
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+
+!     integer :: ivmu, iv, imu, is, iz
+!     real, dimension (:), allocatable :: vpadf0dE_fac
+
+!     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        iv = iv_idx(vmu_lo,ivmu)
+!        imu = imu_idx(vmu_lo,ivmu)
+!        is = is_idx(vmu_lo,ivmu)
+!        ! NB: could do this once at beginning of simulation to speed things up
+!        ! this is vpa*Z/T*exp(-vpa^2)
+!        vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
+!        if (include_neoclassical_terms) then
+!           do iz = -nzgrid, nzgrid
+!              ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
+!              vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
+!           end do
+!        end if
+!        src(:,:,:,ivmu) = src(:,:,:,ivmu) &
+!             + ( spread(wcvdrifty(:,:,ivmu)*spread(vpadf0dE_fac,1,nalpha),2,nakx) &
+!             + spread(wgbdrifty(:,:,ivmu),2,nakx)*ztmax(iv,is) ) &
+!             * g(:,:,:,ivmu)
+!     end do
+
+!     deallocate (vpadf0dE_fac)
+
+!   end subroutine add_dphidy_term_global
+
+  subroutine get_dgdx_2d (g, dgdx)
+
+    use constants, only: zi
+    use kt_grids, only: naky, akx
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: g
+    complex, dimension (:,:), intent (out) :: dgdx
+
+    dgdx = zi*spread(akx,1,naky)*g
+
+  end subroutine get_dgdx_2d
+
+  subroutine get_dgdx_3d (g, dgdx)
+
+    use constants, only: zi
+    use zgrid, only: nzgrid
+    use kt_grids, only: naky, akx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: dgdx
+
+    dgdx = zi*spread(spread(akx,1,naky),3,2*nzgrid+1)*g
+
+  end subroutine get_dgdx_3d
 
   subroutine get_dgdx_4d (g, dgdx)
 
@@ -2439,59 +2655,134 @@ contains
 
   end subroutine get_dgdx_4d
 
-  subroutine get_dgdx_2d (g, dgdx)
+!   subroutine add_dgdx_term (g, src)
 
-    use constants, only: zi
-    use kt_grids, only: naky, akx
+!     use dist_fn_arrays, only: wdriftx
+!     use stella_layouts, only: vmu_lo
+!     use zgrid, only: nzgrid
+!     use kt_grids, only: naky, nakx
 
-    implicit none
+!     implicit none
 
-    complex, dimension (:,:), intent (in) :: g
-    complex, dimension (:,:), intent (out) :: dgdx
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    dgdx = zi*spread(akx,1,naky)*g
+!     integer :: ivmu
 
-  end subroutine get_dgdx_2d
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(wdriftx(1,:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
+!     end do
 
-  subroutine add_dgdx_term (g, src)
+!   end subroutine add_dgdx_term
 
-    use dist_fn_arrays, only: wdriftx
+!   subroutine add_dgdx_term_global (g, src)
+
+!     use dist_fn_arrays, only: wdriftx
+!     use stella_layouts, only: vmu_lo
+!     use zgrid, only: nzgrid
+!     use kt_grids, only: nakx
+
+!     implicit none
+
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+
+!     integer :: ivmu
+
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(wdriftx(:,:,ivmu),2,nakx)*g(:,:,:,ivmu)
+!     end do
+
+!   end subroutine add_dgdx_term_global
+
+  subroutine add_dphi_term (g, wcvdrift, wgbdrift, src)
+
     use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
+    use vpamu_grids, only: ztmax, vpa
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dfneo_dvpa
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wcvdrift, wgbdrift
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, iv, imu, is, iz
+    real, dimension (:), allocatable :: vpadf0dE_fac
+
+    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(wdriftx(1,:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       ! NB: could do this once at beginning of simulation to speed things up
+       ! this is vpa*Z/T*exp(-vpa^2)
+       vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
+       if (include_neoclassical_terms) then
+          do iz = -nzgrid, nzgrid
+             ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
+             vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
+          end do
+       end if
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) &
+            + ( spread(spread(wcvdrift(:,ivmu)*vpadf0dE_fac,1,naky),2,nakx) &
+            + spread(spread(wgbdrift(:,ivmu),1,naky),2,nakx)*ztmax(iv,is) ) &
+            * g(:,:,:,ivmu)
     end do
 
-  end subroutine add_dgdx_term
+    deallocate (vpadf0dE_fac)
 
-  subroutine add_dgdx_term_global (g, src)
+  end subroutine add_dphi_term
 
-    use dist_fn_arrays, only: wdriftx
+  subroutine add_dphi_term_global (g, wcvdrift, wgbdrift, src)
+
     use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
     use kt_grids, only: nakx
+    use vpamu_grids, only: ztmax, vpa
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dfneo_dvpa
+    use geometry, only: nalpha
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wcvdrift, wgbdrift
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, iv, imu, is, iz
+    real, dimension (:), allocatable :: vpadf0dE_fac
+
+    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(wdriftx(:,:,ivmu),2,nakx)*g(:,:,:,ivmu)
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       ! NB: could do this once at beginning of simulation to speed things up
+       ! this is vpa*Z/T*exp(-vpa^2)
+       vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
+       if (include_neoclassical_terms) then
+          do iz = -nzgrid, nzgrid
+             ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
+             vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
+          end do
+       end if
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) &
+            + ( spread(wcvdrift(:,:,ivmu)*spread(vpadf0dE_fac,1,nalpha),2,nakx) &
+            + spread(wgbdrift(:,:,ivmu),2,nakx)*ztmax(iv,is) ) &
+            * g(:,:,:,ivmu)
     end do
 
-  end subroutine add_dgdx_term_global
+    deallocate (vpadf0dE_fac)
+
+  end subroutine add_dphi_term_global
 
   subroutine get_dchidy_4d (phi, apar, dchidy)
 
