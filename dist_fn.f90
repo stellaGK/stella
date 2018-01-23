@@ -672,9 +672,8 @@ contains
 
   subroutine init_wdrift
 
-    use dist_fn_arrays, only: wgbdriftx, wcvdriftx
-    use dist_fn_arrays, only: wgbdrifty, wcvdrifty
-    use dist_fn_arrays, only: wdriftx, wdrifty
+    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
@@ -685,30 +684,34 @@ contains
     use geometry, only: gds23, gds24
     use geometry, only: geo_surf
     use geometry, only: nalpha
-    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: vpa, vperp2, ztmax
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho
+    use neoclassical_terms, only: dfneo_dvpa
 
     implicit none
 
     integer :: ivmu, iv, imu, is
     real :: fac
+    real, dimension (:,:), allocatable :: wcvdrifty, wgbdrifty
+    real, dimension (:,:), allocatable :: wcvdriftx, wgbdriftx
 
     if (wdriftinit) return
     wdriftinit = .true.
 
-    if (.not.allocated(wcvdriftx)) &
-         allocate (wcvdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wcvdrifty)) &
-         allocate (wcvdrifty(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wgbdriftx)) &
-         allocate (wgbdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wgbdrifty)) &
-         allocate (wgbdrifty(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdriftx)) &
-         allocate (wdriftx(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdrifty)) &
-         allocate (wdrifty(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wdriftx_phi)) &
+         allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wdrifty_phi)) &
+         allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wdriftx_g)) &
+         allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wdrifty_g)) &
+         allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    allocate (wcvdrifty(nalpha,-nzgrid:nzgrid))
+    allocate (wgbdrifty(nalpha,-nzgrid:nzgrid))
+    allocate (wcvdriftx(nalpha,-nzgrid:nzgrid))
+    allocate (wgbdriftx(nalpha,-nzgrid:nzgrid))
 
     ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -720,36 +723,50 @@ contains
        ! this is the curvature drift piece of wdrifty with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
-       wcvdrifty(:,:,ivmu) = fac*cvdrift*vpa(iv)
+       wcvdrifty = fac*cvdrift*vpa(iv)
        ! this is the grad-B drift piece of wdrifty
-       wgbdrifty(:,:,ivmu) = fac*gbdrift*0.5*vperp2(:,:,imu)
-       wdrifty(:,:,ivmu) = wcvdrifty(:,:,ivmu)*vpa(iv) + wgbdrifty(:,:,ivmu)
+       wgbdrifty = fac*gbdrift*0.5*vperp2(:,:,imu)
+       wdrifty_g(:,:,ivmu) = wcvdrifty*vpa(iv) + wgbdrifty
        ! if including neoclassical correction to equilibrium Maxwellian,
        ! then add in v_E^{nc} . grad y dg/dy coefficient here
        if (include_neoclassical_terms) then
-          wdrifty(:,:,ivmu) = wdrifty(:,:,ivmu)-code_dt*0.5*(gds23*spread(dphineo_dzed,1,nalpha) &
+          wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)-code_dt*0.5*(gds23*spread(dphineo_dzed,1,nalpha) &
                + spread(dphineo_drho,1,nalpha))
+       end if
+
+       wdrifty_phi(:,:,ivmu) = wgbdrifty*ztmax(iv,is) &
+            + wcvdrifty*vpa(iv)*ztmax(iv,is)
+       ! if including neoclassical corrections to equilibrium,
+       ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
+       if (include_neoclassical_terms) then
+          wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
+               - 0.5*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdrifty
        end if
 
        fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
        ! this is the curvature drift piece of wdriftx with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
-       wcvdriftx(:,:,ivmu) = fac*cvdrift0*vpa(iv)
+       wcvdriftx = fac*cvdrift0*vpa(iv)
        ! this is the grad-B drift piece of wdriftx
-       wgbdriftx(:,:,ivmu) = fac*gbdrift0*0.5*vperp2(:,:,imu)
-       wdriftx(:,:,ivmu) = wcvdriftx(:,:,ivmu)*vpa(iv) + wgbdriftx(:,:,ivmu)
+       wgbdriftx = fac*gbdrift0*0.5*vperp2(:,:,imu)
+       wdriftx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
        ! if including neoclassical correction to equilibrium Maxwellian,
        ! then add in v_E^{nc} . grad x dg/dx coefficient here
        if (include_neoclassical_terms) then
-          wdriftx(:,:,ivmu) = wdriftx(:,:,ivmu)-code_dt*0.5*gds24*spread(dphineo_dzed,1,nalpha)
+          wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)-code_dt*0.5*gds24*spread(dphineo_dzed,1,nalpha)
        end if
-
-!       wdrifty(:,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
-!            * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,:,imu))
-!       wdriftx(:,:,ivmu) = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat &
-!            * (cvdrift0*vpa(iv)**2 + gbdrift0*0.5*vperp2(:,:,imu))
+       wdriftx_phi(:,:,ivmu) = wgbdriftx*ztmax(iv,is) &
+            + wcvdriftx*vpa(iv)*ztmax(iv,is)
+       ! if including neoclassical corrections to equilibrium,
+       ! add in -(Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
+       if (include_neoclassical_terms) then
+          wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
+               - 0.5*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdriftx
+       end if
     end do
+
+    deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
   end subroutine init_wdrift
 
@@ -787,7 +804,7 @@ contains
        if (include_neoclassical_terms) then
           wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
                * (maxwellian(iv)*(spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-                - spread(dfneo_drho(:,iv,imu,is),1,nalpha))
+                - spread(dfneo_drho(:,ivmu),1,nalpha))
        else
           wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
                * maxwellian(iv)*(spec(is)%fprim+spec(is)%tprim*(energy-1.5))
@@ -1406,7 +1423,7 @@ contains
   subroutine init_cfl
     
     use mp, only: proc0, nproc, max_allreduce
-    use dist_fn_arrays, only: wdriftx, wdrifty
+    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
@@ -1425,7 +1442,7 @@ contains
     ! FLAG -- assuming equal spacing in zed!
 
     ! get the local max value of wdriftx on each processor
-    wdriftx_max = maxval(abs(wdriftx))
+    wdriftx_max = maxval(abs(wdriftx_g))
     ! compare these max values across processors to get global max
     if (nproc > 1) call max_allreduce (wdriftx_max)
     cfl_dt_wdriftx = code_dt/max(maxval(akx)*wdriftx_max,zero)
@@ -1443,7 +1460,7 @@ contains
 
     if (wdrifty_explicit) then
        ! get the local max value of wdrifty on each processor
-       wdrifty_max = maxval(abs(wdrifty))
+       wdrifty_max = maxval(abs(wdrifty_g))
        ! compare these max values across processors to get global max
        if (nproc > 1) call max_allreduce (wdrifty_max)
        cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*wdrifty_max,zero)
@@ -1911,7 +1928,7 @@ contains
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
     use dist_fn_arrays, only: aj0x
-    use dist_fn_arrays, only: wdrifty, wcvdrifty, wgbdrifty
+    use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
 
     implicit none
 
@@ -1938,7 +1955,7 @@ contains
        ! transform dg/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y dg/dy term to equation
-       call add_dg_term_global (g0y, wdrifty, gout)
+       call add_dg_term_global (g0y, wdrifty_g, gout)
        ! get <dphi/dy> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g0k(:,:,:,ivmu) = dphidy*aj0x(:,:,:,ivmu)
@@ -1946,18 +1963,18 @@ contains
        ! transform d<phi>/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y d<phi>/dy term to equation
-       call add_dphi_term_global (g0y, wcvdrifty, wgbdrifty, gout)
+       call add_dphi_term_global (g0y, wdrifty_phi, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'dist_fn::solve_gke::add_dgdy_term'
        ! add vM . grad y dg/dy term to equation
-       call add_dg_term (g0k, wdrifty(1,:,:), gout)
+       call add_dg_term (g0k, wdrifty_g(1,:,:), gout)
        ! get <dphi/dy> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g0k(:,:,:,ivmu) = dphidy*aj0x(:,:,:,ivmu)
        end do
        ! add vM . grad y d<phi>/dy term to equation
-       call add_dphi_term (g0k, wcvdrifty(1,:,:), wgbdrifty(1,:,:), gout)
+       call add_dphi_term (g0k, wdrifty_phi(1,:,:), gout)
     end if
     deallocate (g0k, dphidy)
 
@@ -1975,7 +1992,7 @@ contains
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
     use dist_fn_arrays, only: aj0x
-    use dist_fn_arrays, only: wdriftx, wcvdriftx, wgbdriftx
+    use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
 
     implicit none
 
@@ -2002,7 +2019,7 @@ contains
        ! transform dg/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x dg/dx term to equation
-       call add_dg_term_global (g0y, wdriftx, gout)
+       call add_dg_term_global (g0y, wdriftx_g, gout)
        ! get <dphi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g0k(:,:,:,ivmu) = dphidx*aj0x(:,:,:,ivmu)
@@ -2010,18 +2027,18 @@ contains
        ! transform d<phi>/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x d<phi>/dx term to equation
-       call add_dphi_term_global (g0y, wcvdriftx, wgbdriftx, gout)
+       call add_dphi_term_global (g0y, wdriftx_phi, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'dist_fn::solve_gke::add_dgdx_term'
        ! add vM . grad x dg/dx term to equation
-       call add_dg_term (g0k, wdriftx(1,:,:), gout)
+       call add_dg_term (g0k, wdriftx_g(1,:,:), gout)
        ! get <dphi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g0k(:,:,:,ivmu) = dphidx*aj0x(:,:,:,ivmu)
        end do
        ! add vM . grad x d<phi>/dx term to equation
-       call add_dphi_term (g0k, wcvdriftx(1,:,:), wgbdriftx(1,:,:), gout)
+       call add_dphi_term (g0k, wdriftx_phi(1,:,:), gout)
     end if
     deallocate (g0k, dphidx)
 
@@ -2539,95 +2556,6 @@ contains
 
   end subroutine add_dg_term_global
 
-!   subroutine add_dphidy_term (g, src)
-
-!     use dist_fn_arrays, only: wcvdrifty, wgbdrifty
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use zgrid, only: nzgrid
-!     use kt_grids, only: naky, nakx
-!     use vpamu_grids, only: ztmax, vpa
-!     use neoclassical_terms, only: include_neoclassical_terms
-!     use neoclassical_terms, only: dfneo_dvpa
-
-!     implicit none
-
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
-
-!     integer :: ivmu, iv, imu, is, iz
-!     real, dimension (:), allocatable :: vpadf0dE_fac
-
-!     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
-
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        ! NB: could do this once at beginning of simulation to speed things up
-!        ! this is vpa*Z/T*exp(-vpa^2)
-!        vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
-!        if (include_neoclassical_terms) then
-!           do iz = -nzgrid, nzgrid
-!              ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
-!              vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
-!           end do
-!        end if
-!        src(:,:,:,ivmu) = src(:,:,:,ivmu) &
-!             + ( spread(spread(wcvdrifty(1,:,ivmu)*vpadf0dE_fac,1,naky),2,nakx) &
-!             + spread(spread(wgbdrifty(1,:,ivmu),1,naky),2,nakx)*ztmax(iv,is) ) &
-!             * g(:,:,:,ivmu)
-!     end do
-
-!     deallocate (vpadf0dE_fac)
-
-!   end subroutine add_dphidy_term
-
-!   subroutine add_dphidy_term_global (g, src)
-
-!     use dist_fn_arrays, only: wcvdrifty, wgbdrifty
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use zgrid, only: nzgrid
-!     use kt_grids, only: nakx
-!     use vpamu_grids, only: ztmax, vpa
-!     use neoclassical_terms, only: include_neoclassical_terms
-!     use neoclassical_terms, only: dfneo_dvpa
-!     use geometry, only: nalpha
-
-!     implicit none
-
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
-
-!     integer :: ivmu, iv, imu, is, iz
-!     real, dimension (:), allocatable :: vpadf0dE_fac
-
-!     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
-
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        ! NB: could do this once at beginning of simulation to speed things up
-!        ! this is vpa*Z/T*exp(-vpa^2)
-!        vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
-!        if (include_neoclassical_terms) then
-!           do iz = -nzgrid, nzgrid
-!              ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
-!              vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
-!           end do
-!        end if
-!        src(:,:,:,ivmu) = src(:,:,:,ivmu) &
-!             + ( spread(wcvdrifty(:,:,ivmu)*spread(vpadf0dE_fac,1,nalpha),2,nakx) &
-!             + spread(wgbdrifty(:,:,ivmu),2,nakx)*ztmax(iv,is) ) &
-!             * g(:,:,:,ivmu)
-!     end do
-
-!     deallocate (vpadf0dE_fac)
-
-!   end subroutine add_dphidy_term_global
-
   subroutine get_dgdx_2d (g, dgdx)
 
     use constants, only: zi
@@ -2717,92 +2645,45 @@ contains
 
 !   end subroutine add_dgdx_term_global
 
-  subroutine add_dphi_term (g, wcvdrift, wgbdrift, src)
+  subroutine add_dphi_term (g, wdrift, src)
 
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: ztmax, vpa
-    use neoclassical_terms, only: include_neoclassical_terms
-    use neoclassical_terms, only: dfneo_dvpa
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wcvdrift, wgbdrift
+    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu, iv, imu, is, iz
-    real, dimension (:), allocatable :: vpadf0dE_fac
-
-    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+    integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       ! NB: could do this once at beginning of simulation to speed things up
-       ! this is vpa*Z/T*exp(-vpa^2)
-       vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
-       if (include_neoclassical_terms) then
-          do iz = -nzgrid, nzgrid
-             ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
-             vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
-          end do
-       end if
        src(:,:,:,ivmu) = src(:,:,:,ivmu) &
-            + ( spread(spread(wcvdrift(:,ivmu)*vpadf0dE_fac,1,naky),2,nakx) &
-            + spread(spread(wgbdrift(:,ivmu),1,naky),2,nakx)*ztmax(iv,is) ) &
-            * g(:,:,:,ivmu)
+            + spread(spread(wdrift(:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
     end do
-
-    deallocate (vpadf0dE_fac)
 
   end subroutine add_dphi_term
 
-  subroutine add_dphi_term_global (g, wcvdrift, wgbdrift, src)
+  subroutine add_dphi_term_global (g, wdrift, src)
 
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
     use kt_grids, only: nakx
-    use vpamu_grids, only: ztmax, vpa
-    use neoclassical_terms, only: include_neoclassical_terms
-    use neoclassical_terms, only: dfneo_dvpa
-    use geometry, only: nalpha
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wcvdrift, wgbdrift
+    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu, iv, imu, is, iz
-    real, dimension (:), allocatable :: vpadf0dE_fac
-
-    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+    integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       ! NB: could do this once at beginning of simulation to speed things up
-       ! this is vpa*Z/T*exp(-vpa^2)
-       vpadf0dE_fac = vpa(iv)*ztmax(iv,is)
-       if (include_neoclassical_terms) then
-          do iz = -nzgrid, nzgrid
-             ! FLAG -- should probably make dfneo_dvpa(iz,ivmu)
-             vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5*dfneo_dvpa(iz,iv,imu,is)
-          end do
-       end if
        src(:,:,:,ivmu) = src(:,:,:,ivmu) &
-            + ( spread(wcvdrift(:,:,ivmu)*spread(vpadf0dE_fac,1,nalpha),2,nakx) &
-            + spread(wgbdrift(:,:,ivmu),2,nakx)*ztmax(iv,is) ) &
-            * g(:,:,:,ivmu)
+            + spread(wdrift(:,:,ivmu),2,nakx)*g(:,:,:,ivmu)
     end do
-
-    deallocate (vpadf0dE_fac)
 
   end subroutine add_dphi_term_global
 
@@ -3117,7 +2998,7 @@ contains
     use zgrid, only: nzgrid
     use species, only: spec
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_layouts, only: iv_idx, is_idx
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax
@@ -3131,7 +3012,7 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phiold
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ivmu, iv, imu, is, iz
+    integer :: ivmu, iv, is, iz
     real :: tupwnd, fac
     real, dimension (:), allocatable :: vpadf0dE_fac
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
@@ -3148,7 +3029,6 @@ contains
     ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
@@ -3168,7 +3048,7 @@ contains
        ! then must also account for -vpa*dF_neo/dvpa
        if (include_neoclassical_terms) then
           do iz = -nzgrid, nzgrid
-             vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,iv,imu,is)
+             vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,ivmu)
           end do
        end if
 
@@ -3191,7 +3071,7 @@ contains
     use zgrid, only: nzgrid
     use species, only: spec
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_layouts, only: iv_idx, is_idx
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax
@@ -3205,7 +3085,7 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phiold, phi
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ivmu, iv, imu, is, iz
+    integer :: ivmu, iv, is, iz
     real :: tupwnd1, tupwnd2, fac
     real, dimension (:), allocatable :: vpadf0dE_fac
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
@@ -3224,7 +3104,6 @@ contains
     ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
@@ -3246,7 +3125,7 @@ contains
        ! then must also account for -vpa*dF_neo/dvpa
        if (include_neoclassical_terms) then
           do iz = -nzgrid, nzgrid
-             vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,iv,imu,is)
+             vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,ivmu)
           end do
        end if
 
@@ -3654,7 +3533,7 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: aky, naky
-    use dist_fn_arrays, only: wdrifty
+    use dist_fn_arrays, only: wdrifty_g
 
     implicit none
 
@@ -3666,7 +3545,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
           do iky = 1, naky
-             tmp = 0.5*zi*aky(iky)*wdrifty(1,iz,ivmu)
+             tmp = 0.5*zi*aky(iky)*wdrifty_g(1,iz,ivmu)
              g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + tmp) / (1.0 - tmp)
 !             g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + 2.0*tmp)
           end do
@@ -3805,12 +3684,15 @@ contains
 
   subroutine finish_wdrift
 
-    use dist_fn_arrays, only: wdriftx, wdrifty
+    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
 
     implicit none
 
-    if (allocated(wdriftx)) deallocate (wdriftx)
-    if (allocated(wdrifty)) deallocate (wdrifty)
+    if (allocated(wdriftx_g)) deallocate (wdriftx_g)
+    if (allocated(wdrifty_g)) deallocate (wdrifty_g)
+    if (allocated(wdriftx_phi)) deallocate (wdriftx_phi)
+    if (allocated(wdrifty_phi)) deallocate (wdrifty_phi)
 
     wdriftinit = .false.
 

@@ -67,13 +67,19 @@ contains
           call run_sfincs
           if (proc0) call get_sfincs_output &
                (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))
-          call broadcast_sfincs_output &
-               (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))
+!          call broadcast_sfincs_output &
+!               (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))
           call finish_sfincs
        end do
     end if
     call comm_free (sfincs_comm, ierr)
-    ! NB: NEED TO BROADCAST SFINCS RESULTS
+
+    ! NB: NEED TO CHECK THIS BROADCAST OF SFINCS RESULTS 
+    do irad = -nradii/2, nradii/2
+       call broadcast_sfincs_output &
+            (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))
+    end do
+ 
 # else
     f_neoclassical = 0 ; phi_neoclassical = 0.
     call mp_abort ('to run with include_neoclassical_terms=.true., &

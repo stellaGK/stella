@@ -11,9 +11,8 @@ module dist_fn_arrays
   public :: aj0v, aj1v
   public :: kperp2
   public :: wstar
-  public :: wdriftx, wdrifty
-  public :: wcvdriftx, wcvdrifty
-  public :: wgbdriftx, wgbdrifty
+  public :: wdriftx_g, wdrifty_g
+  public :: wdriftx_phi, wdrifty_phi
   public :: gbar_to_g
   public :: gbar_to_h
   public :: gstar_to_g
@@ -32,9 +31,8 @@ module dist_fn_arrays
   real, dimension (:,:,:), allocatable :: wstar
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
-  real, dimension (:,:,:), allocatable :: wdriftx, wdrifty
-  real, dimension (:,:,:), allocatable :: wcvdriftx, wcvdrifty
-  real, dimension (:,:,:), allocatable :: wgbdriftx, wgbdrifty
+  real, dimension (:,:,:), allocatable :: wdriftx_g, wdrifty_g
+  real, dimension (:,:,:), allocatable :: wdriftx_phi, wdrifty_phi
   ! (ny_ffs, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:,:), allocatable :: aj0x

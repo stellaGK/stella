@@ -188,6 +188,7 @@ neoclassical_terms.o: \
 	 mp.o \
 	 sfincs_interface.o \
 	 species.o \
+	 stella_layouts.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 

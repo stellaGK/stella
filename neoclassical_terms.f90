@@ -17,9 +17,7 @@ module neoclassical_terms
   integer :: neo_option_switch
   integer, parameter :: neo_option_sfincs = 1
 
-  real, dimension (:,:,:,:,:), allocatable :: f_neoclassical
-  real, dimension (:,:,:,:), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho
-  real, dimension (:,:), allocatable :: phi_neoclassical
+  real, dimension (:,:), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho
   real, dimension (:), allocatable :: dphineo_dzed, dphineo_drho
 
   logical :: neoinit = .false.
@@ -32,25 +30,27 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
+    use stella_layouts, only: vmu_lo
     use sfincs_interface, only: get_neo_from_sfincs
     
     implicit none
+
+    real, dimension (:,:,:,:,:), allocatable :: f_neoclassical
+    real, dimension (:,:), allocatable :: phi_neoclassical
     
     if (neoinit) return
     neoinit = .true.
 
     call read_parameters
     if (include_neoclassical_terms) then
-       if (.not.allocated(f_neoclassical)) &
-            allocate (f_neoclassical(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec,-nradii/2:nradii/2))
-       if (.not.allocated(phi_neoclassical)) &
-            allocate (phi_neoclassical(-nzgrid:nzgrid,-nradii/2:nradii/2))
+       allocate (f_neoclassical(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec,-nradii/2:nradii/2))
+       allocate (phi_neoclassical(-nzgrid:nzgrid,-nradii/2:nradii/2))
        if (.not.allocated(dfneo_dvpa)) &
-            allocate (dfneo_dvpa(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
+            allocate (dfneo_dvpa(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dfneo_drho)) &
-            allocate (dfneo_drho(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
+            allocate (dfneo_drho(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dfneo_dzed)) &
-            allocate (dfneo_dzed(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
+            allocate (dfneo_dzed(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dphineo_dzed)) &
             allocate (dphineo_dzed(-nzgrid:nzgrid))
        if (.not.allocated(dphineo_drho)) &
@@ -64,7 +64,8 @@ contains
        call get_dfneo_drho (f_neoclassical, dfneo_drho)
        call get_dphineo_dzed (phi_neoclassical(:,0), dphineo_dzed)
        call get_dphineo_drho (phi_neoclassical, dphineo_drho)
-       if (proc0) call write_neoclassical
+       if (proc0) call write_neoclassical (f_neoclassical, phi_neoclassical)
+       deallocate (f_neoclassical, phi_neoclassical)
     end if
 
   end subroutine init_neoclassical_terms
@@ -121,9 +122,32 @@ contains
 
   end subroutine read_parameters
 
+  subroutine distribute_vmus_over_procs (local, distributed)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use vpamu_grids, only: nvgrid
+
+    implicit none
+
+    real, dimension (-nvgrid:,:,:), intent (in) :: local
+    real, dimension (vmu_lo%llim_proc:), intent (out) :: distributed
+
+    integer :: ivmu, iv, imu, is
+    
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       distributed(ivmu) = local(iv,imu,is)
+    end do
+
+  end subroutine distribute_vmus_over_procs
+
   subroutine get_dfneo_dvpa (fneo, dfneo)
 
     use finite_differences, only: fd5pt
+    use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu, nvpa
     use vpamu_grids, only: dvpa
@@ -132,12 +156,14 @@ contains
     implicit none
 
     real, dimension (-nzgrid:,-nvgrid:,:,:), intent (in) :: fneo
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (out) :: dfneo
+    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
     integer :: iz, imu, is
     real, dimension (:), allocatable :: tmp1, tmp2
+    real, dimension (:,:,:,:), allocatable :: dfneo_local
 
     allocate (tmp1(nvpa), tmp2(nvpa))
+    allocate (dfneo_local(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
@@ -145,11 +171,16 @@ contains
              ! hack to avoid dealing with negative indices in fd5pt
              tmp1 = fneo(iz,:,imu,is)
              call fd5pt (tmp1, tmp2, dvpa)
-             dfneo(iz,:,imu,is) = tmp2
+             dfneo_local(iz,:,imu,is) = tmp2
           end do
        end do
     end do
 
+    do iz = -nzgrid, nzgrid
+       call distribute_vmus_over_procs (dfneo_local(iz,:,:,:), dfneo(iz,:))
+    end do
+
+    deallocate (dfneo_local)
     deallocate (tmp1, tmp2)
 
   end subroutine get_dfneo_dvpa
@@ -161,16 +192,19 @@ contains
     use vpamu_grids, only: nvgrid, nmu, mu
     use species, only: nspec
     use geometry, only: bmag
+    use stella_layouts, only: vmu_lo
 
     implicit none
 
     real, dimension (-nzgrid:,-nvgrid:,:,:), intent (in) :: fneo
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (out) :: dfneo
+    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
-    integer :: iv, imu, is
+    integer :: iv, imu, is, iz
     real, dimension (:), allocatable :: tmp1, tmp2
+    real, dimension (:), allocatable :: dfneo_local(:,:,:,:)
 
     allocate (tmp1(nztot), tmp2(nztot))
+    allocate (dfneo_local(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
@@ -182,11 +216,16 @@ contains
              tmp1 = fneo(:,iv,imu,is)*exp(-2.0*mu(imu)*bmag(1,:))
              call fd5pt (tmp1, tmp2, delzed(0))
              ! put the z-dependent exponential normalization factor back
-             dfneo(:,iv,imu,is) = tmp2*exp(2.0*mu(imu)*bmag(1,:))
+             dfneo_local(:,iv,imu,is) = tmp2*exp(2.0*mu(imu)*bmag(1,:))
           end do
        end do
     end do
 
+    do iz = -nzgrid, nzgrid
+       call distribute_vmus_over_procs (dfneo_local(iz,:,:,:), dfneo(iz,:))
+    end do
+
+    deallocate (dfneo_local)
     deallocate (tmp1, tmp2)
 
   end subroutine get_dfneo_dzed
@@ -197,16 +236,19 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
+    use stella_layouts, only: vmu_lo
 
     implicit none
 
     real, dimension (-nzgrid:,-nvgrid:,:,:,-nradii/2:), intent (in) :: fneo
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (out) :: dfneo
+    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
     integer :: iz, iv, imu, is
     real, dimension (:), allocatable :: tmp1, tmp2
+    real, dimension (:,:,:,:), allocatable :: dfneo_local
 
     allocate (tmp1(nradii), tmp2(nradii))
+    allocate (dfneo_local(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
@@ -219,12 +261,17 @@ contains
                 else
                    call fd3pt (tmp1, tmp2, drho)
                 end if
-                dfneo(iz,iv,imu,is) = tmp2(nradii/2+1)
+                dfneo_local(iz,iv,imu,is) = tmp2(nradii/2+1)
              end do
           end do
        end do
     end do
 
+    do iz = -nzgrid, nzgrid
+       call distribute_vmus_over_procs (dfneo_local(iz,:,:,:), dfneo(iz,:))
+    end do
+
+    deallocate (dfneo_local)
     deallocate (tmp1, tmp2)
 
   end subroutine get_dfneo_drho
@@ -285,44 +332,75 @@ contains
 
   end subroutine get_dphineo_drho
 
-  subroutine write_neoclassical
+  subroutine write_neoclassical (fnc, phinc)
 
+    use mp, only: proc0
+    use mp, only: send, receive
     use file_utils, only: open_output_file, close_output_file
     use species, only: nspec
     use zgrid, only: nzgrid, zed
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
     use geometry, only: bmag
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_layouts, only: idx_local, proc_id
 
     implicit none
 
+    real, dimension (-nzgrid:,-nvgrid:,:,:,-nradii/2:), intent (in) :: fnc
+    real, dimension (-nzgrid:,-nradii/2:), intent (in) :: phinc
+    
     integer :: neo_unit
-    integer :: irad, is, iz, imu, iv
+    integer :: irad, iz, ivmu, iv, imu, is
+    real, dimension (:), allocatable :: dfdv_local, dfdr_local, dfdz_local
 
-    call open_output_file (neo_unit,'.neoclassical')
-    write (neo_unit,'(2a8,10a13)') '#1.rad', '2.spec', '3.zed', '4.mu', '5.vpa', &
-         '6.f_neo', '7.dfdvpa_neo', '8.dfdrho_neo', '9.dfdzed_neo', '10.phi_neo', &
-         '11.dphidrho', '12.dphidzed'
+    allocate (dfdv_local(-nzgrid:nzgrid))
+    allocate (dfdr_local(-nzgrid:nzgrid))
+    allocate (dfdz_local(-nzgrid:nzgrid))
+
+    if (proc0) then
+       call open_output_file (neo_unit,'.neoclassical')
+       write (neo_unit,'(2a8,10a13)') '#1.rad', '2.spec', '3.zed', '4.mu', '5.vpa', &
+            '6.f_neo', '7.dfdvpa_neo', '8.dfdrho_neo', '9.dfdzed_neo', '10.phi_neo', &
+            '11.dphidrho', '12.dphidzed'
+    end if
     do irad = -nradii/2, nradii/2
-       do is = 1, nspec
-          do iz = -nzgrid, nzgrid
-             do imu = 1, nmu
-                do iv = -nvgrid, nvgrid
-                   write (neo_unit,'(2i8,10e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
-                        f_neoclassical(iz,iv,imu,is,irad)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                        dfneo_dvpa(iz,iv,imu,is)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                        dfneo_drho(iz,iv,imu,is)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                        dfneo_dzed(iz,iv,imu,is)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                        phi_neoclassical(iz,irad), dphineo_drho(iz), dphineo_dzed(iz)
-                end do
-                write (neo_unit,*)
+       do ivmu = vmu_lo%llim_world, vmu_lo%ulim_world
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          if (idx_local(vmu_lo, iv, imu, is)) then
+             if (proc0) then
+                dfdv_local = dfneo_dvpa(:,ivmu)
+                dfdr_local = dfneo_drho(:,ivmu)
+                dfdz_local = dfneo_dzed(:,ivmu)
+             else
+                call send (dfneo_dvpa(:,ivmu), 0)
+                call send (dfneo_drho(:,ivmu), 0)
+                call send (dfneo_dzed(:,ivmu), 0)
+             end if
+          else if (proc0) then
+             call receive (dfdv_local, proc_id(vmu_lo,ivmu))
+             call receive (dfdr_local, proc_id(vmu_lo,ivmu))
+             call receive (dfdz_local, proc_id(vmu_lo,ivmu))
+          end if
+          if (proc0) then
+             do iz = -nzgrid, nzgrid
+                write (neo_unit,'(2i8,10e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
+                     fnc(iz,iv,imu,is,irad)*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     dfdv_local(iz)*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     dfdr_local(iz)*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     dfdz_local(iz)*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     phinc(iz,irad), dphineo_drho(iz), dphineo_dzed(iz)
              end do
              write (neo_unit,*)
-          end do
-          write (neo_unit,*)
+          end if
        end do
-       write (neo_unit,*)
+       if (proc0) write (neo_unit,*)
     end do
-    call close_output_file (neo_unit)
+    if (proc0) call close_output_file (neo_unit)
+
+    deallocate (dfdv_local, dfdr_local, dfdz_local)
 
   end subroutine write_neoclassical
 
@@ -330,8 +408,6 @@ contains
 
     implicit none
 
-    if (allocated(f_neoclassical)) deallocate (f_neoclassical)
-    if (allocated(phi_neoclassical)) deallocate (phi_neoclassical)
     if (allocated(dfneo_dvpa)) deallocate (dfneo_dvpa)
     if (allocated(dfneo_drho)) deallocate (dfneo_drho)
     if (allocated(dfneo_dzed)) deallocate (dfneo_dzed)
