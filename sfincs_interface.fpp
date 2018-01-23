@@ -250,8 +250,6 @@ contains
        dTHatdrNs(:nspec) = -spec%temp/geo_surf%drhotordrho*(spec%tprim - delrho*spec%d2Tdr2)
        ! radial electric field
        dPhiHatdrN = 0.0
-
-       write (*,*) 'sfincsprofs', dnHatdrNs(1), dTHatdrNs(1)
     else
        call mp_abort ('only inputRadialCoordinateForGradients=3 currently supported. aborting.')
     end if
@@ -456,6 +454,9 @@ contains
                 end if
 
                 ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
+                ! NB: n_ref, etc. is fixed in stella to be the reference density
+                ! at the central sfincs simulation; i.e., it does not vary with radius
+                ! similarly, bmag below is the normalized B-field at the central radial location
                 ! to be consistent with stella distribution functions,
                 ! want H_nc * exp(2*mu*B) / (n_s / vt_s^3 * pi^(3/2))
                 f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) * exp(2.0*mu(imu)*bmag(1,iz)) &

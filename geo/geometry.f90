@@ -10,7 +10,7 @@ module geometry
   public :: gradpar
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
-  public :: gds2, gds21, gds22
+  public :: gds2, gds21, gds22, gds23, gds24
   public :: jacob
   public :: drhodpsi
   public :: dl_over_b
@@ -30,7 +30,7 @@ module geometry
   real, dimension (:,:), allocatable :: bmag, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
-  real, dimension (:,:), allocatable :: gds2, gds21, gds22
+  real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24
   real, dimension (:), allocatable :: jacob
   real, dimension (:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
@@ -80,7 +80,8 @@ contains
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, dIdrho, grho, bmag(1,:), &
-               gds2(1,:), gds21(1,:), gds22(1,:), gradpar(1,:), &
+               gds2(1,:), gds21(1,:), gds22(1,:), &
+               gds23(1,:), gds24(1,:), gradpar(1,:), &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
@@ -97,7 +98,8 @@ contains
           call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, dIdrho, grho, bmag(1,:), &
-               gds2(1,:), gds21(1,:), gds22(1,:), gradpar(1,:), &
+               gds2(1,:), gds21(1,:), gds22(1,:), &
+               gds23(1,:), gds24(1,:), gradpar(1,:), &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
@@ -113,6 +115,8 @@ contains
                gbdrift, gbdrift0, cvdrift, cvdrift0)
           ! FLAG -- NOT SURE IF THIS IS CORRECT
           drhodpsi = 1.0
+          ! FLAG -- NEED TO SEE IF MATT CAN PROVIDE THESE
+          gds23 = 0. ; gds24 = 0.
        end select
     end if
 
@@ -145,6 +149,8 @@ contains
     if (.not.allocated(gds2)) allocate (gds2(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds21)) allocate (gds21(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds22)) allocate (gds22(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds23)) allocate (gds23(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds24)) allocate (gds24(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift)) allocate (gbdrift(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift0)) allocate (gbdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
@@ -215,6 +221,8 @@ contains
     call broadcast (gds2)
     call broadcast (gds21)
     call broadcast (gds22)
+    call broadcast (gds23)
+    call broadcast (gds24)
     call broadcast (gbdrift0)
     call broadcast (gbdrift)
     call broadcast (cvdrift0)
@@ -279,6 +287,8 @@ contains
     if (allocated(gds2)) deallocate (gds2)
     if (allocated(gds21)) deallocate (gds21)
     if (allocated(gds22)) deallocate (gds22)
+    if (allocated(gds23)) deallocate (gds23)
+    if (allocated(gds24)) deallocate (gds24)
     if (allocated(gbdrift)) deallocate (gbdrift)
     if (allocated(gbdrift0)) deallocate (gbdrift0)
     if (allocated(cvdrift)) deallocate (cvdrift)

@@ -682,9 +682,12 @@ contains
     use zgrid, only: nzgrid
     use geometry, only: cvdrift, gbdrift
     use geometry, only: cvdrift0, gbdrift0
+    use geometry, only: gds23, gds24
     use geometry, only: geo_surf
     use geometry, only: nalpha
     use vpamu_grids, only: vpa, vperp2
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dphineo_dzed, dphineo_drho
 
     implicit none
 
@@ -721,7 +724,13 @@ contains
        ! this is the grad-B drift piece of wdrifty
        wgbdrifty(:,:,ivmu) = fac*gbdrift*0.5*vperp2(:,:,imu)
        wdrifty(:,:,ivmu) = wcvdrifty(:,:,ivmu)*vpa(iv) + wgbdrifty(:,:,ivmu)
-       
+       ! if including neoclassical correction to equilibrium Maxwellian,
+       ! then add in v_E^{nc} . grad y dg/dy coefficient here
+       if (include_neoclassical_terms) then
+          wdrifty(:,:,ivmu) = wdrifty(:,:,ivmu)-code_dt*0.5*(gds23*spread(dphineo_dzed,1,nalpha) &
+               + spread(dphineo_drho,1,nalpha))
+       end if
+
        fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
        ! this is the curvature drift piece of wdriftx with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
@@ -730,6 +739,11 @@ contains
        ! this is the grad-B drift piece of wdriftx
        wgbdriftx(:,:,ivmu) = fac*gbdrift0*0.5*vperp2(:,:,imu)
        wdriftx(:,:,ivmu) = wcvdriftx(:,:,ivmu)*vpa(iv) + wgbdriftx(:,:,ivmu)
+       ! if including neoclassical correction to equilibrium Maxwellian,
+       ! then add in v_E^{nc} . grad x dg/dx coefficient here
+       if (include_neoclassical_terms) then
+          wdriftx(:,:,ivmu) = wdriftx(:,:,ivmu)-code_dt*0.5*gds24*spread(dphineo_dzed,1,nalpha)
+       end if
 
 !       wdrifty(:,:,ivmu) = -ydriftknob*0.5*code_dt*spec(is)%tz &
 !            * (cvdrift*vpa(iv)**2 + gbdrift*0.5*vperp2(:,:,imu))
@@ -749,6 +763,8 @@ contains
     use geometry, only: nalpha
     use vpamu_grids, only: maxwellian, vperp2, vpa
     use dist_fn_arrays, only: wstar
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dfneo_drho
 
     implicit none
 
@@ -768,8 +784,14 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
        energy = vpa(iv)**2 + vperp2(:,:,imu)
-       wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt*maxwellian(iv) &
-            * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
+       if (include_neoclassical_terms) then
+          wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
+               * (maxwellian(iv)*(spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
+                - spread(dfneo_drho(:,iv,imu,is),1,nalpha))
+       else
+          wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
+               * maxwellian(iv)*(spec(is)%fprim+spec(is)%tprim*(energy-1.5))
+       end if
     end do
 
     deallocate (energy)
