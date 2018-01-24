@@ -519,6 +519,8 @@ contains
     call init_vperp2
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_bessel'
     call init_bessel
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_neoclassical_terms'
+    call init_neoclassical_terms
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_mirror'
     call init_mirror
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_parstream'
@@ -529,8 +531,6 @@ contains
     call init_wstar
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_ExB_nonlinearity'
     if (nonlinear) call init_ExB_nonlinearity
-    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_neoclassical_terms'
-    call init_neoclassical_terms
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_redistribute'
     call init_redistribute
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_cfl'
@@ -687,7 +687,7 @@ contains
     use vpamu_grids, only: vpa, vperp2, ztmax
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho
-    use neoclassical_terms, only: dfneo_dvpa
+    use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed
 
     implicit none
 
@@ -738,9 +738,11 @@ contains
             + wcvdrifty*vpa(iv)*ztmax(iv,is)
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
+       ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
        if (include_neoclassical_terms) then
           wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
-               - 0.5*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdrifty
+               - 0.5*spec(is)%zt*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdrifty &
+               - 0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds23
        end if
 
        fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
@@ -760,9 +762,11 @@ contains
             + wcvdriftx*vpa(iv)*ztmax(iv,is)
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
+       ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
-               - 0.5*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdriftx
+               - 0.5*spec(is)%zt*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdriftx &
+               - 0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds24
        end if
     end do
 
@@ -968,6 +972,7 @@ contains
     if (.not.allocated(mirror)) allocate (mirror(ny_ffs,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
     if (.not.allocated(mirror_sign)) allocate (mirror_sign(ny_ffs,-nzgrid:nzgrid)) ; mirror_sign = 0
 
+    ! mirror has sign consistent with being on RHS of GKE
     do is = 1, nspec
        do imu = 1, nmu
           do iy = 1, nalpha
@@ -2885,8 +2890,6 @@ contains
        allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(1,1,1,1))
 
-       ! invert_mirror_operator takes rhs of equation and
-       ! returns g^{n+1}
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
@@ -2899,6 +2902,8 @@ contains
              ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
              g0v(:,imu,ikxkyz) = gvmu(:,imu,ikxkyz) + 2.0*tupwnd*mirror(1,iz,imu,is)*g0v(:,imu,ikxkyz)
 
+             ! invert_mirror_operator takes rhs of equation and
+             ! returns g^{n+1}
              call invert_mirror_operator (imu, ikxkyz, g0v(:,imu,ikxkyz))
           end do
        end do
