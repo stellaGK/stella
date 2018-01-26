@@ -2303,7 +2303,7 @@ contains
     if (code_dt > cfl_dt) then
        if (proc0) then
           write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
-          write (*,*) 'setting code_dt=cfl_dt and restarting time step'
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
        end if
        code_dt = cfl_dt*cfl_cushion
        call reset_dt
@@ -2495,9 +2495,9 @@ contains
     if (code_dt > cfl_dt) then
        if (proc0) then
           write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
-          write (*,*) 'setting code_dt=cfl_dt and restarting time step'
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cusion and restarting time step'
        end if
-       code_dt = cfl_dt
+       code_dt = cfl_dt*cfl_cushion
        call reset_dt
        restart_time_step = .true.
     else if (code_dt < min(cfl_dt*cfl_cushion,code_dt_max)) then
