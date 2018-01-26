@@ -252,8 +252,16 @@ contains
        ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
 
        ! note -- assuming equal spacing in zed below
-       fac = 0.5*(1.+time_upwind)*code_dt*vpa(iv)*gradpar(1,iz)*spec(is)%stm &
+       fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*gradpar(1,iz)*spec(is)%stm &
             *aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
+       ! e.g., if centered differences, get RHS(i) = fac*(phi(i+1)-phi(i-1))*0.5
+       ! so RHS(i-1) = fac*(phi(i)-phi(i-2))*0.5
+       ! since only gave phi(i)=1 and all other phi=0,
+       ! RHS(i-1) = fac*0.5
+       ! similarly, RHS(i+1) = fac*(phi(i+2)-phi(i))*0.5
+       ! = -0.5*fac*phi(i)
+       ! if upwinded and vpa > 0, RHS(i) = fac*(phi(i)-phi(i-1))
+       ! and so RHS(i) = fac*phi(i) and RHS(i+1) = -fac*phi(i)
 
        ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
        ! as this affects upwinding of d<phi>/dz source term
@@ -270,6 +278,7 @@ contains
        if (idx < nz_ext) gext(idx+1,ivmu) = -0.5*(1.+sgn*zed_upwind)*fac
 
        ! invert parallel streaming equation to get g^{n+1} on extended zed grid
+       ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
        call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
     end do
 

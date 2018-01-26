@@ -7,8 +7,7 @@ module stella_time
   real :: code_dt 
   real :: code_tstart
   real :: cfl_dt = -1.
-
-  real :: code_dt_min
+  real :: code_dt_min, code_dt_max
 
   ! added May 18, 2009 to take care of problems
   ! in exb_shear calculation after change in time step size
@@ -19,8 +18,9 @@ module stella_time
   public :: code_time
   public :: save_dt_min, save_dt, save_dt_cfl, write_dt
   public :: init_tstart, init_delt
-  public :: cfl_dt, code_dt_min
-  
+  public :: cfl_dt
+  public :: code_dt_min, code_dt_max
+
 contains
 
   subroutine init_tstart (tstart)
@@ -39,6 +39,8 @@ contains
 ! In a perfect world, we could have a gs2_time namelist. 
 ! 
     code_dt = delt
+    ! do not allow code_dt to increase beyond input value
+    code_dt_max = code_dt
 
   end subroutine init_delt
 

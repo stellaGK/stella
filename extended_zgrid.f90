@@ -237,20 +237,20 @@ contains
     do iky = 1, naky
        ! only do the following once for each independent set of theta0s
        ! the assumption here is that all kx are on processor and sequential
-       do ikx = 1, neigen(iky)
+       do ie = 1, neigen(iky)
           if (aky(iky) < 0.) then
-             ikxshiftend = ikx_shift_left_kyneg(ikx)
+             ikxshiftend = ikx_shift_left_kyneg(ie)
           else
-             ikxshiftend = ikx_shift_left_kypos(ikx)
+             ikxshiftend = ikx_shift_left_kypos(ie)
           end if
           ! remap to start at theta0 = theta0_max
           ! (so that theta-theta0 is most negative)
           ! for this set of connected theta0s
           iseg = 1
-          ikxmod(iseg,ikx,iky) = ikx + ikxshiftend
-          if (nsegments(ikx,iky) > 1) then
-             do iseg = 2, nsegments(ikx,iky)
-                ikxmod(iseg,ikx,iky) = ikxmod(iseg-1,ikx,iky) + ikx_shift(ikxmod(iseg-1,ikx,iky),iky)
+          ikxmod(iseg,ie,iky) = ie + ikxshiftend
+          if (nsegments(ie,iky) > 1) then
+             do iseg = 2, nsegments(ie,iky)
+                ikxmod(iseg,ie,iky) = ikxmod(iseg-1,ie,iky) + ikx_shift(ikxmod(iseg-1,ie,iky),iky)
              end do
           end if
        end do

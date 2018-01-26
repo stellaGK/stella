@@ -749,7 +749,7 @@ contains
        if (include_neoclassical_terms) then
           wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
                - 0.5*spec(is)%zt*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdrifty &
-               - 0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds23
+               - code_dt*0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds23
        end if
 
        fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
@@ -773,7 +773,7 @@ contains
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
                - 0.5*spec(is)%zt*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdriftx &
-               - 0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds24
+               - code_dt*0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds24
        end if
     end do
 
@@ -2236,7 +2236,7 @@ contains
     use fields_arrays, only: phi, apar
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
-    use stella_time, only: cfl_dt, code_dt
+    use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, nx, ny
@@ -2305,15 +2305,15 @@ contains
           write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
           write (*,*) 'setting code_dt=cfl_dt and restarting time step'
        end if
-       code_dt = cfl_dt
+       code_dt = cfl_dt*cfl_cushion
        call reset_dt
        restart_time_step = .true.
-    else if (code_dt < cfl_dt*cfl_cushion) then
+    else if (code_dt < min(cfl_dt*cfl_cushion,code_dt_max)) then
        if (proc0) then
           write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
+          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion,delt) and restarting time step'
        end if
-       code_dt = cfl_dt*cfl_cushion
+       code_dt = min(cfl_dt*cfl_cushion,code_dt_max)
        call reset_dt
     else
        gout = code_dt*gout
@@ -3169,6 +3169,8 @@ contains
     ! get g^{**}, with g^{**}-g^{*} due to mirror term
     if (mirror_implicit) call advance_mirror_implicit (g)
 
+    call advance_fields (g, phi, apar, dist='gbar')
+
     ! g^{**} is input
     ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
     if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
@@ -3633,7 +3635,7 @@ contains
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
     if (ikx > nakx) then
-       ! have to do something special here (connect to negative ky)
+       ! have to do something special here (connect to negative of this ky)
        ! in order to finish up the connections
        ikxneg = ntheta0-ikx+2
        gext(llim:ulim) = conjg(g(ikyneg,ikxneg,iz_low(iseg):iz_up(iseg)))
