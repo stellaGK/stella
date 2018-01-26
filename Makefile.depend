@@ -212,12 +212,7 @@ run_parameters.o: \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
-	 constants.o \
-	 file_utils.o \
-	 geometry.o \
 	 mp.o \
-	 physics_parameters.o \
-	 species.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \

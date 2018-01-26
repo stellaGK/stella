@@ -46,6 +46,7 @@ module dist_fn
   logical :: bessinit = .false.
   logical :: mirrorinit = .false.
   logical :: streaminit = .false.
+  logical :: parnlinit = .false.
   logical :: redistinit = .false.
   logical :: readinit = .false.
 
@@ -88,12 +89,15 @@ module dist_fn
 
   ! geometrical factor multiplying ExB nonlinearity
   real :: nonlin_fac
+  ! factor multiplying parallel nonlinearity
+  real, dimension (:,:), allocatable :: par_nl_fac
 
   ! needed for timing various pieces of gke solve
   real, dimension (2,10) :: time_gke
 
   type (redist_type) :: kxkyz2vmu
   type (redist_type) :: kxyz2vmu
+  type (redist_type) :: xyz2vmu
 
   logical :: debug = .false.
 
@@ -481,7 +485,7 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use physics_parameters, only: init_physics_parameters
     use run_parameters, only: init_run_parameters
-    use run_parameters, only: nonlinear
+    use run_parameters, only: nonlinear, include_parallel_nonlinearity
     use geometry, only: geo_surf
     use neoclassical_terms, only: init_neoclassical_terms
 
@@ -532,6 +536,8 @@ contains
     call init_wstar
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_ExB_nonlinearity'
     if (nonlinear) call init_ExB_nonlinearity
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_parallel_nonlinearity'
+    if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_redistribute'
     call init_redistribute
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_cfl'
@@ -829,6 +835,25 @@ contains
     nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
 
   end subroutine init_ExB_nonlinearity
+
+  subroutine init_parallel_nonlinearity
+
+    use physics_parameters, only: rhostar
+    use species, only: spec, nspec
+    use zgrid, only: nztot, nzgrid
+    use geometry, only: gradpar
+    
+    implicit none
+
+    if (.not. allocated(par_nl_fac)) &
+         allocate (par_nl_fac(-nzgrid:nzgrid,nspec))
+
+    ! this is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
+    par_nl_fac = 0.5*rhostar*spread(spec%stm*spec%zt,1,nztot)*spread(gradpar(1,:),2,nspec)
+
+    parnlinit = .true.
+
+  end subroutine init_parallel_nonlinearity
 
   subroutine allocate_arrays
 
@@ -1219,6 +1244,7 @@ contains
   subroutine init_redistribute
 
     use kt_grids, only: alpha_global
+    use run_parameters, only: include_parallel_nonlinearity
 
     implicit none
 
@@ -1228,6 +1254,7 @@ contains
     if (debug) write (*,*) 'dist_fn::init_redistribute::init_kxkyz_to_gzkxky_redistribute'
     call init_kxkyz_to_vmu_redistribute
     if (alpha_global) call init_kxyz_to_vmu_redistribute
+    if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
 
   end subroutine init_redistribute
 
@@ -1471,6 +1498,126 @@ contains
 
   end subroutine init_kxyz_to_vmu_redistribute
 
+  subroutine init_xyz_to_vmu_redistribute
+
+    use mp, only: nproc
+    use stella_layouts, only: xyz_lo, vmu_lo
+    use stella_layouts, only: xyzidx2vmuidx
+    use stella_layouts, only: idx_local, proc_id
+    use redistribute, only: index_list_type, init_redist
+    use redistribute, only: delete_list, set_redist_character_type
+    use vpamu_grids, only: nvgrid, nmu
+    use zgrid, only: nzgrid
+
+    implicit none
+
+    type (index_list_type), dimension (0:nproc-1) :: to_list, from_list
+    integer, dimension (0:nproc-1) :: nn_to, nn_from
+    integer, dimension (3) :: from_low, from_high
+    integer, dimension (4) :: to_high, to_low
+    integer :: ixyz, ivmu
+    integer :: iv, imu, iy, ix, iz
+    integer :: ip, n
+    logical :: initialized = .false.
+
+    if (initialized) return
+    initialized = .true.
+
+    ! count number of elements to be redistributed to/from each processor
+    nn_to = 0
+    nn_from = 0
+    do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
+       do imu = 1, nmu
+          do iv = -nvgrid, nvgrid
+             call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, ivmu)
+             if (idx_local(xyz_lo,ixyz)) &
+                  nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
+             if (idx_local(vmu_lo,ivmu)) &
+                  nn_to(proc_id(xyz_lo,ixyz)) = nn_to(proc_id(xyz_lo,ixyz)) + 1
+          end do
+       end do
+    end do
+    
+    do ip = 0, nproc-1
+       if (nn_from(ip) > 0) then
+          allocate (from_list(ip)%first(nn_from(ip)))
+          allocate (from_list(ip)%second(nn_from(ip)))
+          allocate (from_list(ip)%third(nn_from(ip)))
+       end if
+       if (nn_to(ip) > 0) then
+          allocate (to_list(ip)%first(nn_to(ip)))
+          allocate (to_list(ip)%second(nn_to(ip)))
+          allocate (to_list(ip)%third(nn_to(ip)))
+          allocate (to_list(ip)%fourth(nn_to(ip)))
+       end if
+    end do
+
+    ! get local indices of elements distributed to/from other processors
+    nn_to = 0
+    nn_from = 0
+
+    ! loop over all vmu indices, find corresponding y indices
+    do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
+       do imu = 1, nmu
+          do iv = -nvgrid, nvgrid
+             ! obtain corresponding y indices
+             call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, ivmu)
+             ! if vmu index local, set:
+             ! ip = corresponding y processor
+             ! from_list%first-third arrays = iv,imu,ixyz  (ie vmu indices)
+             ! later will send from_list to proc ip
+             if (idx_local(xyz_lo,ixyz)) then
+                ip = proc_id(vmu_lo,ivmu)
+                n = nn_from(ip) + 1
+                nn_from(ip) = n
+                from_list(ip)%first(n) = iv
+                from_list(ip)%second(n) = imu
+                from_list(ip)%third(n) = ixyz
+             end if
+             ! if y index local, set ip to corresponding vmu processor
+             ! set to_list%first,second arrays = iy,iy  (ie y indices)
+             ! will receive to_list from ip
+             if (idx_local(vmu_lo,ivmu)) then
+                ip = proc_id(xyz_lo,ixyz)
+                n = nn_to(ip) + 1
+                nn_to(ip) = n
+                to_list(ip)%first(n) = iy
+                to_list(ip)%second(n) = ix
+                to_list(ip)%third(n) = iz
+                to_list(ip)%fourth(n) = ivmu
+             end if
+          end do
+       end do
+    end do
+
+    from_low(1) = -nvgrid
+    from_low(2) = 1
+    from_low(3) = xyz_lo%llim_proc
+
+    from_high(1) = nvgrid
+    from_high(2) = nmu
+    from_high(3) = xyz_lo%ulim_alloc
+
+    to_low(1) = 1
+    to_low(2) = 1
+    to_low(3) = -nzgrid
+    to_low(4) = vmu_lo%llim_proc
+
+    to_high(1) = vmu_lo%ny
+    to_high(2) = vmu_lo%nx
+    to_high(3) = vmu_lo%nzed
+    to_high(4) = vmu_lo%ulim_alloc
+
+    call set_redist_character_type (xyz2vmu, 'xyz2vmu')
+
+    call init_redist (xyz2vmu, 'c', to_low, to_high, to_list, &
+         from_low, from_high, from_list)
+
+    call delete_list (to_list)
+    call delete_list (from_list)
+
+  end subroutine init_xyz_to_vmu_redistribute
+
   subroutine init_cfl
     
     use mp, only: proc0, nproc, max_allreduce
@@ -1706,16 +1853,13 @@ contains
 
   subroutine solve_gke (gin, rhs_ky, restart_time_step)
 
-    use mp, only: proc0
     use job_manage, only: time_message
-    use dist_fn_arrays, only: gbar_to_h, g_to_h
-!    use dist_fn_arrays, only: gvmu
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
     use stella_transforms, only: transform_y2ky
     use redistribute, only: gather, scatter
     use run_parameters, only: fphi, fapar
-    use run_parameters, only: nonlinear
+    use run_parameters, only: nonlinear, include_parallel_nonlinearity
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use kt_grids, only: nakx, ny
@@ -1745,28 +1889,20 @@ contains
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
 
+    ! default is to continue with same time step size
+    ! if estimated CFL condition for nonlinear terms is violated
+    ! then restart_time_step will be set to .true.
+    restart_time_step = .false.
     ! calculate and add ExB nonlinearity to RHS of GK eqn
     ! do this first, as the CFL condition may require a change in time step
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
-    if (nonlinear) then
-       ! convert from h to g for nonlinearity
-!       call g_to_h (gin, phi, -fphi)
-       call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
-       ! finished with nonlinearity, so convert back to h
-!       call g_to_h (gin, phi, fphi)
-    else
-       restart_time_step = .false.
-    end if
+    if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    if (include_parallel_nonlinearity) &
+         call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
 
     if (.not.restart_time_step) then
-       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
-       ! switch from g = h + (Ze/T)*<chi>*F_0 to h = f + (Ze/T)*phi*F_0
-!       call gbar_to_h (gin, phi, apar, fphi, fapar)
-       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
-
        ! calculate and add mirror term to RHS of GK eqn
        if (mirror_explicit) then
-!          call gbar_to_h (gvmu, phi, apar, fphi, fapar)
           call advance_mirror_explicit (gin, rhs)
        end if
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
@@ -1788,11 +1924,6 @@ contains
 !       call advance_wstar_explicit (rhs_ky)
        ! calculate and add collision term to RHS of GK eqn
        !    call advance_collisions
-
-       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
-       ! switch from h back to gbar
-!       call gbar_to_h (gin, phi, apar, -fphi, -fapar)
-       if (proc0) call time_message(.false.,time_gke(:,10),' g_to_h')
     end if
 
     nullify (rhs)
@@ -2134,9 +2265,6 @@ contains
     allocate (g1xy(ny,nx))
     allocate (bracket(ny,nx))
 
-    ! FLAG -- NEED TO ADD IN EQUIVALENT OF KXFAC!!!
-    ! something like q/rho/drhodpsin, possibly with factor of 1/2
-
     if (debug) write (*,*) 'dist_fn::solve_gke::advance_ExB_nonlinearity::get_dgdy'
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
@@ -2194,6 +2322,198 @@ contains
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
   end subroutine advance_ExB_nonlinearity
+
+  subroutine advance_parallel_nonlinearity (g, gout, restart_time_step)
+
+    use mp, only: proc0, min_allreduce
+    use stella_layouts, only: vmu_lo, xyz_lo
+    use stella_layouts, only: is_idx
+    use job_manage, only: time_message
+    use finite_differences, only: second_order_centered_zed
+    use finite_differences, only: third_order_upwind
+    use redistribute, only: gather, scatter
+    use fields_arrays, only: phi
+    use stella_transforms, only: transform_ky2y, transform_y2ky
+    use stella_transforms, only: transform_kx2x, transform_x2kx
+    use stella_time, only: cfl_dt, code_dt
+    use run_parameters, only: cfl_cushion
+    use zgrid, only: nzgrid, delzed
+    use extended_zgrid, only: neigen, nsegments, ikxmod
+    use extended_zgrid, only: iz_low, iz_up
+    use kt_grids, only: nakx, naky, nx, ny
+    use kt_grids, only: alpha_global
+    use vpamu_grids, only: nvgrid, nmu, dvpa
+    use dist_fn_arrays, only: aj0x
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    logical, intent (out) :: restart_time_step
+    
+    integer :: ivmu, ixyz
+    integer :: iz, imu, is
+    integer :: iky, ie, iseg
+    integer :: advect_sign
+    real, dimension (:), allocatable :: dgdv
+    real, dimension (:,:,:,:), allocatable :: g0xy
+    real, dimension (:,:,:), allocatable :: gxy_vmulocal
+    real, dimension (:,:), allocatable :: advect_speed
+    complex, dimension (2) :: gleft, gright
+    complex, dimension (:,:,:), allocatable :: phi_gyro, dphidz
+    complex, dimension (:,:), allocatable :: g0k, g0kxy
+
+    ! alpha-component of magnetic drift (requires ky -> y)
+    if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')
+
+    restart_time_step = .false.
+
+    ! overview:
+    ! need g and d<phi>/dz in (x,y) space in
+    ! order to upwind dg/dvpa
+    ! 1) transform d<phi>/dz from (kx,ky) to (x,y). layout: vmu_lo
+    ! 2) need sign of parnl advection in xyz_lo (since dg/dvpa 
+    !    requires vpa local), so d<phi>/dz(vmu_lo) --> d<phi>/dz(xyz_lo)
+    ! 3) transform g from (kx,ky) to (x,y). layout: vmu_lo
+    ! 4) dg/dvpa requires vpa local, so g(vmu_lo) --> g(xyz_lo)
+    ! 5) calculate dg/dvpa
+    ! 6) multiply dg/dvpa with d<phi>/dz
+    ! 7) product(xyz_lo) --> product(vmu_lo)
+    ! 8) inverse transform product(vmu_lo)
+
+    allocate (g0xy(ny,nx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0kxy(ny,nakx))
+    allocate (phi_gyro(naky,nakx,-nzgrid:nzgrid))
+    allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
+
+    ! get d<phi>/dz in vmu_lo
+    ! we will need to transform it to real-space
+    ! as its sign is needed for upwinding of dg/dvpa
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       is = is_idx(vmu_lo,ivmu)
+       ! construct <phi>
+       phi_gyro = aj0x(:,:,:,ivmu)*phi
+       do iky = 1, naky
+          do ie = 1, neigen(iky)
+             do iseg = 1, nsegments(ie,iky)
+                ! if iseg,ie,iky corresponds to negative kx, no need to solve
+                ! as it will be constrained by reality condition
+                if (ikxmod(iseg,ie,iky) > nakx) cycle
+                ! first fill in ghost zones at boundaries in g(z)
+                call fill_zed_ghost_zones (iseg, ie, iky, phi_gyro, gleft, gright)
+                ! now get dg/dz
+                call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                     phi_gyro(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
+                     delzed(0), gleft, gright, &
+                     dphidz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+             end do
+          end do
+       end do
+
+       do iz = -nzgrid, nzgrid
+          ! transform in y
+          call transform_ky2y (dphidz(:,:,iz), g0kxy)
+          ! transform in x
+          call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
+          ! get advection velocity in vpa
+          g0xy(:,:,iz,ivmu) = g0xy(:,:,iz,ivmu)*par_nl_fac(iz,is)
+       end do
+    end do
+
+    ! do not need phi_gyro or dphidz  again so deallocate
+    deallocate (phi_gyro, dphidz)
+
+    allocate (gxy_vmulocal(-nvgrid:nvgrid,nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
+    allocate (advect_speed(nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
+
+    ! we now have the advection velocity in vpa in (x,y) space
+    ! next redistribute it so that (vpa,mu) are local
+    call scatter (xyz2vmu, g0xy, gxy_vmulocal)
+    ! advect_speed does not depend on vpa
+    advect_speed = gxy_vmulocal(0,:,:)
+
+    allocate (g0k(naky,nakx))
+
+    ! transform g from (kx,ky) to (x,y)
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       do iz = -nzgrid, nzgrid
+          g0k = g(:,:,iz,ivmu)
+          ! transform in y
+          call transform_ky2y (g0k, g0kxy)
+          ! transform in x
+          call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
+       end do
+    end do
+
+    ! finished with g0k
+    deallocate (g0k)
+
+    ! redistribute so that (vpa,mu) local
+    call scatter (xyz2vmu, g0xy, gxy_vmulocal)
+    
+    allocate (dgdv(-nvgrid:nvgrid))
+
+    ! we now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
+    do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
+       do imu = 1, nmu
+          ! advect_sign set to +/- 1 depending on sign of the parallel nonlinearity 
+          ! advection velocity
+          ! NB: advect_sign = -1 corresponds to positive advection velocity
+          advect_sign = int(sign(1.0,advect_speed(imu,ixyz)))
+          call third_order_upwind (-nvgrid,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,dgdv)
+          gxy_vmulocal(:,imu,ixyz) = dgdv*advect_speed(imu,ixyz)
+          cfl_dt = min(cfl_dt,dvpa/abs(advect_speed(imu,ixyz)))
+       end do
+    end do
+
+    ! finished with dgdv and advect_speed
+    deallocate (dgdv, advect_speed)
+    
+    ! now that we have the full parallel nonlinearity in (x,y)-space
+    ! need to redistribute so that (x,y) local for transforms
+    call gather (xyz2vmu, gxy_vmulocal, g0xy)
+
+    ! finished with gxy_vmulocal
+    deallocate (gxy_vmulocal)
+
+    ! g0xy is parallel nonlinearity term with (x,y) on processor
+    ! need to inverse Fourier transform
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       do iz = -nzgrid, nzgrid
+          call transform_x2kx (g0xy(:,:,iz,ivmu), g0kxy)
+          if (alpha_global) then
+             gout(:,:,iz,ivmu) = g0kxy
+          else
+             call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
+          end if
+       end do
+    end do
+    deallocate (g0kxy, g0xy)
+
+    call min_allreduce (cfl_dt)
+
+    if (code_dt > cfl_dt) then
+       if (proc0) then
+          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
+          write (*,*) 'setting code_dt=cfl_dt and restarting time step'
+       end if
+       code_dt = cfl_dt
+       call reset_dt
+       restart_time_step = .true.
+    else if (code_dt < cfl_dt*cfl_cushion) then
+       if (proc0) then
+          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
+       end if
+       code_dt = cfl_dt*cfl_cushion
+       call reset_dt
+    else
+       gout = code_dt*gout
+    end if
+
+    if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')
+
+  end subroutine advance_parallel_nonlinearity
 
 !   subroutine get_dgdvpa (g)
 
@@ -2874,7 +3194,7 @@ contains
     use kt_grids, only: alpha_global
     use kt_grids, only: ny, nakx, naky
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: dvpa, maxwellian, vpa
+    use vpamu_grids, only: dvpa, maxwellian
     use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
@@ -3713,6 +4033,7 @@ contains
 
     if (alpha_global) call finish_transforms
     call finish_redistribute
+    call finish_parallel_nonlinearity
     call finish_stream
     call finish_mirror
     call finish_bessel
@@ -3731,6 +4052,16 @@ contains
     redistinit = .false.
 
   end subroutine finish_redistribute
+
+  subroutine finish_parallel_nonlinearity
+
+    implicit none
+
+    if (allocated(par_nl_fac)) deallocate (par_nl_fac)
+
+    parnlinit = .false.
+
+  end subroutine finish_parallel_nonlinearity
 
   subroutine finish_stream
 

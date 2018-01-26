@@ -7,6 +7,7 @@ module run_parameters
 
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
+  public :: include_parallel_nonlinearity
   public :: nonlinear
   public :: code_delt_max
   public :: nstep
@@ -18,7 +19,7 @@ module run_parameters
   real :: cfl_cushion
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max
-  logical :: nonlinear
+  logical :: nonlinear, include_parallel_nonlinearity
   real :: avail_cpu_time
   integer :: nstep
   integer, public :: delt_option_switch
@@ -59,14 +60,15 @@ contains
     real :: delt_saved
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
-         delt_option, &
-         avail_cpu_time, nonlinear, cfl_cushion
+         delt_option, nonlinear, include_parallel_nonlinearity, &
+         avail_cpu_time, cfl_cushion
 
     if (proc0) then
        fphi = 1.0
        fapar = 1.0
        fbpar = -1.0
        nonlinear = .false.
+       include_parallel_nonlinearity = .false.
        delt_option = 'default'
        avail_cpu_time = 1.e10
        cfl_cushion = 0.5
@@ -88,6 +90,7 @@ contains
     call broadcast (fapar)
     call broadcast (fbpar)
     call broadcast (nonlinear)
+    call broadcast (include_parallel_nonlinearity)
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
     

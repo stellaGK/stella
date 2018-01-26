@@ -15,6 +15,13 @@ module common_types
      integer :: nzgrid, nzed, ny, naky, nakx, nvgrid, nvpa, nmu, nspec
      integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
   end type kxyz_layout_type
+
+  type :: xyz_layout_type
+     sequence
+     integer :: iproc
+     integer :: nzgrid, nzed, ny, naky, nx, nakx, nvgrid, nvpa, nmu, nspec
+     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+  end type xyz_layout_type
   
   type :: vmu_layout_type
      sequence
