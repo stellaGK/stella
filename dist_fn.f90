@@ -2335,7 +2335,7 @@ contains
     use fields_arrays, only: phi
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
-    use stella_time, only: cfl_dt, code_dt
+    use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion
     use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments, ikxmod
@@ -2500,12 +2500,12 @@ contains
        code_dt = cfl_dt
        call reset_dt
        restart_time_step = .true.
-    else if (code_dt < cfl_dt*cfl_cushion) then
+    else if (code_dt < min(cfl_dt*cfl_cushion,code_dt_max)) then
        if (proc0) then
           write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
+          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion,delt) and restarting time step'
        end if
-       code_dt = cfl_dt*cfl_cushion
+       code_dt = min(cfl_dt*cfl_cushion,code_dt_max)
        call reset_dt
     else
        gout = code_dt*gout

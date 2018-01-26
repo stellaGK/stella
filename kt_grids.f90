@@ -246,9 +246,9 @@ contains
     do i = 1, nakx
        akx(i) = real(i-1)*dkx
     end do
-    do i = nakx+1, ntheta0
-       akx(i) = -akx(2*nakx-i+1)
-    end do
+!    do i = nakx+1, ntheta0
+!       akx(i) = -akx(2*nakx-i+1)
+!    end do
 
     if (abs(shat) > epsilon(0.)) then
        do i = 1, nakx
@@ -389,8 +389,8 @@ contains
 
   subroutine allocate_arrays
     implicit none
-!    allocate (akx(nakx))
-    allocate (akx(ntheta0))
+    allocate (akx(nakx))
+!    allocate (akx(ntheta0))
     allocate (aky(naky))
     allocate (theta0(naky,nakx))
   end subroutine allocate_arrays
