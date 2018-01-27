@@ -120,6 +120,8 @@ contains
        end select
     end if
 
+    if (.not.proc0) call allocate_arrays (nalpha, nzgrid)
+
     call broadcast_arrays
 
     ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION

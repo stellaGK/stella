@@ -45,7 +45,6 @@ contains
     if (debug) write(6,*) "fields::init_fields::init_zgrid"
     call init_zgrid
     if (debug) write(6,*) "fields::init_fields::init_geometry"
-!    call init_geometry (nzed, nzgrid, zed, delzed)
     call init_geometry
     if (debug) write(6,*) "fields::init_fields::init_physics_parameters"
     call init_physics_parameters
@@ -59,15 +58,6 @@ contains
     call init_dist_fn
     if (debug) write(6,*) "fields::init_fields::allocate_arrays"
     call allocate_arrays
-!    if (debug) write(6,*) 'fields::init_fields::init_stella_layouts'
-!    call init_stella_layouts
-!    if (debug) write(6,*) 'fields::init_fields::init_kt_grids'
-!    call init_kt_grids
-
-! Turn on nonlinear terms.
-!    if (debug) write(6,*) "init_fields::nl_finish_init"
-!    call nl_finish_init
-
     if (debug) write(*,*) "fields::init_fields::ginit"
     call ginit (restarted)
     if (debug) write(*,*) "fields::init_fields::init_gxyz"
