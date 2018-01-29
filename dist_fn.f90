@@ -64,7 +64,6 @@ module dist_fn
   integer :: niter_stream
   real :: stream_errtol
   logical :: fully_explicit, fully_implicit
-  logical :: explicit_rk4
   logical :: mirror_explicit, mirror_implicit
   logical :: stream_explicit, stream_implicit
   logical :: wdrifty_explicit, wdrifty_implicit
@@ -586,7 +585,7 @@ contains
     namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, stream_explicit, wdrifty_explicit, &!wstar_explicit, &
-         adiabatic_option, niter_stream, stream_errtol, explicit_rk4, &
+         adiabatic_option, niter_stream, stream_errtol, &
          zed_upwind, vpa_upwind, time_upwind, explicit_option
     integer :: ierr, in_file
 
@@ -608,7 +607,6 @@ contains
        stream_explicit = .false.
        wdrifty_explicit = .true.
 !       wstar_explicit = .true.
-       explicit_rk4 = .false.
        niter_stream = 2
        stream_errtol = 0.001
 
@@ -623,7 +621,6 @@ contains
        call get_option_value &
             (explicit_option, explicitopts, explicit_option_switch, &
             ierr, "explicit_option in dist_fn_knobs")
-
     end if
 
     call broadcast (adiabatic_option_switch)
@@ -637,7 +634,6 @@ contains
     call broadcast (stream_explicit)
     call broadcast (wdrifty_explicit)
 !    call broadcast (wstar_explicit)
-    call broadcast (explicit_rk4)
     call broadcast (niter_stream)
     call broadcast (stream_errtol)
     call broadcast (zed_upwind)
@@ -894,10 +890,13 @@ contains
     if (.not.allocated(g1)) &
          allocate (g1(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     g1 = 0.
-    if (.not.allocated(g2)) &
-         allocate (g2(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    g2 = 0.
-    if (.not.allocated(g3) .and. explicit_rk4) then
+    if (.not.allocated(g2) .and. explicit_option_switch/=explicit_option_rk2) then
+       allocate (g2(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       g2 = 0.
+    else
+       allocate (g2(1,1,1,1))
+    end if
+    if (.not.allocated(g3) .and. explicit_option_switch==explicit_option_rk4) then
        allocate (g3(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        g3 = 0.
     else
@@ -1776,7 +1775,7 @@ contains
   ! strong stability-preserving RK2
   subroutine advance_explicit_rk2 (gold, gnew)
 
-    use dist_fn_arrays, only: g1, g2
+    use dist_fn_arrays, only: g1
     use zgrid, only: nzgrid
     use stella_layouts, only: kxkyz_lo
 
