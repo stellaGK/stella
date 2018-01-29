@@ -50,6 +50,11 @@ module dist_fn
   logical :: redistinit = .false.
   logical :: readinit = .false.
 
+  integer :: explicit_option_switch
+  integer, parameter :: explicit_option_rk3 = 1, &
+       explicit_option_rk2 = 2, &
+       explicit_option_rk4 = 3
+
   integer :: adiabatic_option_switch
   integer, parameter :: adiabatic_option_default = 1, &
        adiabatic_option_zero = 2, &
@@ -561,6 +566,13 @@ contains
 
     logical :: dfexist
 
+    type (text_option), dimension (4), parameter :: explicitopts = &
+         (/ text_option('default', explicit_option_rk3), &
+         text_option('rk3', explicit_option_rk3), &
+         text_option('rk2', explicit_option_rk2), &
+         text_option('rk4', explicit_option_rk4) /)
+    character(10) :: explicit_option
+
     type (text_option), dimension (7), parameter :: adiabaticopts = &
          (/ text_option('default', adiabatic_option_default), &
             text_option('no-field-line-average-term', adiabatic_option_default), &
@@ -575,7 +587,7 @@ contains
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, stream_explicit, wdrifty_explicit, &!wstar_explicit, &
          adiabatic_option, niter_stream, stream_errtol, explicit_rk4, &
-         zed_upwind, vpa_upwind, time_upwind
+         zed_upwind, vpa_upwind, time_upwind, explicit_option
     integer :: ierr, in_file
 
     if (readinit) return
@@ -583,6 +595,7 @@ contains
 
     if (proc0) then
        adiabatic_option = 'default'
+       explicit_option = 'default'
        xdriftknob = 1.0
        ydriftknob = 1.0
        streamknob = 1.0
@@ -606,10 +619,15 @@ contains
        call get_option_value &
             (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
             ierr, "adiabatic_option in dist_fn_knobs")
+       ierr = error_unit()
+       call get_option_value &
+            (explicit_option, explicitopts, explicit_option_switch, &
+            ierr, "explicit_option in dist_fn_knobs")
 
     end if
 
     call broadcast (adiabatic_option_switch)
+    call broadcast (explicit_option_switch)
     call broadcast (xdriftknob)
     call broadcast (ydriftknob)
     call broadcast (streamknob)
@@ -1725,12 +1743,17 @@ contains
 
     ! advance the explicit parts of the GKE
     if (.not.fully_implicit) then
-       if (explicit_rk4) then
-          call advance_explicit_rk4 (gold, gnew)
-       else
+       select case (explicit_option_switch)
+       case (explicit_option_rk2)
+          ! SSP RK2
+          call advance_explicit_rk2 (gold, gnew)
+       case (explicit_option_rk3)
           ! default is SSP RK3
-          call advance_explicit (gold, gnew)
-       end if
+          call advance_explicit_rk3 (gold, gnew)
+       case (explicit_option_rk4)
+          ! RK4
+          call advance_explicit_rk4 (gold, gnew)
+       end select
     end if
 
     ! stop the timer for the explicit part of the solve
@@ -1750,7 +1773,52 @@ contains
 
   end subroutine advance_stella
 
-  subroutine advance_explicit (gold, gnew)
+  ! strong stability-preserving RK2
+  subroutine advance_explicit_rk2 (gold, gnew)
+
+    use dist_fn_arrays, only: g1, g2
+    use zgrid, only: nzgrid
+    use stella_layouts, only: kxkyz_lo
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: gold
+    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (out) :: gnew
+
+    integer :: icnt
+    logical :: restart_time_step
+
+    ! if CFL condition is violated by nonlinear term
+    ! then must modify time step size and restart time step
+    ! assume false and test
+    restart_time_step = .false.
+
+    icnt = 1
+    ! SSP rk3 algorithm to advance explicit part of code
+    ! if GK equation written as dg/dt = rhs - vpar . grad h,
+    ! solve_gke returns rhs*dt
+    do while (icnt <= 2)
+       select case (icnt)
+       case (1)
+          call solve_gke (gold, g1, restart_time_step)
+       case (2)
+          g1 = gold + g1
+          call solve_gke (g1, gnew, restart_time_step)
+       end select
+       if (restart_time_step) then
+          icnt = 1
+       else
+          icnt = icnt + 1
+       end if
+    end do
+
+    ! this is gbar at intermediate time level
+    gnew = 0.5*gold + 0.5*(g1 + gnew)
+
+  end subroutine advance_explicit_rk2
+
+  ! strong stability-preserving RK3
+  subroutine advance_explicit_rk3 (gold, gnew)
 
     use dist_fn_arrays, only: g1, g2
     use zgrid, only: nzgrid
@@ -1794,7 +1862,7 @@ contains
     ! this is gbar at intermediate time level
     gnew = gold/3. + 0.5*g1 + (g2 + gnew)/6.
 
-  end subroutine advance_explicit
+  end subroutine advance_explicit_rk3
 
   subroutine advance_explicit_rk4 (gold, gnew)
 
@@ -3460,6 +3528,7 @@ contains
 
        ! construct <phi^{n}>
        g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phiold
+
        ! obtain d<phi^{n}>/dz and store in dphidz
        call get_dzed (iv,g(:,:,:,ivmu),dphidz)
 
@@ -3481,7 +3550,7 @@ contains
           g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - fac*gradpar(1,iz) &
                * (vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
        end do
-       
+
     end do
 
     deallocate (vpadf0dE_fac)

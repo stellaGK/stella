@@ -42,6 +42,7 @@
 
 &dist_fn_knobs
  adiabatic_option="iphi00=2"
+ explicit_option="rk2"
  xdriftknob = 1.0
  ydriftknob = 1.0
  streamknob = 1.0
@@ -53,7 +54,6 @@
  mirror_explicit = .false.
  stream_explicit = .false.
  wdrifty_explicit = .true.
- explicit_rk4 = .false.
 /
 
 &kt_grids_knobs
