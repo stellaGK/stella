@@ -17,7 +17,6 @@ contains
 
     use mp, only: proc0
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old, apar_old
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: init_stella_layouts
     use species, only: init_species
@@ -73,7 +72,6 @@ contains
     if (debug) write (*,*) 'fields::init_fields::get_fields'
     ! get initial field from initial distribution function
     call get_fields (gvmu, phi, apar, dist='gbar')
-    phi_old = phi ; apar_old = apar
 
   end subroutine init_fields
 
@@ -368,7 +366,7 @@ contains
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old, apar_old
+    use fields_arrays, only: phi0_old
     use fields_arrays, only: response_matrix
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
@@ -384,13 +382,9 @@ contains
        allocate (apar(naky,nakx,-nzgrid:nzgrid))
        apar = 0.
     end if
-    if (.not.allocated(phi_old)) then
-       allocate (phi_old(naky,nakx,-nzgrid:nzgrid))
-       phi_old = 0.
-    end if
-    if (.not. allocated(apar_old)) then
-       allocate (apar_old(naky,nakx,-nzgrid:nzgrid))
-       apar_old = 0.
+    if (.not.allocated(phi0_old)) then
+       allocate (phi0_old(naky,nakx))
+       phi0_old = 0.
     end if
     if (.not.allocated(response_matrix)) then
        if (stream_implicit) then
@@ -398,7 +392,6 @@ contains
        else
           allocate (response_matrix(1))
        end if
-!       response_matrix = 0.
     end if
 
   end subroutine allocate_arrays
@@ -415,8 +408,8 @@ contains
 
   subroutine finish_fields
 
-    use fields_arrays, only: phi, phi_old
-    use fields_arrays, only: apar, apar_old
+    use fields_arrays, only: phi, phi0_old
+    use fields_arrays, only: apar
     use species, only: finish_species
     use geometry, only: finish_geometry
     use zgrid, only: finish_zgrid
@@ -430,9 +423,8 @@ contains
     call finish_zgrid
     call finish_species
     if (allocated(phi)) deallocate (phi)
-    if (allocated(phi_old)) deallocate (phi_old)
+    if (allocated(phi0_old)) deallocate (phi0_old)
     if (allocated(apar)) deallocate (apar)
-    if (allocated(apar_old)) deallocate (apar_old)
 
     fields_initialized = .false.
 

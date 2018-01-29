@@ -1,5 +1,5 @@
 &zgrid_parameters
- nzed = 16
+ nzed = 24
  nperiod = 2
  boundary_option="default"
 /
@@ -35,8 +35,8 @@
 /
 
 &vpamu_grids_parameters
- nvgrid = 16
- nmu = 8
+ nvgrid = 24
+ nmu = 12
  vpa_max = 3.0
 /
 
@@ -111,6 +111,7 @@
  nsave = 3000
  nmovie = 3000
  save_for_restart = .false.
+ write_omega = .true.
  write_phi_vs_time = .true.
  write_gvmus = .true.
  write_gzvs = .true.

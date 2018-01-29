@@ -4,9 +4,11 @@ module fields_arrays
 
   implicit none
 
-  complex, dimension (:,:,:), allocatable :: phi, phi_old
-  complex, dimension (:,:,:), allocatable :: apar, apar_old
+  complex, dimension (:,:,:), allocatable :: phi, apar
   ! (naky, nakx, -nzgrid:nzgrid)
+
+  complex, dimension (:,:), allocatable :: phi0_old
+  ! (naky, nakx)
 
   type (response_matrix_type), dimension (:), allocatable :: response_matrix
 

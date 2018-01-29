@@ -214,7 +214,7 @@ contains
     case ('yxzs')
        ikx_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%naky, lo%nakx)
     case ('zxys')
-       ikx_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nzed, lo%nzed)
+       ikx_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nzed, lo%nakx)
     case ('zyxs')
        ikx_idx_kxkyz = 1 + mod((i - lo%llim_world)/lo%nzed/lo%naky, lo%nakx)
     case ('yzxs')

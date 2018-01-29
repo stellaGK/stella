@@ -1640,6 +1640,7 @@ contains
     use mp, only: proc0, nproc, max_allreduce
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
+    use run_parameters, only: cfl_cushion
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky
@@ -1691,12 +1692,12 @@ contains
        write (*,*)
     end if
 
-    if (code_dt > cfl_dt) then
+    if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,'(a21,e12.4,a32)') 'user-specified delt =', code_dt, 'does not satisfy CFL condition.'
-          write (*,'(a32,e12.4)') 'changing code_dt to the CFL dt =', cfl_dt
+          write (*,'(a21,e12.4,a35)') 'user-specified delt =', code_dt, 'is larger than cfl_dt*cfl_cushion.'
+          write (*,'(a41,e12.4)') 'changing code_dt to cfl_dt*cfl_cushion =', cfl_dt*cfl_cushion
        end if
-       code_dt = cfl_dt
+       code_dt = cfl_dt*cfl_cushion
        call reset_dt
     else if (proc0) then
        call write_dt
@@ -1734,8 +1735,13 @@ contains
     use job_manage, only: time_message
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi0_old
 
     implicit none
+
+    ! save value of phi at z=0
+    ! for use in diagnostics (to obtain frequency)
+    phi0_old = phi(:,:,0)
 
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
@@ -2562,7 +2568,7 @@ contains
     if (code_dt > cfl_dt) then
        if (proc0) then
           write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cusion and restarting time step'
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
        end if
        code_dt = cfl_dt*cfl_cushion
        call reset_dt

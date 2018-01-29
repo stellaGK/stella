@@ -8,13 +8,14 @@ module stella_diagnostics
   private
 
   integer :: ntg_out
-  integer :: nwrite, nsave, nmovie
+  integer :: nwrite, nsave, nmovie, navg
   logical :: save_for_restart
+  logical :: write_omega
   logical :: write_phi_vs_time
   logical :: write_gvmus
   logical :: write_gzvs
 
-  integer :: stdout_unit, fluxes_unit
+  integer :: stdout_unit, fluxes_unit, omega_unit
 
   ! arrays needed for averaging in x,y,z
   real, dimension (:), allocatable :: fac
@@ -22,6 +23,9 @@ module stella_diagnostics
 
   real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
   real, dimension (:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
+
+  ! needed for calculating growth rates and frequencies
+  complex, dimension (:,:,:), allocatable :: omega_vs_time
 
   integer :: nout = 1
   logical :: diagnostics_initialized = .false.
@@ -66,16 +70,17 @@ contains
     call allocate_arrays
     
     call broadcast (nwrite)
+    call broadcast (navg)
     call broadcast (nmovie)
     call broadcast (nsave)
     call broadcast (save_for_restart)
+    call broadcast (write_omega)
     call broadcast (write_phi_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
     
     nmovie_tot = nstep/nmovie
     
-    ! note that init_averages needs ntg_out, defined in read_parameters
     call init_averages
     call init_stella_io (write_phi_vs_time, write_gvmus, write_gzvs)
     call open_loop_ascii_files
@@ -93,14 +98,17 @@ contains
     logical :: exist
     integer :: in_file
 
-    namelist /stella_diagnostics_knobs/ nwrite, nmovie, nsave, &
-         save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs
+    namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
+         save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
+         write_omega
 
     if (proc0) then
-       nwrite = 100
-       nmovie = 100000
+       nwrite = 50
+       navg = 50
+       nmovie = 10000
        nsave = -1
        save_for_restart = .false.
+       write_omega = .false.
        write_phi_vs_time = .false.
        write_gvmus = .false.
        write_gzvs = .false.
@@ -129,6 +137,14 @@ contains
     if (.not.allocated(qflux_avg)) allocate(qflux_avg(nspec)) ; qflux_avg = 0.
     if (.not.allocated(vflux_avg)) allocate(vflux_avg(nspec)) ; vflux_avg = 0.
     if (.not.allocated(heat_avg)) allocate(heat_avg(nspec)) ; heat_avg = 0.
+    if (.not.allocated(omega_vs_time)) then
+       if (write_omega) then
+          allocate (omega_vs_time(navg,naky,nakx))
+          omega_vs_time = 0.
+       else
+          allocate (omega_vs_time(1,1,1))
+       end if
+    end if
 
   end subroutine allocate_arrays
 
@@ -160,6 +176,11 @@ contains
     write (nspec_str,'(i3)') nspec*12
     str = trim('(2a12,2a'//trim(nspec_str)//')')
     write (fluxes_unit,str) '#time', 'pflx', 'vflx', 'qflx'
+    if (write_omega) then
+       call open_output_file (omega_unit,'.omega')
+       write (omega_unit,'(7a12)'), '#time', 'ky', 'kx', &
+            'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
+    end if
 
   end subroutine open_loop_ascii_files
 
@@ -171,33 +192,54 @@ contains
     
     call close_output_file (stdout_unit)
     call close_output_file (fluxes_unit)
+    if (write_omega) call close_output_file (omega_unit)
 
   end subroutine close_loop_ascii_files
 
   subroutine diagnose_stella (istep)
 
     use mp, only: proc0
+    use constants, only: zi
     use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi0_old
     use dist_fn_arrays, only: gvmu, gnew
     use dist_fn_arrays, only: g_to_h
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
-    use stella_time, only: code_time
+    use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
+    use kt_grids, only: naky, nakx
 
     implicit none
 
     integer, intent (in) :: istep
     
     real :: phi2, apar2
+    real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:), allocatable :: gzvs
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
+    complex, dimension (:,:), allocatable :: omega_avg
+
+    ! calculation of omega requires computation of omega more
+    ! frequently than every nwrite time steps
+    if (write_omega .and. proc0) then
+       zero = 100.*epsilon(0.)
+       allocate (omega_avg(naky,nakx))
+       where (abs(phi(:,:,0)) < zero .or. abs(phi0_old) < zero)
+          omega_vs_time(mod(istep,navg)+1,:,:) = 0.0
+       elsewhere
+          omega_vs_time(mod(istep,navg)+1,:,:) = log(phi(:,:,0)/phi0_old)*zi/code_dt
+       end where
+       omega_avg = sum(omega_vs_time,dim=1)/real(navg)
+    else
+       allocate (omega_avg(1,1))
+    end if
 
     ! only write data to file every nwrite time steps
     if (mod(istep,nwrite) /= 0) return
@@ -216,8 +258,12 @@ contains
        call volume_average (apar, apar2)
        write (*,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
             'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
-       call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux)
+       call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
+            omega_vs_time(mod(istep,navg)+1,:,:), omega_avg)
     end if
+
+    ! do not need omega_avg again this time step
+    deallocate (omega_avg)
 
     if (proc0) then
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
@@ -502,19 +548,23 @@ contains
 
   end subroutine finish_stella_diagnostics
 
-  subroutine write_loop_ascii_files (istep, phi2, apar2, pflx, vflx, qflx)
+  subroutine write_loop_ascii_files (istep, phi2, apar2, pflx, vflx, qflx, om, om_avg)
 
     use stella_time, only: code_time
     use species, only: nspec
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: aky, akx
 
     implicit none
     
     integer, intent (in) :: istep
     real, intent (in) :: phi2, apar2
     real, dimension (:), intent (in) :: pflx, vflx, qflx
+    complex, dimension (:,:), intent (in) :: om, om_avg
 
     character (3) :: nspec_str
     character (100) :: str
+    integer :: ikx, iky
 
     write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)'), 'istep=', istep, &
          'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
@@ -522,6 +572,18 @@ contains
     write (nspec_str,'(i3)') 3*nspec+1
     str = trim('('//trim(nspec_str)//'e12.4)')
     write (fluxes_unit,str) code_time, pflx, vflx, qflx
+
+    if (write_omega) then
+       do iky = 1, naky
+          do ikx = 1, nakx
+             write (omega_unit,'(7e12.4)') code_time, aky(iky), akx(ikx),&
+                  real(om(iky,ikx)), aimag(om(iky,ikx)), &
+                  real(om_avg(iky,ikx)), aimag(om_avg(iky,ikx))
+          end do
+          if (nakx > 1) write (omega_unit,*)
+       end do
+       if (naky > 1) write (omega_unit,*)
+    end if
 
   end subroutine write_loop_ascii_files
 
@@ -577,6 +639,7 @@ contains
     if (allocated(qflux_avg)) deallocate (qflux_avg)
     if (allocated(vflux_avg)) deallocate (vflux_avg)
     if (allocated(heat_avg)) deallocate (heat_avg)
+    if (allocated(omega_vs_time)) deallocate (omega_vs_time)
 
   end subroutine deallocate_arrays
 
