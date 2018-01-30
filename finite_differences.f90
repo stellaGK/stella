@@ -11,6 +11,7 @@ module finite_differences
   public :: d2_3pt
   public :: fd_variable_upwinding_vpa
   public :: fd_variable_upwinding_zed
+  public :: center_zed
 
   interface fd3pt
      module procedure fd3pt_real
@@ -43,6 +44,28 @@ module finite_differences
   end interface
 
 contains
+
+  ! center_zed takes f at z grid locations
+  ! and returns f at cell centres
+  ! (with possible offset due to upwinding)
+  subroutine center_zed (llim, f, sgn, upwnd, fc)
+
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    integer, intent (in) :: sgn
+    real, intent (in) :: upwnd
+    real, dimension (llim:), intent (out) :: fc
+
+    integer :: ulim
+
+    ulim = size(f)+llim-1
+
+    ! NB: sgn > 0 corresponds to negative advection speed
+    fc = 0.5*((1.0+sgn*upwnd)*f(:ulim-1) + (1.0-sgn*upwnd)*f(llim+1:))
+
+  end subroutine center_zed
 
   subroutine first_order_upwind_real (llim, f, del, sgn, df)
     
@@ -307,12 +330,13 @@ contains
 
   end subroutine first_order_upwind_zed
 
-  subroutine second_order_centered_zed_real (llim, iseg, nseg, f, del, fl, fr, df)
+  subroutine second_order_centered_zed_real (llim, iseg, nseg, f, del, sgn, fl, fr, df)
 
     implicit none
     
     integer, intent (in) :: llim, iseg, nseg
     real, dimension (llim:), intent (in) :: f
+    integer, intent (in) :: sgn
     real, intent (in) :: del
     real, dimension (:), intent (in) :: fl, fr
     real, dimension (llim:), intent (out) :: df
@@ -323,14 +347,32 @@ contains
 
     i = llim
     if (iseg == 1) then
-       df(i) = 0.5*f(i+1)/del
+       if (sgn>0) then
+          ! sgn > 0 corresponds to negative advection speed
+          ! upwind at boundary requires taking information from right
+          df(i) = (f(i+1)-f(i))/del
+       else
+          ! sgn < 0 corresponds to positive advection speed
+          ! upwind at boundary requires taking information from left
+          ! with f=0 as incoming BC
+          df(i) = f(i)/del
+       end if
     else
        df(i) = 0.5*(f(i+1)-fl(2))/del
     end if
 
     i = ulim
     if (iseg == nseg) then
-       df(i) = -0.5*f(i-1)/del
+       if (sgn > 0) then
+          ! sgn > 0 corresponds to negative advection speed
+          ! upwind at boundary requires taking information from right
+          ! and BC is f=0
+          df(i) = -f(i)/del
+       else
+          ! sgn < 0 corresponds to positive advection speed
+          ! upwind at boundary requires taking information from left
+          df(i) = (f(i)-f(i-1))/del
+       end if
     else
        df(i) = 0.5*(fr(1)-f(i-1))/del
     end if
@@ -341,12 +383,13 @@ contains
 
   end subroutine second_order_centered_zed_real
 
-  subroutine second_order_centered_zed_complex (llim, iseg, nseg, f, del, fl, fr, df)
+  subroutine second_order_centered_zed_complex (llim, iseg, nseg, f, del, sgn, fl, fr, df)
 
     implicit none
     
     integer, intent (in) :: llim, iseg, nseg
     complex, dimension (llim:), intent (in) :: f
+    integer, intent (in) :: sgn
     real, intent (in) :: del
     complex, dimension (:), intent (in) :: fl, fr
     complex, dimension (llim:), intent (out) :: df
@@ -357,14 +400,32 @@ contains
 
     i = llim
     if (iseg == 1) then
-       df(i) = 0.5*f(i+1)/del
+       if (sgn>0) then
+          ! sgn > 0 corresponds to negative advection speed
+          ! upwind at boundary requires taking information from right
+          df(i) = (f(i+1)-f(i))/del
+       else
+          ! sgn < 0 corresponds to positive advection speed
+          ! upwind at boundary requires taking information from left
+          ! with f=0 as incoming BC
+          df(i) = f(i)/del
+       end if
     else
        df(i) = 0.5*(f(i+1)-fl(2))/del
     end if
 
     i = ulim
     if (iseg == nseg) then
-       df(i) = -0.5*f(i-1)/del
+       if (sgn > 0) then
+          ! sgn > 0 corresponds to negative advection speed
+          ! upwind at boundary requires taking information from right
+          ! and BC is f=0
+          df(i) = -f(i)/del
+       else
+          ! sgn < 0 corresponds to positive advection speed
+          ! upwind at boundary requires taking information from left
+          df(i) = (f(i)-f(i-1))/del
+       end if
     else
        df(i) = 0.5*(fr(1)-f(i-1))/del
     end if
@@ -415,7 +476,7 @@ contains
 
     ! if upwnd is zero or if vpa=0, then use centered differences
     if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
-       call second_order_centered_zed (llim, iseg, nseg, f, del, fl, fr, df)
+       call second_order_centered_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
     else
        ulim = size(f)+llim-1
        
@@ -431,7 +492,8 @@ contains
           end if
           if (iseg == 1) then
              i = llim
-             df(i) = (0.5*(1.+upwnd)*f(i+1)-upwnd*f(i))/del
+             ! at left boundary, must upwind fully as no info for f(i-1)
+             df(i) = (f(i+1)-f(i))/del
           else
              i = llim
              df(i) = (0.5*(1.+upwnd)*f(i+1)-upwnd*f(i)+0.5*(upwnd-1.)*fl(2))/del
@@ -448,7 +510,8 @@ contains
           end if
           if (iseg == nseg) then
              i = ulim
-             df(i) = (upwnd*f(i)-0.5*(1.+upwnd)*f(i-1))/del
+             ! if at rightmost zed, have no info for f(i+1) so must fully upwind
+             df(i) = (f(i)-f(i-1))/del
           else
              i = ulim
              df(i) = (0.5*(1.-upwnd)*fr(1)+upwnd*f(i)-0.5*(1.+upwnd)*f(i-1))/del
@@ -457,7 +520,7 @@ contains
           iend = ulim
        end if
 
-       ! mixed centered and 1st order upwind scheme
+       ! mixed 2nd order centered and 1st order upwind scheme
        do i = istart-sgn, iend+sgn, -sgn
           df(i) = sgn*(0.5*(1.+upwnd)*f(i+sgn) - upwnd*f(i) + 0.5*(upwnd-1.)*f(i-sgn))/del
        end do

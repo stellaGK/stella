@@ -74,7 +74,7 @@ contains
 
     if (proc0) then
 
-       nvgrid = 32
+       nvgrid = 24
        vpa_max = 3.0
        nmu = 12
 

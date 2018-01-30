@@ -233,7 +233,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        ! initialize g to zero everywhere along extended zed domain
        gext(:,ivmu) = 0.0
-       iv = iv_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
        is = is_idx(vmu_lo,ivmu)
 
        ! give unit impulse to phi at this zed location
@@ -254,16 +254,29 @@ contains
        ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
        ! as this affects upwinding of d<phi>/dz source term
        if (iv < 0) then
-          sgn = -1
+          ! first treat the boundary point at left-most zed
+          if (idx==1) then
+             gext(idx,ivmu) = -fac
+          else if (idx==2) then
+             gext(idx-1,ivmu) = fac
+             gext(idx,ivmu) = -zed_upwind*fac
+          else
+             gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+             gext(idx,ivmu) = -zed_upwind*fac
+          end if
+          if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
        else if (iv > 0) then
-          sgn = 1
-       else
-          sgn = 0
+          if (idx==nz_ext) then
+             gext(idx,ivmu) = fac
+          else if (idx==nz_ext-1) then
+             gext(idx+1,ivmu) = -fac
+             gext(idx,ivmu) = zed_upwind*fac
+          else
+             gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
+             gext(idx,ivmu) = zed_upwind*fac
+          end if
+          if (idx>1) gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
        end if
-
-       gext(idx,ivmu) = sgn*zed_upwind*fac
-       if (idx > 1) gext(idx-1,ivmu) = 0.5*(1.-sgn*zed_upwind)*fac
-       if (idx < nz_ext) gext(idx+1,ivmu) = -0.5*(1.+sgn*zed_upwind)*fac
 
        ! invert parallel streaming equation to get g^{n+1} on extended zed grid
        ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext

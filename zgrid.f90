@@ -77,7 +77,7 @@ contains
 
     namelist /zgrid_parameters/ nzed, nperiod, shat_zero, boundary_option
 
-    nzed = 32
+    nzed = 24
     nperiod = 1
     boundary_option = 'default'
     ! set minimum shat value below which we assume

@@ -23,7 +23,7 @@ program stella
   if (debug) write (*,*) 'stella::advance_stella'
   do istep = 1, nstep
      if (debug) write (*,*) 'istep = ', istep
-     call advance_stella
+     call advance_stella (istep)
      call update_time
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)

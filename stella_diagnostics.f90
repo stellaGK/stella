@@ -237,6 +237,7 @@ contains
           omega_vs_time(mod(istep,navg)+1,:,:) = log(phi(:,:,0)/phi0_old)*zi/code_dt
        end where
        omega_avg = sum(omega_vs_time,dim=1)/real(navg)
+!       write (*,*) real(omega_avg(1,1)), real(omega_vs_time(mod(istep,navg)+1,1,1)), mod(istep,navg)+1, istep, navg
     else
        allocate (omega_avg(1,1))
     end if

@@ -61,23 +61,18 @@ module dist_fn
        adiabatic_option_fieldlineavg = 3, &
        adiabatic_option_yavg = 4
 
-  integer :: niter_stream
-  real :: stream_errtol
   logical :: fully_explicit, fully_implicit
   logical :: mirror_explicit, mirror_implicit
   logical :: stream_explicit, stream_implicit
-  logical :: wdrifty_explicit, wdrifty_implicit
+!  logical :: wdrifty_explicit, wdrifty_implicit
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
   real :: zed_upwind, vpa_upwind, time_upwind
   real :: gamtot_h, gamtot3_h
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
-  real, dimension (:,:,:), allocatable :: gam_stream
   real, dimension (:,:), allocatable :: gamtot3
 !  complex, dimension (:,:,:), allocatable :: gamtot_wstar, apar_denom_wstar
 !  complex, dimension (:,:), allocatable :: gamtot3_wstar
-
-!  real, dimension (:,:,:), allocatable :: kperp2
 
   ! needed for mirror term
   integer, dimension (:,:), allocatable :: mirror_sign
@@ -89,7 +84,6 @@ module dist_fn
   integer, dimension (:), allocatable :: stream_sign
   real, dimension (:,:,:), allocatable :: stream
   real, dimension (:,:), allocatable :: stream_tri_a, stream_tri_b, stream_tri_c
-!  real, dimension (:), allocatable :: stream_tri_diff_a, stream_tri_diff_b, stream_tri_diff_c
 
   ! geometrical factor multiplying ExB nonlinearity
   real :: nonlin_fac
@@ -144,14 +138,6 @@ contains
        end if
     end if
     if (.not.allocated(apar_denom)) allocate (apar_denom(naky,nakx,-nzgrid:nzgrid)) ; apar_denom = 0.
-    if (.not.allocated(gam_stream)) then
-       if (stream_implicit) then
-          allocate (gam_stream(naky,naky,-nzgrid:nzgrid))
-       else
-          allocate (gam_stream(1,1,1))
-       end if
-       gam_stream = 0.
-    end if
        
     if (fphi > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
@@ -187,20 +173,6 @@ contains
                 end do
              end if
           end if
-       end if
-
-       if (stream_implicit) then
-          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-             iky = iky_idx(kxkyz_lo,ikxkyz)
-             ikx = ikx_idx(kxkyz_lo,ikxkyz)
-             iz = iz_idx(kxkyz_lo,ikxkyz)
-             is = is_idx(kxkyz_lo,ikxkyz)
-             g0 = spread(abs(vpa*maxwellian),2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)
-             wgt = spec(is)%z*spec(is)%z*spec(is)%dens*spec(is)%stm/spec(is)%temp &
-                  * 0.5*code_dt*gradpar(1,iz)/gamtot(iky,ikx,iz)
-             call integrate_vmu (g0, iz, tmp)
-             gam_stream(iky,ikx,iz) = gam_stream(iky,ikx,iz) + tmp*wgt
-          end do
        end if
 
        deallocate (g0)
@@ -452,7 +424,6 @@ contains
 !    if (allocated(gamtot_wstar)) deallocate (gamtot_wstar)
 !    if (allocated(gamtot3_wstar)) deallocate (gamtot3_wstar)
 !    if (allocated(apar_denom_wstar)) deallocate (apar_denom_wstar)
-    if (allocated(gam_stream)) deallocate (gam_stream)
 
   end subroutine finish_get_fields
 
@@ -584,8 +555,8 @@ contains
             
     namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
-         mirror_explicit, stream_explicit, wdrifty_explicit, &!wstar_explicit, &
-         adiabatic_option, niter_stream, stream_errtol, &
+         mirror_explicit, stream_explicit, &!wdrifty_explicit, &!wstar_explicit, &
+         adiabatic_option, &
          zed_upwind, vpa_upwind, time_upwind, explicit_option
     integer :: ierr, in_file
 
@@ -605,10 +576,8 @@ contains
        time_upwind = 0.1
        mirror_explicit = .false.
        stream_explicit = .false.
-       wdrifty_explicit = .true.
+!       wdrifty_explicit = .true.
 !       wstar_explicit = .true.
-       niter_stream = 2
-       stream_errtol = 0.001
 
        in_file = input_unit_exist("dist_fn_knobs", dfexist)
        if (dfexist) read (unit=in_file, nml=dist_fn_knobs)
@@ -632,24 +601,21 @@ contains
     call broadcast (wstarknob)
     call broadcast (mirror_explicit)
     call broadcast (stream_explicit)
-    call broadcast (wdrifty_explicit)
+!    call broadcast (wdrifty_explicit)
 !    call broadcast (wstar_explicit)
-    call broadcast (niter_stream)
-    call broadcast (stream_errtol)
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
     call broadcast (time_upwind)
 
     mirror_implicit = .not.mirror_explicit
     stream_implicit = .not.stream_explicit
-    wdrifty_implicit = .not.wdrifty_explicit
+!    wdrifty_implicit = .not.wdrifty_explicit
 !    wstar_implicit = .not.wstar_explicit
 
     ! not all terms have implicit options (yet?)
     fully_implicit = .false.
 
-    if (mirror_explicit .and. stream_explicit &
-         .and. wdrifty_explicit) then
+    if (mirror_explicit .and. stream_explicit) then ! &
 !         .and. wdrifty_explicit .and. wstar_explicit) then
        fully_explicit = .true.
     else
@@ -1180,7 +1146,7 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nvgrid, nvpa
     use vpamu_grids, only: vpa
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, nztot
     use geometry, only: gradpar
 
     implicit none
@@ -1194,14 +1160,17 @@ contains
     if (.not.allocated(stream_sign)) allocate (stream_sign(-nvgrid:nvgrid)) ; stream_sign = 0
 
     ! sign of stream corresponds to appearing on RHS of GK equation
-    stream = -streamknob*code_dt*spread(spread(spec%stm,1,2*nzgrid+1),2,nvpa) &
-         * spread(spread(vpa,1,2*nzgrid+1)*spread(gradpar(1,:),2,nvpa),3,nspec)*0.5
+    ! i.e., this is the factor multiplying dg/dz on RHS of equation
+    stream = -streamknob*code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
+         * spread(spread(vpa,1,nztot)*spread(gradpar(1,:),2,nvpa),3,nspec)
 
     ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     ! NB: stream_sign = -1 corresponds to positive advection velocity
     do iv = -nvgrid, nvgrid
        stream_sign(iv) = int(sign(1.0,stream(0,iv,1)))
     end do
+    ! vpa = 0 is special case
+    stream_sign(0) = 0
 
     if (stream_implicit) call init_invert_stream_operator
 
@@ -1225,13 +1194,9 @@ contains
        allocate (stream_tri_b(nz*nseg_max+1,-1:1)) ; stream_tri_b = 0.
        allocate (stream_tri_c(nz*nseg_max+1,-1:1)) ; stream_tri_c = 0.
     end if
-!     if (.not.allocated(stream_tri_diff_a)) then
-!        allocate (stream_tri_diff_a(nz*nseg_max+1)) ; stream_tri_diff_a = 0.
-!        allocate (stream_tri_diff_b(nz*nseg_max+1)) ; stream_tri_diff_b = 0.
-!        allocate (stream_tri_diff_c(nz*nseg_max+1)) ; stream_tri_diff_c = 0.
-!     end if
 
     ! corresponds to sign of stream term positive on RHS of equation
+    ! i.e., negative parallel advection speed
     ! NB: assumes equal spacing in zed
     stream_tri_a(2:,1) = -0.5*(1.0-zed_upwind)/delzed(0)
     stream_tri_b(2:,1) = -zed_upwind/delzed(0)
@@ -1251,10 +1216,6 @@ contains
     stream_tri_a = 0.5*(1.0+time_upwind)*stream_tri_a
     stream_tri_b = 0.5*(1.0+time_upwind)*stream_tri_b
     stream_tri_c = 0.5*(1.0+time_upwind)*stream_tri_c
-
-!    stream_tri_diff_a = stream_tri_a(:,-1)-stream_tri_a(:,1)
-!    stream_tri_diff_b = stream_tri_b(:,-1)-stream_tri_b(:,1)
-!    stream_tri_diff_c = stream_tri_c(:,-1)-stream_tri_c(:,1)
 
   end subroutine init_invert_stream_operator
 
@@ -1665,7 +1626,7 @@ contains
     cfl_dt = cfl_dt_wdriftx
 
     if (stream_explicit) then
-       cfl_dt_stream = code_dt*delzed(0)/max(maxval(abs(stream*2.0)),zero)
+       cfl_dt_stream = code_dt*delzed(0)/max(maxval(abs(stream)),zero)
        cfl_dt = min(cfl_dt,cfl_dt_stream)
     end if
 
@@ -1674,19 +1635,20 @@ contains
        cfl_dt = min(cfl_dt,cfl_dt_mirror)
     end if
 
-    if (wdrifty_explicit) then
-       ! get the local max value of wdrifty on each processor
-       wdrifty_max = maxval(abs(wdrifty_g))
-       ! compare these max values across processors to get global max
-       if (nproc > 1) call max_allreduce (wdrifty_max)
-       cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*wdrifty_max,zero)
-       cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
-    end if
+!    if (wdrifty_explicit) then
+    ! get the local max value of wdrifty on each processor
+    wdrifty_max = maxval(abs(wdrifty_g))
+    ! compare these max values across processors to get global max
+    if (nproc > 1) call max_allreduce (wdrifty_max)
+    cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*wdrifty_max,zero)
+    cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
+!    end if
     
     if (proc0) then
        write (*,'(a16)') 'LINEAR CFL_DT: '
        write (*,'(a9,e12.4)') 'wdriftx: ', cfl_dt_wdriftx
-       if (wdrifty_explicit) write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
+       write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
+!       if (wdrifty_explicit) write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
        if (stream_explicit) write (*,'(a9,e12.4)'), 'stream: ', cfl_dt_stream
        if (mirror_explicit) write (*,'(a9,e12.4)'), 'mirror: ', cfl_dt_mirror
        write (*,*)
@@ -1729,66 +1691,89 @@ contains
 
   end subroutine reset_dt
 
-  subroutine advance_stella
+  subroutine advance_stella (istep)
 
-    use mp, only: proc0
-    use job_manage, only: time_message
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi0_old
 
     implicit none
 
+    integer, intent (in) :: istep
+
     ! save value of phi at z=0
     ! for use in diagnostics (to obtain frequency)
     phi0_old = phi(:,:,0)
 
-    ! start the timer for the explicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
+    ! reverse the order of operations every time step
+    ! as part of alternating direction operator splitting
+    ! this is needed to ensure 2nd order accuracy in time
+    if (mod(istep,2)==0) then
+       ! advance the explicit parts of the GKE
+       if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
 
-    ! advance the explicit parts of the GKE
-    if (.not.fully_implicit) then
-       select case (explicit_option_switch)
-       case (explicit_option_rk2)
-          ! SSP RK2
-          call advance_explicit_rk2 (gold, gnew)
-       case (explicit_option_rk3)
-          ! default is SSP RK3
-          call advance_explicit_rk3 (gold, gnew)
-       case (explicit_option_rk4)
-          ! RK4
-          call advance_explicit_rk4 (gold, gnew)
-       end select
+       ! use operator splitting to separately evolve
+       ! all terms treated implicitly
+       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+    else
+       ! use operator splitting to separately evolve
+       ! all terms treated implicitly
+       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+
+       ! advance the explicit parts of the GKE
+       if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
     end if
 
-    ! stop the timer for the explicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
-
-    ! start the timer for the implicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
-
-    ! use operator splitting to separately evolve
-    ! all terms treated implicitly
-    if (.not.fully_explicit) call advance_implicit (phi, apar, gnew)
-
-    ! stop the timer for the implict part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
-
+    ! next line is likely unnecessary
     gold = gnew
 
   end subroutine advance_stella
 
-  ! strong stability-preserving RK2
-  subroutine advance_explicit_rk2 (gold, gnew)
+  subroutine advance_explicit (phi, apar, g)
 
-    use dist_fn_arrays, only: g1
+    use mp, only: proc0
+    use job_manage, only: time_message
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+
+    ! start the timer for the explicit part of the solve
+    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
+
+    select case (explicit_option_switch)
+    case (explicit_option_rk2)
+       ! SSP RK2
+       call advance_explicit_rk2 (g)
+    case (explicit_option_rk3)
+       ! default is SSP RK3
+       call advance_explicit_rk3 (g)
+    case (explicit_option_rk4)
+       ! RK4
+       call advance_explicit_rk4 (g)
+    end select
+
+    call advance_fields (g, phi, apar, dist='gbar')
+
+    ! stop the timer for the explicit part of the solve
+    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
+
+  end subroutine advance_explicit
+
+  ! strong stability-preserving RK2
+!  subroutine advance_explicit_rk2 (gold, gnew)
+  subroutine advance_explicit_rk2 (g)
+
+    use dist_fn_arrays, only: g1, gold
     use zgrid, only: nzgrid
     use stella_layouts, only: kxkyz_lo
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: gold
-    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (out) :: gnew
+    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: icnt
     logical :: restart_time_step
@@ -1797,6 +1782,8 @@ contains
     ! then must modify time step size and restart time step
     ! assume false and test
     restart_time_step = .false.
+
+    gold = g
 
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
@@ -1805,10 +1792,10 @@ contains
     do while (icnt <= 2)
        select case (icnt)
        case (1)
-          call solve_gke (gold, g1, restart_time_step)
+          call solve_gke (g, g1, restart_time_step)
        case (2)
-          g1 = gold + g1
-          call solve_gke (g1, gnew, restart_time_step)
+          g1 = g + g1
+          call solve_gke (g1, g, restart_time_step)
        end select
        if (restart_time_step) then
           icnt = 1
@@ -1818,21 +1805,20 @@ contains
     end do
 
     ! this is gbar at intermediate time level
-    gnew = 0.5*gold + 0.5*(g1 + gnew)
+    g = 0.5*gold + 0.5*(g1 + g)
 
   end subroutine advance_explicit_rk2
 
   ! strong stability-preserving RK3
-  subroutine advance_explicit_rk3 (gold, gnew)
+  subroutine advance_explicit_rk3 (g)
 
-    use dist_fn_arrays, only: g1, g2
+    use dist_fn_arrays, only: g1, g2, gold
     use zgrid, only: nzgrid
     use stella_layouts, only: kxkyz_lo
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: gold
-    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (out) :: gnew
+    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: icnt
     logical :: restart_time_step
@@ -1841,6 +1827,8 @@ contains
     ! then must modify time step size and restart time step
     ! assume false and test
     restart_time_step = .false.
+
+    gold = g
 
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
@@ -1849,13 +1837,13 @@ contains
     do while (icnt <= 3)
        select case (icnt)
        case (1)
-          call solve_gke (gold, g1, restart_time_step)
+          call solve_gke (g, g1, restart_time_step)
        case (2)
-          g1 = gold + g1
+          g1 = g + g1
           call solve_gke (g1, g2, restart_time_step)
        case (3)
           g2 = g1 + g2
-          call solve_gke (g2, gnew, restart_time_step)
+          call solve_gke (g2, g, restart_time_step)
        end select
        if (restart_time_step) then
           icnt = 1
@@ -1865,20 +1853,19 @@ contains
     end do
 
     ! this is gbar at intermediate time level
-    gnew = gold/3. + 0.5*g1 + (g2 + gnew)/6.
+    g = gold/3. + 0.5*g1 + (g2 + g)/6.
 
   end subroutine advance_explicit_rk3
 
-  subroutine advance_explicit_rk4 (gold, gnew)
+  subroutine advance_explicit_rk4 (g)
 
-    use dist_fn_arrays, only: g1, g2, g3
+    use dist_fn_arrays, only: g1, g2, g3, gold
     use zgrid, only: nzgrid
     use stella_layouts, only: kxkyz_lo
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: gold
-    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (out) :: gnew
+    complex, dimension (:,:,-nzgrid:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: icnt
     logical :: restart_time_step
@@ -1888,6 +1875,8 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
+    gold = g
+
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
@@ -1895,22 +1884,22 @@ contains
     do while (icnt <= 4)
        select case (icnt)
        case (1)
-          call solve_gke (gold, g1, restart_time_step)
+          call solve_gke (g, g1, restart_time_step)
        case (2)
           ! g1 is h*k1
-          g3 = gold + 0.5*g1
+          g3 = g + 0.5*g1
           call solve_gke (g3, g2, restart_time_step)
           g1 = g1 + 2.*g2
        case (3)
           ! g2 is h*k2
-          g2 = gold+0.5*g2
+          g2 = g+0.5*g2
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
        case (4)
           ! g3 is h*k3
-          g3 = gold+g3
-          call solve_gke (g3, gnew, restart_time_step)
-          g1 = g1 + gnew
+          g3 = g+g3
+          call solve_gke (g3, g, restart_time_step)
+          g1 = g1 + g
        end select
        if (restart_time_step) then
           icnt = 1
@@ -1920,7 +1909,7 @@ contains
     end do
 
     ! this is gbar at intermediate time level
-    gnew = gold + g1/6.
+    g = gold + g1/6.
 
   end subroutine advance_explicit_rk4
 
@@ -1979,7 +1968,8 @@ contains
           call advance_mirror_explicit (gin, rhs)
        end if
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-       if (wdrifty_explicit) call advance_wdrifty_explicit (gin, phi, rhs)
+!       if (wdrifty_explicit) call advance_wdrifty_explicit (gin, phi, rhs)
+       call advance_wdrifty_explicit (gin, phi, rhs)
        ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
        call advance_wdriftx (gin, phi, rhs)
        ! calculate and add omega_* term to RHS of GK eqn
@@ -2400,7 +2390,7 @@ contains
 
     use mp, only: proc0, min_allreduce
     use stella_layouts, only: vmu_lo, xyz_lo
-    use stella_layouts, only: is_idx
+    use stella_layouts, only: iv_idx, is_idx
     use job_manage, only: time_message
     use finite_differences, only: second_order_centered_zed
     use finite_differences, only: third_order_upwind
@@ -2425,7 +2415,7 @@ contains
     logical, intent (out) :: restart_time_step
     
     integer :: ivmu, ixyz
-    integer :: iz, imu, is
+    integer :: iz, iv, imu, is
     integer :: iky, ie, iseg
     integer :: advect_sign
     real, dimension (:), allocatable :: dgdv
@@ -2463,6 +2453,7 @@ contains
     ! we will need to transform it to real-space
     ! as its sign is needed for upwinding of dg/dvpa
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        ! construct <phi>
        phi_gyro = aj0x(:,:,:,ivmu)*phi
@@ -2477,7 +2468,7 @@ contains
                 ! now get dg/dz
                 call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                      phi_gyro(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                     delzed(0), gleft, gright, &
+                     delzed(0), stream_sign(iv), gleft, gright, &
                      dphidz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
              end do
           end do
@@ -2739,6 +2730,11 @@ contains
     ! FLAG -- assuming delta zed is equally spaced below!
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
+       ! no need to calculate dgdz for vpa=0, as will be multipled by vpa
+       if (iv==0) then
+          dgdz(:,:,:,ivmu) = 0.
+          cycle
+       end if
        do iky = 1, naky
           do ie = 1, neigen(iky)
              do iseg = 1, nsegments(ie,iky)
@@ -2776,72 +2772,10 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + 2.0*spread(spread(stream(:,iv,is),1,naky),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(stream(:,iv,is),1,naky),2,nakx)*g(:,:,:,ivmu)
     end do
 
   end subroutine add_stream_term
-
-!   subroutine fill_zed_ghost_zones_real (iseg, ie, iky, g, gleft, gright)
-
-!     use zgrid, only: nzgrid
-!     use extended_zgrid, only: iz_low, iz_up
-!     use extended_zgrid, only: nsegments
-!     use extended_zgrid, only: ikxmod
-!     use kt_grids, only: ntheta0, nakx, naky
-!     use kt_grids, only: aky
-
-!     implicit none
-
-!     integer, intent (in) :: iseg, ie, iky
-!     real, dimension (:,:,-nzgrid:), intent (in) :: g
-!     real, dimension (:), intent (out) :: gleft, gright
-
-!     integer :: ikxneg, ikyneg
-
-!     ! stream_sign > 0 --> stream speed < 0
-
-!     if (iseg == 1) then
-!        gleft = 0.0
-!     else
-!        ! if trying to connect to a segment that 
-!        ! corresponds to kx negative, use reality
-!        ! condition to connect to positive kx instead
-!        ! (with sign of ky flipped)
-!        if (ikxmod(iseg-1,ie,iky) > nakx) then
-!           ikxneg = ntheta0-ikxmod(iseg-1,ie,iky)+2
-!           if (abs(aky(iky)) < epsilon(0.)) then
-!              ikyneg = iky
-!           else
-!              ikyneg = naky-iky+2
-!           end if
-!           gleft = g(ikyneg,ikxneg,iz_up(iseg-1)-2:iz_up(iseg-1)-1)
-!        else
-!           gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1)
-!        end if
-!     end if
-    
-!     if (nsegments(ie,iky) > iseg) then
-!        ! if trying to connect to a segment that 
-!        ! corresponds to kx negative, use reality
-!        ! condition to connect to positive kx instead
-!        ! (with sign of ky flipped)
-!        if (ikxmod(iseg+1,ie,iky) > nakx) then
-!           ikxneg = ntheta0-ikxmod(iseg+1,ie,iky)+2
-!           if (abs(aky(iky)) < epsilon(0.)) then
-!              ikyneg = iky
-!           else
-!              ikyneg = naky-iky+2
-!           end if
-!           gright = g(ikyneg,ikxneg,iz_low(iseg+1)+1:iz_low(iseg+1)+2)
-!        else
-!           ! connect to segment with larger theta-theta0 (on right)
-!           gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2)
-!        end if
-!     else
-!        gright = 0.0
-!     end if
-    
-!   end subroutine fill_zed_ghost_zones_real
 
   subroutine fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
 
@@ -3225,9 +3159,10 @@ contains
 
   end subroutine add_wstar_term
 
-  subroutine advance_implicit (phi, apar, g)
+  subroutine advance_implicit (istep, phi, apar, g)
 
-    use mp, only: mp_abort
+    use mp, only: proc0
+    use job_manage, only: time_message
     use run_parameters, only: fphi, fapar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
@@ -3235,21 +3170,56 @@ contains
 
     implicit none
 
+    integer, intent (in) :: istep
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    ! g^{*} (coming from explicit solve) is input
-    ! get g^{**}, with g^{**}-g^{*} due to mirror term
-    if (mirror_implicit) call advance_mirror_implicit (g)
+    ! start the timer for the implicit part of the solve
+    if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
-    call advance_fields (g, phi, apar, dist='gbar')
+    ! reverse the order of operations every time step
+    ! as part of alternating direction operator splitting
+    ! this is needed to ensure 2nd order accuracy in time
+    if (mod(istep,2)==0) then
+       ! g^{*} (coming from explicit solve) is input
+       ! get g^{**}, with g^{**}-g^{*} due to mirror term
+       if (mirror_implicit) then
+          call advance_mirror_implicit (g)
+          ! get updated fields corresponding to mirror-advanced g
+          call advance_fields (g, phi, apar, dist='gbar')
+       end if
 
-    ! g^{**} is input
-    ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-    if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
-
-    if (wdrifty_implicit) call advance_wdrifty_implicit (g)
+       ! g^{**} is input
+       ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
+       if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
+       
+!       if (wdrifty_implicit) then
+!          call advance_wdrifty_implicit (g)
+!          call advance_fields (g, phi, apar, dist='gbar')
+!       end if
 !    if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
+    else
+!       if (wdrifty_implicit) then
+!          call advance_wdrifty_implicit (g)
+!          call advance_fields (g, phi, apar, dist='gbar')
+!       end if
+!    if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
+
+       ! g^{**} is input
+       ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
+       if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
+
+       ! g^{*} (coming from explicit solve) is input
+       ! get g^{**}, with g^{**}-g^{*} due to mirror term
+       if (mirror_implicit) then
+          call advance_mirror_implicit (g)
+          ! get updated fields corresponding to mirror-advanced g
+          call advance_fields (g, phi, apar, dist='gbar')
+       end if
+    end if
+
+    ! stop the timer for the implict part of the solve
+    if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
   end subroutine advance_implicit
 
@@ -3525,7 +3495,7 @@ contains
     ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
     ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
@@ -3601,7 +3571,7 @@ contains
     ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
     ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
@@ -3663,7 +3633,7 @@ contains
     complex, dimension (:), allocatable :: gext
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
        is = is_idx(vmu_lo,ivmu)
        do iky = 1, naky
           if (abs(aky(iky)) < epsilon(0.)) then
@@ -3954,103 +3924,54 @@ contains
 
     iseg = 1
     llim = 1 ; ulim = nz+1
-    a(llim:ulim) = -2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
-    b(llim:ulim) = 1.0-2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
-    c(llim:ulim) = -2.0*stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
+    a(llim:ulim) = -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
+    b(llim:ulim) = 1.0-stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
+    c(llim:ulim) = -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
 
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
           ulim = llim+nz-1
-          a(llim:ulim) = -2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
-          b(llim:ulim) = 1.0-2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
-          c(llim:ulim) = -2.0*stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
+          a(llim:ulim) = -stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
+          b(llim:ulim) = 1.0-stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
+          c(llim:ulim) = -stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
        end do
     end if
-    a(ulim) = -2.0*stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a(size(stream_tri_a,1),sgn)
-    b(ulim) = 1.0-2.0*stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b(size(stream_tri_b,1),sgn)
+    a(ulim) = -stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a(size(stream_tri_a,1),sgn)
+    b(ulim) = 1.0-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b(size(stream_tri_b,1),sgn)
+    c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
     call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
 
     deallocate (a, b, c)
 
   end subroutine stream_tridiagonal_solve
 
-!   subroutine stream_phi_tridiagonal_solve (iky, ie, phi)
+!   subroutine advance_wdrifty_implicit (g)
 
-!     use finite_differences, only: tridag
+!     use constants, only: zi
+!     use stella_layouts, only: vmu_lo
+!     use zgrid, only: nzgrid
+!     use kt_grids, only: aky, naky
+!     use dist_fn_arrays, only: wdrifty_g
 
 !     implicit none
 
-!     integer, intent (in) :: iky, ie
-!     complex, dimension (:), intent (in out) :: phi
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
-!     integer :: iseg, ikx, llim, ulim
-!     integer :: nz, nseg_max, n_ext
-!     real, dimension (:), allocatable :: a, b, c
+!     integer :: ivmu, iky, iz
+!     complex :: tmp
 
-!     ! avoid double-counting at boundaries between 2pi segments
-!     nz = maxval(iz_up-iz_low)
-!     nseg_max = nsegments(ie,iky)
-
-!     n_ext = nseg_max*nz+1
-!     allocate (a(n_ext))
-!     allocate (b(n_ext))
-!     allocate (c(n_ext))
-
-!     iseg = 1
-!     ikx = ikxmod(iseg,ie,iky)
-!     llim = 1 ; ulim = iz_up(iseg)-iz_low(iseg)+1
-!     ! BACKWARDS DIFFERENCE FLAG
-!     a(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg):iz_up(iseg))*stream_tri_diff_a(llim:ulim)
-!     b(llim:ulim) = 1.0+gam_stream(iky,ikx,iz_low(iseg):iz_up(iseg))*stream_tri_diff_b(llim:ulim)
-!     c(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg):iz_up(iseg))*stream_tri_diff_c(llim:ulim)
-
-!     if (nsegments(ie,iky) > 1) then
-!        do iseg = 2, nsegments(ie,iky)
-!           ikx = ikxmod(iseg,ie,iky)
-!           llim = ulim+1
-!           ulim = llim+iz_up(iseg)-iz_low(iseg)-1
-!     ! BACKWARDS DIFFERENCE FLAG
-!           a(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg)+1:iz_up(iseg))*stream_tri_diff_a(llim:ulim)
-!           b(llim:ulim) = 1.0+gam_stream(iky,ikx,iz_low(iseg)+1:iz_up(iseg))*stream_tri_diff_b(llim:ulim)
-!           c(llim:ulim) = gam_stream(iky,ikx,iz_low(iseg)+1:iz_up(iseg))*stream_tri_diff_c(llim:ulim)
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        do iz = -nzgrid, nzgrid
+!           do iky = 1, naky
+!              tmp = 0.5*zi*aky(iky)*wdrifty_g(1,iz,ivmu)
+!              g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + tmp) / (1.0 - tmp)
+! !             g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + 2.0*tmp)
+!           end do
 !        end do
-!     end if
-!     ikx = ikxmod(nsegments(ie,iky),ie,iky)
-!     a(ulim) = gam_stream(iky,ikx,iz_up(nsegments(ie,iky)))*stream_tri_diff_a(size(stream_tri_diff_a))
-!     b(ulim) = 1.0+gam_stream(iky,ikx,iz_up(nsegments(ie,iky)))*stream_tri_diff_b(size(stream_tri_diff_b))
-!     call tridag (1, a(:ulim), b(:ulim), c(:ulim), phi)
+!     end do
 
-!     deallocate (a, b, c)
-
-!   end subroutine stream_phi_tridiagonal_solve
-
-  subroutine advance_wdrifty_implicit (g)
-
-    use constants, only: zi
-    use stella_layouts, only: vmu_lo
-    use zgrid, only: nzgrid
-    use kt_grids, only: aky, naky
-    use dist_fn_arrays, only: wdrifty_g
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-
-    integer :: ivmu, iky, iz
-    complex :: tmp
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       do iz = -nzgrid, nzgrid
-          do iky = 1, naky
-             tmp = 0.5*zi*aky(iky)*wdrifty_g(1,iz,ivmu)
-             g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + tmp) / (1.0 - tmp)
-!             g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + 2.0*tmp)
-          end do
-       end do
-    end do
-
-  end subroutine advance_wdrifty_implicit
+!   end subroutine advance_wdrifty_implicit
 
 !   subroutine advance_wstar_implicit (g, phi, apar)
 
