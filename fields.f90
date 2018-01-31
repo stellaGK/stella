@@ -22,7 +22,6 @@ contains
     use species, only: init_species
     use geometry, only: init_geometry
     use zgrid, only: init_zgrid
-!    use kt_grids, only: init_kt_grids
     use run_parameters, only: init_run_parameters
     use physics_parameters, only: init_physics_parameters
     use dist_fn, only: init_dist_fn
@@ -30,7 +29,6 @@ contains
     use dist_fn, only: stream_implicit
     use dist_fn, only: init_gxyz
     use init_g, only: ginit, init_init_g
-!    use nonlinear_terms, only: nl_finish_init => finish_init
 
     implicit none
 
@@ -207,7 +205,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use stella_time, only: code_dt
-    use zgrid, only: delzed
+    use zgrid, only: delzed, nzgrid
     use species, only: spec
     use geometry, only: gradpar
     use vpamu_grids, only: ztmax, vpa
@@ -215,6 +213,7 @@ contains
     use dist_fn_arrays, only: aj0x
     use dist_fn, only: stream_tridiagonal_solve
     use dist_fn, only: zed_upwind, time_upwind
+    use dist_fn, only: stream_sign, stream_cell
 
     implicit none
 
@@ -224,8 +223,7 @@ contains
 
     integer :: ivmu, iv, is, idxp
     integer :: nz_ext
-    integer :: sgn
-    real :: fac
+    real :: fac, fac0, fac1
 
     nz_ext = size(gext,1)
 
@@ -239,43 +237,111 @@ contains
        ! give unit impulse to phi at this zed location
        ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
 
-       ! note -- assuming equal spacing in zed below
-       fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*gradpar(1,iz)*spec(is)%stm &
+       ! NB:  assuming equal spacing in zed below
+       ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
+       ! b.gradz left out because needs to be centred in zed
+       ! if stream_cell = T
+       fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
             *aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
-       ! e.g., if centered differences, get RHS(i) = fac*(phi(i+1)-phi(i-1))*0.5
-       ! so RHS(i-1) = fac*(phi(i)-phi(i-2))*0.5
-       ! since only gave phi(i)=1 and all other phi=0,
-       ! RHS(i-1) = fac*0.5
-       ! similarly, RHS(i+1) = fac*(phi(i+2)-phi(i))*0.5
-       ! = -0.5*fac*phi(i)
-       ! if upwinded and vpa > 0, RHS(i) = fac*(phi(i)-phi(i-1))
-       ! and so RHS(i) = fac*phi(i) and RHS(i+1) = -fac*phi(i)
-
-       ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
-       ! as this affects upwinding of d<phi>/dz source term
-       if (iv < 0) then
-          ! first treat the boundary point at left-most zed
-          if (idx==1) then
-             gext(idx,ivmu) = -fac
-          else if (idx==2) then
-             gext(idx-1,ivmu) = fac
-             gext(idx,ivmu) = -zed_upwind*fac
+       if (stream_cell) then
+          fac = 0.5*fac
+          ! stream_sign < 0 corresponds to positive advection speed
+          if (stream_sign(iv)<0) then
+             if (iz > -nzgrid) then
+                ! fac0 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at this zed index
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
+                     + (1.-zed_upwind)*gradpar(1,iz-1))
+                ! fac1 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at the zed index to the right of
+                ! this one
+                if (iz < nzgrid) then
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1) &
+                        + (1.-zed_upwind)*gradpar(1,iz))
+                else
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,-nzgrid+1) &
+                        + (1.-zed_upwind)*gradpar(1,nzgrid))
+                end if
+             else
+                ! fac0 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at this zed index
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
+                     + (1.-zed_upwind)*gradpar(1,nzgrid-1))
+                ! fac1 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at the zed index to the right of
+                ! this one
+                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1) &
+                     + (1.-zed_upwind)*gradpar(1,iz))
+             end if
+             gext(idx,ivmu) = fac0
+             if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
           else
-             gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-             gext(idx,ivmu) = -zed_upwind*fac
+             if (iz < nzgrid) then
+                ! fac0 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at this zed index
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
+                     + (1.-zed_upwind)*gradpar(1,iz+1))
+                ! fac1 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at the zed index to the left of
+                ! this one
+                if (iz > -nzgrid) then
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1) &
+                        + (1.-zed_upwind)*gradpar(1,iz))
+                else
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,nzgrid-1) &
+                        + (1.-zed_upwind)*gradpar(1,iz))
+                end if
+             else
+                ! fac0 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at this zed index
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
+                     + (1.-zed_upwind)*gradpar(1,-nzgrid+1))
+                ! fac1 is the factor multiplying delphi on the RHS
+                ! of the homogeneous GKE at the zed index to the left of
+                ! this one
+                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1) &
+                     + (1.-zed_upwind)*gradpar(1,iz))
+             end if
+             gext(idx,ivmu) = -fac0
+             if (idx > 1) gext(idx-1,ivmu) = fac1
           end if
-          if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
-       else if (iv > 0) then
-          if (idx==nz_ext) then
-             gext(idx,ivmu) = fac
-          else if (idx==nz_ext-1) then
-             gext(idx+1,ivmu) = -fac
-             gext(idx,ivmu) = zed_upwind*fac
-          else
-             gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
-             gext(idx,ivmu) = zed_upwind*fac
+       else
+          fac = fac*gradpar(1,iz)
+          ! e.g., if centered differences, get RHS(i) = fac*(phi(i+1)-phi(i-1))*0.5
+          ! so RHS(i-1) = fac*(phi(i)-phi(i-2))*0.5
+          ! since only gave phi(i)=1 and all other phi=0,
+          ! RHS(i-1) = fac*0.5
+          ! similarly, RHS(i+1) = fac*(phi(i+2)-phi(i))*0.5
+          ! = -0.5*fac*phi(i)
+          ! if upwinded and vpa > 0, RHS(i) = fac*(phi(i)-phi(i-1))
+          ! and so RHS(i) = fac*phi(i) and RHS(i+1) = -fac*phi(i)
+          
+          ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
+          ! as this affects upwinding of d<phi>/dz source term
+          if (iv < 0) then
+             ! first treat the boundary point at left-most zed
+             if (idx==1) then
+                gext(idx,ivmu) = -fac
+             else if (idx==2) then
+                gext(idx-1,ivmu) = fac
+                gext(idx,ivmu) = -zed_upwind*fac
+             else
+                gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+                gext(idx,ivmu) = -zed_upwind*fac
+             end if
+             if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
+          else if (iv > 0) then
+             if (idx==nz_ext) then
+                gext(idx,ivmu) = fac
+             else if (idx==nz_ext-1) then
+                gext(idx+1,ivmu) = -fac
+                gext(idx,ivmu) = zed_upwind*fac
+             else
+                gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
+                gext(idx,ivmu) = zed_upwind*fac
+             end if
+             if (idx>1) gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
           end if
-          if (idx>1) gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
        end if
 
        ! invert parallel streaming equation to get g^{n+1} on extended zed grid

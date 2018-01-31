@@ -11,7 +11,7 @@ module finite_differences
   public :: d2_3pt
   public :: fd_variable_upwinding_vpa
   public :: fd_variable_upwinding_zed
-  public :: center_zed
+  public :: fd_cell_centres_zed, cell_centres_zed
 
   interface fd3pt
      module procedure fd3pt_real
@@ -44,28 +44,6 @@ module finite_differences
   end interface
 
 contains
-
-  ! center_zed takes f at z grid locations
-  ! and returns f at cell centres
-  ! (with possible offset due to upwinding)
-  subroutine center_zed (llim, f, sgn, upwnd, fc)
-
-    implicit none
-    
-    integer, intent (in) :: llim
-    real, dimension (llim:), intent (in) :: f
-    integer, intent (in) :: sgn
-    real, intent (in) :: upwnd
-    real, dimension (llim:), intent (out) :: fc
-
-    integer :: ulim
-
-    ulim = size(f)+llim-1
-
-    ! NB: sgn > 0 corresponds to negative advection speed
-    fc = 0.5*((1.0+sgn*upwnd)*f(:ulim-1) + (1.0-sgn*upwnd)*f(llim+1:))
-
-  end subroutine center_zed
 
   subroutine first_order_upwind_real (llim, f, del, sgn, df)
     
@@ -460,6 +438,79 @@ contains
     end do
 
   end subroutine second_order_centered_vpa
+
+  subroutine fd_cell_centres_zed (llim, f, del, sgn, fl, fr, df)
+
+    implicit none
+
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    complex, intent (in) :: fl, fr
+    complex, dimension (llim:), intent (out) :: df
+
+    integer :: i, ulim
+
+    ulim = size(f)+llim-1
+       
+    if (sgn > 0) then
+       ! if sgn > 0, then stream speed is negative
+       ! so sweep from more positive to more negative zed
+       i = ulim
+       df(i) = (fr-f(i))/del
+       do i = ulim-1, llim, -1
+          df(i) = (f(i+1)-f(i))/del
+       end do
+    else
+       ! if sgn < 0, then stream speed is positive
+       ! so sweep from more negative to more positive zed
+       i = llim
+       df(i) = (f(i)-fl)/del
+       do i = llim+1, ulim
+          df(i) = (f(i)-f(i-1))/del
+       end do
+    end if
+
+  end subroutine fd_cell_centres_zed
+
+  ! cell_centres_zed takes f at z grid locations
+  ! and returns f at cell centres
+  ! (with possible offset due to upwinding)
+  subroutine cell_centres_zed (llim, f, upwnd, sgn, fl, fr, fc)
+
+    implicit none
+
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: upwnd
+    integer, intent (in) :: sgn
+    complex, intent (in) :: fl, fr
+    complex, dimension (llim:), intent (out) :: fc
+
+    integer :: i, ulim
+
+    ulim = size(f)+llim-1
+
+    if (sgn > 0) then
+       ! if sgn > 0, then stream speed is negative
+       ! so sweep from more positive to more negative zed
+       i = ulim
+       fc(i) = 0.5*((1.-upwnd)*fr + (1.+upwnd)*f(i))
+       do i = ulim-1, llim, -1
+          fc(i) = 0.5*((1.-upwnd)*f(i+1) + (1.+upwnd)*f(i))
+       end do
+    else
+       ! if sgn < 0, then stream speed is positive
+       ! so sweep from more negative to more positive zed
+       i = llim
+       fc(i) = 0.5*((1.+upwnd)*f(i)+(1.-upwnd)*fl)
+       do i = llim+1, ulim
+          fc(i) = 0.5*((1.+upwnd)*f(i)+(1.-upwnd)*f(i-1))
+       end do
+    end if
+
+  end subroutine cell_centres_zed
 
   subroutine fd_variable_upwinding_zed (llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, df)
 

@@ -10,8 +10,8 @@ module dist_fn
   public :: init_dist_fn, finish_dist_fn
   public :: advance_stella
   public :: time_gke
-  public :: stream_tridiagonal_solve
-  public :: stream_implicit
+  public :: stream_tridiagonal_solve, stream_sign
+  public :: stream_implicit, stream_cell
   public :: adiabatic_option_switch
   public :: adiabatic_option_fieldlineavg
   public :: gamtot, gamtot3
@@ -34,6 +34,11 @@ module dist_fn
   interface get_dchidy
      module procedure get_dchidy_4d
      module procedure get_dchidy_2d
+  end interface
+
+  interface center_zed
+     module procedure center_zed_segment
+     module procedure center_zed_extended
   end interface
 
   logical :: get_fields_initialized = .false.
@@ -64,6 +69,7 @@ module dist_fn
   logical :: fully_explicit, fully_implicit
   logical :: mirror_explicit, mirror_implicit
   logical :: stream_explicit, stream_implicit
+  logical :: stream_cell
 !  logical :: wdrifty_explicit, wdrifty_implicit
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
@@ -83,7 +89,10 @@ module dist_fn
   ! needed for parallel streaming term
   integer, dimension (:), allocatable :: stream_sign
   real, dimension (:,:,:), allocatable :: stream
-  real, dimension (:,:), allocatable :: stream_tri_a, stream_tri_b, stream_tri_c
+  real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
+  real, dimension (:,:), allocatable :: stream_tri_b1, stream_tri_b2
+  real, dimension (:,:), allocatable :: stream_tri_c1, stream_tri_c2
+  real, dimension (:,:,:), allocatable :: gradpar_c
 
   ! geometrical factor multiplying ExB nonlinearity
   real :: nonlin_fac
@@ -106,12 +115,11 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
-    use stella_time, only: code_dt
     use dist_fn_arrays, only: aj0v, kperp2
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
-    use geometry, only: dl_over_b, gradpar
+    use geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nvgrid, nmu
     use vpamu_grids, only: vpa
@@ -556,7 +564,7 @@ contains
     namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, stream_explicit, &!wdrifty_explicit, &!wstar_explicit, &
-         adiabatic_option, &
+         adiabatic_option, stream_cell, &
          zed_upwind, vpa_upwind, time_upwind, explicit_option
     integer :: ierr, in_file
 
@@ -576,6 +584,7 @@ contains
        time_upwind = 0.1
        mirror_explicit = .false.
        stream_explicit = .false.
+       stream_cell = .false.
 !       wdrifty_explicit = .true.
 !       wstar_explicit = .true.
 
@@ -601,6 +610,7 @@ contains
     call broadcast (wstarknob)
     call broadcast (mirror_explicit)
     call broadcast (stream_explicit)
+    call broadcast (stream_cell)
 !    call broadcast (wdrifty_explicit)
 !    call broadcast (wstar_explicit)
     call broadcast (zed_upwind)
@@ -1147,11 +1157,11 @@ contains
     use vpamu_grids, only: nvgrid, nvpa
     use vpamu_grids, only: vpa
     use zgrid, only: nzgrid, nztot
-    use geometry, only: gradpar
+    use geometry, only: gradpar, nalpha
 
     implicit none
 
-    integer :: iv
+    integer :: iv, is
 
     if (streaminit) return
     streaminit = .true.
@@ -1172,7 +1182,23 @@ contains
     ! vpa = 0 is special case
     stream_sign(0) = 0
 
-    if (stream_implicit) call init_invert_stream_operator
+    if (stream_implicit) then
+       call init_invert_stream_operator
+       if (stream_cell) then
+          do is = 1, nspec
+             do iv = -nvgrid, nvgrid
+                call center_zed (iv, stream(:,iv,is))
+             end do
+          end do
+          if (.not.allocated(gradpar_c)) allocate (gradpar_c(nalpha,-nzgrid:nzgrid,-1:1))
+          gradpar_c = spread(gradpar,3,3)
+          ! get gradpar centred in zed for negative vpa (affects upwinding)
+          call center_zed(-1,gradpar_c(1,:,-1))
+          ! get gradpar centred in zed for positive vpa (affects upwinding)
+          call center_zed(1,gradpar_c(1,:,1))
+       end if
+    end if
+    if (.not.allocated(gradpar_c)) allocate (gradpar_c(1,1,1))
 
   end subroutine init_parstream
 
@@ -1189,33 +1215,52 @@ contains
     nz = maxval(iz_up-iz_low)
     nseg_max = maxval(nsegments)
 
-    if (.not.allocated(stream_tri_a)) then
-       allocate (stream_tri_a(nz*nseg_max+1,-1:1)) ; stream_tri_a = 0.
-       allocate (stream_tri_b(nz*nseg_max+1,-1:1)) ; stream_tri_b = 0.
-       allocate (stream_tri_c(nz*nseg_max+1,-1:1)) ; stream_tri_c = 0.
+    if (.not.allocated(stream_tri_a1)) then
+       allocate (stream_tri_a1(nz*nseg_max+1,-1:1)) ; stream_tri_a1 = 0.
+       allocate (stream_tri_a2(nz*nseg_max+1,-1:1)) ; stream_tri_a2 = 0.
+       allocate (stream_tri_b1(nz*nseg_max+1,-1:1)) ; stream_tri_b1 = 1.
+       allocate (stream_tri_b2(nz*nseg_max+1,-1:1)) ; stream_tri_b2 = 0.
+       allocate (stream_tri_c1(nz*nseg_max+1,-1:1)) ; stream_tri_c1 = 0.
+       allocate (stream_tri_c2(nz*nseg_max+1,-1:1)) ; stream_tri_c2 = 0.
     end if
 
-    ! corresponds to sign of stream term positive on RHS of equation
-    ! i.e., negative parallel advection speed
-    ! NB: assumes equal spacing in zed
-    stream_tri_a(2:,1) = -0.5*(1.0-zed_upwind)/delzed(0)
-    stream_tri_b(2:,1) = -zed_upwind/delzed(0)
-    stream_tri_c(2:,1) = (1.0+zed_upwind)*0.5/delzed(0)
-    ! must treat boundary carefully
-    stream_tri_b(1,1) = -1.0/delzed(0)
-    stream_tri_c(1,1) = 1.0/delzed(0)
-    ! corresponds to sign of stream term negative on RHS of equation
-    ! NB: assumes equal spacing in zed
-    stream_tri_a(:nz*nseg_max,-1) = -0.5*(1.0+zed_upwind)/delzed(0)
-    stream_tri_b(:nz*nseg_max,-1) = zed_upwind/delzed(0)
-    stream_tri_c(:nz*nseg_max,-1) = 0.5*(1.0-zed_upwind)/delzed(0)
-    ! must treat boundary carefully
-    stream_tri_a(nz*nseg_max+1,-1) = -1.0/delzed(0)
-    stream_tri_b(nz*nseg_max+1,-1) = 1.0/delzed(0)
+    if (stream_cell) then
+       ! corresponds to sign of stream term positive on RHS of equation
+       ! i.e., negative parallel advection speed
+       ! NB: assumes equal spacing in zed
+       stream_tri_b1(:,1) = 0.5*(1.0+zed_upwind)
+       stream_tri_b2(:,1) = -1.0/delzed(0)
+       stream_tri_c1(:nz*nseg_max,1) = 0.5*(1.0-zed_upwind)
+       stream_tri_c2(:nz*nseg_max,1) = 1.0/delzed(0)
+       ! corresponds to sign of stream term negative on RHS of equation
+       ! NB: assumes equal spacing in zed
+       stream_tri_b1(:,-1) = 0.5*(1.0+zed_upwind)
+       stream_tri_b2(:,-1) = 1.0/delzed(0)
+       stream_tri_a1(2:,-1) = 0.5*(1.0-zed_upwind)
+       stream_tri_a2(2:,-1) = -1.0/delzed(0)
+    else
+       ! corresponds to sign of stream term positive on RHS of equation
+       ! i.e., negative parallel advection speed
+       ! NB: assumes equal spacing in zed
+       stream_tri_a2(2:,1) = -0.5*(1.0-zed_upwind)/delzed(0)
+       stream_tri_b2(2:,1) = -zed_upwind/delzed(0)
+       stream_tri_c2(2:,1) = (1.0+zed_upwind)*0.5/delzed(0)
+       ! must treat boundary carefully
+       stream_tri_b2(1,1) = -1.0/delzed(0)
+       stream_tri_c2(1,1) = 1.0/delzed(0)
+       ! corresponds to sign of stream term negative on RHS of equation
+       ! NB: assumes equal spacing in zed
+       stream_tri_a2(:nz*nseg_max,-1) = -0.5*(1.0+zed_upwind)/delzed(0)
+       stream_tri_b2(:nz*nseg_max,-1) = zed_upwind/delzed(0)
+       stream_tri_c2(:nz*nseg_max,-1) = 0.5*(1.0-zed_upwind)/delzed(0)
+       ! must treat boundary carefully
+       stream_tri_a2(nz*nseg_max+1,-1) = -1.0/delzed(0)
+       stream_tri_b2(nz*nseg_max+1,-1) = 1.0/delzed(0)
+    end if
 
-    stream_tri_a = 0.5*(1.0+time_upwind)*stream_tri_a
-    stream_tri_b = 0.5*(1.0+time_upwind)*stream_tri_b
-    stream_tri_c = 0.5*(1.0+time_upwind)*stream_tri_c
+    stream_tri_a2 = 0.5*(1.0+time_upwind)*stream_tri_a2
+    stream_tri_b2 = 0.5*(1.0+time_upwind)*stream_tri_b2
+    stream_tri_c2 = 0.5*(1.0+time_upwind)*stream_tri_c2
 
   end subroutine init_invert_stream_operator
 
@@ -3469,7 +3514,7 @@ contains
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax
-    use geometry, only: gradpar
+    use geometry, only: gradpar, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
 
@@ -3482,11 +3527,13 @@ contains
     integer :: ivmu, iv, is, iz
     real :: tupwnd, fac
     real, dimension (:), allocatable :: vpadf0dE_fac
+    real, dimension (:,:), allocatable :: gp
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
+    allocate (gp(nalpha,-nzgrid:nzgrid))
 
     tupwnd = 0.5*(1.0-time_upwind)
 
@@ -3499,13 +3546,21 @@ contains
        is = is_idx(vmu_lo,ivmu)
 
        ! obtain dg^{n}/dz and store in dgdz
-       call get_dzed (iv,gold(:,:,:,ivmu),dgdz)
+       if (stream_cell) then
+          call get_dzed_cell (iv,gold(:,:,:,ivmu),dgdz)
+       else
+          call get_dzed (iv,gold(:,:,:,ivmu),dgdz)
+       end if
 
        ! construct <phi^{n}>
        g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phiold
 
        ! obtain d<phi^{n}>/dz and store in dphidz
-       call get_dzed (iv,g(:,:,:,ivmu),dphidz)
+       if (stream_cell) then
+          call get_dzed_cell (iv,g(:,:,:,ivmu),dphidz)
+       else
+          call get_dzed (iv,g(:,:,:,ivmu),dphidz)
+       end if
 
        fac = tupwnd*code_dt*spec(is)%stm
 
@@ -3518,17 +3573,30 @@ contains
           do iz = -nzgrid, nzgrid
              vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,ivmu)
           end do
+          if (stream_cell) call center_zed (iv,vpadf0dE_fac)
+       end if
+
+       g(:,:,:,ivmu) = gold(:,:,:,ivmu)
+       if (stream_cell) then
+          call center_zed (iv,g(:,:,:,ivmu))
+          if (iv < 0) then
+             gp = gradpar_c(:,:,-1)
+          else
+             gp = gradpar_c(:,:,1)
+          end if
+       else
+          gp = gradpar
        end if
 
        ! construct RHS of GK eqn for inhomogeneous g
        do iz = -nzgrid, nzgrid
-          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - fac*gradpar(1,iz) &
+          g(:,:,iz,ivmu) = g(:,:,iz,ivmu) - fac*gp(1,iz) &
                * (vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
        end do
 
     end do
 
-    deallocate (vpadf0dE_fac)
+    deallocate (vpadf0dE_fac, gp)
     deallocate (dgdz, dphidz)
 
   end subroutine get_gke_rhs_inhomogeneous
@@ -3543,7 +3611,7 @@ contains
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax
-    use geometry, only: gradpar
+    use geometry, only: gradpar, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
 
@@ -3556,9 +3624,11 @@ contains
     integer :: ivmu, iv, is, iz
     real :: tupwnd1, tupwnd2, fac
     real, dimension (:), allocatable :: vpadf0dE_fac
+    real, dimension (:,:), allocatable :: gp
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+    allocate (gp(nalpha,-nzgrid:nzgrid))
     allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
 
@@ -3577,12 +3647,20 @@ contains
        ! obtain dg^{n}/dz and store in dgdz
        ! NB: could eliminate this calculation at the expense of memory
        ! as this was calculated previously
-       call get_dzed (iv,gold(:,:,:,ivmu),dgdz)
+       if (stream_cell) then
+          call get_dzed_cell (iv,gold(:,:,:,ivmu),dgdz)
+       else
+          call get_dzed (iv,gold(:,:,:,ivmu),dgdz)
+       end if
 
        ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
        g(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*(tupwnd1*phiold+tupwnd2*phi)
        ! obtain d<phi>/dz and store in dphidz
-       call get_dzed (iv,g(:,:,:,ivmu),dphidz)
+       if (stream_cell) then
+          call get_dzed_cell (iv,g(:,:,:,ivmu),dphidz)
+       else
+          call get_dzed (iv,g(:,:,:,ivmu),dphidz)
+       end if
 
        fac = code_dt*spec(is)%stm
 
@@ -3595,16 +3673,29 @@ contains
           do iz = -nzgrid, nzgrid
              vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,ivmu)
           end do
+          if (stream_cell) call center_zed (iv,vpadf0dE_fac)
+       end if
+
+       g(:,:,:,ivmu) = gold(:,:,:,ivmu)
+       if (stream_cell) then
+          call center_zed (iv,g(:,:,:,ivmu))
+          if (iv < 0) then
+             gp = gradpar_c(:,:,-1)
+          else
+             gp = gradpar_c(:,:,1)
+          end if
+       else
+          gp = gradpar
        end if
 
        ! construct RHS of GK eqn
        do iz = -nzgrid, nzgrid
-          g(:,:,iz,ivmu) = gold(:,:,iz,ivmu) - fac*gradpar(1,iz) &
+          g(:,:,iz,ivmu) = g(:,:,iz,ivmu) - fac*gp(1,iz) &
                * (tupwnd1*vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
        end do
     end do
 
-    deallocate (vpadf0dE_fac)
+    deallocate (vpadf0dE_fac, gp)
     deallocate (dgdz, dphidz)
 
   end subroutine get_gke_rhs
@@ -3896,6 +3987,105 @@ contains
 
   end subroutine get_dzed
 
+  subroutine get_dzed_cell (iv, g, dgdz)
+
+    use finite_differences, only: fd_cell_centres_zed
+    use kt_grids, only: naky, nakx
+    use zgrid, only: nzgrid, delzed
+    use extended_zgrid, only: neigen, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+
+    implicit none
+
+    integer, intent (in) :: iv
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: dgdz
+
+    integer :: iky, ie, iseg
+    complex, dimension (2) :: gleft, gright
+
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          do iseg = 1, nsegments(ie,iky)
+             ! if iseg,ie,iky corresponds to negative kx, no need to solve
+             ! as it will be constrained by reality condition
+             if (ikxmod(iseg,ie,iky) > nakx) cycle
+
+             ! first fill in ghost zones at boundaries in g(z)
+             call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
+             ! get finite difference approximation for dg/dz at cell centres
+             ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
+             call fd_cell_centres_zed (iz_low(iseg), &
+                  g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
+                  delzed(0), stream_sign(iv), gleft(2), gright(1), &
+                  dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+          end do
+       end do
+    end do
+
+  end subroutine get_dzed_cell
+
+  subroutine center_zed_extended (iv, g)
+
+    use finite_differences, only: cell_centres_zed
+    use kt_grids, only: naky, nakx
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: neigen, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+
+    implicit none
+
+    integer, intent (in) :: iv
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+
+    integer :: iky, ie, iseg
+    complex, dimension (2) :: gleft, gright
+    complex, dimension (:,:), allocatable :: gc
+
+    allocate (gc(nakx,-nzgrid:nzgrid))
+
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          do iseg = 1, nsegments(ie,iky)
+             ! if iseg,ie,iky corresponds to negative kx, no need to solve
+             ! as it will be constrained by reality condition
+             if (ikxmod(iseg,ie,iky) > nakx) cycle
+
+             ! first fill in ghost zones at boundaries in g(z)
+             call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
+             ! get cell centres values 
+             call cell_centres_zed (iz_low(iseg), &
+                  g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
+                  zed_upwind, stream_sign(iv), gleft(2), gright(1), &
+                  gc(ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+          end do
+       end do
+       g(iky,:,:) = gc
+    end do
+
+    deallocate (gc)
+
+  end subroutine center_zed_extended
+
+  subroutine center_zed_segment (iv, g)
+
+    use zgrid, only: nzgrid
+
+    integer, intent (in) :: iv
+    real, dimension (-nzgrid:), intent (in out) :: g
+
+    if (stream_sign(iv) > 0) then
+       g(:nzgrid-1) = 0.5*((1.+zed_upwind)*g(:nzgrid-1) + (1.-zed_upwind)*g(-nzgrid+1:))
+       g(nzgrid) = g(-nzgrid)
+    else
+       g(-nzgrid+1:) = 0.5*((1.-zed_upwind)*g(:nzgrid-1) + (1.+zed_upwind)*g(-nzgrid+1:))
+       g(-nzgrid) = g(nzgrid)
+    end if
+
+  end subroutine center_zed_segment
+
   subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
 
     use finite_differences, only: tridag
@@ -3908,7 +4098,7 @@ contains
     integer, intent (in) :: iky, ie, iv, is
     complex, dimension (:), intent (in out) :: g
 
-    integer :: iseg, llim, ulim
+    integer :: iseg, llim, ulim, n
     integer :: nz, nseg_max, sgn, n_ext
     real, dimension (:), allocatable :: a, b, c
 
@@ -3924,21 +4114,28 @@ contains
 
     iseg = 1
     llim = 1 ; ulim = nz+1
-    a(llim:ulim) = -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
-    b(llim:ulim) = 1.0-stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
-    c(llim:ulim) = -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
+    a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
+         - stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+    b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
+         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+    c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
+         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
 
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
           ulim = llim+nz-1
-          a(llim:ulim) = -stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a(llim:ulim,sgn)
-          b(llim:ulim) = 1.0-stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b(llim:ulim,sgn)
-          c(llim:ulim) = -stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c(llim:ulim,sgn)
+          a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
+               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+          b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
+               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+          c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
+               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
        end do
     end if
-    a(ulim) = -stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a(size(stream_tri_a,1),sgn)
-    b(ulim) = 1.0-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b(size(stream_tri_b,1),sgn)
+    n = size(stream_tri_a1,1)
+    a(ulim) = stream_tri_a1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
+    b(ulim) = stream_tri_b1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
     c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
     call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
 
@@ -4066,6 +4263,7 @@ contains
 
     if (allocated(stream)) deallocate (stream)
     if (allocated(stream_sign)) deallocate (stream_sign)
+    if (allocated(gradpar_c)) deallocate (gradpar_c)
 
     if (stream_implicit) call finish_invert_stream_operator
 
@@ -4077,10 +4275,13 @@ contains
 
     implicit none
 
-    if (allocated(stream_tri_a)) then
-       deallocate (stream_tri_a)
-       deallocate (stream_tri_b)
-       deallocate (stream_tri_c)
+    if (allocated(stream_tri_a1)) then
+       deallocate (stream_tri_a1)
+       deallocate (stream_tri_a2)
+       deallocate (stream_tri_b1)
+       deallocate (stream_tri_b2)
+       deallocate (stream_tri_c1)
+       deallocate (stream_tri_c2)
     end if
 
   end subroutine finish_invert_stream_operator
