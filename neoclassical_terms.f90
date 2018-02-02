@@ -189,9 +189,8 @@ contains
 
     use finite_differences, only: fd5pt
     use zgrid, only: nztot, nzgrid, delzed
-    use vpamu_grids, only: nvgrid, nmu, mu
+    use vpamu_grids, only: nvgrid, nmu
     use species, only: nspec
-    use geometry, only: bmag
     use stella_layouts, only: vmu_lo
 
     implicit none
@@ -337,7 +336,6 @@ contains
     use species, only: nspec
     use zgrid, only: nzgrid, zed
     use vpamu_grids, only: nvgrid, nmu, vpa, mu
-    use geometry, only: bmag
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_layouts, only: idx_local, proc_id

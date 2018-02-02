@@ -231,13 +231,14 @@ contains
     if (write_omega .and. proc0) then
        zero = 100.*epsilon(0.)
        allocate (omega_avg(naky,nakx))
-       where (abs(phi(:,:,0)) < zero .or. abs(phi0_old) < zero)
-          omega_vs_time(mod(istep,navg)+1,:,:) = 0.0
-       elsewhere
-          omega_vs_time(mod(istep,navg)+1,:,:) = log(phi(:,:,0)/phi0_old)*zi/code_dt
-       end where
-       omega_avg = sum(omega_vs_time,dim=1)/real(navg)
-!       write (*,*) real(omega_avg(1,1)), real(omega_vs_time(mod(istep,navg)+1,1,1)), mod(istep,navg)+1, istep, navg
+       if (istep > 0) then
+          where (abs(phi(:,:,0)) < zero .or. abs(phi0_old) < zero)
+             omega_vs_time(mod(istep,navg)+1,:,:) = 0.0
+          elsewhere
+             omega_vs_time(mod(istep,navg)+1,:,:) = log(phi(:,:,0)/phi0_old)*zi/code_dt
+          end where
+          omega_avg = sum(omega_vs_time,dim=1)/real(navg)
+       end if
     else
        allocate (omega_avg(1,1))
     end if
@@ -574,7 +575,7 @@ contains
     str = trim('('//trim(nspec_str)//'e12.4)')
     write (fluxes_unit,str) code_time, pflx, vflx, qflx
 
-    if (write_omega) then
+    if (write_omega .and. istep > 0) then
        do iky = 1, naky
           do ikx = 1, nakx
              write (omega_unit,'(7e12.4)') code_time, aky(iky), akx(ikx),&

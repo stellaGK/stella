@@ -68,7 +68,7 @@ module dist_fn
 
   logical :: fully_explicit, fully_implicit
   logical :: mirror_explicit, mirror_implicit
-  logical :: mirror_semi_lagrange
+  logical :: mirror_semi_lagrange, mirror_linear_interp
   logical :: stream_explicit, stream_implicit
   logical :: stream_cell
 !  logical :: wdrifty_explicit, wdrifty_implicit
@@ -569,7 +569,7 @@ contains
             
     namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
-         mirror_explicit, mirror_semi_lagrange, &
+         mirror_explicit, mirror_semi_lagrange, mirror_linear_interp, &
          stream_explicit, stream_cell, &!wdrifty_explicit, &!wstar_explicit, &
          adiabatic_option, &
          zed_upwind, vpa_upwind, time_upwind, explicit_option
@@ -591,6 +591,7 @@ contains
        time_upwind = 0.1
        mirror_explicit = .false.
        mirror_semi_lagrange = .false.
+       mirror_linear_interp = .true.
        stream_explicit = .false.
        stream_cell = .false.
 !       wdrifty_explicit = .true.
@@ -618,6 +619,7 @@ contains
     call broadcast (wstarknob)
     call broadcast (mirror_explicit)
     call broadcast (mirror_semi_lagrange)
+    call broadcast (mirror_linear_interp)
     call broadcast (stream_explicit)
     call broadcast (stream_cell)
 !    call broadcast (wdrifty_explicit)
@@ -1054,8 +1056,6 @@ contains
 
     implicit none
 
-    integer :: iz
-
     if (.not.allocated(mirror_interp_idx_shift)) &
          allocate(mirror_interp_idx_shift(nalpha,-nzgrid:nzgrid,nmu,nspec))
     if (.not.allocated(mirror_interp_loc)) &
@@ -1063,12 +1063,6 @@ contains
 
     mirror_interp_idx_shift = int(mirror/dvpa)
     mirror_interp_loc = abs(mod(mirror,dvpa))/dvpa
-
-!    do iz = -nzgrid, nzgrid
-!       write (*,*) 'mirror_semi_lagrange', mirror_interp_idx_shift(1,iz,nmu,1), &
-!            mirror_interp_idx_shift(1,iz,nmu,2), mirror_interp_loc(1,iz,nmu,1), &
-!            mirror_interp_loc(1,iz,nmu,2), mirror(1,iz,nmu,1), mirror(1,iz,nmu,2), dvpa
-!    end do
 
     ! f at shifted vpa
     ! is f(iv+idx_shift)*(1-mirror_interp_loc)
@@ -3333,9 +3327,9 @@ contains
     use zgrid, only: nzgrid
     use dist_fn_arrays, only: gvmu
     use kt_grids, only: alpha_global
-    use kt_grids, only: ny, nakx, naky
+    use kt_grids, only: ny, nakx
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: dvpa, maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: dvpa, maxwell_vpa
     use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
@@ -3345,8 +3339,6 @@ contains
     integer :: ikxyz, ikxkyz, ivmu
     integer :: iv, imu, iz, is
     real :: tupwnd
-    integer :: llim, ulim, sgn, shift
-    real :: fac1, fac2
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:), allocatable :: g0x
 
@@ -3436,28 +3428,7 @@ contains
        allocate (g0x(1,1,1,1))
 
        if (mirror_semi_lagrange) then
-          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-             iz = iz_idx(kxkyz_lo,ikxkyz)
-             is = is_idx(kxkyz_lo,ikxkyz)
-             do imu = 1, nmu
-                shift = mirror_interp_idx_shift(1,iz,imu,is)
-                sgn = mirror_sign(1,iz)
-                llim = -sgn*nvgrid
-                ulim = -(llim+sgn)-shift
-                fac1 = 1.0-mirror_interp_loc(1,iz,imu,is)
-                fac2 = mirror_interp_loc(1,iz,imu,is)
-                do iv = llim, ulim, sgn
-                   g0v(iv,imu,ikxkyz) = gvmu(iv+shift,imu,ikxkyz)*fac1 &
-                        + gvmu(iv+shift+sgn,imu,ikxkyz)*fac2
-                end do
-                g0v(ulim+sgn,imu,ikxkyz) = gvmu(ulim+shift+sgn,imu,ikxkyz)*fac1
-                if (shift > 0) then
-                   g0v(nvgrid-shift+1:,imu,ikxkyz) = 0.
-                else if (shift < 0) then
-                   g0v(:-nvgrid-shift-1,imu,ikxkyz) = 0.
-                end if
-             end do
-          end do
+          call vpa_interpolation (gvmu, g0v)
        else
           do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
              iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -3501,6 +3472,119 @@ contains
     if (proc0) call time_message(.false.,time_gke(:,2),' Mirror advance')
 
   end subroutine advance_mirror_implicit
+
+  subroutine vpa_interpolation (grid, interp)
+
+    use vpamu_grids, only: nvgrid, nmu
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iz_idx, is_idx
+
+    implicit none
+
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: grid
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (out) :: interp
+
+    integer :: ikxkyz, iz, is, iv, imu
+    integer :: shift, sgn, llim, ulim
+    real :: fac0, fac1, fac2, fac3
+    real :: tmp0, tmp1, tmp2, tmp3
+
+    if (mirror_linear_interp) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             shift = mirror_interp_idx_shift(1,iz,imu,is)
+             sgn = mirror_sign(1,iz)
+             llim = -sgn*nvgrid
+             ulim = -(llim+sgn)-shift
+             fac1 = 1.0-mirror_interp_loc(1,iz,imu,is)
+             fac2 = mirror_interp_loc(1,iz,imu,is)
+             do iv = llim, ulim, sgn
+                interp(iv,imu,ikxkyz) = grid(iv+shift,imu,ikxkyz)*fac1 &
+                     + grid(iv+shift+sgn,imu,ikxkyz)*fac2
+             end do
+             ! at boundary cell, use zero incoming BC for point just beyond boundary
+             interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)*fac1
+             ! use zero incoming BC for cells beyond +/- nvgrid
+             if (shift > 0) then
+                interp(nvgrid-shift+1:,imu,ikxkyz) = 0.
+             else if (shift < 0) then
+                interp(:-nvgrid-shift-1,imu,ikxkyz) = 0.
+             end if
+          end do
+       end do
+    else
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             ! TMP FOR TESTING -- MAB
+!             interp(:,imu,ikxkyz) = -99.0
+
+             tmp0 = mirror_interp_loc(1,iz,imu,is)
+             tmp1 = tmp0 - 2.0
+             tmp2 = tmp0 - 1.0
+             tmp3 = tmp0 + 1.0
+
+             shift = mirror_interp_idx_shift(1,iz,imu,is)
+             sgn = mirror_sign(1,iz)
+
+             if (shift==0) then
+                ! deal with boundary point near outgoing BC
+                ! using 2-point (linear) interpolation
+                ! could do 3-point to improve accuracy
+                fac1 = 1.0-tmp0
+                fac2 = tmp0
+                llim = -sgn*(nvgrid-1)
+                ulim = sgn*(nvgrid-2)-shift
+                iv = llim-sgn
+                interp(iv,imu,ikxkyz) = grid(iv+shift,imu,ikxkyz)*fac1 &
+                     + grid(iv+shift+sgn,imu,ikxkyz)*fac2
+             else
+                llim = -sgn*nvgrid
+                ulim = -(llim+2*sgn)-shift
+             end if
+
+             if (sgn*ulim < sgn*llim) then
+                interp(:,imu,ikxkyz) = 0.
+             else
+                ! coefficient multiplying g_{iv-1}
+                fac0 = -tmp0*tmp1*tmp2
+                ! coefficient multiplying g_{iv}
+                fac1 = 3.*tmp1*tmp2*tmp3
+                ! coefficient multiplying g_{iv+1}
+                fac2 = -3.*tmp0*tmp1*tmp3
+                ! coefficient multiplying g_{iv+2}
+                fac3 = tmp0*tmp2*tmp3
+                do iv = llim, ulim, sgn
+                   interp(iv,imu,ikxkyz) = (grid(iv+shift-sgn,imu,ikxkyz)*fac0 &
+                        + grid(iv+shift,imu,ikxkyz)*fac1 &
+                        + grid(iv+shift+sgn,imu,ikxkyz)*fac2 &
+                        + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6.
+                end do
+
+                ! at boundary cell, use zero incoming BC for point just beyond boundary
+                interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
+                     + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
+                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac2)/6.
+                interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
+                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac1)/6.
+                ! use zero incoming BC for cells beyond +/- nvgrid
+                if (shift > 0) then
+                   interp(nvgrid-shift+1:,imu,ikxkyz) = 0.
+                else if (shift < 0) then
+                   interp(:-nvgrid-shift-1,imu,ikxkyz) = 0.
+                end if
+!                do iv = -nvgrid, nvgrid
+!                   write (*,*) 'interp', iv, real(interp(iv,imu,ikxkyz)), aimag(interp(iv,imu,ikxkyz))
+!                end do
+             end if
+          end do
+       end do
+    end if
+
+  end subroutine vpa_interpolation
 
   subroutine invert_mirror_operator (imu, ilo, g)
 
@@ -3930,6 +4014,8 @@ contains
           if (any(ikxmod(:nsegments(ie,iky),ie,iky) <= nakx)) then
              allocate (gext(nsegments_poskx(ie,iky)*nzed_segment+1))
              call get_fields_on_extended_zgrid (ie, iky, phi(iky,:,:), gext)
+             ! TMP FOR TESTING -- MAB
+!             gext = 0.
              call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
                   response_matrix(iky)%eigen(ie)%idx, gext)
              call get_fields_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
