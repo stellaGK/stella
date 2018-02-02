@@ -178,7 +178,7 @@ contains
     write (fluxes_unit,str) '#time', 'pflx', 'vflx', 'qflx'
     if (write_omega) then
        call open_output_file (omega_unit,'.omega')
-       write (omega_unit,'(7a12)'), '#time', 'ky', 'kx', &
+       write (omega_unit,'(7a12)') '#time', 'ky', 'kx', &
             'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
     end if
 
@@ -567,7 +567,7 @@ contains
     character (100) :: str
     integer :: ikx, iky
 
-    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)'), 'istep=', istep, &
+    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
          'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
 
     write (nspec_str,'(i3)') 3*nspec+1

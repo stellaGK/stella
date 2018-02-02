@@ -210,13 +210,13 @@ contains
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              ! hack to avoid dealing with negative indices in fd5pt
-             ! fneo is F_nc * exp(2*mu*B) * ...
-             ! need to get rid of z-dependent exponential before
-             ! taking d/dz
-             tmp1 = fneo(:,iv,imu,is)*exp(-2.0*mu(imu)*bmag(1,:))
+!             ! fneo is F_nc * exp(2*mu*B) * ...
+!             ! need to get rid of z-dependent exponential before
+!             ! taking d/dz
+             tmp1 = fneo(:,iv,imu,is)!*exp(-2.0*mu(imu)*bmag(1,:))
              call fd5pt (tmp1, tmp2, delzed(0))
              ! put the z-dependent exponential normalization factor back
-             dfneo_local(:,iv,imu,is) = tmp2*exp(2.0*mu(imu)*bmag(1,:))
+             dfneo_local(:,iv,imu,is) = tmp2!*exp(2.0*mu(imu)*bmag(1,:))
           end do
        end do
     end do
@@ -291,9 +291,6 @@ contains
     allocate (tmp1(nztot), tmp2(nztot))
 
     ! hack to avoid dealing with negative indices in fd5pt
-    ! fneo is F_nc * exp(2*mu*B) * ...
-    ! need to get rid of z-dependent exponential before
-    ! taking d/dz
     tmp1 = phineo
     call fd5pt (tmp1, tmp2, delzed(0))
     dphineo = tmp2
@@ -387,10 +384,10 @@ contains
           if (proc0) then
              do iz = -nzgrid, nzgrid
                 write (neo_unit,'(2i8,10e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
-                     fnc(iz,iv,imu,is,irad)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                     dfdv_local(iz)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                     dfdr_local(iz)*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                     dfdz_local(iz)*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     fnc(iz,iv,imu,is,irad), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     dfdv_local(iz), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     dfdr_local(iz), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     dfdz_local(iz), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
                      phinc(iz,irad), dphineo_drho(iz), dphineo_dzed(iz)
              end do
              write (neo_unit,*)

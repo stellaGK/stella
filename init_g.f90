@@ -427,7 +427,7 @@ contains
     use zgrid, only: nzgrid, zed
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: vpa, vperp2, maxwellian
+    use vpamu_grids, only: vpa, vperp2, maxwell_vpa, maxwell_mu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx
     use constants, only: zi
@@ -472,7 +472,7 @@ contains
        ig = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             gvmu(iv,imu,ikxkyz) = phiinit*maxwellian(iv) &
+             gvmu(iv,imu,ikxkyz) = phiinit*maxwell_vpa(iv)*maxwell_mu(1,ig,imu) &
                   * ( dfac(ig)*phi(iky,ikx,ig) &
                   + 2.0*vpa(iv)*ufac(ig)*odd(iky,ikx,ig) &
                   + (vpa(iv)**2-0.5)*tparfac(ig)*phi(iky,ikx,ig) &

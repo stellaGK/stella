@@ -8,7 +8,7 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu
-  public :: vperp2, maxwellian, ztmax
+  public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
   
   integer :: nvgrid, nvpa
   integer :: nmu
@@ -17,7 +17,8 @@ module vpamu_grids
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: mu, wgts_mu
   real, dimension (:), allocatable :: vpa, wgts_vpa
-  real, dimension (:), allocatable :: maxwellian
+  real, dimension (:), allocatable :: maxwell_vpa
+  real, dimension (:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
 
@@ -107,7 +108,7 @@ contains
        ! to the parallel velocity grid points
        allocate (wgts_vpa(-nvgrid:nvgrid)) ; wgts_vpa = 0.0
        ! this is the Maxwellian in vpa
-       allocate (maxwellian(-nvgrid:nvgrid)) ; maxwellian = 0.0
+       allocate (maxwell_vpa(-nvgrid:nvgrid)) ; maxwell_vpa = 0.0
        allocate (ztmax(-nvgrid:nvgrid,nspec)) ; ztmax = 0.0
     end if
 
@@ -125,8 +126,8 @@ contains
     dvpa = vpa(1)-vpa(0)
 
     ! this is the equilibrium Maxwellian in vpa
-    maxwellian = exp(-vpa*vpa)
-    ztmax = spread(spec%zt,1,nvpa)*spread(maxwellian,2,nspec)
+    maxwell_vpa = exp(-vpa*vpa)
+    ztmax = spread(spec%zt,1,nvpa)*spread(maxwell_vpa,2,nspec)
 
     ! get integration weights corresponding to vpa grid points
     ! for now use Simpson's rule; 
@@ -163,7 +164,7 @@ contains
     do is = 1, nspec
        ! sum over mu
        do imu = 1, nmu
-          total(is) = total(is) + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*bmag(1,iz)*g(imu,is)
+          total(is) = total(is) + wgts_mu(imu)*bmag(1,iz)*g(imu,is)
        end do
     end do
 
@@ -190,7 +191,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu) + nvgrid+1
-       total(iv,is) = total(iv,is) + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*bmag(1,iz)*g(ivmu)
+       total(iv,is) = total(iv,is) + wgts_mu(imu)*bmag(1,iz)*g(ivmu)
     end do
 
     if (nproc > 1) call sum_reduce (total,0)
@@ -213,7 +214,7 @@ contains
     
     do imu = 1, nmu
        do iv = -nvgrid, nvgrid
-          total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
+          total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
        end do
     end do
 
@@ -235,7 +236,7 @@ contains
     
     do imu = 1, nmu
        do iv = -nvgrid, nvgrid
-          total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
+          total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
        end do
     end do
 
@@ -260,7 +261,7 @@ contains
     do is = 1, nspec
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
+             total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
           end do
        end do
     end do
@@ -286,7 +287,7 @@ contains
     do is = 1, nspec
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             total = total + exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
+             total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
           end do
        end do
     end do
@@ -317,7 +318,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        do iz = -nzgrid, nzgrid
           total(iz,:,:) = total(iz,:,:) + &
-               exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iz,:,:,ivmu)*weights(is)
+               wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iz,:,:,ivmu)*weights(is)
        end do
     end do
 
@@ -348,7 +349,7 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        total = total + &
-            exp(-2.0*mu(imu)*bmag(1,iz))*wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(ivmu)*weights(is)
+            wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(ivmu)*weights(is)
     end do
 
     call sum_allreduce (total)
@@ -361,7 +362,7 @@ contains
 
     if (allocated(vpa)) deallocate (vpa)
     if (allocated(wgts_vpa)) deallocate (wgts_vpa)
-    if (allocated(maxwellian)) deallocate (maxwellian)
+    if (allocated(maxwell_vpa)) deallocate (maxwell_vpa)
     if (allocated(ztmax)) deallocate (ztmax)
 
   end subroutine finish_vpa_grid
@@ -370,7 +371,8 @@ contains
 
     use constants, only: pi
     use gauss_quad, only: get_laguerre_grids
-    use geometry, only: bmag
+    use zgrid, only: nzgrid, nztot
+    use geometry, only: bmag, nalpha
     
     implicit none
 
@@ -380,6 +382,7 @@ contains
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
        allocate (wgts_mu(nmu)) ; wgts_mu = 0.0
+       allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu)) ; maxwell_mu = 0.0
     end if
 
     allocate (dmu(nmu-1)) ; dmu = 0.0
@@ -400,6 +403,9 @@ contains
     ! applied when doing integrals
     wgts_mu = wgts_mu*2./sqrt(pi)
 
+    ! this is the mu part of the v-space Maxwellian
+    maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
+
     deallocate (dmu)
 
   end subroutine init_mu_grid
@@ -410,6 +416,7 @@ contains
 
     if (allocated(mu)) deallocate (mu)
     if (allocated(wgts_mu)) deallocate (wgts_mu)
+    if (allocated(maxwell_mu)) deallocate (maxwell_mu)
 
   end subroutine finish_mu_grid
 

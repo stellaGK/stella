@@ -74,7 +74,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: maxwellian, vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -84,19 +84,19 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
     real, intent (in) :: facphi, facapar
 
-    integer :: ivmu, ig, iky, ikx, is, imu, iv
+    integer :: ivmu, iz, iky, ikx, is, imu, iv
     complex :: adj
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do ig = -nzgrid, nzgrid
+       do iz = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) &
-                     * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
-                g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
+                adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
+                     * ( facphi*phi(iky,ikx,iz) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
+                g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) + adj
              end do
           end do
        end do
@@ -108,7 +108,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: maxwellian, vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -118,18 +118,18 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
     real, intent (in) :: facphi, facapar
 
-    integer :: ikxkyz, ig, iky, ikx, is, imu, iv
+    integer :: ikxkyz, iz, iky, ikx, is, imu, iv
     complex :: adj
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = iz_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) &
-                  * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
+             adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
+                  * ( facphi*phi(iky,ikx,iz) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
           end do
        end do
@@ -137,78 +137,11 @@ contains
 
   end subroutine gbar_to_h_kxkyz
 
-!   subroutine gbar_to_hhat_vmu (g, phi, apar, facphi, facapar)
-
-!     use species, only: spec
-!     use zgrid, only: nzgrid
-!     use vpamu_grids, only: maxwellian, vpa
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use kt_grids, only: naky, nakx
-
-!     implicit none
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
-!     real, intent (in) :: facphi, facapar
-
-!     integer :: ivmu, ig, iky, ikx, is, imu, iv
-!     complex :: adj
-
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        do ig = -nzgrid, nzgrid
-!           do ikx = 1, nakx
-!              do iky = 1, naky
-!                 adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) & !*(1.0 - (dF1/dE)/F_max)
-!                      * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
-!                 g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
-!              end do
-!           end do
-!        end do
-!     end do
-
-!   end subroutine gbar_to_hhat_vmu
-
-!   subroutine gbar_to_hhat_kxkyz (g, phi, apar, facphi, facapar)
-
-!     use species, only: spec
-!     use zgrid, only: nzgrid
-!     use vpamu_grids, only: maxwellian, vpa
-!     use vpamu_grids, only: nvgrid, nmu
-!     use stella_layouts, only: kxkyz_lo
-!     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-
-!     implicit none
-!     complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
-!     real, intent (in) :: facphi, facapar
-
-!     integer :: ikxkyz, ig, iky, ikx, is, imu, iv
-!     complex :: adj
-
-!     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!        ig = iz_idx(kxkyz_lo,ikxkyz)
-!        ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!        iky = iky_idx(kxkyz_lo,ikxkyz)
-!        is = is_idx(kxkyz_lo,ikxkyz)
-!        do imu = 1, nmu
-!           do iv = -nvgrid, nvgrid
-!              adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) & !*(1.0 - (dF1/dE)/F_max)
-!                   * ( facphi*phi(iky,ikx,ig) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
-!              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
-!           end do
-!        end do
-!     end do
-
-!   end subroutine gbar_to_hhat_kxkyz
-
   subroutine gbar_to_g_vmu (g, apar, facapar)
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: maxwellian, vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -218,19 +151,19 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: apar
     real, intent (in) :: facapar
 
-    integer :: ivmu, ig, iky, ikx, is, imu, iv
+    integer :: ivmu, iz, iky, ikx, is, imu, iv
     complex :: adj
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do ig = -nzgrid, nzgrid
+       do iz = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                adj = -aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) &
-                     * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
-                g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
+                adj = -aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
+                     * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
+                g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) + adj
              end do
           end do
        end do
@@ -242,7 +175,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: maxwellian, vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -252,18 +185,18 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: apar
     real, intent (in) :: facapar
 
-    integer :: ikxkyz, ig, iky, ikx, is, imu, iv
+    integer :: ikxkyz, iz, iky, ikx, is, imu, iv
     complex :: adj
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = iz_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             adj = -aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) &
-                  * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,ig) )
+             adj = -aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
+                  * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
           end do
        end do
@@ -275,7 +208,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: maxwellian
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
@@ -285,19 +218,19 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi
     real, intent (in) :: facphi
 
-    integer :: ivmu, ig, iky, ikx, is, imu, iv
+    integer :: ivmu, iz, iky, ikx, is, imu, iv
     complex :: adj
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do ig = -nzgrid, nzgrid
+       do iz = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                adj = aj0x(iky,ikx,ig,ivmu)*spec(is)%zt*maxwellian(iv) &
-                     * facphi*phi(iky,ikx,ig)
-                g(iky,ikx,ig,ivmu) = g(iky,ikx,ig,ivmu) + adj
+                adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
+                     * facphi*phi(iky,ikx,iz)
+                g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) + adj
              end do
           end do
        end do
@@ -311,7 +244,7 @@ contains
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: nsegments
-    use vpamu_grids, only: maxwellian
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
 
@@ -335,14 +268,14 @@ contains
        ikx = ikxmod(iseg,ie,iky)
        do iz = iz_low(iseg), iz_up(iseg)
           idx = idx + 1
-          adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwellian(iv) &
+          adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
                * facphi*phiext(idx)
           gext(idx,ivmu) = gext(idx,ivmu) + adj
        end do
        if (nsegments(ie,iky) > 1) then
           do iseg = 2, nsegments(ie,iky)
              do iz = iz_low(iseg)+1, iz_up(iseg)
-                adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwellian(iv) &
+                adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
                      * facphi*phiext(idx)
                 gext(idx,ivmu) = gext(idx,ivmu) + adj
                 idx = idx + 1
@@ -358,7 +291,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid
-    use vpamu_grids, only: maxwellian
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nvgrid, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -368,18 +301,18 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi
     real, intent (in) :: facphi
 
-    integer :: ikxkyz, ig, iky, ikx, is, imu, iv
+    integer :: ikxkyz, iz, iky, ikx, is, imu, iv
     complex :: adj
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = iz_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
-             adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwellian(iv) &
-                  * facphi*phi(iky,ikx,ig)
+             adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
+                  * facphi*phi(iky,ikx,iz)
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
           end do
        end do

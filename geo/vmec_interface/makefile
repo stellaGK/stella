@@ -29,8 +29,10 @@ else ifeq ($(HOSTNAME),cori)
 	# Above, the link flag "-Wl,-ydgemm_" causes the linker to report which version of DGEMM (the BLAS3 matrix-matrix-multiplication subroutine) is used.
 else
 	FC = mpif90
-	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
-	EXTRA_LINK_FLAGS =  -fopenmp -L/opt/local/lib -lnetcdff  -lnetcdf
+#	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
+	EXTRA_COMPILE_FLAGS = -fopenmp -I$(NETCDF_INC_DIR) -ffree-line-length-none
+#	EXTRA_LINK_FLAGS =  -fopenmp -L/opt/local/lib -lnetcdff  -lnetcdf
+	EXTRA_LINK_FLAGS =  -fopenmp -L$(NETCDF_LIB_DIR) -lnetcdff  -lnetcdf
 endif
 
 

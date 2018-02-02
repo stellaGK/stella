@@ -465,13 +465,13 @@ contains
                 ! similarly, bmag below is the normalized B-field at the central radial location
                 ! to be consistent with stella distribution functions,
                 ! want H_nc * exp(2*mu*B) / (n_s / vt_s^3 * pi^(3/2))
-                f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) * exp(2.0*mu(imu)*bmag(1,iz)) &
+                f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) &
                      * pi**1.5 * spec(is)%stm**3/spec(is)%dens
 
                 ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
                 ! need to multiply by Z_s * Tref/T_s * exp(-vpa^2)
                 f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) &
-                     - phi_neoclassical(iz)*ztmax(iv,is)
+                     - phi_neoclassical(iz)*ztmax(iv,is)*maxwell_mu(1,iz,imu)
 
 !                deallocate (xi_stella, hstella, dhstella_dx, legpoly)
                 deallocate (xi_stella, hstella, legpoly)

@@ -203,12 +203,12 @@ contains
   subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
 
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use zgrid, only: delzed, nzgrid
     use species, only: spec
     use geometry, only: gradpar
-    use vpamu_grids, only: ztmax, vpa
+    use vpamu_grids, only: ztmax, vpa, maxwell_mu
     use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: aj0x
     use dist_fn, only: stream_tridiagonal_solve
@@ -221,7 +221,7 @@ contains
     complex, dimension (:), intent (in out) :: phiext
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
-    integer :: ivmu, iv, is, idxp
+    integer :: ivmu, iv, imu, is, idxp
     integer :: nz_ext
     real :: fac, fac0, fac1
 
@@ -232,6 +232,7 @@ contains
        ! initialize g to zero everywhere along extended zed domain
        gext(:,ivmu) = 0.0
        iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
+       imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
        ! give unit impulse to phi at this zed location
@@ -250,28 +251,28 @@ contains
              if (iz > -nzgrid) then
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
-                     + (1.-zed_upwind)*gradpar(1,iz-1))
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
+                     + (1.-zed_upwind)*gradpar(1,iz-1)*maxwell_mu(1,iz-1,imu))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the right of
                 ! this one
                 if (iz < nzgrid) then
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1) &
-                        + (1.-zed_upwind)*gradpar(1,iz))
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1)*maxwell_mu(1,iz+1,imu) &
+                        + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
                 else
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,-nzgrid+1) &
-                        + (1.-zed_upwind)*gradpar(1,nzgrid))
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,-nzgrid+1)*maxwell_mu(1,-nzgrid+1,imu) &
+                        + (1.-zed_upwind)*gradpar(1,nzgrid)*maxwell_mu(1,nzgrid,imu))
                 end if
              else
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
-                     + (1.-zed_upwind)*gradpar(1,nzgrid-1))
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
+                     + (1.-zed_upwind)*gradpar(1,nzgrid-1)*maxwell_mu(1,nzgrid-1,imu))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the right of
                 ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1) &
-                     + (1.-zed_upwind)*gradpar(1,iz))
+                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1)*maxwell_mu(1,iz+1,imu) &
+                     + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
              end if
              gext(idx,ivmu) = fac0
              if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
@@ -279,34 +280,34 @@ contains
              if (iz < nzgrid) then
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
-                     + (1.-zed_upwind)*gradpar(1,iz+1))
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
+                     + (1.-zed_upwind)*gradpar(1,iz+1)*maxwell_mu(1,iz+1,imu))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the left of
                 ! this one
                 if (iz > -nzgrid) then
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1) &
-                        + (1.-zed_upwind)*gradpar(1,iz))
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1)*maxwell_mu(1,iz-1,imu) &
+                        + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
                 else
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,nzgrid-1) &
-                        + (1.-zed_upwind)*gradpar(1,iz))
+                   fac1 = fac*((1.+zed_upwind)*gradpar(1,nzgrid-1)*maxwell_mu(1,nzgrid-1,imu) &
+                        + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
                 end if
              else
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz) &
-                     + (1.-zed_upwind)*gradpar(1,-nzgrid+1))
+                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
+                     + (1.-zed_upwind)*gradpar(1,-nzgrid+1)*maxwell_mu(1,-nzgrid+1,imu))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the left of
                 ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1) &
-                     + (1.-zed_upwind)*gradpar(1,iz))
+                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1)*maxwell_mu(1,iz-1,imu) &
+                     + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
              end if
              gext(idx,ivmu) = -fac0
              if (idx > 1) gext(idx-1,ivmu) = fac1
           end if
        else
-          fac = fac*gradpar(1,iz)
+          fac = fac*gradpar(1,iz)*maxwell_mu(1,iz,imu)
           ! e.g., if centered differences, get RHS(i) = fac*(phi(i+1)-phi(i-1))*0.5
           ! so RHS(i-1) = fac*(phi(i)-phi(i-2))*0.5
           ! since only gave phi(i)=1 and all other phi=0,
