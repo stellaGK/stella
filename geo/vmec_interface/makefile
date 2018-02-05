@@ -27,6 +27,10 @@ else ifeq ($(HOSTNAME),cori)
 	export EXTRA_COMPILE_FLAGS = -qopenmp -mkl
 	export EXTRA_LINK_FLAGS =  -qopenmp -mkl -Wl,-ydgemm_
 	# Above, the link flag "-Wl,-ydgemm_" causes the linker to report which version of DGEMM (the BLAS3 matrix-matrix-multiplication subroutine) is used.
+else ifeq ($(HOSTNAME),archer)
+	export FC = ftn
+	export EXTRA_COMPILE_FLAGS = -qopenmp
+	export EXTRA_LINK_FLAGS = -qopenmp -Wl,-ydgemm_
 else
 	FC = mpif90
 #	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
