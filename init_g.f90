@@ -104,8 +104,8 @@ contains
        call ginit_noise
     case (ginitopt_kpar)
        call ginit_kpar
-!     case (ginitopt_rh)
-!        call ginit_rh
+     case (ginitopt_rh)
+        call ginit_rh
     case (ginitopt_restart_many)
        call ginit_restart_many 
        call init_tstart (tstart, istatus)
@@ -489,41 +489,34 @@ contains
 
   end subroutine ginit_kpar
 
-!   subroutine ginit_rh
-
-!     use species, only: spec, has_electron_species
-!     use zgrid, only: nzgrid, bmag
-!     use kt_grids, only: naky, ntheta0
-!     use vpamu_grids, only: nvgrid, vpa, mu
-!     use dist_fn_arrays, only: gnew, gold, kperp2
-!     use stella_layouts, only: gxyz_lo, iv_idx, imu_idx, is_idx
-!     use constants
-!     use ran
-
-!     implicit none
-
-!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky) :: phi
-!     integer :: iglo
-!     integer :: iv, it, imu, is
+  subroutine ginit_rh
     
-!     ! initialize g to be a Maxwellian with a constant density perturbation
+    use species, only: spec
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use dist_fn_arrays, only: gvmu, kperp2
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
 
-!     phi(:,:,1) = phiinit
+    implicit none
+    
+    integer :: ikxkyz, iky, ikx, iz, is
+    
+    ! initialize g to be a Maxwellian with a constant density perturbation
 
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-!        iv = iv_idx(gxyz_lo,iglo)
-!        imu = imu_idx(gxyz_lo,iglo)
-!        is = is_idx(gxyz_lo,iglo)
+    gvmu = 0.
+    
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
 
-!        do it = 1, ntheta0
-!           gnew(:,it,:,iglo) = spec(is)%z*0.5*exp(-vpa(iv)**2) &
-!                * spread(exp(-2.0*mu(imu)*bmag),naky,2)*phi(:,it,:)*kperp2(:,it,:)
-!        end do
-!     end do
+       gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,iz) &
+            *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
+    end do
 
-!     gold = gnew
-
-!   end subroutine ginit_rh
+  end subroutine ginit_rh
 
   subroutine ginit_restart_many
 

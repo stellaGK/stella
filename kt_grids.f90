@@ -94,24 +94,30 @@ contains
        if (theta0_min > theta0_max .and. abs(aky(1)) > epsilon(0.)) then
           theta0_min = akx_min/(shat*aky(1))
           theta0_max = akx_max/(shat*aky(1))
+          dtheta0 = 0.0
+          if (ntheta0 > 1) dtheta0 = (theta0_max - theta0_min)/real(ntheta0 - 1)
+          
+          do j = 1, naky
+             theta0(j,:) &
+                  = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
+          end do
+          akx = theta0(1,:) * shat * aky(1)
+       else if (akx_max > epsilon(0.)) then
+          dkx = 0.0
+          if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
+          akx = (/ (akx_min + dkx*real(i), i = 0,nakx-1) /)
        else
           call mp_abort ('ky=0 is inconsistent with kx_min different from kx_max. aborting.')
        end if
        
-       dtheta0 = 0.0
-       if (ntheta0 > 1) dtheta0 = (theta0_max - theta0_min)/real(ntheta0 - 1)
-       
-       do j = 1, naky
-          theta0(j,:) &
-               = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
-       end do
-       akx = theta0(1,:) * shat * aky(1)
     else
        ! here assume boundary_option .eq. 'periodic'
        ! used for periodic finite kx ballooning space runs with shat=0
        dkx = 0.0
-       if (ntheta0 > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
-       akx = (/ (akx_min + dkx*real(i), i = 0,ntheta0-1) /)
+!       if (ntheta0 > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
+       if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
+!       akx = (/ (akx_min + dkx*real(i), i = 0,ntheta0-1) /)
+       akx = (/ (akx_min + dkx*real(i), i = 0,nakx-1) /)
     endif
     
   end subroutine range_get_grids

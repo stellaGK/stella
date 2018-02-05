@@ -70,7 +70,7 @@ module dist_fn
   logical :: mirror_explicit, mirror_implicit
   logical :: mirror_semi_lagrange, mirror_linear_interp
   logical :: stream_explicit, stream_implicit
-  logical :: stream_cell
+  logical :: stream_cell, stream_matrix_inversion
 !  logical :: wdrifty_explicit, wdrifty_implicit
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
@@ -570,7 +570,7 @@ contains
     namelist /dist_fn_knobs/ &
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, mirror_semi_lagrange, mirror_linear_interp, &
-         stream_explicit, stream_cell, &!wdrifty_explicit, &!wstar_explicit, &
+         stream_explicit, stream_cell, stream_matrix_inversion, &!wdrifty_explicit, &!wstar_explicit, &
          adiabatic_option, &
          zed_upwind, vpa_upwind, time_upwind, explicit_option
     integer :: ierr, in_file
@@ -590,10 +590,11 @@ contains
        vpa_upwind = 0.1
        time_upwind = 0.1
        mirror_explicit = .false.
-       mirror_semi_lagrange = .false.
-       mirror_linear_interp = .true.
+       mirror_semi_lagrange = .true.
+       mirror_linear_interp = .false.
        stream_explicit = .false.
-       stream_cell = .false.
+       stream_cell = .true.
+       stream_matrix_inversion = .false.
 !       wdrifty_explicit = .true.
 !       wstar_explicit = .true.
 
@@ -622,6 +623,7 @@ contains
     call broadcast (mirror_linear_interp)
     call broadcast (stream_explicit)
     call broadcast (stream_cell)
+    call broadcast (stream_matrix_inversion)
 !    call broadcast (wdrifty_explicit)
 !    call broadcast (wstar_explicit)
     call broadcast (zed_upwind)
@@ -3629,10 +3631,14 @@ contains
     ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
     ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
     call get_gke_rhs_inhomogeneous (g1, phi1, g)
-
-    ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-    ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
-    call invert_parstream (g)
+       
+    if (stream_matrix_inversion) then
+       ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
+       ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
+       call invert_parstream (g)
+    else
+       call sweep_g_zed (g)
+    end if
 
     ! we now have g_{inh}^{n+1}
     ! calculate associated fields (phi_{inh}^{n+1})
@@ -3646,18 +3652,116 @@ contains
     ! obtain RHS of GK eqn; 
     ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
     ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
-    ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
+    ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
     call get_gke_rhs (g1, phi1, phi, g)
-
-    ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
-    ! g = RHS is input and overwritten by g = g^{n+1}
-    call invert_parstream (g)
+    
+    if (stream_matrix_inversion) then   
+       ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
+       ! g = RHS is input and overwritten by g = g^{n+1}
+       call invert_parstream (g)
+    else
+       call sweep_g_zed (g)
+    end if
 
     deallocate (phi1)
 
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
 
   end subroutine advance_parallel_streaming_implicit
+
+  ! g= RHS of gke is input
+  ! g = g^{n+1} is output
+  subroutine sweep_g_zed (g)
+
+    use zgrid, only: nzgrid, delzed, nztot
+    use extended_zgrid, only: neigen, nsegments, nzed_segment
+    use kt_grids, only: naky, aky, nakx
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    
+    integer :: ivmu, iv, is
+    integer :: iky, ie
+    integer :: ikyneg
+    integer :: ulim, sgn
+    integer :: iz, izext, iz1, iz2
+    real :: fac1, fac2
+    complex, dimension (:), allocatable :: gext
+    complex, dimension (:), allocatable :: gcf
+    complex, dimension (:,:), allocatable :: gpi
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx (vmu_lo,ivmu) ; if (iv==0) cycle
+       is = is_idx (vmu_lo,ivmu)
+       sgn = stream_sign(iv)
+       ! will sweep to right (positive vpa) or left (negative vpa)
+       ! and solve for g on the extended z-grid
+       ! this will require use of negative kx values
+       ! for which we do not solve.
+       ! instead use reality condition to convert negative ky
+       ! to get negative kx
+       do iky = 1, naky
+          if (abs(aky(iky)) < epsilon(0.)) then
+             allocate (gpi(nakx,-nzgrid:nzgrid))
+             allocate (gcf(-nzgrid:nzgrid))
+             ! ky=0 is 2pi periodic (no extended zgrid)
+             ! decompose into complementary function + particular integral
+             ! zero BC for particular integral
+             ! unit BC for complementary function (no source)
+!             gcf = -99.0
+             if (sgn < 0) then
+                iz1 = -nzgrid ; iz2 = nzgrid
+             else
+                iz1 = nzgrid ; iz2 = -nzgrid
+             end if
+             gpi(:,iz1) = 0. ; gcf(iz1) = 1.
+             do iz = iz1-sgn, iz2, -sgn
+                fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream(iz,iv,is)/delzed(0)
+                fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream(iz,iv,is)/delzed(0)
+                gpi(:,iz) = (-gpi(:,iz+sgn)*fac2 + 2.0*g(iky,:,iz,ivmu))/fac1
+                gcf(iz) = -gcf(iz+sgn)*fac2/fac1
+             end do
+             ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
+             g(iky,:,:,ivmu) = gpi + (spread(gpi(:,iz2),2,nztot)/(1.-gcf(iz2)))*spread(gcf,1,nakx)
+             deallocate (gpi, gcf)
+             cycle
+!             ikyneg = iky
+          else
+             ikyneg = naky-iky+2
+          end if
+          do ie = 1, neigen(iky)
+             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+             ! get g on extended domain in zed
+             call get_distfn_on_extended_zgrid (ie, iky, ikyneg, g(:,:,:,ivmu), gext, ulim)
+             if (sgn < 0) then
+                iz1 = 1 ; iz2 = ulim
+             else
+                iz1 = ulim ; iz2 = 1
+             end if
+             izext = iz1 ; iz = sgn*nzgrid
+             fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream(iz,iv,is)/delzed(0)
+             gext(izext) = gext(izext)*2.0/fac1
+             do izext = iz1-sgn, iz2, -sgn
+                if (iz == -sgn*nzgrid) then
+                   iz = sgn*nzgrid-sgn
+                else
+                   iz = iz - sgn
+                end if
+                fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream(iz,iv,is)/delzed(0)
+                fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream(iz,iv,is)/delzed(0)
+                gext(izext) = (-gext(izext+sgn)*fac2 + 2.0*gext(izext))/fac1
+             end do
+             ! extract g from extended domain in zed
+             call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
+             deallocate (gext)
+          end do
+       end do
+    end do
+
+  end subroutine sweep_g_zed
 
   subroutine get_gke_rhs_inhomogeneous (gold, phiold, g)
 

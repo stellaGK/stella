@@ -657,8 +657,8 @@ contains
                call netcdf_error (status, var='phi2_by_ky')
        end if
        
-       status = nf90_def_var (ncid, 'phi0', netcdf_real, omega_dim, phi0_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='phi0')
+!       status = nf90_def_var (ncid, 'phi0', netcdf_real, omega_dim, phi0_id)
+!       if (status /= nf90_noerr) call netcdf_error (status, var='phi0')
 
        if (write_phi_vs_t) then
           status = nf90_def_var &
