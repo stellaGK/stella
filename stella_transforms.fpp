@@ -125,12 +125,13 @@ contains
     ! first need to pad input array with zeros
     iky_max = vmu_lo%naky/2+1
     ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
-    fft_y_in(iky_max+1:ipad_up) = 0.
+!    fft_y_in(iky_max+1:ipad_up) = 0.
 
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
           do ikx = 1, vmu_lo%nakx
+             fft_y_in(iky_max+1:ipad_up) = 0.
              fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx,ig,ivmu)
              fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx,ig,ivmu)
              call dfftw_execute_dft(yf_fft%plan, fft_y_in, fft_y_out)
@@ -157,10 +158,11 @@ contains
     ! first need to pad input array with zeros
     iky_max = vmu_lo%naky/2+1
     ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
-    fft_y_in(iky_max+1:ipad_up) = 0.
+!    fft_y_in(iky_max+1:ipad_up) = 0.
 
     ! now fill in non-zero elements of array
     do ikx = 1, vmu_lo%nakx
+       fft_y_in(iky_max+1:ipad_up) = 0.
        fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx)
        fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx)
        call dfftw_execute_dft(yf_fft%plan, fft_y_in, fft_y_out)
@@ -235,11 +237,10 @@ contains
 
     integer :: iy
 
-    ! first need to pad input array with zeros
-    fft_x_k(vmu_lo%nakx+1:) = 0.
-
     ! now fill in non-zero elements of array
     do iy = 1, vmu_lo%ny
+    ! first need to pad input array with zeros
+       fft_x_k(vmu_lo%nakx+1:) = 0.
        fft_x_k(:vmu_lo%nakx) = gkx(iy,:)
        call dfftw_execute_dft_c2r(xf_fft%plan, fft_x_k, fft_x_x)
        fft_x_x = fft_x_x*xf_fft%scale

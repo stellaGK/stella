@@ -149,8 +149,14 @@ contains
           allocate (gamtot3(1,1)) ; gamtot3 = 0.
        end if
     end if
-    if (.not.allocated(apar_denom)) allocate (apar_denom(naky,nakx,-nzgrid:nzgrid)) ; apar_denom = 0.
-       
+    if (.not.allocated(apar_denom)) then
+       if (fapar > epsilon(0.0)) then
+          allocate (apar_denom(naky,nakx,-nzgrid:nzgrid)) ; apar_denom = 0.
+       else
+          allocate (apar_denom(1,1,1)) ; apar_denom = 0.
+       end if
+    end if
+
     if (fphi > epsilon(0.0)) then
        allocate (g0(-nvgrid:nvgrid,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1919,6 +1925,7 @@ contains
     restart_time_step = .false.
 
     gold = g
+!    g2 = g
 
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
@@ -1930,9 +1937,11 @@ contains
           call solve_gke (g, g1, restart_time_step)
        case (2)
           g1 = g + g1
+!          g = g2
           call solve_gke (g1, g2, restart_time_step)
        case (3)
           g2 = g1 + g2
+!          g1 = 0.5*g1 + g/3.
           call solve_gke (g2, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -1944,6 +1953,7 @@ contains
 
     ! this is gbar at intermediate time level
     g = gold/3. + 0.5*g1 + (g2 + g)/6.
+!    g = g1 + (g2 + g)/6.
 
   end subroutine advance_explicit_rk3
 
@@ -2041,6 +2051,8 @@ contains
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
 
+!    write (*,*) 'fields', sum(cabs(gin)), sum(cabs(phi)), sum(cabs(apar))
+
     ! default is to continue with same time step size
     ! if estimated CFL condition for nonlinear terms is violated
     ! then restart_time_step will be set to .true.
@@ -2049,7 +2061,9 @@ contains
     ! do this first, as the CFL condition may require a change in time step
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
-    if (include_parallel_nonlinearity) &
+!    write (*,*) 'nonlin', sum(cabs(gin)), sum(cabs(rhs))
+
+    if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
 
     if (.not.restart_time_step) then
@@ -2424,15 +2438,25 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
           call get_dgdy (g(:,:,iz,ivmu), g0k)
+!          write (*,*) 'g0k1', sum(cabs(g0k))
           call transform_ky2y (g0k, g0kxy)
+!          write (*,*) 'g0kxy1', sum(cabs(g0kxy))
           call transform_kx2x (g0kxy, g0xy)
+!          write (*,*) 'g0xy1', sum(abs(g0xy))
           call get_dchidx (iz, ivmu, phi(:,:,iz), apar(:,:,iz), g0k)
+!          write (*,*) 'g0k2', sum(cabs(g0k))
           call transform_ky2y (g0k, g0kxy)
+!          write (*,*) 'g0kxy2', sum(cabs(g0kxy))
           call transform_kx2x (g0kxy, g1xy)
+!          write (*,*) 'g1xy1', sum(abs(g1xy))
           g1xy = g1xy*nonlin_fac
+!          write (*,*) 'g1xy2', sum(abs(g1xy))
           bracket = -g0xy*g1xy
           cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*aky(iky_max)))
 
+!          write (*,*) 'bracket1', ivmu, iz, sum(abs(bracket))
+!          stop
+          
           call get_dgdx (g(:,:,iz,ivmu), g0k)
           call transform_ky2y (g0k, g0kxy)
           call transform_kx2x (g0kxy, g0xy)
@@ -2443,7 +2467,12 @@ contains
           bracket = bracket + g0xy*g1xy
           cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*akx(nakx)))
 
+!          write (*,*) 'bracket2', ivmu, iz, sum(abs(bracket))
+
           call transform_x2kx (bracket, g0kxy)
+
+!          write (*,*) 'g0kxy', ivmu, iz, sum(cabs(g0kxy))
+
           if (alpha_global) then
              gout(:,:,iz,ivmu) = g0kxy
           else
@@ -2453,11 +2482,13 @@ contains
     end do
     deallocate (g0k, g0kxy, g0xy, g1xy, bracket)
 
+!    write (*,*) 'gout', sum(cabs(gout))
+
     call min_allreduce (cfl_dt)
 
-    if (code_dt > cfl_dt) then
+    if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
+          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
           write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
        end if
        code_dt = cfl_dt*cfl_cushion
@@ -2473,6 +2504,9 @@ contains
     else
        gout = code_dt*gout
     end if
+
+    ! TMP FOR TESTING -- MAB
+!    gout = 0.
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 

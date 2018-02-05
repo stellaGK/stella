@@ -209,13 +209,13 @@ contains
 
     edge_toroidal_flux_over_2pi = phi(ns) / (2*pi) * isigng ! isigns is called signgs in the wout*.nc file. Why is this signgs here?
 
-    ! Set reference length and magnetic field for GS2's normalization, 
+    ! Set reference length and magnetic field for stella's normalization, 
     ! using the choices made by Pavlos Xanthopoulos in GIST:
     L_reference = Aminor ! Note that 'Aminor' in read_wout_mod is called 'Aminor_p' in the wout*.nc file.
     B_reference = 2 * abs(edge_toroidal_flux_over_2pi) / (L_reference * L_reference)
     if (verbose) then
-       print *,"  Reference length for GS2 normalization:",L_reference," meters."
-       print *,"  Reference magnetic field strength for GS2 normalization:",B_reference," Tesla."
+       print *,"  Reference length for stella normalization:",L_reference," meters."
+       print *,"  Reference magnetic field strength for stella normalization:",B_reference," Tesla."
     end if
 
     ! --------------------------------------------------------------------------------
@@ -345,14 +345,14 @@ contains
     ! Done choosing the actual radius to use.
     ! --------------------------------------------------------------------------------
 
-    ! In general, we get quantities for gs2 by linear interpolation, taking a weighted average of the quantity from
+    ! In general, we get quantities for stella by linear interpolation, taking a weighted average of the quantity from
     ! 2 surfaces in the VMEC file. Sometimes the weights are 0 and 1, i.e. no interpolation is needed.
 
-    ! For any VMEC quantity Q on the full grid, the value used in GS2 will be
-    !  Q_gs2 = Q(vmec_radial_index_full(1))*vmec_radial_weight_full(1) + Q(vmec_radial_index_full(2))*vmec_radial_weight_full(2)
+    ! For any VMEC quantity Q on the full grid, the value used in stella will be
+    !  Q_stella = Q(vmec_radial_index_full(1))*vmec_radial_weight_full(1) + Q(vmec_radial_index_full(2))*vmec_radial_weight_full(2)
 
-    ! For any VMEC quantity Q on the half grid, the value used in GS2 will be
-    !  Q_gs2 = Q(vmec_radial_index_half(1))*vmec_radial_weight_half(1) + Q(vmec_radial_index_half(2))*vmec_radial_weight_half(2)
+    ! For any VMEC quantity Q on the half grid, the value used in stella will be
+    !  Q_stella = Q(vmec_radial_index_half(1))*vmec_radial_weight_half(1) + Q(vmec_radial_index_half(2))*vmec_radial_weight_half(2)
 
 
     ! Handle quantities for the full grid
@@ -1109,7 +1109,7 @@ contains
          .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha')
 
     !*********************************************************************
-    ! Finally, assemble the quantities needed for gs2.
+    ! Finally, assemble the quantities needed for stella.
     !*********************************************************************
 
     ! See the latex note gs2_full_surface_stellarator_geometry in the "doc" directory for a derivation of the formulae that follow.

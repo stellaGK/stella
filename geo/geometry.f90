@@ -114,7 +114,7 @@ contains
           call get_vmec_geo (nzgrid, geo_surf, bmag, gradpar, gds2, gds21, gds22, &
                gbdrift, gbdrift0, cvdrift, cvdrift0)
           ! FLAG -- NOT SURE IF THIS IS CORRECT
-          drhodpsi = 1.0
+          drhodpsi = 1.0 ; grho = 1.0
           ! FLAG -- NEED TO SEE IF MATT CAN PROVIDE THESE
           gds23 = 0. ; gds24 = 0.
        end select
