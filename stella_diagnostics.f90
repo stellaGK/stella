@@ -14,6 +14,7 @@ module stella_diagnostics
   logical :: write_phi_vs_time
   logical :: write_gvmus
   logical :: write_gzvs
+  logical :: write_kspectra
 
   integer :: stdout_unit, fluxes_unit, omega_unit
 
@@ -75,6 +76,7 @@ contains
     call broadcast (nsave)
     call broadcast (save_for_restart)
     call broadcast (write_omega)
+    call broadcast (write_kspectra)
     call broadcast (write_phi_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
@@ -82,7 +84,8 @@ contains
     nmovie_tot = nstep/nmovie
     
     call init_averages
-    call init_stella_io (write_phi_vs_time, write_gvmus, write_gzvs)
+    call init_stella_io (write_phi_vs_time, write_kspectra, &
+         write_gvmus, write_gzvs)
     call open_loop_ascii_files
     
   end subroutine init_stella_diagnostics
@@ -100,7 +103,7 @@ contains
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-         write_omega
+         write_omega, write_kspectra
 
     if (proc0) then
        nwrite = 50
@@ -112,6 +115,7 @@ contains
        write_phi_vs_time = .false.
        write_gvmus = .false.
        write_gzvs = .false.
+       write_kspectra = .false.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
        if (exist) read (unit=in_file, nml=stella_diagnostics_knobs)
@@ -208,6 +212,7 @@ contains
     use stella_io, only: write_phi_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
+    use stella_io, only: write_kspectra_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
     use zgrid, only: nzgrid
@@ -224,6 +229,7 @@ contains
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:), allocatable :: gzvs
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
+    real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:), allocatable :: omega_avg
 
     ! calculation of omega requires computation of omega more
@@ -274,6 +280,13 @@ contains
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi)
        end if
+       if (write_kspectra) then
+          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
+          allocate (phi2_vs_kxky(naky,nakx))
+          call fieldline_average (real(phi*conjg(phi)),phi2_vs_kxky)
+          call write_kspectra_nc (nout, phi2_vs_kxky)
+          deallocate (phi2_vs_kxky)
+       end if
     end if
     if (write_gvmus) then
        allocate (gvmus(2*nvgrid+1,nmu,nspec))
@@ -299,6 +312,21 @@ contains
 
   end subroutine diagnose_stella
 
+  subroutine fieldline_average (unavg, avg)
+
+    use zgrid, only: nzgrid
+    use kt_grids, only: nakx, naky
+    use geometry, only: dl_over_b
+
+    implicit none
+
+    real, dimension (:,:,-nzgrid:), intent (in) :: unavg
+    real, dimension (:,:), intent (out) :: avg
+
+    avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg)
+
+  end subroutine fieldline_average
+
   subroutine volume_average (unavg, avg)
 
     use zgrid, only: nzgrid
@@ -310,13 +338,13 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: unavg
     real, intent (out) :: avg
 
-    integer :: iky, ikx, ig
+    integer :: iky, ikx, iz
 
     avg = 0.
-    do ig = -nzgrid, nzgrid
+    do iz = -nzgrid, nzgrid
        do ikx = 1, nakx
           do iky = 1, naky
-             avg = avg + real(unavg(iky,ikx,ig)*conjg(unavg(iky,ikx,ig)))*fac(ikx)*dl_over_b(ig)
+             avg = avg + real(unavg(iky,ikx,iz)*conjg(unavg(iky,ikx,iz)))*fac(ikx)*dl_over_b(iz)
           end do
        end do
     end do

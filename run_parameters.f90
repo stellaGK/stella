@@ -11,12 +11,12 @@ module run_parameters
   public :: nonlinear
   public :: code_delt_max
   public :: nstep
-  public :: cfl_cushion
+  public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   
   private
 
-  real :: cfl_cushion
+  real :: cfl_cushion, delt_adjust
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max
   logical :: nonlinear, include_parallel_nonlinearity
@@ -61,7 +61,7 @@ contains
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
          delt_option, nonlinear, include_parallel_nonlinearity, &
-         avail_cpu_time, cfl_cushion
+         avail_cpu_time, cfl_cushion, delt_adjust
 
     if (proc0) then
        fphi = 1.0
@@ -72,6 +72,7 @@ contains
        delt_option = 'default'
        avail_cpu_time = 1.e10
        cfl_cushion = 0.5
+       delt_adjust = 2.0
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
@@ -86,6 +87,7 @@ contains
     call broadcast (delt_option_switch)
     call broadcast (delt)
     call broadcast (cfl_cushion)
+    call broadcast (delt_adjust)
     call broadcast (fphi)
     call broadcast (fapar)
     call broadcast (fbpar)

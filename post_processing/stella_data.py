@@ -7,12 +7,12 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/NCSX_lin_benchmark/ky1p0.out.nc'
+infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/ae.out.nc'
 #infile = '../stella.out.nc'
 print()
 #outdir = input("Path for output: ")
 #outdir = '/Users/michaelbarnes/codes/gs2/runs/flow_shear_tests/nofs01_figs/'
-outdir = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/NCSX_lin_benchmark/figures/'
+outdir = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/figures/'
 ncfile = netcdf.netcdf_file(infile,'r')   
 
 print()
@@ -57,6 +57,9 @@ def read_stella_float(var):
 
     return arr, flag
 
+# electrostatic potential averaged over z as function of (ky,kx,t)
+phi2_vs_kxky, phi2_vs_kxky_present \
+    = read_stella_float('phi2_vs_kxky')
 # electrostatic potential as a function of (z,kx,ky,t)
 phi_vs_t, phi_vs_t_present \
     = read_stella_float('phi_vs_t')

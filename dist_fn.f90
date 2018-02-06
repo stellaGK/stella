@@ -1804,21 +1804,21 @@ contains
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting
     ! this is needed to ensure 2nd order accuracy in time
-    if (mod(istep,2)==1) then
+!    if (mod(istep,2)==1) then
        ! advance the explicit parts of the GKE
        if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
 
        ! use operator splitting to separately evolve
        ! all terms treated implicitly
        if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
-    else
-       ! use operator splitting to separately evolve
-       ! all terms treated implicitly
-       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
-
-       ! advance the explicit parts of the GKE
-       if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
-    end if
+!    else
+!       ! use operator splitting to separately evolve
+!       ! all terms treated implicitly
+!       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+!
+!       ! advance the explicit parts of the GKE
+!       if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
+!    end if
 
     ! next line is likely unnecessary
     gold = gnew
@@ -1888,7 +1888,7 @@ contains
     do while (icnt <= 2)
        select case (icnt)
        case (1)
-          call solve_gke (g, g1, restart_time_step)
+          call solve_gke (gold, g1, restart_time_step)
        case (2)
           g1 = g + g1
           call solve_gke (g1, g, restart_time_step)
@@ -1934,7 +1934,7 @@ contains
     do while (icnt <= 3)
        select case (icnt)
        case (1)
-          call solve_gke (g, g1, restart_time_step)
+          call solve_gke (gold, g1, restart_time_step)
        case (2)
           g1 = g + g1
 !          g = g2
@@ -1984,20 +1984,20 @@ contains
     do while (icnt <= 4)
        select case (icnt)
        case (1)
-          call solve_gke (g, g1, restart_time_step)
+          call solve_gke (gold, g1, restart_time_step)
        case (2)
           ! g1 is h*k1
-          g3 = g + 0.5*g1
+          g3 = gold + 0.5*g1
           call solve_gke (g3, g2, restart_time_step)
           g1 = g1 + 2.*g2
        case (3)
           ! g2 is h*k2
-          g2 = g+0.5*g2
+          g2 = gold+0.5*g2
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
        case (4)
           ! g3 is h*k3
-          g3 = g+g3
+          g3 = gold+g3
           call solve_gke (g3, g, restart_time_step)
           g1 = g1 + g
        end select
@@ -2406,11 +2406,14 @@ contains
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
     use stella_time, only: cfl_dt, code_dt, code_dt_max
-    use run_parameters, only: cfl_cushion
+    use run_parameters, only: cfl_cushion, delt_adjust
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, nx, ny
     use kt_grids, only: akx, aky
     use kt_grids, only: alpha_global, iky_max
+
+    ! TMP FOR TESTING -- MAB
+    use constants, only: zi
 
     implicit none
 
@@ -2418,6 +2421,9 @@ contains
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
     logical, intent (out) :: restart_time_step
     
+    ! TMP FOR TESTING -- MAB
+    integer :: ix, iy, ikx, iky
+
     integer :: ivmu, iz
 
     complex, dimension (:,:), allocatable :: g0k, g0kxy
@@ -2437,22 +2443,65 @@ contains
     if (debug) write (*,*) 'dist_fn::solve_gke::advance_ExB_nonlinearity::get_dgdy'
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
+          ! TMP FOR TESTING -- MAB
+!          gout(:,:,iz,ivmu) = 0.
+          ! should be cos(dky*y)*sin(2*dkx*x)
+!          gout(2,3,iz,ivmu) = -0.25*zi ; gout(naky,3,iz,ivmu) = 0.25*zi
+          ! should be sin(2*dkx*x)
+!          gout(1,3,iz,ivmu) = -0.5*zi
+!          call get_dgdx (gout(:,:,iz,ivmu), g0k)
           call get_dgdy (g(:,:,iz,ivmu), g0k)
-!          write (*,*) 'g0k1', sum(cabs(g0k))
+          ! TMP FOR TESTING -- MAB
+!          g0k = 0.
+!          g0k(1,3) = -0.5*zi
           call transform_ky2y (g0k, g0kxy)
-!          write (*,*) 'g0kxy1', sum(cabs(g0kxy))
           call transform_kx2x (g0kxy, g0xy)
-!          write (*,*) 'g0xy1', sum(abs(g0xy))
+!          do ix = 1, nx
+!             do iy = 1, ny
+!                write (*,*) 'g0xy', ix, iy, g0xy(iy,ix)
+!             end do
+!             write (*,*)
+!          end do
+          ! TMP FOR TESTING -- MAB
+!          call transform_x2kx (g0xy, g0kxy)
+!          call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
+!          do ikx = 1, nakx
+!             do iky = 1, naky
+!                write (*,*) 'g0k', iky, ikx, real(gout(iky,ikx,iz,ivmu)), aimag(gout(iky,ikx,iz,ivmu))
+!             end do
+!             write (*,*)
+!          end do
+!          stop
           call get_dchidx (iz, ivmu, phi(:,:,iz), apar(:,:,iz), g0k)
-!          write (*,*) 'g0k2', sum(cabs(g0k))
+          ! TMP FOR TESTING -- MAB
+!          g0k = 0. ; nonlin_fac = 1.
+          ! cos(dky*y)
+!          g0k(2,1) = 0.5 ; g0k(naky,1) = 0.5
           call transform_ky2y (g0k, g0kxy)
-!          write (*,*) 'g0kxy2', sum(cabs(g0kxy))
           call transform_kx2x (g0kxy, g1xy)
-!          write (*,*) 'g1xy1', sum(abs(g1xy))
           g1xy = g1xy*nonlin_fac
-!          write (*,*) 'g1xy2', sum(abs(g1xy))
           bracket = -g0xy*g1xy
           cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*aky(iky_max)))
+
+          ! should be -cos(dky*y)*sin(2*dkx*x)
+          ! so 0.25*zi*(exp(i*dky*y)+exp(-i*dky*y))*(exp(2*i*dkx*x)-exp(-2*i*dkx*x))
+          ! so should have 0.25*zi in (2,3) and (naky,3) modes
+!          do ix = 1, nx
+!             do iy = 1, ny
+!                write (*,*) 'bracket', ix, iy, bracket(iy,ix)
+!             end do
+!             write (*,*)
+!          end do
+          ! TMP FOR TESTING -- MAB
+!          call transform_x2kx (bracket, g0kxy)
+!          call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
+!          do ikx = 1, nakx
+!             do iky = 1, naky
+!                write (*,*) 'bracket', iky, ikx, real(gout(iky,ikx,iz,ivmu)), aimag(gout(iky,ikx,iz,ivmu))
+!             end do
+!             write (*,*)
+!          end do
+!          stop
 
 !          write (*,*) 'bracket1', ivmu, iz, sum(abs(bracket))
 !          stop
@@ -2467,11 +2516,7 @@ contains
           bracket = bracket + g0xy*g1xy
           cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*akx(nakx)))
 
-!          write (*,*) 'bracket2', ivmu, iz, sum(abs(bracket))
-
           call transform_x2kx (bracket, g0kxy)
-
-!          write (*,*) 'g0kxy', ivmu, iz, sum(cabs(g0kxy))
 
           if (alpha_global) then
              gout(:,:,iz,ivmu) = g0kxy
@@ -2482,31 +2527,28 @@ contains
     end do
     deallocate (g0k, g0kxy, g0xy, g1xy, bracket)
 
-!    write (*,*) 'gout', sum(cabs(gout))
-
     call min_allreduce (cfl_dt)
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
           write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
        end if
-       code_dt = cfl_dt*cfl_cushion
+       code_dt = cfl_dt*cfl_cushion/delt_adjust
        call reset_dt
        restart_time_step = .true.
-    else if (code_dt < min(cfl_dt*cfl_cushion,code_dt_max)) then
+    else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion,delt) and restarting time step'
+          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
+          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
        end if
-       code_dt = min(cfl_dt*cfl_cushion,code_dt_max)
+       code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
+       ! FLAG -- NOT SURE THIS IS CORRECT
+       gout = code_dt*gout
     else
        gout = code_dt*gout
     end if
-
-    ! TMP FOR TESTING -- MAB
-!    gout = 0.
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
@@ -2525,7 +2567,7 @@ contains
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
     use stella_time, only: cfl_dt, code_dt, code_dt_max
-    use run_parameters, only: cfl_cushion
+    use run_parameters, only: cfl_cushion, delt_adjust
     use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
@@ -2682,20 +2724,20 @@ contains
 
     call min_allreduce (cfl_dt)
 
-    if (code_dt > cfl_dt) then
+    if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt= ', cfl_dt
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion and restarting time step'
+          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt
+          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
        end if
-       code_dt = cfl_dt*cfl_cushion
+       code_dt = cfl_dt*cfl_cushion/delt_adjust
        call reset_dt
        restart_time_step = .true.
-    else if (code_dt < min(cfl_dt*cfl_cushion,code_dt_max)) then
+    else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion,delt) and restarting time step'
+          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
+          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
        end if
-       code_dt = min(cfl_dt*cfl_cushion,code_dt_max)
+       code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
     else
        gout = code_dt*gout
