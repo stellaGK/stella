@@ -5,11 +5,12 @@
 #   module unload cray-libsci
 # to avoid warning messages about libsci during compiling.
 
-
-ifdef NERSC_HOST
-        HOSTNAME = $(NERSC_HOST)
-else
-        HOSTNAME="laptop"
+ifndef HOSTNAME
+	ifdef NERSC_HOST
+        	HOSTNAME = $(NERSC_HOST)
+	else
+        	HOSTNAME="laptop"
+	endif
 endif
 
 ifeq ($(HOSTNAME),edison)
