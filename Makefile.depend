@@ -184,7 +184,6 @@ mt19937.o:
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
-	 geometry.o \
 	 mp.o \
 	 sfincs_interface.o \
 	 species.o \

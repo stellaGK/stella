@@ -323,7 +323,7 @@ contains
     real, dimension (:,:,-nzgrid:), intent (in) :: unavg
     real, dimension (:,:), intent (out) :: avg
 
-    avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg)
+    avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg,dim=3)
 
   end subroutine fieldline_average
 

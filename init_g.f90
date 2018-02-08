@@ -391,6 +391,9 @@ contains
 
        !Sort out the zonal/self-periodic modes
        if (naky .ge. 1 .and. aky(1) < epsilon(0.0)) then
+          ! ensure that the zonal modes are periodic
+          phi(1,:,nzgrid) = phi(1,:,-nzgrid)
+          
           !Apply scaling factor
           phi(1,:,:) = phi(1,:,:)*zf_init
           

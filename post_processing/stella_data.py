@@ -7,7 +7,7 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/ae.out.nc'
+infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/ae7.out.nc'
 #infile = '../stella.out.nc'
 print()
 #outdir = input("Path for output: ")
@@ -20,8 +20,15 @@ print('reading data from netcdf file...')
 print()
 
 # get kx and ky grids
-kx_stella = np.copy(ncfile.variables['kx'][:])
+kx = np.copy(ncfile.variables['kx'][:])
+nakx = ncfile.dimensions['kx']
 ky_stella = np.copy(ncfile.variables['ky'][:])
+naky = ncfile.dimensions['ky']
+
+# this is the index of the first negative value of ky
+# note stella orders ky as (0, dky, ..., ky_max, -ky_max, -ky_max+dky, ..., -dky)
+naky_mid = naky//2+1
+ky = np.concatenate((ky_stella[naky_mid:],ky_stella[:naky_mid]))
 
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])
@@ -58,8 +65,10 @@ def read_stella_float(var):
     return arr, flag
 
 # electrostatic potential averaged over z as function of (ky,kx,t)
-phi2_vs_kxky, phi2_vs_kxky_present \
+phi2_vs_kxky_stella, phi2_vs_kxky_present \
     = read_stella_float('phi2_vs_kxky')
+if (phi2_vs_kxky_present):
+    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:,:,naky_mid:],phi2_vs_kxky_stella[:,:,:naky_mid]),axis=2)
 # electrostatic potential as a function of (z,kx,ky,t)
 phi_vs_t, phi_vs_t_present \
     = read_stella_float('phi_vs_t')
@@ -116,12 +125,6 @@ if es_energy_exchange_by_k_present is not True:
     
 es_energy_exchange_by_ky, es_energy_exchange_by_ky_present = \
     read_stella_float('es_energy_exchange_by_ky')
-# modulus squared of electrostatic potential as function of (kx,ky,t)
-phi2_by_mode, phi2_by_mode_present = \
-    read_stella_float('phi2_by_mode')
-# modulus squared of electrostatic potential as function of (ky,t)
-phi2_by_ky, phi2_by_ky_present = \
-    read_stella_float('phi2_by_ky')
 # parallel velocity grid
 vpa, vpa_present = \
     read_stella_float('vpa')
@@ -148,11 +151,9 @@ phi_igomega_by_mode, phi_igomega_by_mode_present  = \
 if phi_igomega_by_mode_present == False:
     phi_igomega_by_mode, phi_igomega_by_mode_present  = \
         read_stella_float('phi0')
-phip0, phip0_present = \
-    read_stella_float('phip0')
-xgrid, xgrid_present = \
-    read_stella_float('xgrid')
-xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
+ygrid, ygrid_present = \
+    read_stella_float('ygrid')
+ygrid = np.concatenate((ygrid[ky_stella.shape[0]//2+1:],ygrid[:ky_stella.shape[0]//2+1]))
 # density fluctuation (kx,ky,t) for given z (usually outboard midplane)
 ntot_igomega_by_mode, ntot_igomega_by_mode_present = \
     read_stella_float('ntot_igomega_by_mode')
