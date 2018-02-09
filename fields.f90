@@ -206,6 +206,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use zgrid, only: delzed, nzgrid
+    use kt_grids, only: zonal_mode
     use species, only: spec
     use geometry, only: gradpar
     use vpamu_grids, only: ztmax, vpa, maxwell_mu
@@ -276,6 +277,18 @@ contains
              end if
              gext(idx,ivmu) = fac0
              if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
+             ! zonal mode BC is periodic instead of zero, so must
+             ! treat specially
+             if (zonal_mode(iky)) then
+                if (idx == 1) then
+                   gext(nz_ext,ivmu) = fac0
+                else if (idx == nz_ext-1) then
+                   gext(1,ivmu) = -fac1
+                else if (idx == nz_ext) then
+                   gext(1,ivmu) = fac0
+                   gext(2,ivmu) = -fac1
+                end if
+             end if
           else
              if (iz < nzgrid) then
                 ! fac0 is the factor multiplying delphi on the RHS
@@ -305,6 +318,18 @@ contains
              end if
              gext(idx,ivmu) = -fac0
              if (idx > 1) gext(idx-1,ivmu) = fac1
+             ! zonal mode BC is periodic instead of zero, so must
+             ! treat specially
+             if (zonal_mode(iky)) then
+                if (idx == 1) then
+                   gext(nz_ext,ivmu) = -fac0
+                   gext(nz_ext-1,ivmu) = fac1
+                else if (idx == 2) then
+                   gext(nz_ext,ivmu) = fac1
+                else if (idx == nz_ext) then
+                   gext(1,ivmu) = -fac0
+                end if
+             end if
           end if
        else
           fac = fac*gradpar(1,iz)*maxwell_mu(1,iz,imu)
@@ -320,28 +345,76 @@ contains
           ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
           ! as this affects upwinding of d<phi>/dz source term
           if (iv < 0) then
-             ! first treat the boundary point at left-most zed
-             if (idx==1) then
-                gext(idx,ivmu) = -fac
-             else if (idx==2) then
-                gext(idx-1,ivmu) = fac
+             if (zonal_mode(iky)) then
                 gext(idx,ivmu) = -zed_upwind*fac
+                if (idx==1) then
+                   gext(nz_ext,ivmu) = gext(idx,ivmu)
+                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
+                else if (idx==2) then
+                   gext(1,ivmu) = 0.5*(1.+zed_upwind)*fac
+                   gext(nz_ext,ivmu) = gext(1,ivmu)
+                   gext(3,ivmu) = -0.5*(1.-zed_upwind)*fac
+                else if (idx==nz_ext) then
+                   gext(1,ivmu) = gext(idx,ivmu)
+                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
+                else if (idx==nz_ext-1) then
+                   gext(nz_ext-2,ivmu) = 0.5*(1.+zed_upwind)*fac
+                   gext(nz_ext,ivmu) = -0.5*(1.-zed_upwind)*fac
+                   gext(1,ivmu) = gext(nz_ext,ivmu)
+                else
+                   gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+                   gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
+                end if
              else
-                gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                gext(idx,ivmu) = -zed_upwind*fac
+                ! first treat the boundary point at left-most zed
+                if (idx==1) then
+                   gext(idx,ivmu) = -fac
+                else if (idx==2) then
+                   gext(idx-1,ivmu) = fac
+                   gext(idx,ivmu) = -zed_upwind*fac
+                else
+                   gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+                   gext(idx,ivmu) = -zed_upwind*fac
+                end if
+                if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
              end if
-             if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
           else if (iv > 0) then
-             if (idx==nz_ext) then
-                gext(idx,ivmu) = fac
-             else if (idx==nz_ext-1) then
-                gext(idx+1,ivmu) = -fac
+             if (zonal_mode(iky)) then
                 gext(idx,ivmu) = zed_upwind*fac
+                if (idx==1) then
+                   gext(nz_ext,ivmu) = gext(idx,ivmu)
+                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
+                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
+                else if (idx==2) then
+                   gext(1,ivmu) = 0.5*(1.-zed_upwind)*fac
+                   gext(nz_ext,ivmu) = gext(1,ivmu)
+                   gext(3,ivmu) = -0.5*(1.+zed_upwind)*fac
+                else if (idx==nz_ext) then
+                   gext(1,ivmu) = gext(idx,ivmu)
+                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
+                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
+                else if (idx==nz_ext-1) then
+                   gext(nz_ext-2,ivmu) = 0.5*(1.-zed_upwind)*fac
+                   gext(nz_ext,ivmu) = -0.5*(1.+zed_upwind)*fac
+                   gext(1,ivmu) = gext(nz_ext,ivmu)
+                else
+                   gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
+                   gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
+                end if
              else
-                gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
-                gext(idx,ivmu) = zed_upwind*fac
+                if (idx==nz_ext) then
+                   gext(idx,ivmu) = fac
+                else if (idx==nz_ext-1) then
+                   gext(idx+1,ivmu) = -fac
+                   gext(idx,ivmu) = zed_upwind*fac
+                else
+                   gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
+                   gext(idx,ivmu) = zed_upwind*fac
+                end if
+                if (idx>1) gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
              end if
-             if (idx>1) gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
           end if
        end if
 

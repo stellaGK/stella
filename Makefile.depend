@@ -6,6 +6,7 @@ stella_mod = \
 	 common_types.o \
 	 constants.o \
 	 convert.o \
+	 dissipation.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
@@ -57,8 +58,16 @@ command_line.o:
 common_types.o: 
 constants.o: 
 convert.o: 
+dissipation.o: \
+	 dist_fn_arrays.o \
+	 file_utils.o \
+	 mp.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 zgrid.o 
 dist_fn.o: \
 	 constants.o \
+	 dissipation.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields_arrays.o \

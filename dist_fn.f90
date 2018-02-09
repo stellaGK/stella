@@ -76,8 +76,6 @@ module dist_fn
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob
   real :: zed_upwind, vpa_upwind, time_upwind
-  real :: D_hyper
-  logical :: hyper_dissipation
   real :: gamtot_h, gamtot3_h
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
   real, dimension (:,:), allocatable :: gamtot3
@@ -488,6 +486,7 @@ contains
     use run_parameters, only: nonlinear, include_parallel_nonlinearity
     use geometry, only: geo_surf
     use neoclassical_terms, only: init_neoclassical_terms
+    use dissipation, only: init_dissipation
 
     implicit none
 
@@ -538,6 +537,8 @@ contains
     if (nonlinear) call init_ExB_nonlinearity
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
+    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_dissipation'
+    call init_dissipation
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_redistribute'
     call init_redistribute
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_cfl'
@@ -582,7 +583,7 @@ contains
          xdriftknob, ydriftknob, streamknob, mirrorknob, wstarknob, &
          mirror_explicit, mirror_semi_lagrange, mirror_linear_interp, &
          stream_explicit, stream_cell, stream_matrix_inversion, &!wdrifty_explicit, &!wstar_explicit, &
-         adiabatic_option, D_hyper, hyper_dissipation, &
+         adiabatic_option, &
          zed_upwind, vpa_upwind, time_upwind, explicit_option
     integer :: ierr, in_file
 
@@ -606,8 +607,6 @@ contains
        stream_explicit = .false.
        stream_cell = .false.
        stream_matrix_inversion = .true.
-       hyper_dissipation = .false.
-       D_hyper = 0.05
 !       wdrifty_explicit = .true.
 !       wstar_explicit = .true.
 
@@ -642,8 +641,6 @@ contains
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
     call broadcast (time_upwind)
-    call broadcast (hyper_dissipation)
-    call broadcast (D_hyper)
 
     mirror_implicit = .not.mirror_explicit
     stream_implicit = .not.stream_explicit
@@ -3364,6 +3361,7 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use dist_fn_arrays, only: gbar_to_h
+    use dissipation, only: hyper_dissipation, advance_hyper_dissipation
 
     implicit none
 
@@ -4637,29 +4635,6 @@ contains
     deallocate (a, b, c)
 
   end subroutine stream_tridiagonal_solve
-
-  subroutine advance_hyper_dissipation (g)
-
-    use stella_time, only: code_dt
-    use zgrid, only: nzgrid
-    use stella_layouts, only: vmu_lo
-    use dist_fn_arrays, only: kperp2
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-
-    integer :: ivmu
-    real :: k2max
-
-    k2max = maxval(kperp2)
-
-    ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g(:,:,:,ivmu) = g(:,:,:,ivmu)/(1.+code_dt*(kperp2/k2max)**2*D_hyper)
-    end do
-
-  end subroutine advance_hyper_dissipation
 
 !   subroutine advance_wdrifty_implicit (g)
 
