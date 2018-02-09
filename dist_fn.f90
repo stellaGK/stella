@@ -2992,7 +2992,12 @@ contains
     ! stream_sign > 0 --> stream speed < 0
 
     if (iseg == 1) then
-       gleft = 0.0
+       ! if zonal mode, then periodic BC instead of zero BC
+       if (zonal_mode(iky)) then
+          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1)
+       else
+          gleft = 0.0
+       end if
     else
        ! if trying to connect to a segment that 
        ! corresponds to kx negative, use reality
@@ -3000,11 +3005,7 @@ contains
        ! (with sign of ky flipped)
        if (ikxmod(iseg-1,ie,iky) > nakx) then
           ikxneg = ntheta0-ikxmod(iseg-1,ie,iky)+2
-          if (zonal_mode(iky)) then
-             ikyneg = iky
-          else
-             ikyneg = naky-iky+2
-          end if
+          ikyneg = naky-iky+2
           gleft = conjg(g(ikyneg,ikxneg,iz_up(iseg-1)-2:iz_up(iseg-1)-1))
        else
           gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1)
@@ -3018,18 +3019,19 @@ contains
        ! (with sign of ky flipped)
        if (ikxmod(iseg+1,ie,iky) > nakx) then
           ikxneg = ntheta0-ikxmod(iseg+1,ie,iky)+2
-          if (zonal_mode(iky)) then
-             ikyneg = iky
-          else
-             ikyneg = naky-iky+2
-          end if
+          ikyneg = naky-iky+2
           gright = conjg(g(ikyneg,ikxneg,iz_low(iseg+1)+1:iz_low(iseg+1)+2))
        else
           ! connect to segment with larger theta-theta0 (on right)
           gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2)
        end if
     else
-       gright = 0.0
+       ! apply periodic BC to zonal mode and zero BC otherwise
+       if (zonal_mode(iky)) then
+          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2)
+       else
+          gright = 0.0
+       end if
     end if
     
   end subroutine fill_zed_ghost_zones
