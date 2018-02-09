@@ -1,6 +1,6 @@
 program stella
 
-  use job_manage, only: time_message
+  use job_manage, only: time_message, checkstop
   use run_parameters, only: nstep
   use stella_time, only: update_time
   use dist_fn, only: advance_stella
@@ -9,6 +9,7 @@ program stella
   implicit none
 
   logical :: debug = .false.
+  logical :: stop_stella = .false.
 
   integer :: istep
   real, dimension (2) :: time_init = 0.
@@ -28,6 +29,8 @@ program stella
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
      call time_message(.false.,time_diagnostics,' diagnostics')
+     if (mod(istep,10)==0) call checkstop (stop_stella)
+     if (stop_stella) exit
   end do
 
   if (debug) write (*,*) 'stella::finish_stella'
