@@ -176,7 +176,7 @@ contains
        call sum_allreduce (gamtot)
        ! avoid divide by zero when kx=ky=0
        ! do not evolve this mode, so value is irrelevant
-       if (abs(aky(1)) < epsilon(0.) .and. akx(1) < epsilon(0.)) gamtot(1,1,:) = 1.0
+       if (zonal_mode(1) .and. akx(1) < epsilon(0.)) gamtot(1,1,:) = 1.0
 
        gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
 
@@ -184,7 +184,7 @@ contains
           gamtot = gamtot + tite/nine
           gamtot_h = gamtot_h + tite/nine
           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-             if (abs(aky(1)) < epsilon(0.)) then
+             if (zonal_mode(1)) then
                 gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
                 do ikx = 1, nakx
                    ! avoid divide by zero for kx=ky=0 mode,
@@ -379,7 +379,7 @@ contains
 
        if (.not.has_electron_species(spec) .and. &
             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-          if (abs(aky(1)) < epsilon(0.)) then
+          if (zonal_mode(1)) then
              if (dist == 'h') then
                 do ikx = 1, nakx
                    tmp = sum(dl_over_b*phi(1,ikx,:))
@@ -678,7 +678,7 @@ contains
 
     allocate (kperp2(naky,nakx,-nzgrid:nzgrid))
     do iky = 1, naky
-       if (abs(aky(iky)) < epsilon(0.)) then
+       if (zonal_mode(iky)) then
           do ikx = 1, nakx
              kperp2(iky,ikx,:) = akx(ikx)*akx(ikx)*gds22(1,:)/(geo_surf%shat**2)
           end do
@@ -2167,28 +2167,47 @@ contains
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
+    use dist_fn_arrays, only: aj0x
+    use fields_arrays, only: phi
+    use vpamu_grids, only: ztmax, maxwell_mu
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    complex, dimension (:,:,:,:), allocatable :: g0
+    integer :: ivmu, iv, imu, is
+    complex, dimension (:,:,:,:), allocatable :: g0, g1
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g1(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
     ! get dg/dz, with z the parallel coordinate and store in g0
     if (debug) write (*,*) 'dist_fn::solve_gke::get_dgdz'
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       g0(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phi
+    end do
+    call get_dgdz (g0, g1)
     call get_dgdz (g, g0)
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g0(:,:,:,ivmu) = g0(:,:,:,ivmu) + g1(:,:,:,ivmu)*ztmax(iv,is) &
+            * spread(spread(maxwell_mu(1,:,imu),1,naky),2,nakx)
+    end do
+
     ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
     if (debug) write (*,*) 'dist_fn::solve_gke::add_stream_term'
     call add_stream_term (g0, gout)
     if (proc0) call time_message(.false.,time_gke(:,3),' Stream advance')
-    deallocate (g0)
+    deallocate (g0, g1)
 
   end subroutine advance_parallel_streaming_explicit
 
@@ -2282,15 +2301,10 @@ contains
        allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-       ! get dg/dvpa and store in g0_vmu
+       ! get dg/dvpa and store in g0v
        if (debug) write (*,*) 'dist_fn::advance_stella::get_dgdvpa'
-!       call get_dgdvpa (gvmu, g0v)
        g0v = gvmu
        call get_dgdvpa_explicit (g0v)
-       ! add in extra term coming from definition of h as h*exp(mu*B/T)
-       do iv = -nvgrid, nvgrid
-          g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
-       end do
        if (debug) write (*,*) 'dist_fn::advance_stella::gather'
        ! swap layouts so that (z,kx,ky) are local
        call gather (kxkyz2vmu, g0v, g0x)
@@ -2786,35 +2800,6 @@ contains
 
   end subroutine advance_parallel_nonlinearity
 
-!   subroutine get_dgdvpa (g)
-
-!     use finite_differences, only: first_order_upwind
-!     use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
-!     use vpamu_grids, only: nvgrid, nmu, dvpa
-
-!     implicit none
-
-!     complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
-
-!     integer :: ikxkyz, imu, iz, is
-!     complex, dimension (:), allocatable :: tmp
-
-!     allocate (tmp(-nvgrid:nvgrid))
-
-!     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!        iz = iz_idx(kxkyz_lo,ikxkyz)
-!        is = is_idx(kxkyz_lo,ikxkyz)
-!        do imu = 1, nmu
-!           call first_order_upwind (-nvgrid,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
-!           ! get h + mirror*dh/dvpa
-!           g(:,imu,ikxkyz) = g(:,imu,ikxkyz) + mirror(1,iz,imu,is)*tmp
-!        end do
-!     end do
-
-!     deallocate (tmp)
-
-!   end subroutine get_dgdvpa
-
   subroutine get_dgdvpa_global (g)
 
     use finite_differences, only: third_order_upwind
@@ -3012,7 +2997,7 @@ contains
        ! (with sign of ky flipped)
        if (ikxmod(iseg-1,ie,iky) > nakx) then
           ikxneg = ntheta0-ikxmod(iseg-1,ie,iky)+2
-          if (abs(aky(iky)) < epsilon(0.)) then
+          if (zonal_mode(iky)) then
              ikyneg = iky
           else
              ikyneg = naky-iky+2
@@ -3030,7 +3015,7 @@ contains
        ! (with sign of ky flipped)
        if (ikxmod(iseg+1,ie,iky) > nakx) then
           ikxneg = ntheta0-ikxmod(iseg+1,ie,iky)+2
-          if (abs(aky(iky)) < epsilon(0.)) then
+          if (zonal_mode(iky)) then
              ikyneg = iky
           else
              ikyneg = naky-iky+2
@@ -3821,7 +3806,7 @@ contains
        ! instead use reality condition to convert negative ky
        ! to get negative kx
        do iky = 1, naky
-          if (abs(aky(iky)) < epsilon(0.)) then
+          if (zonal_mode(iky)) then
              allocate (gpi(nakx,-nzgrid:nzgrid))
              allocate (gcf(-nzgrid:nzgrid))
              ! ky=0 is 2pi periodic (no extended zgrid)
@@ -4012,7 +3997,7 @@ contains
           gpz = gp
        else
           ! treat zonal flow specially
-          if (abs(aky(1)) < epsilon(0.)) then
+          if (zonal_mode(1)) then
              do ikx = 1, nakx
                 call center_zed (iv,g(1,ikx,:,ivmu))
              end do
@@ -4026,7 +4011,7 @@ contains
        end if
 
        ! construct RHS of GK eqn for inhomogeneous g
-       if (abs(aky(1)) < epsilon(0.)) then
+       if (zonal_mode(1)) then
           do iz = -nzgrid, nzgrid
              g(1,:,iz,ivmu) = g(1,:,iz,ivmu) - fac*gpz(1,iz) &
                   * (vpa(iv)*dgdz(1,:,iz) + vpadf0dE_fac(iz)*dphidz(1,:,iz))
@@ -4136,7 +4121,7 @@ contains
           gpz = gp
        else
           ! treat zonal flow specially
-          if (abs(aky(1)) < epsilon(0.)) then
+          if (zonal_mode(1)) then
              do ikx = 1, nakx
                 call center_zed (iv,g(1,ikx,:,ivmu))
              end do
@@ -4150,7 +4135,7 @@ contains
        end if
 
        ! construct RHS of GK eqn
-       if (abs(aky(1)) < epsilon(0.)) then
+       if (zonal_mode(1)) then
           do iz = -nzgrid, nzgrid
              g(1,:,iz,ivmu) = g(1,:,iz,ivmu) - fac*gp(1,iz) &
                   * (tupwnd1*vpa(iv)*dgdz(1,:,iz) + vpadf0dE_fac(iz)*dphidz(1,:,iz))
@@ -4197,7 +4182,7 @@ contains
        iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
        is = is_idx(vmu_lo,ivmu)
        do iky = 1, naky
-          if (abs(aky(iky)) < epsilon(0.)) then
+          if (zonal_mode(iky)) then
 !             ikyneg = iky
              call sweep_zed_zonal (ivmu, g(iky,:,:,ivmu))
              cycle
@@ -4448,7 +4433,7 @@ contains
              ! first fill in ghost zones at boundaries in g(z)
              call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
              ! treat zonal flow specially
-             if (abs(aky(iky)) < epsilon(0.)) then
+             if (zonal_mode(iky)) then
                 ! get finite difference approximation for dg/dz at cell centres
                 ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
                 call fd_cell_centres_zed (iz_low(iseg), &
