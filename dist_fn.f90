@@ -132,7 +132,8 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
-    use kt_grids, only: naky, nakx, aky, akx
+    use kt_grids, only: naky, nakx, akx
+    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -338,7 +339,8 @@ contains
     use vpamu_grids, only: nvgrid, nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: integrate_vmu
-    use kt_grids, only: nakx, aky
+    use kt_grids, only: nakx
+    use kt_grids, only: zonal_mode
     use species, only: spec, has_electron_species
 
     implicit none
@@ -668,6 +670,7 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
+    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -2976,7 +2979,7 @@ contains
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: ikxmod
     use kt_grids, only: ntheta0, nakx, naky
-    use kt_grids, only: aky
+    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -3777,7 +3780,8 @@ contains
 
     use zgrid, only: nzgrid, delzed, nztot
     use extended_zgrid, only: neigen, nsegments, nzed_segment
-    use kt_grids, only: naky, aky, nakx
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
 
@@ -3919,7 +3923,8 @@ contains
     use species, only: spec
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, nakx, aky
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: zonal_mode
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax, maxwell_mu
     use geometry, only: gradpar, nalpha
@@ -4039,7 +4044,8 @@ contains
     use species, only: spec
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, nakx, aky
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: zonal_mode
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax, maxwell_mu
     use geometry, only: gradpar, nalpha
@@ -4166,7 +4172,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use kt_grids, only: naky
-    use kt_grids, only: aky
+    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -4408,7 +4414,8 @@ contains
   subroutine get_dzed (iv, g, dgdz)
 
     use finite_differences, only: fd_variable_upwinding_zed, fd_cell_centres_zed
-    use kt_grids, only: naky, nakx, aky
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: zonal_mode
     use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up

@@ -304,7 +304,7 @@ module kt_grids
   character(20) :: grid_option
   integer :: ny_ffs = 1
   logical :: alpha_global
-  logical :: zonal_mode
+  logical, dimension (:), allocatable :: zonal_mode
 
   namelist /kt_grids_knobs/ grid_option, alpha_global
 
@@ -369,6 +369,7 @@ contains
     iky_max = naky/2+1
 
     ! determine if iky corresponds to zonal mode
+    if (.not.allocated(zonal_mode)) allocate (zonal_mode(naky))
     zonal_mode = .false.
     if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
 
