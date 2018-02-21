@@ -1,6 +1,5 @@
 !> This module is basically a store for the input parameters that are specified in the namelists \a knobs and \a parameters. In general, the names of the public variables in this module are the same as the name of the input parameter they correspond to.
  
-
 module run_parameters
 
   implicit none
@@ -8,18 +7,32 @@ module run_parameters
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
   public :: include_parallel_nonlinearity
+  public :: include_parallel_streaming
+  public :: include_mirror
   public :: nonlinear
   public :: code_delt_max
   public :: nstep
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
+  public :: stream_implicit, mirror_implicit
+  public :: fully_explicit
+  public :: stream_cell, stream_matrix_inversion
+  public :: mirror_semi_lagrange, mirror_linear_interp
+  public :: zed_upwind, vpa_upwind, time_upwind
   
   private
 
   real :: cfl_cushion, delt_adjust
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max
+  real :: zed_upwind, vpa_upwind, time_upwind
+  logical :: include_parallel_streaming
+  logical :: include_mirror
   logical :: nonlinear, include_parallel_nonlinearity
+  logical :: stream_implicit, mirror_implicit
+  logical :: fully_explicit
+  logical :: stream_cell, stream_matrix_inversion
+  logical :: mirror_semi_lagrange, mirror_linear_interp
   real :: avail_cpu_time
   integer :: nstep
   integer, public :: delt_option_switch
@@ -61,15 +74,31 @@ contains
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
          delt_option, nonlinear, include_parallel_nonlinearity, &
-         avail_cpu_time, cfl_cushion, delt_adjust
+         avail_cpu_time, cfl_cushion, delt_adjust, &
+         stream_implicit, mirror_implicit, &
+         stream_cell, stream_matrix_inversion, &
+         mirror_semi_lagrange, mirror_linear_interp, &
+         include_parallel_streaming, include_mirror, &
+         zed_upwind, vpa_upwind, time_upwind
 
     if (proc0) then
        fphi = 1.0
        fapar = 1.0
        fbpar = -1.0
+       stream_implicit = .true.
+       mirror_implicit = .true.
        nonlinear = .false.
        include_parallel_nonlinearity = .false.
+       include_parallel_streaming = .true.
+       include_mirror = .true.
+       mirror_semi_lagrange = .true.
+       mirror_linear_interp = .false.
+       stream_cell = .false.
+       stream_matrix_inversion = .true.
        delt_option = 'default'
+       zed_upwind = 0.02
+       vpa_upwind = 0.02
+       time_upwind = 0.02
        avail_cpu_time = 1.e10
        cfl_cushion = 0.5
        delt_adjust = 2.0
@@ -91,8 +120,19 @@ contains
     call broadcast (fphi)
     call broadcast (fapar)
     call broadcast (fbpar)
+    call broadcast (stream_implicit)
+    call broadcast (mirror_implicit)
     call broadcast (nonlinear)
     call broadcast (include_parallel_nonlinearity)
+    call broadcast (include_parallel_streaming)
+    call broadcast (include_mirror)
+    call broadcast (mirror_semi_lagrange)
+    call broadcast (mirror_linear_interp)
+    call broadcast (stream_cell)
+    call broadcast (stream_matrix_inversion)
+    call broadcast (zed_upwind)
+    call broadcast (vpa_upwind)
+    call broadcast (time_upwind)
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
     
@@ -103,6 +143,12 @@ contains
        call init_dt (delt_saved, istatus)
        if (istatus == 0) delt  = delt_saved
     endif
+
+    if (mirror_implicit .or. stream_implicit) then
+       fully_explicit = .false.
+    else
+       fully_explicit = .true.
+    end if
 
   end subroutine read_parameters
 

@@ -71,7 +71,7 @@ contains
 # elif FFT == _FFTW3_
     ! number of ffts to be calculated
     ! equal to number of elements off-processor * number of non-y elements on processor
-    nb_ffts = (vmu_lo%ulim_alloc - vmu_lo%llim_proc + 1)*vmu_lo%nakx*vmu_lo%nzed
+    nb_ffts = (vmu_lo%ulim_alloc - vmu_lo%llim_proc + 1)*(vmu_lo%nakx/2+1)*vmu_lo%nzed
 
     call init_ccfftw (yf_fft,  1, vmu_lo%ny, nb_ffts, fft_y_in, fft_y_out)
     call init_ccfftw (yb_fft, -1, vmu_lo%ny, nb_ffts, fft_y_in, fft_y_out)
@@ -123,14 +123,15 @@ contains
     integer :: ikx, ig, ivmu
 
     ! first need to pad input array with zeros
-    iky_max = vmu_lo%naky/2+1
-    ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
+    iky_max = vmu_lo%naky
+    ipad_up = iky_max+vmu_lo%ny-(2*vmu_lo%naky-1)
 !    fft_y_in(iky_max+1:ipad_up) = 0.
 
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+
        do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
-          do ikx = 1, vmu_lo%nakx
+          do ikx = 1, vmu_lo%nakx/2+1
              fft_y_in(iky_max+1:ipad_up) = 0.
              fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx,ig,ivmu)
              fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx,ig,ivmu)
@@ -156,12 +157,12 @@ contains
     integer :: ikx
 
     ! first need to pad input array with zeros
-    iky_max = vmu_lo%naky/2+1
-    ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
+    iky_max = vmu_lo%naky
+    ipad_up = iky_max+vmu_lo%ny-(2*vmu_lo%naky-1)
 !    fft_y_in(iky_max+1:ipad_up) = 0.
 
     ! now fill in non-zero elements of array
-    do ikx = 1, vmu_lo%nakx
+    do ikx = 1, vmu_lo%nakx/2+1
        fft_y_in(iky_max+1:ipad_up) = 0.
        fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx)
        fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx)
@@ -184,12 +185,12 @@ contains
     integer :: iky_max, ipad_up
     integer :: ikx, ig, ivmu
 
-    iky_max = vmu_lo%naky/2+1
-    ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
+    iky_max = vmu_lo%naky
+    ipad_up = iky_max+vmu_lo%ny-(2*vmu_lo%naky-1)
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
-          do ikx = 1, vmu_lo%nakx
+          do ikx = 1, vmu_lo%nakx/2+1
              fft_y_in = gy(:,ikx,ig,ivmu)
              call dfftw_execute_dft(yb_fft%plan, fft_y_in, fft_y_out)
              fft_y_out = fft_y_out*yb_fft%scale
@@ -213,10 +214,10 @@ contains
     integer :: iky_max, ipad_up
     integer :: ikx
 
-    iky_max = vmu_lo%naky/2+1
-    ipad_up = iky_max+vmu_lo%ny-vmu_lo%naky
+    iky_max = vmu_lo%naky
+    ipad_up = iky_max+vmu_lo%ny-(2*vmu_lo%naky-1)
     ! now fill in non-zero elements of array
-    do ikx = 1, vmu_lo%nakx
+    do ikx = 1, vmu_lo%nakx/2+1
        fft_y_in = gy(:,ikx)
        call dfftw_execute_dft(yb_fft%plan, fft_y_in, fft_y_out)
        fft_y_out = fft_y_out*yb_fft%scale
@@ -240,8 +241,8 @@ contains
     ! now fill in non-zero elements of array
     do iy = 1, vmu_lo%ny
     ! first need to pad input array with zeros
-       fft_x_k(vmu_lo%nakx+1:) = 0.
-       fft_x_k(:vmu_lo%nakx) = gkx(iy,:)
+       fft_x_k(vmu_lo%nakx/2+2:) = 0.
+       fft_x_k(:vmu_lo%nakx/2+1) = gkx(iy,:)
        call dfftw_execute_dft_c2r(xf_fft%plan, fft_x_k, fft_x_x)
        fft_x_x = fft_x_x*xf_fft%scale
        gx(iy,:) = fft_x_x
@@ -264,7 +265,7 @@ contains
        fft_x_x = gx(iy,:)
        call dfftw_execute_dft_r2c(xb_fft%plan, fft_x_x, fft_x_k)
        fft_x_k = fft_x_k*xb_fft%scale
-       gkx(iy,:) = fft_x_k(:vmu_lo%nakx)
+       gkx(iy,:) = fft_x_k(:vmu_lo%nakx/2+1)
     end do
 
   end subroutine transform_x2kx

@@ -3,7 +3,7 @@ program stella
   use job_manage, only: time_message, checkstop
   use run_parameters, only: nstep
   use stella_time, only: update_time
-  use dist_fn, only: advance_stella
+  use time_advance, only: advance_stella
   use stella_diagnostics, only: diagnose_stella
 
   implicit none
@@ -45,15 +45,32 @@ contains
     use file_utils, only: init_file_utils
     use file_utils, only: run_name
     use job_manage, only: checktime, time_message
+    use physics_parameters, only: init_physics_parameters
+    use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep
-    use fields, only: init_fields
+    use run_parameters, only: stream_implicit
+    use species, only: init_species
+    use zgrid, only: init_zgrid
+    use geometry, only: init_geometry
+    use stella_layouts, only: init_stella_layouts
+    use response_matrix, only: init_response_matrix
+    use init_g, only: ginit, init_init_g
+    use fields, only: init_fields, get_fields
     use stella_time, only: init_tstart
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
+    use fields_arrays, only: phi, apar
+    use dist_fn_arrays, only: gvmu
+    use dist_fn, only: init_gxyz, init_dist_fn
+    use time_advance, only: init_time_advance
+    use extended_zgrid, only: init_extended_zgrid
+    use geometry, only: geo_surf
+    use kt_grids, only: init_kt_grids
+    use vpamu_grids, only: init_vpamu_grids
 
     implicit none
 
-    logical :: exit, list
+    logical :: exit, list, restarted
     character (500), target :: cbuff
 
     ! initialize mpi message passing
@@ -78,11 +95,53 @@ contains
     call broadcast (cbuff)
     if (.not. proc0) run_name => cbuff
 
-    if (debug) write (*,*) 'stella::init_stella::init_fields'
+    if (debug) write(6,*) "stella::init_stella::init_zgrid"
+    call init_zgrid
+    if (debug) write(6,*) "stella::init_stella::init_geometry"
+    call init_geometry
+    if (debug) write(6,*) "stella::init_stella::init_physics_parameters"
+    call init_physics_parameters
+    if (debug) write (6,*) 'stella::init_stella::init_species'
+    call init_species
+    if (debug) write(6,*) "stella::init_stella::init_init_g"
+    call init_init_g
+    if (debug) write(6,*) "stella::init_stella::init_run_parameters"
+    call init_run_parameters
+    if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
+    call init_stella_layouts
+    if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
+    call init_kt_grids (geo_surf%shat)
+    if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
+    call init_vpamu_grids
+    if (debug) write(6,*) "stella::init_stella::init_dist_fn"
+    call init_dist_fn
+    if (debug) write (6,*) 'stella::init_stella::init_extended_zgrid'
+    call init_extended_zgrid
+    if (debug) write (6,*) 'stella::init_stella::init_time_advance'
+    call init_time_advance
+    if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
-    if (debug) write (*,*) 'stella::init_stella::init_stella_diagnostics'
+    if (debug) write(6,*) "stella::init_stella::ginit"
+    call ginit (restarted)
+    if (debug) write(6,*) "stella::init_stella::init_gxyz"
+    call init_gxyz
+    if (debug) write(6,*) "stella::init_stella::init_response_matrix"
+    if (stream_implicit) call init_response_matrix
+
+    if (.not.restarted) then
+       if (debug) write (6,*) 'stella::init_stella::get_fields'
+       ! get initial field from initial distribution function
+       call get_fields (gvmu, phi, apar, dist='gbar')
+    end if
+
+    ! TMP FOR TESTING -- MAB
+!    call checksum (phi, phitot)
+!    call checksum (gnew, gtot)
+!    write (*,*) 'init_fields', phitot, gtot
+
+    if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
     call init_stella_diagnostics (nstep)
-    if (debug) write (*,*) 'stella::init_stella::init_tstart'
+    if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
 
     if (proc0) call time_message(.false.,time_init,' Initialization')
@@ -114,23 +173,49 @@ contains
     use job_manage, only: time_message
     use physics_parameters, only: finish_physics_parameters
     use run_parameters, only: finish_run_parameters
-    use dist_fn, only: time_gke
+    use zgrid, only: finish_zgrid
+    use species, only: finish_species
+    use time_advance, only: time_gke, finish_time_advance
+    use parallel_streaming, only: time_parallel_streaming
+    use mirror_terms, only: time_mirror
     use dist_fn, only: finish_dist_fn
     use fields, only: finish_fields
+    use fields, only: time_field_solve
     use stella_diagnostics, only: finish_stella_diagnostics
+    use response_matrix, only: finish_response_matrix
+    use geometry, only: finish_geometry
+    use extended_zgrid, only: finish_extended_zgrid
+    use vpamu_grids, only: finish_vpamu_grids
+    use kt_grids, only: finish_kt_grids
 
     implicit none
 
     if (debug) write (*,*) 'stella::finish_stella::finish_stella_diagnostics'
     call finish_stella_diagnostics
+    if (debug) write (*,*) 'stella::finish_stella::finish_response_matrix'
+    call finish_response_matrix
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'
     call finish_fields
+    if (debug) write (*,*) 'stella::finish_stella::finish_time_advance'
+    call finish_time_advance
+    if (debug) write (*,*) 'stella::finish_stella::finish_extended_zgrid'
+    call finish_extended_zgrid
     if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'
     call finish_dist_fn
+    if (debug) write (*,*) 'stella::finish_stella::finish_vpamu_grids'
+    call finish_vpamu_grids
+    if (debug) write (*,*) 'stella::finish_stella::finish_kt_grids'
+    call finish_kt_grids
     if (debug) write (*,*) 'stella::finish_stella::finish_run_parameters'
     call finish_run_parameters
+    if (debug) write (*,*) 'stella::finish_stella::finish_species'
+    call finish_species
     if (debug) write (*,*) 'stella::finish_stella::finish_physics_parameters'
     call finish_physics_parameters
+    if (debug) write (*,*) 'stella::finish_stella::finish_geometry'
+    call finish_geometry
+    if (debug) write (*,*) 'stella::finish_stella::finish_zgrid'
+    call finish_zgrid
     if (debug) write (*,*) 'stella::finish_stella::finish_file_utils'
     if (proc0) then
        call finish_file_utils
@@ -138,9 +223,9 @@ contains
        write (*,*)
        write (*,fmt=101) 'initialization:', time_init(1)/60., 'min'
        write (*,fmt=101) 'diagnostics:', time_diagnostics(1)/60., 'min'
-       write (*,fmt=101) 'fields:', time_gke(1,2)/60., 'min'
-       write (*,fmt=101) 'mirror:', time_gke(1,2)/60., 'min'
-       write (*,fmt=101) 'stream:', time_gke(1,3)/60., 'min'
+       write (*,fmt=101) 'fields:', time_field_solve(1)/60., 'min'
+       write (*,fmt=101) 'mirror:', time_mirror(1)/60., 'min'
+       write (*,fmt=101) 'stream:', time_parallel_streaming(1)/60., 'min'
        write (*,fmt=101) 'dgdx:', time_gke(1,5)/60., 'min'
        write (*,fmt=101) 'dgdy:', time_gke(1,4)/60., 'min'
        write (*,fmt=101) 'wstar:', time_gke(1,6)/60., 'min'

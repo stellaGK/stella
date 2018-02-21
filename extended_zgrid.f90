@@ -2,19 +2,23 @@ module extended_zgrid
 
   implicit none
 
-  public :: nsegments, nsegments_poskx
+  public :: nsegments
   public :: neigen
   public :: ikxmod
   public :: iz_low, iz_mid, iz_up
   public :: periodic
   public :: nzed_segment
+  public :: fill_zed_ghost_zones
+  public :: init_extended_zgrid, finish_extended_zgrid
+  public :: map_to_extended_zgrid
+  public :: map_from_extended_zgrid
 
   ! these arrays needed to keep track of connections between different
   ! 2pi segments
   integer :: nzed_segment
   integer, dimension (:), allocatable :: neigen
   integer, dimension (:), allocatable :: iz_low, iz_mid, iz_up
-  integer, dimension (:,:), allocatable :: nsegments, nsegments_poskx
+  integer, dimension (:,:), allocatable :: nsegments
   integer, dimension (:,:,:), allocatable :: ikxmod
 
   ! FLAG -- NEED TO IMPLEMENT PERIODIC FOR ZONAL FLOW
@@ -30,25 +34,22 @@ contains
     use zgrid, only: boundary_option_self_periodic
     use zgrid, only: boundary_option_linked
     use zgrid, only: nperiod, nzgrid, nzed
-    use kt_grids, only: ntheta0, nakx, naky
-    use kt_grids, only: jtwist_out, aky
+    use kt_grids, only: nakx, naky
+    use kt_grids, only: jtwist_out, aky, ikx_max
     use species, only: nspec
     use vpamu_grids, only: nmu, nvgrid
 
     implicit none
 
-    integer :: iseg, iky, ie, ntg, ikx, ikxshiftend
+    integer :: iseg, iky, ie, ntg, ikx
     integer :: nseg_max, neigen_max
-    integer :: iky_max
-    integer, dimension (:), allocatable :: ikx_shift_left_kypos, ikx_shift_left_kyneg
+    integer, dimension (:), allocatable :: ikx_shift_left
     integer, dimension (:,:), allocatable :: ikx_shift
 
     if (extended_zgrid_initialized) return
     extended_zgrid_initialized = .true.
     
     ntg = nzed/2
-    ! iky_max is the index of the most positive ky
-    iky_max = naky/2+1
 
     if (.not. allocated(neigen)) allocate (neigen(naky))
     if (.not. allocated(periodic)) allocate (periodic(naky)) ; periodic = .false.
@@ -62,26 +63,21 @@ contains
     select case (boundary_option_switch)
     case (boundary_option_linked)
 
-       ! ntheta0 = 2*(nakx-1) + 1
-       ! nakx includes kx >= 0
-       ! ntheta0 also includes kx < 0
-       neigen(1) = ntheta0
+       ! if linked BC, then iky=1 corresponds to ky=0 which has no connections
+       neigen(1) = nakx
        if (naky > 1) then
-          do iky = 2, iky_max
+          do iky = 2, naky
              ! must link different kx values at theta = +/- pi
              ! neigen is the number of independent eigenfunctions along the field line
-             neigen(iky) = min((iky-1)*jtwist_out,ntheta0)
+             neigen(iky) = min((iky-1)*jtwist_out,nakx)
           end do
-          ! number of eigenfunctions for -ky is same as for +ky
-          neigen(iky_max+1:) = neigen(iky_max:2:-1)
        end if
 
        neigen_max = maxval(neigen)
 
-       if (.not. allocated(ikx_shift_left_kypos)) then
-          allocate (ikx_shift_left_kypos(neigen_max)) ; ikx_shift_left_kypos = 0
-          allocate (ikx_shift_left_kyneg(neigen_max)) ; ikx_shift_left_kyneg = 0
-          allocate (ikx_shift(ntheta0,naky)) ; ikx_shift = 0
+       if (.not. allocated(ikx_shift_left)) then
+          allocate (ikx_shift_left(neigen_max)) ; ikx_shift_left = 0
+          allocate (ikx_shift(nakx,naky)) ; ikx_shift = 0
        end if
 
        ! figure out how much to shift ikx by to get to
@@ -89,21 +85,14 @@ contains
        ! note that theta0 goes from 0 to theta0_max and then from theta0_min back
        ! to -dtheta0
        do ikx = 1, neigen_max
-          ! first ntheta0/2+1 theta0s are 0 and all positive theta0 values
+          ! first ikx_max=nakx/2+1 theta0s are 0 and all positive theta0 values
           ! remainder are negative theta0s
-          ! note that ntheta0 is always positive for box
           ! theta_0 = kx / ky / shat
           ! if ky > 0, then most positive theta_0 corresponds to most positive kx
-          if (ikx <= nakx) then
-             ikx_shift_left_kypos(ikx) = nakx-2*ikx+1
+          if (ikx <= ikx_max) then
+             ikx_shift_left(ikx) = ikx_max-2*ikx+1
           else
-             ikx_shift_left_kypos(ikx) = 3*nakx-2*ikx
-          end if
-          ! if ky < 0, most positive theta_0 corresponds to most negative kx
-          if (ikx < nakx) then
-             ikx_shift_left_kyneg(ikx) = nakx
-          else
-             ikx_shift_left_kyneg(ikx) = 1-nakx
+             ikx_shift_left(ikx) = 3*ikx_max-2*ikx
           end if
        end do
 
@@ -111,72 +100,41 @@ contains
           ! ikx_shift is how much to shift each ikx by to connect
           ! to the next theta0 (from most positive to most negative)
 
-          ! if ky < 0, then going to more negative theta0
-          ! corresponds to going to more positive kx
-          if (aky(iky) < 0.0) then
-             ! first treat kx positive
-             ! connect to more positive kx neigen away
-             ! but only if not trying to connect to kx
-             ! so positive that ikx is not on grid
-             if (nakx - neigen(iky) > 0) ikx_shift(:nakx-neigen(iky),iky) = neigen(iky)
-             ! next treat kx negative
-             ! if kx sufficiently negative, then 
-             ! shifting by neigen keeps kx negative
-             do ikx = nakx+1, ntheta0
-                if (ikx+neigen(iky) <= ntheta0) then
-                   ikx_shift(ikx,iky) = neigen(iky)
-                   ! if theta0 not sufficiently negative,
-                   ! then must shift to postive theta0
-                else if (ikx+neigen(iky) <= ntheta0+nakx) then
-                   ikx_shift(ikx,iky) = neigen(iky) - ntheta0
-                end if
-             end do
-          else
-             ! if ky > 0, then going to more negative theta0
-             ! corresponds to going to more negative kx
-             do ikx = 1, nakx
-                ! if theta0 is sufficiently positive, shifting to more
-                ! negative theta0 corresponds to decreasing ikx
-                if (ikx-neigen(iky) > 0) then
-                   ikx_shift(ikx,iky) = -neigen(iky)
-                   ! if a positive theta0 connects to a negative theta0
-                   ! must do more complicated mapping of ikx
-                else if (ikx-neigen(iky)+ntheta0 >= nakx+1) then
-                   ikx_shift(ikx,iky) = ntheta0 - neigen(iky)
-                end if
-             end do
-             ! if theta0 is negative, then shifting to more negative
-             ! theta0 corresponds to decreasing ikx
-             do ikx = nakx+1, ntheta0
-                ! if theta0 is sufficiently negative, it has no
-                ! more negative theta0 with which it can connect
-                if (ikx-neigen(iky) >= nakx) then
-                   ikx_shift(ikx,iky) = -neigen(iky)
-                end if
-                ! theta0 is positive
-             end  do
-          end if
+          ! if ky > 0, then going to more negative theta0
+          ! corresponds to going to more negative kx
+          do ikx = 1, ikx_max
+             ! if theta0 is sufficiently positive, shifting to more
+             ! negative theta0 corresponds to decreasing ikx
+             if (ikx-neigen(iky) > 0) then
+                ikx_shift(ikx,iky) = -neigen(iky)
+                ! if a positive theta0 connects to a negative theta0
+                ! must do more complicated mapping of ikx
+             else if (ikx-neigen(iky)+nakx >= ikx_max+1) then
+                ikx_shift(ikx,iky) = nakx - neigen(iky)
+             end if
+          end do
+          ! if theta0 is negative, then shifting to more negative
+          ! theta0 corresponds to decreasing ikx
+          do ikx = ikx_max+1, nakx
+             ! if theta0 is sufficiently negative, it has no
+             ! more negative theta0 with which it can connect
+             if (ikx-neigen(iky) >= ikx_max) then
+                ikx_shift(ikx,iky) = -neigen(iky)
+             end if
+             ! theta0 is positive
+          end  do
        end do
 
-       if (.not. allocated(nsegments)) then
-          allocate (nsegments(neigen_max,naky))
-          allocate (nsegments_poskx(neigen_max,naky))
-       end if
+       if (.not. allocated(nsegments)) allocate (nsegments(neigen_max,naky))
 
        do iky = 1, naky
           if (neigen(iky) == 0) then
              nsegments(:,iky) = 1
-             nsegments_poskx(:,iky) = 1
           else
-             nsegments(:,iky) = (ntheta0-1)/neigen(iky)
-             nsegments_poskx(:,iky) = (nakx-1)/neigen(iky)
+             nsegments(:,iky) = (nakx-1)/neigen(iky)
 
-             do ie = 1, mod(ntheta0-1,neigen(iky))+1
-                nsegments(ie,iky) = nsegments(ie,iky) + 1
-!                nsegments_poskx(ie,iky) = nsegments_poskx(ie,iky) + 1
-             end do
              do ie = 1, mod(nakx-1,neigen(iky))+1
-                nsegments_poskx(ie,iky) = nsegments_poskx(ie,iky) + 1
+                nsegments(ie,iky) = nsegments(ie,iky) + 1
              end do
           end if
        end do
@@ -191,14 +149,13 @@ contains
        
     case default
        
-       neigen = ntheta0 ; neigen_max = ntheta0
+       neigen = nakx ; neigen_max = nakx
        
-       if (.not. allocated(ikx_shift_left_kypos)) then
-          allocate (ikx_shift_left_kypos(neigen_max))
-          allocate (ikx_shift_left_kyneg(neigen_max))
-          allocate (ikx_shift(ntheta0,naky))
+       if (.not. allocated(ikx_shift_left)) then
+          allocate (ikx_shift_left(neigen_max))
+          allocate (ikx_shift(nakx,naky))
        end if
-       ikx_shift = 0 ; ikx_shift_left_kypos = 0 ; ikx_shift_left_kyneg = 0
+       ikx_shift = 0 ; ikx_shift_left = 0
        
        if (.not. allocated(nsegments)) then
           allocate (nsegments(neigen_max,naky))
@@ -207,7 +164,6 @@ contains
        ! this is the number of 2pi poloidal segments in the extended theta domain,
        ! which is needed in initializing the reponse matrix and doing the implicit sweep
        nsegments = 2*(nperiod-1) + 1
-       nsegments_poskx = nsegments
 
        nseg_max = maxval(nsegments)
        
@@ -229,25 +185,20 @@ contains
 
     if (.not. allocated(ikxmod)) then
        allocate (ikxmod(nseg_max,neigen_max,naky))
-       ! initialize ikxmod to ntheta0
+       ! initialize ikxmod to nakx
        ! should not be necessary but just in case one tries to access
        ! a value beyond nsegments(ie,iky)
-       ikxmod = ntheta0
+       ikxmod = nakx
     end if
     do iky = 1, naky
        ! only do the following once for each independent set of theta0s
        ! the assumption here is that all kx are on processor and sequential
        do ie = 1, neigen(iky)
-          if (aky(iky) < 0.) then
-             ikxshiftend = ikx_shift_left_kyneg(ie)
-          else
-             ikxshiftend = ikx_shift_left_kypos(ie)
-          end if
           ! remap to start at theta0 = theta0_max
           ! (so that theta-theta0 is most negative)
           ! for this set of connected theta0s
           iseg = 1
-          ikxmod(iseg,ie,iky) = ie + ikxshiftend
+          ikxmod(iseg,ie,iky) = ie + ikx_shift_left(ie)
           if (nsegments(ie,iky) > 1) then
              do iseg = 2, nsegments(ie,iky)
                 ikxmod(iseg,ie,iky) = ikxmod(iseg-1,ie,iky) + ikx_shift(ikxmod(iseg-1,ie,iky),iky)
@@ -256,21 +207,7 @@ contains
        end do
     end do
 
-    ! quick hack
-    if (.not. allocated(nsegments_poskx)) then
-       allocate (nsegments_poskx(neigen_max,naky))
-    end if
-    nsegments_poskx = 0
-    do iky = 1, naky
-       do ie = 1, neigen(iky)
-          do iseg = 1, nsegments(ie,iky)
-             if (ikxmod(iseg,ie,iky) <= nakx) nsegments_poskx(ie,iky) = nsegments_poskx(ie,iky) + 1
-          end do
-       end do
-    end do
-    
-    if (allocated(ikx_shift_left_kypos)) deallocate (ikx_shift_left_kypos)
-    if (allocated(ikx_shift_left_kyneg)) deallocate (ikx_shift_left_kyneg)
+    if (allocated(ikx_shift_left)) deallocate (ikx_shift_left)
     if (allocated(ikx_shift)) deallocate (ikx_shift)
 
     ! this is the number of unique zed values in all segments but the first
@@ -280,6 +217,103 @@ contains
 
   end subroutine init_extended_zgrid
 
+  subroutine fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
+
+    use zgrid, only: nzgrid
+    use kt_grids, only: zonal_mode
+
+    implicit none
+
+    integer, intent (in) :: iseg, ie, iky
+    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    complex, dimension (:), intent (out) :: gleft, gright
+
+    ! stream_sign > 0 --> stream speed < 0
+
+    if (iseg == 1) then
+       ! if zonal mode, then periodic BC instead of zero BC
+       if (zonal_mode(iky)) then
+          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1)
+       else
+          gleft = 0.0
+       end if
+    else
+       gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1)
+    end if
+    
+    if (nsegments(ie,iky) > iseg) then
+       ! connect to segment with larger theta-theta0 (on right)
+       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2)
+    else
+       ! apply periodic BC to zonal mode and zero BC otherwise
+       if (zonal_mode(iky)) then
+          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2)
+       else
+          gright = 0.0
+       end if
+    end if
+    
+  end subroutine fill_zed_ghost_zones
+
+  subroutine map_to_extended_zgrid (ie, iky, g, gext, ulim)
+
+    use zgrid, only: nzgrid
+
+    implicit none
+
+    integer, intent (in) :: ie, iky
+    complex, dimension (:,-nzgrid:), intent (in) :: g
+    complex, dimension (:), intent (out) :: gext
+    integer, intent (out) :: ulim
+
+    integer :: iseg, ikx
+    integer :: llim
+
+    ! avoid double-counting at boundaries between 2pi segments
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    llim = 1 ; ulim = nzed_segment+1
+    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg))
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          ikx = ikxmod(iseg,ie,iky)
+          llim = ulim+1
+          ulim = llim+nzed_segment-1
+          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg))
+       end do
+    end if
+
+  end subroutine map_to_extended_zgrid
+
+  subroutine map_from_extended_zgrid (ie, iky, gext, g)
+
+    use zgrid, only: nzgrid
+
+    implicit none
+
+    integer, intent (in) :: ie, iky
+    complex, dimension (:), intent (in) :: gext
+    complex, dimension (:,-nzgrid:), intent (in out) :: g
+
+    integer :: iseg, ikx
+    integer :: llim, ulim
+
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    llim = 1 ; ulim = nzed_segment+1
+    g(ikx,iz_low(iseg):iz_up(iseg)) = gext(llim:ulim)
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          llim = ulim+1
+          ulim = llim+nzed_segment-1
+          ikx = ikxmod(iseg,ie,iky)
+          g(ikx,iz_low(iseg)) = gext(llim-1)
+          g(ikx,iz_low(iseg)+1:iz_up(iseg)) = gext(llim:ulim)
+       end do
+    end if
+
+  end subroutine map_from_extended_zgrid
+
   subroutine finish_extended_zgrid
 
     implicit none
@@ -287,7 +321,6 @@ contains
     if (allocated(neigen)) deallocate (neigen)
     if (allocated(periodic)) deallocate (periodic)
     if (allocated(nsegments)) deallocate (nsegments)
-    if (allocated(nsegments_poskx)) deallocate (nsegments_poskx)
     if (allocated(iz_low)) deallocate (iz_low, iz_mid, iz_up)
     if (allocated(ikxmod)) deallocate (ikxmod)
 

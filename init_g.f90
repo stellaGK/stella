@@ -164,7 +164,7 @@ contains
     tperp2 = 0.
     phiinit = 1.0
     zf_init = 1.0
-    chop_side = .true.
+    chop_side = .false.
     left = .true.
     even = .true.
 
@@ -186,8 +186,8 @@ contains
     use zgrid, only: nzgrid, zed
     use geometry, only: bmag
     use kt_grids, only: naky, nakx
-    use kt_grids, only: theta0, aky
-    use kt_grids, only: reality
+    use kt_grids, only: theta0
+    use kt_grids, only: reality, zonal_mode
     use vpamu_grids, only: nvpa, vpa, mu, nmu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
@@ -197,39 +197,28 @@ contains
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
     logical :: right
     integer :: ikxkyz
-    integer :: ig, iky, ikx, is
+    integer :: iz, iky, ikx, is
 
     right = .not. left
 
-    do ig = -nzgrid, nzgrid
-       phi(:,:,ig) = exp(-((zed(ig)-theta0)/width0)**2)*cmplx(1.0,1.0)
-       ! necessary to match similar initial condition from
-       ! codes with kx +/- and ky >= 0
-       if (reality) phi(naky/2+2,:,ig) = conjg(phi(naky/2+2,:,ig))
+    do iz = -nzgrid, nzgrid
+       phi(:,:,iz) = exp(-((zed(iz)-theta0)/width0)**2)*cmplx(1.0,1.0)
     end do
 
-    if (chop_side .and. left) phi(:,:,:-1) = 0.0
-    if (chop_side .and. right) phi(:,:,1:) = 0.0
-    
-    if (reality) then
-       phi(1,1,:) = 0.0
-
-       if (naky > 1 .and. abs(aky(1)) < epsilon(0.0)) then
-          phi(1,:,:) = 0.0
-       end if
-
-       ! reality condition for k_x = 0 component:
-       do iky = naky/2+2, naky
-          phi(iky,1,:) = conjg(phi(naky-iky+2,1,:))
-       enddo
+    if (chop_side) then
+       if (left) phi(:,:,:-1) = 0.0
+       if (right) phi(:,:,1:) = 0.0
     end if
 
+    if (reality .and. zonal_mode(1)) phi(1,:,:) = 0.0
+
+    gvmu = 0.
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       ig = iz_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,ig)),1,nvpa)*phi(iky,ikx,ig) &
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz) &
             *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
     end do
 

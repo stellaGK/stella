@@ -41,11 +41,11 @@
 /
 
 &dist_fn_knobs
- adiabatic_option="iphi00=2"
+ adiabatic_option="field-line-average-term"
+/
+
+&time_advance_knobs
  explicit_option="rk3"
- zed_upwind = 0.02
- time_upwind = 0.02
- vpa_upwind = 0.02
 /
 
 &kt_grids_knobs
@@ -70,6 +70,9 @@
  fphi =   1.0
  fapar =  0.0
  fbpar = 0.0
+ zed_upwind = 0.02
+ time_upwind = 0.02
+ vpa_upwind = 0.02
  nonlinear = .false.
  delt = 0.03
  nstep = 2000

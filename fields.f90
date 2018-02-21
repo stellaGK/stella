@@ -3,8 +3,17 @@ module fields
   implicit none
 
   public :: init_fields, finish_fields
+  public :: advance_fields, get_fields
+  public :: gamtot, gamtot3
+  public :: time_field_solve
 
   private
+
+  real, dimension (:,:,:), allocatable :: gamtot, apar_denom
+  real, dimension (:,:), allocatable :: gamtot3
+  real :: gamtot_h, gamtot3_h
+
+  real, dimension (2) :: time_field_solve
 
   logical :: fields_initialized = .false.
   logical :: exist
@@ -15,515 +24,123 @@ contains
 
   subroutine init_fields
 
-    use mp, only: proc0
-    use fields_arrays, only: phi, apar
-    use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: init_stella_layouts
-    use species, only: init_species
-    use geometry, only: init_geometry
-    use zgrid, only: init_zgrid
-    use run_parameters, only: init_run_parameters
-    use physics_parameters, only: init_physics_parameters
-    use dist_fn, only: init_dist_fn
-    use dist_fn, only: init_get_fields, get_fields
-    use dist_fn, only: stream_implicit
-    use dist_fn, only: init_gxyz
-    use init_g, only: ginit, init_init_g
+    use mp, only: sum_allreduce
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
+    use dist_fn_arrays, only: aj0v, kperp2
+    use run_parameters, only: fphi, fapar
+    use physics_parameters, only: tite, nine, beta
+    use species, only: spec, has_electron_species
+    use geometry, only: dl_over_b
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: nvpa, nvgrid, nmu
+    use vpamu_grids, only: vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: integrate_vmu
+    use species, only: spec
+    use kt_grids, only: naky, nakx, akx
+    use kt_grids, only: zonal_mode
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
 
     implicit none
 
-    logical :: restarted
+    integer :: ikxkyz, iz, ikx, iky, is
+    real :: tmp, wgt
+    real, dimension (:,:), allocatable :: g0
+
+    call allocate_arrays
 
     if (fields_initialized) return
     fields_initialized = .true.
 
-    debug = debug .and. proc0
-    
-    if (debug) write(6,*) "fields::init_fields::init_zgrid"
-    call init_zgrid
-    if (debug) write(6,*) "fields::init_fields::init_geometry"
-    call init_geometry
-    if (debug) write(6,*) "fields::init_fields::init_physics_parameters"
-    call init_physics_parameters
-    if (debug) write (*,*) 'fields::init_fields::init_species'
-    call init_species
-    if (debug) write(6,*) "fields::init_fields::init_init_g"
-    call init_init_g
-    if (debug) write(6,*) "fields::init_fields::init_run_parameters"
-    call init_run_parameters
-    if (debug) write(6,*) "fields::init_fields::init_dist_fn"
-    call init_dist_fn
-    if (debug) write(6,*) "fields::init_fields::allocate_arrays"
-    call allocate_arrays
-    if (debug) write(*,*) "fields::init_fields::ginit"
-    call ginit (restarted)
-    if (debug) write(*,*) "fields::init_fields::init_gxyz"
-    call init_gxyz
-    ! initialize get_fields subroutine
-    if (debug) write (*,*) 'fields::init_fields::init_get_fields'
-    call init_get_fields
-    if (debug) write(*,*) "fields::init_fields::init_response_matrix"
-    if (stream_implicit) call init_response_matrix
+    if (.not.allocated(gamtot)) allocate (gamtot(naky,nakx,-nzgrid:nzgrid)) ; gamtot = 0.
+    if (.not.allocated(gamtot3)) then
+       if (.not.has_electron_species(spec) &
+            .and. adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+          allocate (gamtot3(nakx,-nzgrid:nzgrid)) ; gamtot3 = 0.
+       else
+          allocate (gamtot3(1,1)) ; gamtot3 = 0.
+       end if
+    end if
+    if (.not.allocated(apar_denom)) then
+       if (fapar > epsilon(0.0)) then
+          allocate (apar_denom(naky,nakx,-nzgrid:nzgrid)) ; apar_denom = 0.
+       else
+          allocate (apar_denom(1,1,1)) ; apar_denom = 0.
+       end if
+    end if
 
-    if (restarted) return
+    if (fphi > epsilon(0.0)) then
+       allocate (g0(-nvgrid:nvgrid,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa)*spread(maxwell_vpa,2,nmu) &
+               * spread(maxwell_mu(1,iz,:),1,nvpa)
+          wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
+          call integrate_vmu (g0, iz, tmp)
+          gamtot(iky,ikx,iz) = gamtot(iky,ikx,iz) + tmp*wgt
+       end do
+       call sum_allreduce (gamtot)
+       ! avoid divide by zero when kx=ky=0
+       ! do not evolve this mode, so value is irrelevant
+       if (zonal_mode(1) .and. akx(1) < epsilon(0.)) gamtot(1,1,:) = 1.0
 
-    if (debug) write (*,*) 'fields::init_fields::get_fields'
-    ! get initial field from initial distribution function
-    call get_fields (gvmu, phi, apar, dist='gbar')
+       gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
+
+       if (.not.has_electron_species(spec)) then
+          gamtot = gamtot + tite/nine
+          gamtot_h = gamtot_h + tite/nine
+          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+             if (zonal_mode(1)) then
+                gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
+                do ikx = 1, nakx
+                   ! avoid divide by zero for kx=ky=0 mode,
+                   ! which we do not need anyway
+                   if (abs(akx(ikx)) < epsilon(0.)) cycle
+                   tmp = nine/tite-sum(dl_over_b/gamtot(1,ikx,:))
+                   gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
+                end do
+             end if
+          end if
+       end if
+
+       deallocate (g0)
+
+    end if
+
+    if (fapar > epsilon(0.)) then
+       allocate (g0(-nvgrid:nvgrid,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          g0 = spread(maxwell_vpa*vpa**2,2,nmu) &
+               * spread(maxwell_mu(1,iz,:)*aj0v(:,ikxkyz)**2,1,nvpa)
+          wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
+          call integrate_vmu (g0, iz, tmp)
+          apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
+       end do
+       call sum_allreduce (apar_denom)
+       apar_denom = apar_denom + kperp2
+
+       deallocate (g0)
+    end if
+
+!    if (wstar_implicit) call init_get_fields_wstar
 
   end subroutine init_fields
-
-  subroutine init_response_matrix
-    
-    use linear_solve, only: lu_decomposition
-    use fields_arrays, only: response_matrix
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
-    use species, only: nspec
-    use kt_grids, only: naky, nakx
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: neigen, ikxmod
-    use extended_zgrid, only: nsegments, nsegments_poskx
-    use extended_zgrid, only: nzed_segment
-
-    implicit none
-
-    integer :: iky, ie, iseg, iz
-    integer :: ikx
-    integer :: nresponse, nz_ext
-    integer :: llim, ulim
-    integer :: idx
-    integer :: izl_offset
-    real :: dum
-    complex, dimension (:), allocatable :: phiext
-    complex, dimension (:,:), allocatable :: gext
-
-    ! for a given ky and set of connected kx values
-    ! give a unit impulse to phi at each zed location
-    ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
-
-    do iky = 1, naky
-
-       ! the response matrix for each ky has neigen(ky)
-       ! independent sets of connected kx values
-       if (.not.associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen(iky)))
-
-       ! loop over the sets of connected kx values
-       do ie = 1, neigen(iky)
-
-          ! number of zeds x number of segments
-          nz_ext = nsegments(ie,iky)*nzed_segment+1
-          ! number of zeds x number of segments with kx >= 0
-          ! note that we do not need to consider response to
-          ! perturbations with kx < 0 as these are not explicitly evolved
-          nresponse = nsegments_poskx(ie,iky)*nzed_segment+1
-
-          ! llim and ulim indicate which chunk of the larger array
-          ! of size nz_ext contains the information needed for the response matrix
-          ! i.e., the non-negative kx values
-
-          ! if the kx for the first segment is negative
-          ! then the non-negative kx segments will be 
-          ! at the end of the array
-          if (ikxmod(1,ie,iky) > nakx) then
-             llim = nz_ext-nresponse+1
-             ulim = nz_ext
-          ! otherwise, non-negative kx segments will be
-          ! at the beginning
-          else
-             llim = 1
-             ulim = nresponse
-          end if
-
-          ! for each ky and set of connected kx values,
-          ! must have a response matrix that is N x N
-          ! with N = number of zeds x number of 2pi segments with kx >= 0
-          if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse,nresponse))
-
-          ! response_matrix%idx is needed to keep track of permutations
-          ! to the response matrix made during LU decomposition
-          ! it will be input to LU back substitution during linear solve
-          if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-
-          allocate (gext(nz_ext,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-          allocate (phiext(nresponse))
-          ! idx is the index in the extended zed domain 
-          ! that we are giving a unit impulse
-          ! the offset with llim is to take into account
-          ! the fact that we only want to perturb non-negative kx segments
-          idx = llim-1
-
-          ! loop over segments, starting with 1
-          ! first segment is special because it has 
-          ! one more unique zed value than all others
-          ! since domain is [z0-pi:z0+pi], including both endpoints
-          ! i.e., one endpoint is shared with the previous segment
-          iseg = 1
-          ! ikxmod gives the kx corresponding to iseg,ie,iky
-          ikx = ikxmod(iseg,ie,iky)
-          izl_offset = 0
-          ! no need to obtain response to impulses at negative kx values
-          if (ikx <= nakx) then
-             do iz = iz_low(iseg), iz_up(iseg)
-                idx = idx + 1
-                call get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
-             end do
-             ! once we have used one segments, remaining segments
-             ! have one fewer unique zed point
-             izl_offset = 1
-          end if
-          if (nsegments(ie,iky) > 1) then
-             do iseg = 2, nsegments(ie,iky)
-                ikx = ikxmod(iseg,ie,iky)
-                ! no need to treat negative kx values
-                if (ikx > nakx) cycle
-                do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
-                   idx = idx + 1
-                   call get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
-                end do
-                if (izl_offset == 0) izl_offset = 1
-             end do
-          end if
-
-          if (any(ikxmod(:nsegments(ie,iky),ie,iky) <= nakx)) then
-             ! now that we have the reponse matrix for this ky and set of connected kx values
-             ! get the LU decomposition so we are ready to solve the linear system
-             call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
-          end if
-
-          deallocate (gext, phiext)
-       end do
-    end do
-
-  end subroutine init_response_matrix
-
-  subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, llim, ulim, phiext, gext)
-
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_time, only: code_dt
-    use zgrid, only: delzed, nzgrid
-    use kt_grids, only: zonal_mode
-    use species, only: spec
-    use geometry, only: gradpar
-    use vpamu_grids, only: ztmax, vpa, maxwell_mu
-    use fields_arrays, only: response_matrix
-    use dist_fn_arrays, only: aj0x
-    use dist_fn, only: stream_tridiagonal_solve
-    use dist_fn, only: zed_upwind, time_upwind
-    use dist_fn, only: stream_sign, stream_cell
-
-    implicit none
-
-    integer, intent (in) :: iky, ikx, iz, ie, idx, llim, ulim
-    complex, dimension (:), intent (in out) :: phiext
-    complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
-
-    integer :: ivmu, iv, imu, is, idxp
-    integer :: nz_ext
-    real :: fac, fac0, fac1
-
-    nz_ext = size(gext,1)
-
-    ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       ! initialize g to zero everywhere along extended zed domain
-       gext(:,ivmu) = 0.0
-       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-
-       ! give unit impulse to phi at this zed location
-       ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
-
-       ! NB:  assuming equal spacing in zed below
-       ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
-       ! b.gradz left out because needs to be centred in zed
-       ! if stream_cell = T
-       fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-            *aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
-       if (stream_cell) then
-          fac = 0.5*fac
-          ! stream_sign < 0 corresponds to positive advection speed
-          if (stream_sign(iv)<0) then
-             if (iz > -nzgrid) then
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(1,iz-1)*maxwell_mu(1,iz-1,imu))
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the right of
-                ! this one
-                if (iz < nzgrid) then
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1)*maxwell_mu(1,iz+1,imu) &
-                        + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
-                else
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,-nzgrid+1)*maxwell_mu(1,-nzgrid+1,imu) &
-                        + (1.-zed_upwind)*gradpar(1,nzgrid)*maxwell_mu(1,nzgrid,imu))
-                end if
-             else
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(1,nzgrid-1)*maxwell_mu(1,nzgrid-1,imu))
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the right of
-                ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz+1)*maxwell_mu(1,iz+1,imu) &
-                     + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
-             end if
-             gext(idx,ivmu) = fac0
-             if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
-             ! zonal mode BC is periodic instead of zero, so must
-             ! treat specially
-             if (zonal_mode(iky)) then
-                if (idx == 1) then
-                   gext(nz_ext,ivmu) = fac0
-                else if (idx == nz_ext-1) then
-                   gext(1,ivmu) = -fac1
-                else if (idx == nz_ext) then
-                   gext(1,ivmu) = fac0
-                   gext(2,ivmu) = -fac1
-                end if
-             end if
-          else
-             if (iz < nzgrid) then
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(1,iz+1)*maxwell_mu(1,iz+1,imu))
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the left of
-                ! this one
-                if (iz > -nzgrid) then
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1)*maxwell_mu(1,iz-1,imu) &
-                        + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
-                else
-                   fac1 = fac*((1.+zed_upwind)*gradpar(1,nzgrid-1)*maxwell_mu(1,nzgrid-1,imu) &
-                        + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
-                end if
-             else
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(1,-nzgrid+1)*maxwell_mu(1,-nzgrid+1,imu))
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the left of
-                ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(1,iz-1)*maxwell_mu(1,iz-1,imu) &
-                     + (1.-zed_upwind)*gradpar(1,iz)*maxwell_mu(1,iz,imu))
-             end if
-             gext(idx,ivmu) = -fac0
-             if (idx > 1) gext(idx-1,ivmu) = fac1
-             ! zonal mode BC is periodic instead of zero, so must
-             ! treat specially
-             if (zonal_mode(iky)) then
-                if (idx == 1) then
-                   gext(nz_ext,ivmu) = -fac0
-                   gext(nz_ext-1,ivmu) = fac1
-                else if (idx == 2) then
-                   gext(nz_ext,ivmu) = fac1
-                else if (idx == nz_ext) then
-                   gext(1,ivmu) = -fac0
-                end if
-             end if
-          end if
-       else
-          fac = fac*gradpar(1,iz)*maxwell_mu(1,iz,imu)
-          ! e.g., if centered differences, get RHS(i) = fac*(phi(i+1)-phi(i-1))*0.5
-          ! so RHS(i-1) = fac*(phi(i)-phi(i-2))*0.5
-          ! since only gave phi(i)=1 and all other phi=0,
-          ! RHS(i-1) = fac*0.5
-          ! similarly, RHS(i+1) = fac*(phi(i+2)-phi(i))*0.5
-          ! = -0.5*fac*phi(i)
-          ! if upwinded and vpa > 0, RHS(i) = fac*(phi(i)-phi(i-1))
-          ! and so RHS(i) = fac*phi(i) and RHS(i+1) = -fac*phi(i)
-          
-          ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
-          ! as this affects upwinding of d<phi>/dz source term
-          if (iv < 0) then
-             if (zonal_mode(iky)) then
-                gext(idx,ivmu) = -zed_upwind*fac
-                if (idx==1) then
-                   gext(nz_ext,ivmu) = gext(idx,ivmu)
-                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
-                else if (idx==2) then
-                   gext(1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(nz_ext,ivmu) = gext(1,ivmu)
-                   gext(3,ivmu) = -0.5*(1.-zed_upwind)*fac
-                else if (idx==nz_ext) then
-                   gext(1,ivmu) = gext(idx,ivmu)
-                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
-                else if (idx==nz_ext-1) then
-                   gext(nz_ext-2,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(nz_ext,ivmu) = -0.5*(1.-zed_upwind)*fac
-                   gext(1,ivmu) = gext(nz_ext,ivmu)
-                else
-                   gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
-                end if
-             else
-                ! first treat the boundary point at left-most zed
-                if (idx==1) then
-                   gext(idx,ivmu) = -fac
-                else if (idx==2) then
-                   gext(idx-1,ivmu) = fac
-                   gext(idx,ivmu) = -zed_upwind*fac
-                else
-                   gext(idx-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(idx,ivmu) = -zed_upwind*fac
-                end if
-                if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
-             end if
-          else if (iv > 0) then
-             if (zonal_mode(iky)) then
-                gext(idx,ivmu) = zed_upwind*fac
-                if (idx==1) then
-                   gext(nz_ext,ivmu) = gext(idx,ivmu)
-                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
-                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
-                else if (idx==2) then
-                   gext(1,ivmu) = 0.5*(1.-zed_upwind)*fac
-                   gext(nz_ext,ivmu) = gext(1,ivmu)
-                   gext(3,ivmu) = -0.5*(1.+zed_upwind)*fac
-                else if (idx==nz_ext) then
-                   gext(1,ivmu) = gext(idx,ivmu)
-                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
-                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
-                else if (idx==nz_ext-1) then
-                   gext(nz_ext-2,ivmu) = 0.5*(1.-zed_upwind)*fac
-                   gext(nz_ext,ivmu) = -0.5*(1.+zed_upwind)*fac
-                   gext(1,ivmu) = gext(nz_ext,ivmu)
-                else
-                   gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
-                   gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
-                end if
-             else
-                if (idx==nz_ext) then
-                   gext(idx,ivmu) = fac
-                else if (idx==nz_ext-1) then
-                   gext(idx+1,ivmu) = -fac
-                   gext(idx,ivmu) = zed_upwind*fac
-                else
-                   gext(idx+1,ivmu) = -0.5*(1.+zed_upwind)*fac
-                   gext(idx,ivmu) = zed_upwind*fac
-                end if
-                if (idx>1) gext(idx-1,ivmu) = 0.5*(1.-zed_upwind)*fac
-             end if
-          end if
-       end if
-
-       ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-       ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-       call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
-    end do
-
-    ! we now have g on the extended zed domain at this ky and set of connected kx values
-    ! corresponding to a unit impulse in phi at this location
-    ! obtain the fields associated with this g, but only need it for kx >= 0
-    call get_fields_for_response_matrix (gext(llim:ulim,:), phiext, iky, ie)
-
-    ! next need to create column in response matrix from phiext
-    ! negative sign because matrix to be inverted in streaming equation
-    ! is identity matrix - response matrix
-    ! add in contribution from identity matrix
-    idxp = idx-llim+1
-    phiext(idxp) = phiext(idxp)-1.0
-    response_matrix(iky)%eigen(ie)%zloc(:,idxp) = -phiext
-
-  end subroutine get_response_matrix_column
-
-  subroutine get_fields_for_response_matrix (g, phi, iky, ie)
-
-    use stella_layouts, only: vmu_lo
-    use species, only: nspec, spec
-    use species, only: has_electron_species
-    use geometry, only: dl_over_b
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: ikxmod
-    use extended_zgrid, only: nsegments
-    use kt_grids, only: aky
-    use kt_grids, only: nakx
-    use vpamu_grids, only: integrate_species
-    use dist_fn_arrays, only: aj0x
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
-    use dist_fn, only: gamtot, gamtot3
-
-    implicit none
-
-    complex, dimension (:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:), intent (out) :: phi
-    integer, intent (in) :: iky, ie
-    
-    integer :: idx, iseg, ikx, iz
-    integer :: izl_offset
-    real, dimension (nspec) :: wgt
-    complex, dimension (:), allocatable :: g0
-    complex :: tmp
-
-    allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-    wgt = spec%z*spec%dens
-    phi = 0.
-
-    ! FLAG -- IS THIS CORRECT FOR TWIST AND SHIFT
-    ! BECAUSE ONLY KX>=0 PASSED IN WHICH MAY MEAN 
-    ! ISEG = 1, ETC. ARE NOT INCLUDED
-
-    idx = 0 ; izl_offset = 0
-    iseg = 1
-    ikx = ikxmod(iseg,ie,iky)
-    if (ikx <= nakx) then
-       do iz = iz_low(iseg), iz_up(iseg)
-          idx = idx + 1
-          g0 = aj0x(iky,ikx,iz,:)*g(idx,:)
-          call integrate_species (g0, iz, wgt, phi(idx))
-          phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
-       end do
-       izl_offset = 1
-    end if
-    if (nsegments(ie,iky) > 1) then
-       do iseg = 2, nsegments(ie,iky)
-          ikx = ikxmod(iseg,ie,iky)
-          if (ikx > nakx) cycle
-          do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
-             idx = idx + 1
-             g0 = aj0x(iky,ikx,iz,:)*g(idx,:)
-             call integrate_species (g0, iz, wgt, phi(idx))
-             phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
-          end do
-          if (izl_offset == 0) izl_offset = 1
-       end do
-    end if
-
-    if (.not.has_electron_species(spec) .and. &
-         adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-       if (abs(aky(iky)) < epsilon(0.)) then
-          ! no connections for ky = 0
-          iseg = 1 
-          tmp = sum(dl_over_b*phi)
-          phi = phi + tmp*gamtot3(ikxmod(1,ie,iky),:)
-       end if
-    end if
-
-    deallocate (g0)
-
-  end subroutine get_fields_for_response_matrix
 
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi0_old
-    use fields_arrays, only: response_matrix
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use dist_fn, only: stream_implicit
 
     implicit none
 
@@ -539,45 +156,167 @@ contains
        allocate (phi0_old(naky,nakx))
        phi0_old = 0.
     end if
-    if (.not.allocated(response_matrix)) then
-       if (stream_implicit) then
-          allocate (response_matrix(naky))
-       else
-          allocate (response_matrix(1))
-       end if
-    end if
 
   end subroutine allocate_arrays
 
-  subroutine finish_response_matrix
+  subroutine advance_fields (g, phi, apar, dist)
 
-    use fields_arrays, only: response_matrix
+    use mp, only: proc0
+    use stella_layouts, only: vmu_lo
+    use job_manage, only: time_message
+    use redistribute, only: scatter
+    use dist_fn_arrays, only: gvmu
+    use zgrid, only: nzgrid
+    use dist_redistribute, only: kxkyz2vmu
 
     implicit none
 
-    if (allocated(response_matrix)) deallocate (response_matrix)
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
+    character (*), intent (in) :: dist
 
-  end subroutine finish_response_matrix
+    ! time the communications + field solve
+    if (proc0) call time_message(.false.,time_field_solve,' fields')
+    ! first gather (vpa,mu) onto processor for v-space operations
+    ! v-space operations are field solve, dg/dvpa, and collisions
+    if (debug) write (*,*) 'dist_fn::advance_stella::scatter'
+    call scatter (kxkyz2vmu, g, gvmu)
+    ! given gvmu with vpa and mu local, calculate the corresponding fields
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields'
+    call get_fields (gvmu, phi, apar, dist)
+    ! time the communications + field solve
+    if (proc0) call time_message(.false.,time_field_solve,' fields')
+
+  end subroutine advance_fields
+
+  subroutine get_fields (g, phi, apar, dist)
+
+    use mp, only: proc0
+    use mp, only: sum_allreduce, mp_abort
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
+    use dist_fn_arrays, only: aj0v, kperp2
+    use run_parameters, only: fphi, fapar
+    use physics_parameters, only: beta
+    use geometry, only: dl_over_b
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: nvgrid, nvpa, nmu
+    use vpamu_grids, only: vpa
+    use vpamu_grids, only: integrate_vmu
+    use kt_grids, only: nakx
+    use kt_grids, only: zonal_mode
+    use species, only: spec, has_electron_species
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+
+    implicit none
+    
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
+    character (*), intent (in) :: dist
+
+    real :: wgt
+    complex, dimension (:,:), allocatable :: g0
+    integer :: ikxkyz, iz, ikx, iky, is
+    complex :: tmp
+
+    phi = 0.
+    if (fphi > epsilon(0.0)) then
+       allocate (g0(-nvgrid:nvgrid,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          g0 = spread(aj0v(:,ikxkyz),1,nvpa)*g(:,:,ikxkyz)
+          wgt = spec(is)%z*spec(is)%dens
+          call integrate_vmu (g0, iz, tmp)
+          phi(iky,ikx,iz) = phi(iky,ikx,iz) + wgt*tmp
+       end do
+       call sum_allreduce (phi)
+
+       if (dist == 'h') then
+          phi = phi/gamtot_h
+       else if (dist == 'gbar') then
+          phi = phi/gamtot
+!       else if (dist == 'gstar') then
+!          phi = phi/gamtot_wstar
+       else
+          if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+          call mp_abort ('unknown dist option in get_fields. aborting')
+       end if
+
+       if (.not.has_electron_species(spec) .and. &
+            adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if (zonal_mode(1)) then
+             if (dist == 'h') then
+                do ikx = 1, nakx
+                   tmp = sum(dl_over_b*phi(1,ikx,:))
+                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_h
+                end do
+             else if (dist == 'gbar') then
+                do ikx = 1, nakx
+                   tmp = sum(dl_over_b*phi(1,ikx,:))
+                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3(ikx,:)
+                end do
+!             else if (dist == 'gstar') then
+!                do ikx = 1, nakx
+!                   tmp = sum(dl_over_b*phi(1,ikx,:))
+!                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_wstar(ikx,:)
+!                end do
+             else
+                if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+                call mp_abort ('unknown dist option in get_fields. aborting')
+             end if
+          end if
+       end if
+
+       deallocate (g0)
+    end if
+
+    apar = 0.
+    if (fapar > epsilon(0.0)) then
+       allocate (g0(-nvgrid:nvgrid,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
+          wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
+          call integrate_vmu (g0, iz, tmp)
+          apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
+       end do
+       call sum_allreduce (apar)
+       if (dist == 'h') then
+          apar = apar/kperp2
+       else if (dist == 'gbar') then
+          apar = apar/apar_denom
+       else if (dist == 'gstar') then
+          write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
+          call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
+       else
+          if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+          call mp_abort ('unknown dist option in get_fields. aborting')
+       end if
+       deallocate (g0)
+    end if
+    
+  end subroutine get_fields
 
   subroutine finish_fields
 
     use fields_arrays, only: phi, phi0_old
     use fields_arrays, only: apar
-    use species, only: finish_species
-    use geometry, only: finish_geometry
-    use zgrid, only: finish_zgrid
-    use dist_fn, only: finish_get_fields
 
     implicit none
 
-    call finish_response_matrix
-    call finish_get_fields
-    call finish_geometry
-    call finish_zgrid
-    call finish_species
     if (allocated(phi)) deallocate (phi)
     if (allocated(phi0_old)) deallocate (phi0_old)
     if (allocated(apar)) deallocate (apar)
+    if (allocated(gamtot)) deallocate (gamtot)
+    if (allocated(gamtot3)) deallocate (gamtot3)
+    if (allocated(apar_denom)) deallocate (apar_denom)
 
     fields_initialized = .false.
 

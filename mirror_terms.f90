@@ -1,0 +1,709 @@
+module mirror_terms
+
+  implicit none
+
+  public :: mirror_initialized
+  public :: init_mirror, finish_mirror
+  public :: mirror
+  public :: advance_mirror_explicit, advance_mirror_implicit
+  public :: time_mirror
+
+  private
+
+  logical :: mirror_initialized = .false.
+  real, dimension (2) :: time_mirror
+
+  integer, dimension (:,:), allocatable :: mirror_sign
+  real, dimension (:,:,:,:), allocatable :: mirror
+  real, dimension (:,:,:), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
+  real, dimension (:,:,:), allocatable :: mirror_int_fac
+  real, dimension (:,:,:,:), allocatable :: mirror_interp_loc
+  integer, dimension (:,:,:,:), allocatable :: mirror_interp_idx_shift
+
+contains
+
+  subroutine init_mirror
+
+    use stella_time, only: code_dt
+    use species, only: spec, nspec
+    use vpamu_grids, only: nmu
+    use vpamu_grids, only: mu
+    use zgrid, only: nzgrid, nztot
+    use kt_grids, only: ny_ffs
+    use geometry, only: dbdzed, gradpar, nalpha
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dphineo_dzed
+    use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+    use run_parameters, only: include_mirror
+
+    implicit none
+
+    integer :: iz, iy, imu
+    real, dimension (:,:), allocatable :: neoclassical_term
+
+    if (mirror_initialized) return
+    mirror_initialized = .true.
+    
+    if (.not.allocated(mirror)) allocate (mirror(ny_ffs,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
+    if (.not.allocated(mirror_sign)) allocate (mirror_sign(ny_ffs,-nzgrid:nzgrid)) ; mirror_sign = 0
+    
+    allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
+    if (include_neoclassical_terms) then
+       neoclassical_term = spread(dphineo_dzed,2,nspec)*spread(spec%zt,1,nztot)*0.5
+    else
+       neoclassical_term = 0.
+    end if
+
+    ! mirror has sign consistent with being on RHS of GKE
+    if (include_mirror) then
+       do imu = 1, nmu
+          do iy = 1, nalpha
+             do iz = -nzgrid, nzgrid
+                mirror(iy,iz,imu,:) = code_dt*spec%stm*gradpar(iy,iz) &
+                     *(mu(imu)*dbdzed(iy,iz)+neoclassical_term(iz,:))
+             end do
+          end do
+       end do
+    else
+       mirror = 0.
+    end if
+
+    deallocate (neoclassical_term)
+
+    do iy = 1, ny_ffs
+       ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
+       ! NB: mirror_sign = -1 corresponds to positive advection velocity
+       do iz = -nzgrid, nzgrid
+          mirror_sign(iy,iz) = int(sign(1.0,mirror(iy,iz,1,1)))
+       end do
+    end do
+
+    if (mirror_implicit) then
+       if (mirror_semi_lagrange) then
+          call init_mirror_semi_lagrange
+       else
+          call init_invert_mirror_operator
+       end if
+    end if
+
+  end subroutine init_mirror
+
+  subroutine init_mirror_semi_lagrange
+
+    use zgrid, only: nzgrid
+    use geometry, only: nalpha
+    use vpamu_grids, only: nmu, dvpa
+    use species, only: nspec
+
+    implicit none
+
+    if (.not.allocated(mirror_interp_idx_shift)) &
+         allocate(mirror_interp_idx_shift(nalpha,-nzgrid:nzgrid,nmu,nspec))
+    if (.not.allocated(mirror_interp_loc)) &
+         allocate(mirror_interp_loc(nalpha,-nzgrid:nzgrid,nmu,nspec))
+
+    mirror_interp_idx_shift = int(mirror/dvpa)
+    mirror_interp_loc = abs(mod(mirror,dvpa))/dvpa
+
+    ! f at shifted vpa
+    ! is f(iv+idx_shift)*(1-mirror_interp_loc)
+    ! + f(iv+idx_shift + mirror_sign)*mirror_interp_loc
+
+  end subroutine init_mirror_semi_lagrange
+
+  subroutine init_invert_mirror_operator
+
+    use mp, only: mp_abort
+    use stella_layouts, only: kxkyz_lo, kxyz_lo, vmu_lo
+    use stella_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: dvpa, vpa, mu
+    use vpamu_grids, only: nvgrid, nmu
+    use kt_grids, only: alpha_global
+    use species, only: spec, nspec
+    use geometry, only: dbdzed, nalpha
+    use neoclassical_terms, only: include_neoclassical_terms
+    use neoclassical_terms, only: dphineo_dzed
+    use run_parameters, only: vpa_upwind, time_upwind
+
+    implicit none
+
+    integer :: sgn
+    integer :: iy, iz, is, imu, iv
+    integer :: ivmu, ikxkyz, ikxyz
+    integer :: llim, ulim
+    real :: tupwndfac, zero
+    real, dimension (:,:), allocatable :: a, b, c
+
+    zero = 100.*epsilon(0.)
+
+    ! mirror_int_fac = exp(vpa^2 * (mu*dB/dz)/(mu*dB/dz + Z*e*dpihnc/dz))
+    ! is the integrating factor needed to turn the dg/dvpa part of the GKE advance
+    ! into an advection equation
+    if (.not. allocated(mirror_int_fac)) then
+       if (include_neoclassical_terms) then
+          allocate (mirror_int_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             iv = iv_idx(vmu_lo,ivmu)
+             imu = imu_idx(vmu_lo,ivmu)
+             is = is_idx(vmu_lo,ivmu)
+             do iy = 1, nalpha
+                where (abs(mu(imu)*dbdzed(iy,:)) > zero)
+                   mirror_int_fac(iy,:,ivmu) = exp( vpa(iv)**2*mu(imu)*dbdzed(iy,:) &
+                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt*dphineo_dzed*0.5) )
+                elsewhere
+                   mirror_int_fac(iy,:,ivmu) = 1.0
+                end where
+             end do
+          end do
+       else
+          ! mirror_int_fac should never be used in this case
+          allocate (mirror_int_fac(1,1,1)) ; mirror_int_fac = 0.
+       end if
+    end if
+
+    allocate (a(-nvgrid:nvgrid,-1:1)) ; a = 0.
+    allocate (b(-nvgrid:nvgrid,-1:1)) ; b = 0.
+    allocate (c(-nvgrid:nvgrid,-1:1)) ; c = 0.
+
+    if (.not.allocated(mirror_tri_a)) then
+       if (alpha_global) then
+          llim = kxyz_lo%llim_proc
+          ulim = kxyz_lo%ulim_proc
+       else
+          llim = kxkyz_lo%llim_proc
+          ulim = kxkyz_lo%ulim_proc
+       end if
+       allocate(mirror_tri_a(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_a = 0.
+       allocate(mirror_tri_b(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_b = 0.
+       allocate(mirror_tri_c(-nvgrid:nvgrid,nmu,llim:ulim)) ; mirror_tri_c = 0.
+    end if
+
+    ! corresponds to sign of mirror term positive on RHS of equation
+    a(-nvgrid+1:,1) = -0.5*(1.0-vpa_upwind)/dvpa
+    b(-nvgrid+1:,1) = -vpa_upwind/dvpa
+    c(-nvgrid+1:nvgrid-1,1) = 0.5*(1.0+vpa_upwind)/dvpa
+    ! must treat boundary carefully
+    b(-nvgrid,1) = -1.0/dvpa
+    c(-nvgrid,1) = 1.0/dvpa
+    ! corresponds to sign of mirror term negative on RHS of equation
+    a(-nvgrid+1:nvgrid-1,-1) = -0.5*(1.0+vpa_upwind)/dvpa
+    b(:nvgrid-1,-1) = vpa_upwind/dvpa
+    c(:nvgrid-1,-1) = 0.5*(1.0-vpa_upwind)/dvpa
+    ! must treat boundary carefully
+    a(nvgrid,-1) = -1.0/dvpa
+    b(nvgrid,-1) = 1./dvpa
+
+    tupwndfac = 0.5*(1.0+time_upwind)
+    a = a*tupwndfac
+    c = c*tupwndfac
+    ! NB: b must be treated a bit differently -- see below
+
+    if (alpha_global) then
+       do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+          iy = iy_idx(kxyz_lo,ikxyz)
+          iz = iz_idx(kxyz_lo,ikxyz)
+          is = is_idx(kxyz_lo,ikxyz)
+          sgn = mirror_sign(iy,iz)
+          do imu = 1, nmu
+             do iv = -nvgrid, nvgrid
+                mirror_tri_a(iv,imu,ikxyz) = -a(iv,sgn)*mirror(iy,iz,imu,is)
+                mirror_tri_b(iv,imu,ikxyz) = 1.0-b(iv,sgn)*mirror(iy,iz,imu,is)*tupwndfac
+                mirror_tri_c(iv,imu,ikxyz) = -c(iv,sgn)*mirror(iy,iz,imu,is)
+             end do
+          end do
+       end do
+    else
+       ! multiply by mirror coefficient
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iy = 1
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          sgn = mirror_sign(iy,iz)
+          do imu = 1, nmu
+             do iv = -nvgrid, nvgrid
+                mirror_tri_a(iv,imu,ikxkyz) = -a(iv,sgn)*mirror(iy,iz,imu,is)
+                mirror_tri_b(iv,imu,ikxkyz) = 1.0-b(iv,sgn)*mirror(iy,iz,imu,is)*tupwndfac
+                mirror_tri_c(iv,imu,ikxkyz) = -c(iv,sgn)*mirror(iy,iz,imu,is)
+             end do
+          end do
+       end do
+    end if
+
+    deallocate (a, b, c)
+
+  end subroutine init_invert_mirror_operator
+
+  subroutine advance_mirror_explicit (g, gout)
+
+    use mp, only: proc0
+    use redistribute, only: gather, scatter
+    use dist_fn_arrays, only: gvmu
+    use job_manage, only: time_message
+    use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
+    use stella_transforms, only: transform_ky2y
+    use zgrid, only: nzgrid
+    use kt_grids, only: alpha_global
+    use kt_grids, only: nakx, naky, ny
+    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: vpa
+    use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    complex, dimension (:,:,:), allocatable :: g0v
+    complex, dimension (:,:,:,:), allocatable :: g0x
+
+    integer :: iv
+
+    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+
+    ! the mirror term is most complicated of all when doing full flux surface
+    if (alpha_global) then
+       allocate (g0v(-nvgrid:nvgrid,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+       allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+       ! for upwinding, need to evaluate dh/dvpa in y-space
+       ! first must take h(ky) and transform to h(y)
+       call transform_ky2y (g, g0x)
+       ! second, remap h so velocities are local
+       call scatter (kxyz2vmu, g0x, g0v)
+       ! next, calculate dh/dvpa
+       call get_dgdvpa_global (g0v)
+       ! add in extra term coming from definition of h as h*exp(mu*B/T)
+
+       ! FLAG -- NEED TO REPLACE GVMU BELOW !!!
+       do iv = -nvgrid, nvgrid
+          g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
+       end do
+
+       ! then take the results and remap again so y,kx,z local.
+       call gather (kxyz2vmu, g0v, g0x)
+       ! finally add the mirror term to the RHS of the GK eqn
+       call add_mirror_term_global (g0x, gout)
+    else
+       allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+       allocate (g0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+       ! get dg/dvpa and store in g0v
+       g0v = gvmu
+       call get_dgdvpa_explicit (g0v)
+       ! swap layouts so that (z,kx,ky) are local
+       call gather (kxkyz2vmu, g0v, g0x)
+       ! get mirror term and add to source
+       call add_mirror_term (g0x, gout)
+    end if
+    deallocate (g0x, g0v)
+
+    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+
+  end subroutine advance_mirror_explicit
+
+  subroutine get_dgdvpa_global (g)
+
+    use finite_differences, only: third_order_upwind
+    use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
+    use vpamu_grids, only: nvgrid, nmu, dvpa
+
+    implicit none
+
+    complex, dimension (-nvgrid:,:,kxyz_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ikxyz, imu, iz, iy, is
+    complex, dimension (:), allocatable :: tmp
+
+    allocate (tmp(-nvgrid:nvgrid))
+    do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+       iz = iz_idx(kxyz_lo,ikxyz)
+       iy = iy_idx(kxyz_lo,ikxyz)
+       is = is_idx(kxyz_lo,ikxyz)
+       do imu = 1, nmu
+          ! tmp is dh/dvpa
+          call third_order_upwind (-nvgrid,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
+          g(:,imu,ikxyz) = tmp
+       end do
+    end do
+    deallocate (tmp)
+
+  end subroutine get_dgdvpa_global
+
+  subroutine get_dgdvpa_explicit (g)
+
+    use finite_differences, only: third_order_upwind
+    use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
+    use vpamu_grids, only: nvgrid, nmu, dvpa
+
+    implicit none
+
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ikxkyz, imu, iz, is
+    complex, dimension (:), allocatable :: tmp
+
+    allocate (tmp(-nvgrid:nvgrid))
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       do imu = 1, nmu
+          call third_order_upwind (-nvgrid,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
+          g(:,imu,ikxkyz) = tmp
+       end do
+    end do
+
+    deallocate (tmp)
+
+  end subroutine get_dgdvpa_explicit
+
+  subroutine add_mirror_term (g, src)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, is_idx
+    use zgrid, only: nzgrid
+    use kt_grids, only: naky, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+
+    integer :: imu, is, ivmu
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(mirror(1,:,imu,is),1,naky),2,nakx)*g(:,:,:,ivmu)
+    end do
+
+  end subroutine add_mirror_term
+
+  subroutine add_mirror_term_global (g, src)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, is_idx
+    use zgrid, only: nzgrid
+    use kt_grids, only: nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+
+    integer :: imu, is, ivmu
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(mirror(:,:,imu,is),2,nakx)*g(:,:,:,ivmu)
+    end do
+
+  end subroutine add_mirror_term_global
+
+  ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
+  subroutine advance_mirror_implicit (g)
+
+    use constants, only: zi
+    use mp, only: proc0
+    use job_manage, only: time_message
+    use redistribute, only: gather, scatter
+    use finite_differences, only: fd_variable_upwinding_vpa
+    use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
+    use stella_layouts, only: iz_idx, is_idx, iv_idx, imu_idx
+    use stella_transforms, only: transform_ky2y, transform_y2ky
+    use zgrid, only: nzgrid
+    use dist_fn_arrays, only: gvmu
+    use kt_grids, only: alpha_global
+    use kt_grids, only: ny, nakx
+    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: dvpa, maxwell_vpa
+    use neoclassical_terms, only: include_neoclassical_terms
+    use run_parameters, only: vpa_upwind, time_upwind
+    use run_parameters, only: mirror_semi_lagrange
+    use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ikxyz, ikxkyz, ivmu
+    integer :: iv, imu, iz, is
+    real :: tupwnd
+    complex, dimension (:,:,:), allocatable :: g0v
+    complex, dimension (:,:,:,:), allocatable :: g0x
+
+    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+
+    tupwnd = (1.0-time_upwind)*0.5
+
+    ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
+    ! FOR ALPHA_GLOBAL
+
+    ! now that we have g^{*}, need to solve
+    ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
+    ! define A_0^{-1} = dt*mu*bhat.gradB/2
+    ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
+    ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
+    ! to invert and obtain h^{n+1}
+    if (alpha_global) then
+       allocate (g0v(-nvgrid:nvgrid,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+       allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
+       ! first must take g^{*}(ky) and transform to g^{*}(y)
+       call transform_ky2y (g, g0x)
+
+       write (*,*) 'WARNING: alpha_global not working in implicit_mirror advance!'
+
+       ! convert g to g*(integrating factor), as this is what is being advected
+       ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
+       ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
+       if (include_neoclassical_terms) then
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)*spread(mirror_int_fac(:,:,ivmu),2,nakx)
+          end do
+       else
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             iv = iv_idx(vmu_lo,ivmu)
+             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)/maxwell_vpa(iv)
+          end do
+       end if
+
+       ! second, remap g so velocities are local
+       call scatter (kxyz2vmu, g0x, g0v)
+
+       do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+          do imu = 1, nmu
+             call invert_mirror_operator (imu, ikxyz, g0v(:,imu,ikxyz))
+          end do
+       end do
+
+       ! then take the results and remap again so y,kx,z local.
+       call gather (kxyz2vmu, g0v, g0x)
+
+       ! convert back from g*(integrating factor) to g
+       ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
+       ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
+       if (include_neoclassical_terms) then
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)/spread(mirror_int_fac(:,:,ivmu),2,nakx)
+          end do
+       else
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             iv = iv_idx(vmu_lo,ivmu)
+             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)*maxwell_vpa(iv)
+          end do
+       end if
+
+       ! finally transform back from y to ky space
+       call transform_y2ky (g0x, g)
+    else
+       ! get g^{*} with v-space on processor
+       call scatter (kxkyz2vmu, g, gvmu)
+       
+       allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+       allocate (g0x(1,1,1,1))
+
+       if (mirror_semi_lagrange) then
+          call vpa_interpolation (gvmu, g0v)
+       else
+          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+             iz = iz_idx(kxkyz_lo,ikxkyz)
+             is = is_idx(kxkyz_lo,ikxkyz)
+             do imu = 1, nmu
+                ! calculate dg/dvpa
+                call fd_variable_upwinding_vpa (-nvgrid, gvmu(:,imu,ikxkyz), dvpa, &
+                     mirror_sign(1,iz), vpa_upwind, g0v(:,imu,ikxkyz))
+                ! construct RHS of GK equation for mirror advance;
+                ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
+                ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
+                g0v(:,imu,ikxkyz) = gvmu(:,imu,ikxkyz) + tupwnd*mirror(1,iz,imu,is)*g0v(:,imu,ikxkyz)
+                
+                ! invert_mirror_operator takes rhs of equation and
+                ! returns g^{n+1}
+                call invert_mirror_operator (imu, ikxkyz, g0v(:,imu,ikxkyz))
+             end do
+          end do
+       end if
+
+       ! then take the results and remap again so ky,kx,z local.
+       call gather (kxkyz2vmu, g0v, g)
+    end if
+    
+    deallocate (g0x,g0v)
+
+    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+
+  end subroutine advance_mirror_implicit
+
+  subroutine vpa_interpolation (grid, interp)
+
+    use vpamu_grids, only: nvgrid, nmu
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iz_idx, is_idx
+    use run_parameters, only: mirror_linear_interp
+
+    implicit none
+
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: grid
+    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (out) :: interp
+
+    integer :: ikxkyz, iz, is, iv, imu
+    integer :: shift, sgn, llim, ulim
+    real :: fac0, fac1, fac2, fac3
+    real :: tmp0, tmp1, tmp2, tmp3
+
+    if (mirror_linear_interp) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             shift = mirror_interp_idx_shift(1,iz,imu,is)
+             sgn = mirror_sign(1,iz)
+             llim = -sgn*nvgrid
+             ulim = -(llim+sgn)-shift
+             fac1 = 1.0-mirror_interp_loc(1,iz,imu,is)
+             fac2 = mirror_interp_loc(1,iz,imu,is)
+             do iv = llim, ulim, sgn
+                interp(iv,imu,ikxkyz) = grid(iv+shift,imu,ikxkyz)*fac1 &
+                     + grid(iv+shift+sgn,imu,ikxkyz)*fac2
+             end do
+             ! at boundary cell, use zero incoming BC for point just beyond boundary
+             interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)*fac1
+             ! use zero incoming BC for cells beyond +/- nvgrid
+             if (shift > 0) then
+                interp(nvgrid-shift+1:,imu,ikxkyz) = 0.
+             else if (shift < 0) then
+                interp(:-nvgrid-shift-1,imu,ikxkyz) = 0.
+             end if
+          end do
+       end do
+    else
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             ! TMP FOR TESTING -- MAB
+!             interp(:,imu,ikxkyz) = -99.0
+
+             tmp0 = mirror_interp_loc(1,iz,imu,is)
+             tmp1 = tmp0 - 2.0
+             tmp2 = tmp0 - 1.0
+             tmp3 = tmp0 + 1.0
+
+             shift = mirror_interp_idx_shift(1,iz,imu,is)
+             sgn = mirror_sign(1,iz)
+
+             if (shift==0) then
+                ! deal with boundary point near outgoing BC
+                ! using 2-point (linear) interpolation
+                ! could do 3-point to improve accuracy
+                fac1 = 1.0-tmp0
+                fac2 = tmp0
+                llim = -sgn*(nvgrid-1)
+                ulim = sgn*(nvgrid-2)-shift
+                iv = llim-sgn
+                interp(iv,imu,ikxkyz) = grid(iv+shift,imu,ikxkyz)*fac1 &
+                     + grid(iv+shift+sgn,imu,ikxkyz)*fac2
+             else
+                llim = -sgn*nvgrid
+                ulim = -(llim+2*sgn)-shift
+             end if
+
+             if (sgn*ulim < sgn*llim) then
+                interp(:,imu,ikxkyz) = 0.
+             else
+                ! coefficient multiplying g_{iv-1}
+                fac0 = -tmp0*tmp1*tmp2
+                ! coefficient multiplying g_{iv}
+                fac1 = 3.*tmp1*tmp2*tmp3
+                ! coefficient multiplying g_{iv+1}
+                fac2 = -3.*tmp0*tmp1*tmp3
+                ! coefficient multiplying g_{iv+2}
+                fac3 = tmp0*tmp2*tmp3
+                do iv = llim, ulim, sgn
+                   interp(iv,imu,ikxkyz) = (grid(iv+shift-sgn,imu,ikxkyz)*fac0 &
+                        + grid(iv+shift,imu,ikxkyz)*fac1 &
+                        + grid(iv+shift+sgn,imu,ikxkyz)*fac2 &
+                        + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6.
+                end do
+
+                ! at boundary cell, use zero incoming BC for point just beyond boundary
+                interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
+                     + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
+                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac2)/6.
+                interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
+                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac1)/6.
+                ! use zero incoming BC for cells beyond +/- nvgrid
+                if (shift > 0) then
+                   interp(nvgrid-shift+1:,imu,ikxkyz) = 0.
+                else if (shift < 0) then
+                   interp(:-nvgrid-shift-1,imu,ikxkyz) = 0.
+                end if
+             end if
+          end do
+       end do
+    end if
+
+  end subroutine vpa_interpolation
+
+  subroutine invert_mirror_operator (imu, ilo, g)
+
+    use finite_differences, only: tridag
+    use vpamu_grids, only: nvgrid
+
+    implicit none
+
+    integer, intent (in) :: imu, ilo
+    complex, dimension (-nvgrid:), intent (in out) :: g
+
+    call tridag (-nvgrid, mirror_tri_a(:,imu,ilo), mirror_tri_b(:,imu,ilo), mirror_tri_c(:,imu,ilo), g)
+
+  end subroutine invert_mirror_operator
+
+  subroutine finish_mirror
+
+    use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+
+    implicit none
+
+    if (allocated(mirror)) deallocate (mirror)
+    if (allocated(mirror_sign)) deallocate (mirror_sign)
+
+    if (mirror_implicit) then
+       if (mirror_semi_lagrange) then
+          call finish_mirror_semi_lagrange
+       else
+          call finish_invert_mirror_operator
+       end if
+    end if
+
+    mirror_initialized = .false.
+
+  end subroutine finish_mirror
+
+  subroutine finish_mirror_semi_lagrange
+
+    implicit none
+    
+    if (allocated(mirror_interp_loc)) deallocate (mirror_interp_loc)
+    if (allocated(mirror_interp_idx_shift)) deallocate (mirror_interp_idx_shift)
+
+  end subroutine finish_mirror_semi_lagrange
+
+  subroutine finish_invert_mirror_operator
+
+    implicit none
+
+    if (allocated(mirror_tri_a)) then
+       deallocate (mirror_tri_a)
+       deallocate (mirror_tri_b)
+       deallocate (mirror_tri_c)
+    end if
+
+    if (allocated(mirror_int_fac)) deallocate (mirror_int_fac)
+
+  end subroutine finish_invert_mirror_operator
+
+end module mirror_terms

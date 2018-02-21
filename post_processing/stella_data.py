@@ -7,7 +7,7 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/ae7.out.nc'
+infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/test3.out.nc'
 #infile = '../stella.out.nc'
 print()
 #outdir = input("Path for output: ")
@@ -20,15 +20,15 @@ print('reading data from netcdf file...')
 print()
 
 # get kx and ky grids
-kx = np.copy(ncfile.variables['kx'][:])
+kx_stella = np.copy(ncfile.variables['kx'][:])
 nakx = ncfile.dimensions['kx']
-ky_stella = np.copy(ncfile.variables['ky'][:])
+ky = np.copy(ncfile.variables['ky'][:])
 naky = ncfile.dimensions['ky']
 
-# this is the index of the first negative value of ky
-# note stella orders ky as (0, dky, ..., ky_max, -ky_max, -ky_max+dky, ..., -dky)
-naky_mid = naky//2+1
-ky = np.concatenate((ky_stella[naky_mid:],ky_stella[:naky_mid]))
+# this is the index of the first negative value of kx
+# note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
+nakx_mid = nakx//2+1
+kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
 
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])
@@ -68,7 +68,8 @@ def read_stella_float(var):
 phi2_vs_kxky_stella, phi2_vs_kxky_present \
     = read_stella_float('phi2_vs_kxky')
 if (phi2_vs_kxky_present):
-    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:,:,naky_mid:],phi2_vs_kxky_stella[:,:,:naky_mid]),axis=2)
+    phi2_vs_kxky_stella[:,0,0] = 0.0
+    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:,nakx_mid:,:],phi2_vs_kxky_stella[:,:nakx_mid,:]),axis=1)
 # electrostatic potential as a function of (z,kx,ky,t)
 phi_vs_t, phi_vs_t_present \
     = read_stella_float('phi_vs_t')
@@ -151,9 +152,9 @@ phi_igomega_by_mode, phi_igomega_by_mode_present  = \
 if phi_igomega_by_mode_present == False:
     phi_igomega_by_mode, phi_igomega_by_mode_present  = \
         read_stella_float('phi0')
-ygrid, ygrid_present = \
-    read_stella_float('ygrid')
-ygrid = np.concatenate((ygrid[ky_stella.shape[0]//2+1:],ygrid[:ky_stella.shape[0]//2+1]))
+xgrid, xgrid_present = \
+    read_stella_float('xgrid')
+xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
 # density fluctuation (kx,ky,t) for given z (usually outboard midplane)
 ntot_igomega_by_mode, ntot_igomega_by_mode_present = \
     read_stella_float('ntot_igomega_by_mode')

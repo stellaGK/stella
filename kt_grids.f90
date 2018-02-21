@@ -114,9 +114,7 @@ contains
        ! here assume boundary_option .eq. 'periodic'
        ! used for periodic finite kx ballooning space runs with shat=0
        dkx = 0.0
-!       if (ntheta0 > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
        if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
-!       akx = (/ (akx_min + dkx*real(i), i = 0,ntheta0-1) /)
        akx = (/ (akx_min + dkx*real(i), i = 0,nakx-1) /)
     endif
     
@@ -149,7 +147,7 @@ contains
 
     real, intent (in) :: shat
 
-    integer :: naky, nakx, ntheta0, nx, ny
+    integer :: naky, nakx, nx, ny
     integer :: in_file
     logical :: exist
     namelist /kt_grids_box_parameters/ naky, nakx, nx, ny, &
@@ -174,14 +172,13 @@ contains
     if (y0 < 0) y0 = -1./y0
 
     if (abs(ly) < epsilon(0.)) ly = 2.0*pi*y0
-    if (nakx == 0) nakx = (nx-1)/3 + 1
-    ntheta0 = 2*(nakx-1) + 1
-    if (naky == 0) naky = 2*((ny-1)/3) + 1
+    if (nakx == 0) nakx = 2*((nx-1)/3) + 1
+    if (naky == 0) naky = (ny-1)/3 + 1
     if (abs(rtwist) < epsilon(0.)) rtwist = real(jtwist)
     
     naky_box = naky
     nakx_box = nakx
-    ntheta0_box = ntheta0
+    ntheta0_box = nakx
     nx_box = nx
     ny_box = ny
 
@@ -210,6 +207,7 @@ contains
 
     real :: dkx, dky, ratio
     integer :: i, naky, ntheta0, nakx
+    integer :: ikx_max
 
     naky = naky_box
     nakx = nakx_box
@@ -242,32 +240,32 @@ contains
        end if
     endif
 
-    do i = 1, (naky+1)/2
+    ! ky goes from zero to ky_max
+    do i = 1, naky
        aky(i) = real(i-1)*dky
     end do
-    do i = (naky+1)/2+1, naky
-       aky(i) = real(i-naky-1)*dky
-    end do
 
-    do i = 1, nakx
+    ikx_max = nakx/2+1
+
+    ! kx goes from zero to kx_max ...
+    do i = 1, ikx_max
        akx(i) = real(i-1)*dkx
     end do
-!    do i = nakx+1, ntheta0
-!       akx(i) = -akx(2*nakx-i+1)
-!    end do
+    ! and then from -kx_max to -|kx_min|
+    do i = ikx_max+1, nakx
+       akx(i) = real(i-nakx-1)*dkx
+    end do
 
+    ! set theta0=0 for ky=0
+    theta0(1,:) = 0.0
     if (abs(shat) > epsilon(0.)) then
        do i = 1, nakx
-          ! set theta0=0 for ky=0
-          theta0(1,i) = 0.0
-          ! otherwise theta0 = kx/ky/shat
+          ! theta0 = kx/ky/shat
           theta0(2:,i) = akx(i)/(aky(2:)*shat)
        end do
     else
        do i = 1, nakx
-          ! set theta0=0 for ky=0
-          theta0(1,i) = 0.0
-          ! otherwise theta0 is meaningless, so be careful
+          ! if shat=0, theta0 is meaningless, so be careful
           theta0(2:,i) = - akx(i)/aky(2:)
        end do
     end if
@@ -291,8 +289,9 @@ module kt_grids
   public :: gridopt_range, gridopt_box
   public :: lx, ly
   public :: alpha_global, ny_ffs
-  public :: iky_max
+  public :: ikx_max
   public :: zonal_mode
+  public :: swap_kxky, swap_kxky_back
 
   private
 
@@ -300,7 +299,7 @@ module kt_grids
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
   integer :: naky, nakx, ntheta0, nx, ny, jtwist_out
-  integer :: iky_max
+  integer :: ikx_max
   character(20) :: grid_option
   integer :: ny_ffs = 1
   logical :: alpha_global
@@ -339,6 +338,8 @@ contains
        call read_parameters
        call get_sizes (shat)
        jtwist_out = jtwist
+       ! get the ikx index corresponding to kx_max
+       ikx_max = nakx/2+1
     end if
 
     call broadcast (reality)
@@ -349,6 +350,7 @@ contains
     call broadcast (ny)
     call broadcast (nx)
     call broadcast (alpha_global)
+    call broadcast (ikx_max)
     call allocate_arrays
 
     if (proc0) call get_grids (shat)
@@ -366,7 +368,7 @@ contains
        lx = ly
     end if
 
-    iky_max = naky/2+1
+    ikx_max = nakx/2+1
 
     ! determine if iky corresponds to zonal mode
     if (.not.allocated(zonal_mode)) allocate (zonal_mode(naky))
@@ -403,7 +405,6 @@ contains
   subroutine allocate_arrays
     implicit none
     allocate (akx(nakx))
-!    allocate (akx(ntheta0))
     allocate (aky(naky))
     allocate (theta0(naky,nakx))
   end subroutine allocate_arrays
@@ -447,6 +448,69 @@ contains
     end select
 
   end subroutine get_grids
+
+  ! take an array with ky >= 0 and all kx
+  ! and uses reality condition to return array
+  ! with kx >= 0 and all ky
+  subroutine swap_kxky (gin, gout)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gin
+    complex, dimension (:,:), intent (out) :: gout
+
+    integer :: ikx, ikxneg
+    integer :: iky, ikyneg
+
+    ! first set arrays equal for ky >= 0 and kx >= 0
+    gout(:naky,:) = gin(:,:ikx_max)
+    ! next fill in ky < 0, kx >= 0 elements of array using reality
+    ikx = 1
+    ikxneg = ikx
+    do iky = naky+1, 2*naky-1
+       ! this is the ky index corresponding to +ky in original array
+       ikyneg = 2*naky-iky+1
+       gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+    end do
+    do ikx = 2, ikx_max
+       ikxneg = nakx-ikx+2
+       do iky = naky+1, 2*naky-1
+          ! this is the ky index corresponding to +ky in original array
+          ikyneg = 2*naky-iky+1
+          gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+       end do
+    end do
+
+  end subroutine swap_kxky
+
+  ! take an array with ky >= 0 and all kx
+  ! and uses reality condition to return array
+  ! with kx >= 0 and all ky
+  subroutine swap_kxky_back (gin, gout)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gin
+    complex, dimension (:,:), intent (out) :: gout
+
+    integer :: ikx, ikxneg
+    integer :: iky, ikyneg
+
+    ! first set arrays equal for ky >= 0 and kx >= 0
+    gout(:,:ikx_max) = gin(:naky,:)
+    ! next fill in kx < 0, ky >= 0 elements of array using reality
+    do ikx = ikx_max+1, nakx
+       ikxneg = nakx-ikx+2
+       iky = 1
+       ikyneg = iky
+       gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+       do iky = 2, naky
+          ikyneg = 2*naky-iky+1
+          gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+       end do
+    end do
+
+  end subroutine swap_kxky_back
 
   subroutine finish_kt_grids
 
