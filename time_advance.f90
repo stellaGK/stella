@@ -586,15 +586,9 @@ contains
     use fields_arrays, only: phi0_old
     use run_parameters, only: fully_explicit
 
-    ! TMP FOR TESTING -- MAB
-!    use zgrid, only: nzgrid
-
     implicit none
 
     integer, intent (in) :: istep
-
-    ! TMP FOR TESTING -- MAB
-!    real :: gtot, phitot
 
     ! save value of phi at z=0
     ! for use in diagnostics (to obtain frequency)
@@ -605,27 +599,11 @@ contains
     ! this is needed to ensure 2nd order accuracy in time
 !    if (mod(istep,2)==1) then
        ! advance the explicit parts of the GKE
-!       if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
     call advance_explicit (phi, apar, gnew)
-
-       ! TMP FOR TESTING -- MAB
-!       call checksum (phi, phitot)
-!       call checksum (gnew, gtot)
-!       write (*,*) 'advance_explicit', gtot, phitot
-
-!       write (*,*) 'explicit', sum(cabs(gnew(1,:,-nzgrid,:))), sum(cabs(gnew(1,:,nzgrid,:)))
 
        ! use operator splitting to separately evolve
        ! all terms treated implicitly
-!       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
     if (.not.fully_explicit) call advance_implicit (phi, apar, gnew)
-
-       ! TMP FOR TESTING -- MAB
-!       call checksum (phi, phitot)
-!       call checksum (gnew, gtot)
-!       write (*,*) 'advance_implicit', gtot, phitot
-
-!       write (*,*) 'implicit', sum(cabs(gnew(1,:,-nzgrid,:))), sum(cabs(gnew(1,:,nzgrid,:)))
 
 !    else
 !       ! use operator splitting to separately evolve
@@ -1091,6 +1069,7 @@ contains
     use kt_grids, only: akx, aky
     use kt_grids, only: alpha_global
     use kt_grids, only: swap_kxky, swap_kxky_back
+    use constants, only: pi
 
     ! TMP FOR TESTING -- MAB
 !    use constants, only: zi
@@ -1180,7 +1159,7 @@ contains
           g1xy = g1xy*nonlin_fac
 !          bracket = -g0xy*g1xy
           bracket = g0xy*g1xy
-          cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*aky(naky)))
+          cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
           ! should be -cos(dky*y)*sin(2*dkx*x)
           ! so 0.25*zi*(exp(i*dky*y)+exp(-i*dky*y))*(exp(2*i*dkx*x)-exp(-2*i*dkx*x))
@@ -1216,7 +1195,7 @@ contains
           g1xy = g1xy*nonlin_fac
 !          bracket = bracket + g0xy*g1xy
           bracket = bracket - g0xy*g1xy
-          cfl_dt = min(cfl_dt,1/(maxval(abs(g1xy))*akx(ikx_max)))
+          cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
           call transform_x2kx (bracket, g0kxy)
 
