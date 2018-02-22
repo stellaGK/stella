@@ -329,9 +329,14 @@ contains
           end if
        end if
 
-       ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-       ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-       call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
+       ! hack for now (duplicates much of the effort from sweep_zed_zonal)
+       if (zonal_mode(iky)) then
+          call sweep_zed_zonal_response (iv, is, stream_sign(iv), gext(:,ivmu))
+       else
+          ! invert parallel streaming equation to get g^{n+1} on extended zed grid
+          ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
+          call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
+       end if
     end do
 
     ! we now have g on the extended zed domain at this ky and set of connected kx values
@@ -346,6 +351,45 @@ contains
     response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext
 
   end subroutine get_response_matrix_column
+
+  subroutine sweep_zed_zonal_response (iv, is, sgn, g)
+
+    use zgrid, only: nzgrid, delzed, nztot
+    use run_parameters, only: zed_upwind, time_upwind
+    use parallel_streaming, only: stream_c
+
+    implicit none
+
+    integer, intent (in) :: iv, is, sgn
+    complex, dimension (:), intent (in out) :: g
+
+    integer :: iz, iz1, iz2
+    real :: fac1, fac2
+    complex, dimension (:), allocatable :: gcf, gpi
+
+    allocate (gpi(-nzgrid:nzgrid))
+    allocate (gcf(-nzgrid:nzgrid))
+    ! ky=0 is 2pi periodic (no extended zgrid)
+    ! decompose into complementary function + particular integral
+    ! zero BC for particular integral
+    ! unit BC for complementary function (no source)
+    if (sgn < 0) then
+       iz1 = -nzgrid ; iz2 = nzgrid
+    else
+       iz1 = nzgrid ; iz2 = -nzgrid
+    end if
+    gpi(iz1) = 0. ; gcf(iz1) = 1.
+    do iz = iz1-sgn, iz2, -sgn
+       fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
+       fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
+       gpi(iz) = (-gpi(iz+sgn)*fac2 + 2.0*g(iz+nzgrid+1))/fac1
+       gcf(iz) = -gcf(iz+sgn)*fac2/fac1
+    end do
+    ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
+    g = gpi + (spread(gpi(iz2),1,nztot)/(1.-gcf(iz2)))*gcf
+    deallocate (gpi, gcf)
+
+  end subroutine sweep_zed_zonal_response
 
   subroutine get_fields_for_response_matrix (g, phi, iky, ie)
 

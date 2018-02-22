@@ -7,7 +7,7 @@ module parallel_streaming
   public :: advance_parallel_streaming_implicit
   public :: stream_tridiagonal_solve
   public :: parallel_streaming_initialized
-  public :: stream, stream_sign
+  public :: stream, stream_c, stream_sign
   public :: time_parallel_streaming
 
   private
@@ -306,7 +306,7 @@ contains
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
        ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-       call get_gke_rhs_inhomogeneous (ivmu, g1(:,:,:,ivmu), phi1, g(:,:,:,ivmu))
+       call get_gke_rhs (ivmu, g1(:,:,:,ivmu), phi1, phi, g(:,:,:,ivmu), eqn='inhomogeneous')
        
        if (stream_matrix_inversion) then
           ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
@@ -333,7 +333,7 @@ contains
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
        ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-       call get_gke_rhs (ivmu, g1(:,:,:,ivmu), phi1, phi, g(:,:,:,ivmu))
+       call get_gke_rhs (ivmu, g1(:,:,:,ivmu), phi1, phi, g(:,:,:,ivmu), eqn='full')
     
        if (stream_matrix_inversion) then
           ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
@@ -350,131 +350,7 @@ contains
 
   end subroutine advance_parallel_streaming_implicit
 
-  subroutine get_gke_rhs_inhomogeneous (ivmu, gold, phiold, g)
-
-    use stella_time, only: code_dt
-    use zgrid, only: nzgrid
-    use species, only: spec
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, nakx
-    use kt_grids, only: zonal_mode
-    use dist_fn_arrays, only: aj0x
-    use vpamu_grids, only: vpa, ztmax, maxwell_mu
-    use geometry, only: gradpar, nalpha
-    use neoclassical_terms, only: include_neoclassical_terms
-    use neoclassical_terms, only: dfneo_dvpa
-    use run_parameters, only: stream_cell, time_upwind
-
-    implicit none
-
-    integer, intent (in) :: ivmu
-    complex, dimension (:,:,-nzgrid:), intent (in) :: gold
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phiold
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
-
-    integer :: iv, imu, is, iz, ikx
-    real :: tupwnd, fac
-    real, dimension (:), allocatable :: vpadf0dE_fac, vpadf0dE_fac_zf
-    real, dimension (:,:), allocatable :: gp, gpz
-    complex, dimension (:,:,:), allocatable :: dgdz, dphidz
-
-    allocate (vpadf0dE_fac(-nzgrid:nzgrid))
-    allocate (vpadf0dE_fac_zf(-nzgrid:nzgrid))
-    allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
-    allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
-    allocate (gp(nalpha,-nzgrid:nzgrid))
-    allocate (gpz(nalpha,-nzgrid:nzgrid))
-
-    tupwnd = 0.5*(1.0-time_upwind)
-
-    ! obtain RHS of inhomogeneous GK eqn;
-    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
-    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
-    ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-    iv = iv_idx(vmu_lo,ivmu)
-    imu = imu_idx(vmu_lo,ivmu)
-    is = is_idx(vmu_lo,ivmu)
-
-    ! obtain dg^{n}/dz and store in dgdz
-    if (stream_cell) then
-       call get_dzed_cell (iv,gold,dgdz)
-    else
-       call get_dzed (iv,gold,dgdz)
-    end if
-
-    ! construct <phi^{n}>
-    g = aj0x(:,:,:,ivmu)*phiold
-
-    ! obtain d<phi^{n}>/dz and store in dphidz
-    if (stream_cell) then
-       call get_dzed_cell (iv,g,dphidz)
-    else
-       call get_dzed (iv,g,dphidz)
-    end if
-
-    fac = tupwnd*code_dt*spec(is)%stm
-
-    ! NB: could do this once at beginning of simulation to speed things up
-    ! this is vpa*Z/T*exp(-vpa^2)
-    vpadf0dE_fac = vpa(iv)*ztmax(iv,is)*maxwell_mu(1,:,imu)
-    ! if including neoclassical correction to equilibrium distribution function
-    ! then must also account for -vpa*dF_neo/dvpa
-    if (include_neoclassical_terms) then
-       do iz = -nzgrid, nzgrid
-          vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,ivmu)
-       end do
-    end if
-
-    g = gold
-    if (stream_cell) then
-       call center_zed (iv,g)
-       call center_zed (iv,vpadf0dE_fac)
-       if (iv < 0) then
-          gp = gradpar_c(:,:,-1)
-       else
-          gp = gradpar_c(:,:,1)
-       end if
-       gpz = gp
-       vpadf0dE_fac_zf = vpadf0dE_fac
-    else
-       gp = gradpar
-       ! treat zonal flow specially
-       if (zonal_mode(1)) then
-          do ikx = 1, nakx
-             call center_zed (iv,g(1,ikx,:))
-          end do
-          vpadf0dE_fac_zf = vpadf0dE_fac
-          call center_zed (iv,vpadf0dE_fac_zf)
-          if (iv < 0) then
-             gpz = gradpar_c(:,:,-1)
-          else
-             gpz = gradpar_c(:,:,1)
-          end if
-       end if
-    end if
-
-    ! construct RHS of GK eqn for inhomogeneous g
-    if (zonal_mode(1)) then
-       do iz = -nzgrid, nzgrid
-          g(1,:,iz) = g(1,:,iz) - fac*gpz(1,iz) &
-               * (vpa(iv)*dgdz(1,:,iz) + vpadf0dE_fac_zf(iz)*dphidz(1,:,iz))
-          g(2:,:,iz) = g(2:,:,iz) - fac*gp(1,iz) &
-               * (vpa(iv)*dgdz(2:,:,iz) + vpadf0dE_fac(iz)*dphidz(2:,:,iz))
-       end do
-    else
-       do iz = -nzgrid, nzgrid
-          g(:,:,iz) = g(:,:,iz) - fac*gp(1,iz) &
-               * (vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
-       end do
-    end if
-
-    deallocate (vpadf0dE_fac, vpadf0dE_fac_zf, gp, gpz)
-    deallocate (dgdz, dphidz)
-
-  end subroutine get_gke_rhs_inhomogeneous
-
-  subroutine get_gke_rhs (ivmu, gold, phiold, phi, g)
+  subroutine get_gke_rhs (ivmu, gold, phiold, phi, g, eqn)
 
     use stella_time, only: code_dt
     use zgrid, only: nzgrid
@@ -496,6 +372,7 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: gold
     complex, dimension (:,:,-nzgrid:), intent (in) :: phiold, phi
     complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+    character (*), intent (in) :: eqn
 
     integer :: iv, imu, is, iz, ikx
     real :: tupwnd1, tupwnd2, fac
@@ -511,7 +388,11 @@ contains
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
 
     tupwnd1 = 0.5*(1.0-time_upwind)
-    tupwnd2 = 0.5*(1.0+time_upwind)
+    if (eqn=='full') then
+       tupwnd2 = 0.5*(1.0+time_upwind)
+    else
+       tupwnd2 = 0.0
+    end if
 
     ! now have phi^{n+1} for non-negative kx
     ! obtain RHS of GK eqn; 
@@ -572,6 +453,7 @@ contains
              call center_zed (iv,g(1,ikx,:))
           end do
           vpadf0dE_fac_zf = vpadf0dE_fac
+          call center_zed (iv,vpadf0dE_fac_zf)
           if (iv < 0) then
              gpz = gradpar_c(:,:,-1)
           else
@@ -622,24 +504,24 @@ contains
 
     integer :: iv, is
     integer :: iky, ie
-    integer :: ulim
+    integer :: ulim, sgn
     complex, dimension (:), allocatable :: gext
 
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
+    sgn = stream_sign(iv)
+
     do iky = 1, naky
        if (zonal_mode(iky)) then
-          call sweep_zed_zonal (ivmu, g(iky,:,:))
+          call sweep_zed_zonal (iv, is, sgn, g(iky,:,:))
        else
           do ie = 1, neigen(iky)
              allocate (gext(nsegments(ie,iky)*nzed_segment+1))
              ! get g on extended domain in zed
-!             call get_distfn_on_extended_zgrid (ie, iky, g(:,:,:,ivmu), gext, ulim)
              call map_to_extended_zgrid (ie, iky, g(iky,:,:), gext, ulim)
              ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
              call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
              ! extract g from extended domain in zed
-!             call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:,ivmu))
              call map_from_extended_zgrid (ie, iky, gext, g(iky,:,:))
              deallocate (gext)
           end do
@@ -709,11 +591,11 @@ contains
   ! g = g^{n+1} is output
   subroutine sweep_g_zed (ivmu, g)
 
-    use zgrid, only: nzgrid, delzed, nztot
+    use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments, nzed_segment
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky
     use kt_grids, only: zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
@@ -730,8 +612,6 @@ contains
     integer :: iz, izext, iz1, iz2
     real :: fac1, fac2
     complex, dimension (:), allocatable :: gext
-    complex, dimension (:), allocatable :: gcf
-    complex, dimension (:,:), allocatable :: gpi
 
     iv = iv_idx (vmu_lo,ivmu)
     is = is_idx (vmu_lo,ivmu)
@@ -740,33 +620,12 @@ contains
     ! and solve for g on the extended z-grid
     do iky = 1, naky
        if (zonal_mode(iky)) then
-          allocate (gpi(nakx,-nzgrid:nzgrid))
-          allocate (gcf(-nzgrid:nzgrid))
-          ! ky=0 is 2pi periodic (no extended zgrid)
-          ! decompose into complementary function + particular integral
-          ! zero BC for particular integral
-          ! unit BC for complementary function (no source)
-          if (sgn < 0) then
-             iz1 = -nzgrid ; iz2 = nzgrid
-          else
-             iz1 = nzgrid ; iz2 = -nzgrid
-          end if
-          gpi(:,iz1) = 0. ; gcf(iz1) = 1.
-          do iz = iz1-sgn, iz2, -sgn
-             fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
-             fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
-             gpi(:,iz) = (-gpi(:,iz+sgn)*fac2 + 2.0*g(iky,:,iz))/fac1
-             gcf(iz) = -gcf(iz+sgn)*fac2/fac1
-          end do
-          ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-          g(iky,:,:) = gpi + (spread(gpi(:,iz2),2,nztot)/(1.-gcf(iz2)))*spread(gcf,1,nakx)
-          deallocate (gpi, gcf)
+          call sweep_zed_zonal (iv, is, sgn, g(iky,:,:))
        else
           do ie = 1, neigen(iky)
              allocate (gext(nsegments(ie,iky)*nzed_segment+1))
              ! get g on extended domain in zed
              call map_to_extended_zgrid (ie, iky, g(iky,:,:), gext, ulim)
-!             call get_distfn_on_extended_zgrid (ie, iky, g, gext, ulim)
              if (sgn < 0) then
                 iz1 = 1 ; iz2 = ulim
              else
@@ -786,7 +645,6 @@ contains
                 gext(izext) = (-gext(izext+sgn)*fac2 + 2.0*gext(izext))/fac1
              end do
              ! extract g from extended domain in zed
-!             call get_distfn_from_extended_zgrid (ie, iky, gext, g(iky,:,:))
              call map_from_extended_zgrid (ie, iky, gext, g(iky,:,:))
              deallocate (gext)
           end do
@@ -795,22 +653,18 @@ contains
 
   end subroutine sweep_g_zed
 
-  subroutine sweep_zed_zonal (ivmu, g)
+  subroutine sweep_zed_zonal (iv, is, sgn, g)
 
     use zgrid, only: nzgrid, delzed, nztot
     use kt_grids, only: nakx
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, is_idx
     use run_parameters, only: zed_upwind, time_upwind
 
     implicit none
 
-    integer, intent (in) :: ivmu
+    integer, intent (in) :: iv, is, sgn
     complex, dimension (:,-nzgrid:), intent (in out) :: g
 
-    integer :: iv, is
     integer :: iz, iz1, iz2
-    integer :: sgn
     real :: fac1, fac2
     complex, dimension (:), allocatable :: gcf
     complex, dimension (:,:), allocatable :: gpi
@@ -821,10 +675,6 @@ contains
     ! decompose into complementary function + particular integral
     ! zero BC for particular integral
     ! unit BC for complementary function (no source)
-    iv = iv_idx (vmu_lo,ivmu)
-    is = is_idx (vmu_lo,ivmu)
-    sgn = stream_sign(iv)
-
     if (sgn < 0) then
        iz1 = -nzgrid ; iz2 = nzgrid
     else
