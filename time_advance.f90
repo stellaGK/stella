@@ -564,12 +564,16 @@ contains
     wstarinit = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
-    response_matrix_initialized = .false.
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
-    if (stream_implicit) call init_response_matrix
+    ! do not try to re-init response matrix
+    ! before it has been initialized the first time
+    if (stream_implicit .and. response_matrix_initialized) then
+       response_matrix_initialized = .false.
+       call init_response_matrix
+    end if
 !     if (wstar_implicit) then
 !        get_fields_wstar_initialized = .false.
 !        ! call to init_get_fields only needed for initial step
