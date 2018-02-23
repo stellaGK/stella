@@ -702,7 +702,8 @@ contains
     use extended_zgrid, only: nzed_segment
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
-    use kt_grids, only: naky
+    use extended_zgrid, only: ikxmod
+    use kt_grids, only: naky, zonal_mode
     use fields_arrays, only: response_matrix
 
     implicit none
@@ -710,19 +711,30 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi
 
     integer :: iky, ie, ulim
+    integer :: ikx
     complex, dimension (:), allocatable :: gext
     
     ! need to put the fields into extended zed grid
     do iky = 1, naky
-       do ie = 1, neigen(iky)
-          ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-          allocate (gext(nsegments(ie,iky)*nzed_segment+1))
-          call map_to_extended_zgrid (ie, iky, phi(iky,:,:), gext, ulim)
-          call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
-               response_matrix(iky)%eigen(ie)%idx, gext)
-          call map_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
-          deallocate (gext)
-       end do
+       ! avoid double counting of periodic endpoints for zonal modes
+       if (zonal_mode(iky)) then
+          do ie = 1, neigen(iky)
+             ikx = ikxmod(1,ie,iky)
+             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
+                  response_matrix(iky)%eigen(ie)%idx, phi(iky,ikx,:nzgrid-1))
+             phi(iky,ikx,nzgrid) = phi(iky,ikx,-nzgrid)
+          end do
+       else
+          do ie = 1, neigen(iky)
+             ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+             call map_to_extended_zgrid (ie, iky, phi(iky,:,:), gext, ulim)
+             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
+                  response_matrix(iky)%eigen(ie)%idx, gext)
+             call map_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
+             deallocate (gext)
+          end do
+       end if
     end do
     
   end subroutine invert_parstream_response

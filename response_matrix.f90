@@ -18,7 +18,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use species, only: nspec
-    use kt_grids, only: naky
+    use kt_grids, only: naky, zonal_mode
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: neigen, ikxmod
     use extended_zgrid, only: nsegments
@@ -28,9 +28,9 @@ contains
 
     integer :: iky, ie, iseg, iz
     integer :: ikx
-    integer :: nz_ext
+    integer :: nz_ext, nresponse
     integer :: idx
-    integer :: izl_offset
+    integer :: izl_offset, izup
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: gext
@@ -57,17 +57,25 @@ contains
           ! number of zeds x number of segments
           nz_ext = nsegments(ie,iky)*nzed_segment+1
 
+          ! treat zonal mode specially to avoid double counting
+          ! as it is periodic
+          if (zonal_mode(iky)) then
+             nresponse = nz_ext-1
+          else
+             nresponse = nz_ext
+          end if
+
           ! for each ky and set of connected kx values,
           ! must have a response matrix that is N x N
           ! with N = number of zeds per 2pi segment x number of 2pi segments
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nz_ext,nz_ext))
+               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse,nresponse))
 
           ! response_matrix%idx is needed to keep track of permutations
           ! to the response matrix made during LU decomposition
           ! it will be input to LU back substitution during linear solve
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nz_ext))
+               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
 
           allocate (gext(nz_ext,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
           allocate (phiext(nz_ext))
@@ -84,10 +92,16 @@ contains
           ! ikxmod gives the kx corresponding to iseg,ie,iky
           ikx = ikxmod(iseg,ie,iky)
           izl_offset = 0
+          ! avoid double-counting of periodic points for zonal mode
+          if (zonal_mode(iky)) then
+             izup = iz_up(iseg)-1
+          else
+             izup = iz_up(iseg)
+          end if
           ! no need to obtain response to impulses at negative kx values
-          do iz = iz_low(iseg), iz_up(iseg)
+          do iz = iz_low(iseg), izup
              idx = idx + 1
-             call get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, phiext, gext)
+             call get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
           end do
           ! once we have used one segments, remaining segments
           ! have one fewer unique zed point
@@ -97,7 +111,7 @@ contains
                 ikx = ikxmod(iseg,ie,iky)
                 do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
                    idx = idx + 1
-                   call get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, phiext, gext)
+                   call get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                 end do
                 if (izl_offset == 0) izl_offset = 1
              end do
@@ -113,7 +127,7 @@ contains
 
   end subroutine init_response_matrix
 
-  subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, phiext, gext)
+  subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -132,7 +146,7 @@ contains
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz, ie, idx, nz_ext
+    integer, intent (in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
     complex, dimension (:), intent (in out) :: phiext
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
@@ -195,9 +209,9 @@ contains
                    gext(nz_ext,ivmu) = fac0
                 else if (idx == nz_ext-1) then
                    gext(1,ivmu) = -fac1
-                else if (idx == nz_ext) then
-                   gext(1,ivmu) = fac0
-                   gext(2,ivmu) = -fac1
+!                else if (idx == nz_ext) then
+!                   gext(1,ivmu) = fac0
+!                   gext(2,ivmu) = -fac1
                 end if
              end if
           else
@@ -237,8 +251,8 @@ contains
                    gext(nz_ext-1,ivmu) = fac1
                 else if (idx == 2) then
                    gext(nz_ext,ivmu) = fac1
-                else if (idx == nz_ext) then
-                   gext(1,ivmu) = -fac0
+!                else if (idx == nz_ext) then
+!                   gext(1,ivmu) = -fac0
                 end if
              end if
           end if
@@ -266,10 +280,10 @@ contains
                    gext(1,ivmu) = 0.5*(1.+zed_upwind)*fac
                    gext(nz_ext,ivmu) = gext(1,ivmu)
                    gext(3,ivmu) = -0.5*(1.-zed_upwind)*fac
-                else if (idx==nz_ext) then
-                   gext(1,ivmu) = gext(idx,ivmu)
-                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
+!                else if (idx==nz_ext) then
+!                   gext(1,ivmu) = gext(idx,ivmu)
+!                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
+!                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
                 else if (idx==nz_ext-1) then
                    gext(nz_ext-2,ivmu) = 0.5*(1.+zed_upwind)*fac
                    gext(nz_ext,ivmu) = -0.5*(1.-zed_upwind)*fac
@@ -302,10 +316,10 @@ contains
                    gext(1,ivmu) = 0.5*(1.-zed_upwind)*fac
                    gext(nz_ext,ivmu) = gext(1,ivmu)
                    gext(3,ivmu) = -0.5*(1.+zed_upwind)*fac
-                else if (idx==nz_ext) then
-                   gext(1,ivmu) = gext(idx,ivmu)
-                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
-                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
+!                else if (idx==nz_ext) then
+!                   gext(1,ivmu) = gext(idx,ivmu)
+!                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
+!                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
                 else if (idx==nz_ext-1) then
                    gext(nz_ext-2,ivmu) = 0.5*(1.-zed_upwind)*fac
                    gext(nz_ext,ivmu) = -0.5*(1.+zed_upwind)*fac
@@ -348,7 +362,7 @@ contains
     ! is identity matrix - response matrix
     ! add in contribution from identity matrix
     phiext(idx) = phiext(idx)-1.0
-    response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext
+    response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext(:nresponse)
 
   end subroutine get_response_matrix_column
 

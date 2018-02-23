@@ -1728,6 +1728,7 @@ contains
     use dist_fn_arrays, only: gbar_to_h
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use run_parameters, only: stream_implicit, mirror_implicit
+    use run_parameters, only: include_mirror, include_parallel_streaming
     use parallel_streaming, only: advance_parallel_streaming_implicit
     use fields, only: advance_fields
     use mirror_terms, only: advance_mirror_implicit
@@ -1747,7 +1748,7 @@ contains
 !    if (mod(istep,2)==0) then
        ! g^{*} (coming from explicit solve) is input
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
-       if (mirror_implicit) then
+       if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (g)
           ! get updated fields corresponding to mirror-advanced g
           call advance_fields (g, phi, apar, dist='gbar')
@@ -1755,7 +1756,8 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
+       if (stream_implicit .and. include_parallel_streaming) &
+            call advance_parallel_streaming_implicit (g, phi, apar)
 
        if (hyper_dissipation) call advance_hyper_dissipation (g)
        
@@ -1862,7 +1864,7 @@ contains
   subroutine checksum_field (field, total)
 
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, zonal_mode
+    use kt_grids, only: naky
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
 
@@ -1877,15 +1879,16 @@ contains
     total = 0.
 
     do iky = 1, naky
-       if (zonal_mode(iky)) cycle
        do ie = 1, neigen(iky)
           iseg = 1
           ikx = ikxmod(iseg,ie,iky)
           total = total + sum(cabs(field(iky,ikx,iz_low(iseg):iz_up(iseg))))
-          do iseg = 1, nsegments(ie,iky)
-             ikx = ikxmod(iseg,ie,iky)
-             total = total + sum(cabs(field(iky,ikx,iz_low(iseg)+1:iz_up(iseg))))
-          end do
+          if (nsegments(ie,iky) > 1) then
+             do iseg = 2, nsegments(ie,iky)
+                ikx = ikxmod(iseg,ie,iky)
+                total = total + sum(cabs(field(iky,ikx,iz_low(iseg)+1:iz_up(iseg))))
+             end do
+          end if
        end do
     end do
 
