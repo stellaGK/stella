@@ -589,6 +589,9 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi0_old
     use run_parameters, only: fully_explicit
+    ! TMP FOR TESTING -- MABA
+    use mp, only: proc0
+    use stella_time, only: code_time
 
     implicit none
 

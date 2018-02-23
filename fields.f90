@@ -168,6 +168,7 @@ contains
     use dist_fn_arrays, only: gvmu
     use zgrid, only: nzgrid
     use dist_redistribute, only: kxkyz2vmu
+    use run_parameters, only: fields_kxkyz
 
     implicit none
 
@@ -177,13 +178,19 @@ contains
 
     ! time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve,' fields')
-    ! first gather (vpa,mu) onto processor for v-space operations
-    ! v-space operations are field solve, dg/dvpa, and collisions
-    if (debug) write (*,*) 'dist_fn::advance_stella::scatter'
-    call scatter (kxkyz2vmu, g, gvmu)
-    ! given gvmu with vpa and mu local, calculate the corresponding fields
-    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields'
-    call get_fields (gvmu, phi, apar, dist)
+    if (fields_kxkyz) then
+       ! first gather (vpa,mu) onto processor for v-space operations
+       ! v-space operations are field solve, dg/dvpa, and collisions
+       if (debug) write (*,*) 'dist_fn::advance_stella::scatter'
+       call scatter (kxkyz2vmu, g, gvmu)
+       ! given gvmu with vpa and mu local, calculate the corresponding fields
+       if (debug) write (*,*) 'dist_fn::advance_stella::get_fields'
+       call get_fields (gvmu, phi, apar, dist)
+    else
+       ! FLAG -- will need to add scatter to gvmu for explicit mirror advance
+       call scatter (kxkyz2vmu, g, gvmu)
+       call get_fields_vmulo (g, phi, apar, dist)
+    end if
     ! time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve,' fields')
 
@@ -303,6 +310,102 @@ contains
     end if
     
   end subroutine get_fields
+
+  subroutine get_fields_vmulo (g, phi, apar, dist)
+
+    use mp, only: proc0, mp_abort
+    use stella_layouts, only: vmu_lo
+    use dist_fn_arrays, only: aj0x
+    use run_parameters, only: fphi, fapar
+    use geometry, only: dl_over_b
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: integrate_species
+    use kt_grids, only: nakx
+    use kt_grids, only: zonal_mode
+    use species, only: spec, has_electron_species
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+
+    implicit none
+    
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
+    character (*), intent (in) :: dist
+
+    integer :: ikx
+    complex :: tmp
+
+    phi = 0.
+    if (fphi > epsilon(0.0)) then
+       call integrate_species (aj0x*g, spec%z*spec%dens, phi)
+       if (dist == 'h') then
+          phi = phi/gamtot_h
+       else if (dist == 'gbar') then
+          phi = phi/gamtot
+!       else if (dist == 'gstar') then
+!          phi = phi/gamtot_wstar
+       else
+          if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+          call mp_abort ('unknown dist option in get_fields. aborting')
+       end if
+
+       if (.not.has_electron_species(spec) .and. &
+            adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if (zonal_mode(1)) then
+             if (dist == 'h') then
+                do ikx = 1, nakx
+                   tmp = sum(dl_over_b*phi(1,ikx,:))
+                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_h
+                end do
+             else if (dist == 'gbar') then
+                do ikx = 1, nakx
+                   tmp = sum(dl_over_b*phi(1,ikx,:))
+                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3(ikx,:)
+                end do
+!             else if (dist == 'gstar') then
+!                do ikx = 1, nakx
+!                   tmp = sum(dl_over_b*phi(1,ikx,:))
+!                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_wstar(ikx,:)
+!                end do
+             else
+                if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+                call mp_abort ('unknown dist option in get_fields. aborting')
+             end if
+          end if
+       end if
+    end if
+
+    apar = 0.
+    if (fapar > epsilon(0.0)) then
+       ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
+       call mp_abort ('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
+!        allocate (g0(-nvgrid:nvgrid,nmu))
+!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+!           iz = iz_idx(kxkyz_lo,ikxkyz)
+!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+!           iky = iky_idx(kxkyz_lo,ikxkyz)
+!           is = is_idx(kxkyz_lo,ikxkyz)
+!           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
+!           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
+!           call integrate_vmu (g0, iz, tmp)
+!           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
+!        end do
+!        call sum_allreduce (apar)
+!        if (dist == 'h') then
+!           apar = apar/kperp2
+!        else if (dist == 'gbar') then
+!           apar = apar/apar_denom
+!        else if (dist == 'gstar') then
+!           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
+!           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
+!        else
+!           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+!           call mp_abort ('unknown dist option in get_fields. aborting')
+!        end if
+!        deallocate (g0)
+    end if
+    
+  end subroutine get_fields_vmulo
 
   subroutine finish_fields
 

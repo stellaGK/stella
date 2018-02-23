@@ -306,9 +306,9 @@ contains
 
     integer :: ivmu, iv, iz, is, imu
 
-    complex, dimension (-nzgrid:,:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
-    complex, dimension (-nzgrid:,:,:), intent (out) :: total
+    complex, dimension (:,:,-nzgrid:), intent (out) :: total
 
     total = 0.
 
@@ -317,8 +317,8 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        do iz = -nzgrid, nzgrid
-          total(iz,:,:) = total(iz,:,:) + &
-               wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iz,:,:,ivmu)*weights(is)
+          total(:,:,iz) = total(:,:,iz) + &
+               wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(:,:,iz,ivmu)*weights(is)
        end do
     end do
 

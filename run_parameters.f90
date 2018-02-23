@@ -19,6 +19,7 @@ module run_parameters
   public :: stream_cell, stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp
   public :: zed_upwind, vpa_upwind, time_upwind
+  public :: fields_kxkyz
   
   private
 
@@ -33,6 +34,7 @@ module run_parameters
   logical :: fully_explicit
   logical :: stream_cell, stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
+  logical :: fields_kxkyz
   real :: avail_cpu_time
   integer :: nstep
   integer, public :: delt_option_switch
@@ -79,12 +81,14 @@ contains
          stream_cell, stream_matrix_inversion, &
          mirror_semi_lagrange, mirror_linear_interp, &
          include_parallel_streaming, include_mirror, &
-         zed_upwind, vpa_upwind, time_upwind
+         zed_upwind, vpa_upwind, time_upwind, &
+         fields_kxkyz
 
     if (proc0) then
        fphi = 1.0
        fapar = 1.0
        fbpar = -1.0
+       fields_kxkyz = .true.
        stream_implicit = .true.
        mirror_implicit = .true.
        nonlinear = .false.
@@ -113,6 +117,7 @@ contains
 
     end if
 
+    call broadcast (fields_kxkyz)
     call broadcast (delt_option_switch)
     call broadcast (delt)
     call broadcast (cfl_cushion)
