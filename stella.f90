@@ -223,8 +223,10 @@ contains
        write (*,*)
        write (*,fmt=101) 'initialization:', time_init(1)/60., 'min'
        write (*,fmt=101) 'diagnostics:', time_diagnostics(1)/60., 'min'
-       write (*,fmt=101) 'fields:', time_field_solve(1)/60., 'min'
-       write (*,fmt=101) 'mirror:', time_mirror(1)/60., 'min'
+       write (*,fmt=101) 'fields:', time_field_solve(1,1)/60., 'min'
+       write (*,fmt=101) '(redistribute):', time_field_solve(1,2)/60., 'min'
+       write (*,fmt=101) 'mirror:', time_mirror(1,1)/60., 'min'
+       write (*,fmt=101) '(redistribute):', time_mirror(1,2)/60., 'min'
        write (*,fmt=101) 'stream:', time_parallel_streaming(1)/60., 'min'
        write (*,fmt=101) 'dgdx:', time_gke(1,5)/60., 'min'
        write (*,fmt=101) 'dgdy:', time_gke(1,4)/60., 'min'

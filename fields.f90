@@ -13,7 +13,7 @@ module fields
   real, dimension (:,:), allocatable :: gamtot3
   real :: gamtot_h, gamtot3_h
 
-  real, dimension (2) :: time_field_solve
+  real, dimension (2,2) :: time_field_solve
 
   logical :: fields_initialized = .false.
   logical :: exist
@@ -177,22 +177,24 @@ contains
     character (*), intent (in) :: dist
 
     ! time the communications + field solve
-    if (proc0) call time_message(.false.,time_field_solve,' fields')
+    if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
     if (fields_kxkyz) then
        ! first gather (vpa,mu) onto processor for v-space operations
        ! v-space operations are field solve, dg/dvpa, and collisions
        if (debug) write (*,*) 'dist_fn::advance_stella::scatter'
+       if (proc0) call time_message(.false.,time_field_solve(:,2),' fields_redist')
        call scatter (kxkyz2vmu, g, gvmu)
+       if (proc0) call time_message(.false.,time_field_solve(:,2),' fields_redist')
        ! given gvmu with vpa and mu local, calculate the corresponding fields
        if (debug) write (*,*) 'dist_fn::advance_stella::get_fields'
        call get_fields (gvmu, phi, apar, dist)
     else
-       ! FLAG -- will need to add scatter to gvmu for explicit mirror advance
-       call scatter (kxkyz2vmu, g, gvmu)
+!       ! FLAG -- will need to add scatter to gvmu for explicit mirror advance
+!       call scatter (kxkyz2vmu, g, gvmu)
        call get_fields_vmulo (g, phi, apar, dist)
     end if
     ! time the communications + field solve
-    if (proc0) call time_message(.false.,time_field_solve,' fields')
+    if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
 
   end subroutine advance_fields
 

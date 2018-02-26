@@ -11,7 +11,7 @@ module mirror_terms
   private
 
   logical :: mirror_initialized = .false.
-  real, dimension (2) :: time_mirror
+  real, dimension (2,2) :: time_mirror
 
   integer, dimension (:,:), allocatable :: mirror_sign
   real, dimension (:,:,:,:), allocatable :: mirror
@@ -247,6 +247,7 @@ contains
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvgrid, nmu
     use vpamu_grids, only: vpa
+    use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
     implicit none
@@ -259,7 +260,7 @@ contains
 
     integer :: iv
 
-    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+    if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
     ! the mirror term is most complicated of all when doing full flux surface
     if (alpha_global) then
@@ -288,17 +289,24 @@ contains
        allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
+       if (.not.fields_kxkyz) then
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+          call scatter (kxkyz2vmu, g, gvmu)
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       end if
        ! get dg/dvpa and store in g0v
        g0v = gvmu
        call get_dgdvpa_explicit (g0v)
        ! swap layouts so that (z,kx,ky) are local
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
        call gather (kxkyz2vmu, g0v, g0x)
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
        ! get mirror term and add to source
        call add_mirror_term (g0x, gout)
     end if
     deallocate (g0x, g0v)
 
-    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+    if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
   end subroutine advance_mirror_explicit
 
@@ -434,7 +442,7 @@ contains
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:), allocatable :: g0x
 
-    if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
+    if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
     tupwnd = (1.0-time_upwind)*0.5
 
@@ -500,7 +508,9 @@ contains
        call transform_y2ky (g0x, g)
     else
        ! get g^{*} with v-space on processor
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
        call scatter (kxkyz2vmu, g, gvmu)
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
        
        allocate (g0v(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(1,1,1,1))
@@ -528,7 +538,9 @@ contains
        end if
 
        ! then take the results and remap again so ky,kx,z local.
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
        call gather (kxkyz2vmu, g0v, g)
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
     end if
     
     deallocate (g0x,g0v)
