@@ -5,11 +5,13 @@
 #   module unload cray-libsci
 # to avoid warning messages about libsci during compiling.
 
-ifndef HOSTNAME
+ifdef GK_SYSTEM
+	HOSTNAME = $(GK_SYSTEM)
+else
 	ifdef NERSC_HOST
-        	HOSTNAME = $(NERSC_HOST)
+		HOSTNAME = $(NERSC_HOST)
 	else
-        	HOSTNAME="laptop"
+		HOSTNAME="laptop"
 	endif
 endif
 
@@ -32,10 +34,15 @@ else ifeq ($(HOSTNAME),archer)
 	export FC = ftn
 	export EXTRA_COMPILE_FLAGS = -qopenmp
 	export EXTRA_LINK_FLAGS = -qopenmp -Wl,-ydgemm_
+else ifeq ($(HOSTNAME), marconi)
+	export FC = ifort
+	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp -I$(NETCDFF_HOME)/include/ -I$(NETCDF_INCLUDE)
+	export EXTRA_LINK_FLAGS = -qopenmp -L$(NETCDFF_HOME)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 else
 	FC = mpif90
 #	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
 	EXTRA_COMPILE_FLAGS = -fopenmp -I$(NETCDF_INC_DIR) -ffree-line-length-none
+	EXTRA_COMPILE_FLAGS += -fdefault-real-8 -fdefault-double-8
 #	EXTRA_LINK_FLAGS =  -fopenmp -L/opt/local/lib -lnetcdff  -lnetcdf
 	EXTRA_LINK_FLAGS =  -fopenmp -L$(NETCDF_LIB_DIR) -lnetcdff  -lnetcdf
 endif
@@ -55,7 +62,7 @@ LIBSTELL_FOR_GS2 = mini_libstell/mini_libstell.a
 # End of system-dependent variable assignments
 
 # Promote real to double, as gs2 does:
-EXTRA_COMPILE_FLAGS += -fdefault-real-8 -fdefault-double-8
+#EXTRA_COMPILE_FLAGS += -fdefault-real-8 -fdefault-double-8
 
 export
 

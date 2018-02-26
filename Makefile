@@ -83,7 +83,8 @@ USE_SFINCS ?=
 
 MAKE		= make
 CPP		= cpp
-CPPFLAGS	= -C -P -traditional
+#CPPFLAGS	= -C -P -traditional
+CPPFLAGS	= -P -traditional
 export FC	= f90
 #MPIFC		?= mpif90-mpich-gcc48
 export MPIFC	?= mpif90

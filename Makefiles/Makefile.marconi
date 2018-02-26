@@ -5,6 +5,7 @@ helplocal:
 		# You are using  Makefile.marconi to build gs2 executables on MARCONI.
 
 define STANDARD_SYSTEM_CONFIGURATION
+module load env-skl;\
 module load intel/pe-xe-2017--binary;\
 module load intelmpi/2017--binary;\
 module load netcdf/4.4.1--intel--pe-xe-2017--binary;\
@@ -12,11 +13,11 @@ module load netcdff/4.4.4--intel--pe-xe-2017--binary;\
 module load fftw/3.3.4--intelmpi--2017--binary;\
 echo Module configuration complete;\
 export MAKEFLAGS='-j -IMakefiles';\
-export TESTEXEC='mpirun -N 36 -n 36';
+export TESTEXEC='mpirun -N 48 -n 48';
 endef
 
 COMPILER=intel
-CHIP=haswell
+CHIP=skylake
 
 USE_FFT = fftw3
 USE_NETCDF = on

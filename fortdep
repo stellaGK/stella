@@ -688,7 +688,7 @@ sub get_dependency{
 		    if ( -f "$$source{$incfile}{'dir'}/$incfile" ){
 			$$reqfile{$file}{$incfile} = "include";
 		    } else {
-			die ( "Include file $incfile does not exists, bye.\n" )
+			die ( "Include file $incfile does not exist, bye.\n" )
 		    }
 		}
 	    }
