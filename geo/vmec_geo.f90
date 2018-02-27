@@ -65,16 +65,21 @@ contains
          gbdrift, gbdrift0, cvdrift, cvdrift0
 
     integer :: i, j
-    real :: L_reference, B_reference
+    real :: L_reference, B_reference, nfp
 
     real, dimension (nalpha) :: alpha
     real, dimension (-nzgrid:nzgrid) :: zeta
+    real, dimension (-nzgrid:nzgrid) :: theta
 
     call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, nzgrid, &
          zeta_center, nfield_periods, torflux, surface_option, verbose, &
-         surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, &
+         surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
          alpha, zeta, bmag, gradpar, gds2, gds21, gds22, &
          gbdrift, gbdrift0, cvdrift, cvdrift0)
+
+    ! scale the vmec output
+    theta = zeta/nfp/surf%qinp
+    gradpar = gradpar/nfp/surf%qinp
 
     open (2001,file='vmec.geo',status='unknown')
     write (2001,'(5a12)') 'torflux', 'qinp', 'shat', 'aref', 'Bref'

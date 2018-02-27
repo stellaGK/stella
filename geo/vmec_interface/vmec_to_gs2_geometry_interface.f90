@@ -19,7 +19,7 @@ contains
 
   subroutine vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
-       normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, &
+       normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
        alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0)
 
     use fzero_mod, only: fzero
@@ -83,6 +83,9 @@ contains
 
     ! B_reference is the reference magnetic field strength used for gs2's normalization, in Tesla.
     real, intent(out) :: B_reference
+
+    ! nfp is the number of field periods given by VMEC
+    real, intent(out) :: nfp_out
 
     ! On exit, alpha holds the grid points in alpha = theta_p - iota * zeta, where theta_p is the PEST toroidal angle
     real, dimension(nalpha), intent(out) :: alpha
@@ -193,6 +196,8 @@ contains
 
     if (verbose) print *,"  Number of field periods (nfp):",nfp
     if (verbose) print *,"  Stellarator-asymmetric? (lasym):",lasym
+
+    nfp_out = nfp
 
     ! There is a bug in libstell read_wout_file for ASCII-format wout files, in which the xm_nyq and xn_nyq arrays are sometimes
     ! not populated. The next few lines here provide a workaround:

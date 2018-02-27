@@ -164,7 +164,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, nakx, zonal_mode
+    use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: aj0x
     use fields_arrays, only: phi
     use vpamu_grids, only: ztmax, maxwell_mu

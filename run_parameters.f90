@@ -97,8 +97,8 @@ contains
        include_mirror = .true.
        mirror_semi_lagrange = .true.
        mirror_linear_interp = .false.
-       stream_cell = .false.
-       stream_matrix_inversion = .true.
+       stream_cell = .true.
+       stream_matrix_inversion = .false.
        delt_option = 'default'
        zed_upwind = 0.02
        vpa_upwind = 0.02

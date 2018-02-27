@@ -589,8 +589,6 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi0_old
     use run_parameters, only: fully_explicit
-    use kt_grids, only: zonal_mode
-    use zgrid, only: nzgrid
 
     implicit none
 
