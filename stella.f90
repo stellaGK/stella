@@ -132,13 +132,7 @@ contains
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
        call advance_fields (gnew, phi, apar, dist='gbar')
-!       call get_fields (gvmu, phi, apar, dist='gbar')
     end if
-
-    ! TMP FOR TESTING -- MAB
-!    call checksum (phi, phitot)
-!    call checksum (gnew, gtot)
-!    write (*,*) 'init_fields', phitot, gtot
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
     call init_stella_diagnostics (nstep)

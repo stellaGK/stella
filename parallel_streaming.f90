@@ -280,7 +280,7 @@ contains
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: g1
     use run_parameters, only: stream_matrix_inversion
-    use fields, only: advance_fields
+    use fields, only: advance_fields, fields_updated
 
     implicit none
 
@@ -317,6 +317,8 @@ contains
           call sweep_g_zed (ivmu, g(:,:,:,ivmu))
        end if
     end do
+
+    fields_updated = .false.
 
     ! we now have g_{inh}^{n+1}
     ! calculate associated fields (phi_{inh}^{n+1})
