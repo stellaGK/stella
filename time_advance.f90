@@ -589,9 +589,8 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi0_old
     use run_parameters, only: fully_explicit
-    ! TMP FOR TESTING -- MABA
-    use mp, only: proc0
-    use stella_time, only: code_time
+    use kt_grids, only: zonal_mode
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -608,9 +607,14 @@ contains
        ! advance the explicit parts of the GKE
     call advance_explicit (phi, apar, gnew)
 
+    ! enforce periodicity for zonal mode
+    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
+
        ! use operator splitting to separately evolve
        ! all terms treated implicitly
     if (.not.fully_explicit) call advance_implicit (phi, apar, gnew)
+
+!    if (proc0) write (*,*) 'phizf', code_time, real(phi(1,1,0)), aimag(phi(1,1,0))
 
 !    else
 !       ! use operator splitting to separately evolve
@@ -632,7 +636,6 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use fields, only: advance_fields
 
     implicit none
 
@@ -653,9 +656,7 @@ contains
        ! RK4
        call advance_explicit_rk4 (g)
     end select
-
-    call advance_fields (g, phi, apar, dist='gbar')
-
+    
     ! stop the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
@@ -825,7 +826,7 @@ contains
     use kt_grids, only: alpha_global
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: advance_parallel_streaming_explicit
-    use fields, only: advance_fields
+    use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_explicit
 
     implicit none
@@ -891,6 +892,8 @@ contains
        ! calculate and add collision term to RHS of GK eqn
        !    call advance_collisions
     end if
+
+    fields_updated = .false.
 
     nullify (rhs)
 
@@ -1733,7 +1736,7 @@ contains
     use run_parameters, only: stream_implicit, mirror_implicit
     use run_parameters, only: include_mirror, include_parallel_streaming
     use parallel_streaming, only: advance_parallel_streaming_implicit
-    use fields, only: advance_fields
+    use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_implicit
 
     implicit none
@@ -1751,18 +1754,25 @@ contains
 !    if (mod(istep,2)==0) then
        ! g^{*} (coming from explicit solve) is input
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
+       if (hyper_dissipation) then
+          call advance_hyper_dissipation (g)
+          fields_updated = .false.
+       end if
+
        if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (g)
-          ! get updated fields corresponding to mirror-advanced g
-          call advance_fields (g, phi, apar, dist='gbar')
+          fields_updated = .false.
        end if
+
+       ! get updated fields corresponding to advanced g
+       ! note that hyper-dissipation and mirror advances
+       ! depended only on g and so did not need field update
+       call advance_fields (g, phi, apar, dist='gbar')
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
        if (stream_implicit .and. include_parallel_streaming) &
             call advance_parallel_streaming_implicit (g, phi, apar)
-
-       if (hyper_dissipation) call advance_hyper_dissipation (g)
        
 !!       if (wdrifty_implicit) then
 !!          call advance_wdrifty_implicit (g)

@@ -6,6 +6,7 @@ module fields
   public :: advance_fields, get_fields
   public :: gamtot, gamtot3
   public :: time_field_solve
+  public :: fields_updated
 
   private
 
@@ -15,6 +16,7 @@ module fields
 
   real, dimension (2,2) :: time_field_solve
 
+  logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
   logical :: exist
 
@@ -176,6 +178,8 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
+    if (fields_updated) return
+
     ! time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
     if (fields_kxkyz) then
@@ -189,10 +193,11 @@ contains
        if (debug) write (*,*) 'dist_fn::advance_stella::get_fields'
        call get_fields (gvmu, phi, apar, dist)
     else
-!       ! FLAG -- will need to add scatter to gvmu for explicit mirror advance
-!       call scatter (kxkyz2vmu, g, gvmu)
        call get_fields_vmulo (g, phi, apar, dist)
     end if
+    ! set a flag to indicate that the fields have been updated
+    ! this helps avoid unnecessary field solves
+    fields_updated = .true.
     ! time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
 

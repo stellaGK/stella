@@ -164,7 +164,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, zonal_mode
     use dist_fn_arrays, only: aj0x
     use fields_arrays, only: phi
     use vpamu_grids, only: ztmax, maxwell_mu
@@ -253,7 +253,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx!, zonal_mode
 
     implicit none
 
@@ -266,6 +266,7 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(stream(:,iv,is),1,naky),2,nakx)*g(:,:,:,ivmu)
+!       if (zonal_mode(1)) src(1,:,-nzgrid,ivmu) = src(1,:,nzgrid,ivmu)
     end do
 
   end subroutine add_stream_term

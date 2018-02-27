@@ -55,12 +55,12 @@ contains
     use stella_layouts, only: init_stella_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
-    use fields, only: init_fields, get_fields
+    use fields, only: init_fields, advance_fields
     use stella_time, only: init_tstart
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
     use fields_arrays, only: phi, apar
-    use dist_fn_arrays, only: gvmu
+    use dist_fn_arrays, only: gnew
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
@@ -131,7 +131,8 @@ contains
     if (.not.restarted) then
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
-       call get_fields (gvmu, phi, apar, dist='gbar')
+       call advance_fields (gnew, phi, apar, dist='gbar')
+!       call get_fields (gvmu, phi, apar, dist='gbar')
     end if
 
     ! TMP FOR TESTING -- MAB
