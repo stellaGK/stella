@@ -387,7 +387,7 @@ contains
 
     call set_redist_character_type (xyz2vmu, 'xyz2vmu')
 
-    call init_redist (xyz2vmu, 'c', to_low, to_high, to_list, &
+    call init_redist (xyz2vmu, 'r', to_low, to_high, to_list, &
          from_low, from_high, from_list)
 
     call delete_list (to_list)
