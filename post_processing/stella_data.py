@@ -7,12 +7,12 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-infile = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/test3.out.nc'
+infile = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/no_pnl.out.nc'
 #infile = '../stella.out.nc'
 print()
 #outdir = input("Path for output: ")
 #outdir = '/Users/michaelbarnes/codes/gs2/runs/flow_shear_tests/nofs01_figs/'
-outdir = '/Users/michaelbarnes/codes/stella/runs/jcp_paper_sims/nonlin_tests/figures/'
+outdir = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/figures/'
 ncfile = netcdf.netcdf_file(infile,'r')   
 
 print()
@@ -34,7 +34,8 @@ kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
 zed = np.copy(ncfile.variables['zed'][:])
 
 # get time grid
-time_stella = np.copy(ncfile.variables['t'][:])
+time = np.copy(ncfile.variables['t'][:])
+ntime = time.size
 
 # number of kinetic species
 nspec = ncfile.dimensions['species']

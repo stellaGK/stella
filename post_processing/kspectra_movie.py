@@ -1,8 +1,7 @@
 import numpy as np
 from stella_plots import movie_2d
-from stella_data import phi2_vs_kxky, kx, ky, time_stella
+from stella_data import phi2_vs_kxky, kx, ky, ntime
 
-ntime = time_stella.size
 phi2max = np.arange(ntime,dtype=float)
 phi2min = np.arange(ntime,dtype=float)
 for i in range(ntime):

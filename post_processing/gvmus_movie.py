@@ -1,8 +1,7 @@
 import numpy as np
 from stella_plots import movie_2d
-from stella_data import gvmus, vpa, mu, time_stella
+from stella_data import gvmus, vpa, mu, ntime
 
-ntime = time_stella.size
 gmax = np.arange(ntime,dtype=float)
 gmin = np.arange(ntime,dtype=float)
 for i in range(ntime):
