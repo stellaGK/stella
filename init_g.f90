@@ -355,9 +355,11 @@ contains
 
     if (proc0) then
        ! keep old (it, ik) loop order to get old results exactly: 
-       if (naky > 1 .and. nakx > 1) &
-            kmin = min(minval(kperp2(1,2,:)),minval(kperp2(2,1,:)))
-       
+       if (naky > 1 .and. nakx > 1) then
+          kmin = min(minval(kperp2(1,2,:)),minval(kperp2(2,1,:)))
+          phi(1,1,:) = 0.0
+       end if
+
        !Fill phi with random (complex) numbers between -0.5 and 0.5
        do ikx = 1, nakx
           do iky = 1, naky
@@ -392,8 +394,8 @@ contains
        
        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
        if (reality) then
-          do iky = naky/2+2, naky
-             phi(iky,1,:) = conjg(phi(naky-iky+2,1,:))
+          do ikx = nakx/2+2, nakx
+             phi(1,ikx,:) = conjg(phi(1,nakx-ikx+2,:))
           enddo
        end if
        
