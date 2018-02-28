@@ -15,6 +15,8 @@ module stella_diagnostics
   logical :: write_gvmus
   logical :: write_gzvs
   logical :: write_kspectra
+  logical :: write_fluxes_vs_zvpa
+  logical :: write_symmetry
 
   integer :: stdout_unit, fluxes_unit, omega_unit
 
@@ -80,12 +82,13 @@ contains
     call broadcast (write_phi_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
+    call broadcast (write_symmetry)
     
     nmovie_tot = nstep/nmovie
     
     call init_averages
     call init_stella_io (write_phi_vs_time, write_kspectra, &
-         write_gvmus, write_gzvs)
+         write_gvmus, write_gzvs, write_symmetry)
     call open_loop_ascii_files
     
   end subroutine init_stella_diagnostics
@@ -103,7 +106,7 @@ contains
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-         write_omega, write_kspectra
+         write_omega, write_kspectra, write_symmetry
 
     if (proc0) then
        nwrite = 50
@@ -116,6 +119,7 @@ contains
        write_gvmus = .false.
        write_gzvs = .false.
        write_kspectra = .false.
+       write_symmetry = .false.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
        if (exist) read (unit=in_file, nml=stella_diagnostics_knobs)
@@ -154,13 +158,13 @@ contains
 
   subroutine init_averages
 
-    use kt_grids, only: akx, nakx
+    use kt_grids, only: aky, naky
 
     implicit none
 
     if (.not.allocated(fac)) then
-       allocate (fac(nakx)) ; fac = 2.0
-       if (akx(1)<epsilon(0.)) fac(1) = 1.0
+       allocate (fac(naky)) ; fac = 2.0
+       if (aky(1)<epsilon(0.)) fac(1) = 1.0
     end if
 
   end subroutine init_averages
@@ -204,6 +208,7 @@ contains
 
     use mp, only: proc0
     use constants, only: zi
+    use redistribute, only: scatter
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi0_old
     use dist_fn_arrays, only: gvmu, gnew
@@ -213,12 +218,14 @@ contains
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
+!    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
-    use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nmu
+    use zgrid, only: nzgrid, nztot
+    use vpamu_grids, only: nvgrid, nmu, nvpa
     use species, only: nspec
     use kt_grids, only: naky, nakx
+    use dist_redistribute, only: kxkyz2vmu
 
     implicit none
 
@@ -228,6 +235,7 @@ contains
     real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:), allocatable :: gzvs
+    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:), allocatable :: omega_avg
@@ -257,9 +265,10 @@ contains
     allocate (heat_flux(nspec))
 
     ! obtain turbulent fluxes
-    call g_to_h (gvmu, phi, fphi)
+    call scatter (kxkyz2vmu, gnew, gvmu)
+!    call g_to_h (gvmu, phi, fphi)
     call get_fluxes (gvmu, part_flux, mom_flux, heat_flux)
-    call g_to_h (gvmu, phi, -fphi)
+!    call g_to_h (gvmu, phi, -fphi)
 
     if (proc0) then
        call volume_average (phi, phi2)
@@ -298,12 +307,19 @@ contains
        deallocate (gvmus)
     end if
     if (write_gzvs) then
-       allocate (gzvs(2*nzgrid+1,2*nvgrid+1,nspec))
+       allocate (gzvs(nztot,nvpa,nspec))
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::get_gzvs'
        call get_gzvs (gnew, gzvs)
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_gzvs_nc'
        if (proc0) call write_gzvs_nc (nout, gzvs)
        deallocate (gzvs)
+    end if
+    if (write_symmetry) then
+       allocate (pflx_zvpa(nztot,nvpa,nspec))
+       allocate (vflx_zvpa(nztot,nvpa,nspec))
+       allocate (qflx_zvpa(nztot,nvpa,nspec))
+       call get_fluxes_vs_zvpa (gnew, pflx_zvpa, vflx_zvpa, qflx_zvpa)
+       deallocate (pflx_zvpa, vflx_zvpa, qflx_zvpa)
     end if
 
     deallocate (part_flux, mom_flux, heat_flux)
@@ -344,7 +360,7 @@ contains
     do iz = -nzgrid, nzgrid
        do ikx = 1, nakx
           do iky = 1, naky
-             avg = avg + real(unavg(iky,ikx,iz)*conjg(unavg(iky,ikx,iz)))*fac(ikx)*dl_over_b(iz)
+             avg = avg + real(unavg(iky,ikx,iz)*conjg(unavg(iky,ikx,iz)))*fac(iky)*dl_over_b(iz)
           end do
        end do
     end do
@@ -397,12 +413,12 @@ contains
           
           ! get particle flux
           g0 = g(:,:,ikxkyz)*spread(aj0v(:,ikxkyz),1,nvpa)
-          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), pflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), g0, phi(iky,ikx,iz), pflx(is))
           
           ! get heat flux
           ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
           g0 = g0*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
-          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), qflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), g0, phi(iky,ikx,iz), qflx(is))
 
           ! get momentum flux
           ! parallel component
@@ -412,7 +428,7 @@ contains
                - zi*aky(iky)*spread(aj1v(:,ikxkyz)*vperp2(1,iz,:),1,nvpa)*geo_surf%rhoc &
                * (gds21(1,iz)+theta0(iky,ikx)*gds22(1,iz))*spec(is)%smz &
                / (geo_surf%qinp*geo_surf%shat*bmag(1,iz)**2))
-          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, phi(iky,ikx,iz), vflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), g0, phi(iky,ikx,iz), vflx(is))
        end do
     end if
     
@@ -426,11 +442,11 @@ contains
           
           ! Apar contribution to particle flux
           g0 = -g(:,:,ikxkyz)*spread(aj0v(:,ikxkyz),1,nvpa)*spec(is)%stm*spread(vpa,2,nmu)
-          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), pflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), g0, apar(iky,ikx,iz), pflx(is))
           
           ! Apar contribution to heat flux
           g0 = g0*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
-          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), qflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), g0, apar(iky,ikx,iz), qflx(is))
           
           ! Apar contribution to momentum flux
           ! parallel component
@@ -443,7 +459,7 @@ contains
                / (geo_surf%qinp*geo_surf%shat*bmag(1,iz)**2))
           ! FLAG -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !!
 
-          call get_one_flux (iky, ikx, iz, flx_norm(iz), g0, apar(iky,ikx,iz), vflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), g0, apar(iky,ikx,iz), vflx(is))
        end do
     end if
 
@@ -454,9 +470,9 @@ contains
     deallocate (g0)
     deallocate (flx_norm)
 
- end subroutine get_fluxes
+  end subroutine get_fluxes
 
-  subroutine get_one_flux (iky, ikx, iz, norm, gin, fld, flxout)
+  subroutine get_one_flux (iky, iz, norm, gin, fld, flxout)
 
     use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_vmu
@@ -464,7 +480,7 @@ contains
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz
+    integer, intent (in) :: iky, iz
     real, intent (in) :: norm
     complex, dimension (-nvgrid:,:), intent (in) :: gin
     complex, intent (in) :: fld
@@ -474,9 +490,48 @@ contains
 
     call integrate_vmu (gin,iz,flx)
     flxout = flxout &
-         + 0.5*fac(ikx)*aky(iky)*aimag(flx*conjg(fld))*norm
+         + 0.5*fac(iky)*aky(iky)*aimag(flx*conjg(fld))*norm
 
   end subroutine get_one_flux
+
+  subroutine get_fluxes_vs_zvpa (g, pflx, vflx, qflx)
+
+    use zgrid, only: nzgrid, delzed
+    use vpamu_grids, only: nvgrid
+    use stella_layouts, only: vmu_lo
+    use geometry, only: jacob, grho
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (-nzgrid:,-nvgrid:,:), intent (out) :: pflx, vflx, qflx
+
+    real, dimension (:), allocatable :: flx_norm
+!    real, dimension (:,:), allocatable :: gtmp
+
+!    allocate (gtmp(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    allocate (flx_norm(-nzgrid:nzgrid))
+
+!    gtmp = 0.
+
+    pflx = 0. ; vflx = 0. ; qflx = 0.
+
+    flx_norm = jacob*delzed
+    flx_norm = flx_norm/sum(flx_norm*grho)
+
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        do ikx = 1, nakx
+!           do iky = 1, naky
+!        = g(:,:,:,ivmu)*aj0x(:,:,:,ivmu)
+!        integrate_mu (,pflx)
+!        pflx(iky,ikx,iz) = pflx + 0.5*fac(iky)*aky(iky)*aimag(pflx*conjg(phi))*flx_norm(iz)
+!     end do
+
+!    deallocate (gtmp)
+    deallocate (flx_norm)
+
+  end subroutine get_fluxes_vs_zvpa
 
   ! get_gvmus takes g(kx,ky,z) and returns average over z of int dxdy g(x,y,z)^2
   ! SHOULD MODIFY TO TAKE ADVANTAGE OF FACT THAT G(KY,KX,Z) LOCAL IS AVAILABLE
@@ -484,7 +539,7 @@ contains
 
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: is_idx, ikx_idx, iz_idx
+    use stella_layouts, only: is_idx, iky_idx, iz_idx
     use vpamu_grids, only: nvgrid, nmu
     use geometry, only: dl_over_b
 
@@ -493,21 +548,21 @@ contains
     complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gv
 
-    integer :: ikxkyz, iv, is, imu, ig, ikx, ivp
+    integer :: ikxkyz, iv, is, imu, ig, iky, ivp
 
     ! when doing volume averages, note the following:
-    ! int dxdy g(x,y)^2 = sum_kx |g(kx=0,ky)|^2 + 2 * sum_{kx,ky} |g(kx>0,ky)|^2
+    ! int dxdy g(x,y)^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2
     ! factor of 2 accounted for in fac
 
     gv = 0.
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        is = is_idx(kxkyz_lo,ikxkyz)
-       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iky = iky_idx(kxkyz_lo,ikxkyz)
        ig = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = -nvgrid, nvgrid
              ivp = iv+nvgrid+1
-             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(ikx)*dl_over_b(ig)
+             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(ig)
           end do
        end do
     end do
@@ -544,7 +599,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do ikx = 1, nakx
           do iky = 1, naky
-             gtmp(:,ivmu) = gtmp(:,ivmu) + real(g(iky,ikx,:,ivmu)*conjg(g(iky,ikx,:,ivmu)))*fac(ikx)
+             gtmp(:,ivmu) = gtmp(:,ivmu) + real(g(iky,ikx,:,ivmu)*conjg(g(iky,ikx,:,ivmu)))*fac(iky)
           end do
        end do
     end do

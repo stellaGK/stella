@@ -66,7 +66,7 @@ module stella_io
   
 contains
 
-  subroutine init_stella_io (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs)
+  subroutine init_stella_io (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry)
 
     use mp, only: proc0
     use file_utils, only: run_name
@@ -77,7 +77,7 @@ contains
 
     implicit none
 
-    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
+    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry
 # ifdef NETCDF
     character (300) :: filename
     integer :: status
@@ -94,7 +94,7 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, file=filename)
 
        call define_dims
-       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs)
+       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry)
        call nc_grids
        call nc_species
        call nc_geo
@@ -249,7 +249,7 @@ contains
 # endif
   end subroutine save_input
 
-  subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs)
+  subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry)
 
     use mp, only: nproc
     use species, only: nspec
@@ -263,7 +263,7 @@ contains
 
     implicit none
 
-    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
+    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry
 # ifdef NETCDF
     character (5) :: ci
     character (20) :: datestamp, timestamp, timezone
@@ -596,6 +596,15 @@ contains
        status = nf90_put_att (ncid, gvmus_id, 'long_name', &
             'guiding center distribution function averaged over (kx,ky,mu)')
        if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id, att='long_name')
+    end if
+
+    if (write_symmetry) then
+!        status = nf90_def_var &
+!             (ncid, 'pflx_zvpa', netcdf_real, zvs_dim, gzvs_id)
+!        if (status /= nf90_noerr) call netcdf_error (status, var='gzvs')
+!        status = nf90_put_att (ncid, gvmus_id, 'long_name', &
+!             'guiding center distribution function averaged over (kx,ky,mu)')
+!        if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id, att='long_name')
     end if
 
     status = nf90_def_var (ncid, 'input_file', nf90_char, nin_dim, input_id)

@@ -1276,8 +1276,9 @@ contains
     use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
-    use kt_grids, only: nakx, naky, nx, ny
+    use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: alpha_global
+    use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvgrid, nmu, dvpa
     use dist_fn_arrays, only: aj0x
     use parallel_streaming, only: stream_sign
@@ -1300,7 +1301,7 @@ contains
     real, dimension (:,:), allocatable :: advect_speed
     complex, dimension (2) :: gleft, gright
     complex, dimension (:,:,:), allocatable :: phi_gyro, dphidz
-    complex, dimension (:,:), allocatable :: g0k, g0kxy
+    complex, dimension (:,:), allocatable :: g0k, g0kxy, dphidz_swap
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')
@@ -1321,9 +1322,10 @@ contains
     ! 8) inverse transform product(vmu_lo)
 
     allocate (g0xy(ny,nx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    allocate (g0kxy(ny,nakx))
+    allocate (g0kxy(ny,ikx_max))
     allocate (phi_gyro(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
+    allocate (dphidz_swap(2*naky-1,ikx_max))
 
     ! get d<phi>/dz in vmu_lo
     ! we will need to transform it to real-space
@@ -1349,7 +1351,8 @@ contains
 
        do iz = -nzgrid, nzgrid
           ! transform in y
-          call transform_ky2y (dphidz(:,:,iz), g0kxy)
+          call swap_kxky (dphidz(:,:,iz), dphidz_swap)
+          call transform_ky2y (dphidz_swap, g0kxy)
           ! transform in x
           call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
           ! get advection velocity in vpa
@@ -1369,13 +1372,14 @@ contains
     ! advect_speed does not depend on vpa
     advect_speed = gxy_vmulocal(0,:,:)
 
-    allocate (g0k(naky,nakx))
+    allocate (g0k(2*naky-1,ikx_max))
 
     ! transform g from (kx,ky) to (x,y)
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
-          g0k = g(:,:,iz,ivmu)
+!          g0k = g(:,:,iz,ivmu)
           ! transform in y
+          call swap_kxky (g(:,:,iz,ivmu), g0k)
           call transform_ky2y (g0k, g0kxy)
           ! transform in x
           call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
@@ -1413,6 +1417,8 @@ contains
     ! finished with gxy_vmulocal
     deallocate (gxy_vmulocal)
 
+    allocate (g0k(2*naky-1,ikx_max))
+
     ! g0xy is parallel nonlinearity term with (x,y) on processor
     ! need to inverse Fourier transform
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1421,11 +1427,12 @@ contains
           if (alpha_global) then
              gout(:,:,iz,ivmu) = g0kxy
           else
-             call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
+             call transform_y2ky (g0kxy, g0k)
+             call swap_kxky_back (g0k, gout(:,:,iz,ivmu))
           end if
        end do
     end do
-    deallocate (g0kxy, g0xy)
+    deallocate (g0k, g0kxy, g0xy)
 
     call min_allreduce (cfl_dt)
 
