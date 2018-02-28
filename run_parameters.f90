@@ -88,7 +88,7 @@ contains
        fphi = 1.0
        fapar = 1.0
        fbpar = -1.0
-       fields_kxkyz = .true.
+       fields_kxkyz = .false.
        stream_implicit = .true.
        mirror_implicit = .true.
        nonlinear = .false.
