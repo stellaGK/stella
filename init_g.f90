@@ -339,7 +339,7 @@ contains
     use geometry, only: bmag
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, aky, reality
-    use vpamu_grids, only: nvgrid, nmu, nvpa
+    use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: vpa, mu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
@@ -420,7 +420,7 @@ contains
 !    use species, only: spec, has_electron_species
     use zgrid, only: nzgrid, zed
     use kt_grids, only: naky, nakx, theta0
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa, vperp2, maxwell_vpa, maxwell_mu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx
@@ -465,7 +465,7 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        ig = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              gvmu(iv,imu,ikxkyz) = phiinit*maxwell_vpa(iv)*maxwell_mu(1,ig,imu) &
                   * ( dfac(ig)*phi(iky,ikx,ig) &
                   + 2.0*vpa(iv)*ufac(ig)*odd(iky,ikx,ig) &

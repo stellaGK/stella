@@ -28,7 +28,7 @@ contains
 
     use mp, only: proc0
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
     use sfincs_interface, only: get_neo_from_sfincs
@@ -43,7 +43,7 @@ contains
 
     call read_parameters
     if (include_neoclassical_terms) then
-       allocate (f_neoclassical(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec,-nradii/2:nradii/2))
+       allocate (f_neoclassical(-nzgrid:nzgrid,nvpa,nmu,nspec,-nradii/2:nradii/2))
        allocate (phi_neoclassical(-nzgrid:nzgrid,-nradii/2:nradii/2))
        if (.not.allocated(dfneo_dvpa)) &
             allocate (dfneo_dvpa(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -126,11 +126,10 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use vpamu_grids, only: nvgrid
 
     implicit none
 
-    real, dimension (-nvgrid:,:,:), intent (in) :: local
+    real, dimension (:,:,:), intent (in) :: local
     real, dimension (vmu_lo%llim_proc:), intent (out) :: distributed
 
     integer :: ivmu, iv, imu, is
@@ -149,13 +148,13 @@ contains
     use finite_differences, only: fd5pt
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nmu, nvpa
+    use vpamu_grids, only: nvpa, nmu, nvpa
     use vpamu_grids, only: dvpa
     use species, only: nspec
 
     implicit none
 
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (in) :: fneo
+    real, dimension (-nzgrid:,:,:,:), intent (in) :: fneo
     real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
     integer :: iz, imu, is
@@ -163,7 +162,7 @@ contains
     real, dimension (:,:,:,:), allocatable :: dfneo_local
 
     allocate (tmp1(nvpa), tmp2(nvpa))
-    allocate (dfneo_local(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
+    allocate (dfneo_local(-nzgrid:nzgrid,nvpa,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
@@ -189,13 +188,13 @@ contains
 
     use finite_differences, only: fd5pt
     use zgrid, only: nztot, nzgrid, delzed
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
 
     implicit none
 
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (in) :: fneo
+    real, dimension (-nzgrid:,:,:,:), intent (in) :: fneo
     real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
     integer :: iv, imu, is, iz
@@ -203,11 +202,11 @@ contains
     real, dimension (:), allocatable :: dfneo_local(:,:,:,:)
 
     allocate (tmp1(nztot), tmp2(nztot))
-    allocate (dfneo_local(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
+    allocate (dfneo_local(-nzgrid:nzgrid,nvpa,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              ! hack to avoid dealing with negative indices in fd5pt
 !             ! fneo is F_nc * exp(2*mu*B) * ...
 !             ! need to get rid of z-dependent exponential before
@@ -233,13 +232,13 @@ contains
 
     use finite_differences, only: fd3pt, fd5pt
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
 
     implicit none
 
-    real, dimension (-nzgrid:,-nvgrid:,:,:,-nradii/2:), intent (in) :: fneo
+    real, dimension (-nzgrid:,:,:,:,-nradii/2:), intent (in) :: fneo
     real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
     integer :: iz, iv, imu, is
@@ -247,11 +246,11 @@ contains
     real, dimension (:,:,:,:), allocatable :: dfneo_local
 
     allocate (tmp1(nradii), tmp2(nradii))
-    allocate (dfneo_local(-nzgrid:nzgrid,-nvgrid:nvgrid,nmu,nspec))
+    allocate (dfneo_local(-nzgrid:nzgrid,nvpa,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              do iz = -nzgrid, nzgrid
                 ! hack to avoid dealing with negative indices in fd5pt
                 tmp1 = fneo(iz,iv,imu,is,:)
@@ -335,14 +334,14 @@ contains
     use file_utils, only: open_output_file, close_output_file
     use species, only: nspec
     use zgrid, only: nzgrid, zed
-    use vpamu_grids, only: nvgrid, nmu, vpa, mu
+    use vpamu_grids, only: vpa, mu
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_layouts, only: idx_local, proc_id
 
     implicit none
 
-    real, dimension (-nzgrid:,-nvgrid:,:,:,-nradii/2:), intent (in) :: fnc
+    real, dimension (-nzgrid:,:,:,:,-nradii/2:), intent (in) :: fnc
     real, dimension (-nzgrid:,-nradii/2:), intent (in) :: phinc
     
     integer :: neo_unit

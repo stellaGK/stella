@@ -90,12 +90,13 @@ contains
     call broadcast (nmu)
     call broadcast (vperp_max)
 
-    nvpa = 2*nvgrid+1
+    nvpa = 2*nvgrid
 
   end subroutine read_parameters
 
   subroutine init_vpa_grid
 
+    use mp, only: mp_abort
     use species, only: spec, nspec
 
     implicit none
@@ -105,27 +106,27 @@ contains
 
     if (.not. allocated(vpa)) then
        ! vpa is the parallel velocity at grid points
-       allocate (vpa(-nvgrid:nvgrid)) ; vpa = 0.0
+       allocate (vpa(nvpa)) ; vpa = 0.0
        ! wgts_vpa are the integration weights assigned
        ! to the parallel velocity grid points
-       allocate (wgts_vpa(-nvgrid:nvgrid)) ; wgts_vpa = 0.0
+       allocate (wgts_vpa(nvpa)) ; wgts_vpa = 0.0
        ! this is the Maxwellian in vpa
-       allocate (maxwell_vpa(-nvgrid:nvgrid)) ; maxwell_vpa = 0.0
-       allocate (ztmax(-nvgrid:nvgrid,nspec)) ; ztmax = 0.0
+       allocate (maxwell_vpa(nvpa)) ; maxwell_vpa = 0.0
+       allocate (ztmax(nvpa,nspec)) ; ztmax = 0.0
     end if
 
     ! velocity grid goes from -vpa_max to vpa_max
     ! with a point at vpa = 0
 
-    ! obtain vpa grid for vpa >= 0
-    do iv = 0, nvgrid
-       vpa(iv) = real(iv)*vpa_max/nvgrid
+    ! equal grid spacing in vpa
+    dvpa = 2.*vpa_max/(nvpa-1)
+
+    ! obtain vpa grid for vpa > 0
+    do iv = nvgrid+1, nvpa
+       vpa(iv) = real(iv-nvgrid-0.5)*dvpa
     end do
     ! fill in vpa grid for vpa < 0
-    vpa(-nvgrid:-1) = -vpa(nvgrid:1:-1)
-
-    ! equal grid spacing in vpa
-    dvpa = vpa(1)-vpa(0)
+    vpa(:nvgrid) = -vpa(nvpa:nvgrid+1:-1)
 
     ! this is the equilibrium Maxwellian in vpa
     maxwell_vpa = exp(-vpa*vpa)
@@ -137,14 +138,42 @@ contains
     ! then the contribution of each segment to the integral is
     ! (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
     ! inner boundary points are used in two segments, so they get double the weight
-    nvpa_seg = (2*nvgrid+1)/2
+
+    if (nvpa < 6) &
+         call mp_abort ('stella does not currently support nvgrid < 3.  aborting.')
+
+    ! use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
+    del=0.375*dvpa
+    wgts_vpa(1) = del
+    wgts_vpa(2:3) = 3.*del
+    wgts_vpa(4) = del
+    ! composite simpson
+    nvpa_seg = (nvpa-4)/2
+    del = dvpa/3.
     do iseg = 1, nvpa_seg
-       idx = -nvgrid + (iseg-1)*2
-       del = dvpa/3.
+       idx = 2*(iseg-1)+4
        wgts_vpa(idx) = wgts_vpa(idx) + del
-       wgts_vpa(idx+1) = wgts_vpa(idx+1) + 4.*del
+       wgts_vpa(idx+1) = wgts_vpa(idx+1) +4.*del
        wgts_vpa(idx+2) = wgts_vpa(idx+2) + del
     end do
+
+    ! for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
+    ! and composite elsewhere.
+    del = 0.375*dvpa
+    wgts_vpa(nvpa-3) = wgts_vpa(nvpa-3) + del
+    wgts_vpa(nvpa-2:nvpa-1) = wgts_vpa(nvpa-2:nvpa-1) + 3.*del
+    wgts_vpa(nvpa) = wgts_vpa(nvpa) + del
+    nvpa_seg = (nvpa-4)/2
+    del = dvpa/3.
+    do iseg = 1, nvpa_seg
+       idx = 2*(iseg-1)+1
+       wgts_vpa(idx) = wgts_vpa(idx) + del
+       wgts_vpa(idx+1) = wgts_vpa(idx+1) +4.*del
+       wgts_vpa(idx+2) = wgts_vpa(idx+2) + del
+    end do
+
+    ! divide by 2 to account for double-counting
+    wgts_vpa = 0.5*wgts_vpa
 
   end subroutine init_vpa_grid
 
@@ -192,7 +221,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
-       iv = iv_idx(vmu_lo,ivmu) + nvgrid+1
+       iv = iv_idx(vmu_lo,ivmu)
        total(iv,is) = total(iv,is) + wgts_mu(imu)*bmag(1,iz)*g(ivmu)
     end do
 
@@ -206,7 +235,7 @@ contains
 
     implicit none
 
-    real, dimension (-nvgrid:,:), intent (in) :: g
+    real, dimension (:,:), intent (in) :: g
     integer, intent (in) :: iz
     real, intent (out) :: total
 
@@ -215,7 +244,7 @@ contains
     total = 0.
     
     do imu = 1, nmu
-       do iv = -nvgrid, nvgrid
+       do iv = 1, nvpa
           total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
        end do
     end do
@@ -228,7 +257,7 @@ contains
 
     implicit none
 
-    complex, dimension (-nvgrid:,:), intent (in) :: g
+    complex, dimension (:,:), intent (in) :: g
     integer, intent (in) :: iz
     complex, intent (out) :: total
 
@@ -237,7 +266,7 @@ contains
     total = 0.
     
     do imu = 1, nmu
-       do iv = -nvgrid, nvgrid
+       do iv = 1, nvpa
           total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
        end do
     end do
@@ -251,7 +280,7 @@ contains
 
     implicit none
 
-    real, dimension (-nvgrid:,:,:), intent (in) :: g
+    real, dimension (:,:,:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
     integer, intent (in) :: iz
     real, intent (out) :: total
@@ -262,7 +291,7 @@ contains
 
     do is = 1, nspec
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
           end do
        end do
@@ -277,7 +306,7 @@ contains
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,:), intent (in) :: g
+    complex, dimension (:,:,:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
     integer, intent (in) :: iz
     complex, intent (out) :: total
@@ -288,7 +317,7 @@ contains
 
     do is = 1, nspec
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
           end do
        end do

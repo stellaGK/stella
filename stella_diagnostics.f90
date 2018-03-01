@@ -222,7 +222,7 @@ contains
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
     use zgrid, only: nzgrid, nztot
-    use vpamu_grids, only: nvgrid, nmu, nvpa
+    use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
     use kt_grids, only: naky, nakx
     use dist_redistribute, only: kxkyz2vmu
@@ -298,7 +298,7 @@ contains
        end if
     end if
     if (write_gvmus) then
-       allocate (gvmus(2*nvgrid+1,nmu,nspec))
+       allocate (gvmus(nvpa,nmu,nspec))
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::get_gvmus'
        ! note that gvmus is h at this point
        call get_gvmus (gvmu, gvmus)
@@ -380,7 +380,7 @@ contains
     use geometry, only: gds21, gds22
     use geometry, only: geo_surf
     use zgrid, only: delzed, nzgrid
-    use vpamu_grids, only: nvgrid, nvpa, nmu
+    use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
     use run_parameters, only: fphi, fapar
     use kt_grids, only: aky, theta0
@@ -388,7 +388,7 @@ contains
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (out) :: pflx, vflx, qflx
 
     integer :: ikxkyz, iky, ikx, iz, is
@@ -396,7 +396,7 @@ contains
     complex, dimension (:,:), allocatable :: g0
 
     allocate (flx_norm(-nzgrid:nzgrid))
-    allocate (g0(-nvgrid:nvgrid,nmu))
+    allocate (g0(nvpa,nmu))
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
 
@@ -474,7 +474,6 @@ contains
 
   subroutine get_one_flux (iky, iz, norm, gin, fld, flxout)
 
-    use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_vmu
     use kt_grids, only: aky
 
@@ -482,7 +481,7 @@ contains
 
     integer, intent (in) :: iky, iz
     real, intent (in) :: norm
-    complex, dimension (-nvgrid:,:), intent (in) :: gin
+    complex, dimension (:,:), intent (in) :: gin
     complex, intent (in) :: fld
     real, intent (in out) :: flxout
     
@@ -497,14 +496,13 @@ contains
   subroutine get_fluxes_vs_zvpa (g, pflx, vflx, qflx)
 
     use zgrid, only: nzgrid, delzed
-    use vpamu_grids, only: nvgrid
     use stella_layouts, only: vmu_lo
     use geometry, only: jacob, grho
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (-nzgrid:,-nvgrid:,:), intent (out) :: pflx, vflx, qflx
+    real, dimension (-nzgrid:,:,:), intent (out) :: pflx, vflx, qflx
 
     real, dimension (:), allocatable :: flx_norm
 !    real, dimension (:,:), allocatable :: gtmp
@@ -540,15 +538,15 @@ contains
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, iz_idx
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use geometry, only: dl_over_b
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gv
 
-    integer :: ikxkyz, iv, is, imu, ig, iky, ivp
+    integer :: ikxkyz, iv, is, imu, ig, iky!, ivp
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2
@@ -560,9 +558,8 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ig = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
-             ivp = iv+nvgrid+1
-             gv(ivp,imu,is) = gv(ivp,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(ig)
+          do iv = 1, nvpa
+             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(ig)
           end do
        end do
     end do
@@ -576,7 +573,6 @@ contains
 
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid
     use vpamu_grids, only: integrate_mu
     use kt_grids, only: nakx, naky
 

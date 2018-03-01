@@ -43,7 +43,7 @@ contains
     use stella_layouts, only: idx_local, proc_id
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use zgrid, only: nzgrid
 
     implicit none
@@ -65,7 +65,7 @@ contains
     nn_from = 0
     do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, ivmu)
              if (idx_local(kxkyz_lo,ikxkyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
@@ -96,7 +96,7 @@ contains
     ! loop over all vmu indices, find corresponding y indices
     do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              ! obtain corresponding y indices
              call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, ivmu)
              ! if vmu index local, set:
@@ -127,11 +127,11 @@ contains
        end do
     end do
 
-    from_low(1) = -nvgrid
+    from_low(1) = 1
     from_low(2) = 1
     from_low(3) = kxkyz_lo%llim_proc
 
-    from_high(1) = nvgrid
+    from_high(1) = nvpa
     from_high(2) = nmu
     from_high(3) = kxkyz_lo%ulim_alloc
 
@@ -163,7 +163,7 @@ contains
     use stella_layouts, only: idx_local, proc_id
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use zgrid, only: nzgrid
 
     implicit none
@@ -185,7 +185,7 @@ contains
     nn_from = 0
     do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, ivmu)
              if (idx_local(kxyz_lo,ikxyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
@@ -216,7 +216,7 @@ contains
     ! loop over all vmu indices, find corresponding y indices
     do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              ! obtain corresponding y indices
              call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, ivmu)
              ! if vmu index local, set:
@@ -247,11 +247,11 @@ contains
        end do
     end do
 
-    from_low(1) = -nvgrid
+    from_low(1) = 1
     from_low(2) = 1
     from_low(3) = kxyz_lo%llim_proc
 
-    from_high(1) = nvgrid
+    from_high(1) = nvpa
     from_high(2) = nmu
     from_high(3) = kxyz_lo%ulim_alloc
 
@@ -283,7 +283,7 @@ contains
     use stella_layouts, only: idx_local, proc_id
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use zgrid, only: nzgrid
 
     implicit none
@@ -305,7 +305,7 @@ contains
     nn_from = 0
     do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, ivmu)
              if (idx_local(xyz_lo,ixyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
@@ -336,7 +336,7 @@ contains
     ! loop over all vmu indices, find corresponding y indices
     do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              ! obtain corresponding y indices
              call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, ivmu)
              ! if vmu index local, set:
@@ -367,11 +367,11 @@ contains
        end do
     end do
 
-    from_low(1) = -nvgrid
+    from_low(1) = 1
     from_low(2) = 1
     from_low(3) = xyz_lo%llim_proc
 
-    from_high(1) = nvgrid
+    from_high(1) = nvpa
     from_high(2) = nmu
     from_high(3) = xyz_lo%ulim_alloc
 

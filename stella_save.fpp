@@ -75,11 +75,11 @@ contains
     use stella_layouts, only: kxkyz_lo, xyzs_layout, vms_layout
     use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, intent (in) :: t0, delt0
     real, intent (in) :: fphi, fapar
     integer, intent (out) :: istatus
@@ -193,7 +193,7 @@ contains
              goto 1
           end if
 
-          istatus = nf90_def_dim (ncid, "vpa", 2*nvgrid+1, vpaid)
+          istatus = nf90_def_dim (ncid, "vpa", nvpa, vpaid)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
              write(ierr,*) "nf90_def_dim vpa error: ", nf90_strerror(istatus)
@@ -386,7 +386,7 @@ contains
     if (n_elements > 0) then
 
        if (.not. allocated(tmpr)) &
-            allocate (tmpr(2*nvgrid+1,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+            allocate (tmpr(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        
        tmpr = real(g)
 
@@ -400,7 +400,7 @@ contains
           istatus = nf90_var_par_access(ncid, gi_id, NF90_COLLECTIVE)
 
           start_pos = (/1,1,kxkyz_lo%llim_proc+1/)
-          counts = (/2*nvgrid+1, nmu, n_elements/)
+          counts = (/nvpa, nmu, n_elements/)
 
           istatus = nf90_put_var (ncid, gr_id, tmpr, start=start_pos, count=counts)
        endif
@@ -490,14 +490,14 @@ contains
     use kt_grids, only: naky, nakx
 # endif
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo
     use file_utils, only: error_unit
     use species, only: nspec
 
     implicit none
 
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (out) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (out) :: g
     real, intent (in) :: scale
     integer, intent (out) :: istatus
     real, intent (in) :: fphi, fapar
@@ -609,9 +609,9 @@ contains
     end if
     
     if (.not. allocated(tmpr)) &
-         allocate (tmpr(2*nvgrid+1,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         allocate (tmpr(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     if (.not. allocated(tmpi)) &
-         allocate (tmpi(2*nvgrid+1,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         allocate (tmpi(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
     tmpr = 0.; tmpi = 0.
 # ifdef NETCDF_PARALLEL
@@ -621,7 +621,7 @@ contains
 #ifdef NETCDF_PARALLEL
     else
        start_pos = (/1,1,kxkyz_lo%llim_proc+1/)
-       counts = (/2*nvgrid+1, nmu, n_elements/)
+       counts = (/nvpa, nmu, n_elements/)
        istatus = nf90_get_var (ncid, gr_id, tmpr, start=start_pos, count=counts)
     end if
 # endif

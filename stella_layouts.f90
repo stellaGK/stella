@@ -178,7 +178,7 @@ contains
     kxkyz_lo%naky = naky
     kxkyz_lo%nakx = nakx
     kxkyz_lo%nvgrid = nvgrid
-    kxkyz_lo%nvpa = 2*nvgrid+1
+    kxkyz_lo%nvpa = 2*nvgrid
     kxkyz_lo%nmu = nmu
     kxkyz_lo%nspec = nspec
     kxkyz_lo%llim_world = 0
@@ -345,7 +345,7 @@ contains
     kxyz_lo%naky = naky
     kxyz_lo%nakx = nakx
     kxyz_lo%nvgrid = nvgrid
-    kxyz_lo%nvpa = 2*nvgrid+1
+    kxyz_lo%nvpa = 2*nvgrid
     kxyz_lo%nmu = nmu
     kxyz_lo%nspec = nspec
     kxyz_lo%llim_world = 0
@@ -513,7 +513,7 @@ contains
     xyz_lo%naky = naky
     xyz_lo%nakx = nakx
     xyz_lo%nvgrid = nvgrid
-    xyz_lo%nvpa = 2*nvgrid+1
+    xyz_lo%nvpa = 2*nvgrid
     xyz_lo%nmu = nmu
     xyz_lo%nspec = nspec
     xyz_lo%llim_world = 0
@@ -682,7 +682,7 @@ contains
     vmu_lo%nx = nx
     vmu_lo%nakx = nakx
     vmu_lo%nvgrid = nvgrid
-    vmu_lo%nvpa = 2*nvgrid+1
+    vmu_lo%nvpa = 2*nvgrid
     vmu_lo%nmu = nmu
     vmu_lo%nspec = nspec
     vmu_lo%llim_world = 0
@@ -733,9 +733,9 @@ contains
 
     select case (vms_layout)
     case ('vms')
-       iv_idx_vmu = -lo%nvgrid + mod((i - lo%llim_world), lo%nvpa)
+       iv_idx_vmu = 1 + mod((i - lo%llim_world), lo%nvpa)
     case ('mvs')
-       iv_idx_vmu = -lo%nvgrid + mod((i - lo%llim_world)/lo%nmu, lo%nvpa)
+       iv_idx_vmu = 1 + mod((i - lo%llim_world)/lo%nmu, lo%nvpa)
     end select
 
   end function iv_idx_vmu
@@ -760,9 +760,9 @@ contains
 
     select case (vms_layout)
     case ('vms')
-       idx_vmu = iv+lo%nvgrid + lo%nvpa*(imu-1 + lo%nmu*(is-1))
+       idx_vmu = iv-1 + lo%nvpa*(imu-1 + lo%nmu*(is-1))
     case ('mvs')
-       idx_vmu = imu-1 + lo%nmu*(iv+lo%nvgrid + lo%nvpa*(is-1))
+       idx_vmu = imu-1 + lo%nmu*(iv-1 + lo%nvpa*(is-1))
     end select
 
   end function idx_vmu

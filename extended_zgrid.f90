@@ -37,7 +37,6 @@ contains
     use kt_grids, only: nakx, naky
     use kt_grids, only: jtwist_out, aky, ikx_max
     use species, only: nspec
-    use vpamu_grids, only: nmu, nvgrid
 
     implicit none
 

@@ -26,7 +26,7 @@ module dist_fn_arrays
   ! (naky, nakx, -nzgrid:nzgrid, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
-  ! (-nvgrid:nvgrid, nmu, nspec, -kxkyz-layout-)
+  ! (nvpa, nmu, nspec, -kxkyz-layout-)
 
   real, dimension (:,:,:), allocatable :: wstar
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
@@ -109,12 +109,12 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
 
     implicit none
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi, apar
     real, intent (in) :: facphi, facapar
 
@@ -127,7 +127,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
                   * ( facphi*phi(iky,ikx,iz) - facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
@@ -176,12 +176,12 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
 
     implicit none
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-nzgrid:), intent (in) :: apar
     real, intent (in) :: facapar
 
@@ -194,7 +194,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              adj = -aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
                   * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
@@ -292,12 +292,12 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
 
     implicit none
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi
     real, intent (in) :: facphi
 
@@ -310,7 +310,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              adj = aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
                   * facphi*phi(iky,ikx,iz)
              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj

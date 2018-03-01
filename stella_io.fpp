@@ -109,7 +109,7 @@ contains
     use kt_grids, only: naky, nakx
     use zgrid, only: nzgrid
     use geometry, only: nalpha
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
 # ifdef NETCDF
     use netcdf, only: nf90_unlimited
@@ -131,7 +131,7 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, dim='zed')
     status = nf90_def_dim (ncid, 'alpha', nalpha, nalpha_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='alpha')
-    status = nf90_def_dim (ncid, 'vpa', 2*nvgrid+1, nvtot_dim)
+    status = nf90_def_dim (ncid, 'vpa', nvpa, nvtot_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='vpa')
     status = nf90_def_dim (ncid, 'mu', nmu, nmu_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='mu')
@@ -156,7 +156,7 @@ contains
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0, akx, aky
     use species, only: nspec
-    use vpamu_grids, only: nvgrid, nmu, vpa, mu
+    use vpamu_grids, only: nvpa, nmu, vpa, mu
 !    use nonlinear_terms, only: nonlin
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -176,7 +176,7 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nspec_id)
     status = nf90_put_var (ncid, nmu_id, nmu)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nmu_id)
-    status = nf90_put_var (ncid, nvtot_id, 2*nvgrid+1)
+    status = nf90_put_var (ncid, nvtot_id, nvpa)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nvtot_id)
 
     status = nf90_put_var (ncid, akx_id, akx)
@@ -195,7 +195,7 @@ contains
 !    if (nonlin) then
 !       nmesh = (2*nzgrid+1)*(2*nvgrid+1)*nmu*nx*ny*nspec
 !    else
-       nmesh = (2*nzgrid+1)*(2*nvgrid+1)*nmu*nakx*naky*nspec
+       nmesh = (2*nzgrid+1)*nvpa*nmu*nakx*naky*nspec
 !    end if
 
     status = nf90_put_var (ncid, nmesh_id, nmesh)
@@ -707,7 +707,7 @@ contains
 
   subroutine write_gvmus_nc (nout, g)
 
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -725,7 +725,7 @@ contains
     start(1) = 1
     start(2:3) = 1
     start(4) = nout
-    count(1) = 2*nvgrid+1
+    count(1) = nvpa
     count(2) = nmu
     count(3) = nspec
     count(4) = 1
@@ -739,7 +739,7 @@ contains
   subroutine write_gzvs_nc (nout, g)
 
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid
+    use vpamu_grids, only: nvpa
     use species, only: nspec
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -757,7 +757,7 @@ contains
     start(1:3) = 1
     start(4) = nout
     count(1) = 2*nzgrid+1
-    count(2) = 2*nvgrid+1
+    count(2) = nvpa
     count(3) = nspec
     count(4) = 1
 

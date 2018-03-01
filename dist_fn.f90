@@ -156,7 +156,7 @@ contains
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use dist_fn_arrays, only: gnew, gold
     use dist_fn_arrays, only: gvmu
 
@@ -169,7 +169,7 @@ contains
          allocate (gold(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     gold = 0.
     if (.not.allocated(gvmu)) &
-         allocate (gvmu(-nvgrid:nvgrid,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         allocate (gvmu(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     gvmu = 0.
 
   end subroutine allocate_arrays

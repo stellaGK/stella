@@ -446,7 +446,6 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: nvgrid, nmu
     use dist_fn_arrays, only: g1, g2, g3
 
     implicit none
@@ -830,7 +829,6 @@ contains
     use run_parameters, only: fphi, fapar
     use run_parameters, only: nonlinear, include_parallel_nonlinearity
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nmu
     use kt_grids, only: nakx, ny
     use kt_grids, only: alpha_global
     use run_parameters, only: stream_implicit, mirror_implicit
@@ -1279,7 +1277,7 @@ contains
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: alpha_global
     use kt_grids, only: swap_kxky, swap_kxky_back
-    use vpamu_grids, only: nvgrid, nmu, dvpa
+    use vpamu_grids, only: nvpa, nmu, dvpa
     use dist_fn_arrays, only: aj0x
     use parallel_streaming, only: stream_sign
     use dist_redistribute, only: xyz2vmu
@@ -1363,7 +1361,7 @@ contains
     ! do not need phi_gyro or dphidz  again so deallocate
     deallocate (phi_gyro, dphidz)
 
-    allocate (gxy_vmulocal(-nvgrid:nvgrid,nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
+    allocate (gxy_vmulocal(nvpa,nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
     allocate (advect_speed(nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
 
     ! we now have the advection velocity in vpa in (x,y) space
@@ -1392,7 +1390,7 @@ contains
     ! redistribute so that (vpa,mu) local
     call scatter (xyz2vmu, g0xy, gxy_vmulocal)
     
-    allocate (dgdv(-nvgrid:nvgrid))
+    allocate (dgdv(nvpa))
 
     ! we now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
     do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
@@ -1401,7 +1399,7 @@ contains
           ! advection velocity
           ! NB: advect_sign = -1 corresponds to positive advection velocity
           advect_sign = int(sign(1.0,advect_speed(imu,ixyz)))
-          call third_order_upwind (-nvgrid,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,dgdv)
+          call third_order_upwind (1,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,dgdv)
           gxy_vmulocal(:,imu,ixyz) = dgdv*advect_speed(imu,ixyz)
           cfl_dt = min(cfl_dt,dvpa/abs(advect_speed(imu,ixyz)))
        end do

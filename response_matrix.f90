@@ -157,7 +157,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        ! initialize g to zero everywhere along extended zed domain
        gext(:,ivmu) = 0.0
-       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
+       iv = iv_idx(vmu_lo,ivmu) !; if (iv==0) cycle
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
@@ -269,7 +269,8 @@ contains
           
           ! test for sign of vpa (vpa(iv<0) < 0, vpa(iv>0) > 0),
           ! as this affects upwinding of d<phi>/dz source term
-          if (iv < 0) then
+!          if (iv < 0) then
+          if (stream_sign(iv) > 0) then
              if (zonal_mode(iky)) then
                 gext(idx,ivmu) = -zed_upwind*fac
                 if (idx==1) then
@@ -305,7 +306,8 @@ contains
                 end if
                 if (idx<nz_ext) gext(idx+1,ivmu) = -0.5*(1.-zed_upwind)*fac
              end if
-          else if (iv > 0) then
+!          else if (iv > 0) then
+          else if (stream_sign(iv) < 0) then
              if (zonal_mode(iky)) then
                 gext(idx,ivmu) = zed_upwind*fac
                 if (idx==1) then

@@ -33,13 +33,12 @@ contains
     use mp, only: mp_abort
 # endif
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid
     
     implicit none
 
     integer, intent (in) :: nradii
     real, intent (in) :: drho
-    real, dimension (-nzgrid:,-nvgrid:,:,:,-nradii/2:), intent (out) :: f_neoclassical
+    real, dimension (-nzgrid:,:,:,:,-nradii/2:), intent (out) :: f_neoclassical
     real, dimension (-nzgrid:,-nradii/2:), intent (out) :: phi_neoclassical
 
 # ifdef USE_SFINCS
@@ -365,23 +364,21 @@ contains
     use globalVariables, only: nx_sfincs => nx
     use globalVariables, only: x_sfincs => x
     use globalVariables, only: phi_sfincs => Phi1Hat
-!    use globalVariables, only: ddx_sfincs => ddx
     use xGrid, only: xGrid_k
     use geometry, only: bmag
 
     implicit none
 
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (out) :: f_neoclassical
+    real, dimension (-nzgrid:,:,:,:), intent (out) :: f_neoclassical
     real, dimension (-nzgrid:), intent (out) :: phi_neoclassical
 
-    integer :: iz, iv, imu, is, ixi!, ix
+    integer :: iz, iv, imu, is, ixi
 
     integer :: nxi_stella
     real, dimension (1) :: x_stella
     integer, dimension (2) :: sgnvpa
-    real, dimension (:), allocatable :: xi_stella, hstella!, dhstella_dx
+    real, dimension (:), allocatable :: xi_stella, hstella
     real, dimension (:), allocatable :: htmp, dhtmp_dx
-!    real, dimension (:), allocatable :: ddx_stella
     real, dimension (:,:), allocatable :: xsfincs_to_xstella, legpoly
     real, dimension (:,:), allocatable :: hsfincs
 
@@ -389,7 +386,6 @@ contains
     allocate (dhtmp_dx(nxi_sfincs))
     allocate (hsfincs(nxi_sfincs,nx_sfincs))
     allocate (xsfincs_to_xstella(1,nx_sfincs))
-!    allocate (ddx_stella(nx_sfincs))
 
     phi_neoclassical = phi_sfincs(:,1)
 
@@ -401,7 +397,7 @@ contains
           hsfincs = h_sfincs(is,iz+nzgrid+1,1,:,:)
 
           do imu = 1, nmu
-             do iv = 0, nvgrid
+             do iv = 1, nvgrid
                 ! x_stella is the speed 
                 ! corresponding to this (vpa,mu) grid point
                 ! FLAG -- NEED TO EXTEND SFINCS TREATMENT TO INCLUDE MULTIPLE ALPHAS
@@ -410,14 +406,9 @@ contains
                 ! can use symmetry of vpa grid to see that
                 ! each speed arc has two pitch angles on it
                 ! correspondong to +/- vpa
-                if (iv == 0) then
-                   nxi_stella = 1
-                else
                    nxi_stella = 2
-                end if
                 allocate (xi_stella(nxi_stella))
                 allocate (hstella(nxi_stella))
-!                allocate (dhstella_dx(nxi_stella))
                 allocate (legpoly(nxi_stella,0:nxi_sfincs-1))
                 ! xi_stella is the pitch angle (vpa/v)
                 ! corresponding to this (vpa,mu) grid point
@@ -434,48 +425,31 @@ contains
                    htmp(ixi) = sum(hsfincs(ixi,:)*xsfincs_to_xstella(1,:))
                 end do
 
-!                 ! get matrix that multiplies hsfincs to get dhsfincs/dx
-!                 ! and multiply by interpolation matrix
-!                 do ix = 1, nx_sfincs
-!                    ddx_stella(ix) = sum(xsfincs_to_xstella(1,:)*ddx_sfincs(:,ix))
-!                 end do
-!                 ! get x derivative of hsfincs at requested stella speed grid point
-!                 do ixi = 1, nxi_sfincs
-!                    dhtmp_dx(ixi) = sum(hsfincs(ixi,:)*ddx_stella)
-!                 end do
-
                 ! next need to Legendre transform in pitch-angle
                 ! first evaluate Legendre polynomials at requested pitch angles
                 call legendre (xi_stella, legpoly)
 
                 ! then do the transforms
                 call legendre_transform (legpoly, htmp, hstella)
-!                call legendre_transform (legpoly, dhtmpdx, dhstella_dx)
 
-                f_neoclassical(iz,iv,imu,is) = hstella(1)
-!                dfneo_dx(iz,iv,imu,is) = dhstella_dx(1)
-                if (iv > 0) then
-                   f_neoclassical(iz,-iv,imu,is) = hstella(2)
-!                   dfneo_dx(iz,-iv,imu,is) = dhstella_dx(2)
-                end if
+                f_neoclassical(iz,nvgrid-iv+1,imu,is) = hstella(2)
+                f_neoclassical(iz,iv+nvgrid,imu,is) = hstella(1)
 
-                ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
-                ! NB: n_ref, etc. is fixed in stella to be the reference density
-                ! at the central sfincs simulation; i.e., it does not vary with radius
-                ! similarly, bmag below is the normalized B-field at the central radial location
-                ! to be consistent with stella distribution functions,
-                ! want H_nc * exp(2*mu*B) / (n_s / vt_s^3 * pi^(3/2))
-                f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) &
-                     * pi**1.5 * spec(is)%stm**3/spec(is)%dens
-
-                ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
-                ! need to multiply by Z_s * Tref/T_s * exp(-vpa^2)
-                f_neoclassical(iz,iv,imu,is) = f_neoclassical(iz,iv,imu,is) &
-                     - phi_neoclassical(iz)*ztmax(iv,is)*maxwell_mu(1,iz,imu)
-
-!                deallocate (xi_stella, hstella, dhstella_dx, legpoly)
                 deallocate (xi_stella, hstella, legpoly)
              end do
+             ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
+             ! NB: n_ref, etc. is fixed in stella to be the reference density
+             ! at the central sfincs simulation; i.e., it does not vary with radius
+             ! similarly, bmag below is the normalized B-field at the central radial location
+             ! to be consistent with stella distribution functions,
+             ! want H_nc * exp(2*mu*B) / (n_s / vt_s^3 * pi^(3/2))
+             f_neoclassical(iz,:,imu,is) = f_neoclassical(iz,:,imu,is) &
+                  * pi**1.5 * spec(is)%stm**3/spec(is)%dens
+             
+             ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
+             ! need to multiply by Z_s * Tref/T_s * exp(-vpa^2)
+             f_neoclassical(iz,:,imu,is) = f_neoclassical(iz,:,imu,is) &
+                  - phi_neoclassical(iz)*ztmax(:,is)*maxwell_mu(1,iz,imu)
           end do
        end do
     end do
@@ -483,7 +457,6 @@ contains
     deallocate (htmp, dhtmp_dx)
     deallocate (hsfincs)
     deallocate (xsfincs_to_xstella)
-!    deallocate (ddx_stella)
 
   end subroutine get_sfincs_output
 
@@ -529,9 +502,8 @@ contains
   subroutine broadcast_sfincs_output (fneo, phineo)
     use mp, only: broadcast
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid
     implicit none
-    real, dimension (-nzgrid:,-nvgrid:,:,:), intent (in out) :: fneo
+    real, dimension (-nzgrid:,:,:,:), intent (in out) :: fneo
     real, dimension (-nzgrid:), intent (in out) :: phineo
     call broadcast (fneo)
     call broadcast (phineo)

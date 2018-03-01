@@ -36,7 +36,7 @@ contains
     use finite_differences, only: fd3pt
     use stella_time, only: code_dt
     use species, only: spec, nspec
-    use vpamu_grids, only: nvgrid, nvpa
+    use vpamu_grids, only: nvpa, nvpa
     use vpamu_grids, only: vpa
     use zgrid, only: nzgrid, nztot
     use geometry, only: gradpar, nalpha
@@ -51,8 +51,8 @@ contains
     if (parallel_streaming_initialized) return
     parallel_streaming_initialized = .true.
 
-    if (.not.allocated(stream)) allocate (stream(-nzgrid:nzgrid,-nvgrid:nvgrid,nspec)) ; stream = 0.
-    if (.not.allocated(stream_sign)) allocate (stream_sign(-nvgrid:nvgrid)) ; stream_sign = 0
+    if (.not.allocated(stream)) allocate (stream(-nzgrid:nzgrid,nvpa,nspec)) ; stream = 0.
+    if (.not.allocated(stream_sign)) allocate (stream_sign(nvpa)) ; stream_sign = 0
 
     ! sign of stream corresponds to appearing on RHS of GK equation
     ! i.e., this is the factor multiplying dg/dz on RHS of equation
@@ -65,27 +65,27 @@ contains
 
     ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     ! NB: stream_sign = -1 corresponds to positive advection velocity
-    do iv = -nvgrid, nvgrid
+    do iv = 1, nvpa
        stream_sign(iv) = int(sign(1.0,stream(0,iv,1)))
     end do
     ! vpa = 0 is special case
-    stream_sign(0) = 0
+!    stream_sign(0) = 0
 
     if (stream_implicit) then
        call init_invert_stream_operator
-       if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,-nvgrid:nvgrid,nspec))
+       if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
        stream_c = stream
        do is = 1, nspec
-          do iv = -nvgrid, nvgrid
+          do iv = 1, nvpa
              call center_zed (iv, stream_c(:,iv,is))
           end do
        end do
        if (.not.allocated(gradpar_c)) allocate (gradpar_c(nalpha,-nzgrid:nzgrid,-1:1))
        gradpar_c = spread(gradpar,3,3)
        ! get gradpar centred in zed for negative vpa (affects upwinding)
-       call center_zed(-1,gradpar_c(1,:,-1))
+       call center_zed(1,gradpar_c(1,:,-1))
        ! get gradpar centred in zed for positive vpa (affects upwinding)
-       call center_zed(1,gradpar_c(1,:,1))
+       call center_zed(nvpa,gradpar_c(1,:,1))
        if (stream_cell) then
           stream = stream_c
        end if
@@ -226,11 +226,11 @@ contains
     ! FLAG -- assuming delta zed is equally spaced below!
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
-       ! no need to calculate dgdz for vpa=0, as will be multipled by vpa
-       if (iv==0) then
-          dgdz(:,:,:,ivmu) = 0.
-          cycle
-       end if
+!       ! no need to calculate dgdz for vpa=0, as will be multipled by vpa
+!       if (iv==0) then
+!          dgdz(:,:,:,ivmu) = 0.
+!          cycle
+!       end if
        do iky = 1, naky
           do ie = 1, neigen(iky)
              do iseg = 1, nsegments(ie,iky)
@@ -298,10 +298,10 @@ contains
     g1 = g
     phi1 = phi
 
-    ! if iv=0, vpa=0. in this case, dg/dt = 0, so g_out = g_in
+!    ! if iv=0, vpa=0. in this case, dg/dt = 0, so g_out = g_in
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
+       iv = iv_idx(vmu_lo,ivmu) !; if (iv==0) cycle
 
        ! obtain RHS of inhomogeneous GK eqn;
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
@@ -329,7 +329,7 @@ contains
     call invert_parstream_response (phi)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu) ; if (iv==0) cycle
+       iv = iv_idx(vmu_lo,ivmu) !; if (iv==0) cycle
     
        ! now have phi^{n+1} for non-negative kx
        ! obtain RHS of GK eqn; 
@@ -441,7 +441,8 @@ contains
     if (stream_cell) then
        call center_zed (iv,g)
        call center_zed (iv,vpadf0dE_fac)
-       if (iv < 0) then
+!       if (iv < 0) then
+       if (stream_sign(iv) > 0) then
           gp = gradpar_c(:,:,-1)
        else
           gp = gradpar_c(:,:,1)
@@ -457,7 +458,8 @@ contains
           end do
           vpadf0dE_fac_zf = vpadf0dE_fac
           call center_zed (iv,vpadf0dE_fac_zf)
-          if (iv < 0) then
+!          if (iv < 0) then
+          if (stream_sign(iv) > 0) then
              gpz = gradpar_c(:,:,-1)
           else
              gpz = gradpar_c(:,:,1)
@@ -771,7 +773,7 @@ contains
              ! treat zonal flow specially
              if (zonal_mode(iky)) then
                 ! get finite difference approximation for dg/dz at cell centres
-                ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
+                ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
                 call fd_cell_centres_zed (iz_low(iseg), &
                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
                      delzed(0), stream_sign(iv), gleft(2), gright(1), &
@@ -780,7 +782,7 @@ contains
                 ! get finite difference approximation for dg/dz
                 ! with mixture of centered and upwinded scheme
                 ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
-                ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
+                ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
                 call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
                      delzed(0), stream_sign(iv), zed_upwind, gleft, gright, &
@@ -817,7 +819,7 @@ contains
              ! first fill in ghost zones at boundaries in g(z)
              call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
              ! get finite difference approximation for dg/dz at cell centres
-             ! iv > 0 corresponds to positive vpa, iv < 0 to negative vpa
+             ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
              call fd_cell_centres_zed (iz_low(iseg), &
                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
                   delzed(0), stream_sign(iv), gleft(2), gright(1), &

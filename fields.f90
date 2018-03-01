@@ -35,7 +35,7 @@ contains
     use species, only: spec, has_electron_species
     use geometry, only: dl_over_b
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvpa, nvgrid, nmu
+    use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: integrate_vmu
@@ -74,7 +74,7 @@ contains
     end if
 
     if (fphi > epsilon(0.0)) then
-       allocate (g0(-nvgrid:nvgrid,nmu))
+       allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -115,7 +115,7 @@ contains
     end if
 
     if (fapar > epsilon(0.)) then
-       allocate (g0(-nvgrid:nvgrid,nmu))
+       allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -214,7 +214,7 @@ contains
     use physics_parameters, only: beta
     use geometry, only: dl_over_b
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvgrid, nvpa, nmu
+    use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: integrate_vmu
     use kt_grids, only: nakx
@@ -225,7 +225,7 @@ contains
 
     implicit none
     
-    complex, dimension (-nvgrid:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
@@ -236,7 +236,7 @@ contains
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
-       allocate (g0(-nvgrid:nvgrid,nmu))
+       allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -290,7 +290,7 @@ contains
 
     apar = 0.
     if (fapar > epsilon(0.0)) then
-       allocate (g0(-nvgrid:nvgrid,nmu))
+       allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
