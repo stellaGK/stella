@@ -12,7 +12,7 @@ module vpamu_grids
   
   integer :: nvgrid, nvpa
   integer :: nmu
-  real :: vpa_max
+  real :: vpa_max, vperp_max
 
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: mu, wgts_mu
@@ -68,7 +68,7 @@ contains
 
     implicit none
 
-    namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max
+    namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max
 
     integer :: in_file
     logical :: exist
@@ -78,6 +78,7 @@ contains
        nvgrid = 24
        vpa_max = 3.0
        nmu = 12
+       vperp_max = 3.0
 
        in_file = input_unit_exist("vpamu_grids_parameters", exist)
        if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
@@ -87,6 +88,7 @@ contains
     call broadcast (nvgrid)
     call broadcast (vpa_max)
     call broadcast (nmu)
+    call broadcast (vperp_max)
 
     nvpa = 2*nvgrid+1
 
@@ -387,14 +389,18 @@ contains
 
     allocate (dmu(nmu-1)) ; dmu = 0.0
     
-    ! dvpe * vpe = d(2*mu*B(z=0)) * B/2B(z=0)
+!    ! dvpe * vpe = d(2*mu*B(z=0)) * B/2B(z=0)
+    ! dvpe * vpe = d(2*mu*B0) * B/2B0
     
-    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
+!    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
+    ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
     call get_laguerre_grids (mu, wgts_mu)
-    wgts_mu = wgts_mu*exp(mu)/(2.*bmag(1,0))
+!    wgts_mu = wgts_mu*exp(mu)/(2.*bmag(1,0))
+    wgts_mu = wgts_mu*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
     
-    ! get mu grid from grid in 2*mu*bmag(z=0)
-    mu = mu/(2.*bmag(1,0))
+!    ! get mu grid from grid in 2*mu*bmag(z=0)
+!    mu = mu/(2.*bmag(1,0))
+    mu = mu/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
