@@ -165,22 +165,44 @@ contains
     integer, intent (in) :: sgn
     real, dimension (llim:), intent (out) :: df
     
-    integer :: i
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    if (sgn == -1) then
+       istart = llim
+       iend = llim+n-1
+    else
+       istart = llim+n-1
+       iend = llim
+    end if
 
     ! zero BC, 1st order accurate upwind
-    i = -llim*sgn
-    df(i) = -f(i)*sgn/del
+    df(istart) = -f(istart)*sgn/del
     ! zero BC, 3rd order accurate upwind
-    i = -(llim+1)*sgn
+    i = istart-sgn
     df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
     ! 1st order accurate upwind
-    i = llim*sgn
-    df(i) = sgn*(f(i+sgn)-f(i))/del
+    df(iend) = sgn*(f(iend+sgn)-f(iend))/del
 
     ! 3rd order accurate upwind
-    do i = -(llim+2)*sgn, (llim+1)*sgn, -sgn
+    do i = istart-2*sgn, iend+sgn, -sgn
        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
     end do
+
+!     ! zero BC, 1st order accurate upwind
+!     i = -llim*sgn
+!     df(i) = -f(i)*sgn/del
+!     ! zero BC, 3rd order accurate upwind
+!     i = -(llim+1)*sgn
+!     df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+!     ! 1st order accurate upwind
+!     i = llim*sgn
+!     df(i) = sgn*(f(i+sgn)-f(i))/del
+
+!     ! 3rd order accurate upwind
+!     do i = -(llim+2)*sgn, (llim+1)*sgn, -sgn
+!        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
+!     end do
 
   end subroutine third_order_upwind_real
 

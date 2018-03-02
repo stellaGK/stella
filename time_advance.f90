@@ -1368,7 +1368,7 @@ contains
     ! next redistribute it so that (vpa,mu) are local
     call scatter (xyz2vmu, g0xy, gxy_vmulocal)
     ! advect_speed does not depend on vpa
-    advect_speed = gxy_vmulocal(0,:,:)
+    advect_speed = gxy_vmulocal(1,:,:)
 
     allocate (g0k(2*naky-1,ikx_max))
 
