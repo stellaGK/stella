@@ -676,6 +676,7 @@ contains
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
+    use geometry, only: zed_eqarc
 
     implicit none
 
@@ -683,14 +684,15 @@ contains
     integer :: iky, ikx, ig
 
     call open_output_file (tmpunit,'.final_fields')
-    write (tmpunit,'(8a12)') '# z', 'z-thet0', 'aky', 'akx', &
-         'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)'
+    write (tmpunit,'(9a12)') '# z', 'z-thet0', 'aky', 'akx', &
+         'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
+         'z_eqarc-thet0'
     do iky = 1, naky
        do ikx = 1, nakx
           do ig = -nzgrid, nzgrid
-             write (tmpunit,'(8e12.4)') zed(ig), zed(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
+             write (tmpunit,'(9e12.4)') zed(ig), zed(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,ig)), aimag(phi(iky,ikx,ig)), &
-                  real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig))
+                  real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig)), zed_eqarc(ig)-theta0(iky,ikx)
           end do
           write (tmpunit,*)
        end do

@@ -7,7 +7,7 @@ module geometry
   public :: init_geometry, finish_geometry
   public :: grho
   public :: bmag, dbdzed, btor
-  public :: gradpar
+  public :: gradpar, gradpar_eqarc, zed_eqarc
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
   public :: gds2, gds21, gds22, gds23, gds24
@@ -25,6 +25,8 @@ module geometry
 
   real :: dIdrho
   real :: drhodpsi, rhotor, drhotordrho, shat, qinp, rgeo
+  real :: gradpar_eqarc
+  real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:), allocatable :: grho
   real, dimension (:,:), allocatable :: gradpar
   real, dimension (:,:), allocatable :: bmag, dbdzed
@@ -64,6 +66,8 @@ contains
 
     real :: dpsidrho
     integer :: iy
+    ! TMP FOR TESTING -- MAB
+    integer :: iz
 
     if (geoinit) return
     geoinit = .true.
@@ -139,6 +143,22 @@ contains
     if(abs(geo_surf%shat) <=  shat_zero) &
          boundary_option_switch = boundary_option_self_periodic
 
+    ! theta_eqarc is parallel coordinate such that
+    ! b . grad theta_eqarc = constant
+    ! and theta_eqarc = theta at +/- pi
+    ! b . grad theta_eqarc = b . grad theta dtheta_eqarc/dtheta
+    ! --> dtheta_eqarc/dtheta = b . grad theta_eqarc / b . grad theta
+    ! --> 2*pi = b . grad theta_eqarc * int_0^{2pi} dtheta 1/(b.grad theta)
+    ! this gives b . grad theta_eqarc, from which we get
+    ! theta_eqarc = theta_min + int_{0}^{theta} dtheta' b . grad theta_eqarc / b . grad theta'
+    call get_gradpar_eqarc (gradpar(1,:), zed, delzed, gradpar_eqarc)
+    call get_zed_eqarc (gradpar(1,:), delzed, zed, gradpar_eqarc, zed_eqarc)
+
+!    do iz = -nzgrid, nzgrid
+!       write (*,*) 'equal_arc', zed(iz), zed_eqarc(iz), gradpar(1,iz), gradpar_eqarc
+!    end do
+!    stop
+
   end subroutine init_geometry
 
   subroutine allocate_arrays (nalpha, nzgrid)
@@ -162,6 +182,7 @@ contains
     ! FLAG - NEED TO SORT OUT 1D VS 2D FOR GRADPAR
     if (.not.allocated(gradpar)) allocate (gradpar(nalpha,-nzgrid:nzgrid))
 
+    if (.not.allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
     if (.not.allocated(grho)) allocate (grho(-nzgrid:nzgrid))
     if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
     if (.not.allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
@@ -274,10 +295,72 @@ contains
 
   end subroutine get_dzed
 
+  subroutine get_gradpar_eqarc (gp, z, dz, gp_eqarc)
+
+    use constants, only: pi
+    use zgrid, only: nzgrid
+
+    implicit none
+
+    real, dimension (-nzgrid:), intent (in) :: gp, z, dz
+    real, intent (out) :: gp_eqarc
+
+    ! first get int dz b . grad z
+    call integrate_zed (dz, 1./gp, gp_eqarc)
+    ! then take (zmax-zmin)/int (dz b . gradz)
+    ! to get b . grad z'
+    gp_eqarc = (z(nzgrid)-z(-nzgrid))/gp_eqarc
+
+  end subroutine get_gradpar_eqarc
+
+  subroutine get_zed_eqarc (gp, dz, z, gp_eqarc, z_eqarc)
+
+    use zgrid, only: nzgrid
+
+    implicit none
+
+    real, dimension (-nzgrid:), intent (in) :: gp, dz, z
+    real, intent (in) :: gp_eqarc
+    real, dimension (-nzgrid:), intent (out) :: z_eqarc
+
+    integer :: iz
+
+    z_eqarc(-nzgrid) = z(-nzgrid)
+    do iz = -nzgrid+1, nzgrid
+       call integrate_zed (dz(:iz), 1./gp(:iz), z_eqarc(iz))
+    end do
+    z_eqarc(-nzgrid+1:) = z(-nzgrid) + z_eqarc(-nzgrid+1:)*gp_eqarc
+
+  end subroutine get_zed_eqarc
+
+  ! trapezoidal rule to integrate in zed
+  subroutine integrate_zed (dz, f, intf)
+
+    use zgrid, only: nzgrid
+
+    implicit none
+
+    real, dimension (-nzgrid:), intent (in) :: dz
+    real, dimension (-nzgrid:), intent (in) :: f
+    real, intent (out) :: intf
+
+    integer :: iz, iz_max
+
+    iz_max = -nzgrid + size(dz) - 1
+
+    intf = 0.
+    do iz = -nzgrid+1, iz_max
+       intf = intf + dz(iz)*(f(iz-1)+f(iz))
+    end do
+    intf = 0.5*intf
+
+  end subroutine integrate_zed
+
   subroutine finish_geometry
 
     implicit none
 
+    if (allocated(zed_eqarc)) deallocate (zed_eqarc)
     if (allocated(grho)) deallocate (grho)
     if (allocated(bmag)) deallocate (bmag)
     if (allocated(btor)) deallocate (btor)
