@@ -221,7 +221,7 @@ contains
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
-    use zgrid, only: nzgrid, nztot
+    use zgrid, only: nztot
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
     use kt_grids, only: naky, nakx

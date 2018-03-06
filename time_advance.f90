@@ -203,7 +203,7 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
-    if (nonlinear .or. alpha_global) then
+    if (nonlinear .or. alpha_global .or. include_parallel_nonlinearity) then
        if (debug) write (6,*) 'time_advance::init_time_advance::init_transforms'
        call init_transforms
     end if
@@ -640,13 +640,16 @@ contains
     use mp, only: proc0
     use job_manage, only: time_message
     use zgrid, only: nzgrid
-    use stella_layouts, only: vmu_lo
-!    use fields, only: advance_fields
+    use kt_grids, only: zonal_mode
+    use stella_layouts, only: vmu_lo, iv_idx
+    use parallel_streaming, only: stream_sign
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ivmu, iv, sgn
 
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
@@ -663,7 +666,15 @@ contains
        call advance_explicit_rk4 (g)
     end select
     
-!    call advance_fields (g, phi, apar, dist='gbar')
+    ! enforce periodicity for zonal modes
+    if (zonal_mode(1)) then
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          ! stream_sign > 0 corresponds to dz/dt < 0
+          sgn = stream_sign(iv)
+          g(1,:,sgn*nzgrid,ivmu) = g(1,:,-sgn*nzgrid,ivmu)
+       end do
+    end if
 
     ! stop the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
@@ -1088,18 +1099,12 @@ contains
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
 
-    ! TMP FOR TESTING -- MAB
-!    use constants, only: zi
-
     implicit none
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
     logical, intent (out) :: restart_time_step
     
-    ! TMP FOR TESTING -- MAB
-!    integer :: ix, iy, ikx, iky
-
     integer :: ivmu, iz
 
     complex, dimension (:,:), allocatable :: g0k, g0k_swap
@@ -1121,20 +1126,8 @@ contains
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
-          ! TMP FOR TESTING -- MAB
-!          gout(:,:,iz,ivmu) = 0.
-          ! should be cos(dky*y)*sin(2*dkx*x)
-!          gout(2,3,iz,ivmu) = -0.25*zi ; gout(naky,3,iz,ivmu) = 0.25*zi
-          ! should be sin(2*dkx*x)
-!          gout(1,3,iz,ivmu) = -0.5*zi
-!          call get_dgdx (gout(:,:,iz,ivmu), g0k)
           call get_dgdy (g(:,:,iz,ivmu), g0k)
-
           call swap_kxky (g0k, g0k_swap)
-
-          ! TMP FOR TESTING -- MAB
-!          g0k_swap = 0.
-!          g0k_swap(1,3) = -0.5*zi
 
           ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
           ! want to do 1D complex to complex transform in y
@@ -1149,58 +1142,15 @@ contains
           ! NB: J0(kx,ky) = J0(-kx,-ky)
           call transform_ky2y (g0k_swap, g0kxy)
           call transform_kx2x (g0kxy, g0xy)
-!          do ix = 1, nx
-!             do iy = 1, ny
-!                write (*,*) 'g0xy', ix, iy, g0xy(iy,ix)
-!             end do
-!             write (*,*)
-!          end do
-          ! TMP FOR TESTING -- MAB
-!          call transform_x2kx (g0xy, g0kxy)
-!          call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
-!          do ikx = 1, nakx
-!             do iky = 1, naky
-!                write (*,*) 'g0k', iky, ikx, real(gout(iky,ikx,iz,ivmu)), aimag(gout(iky,ikx,iz,ivmu))
-!             end do
-!             write (*,*)
-!          end do
-!          stop
+
           call get_dchidx (iz, ivmu, phi(:,:,iz), apar(:,:,iz), g0k)
           call swap_kxky (g0k, g0k_swap)
-          ! TMP FOR TESTING -- MAB
-!          g0k_swap = 0. ; nonlin_fac = 1.
-          ! cos(dky*y)
-!          g0k_swap(2,1) = 0.5 ; g0k_swap(naky,1) = 0.5
           call transform_ky2y (g0k_swap, g0kxy)
           call transform_kx2x (g0kxy, g1xy)
           g1xy = g1xy*nonlin_fac
-!          bracket = -g0xy*g1xy
           bracket = g0xy*g1xy
           cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
-          ! should be -cos(dky*y)*sin(2*dkx*x)
-          ! so 0.25*zi*(exp(i*dky*y)+exp(-i*dky*y))*(exp(2*i*dkx*x)-exp(-2*i*dkx*x))
-          ! so should have 0.25*zi in (2,3) and (naky,3) modes
-!          do ix = 1, nx
-!             do iy = 1, ny
-!                write (*,*) 'bracket', ix, iy, bracket(iy,ix)
-!             end do
-!             write (*,*)
-!          end do
-          ! TMP FOR TESTING -- MAB
-!          call transform_x2kx (bracket, g0kxy)
-!          call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
-!          do ikx = 1, nakx
-!             do iky = 1, naky
-!                write (*,*) 'bracket', iky, ikx, real(gout(iky,ikx,iz,ivmu)), aimag(gout(iky,ikx,iz,ivmu))
-!             end do
-!             write (*,*)
-!          end do
-!          stop
-
-!          write (*,*) 'bracket1', ivmu, iz, sum(abs(bracket))
-!          stop
-          
           call get_dgdx (g(:,:,iz,ivmu), g0k)
           call swap_kxky (g0k, g0k_swap)
           call transform_ky2y (g0k_swap, g0kxy)
@@ -1210,7 +1160,6 @@ contains
           call transform_ky2y (g0k_swap, g0kxy)
           call transform_kx2x (g0kxy, g1xy)
           g1xy = g1xy*nonlin_fac
-!          bracket = bracket + g0xy*g1xy
           bracket = bracket - g0xy*g1xy
           cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
@@ -1219,12 +1168,13 @@ contains
           if (alpha_global) then
              gout(:,:,iz,ivmu) = g0kxy
           else
-!             call transform_y2ky (g0kxy, gout(:,:,iz,ivmu))
              call transform_y2ky (g0kxy, g0k_swap)
              call swap_kxky_back (g0k_swap, gout(:,:,iz,ivmu))
           end if
        end do
        ! enforce periodicity for zonal mode
+       ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
+       ! AND MAY INDEED BE THE WRONG THING TO DO
        gout(1,:,-nzgrid,ivmu) = 0.5*(gout(1,:,nzgrid,ivmu)+gout(1,:,-nzgrid,ivmu))
        gout(1,:,nzgrid,ivmu) = gout(1,:,-nzgrid,ivmu)
     end do
@@ -1275,7 +1225,7 @@ contains
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: alpha_global
+    use kt_grids, only: alpha_global, zonal_mode
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu, dvpa
     use dist_fn_arrays, only: aj0x
@@ -1300,6 +1250,7 @@ contains
     complex, dimension (2) :: gleft, gright
     complex, dimension (:,:,:), allocatable :: phi_gyro, dphidz
     complex, dimension (:,:), allocatable :: g0k, g0kxy, dphidz_swap
+    complex, dimension (:,:), allocatable :: tmp
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')
@@ -1324,6 +1275,7 @@ contains
     allocate (phi_gyro(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
     allocate (dphidz_swap(2*naky-1,ikx_max))
+    allocate (tmp(size(gout,1),size(gout,2)))
 
     ! get d<phi>/dz in vmu_lo
     ! we will need to transform it to real-space
@@ -1338,22 +1290,23 @@ contains
              do iseg = 1, nsegments(ie,iky)
                 ! first fill in ghost zones at boundaries in g(z)
                 call fill_zed_ghost_zones (iseg, ie, iky, phi_gyro, gleft, gright)
-                ! now get dg/dz
+                ! now get d<phi>/dz
                 call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                      phi_gyro(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                     delzed(0), stream_sign(iv), gleft, gright, &
+                     delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
                      dphidz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
              end do
           end do
        end do
-
+       
        do iz = -nzgrid, nzgrid
-          ! transform in y
+          ! use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
           call swap_kxky (dphidz(:,:,iz), dphidz_swap)
+          ! transform in y
           call transform_ky2y (dphidz_swap, g0kxy)
           ! transform in x
           call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
-          ! get advection velocity in vpa
+          ! get dvpa/dt
           g0xy(:,:,iz,ivmu) = g0xy(:,:,iz,ivmu)*par_nl_fac(iz,is)
        end do
     end do
@@ -1375,9 +1328,8 @@ contains
     ! transform g from (kx,ky) to (x,y)
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
-!          g0k = g(:,:,iz,ivmu)
-          ! transform in y
           call swap_kxky (g(:,:,iz,ivmu), g0k)
+          ! transform in y
           call transform_ky2y (g0k, g0kxy)
           ! transform in x
           call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
@@ -1423,10 +1375,11 @@ contains
        do iz = -nzgrid, nzgrid
           call transform_x2kx (g0xy(:,:,iz,ivmu), g0kxy)
           if (alpha_global) then
-             gout(:,:,iz,ivmu) = g0kxy
+             gout(:,:,iz,ivmu) = gout(:,:,iz,ivmu) + code_dt*g0kxy
           else
              call transform_y2ky (g0kxy, g0k)
-             call swap_kxky_back (g0k, gout(:,:,iz,ivmu))
+             call swap_kxky_back (g0k, tmp)
+             gout(:,:,iz,ivmu) = gout(:,:,iz,ivmu) + code_dt*tmp
           end if
        end do
     end do
@@ -1449,8 +1402,8 @@ contains
        end if
        code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
-    else
-       gout = code_dt*gout
+!    else
+!       gout = code_dt*gout
     end if
 
     if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')

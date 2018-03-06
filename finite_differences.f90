@@ -330,7 +330,7 @@ contains
 
   end subroutine first_order_upwind_zed
 
-  subroutine second_order_centered_zed_real (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+  subroutine second_order_centered_zed_real (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
     implicit none
     
@@ -339,6 +339,7 @@ contains
     integer, intent (in) :: sgn
     real, intent (in) :: del
     real, dimension (:), intent (in) :: fl, fr
+    logical, intent (in) :: periodic
     real, dimension (llim:), intent (out) :: df
 
     integer :: i, ulim
@@ -346,44 +347,30 @@ contains
     ulim = size(f)+llim-1    
 
     i = llim
-    if (iseg == 1) then
-       if (sgn>0) then
-          ! sgn > 0 corresponds to negative advection speed
-          ! upwind at boundary requires taking information from right
-          df(i) = (f(i+1)-f(i))/del
-       else
-          ! sgn < 0 corresponds to positive advection speed
-          ! upwind at boundary requires taking information from left
-          ! with f=0 as incoming BC
-          df(i) = f(i)/del
-       end if
+    if (iseg == 1 .and. sgn>0 .and..not.periodic) then
+       ! sgn > 0 corresponds to negative advection speed
+       ! upwind at boundary requires taking information from right
+       df(i) = (f(i+1)-f(i))/del
     else
        df(i) = 0.5*(f(i+1)-fl(2))/del
     end if
 
     i = ulim
-    if (iseg == nseg) then
-       if (sgn > 0) then
-          ! sgn > 0 corresponds to negative advection speed
-          ! upwind at boundary requires taking information from right
-          ! and BC is f=0
-          df(i) = -f(i)/del
-       else
-          ! sgn < 0 corresponds to positive advection speed
-          ! upwind at boundary requires taking information from left
-          df(i) = (f(i)-f(i-1))/del
-       end if
+    if (iseg == nseg .and. sgn<0 .and..not.periodic) then
+       ! sgn < 0 corresponds to positive advection speed
+       ! upwind at boundary requires taking information from left
+       df(i) = (f(i)-f(i-1))/del
     else
        df(i) = 0.5*(fr(1)-f(i-1))/del
     end if
-
+    
     do i = llim+1, ulim-1
        df(i) = 0.5*(f(i+1)-f(i-1))/del
     end do
 
   end subroutine second_order_centered_zed_real
 
-  subroutine second_order_centered_zed_complex (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+  subroutine second_order_centered_zed_complex (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
     implicit none
     
@@ -392,6 +379,7 @@ contains
     integer, intent (in) :: sgn
     real, intent (in) :: del
     complex, dimension (:), intent (in) :: fl, fr
+    logical, intent (in) :: periodic
     complex, dimension (llim:), intent (out) :: df
 
     integer :: i, ulim
@@ -399,37 +387,23 @@ contains
     ulim = size(f)+llim-1    
 
     i = llim
-    if (iseg == 1) then
-       if (sgn>0) then
-          ! sgn > 0 corresponds to negative advection speed
-          ! upwind at boundary requires taking information from right
-          df(i) = (f(i+1)-f(i))/del
-       else
-          ! sgn < 0 corresponds to positive advection speed
-          ! upwind at boundary requires taking information from left
-          ! with f=0 as incoming BC
-          df(i) = f(i)/del
-       end if
+    if (iseg == 1 .and. sgn>0 .and..not.periodic) then
+       ! sgn > 0 corresponds to negative advection speed
+       ! upwind at boundary requires taking information from right
+       df(i) = (f(i+1)-f(i))/del
     else
        df(i) = 0.5*(f(i+1)-fl(2))/del
     end if
 
     i = ulim
-    if (iseg == nseg) then
-       if (sgn > 0) then
-          ! sgn > 0 corresponds to negative advection speed
-          ! upwind at boundary requires taking information from right
-          ! and BC is f=0
-          df(i) = -f(i)/del
-       else
-          ! sgn < 0 corresponds to positive advection speed
-          ! upwind at boundary requires taking information from left
-          df(i) = (f(i)-f(i-1))/del
-       end if
+    if (iseg == nseg .and. sgn<0 .and..not.periodic) then
+       ! sgn < 0 corresponds to positive advection speed
+       ! upwind at boundary requires taking information from left
+       df(i) = (f(i)-f(i-1))/del
     else
        df(i) = 0.5*(fr(1)-f(i-1))/del
     end if
-
+    
     do i = llim+1, ulim-1
        df(i) = 0.5*(f(i+1)-f(i-1))/del
     end do
@@ -534,7 +508,7 @@ contains
 
   end subroutine cell_centres_zed
 
-  subroutine fd_variable_upwinding_zed (llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, df)
+  subroutine fd_variable_upwinding_zed (llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, periodic, df)
 
     implicit none
 
@@ -543,13 +517,14 @@ contains
     real, intent (in) :: del, upwnd
     integer, intent (in) :: sgn
     complex, dimension (:), intent (in) :: fl, fr
+    logical, intent (in) :: periodic
     complex, dimension (llim:), intent (out) :: df
 
     integer :: i, istart, iend, ulim
 
     ! if upwnd is zero or if vpa=0, then use centered differences
     if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
-       call second_order_centered_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+       call second_order_centered_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
     else
        ulim = size(f)+llim-1
        

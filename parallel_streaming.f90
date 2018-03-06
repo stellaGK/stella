@@ -785,7 +785,7 @@ contains
                 ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
                 call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                     delzed(0), stream_sign(iv), zed_upwind, gleft, gright, &
+                     delzed(0), stream_sign(iv), zed_upwind, gleft, gright, zonal_mode(iky), &
                      dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
              end if
           end do

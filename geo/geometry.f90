@@ -66,8 +66,6 @@ contains
 
     real :: dpsidrho
     integer :: iy
-    ! TMP FOR TESTING -- MAB
-    integer :: iz
 
     if (geoinit) return
     geoinit = .true.
