@@ -173,6 +173,7 @@ contains
     use time_advance, only: time_gke, finish_time_advance
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
+    use dissipation, only: time_collisions
     use dist_fn, only: finish_dist_fn
     use fields, only: finish_fields
     use fields, only: time_field_solve
@@ -226,6 +227,8 @@ contains
        write (*,fmt=101) 'dgdx:', time_gke(1,5)/60., 'min'
        write (*,fmt=101) 'dgdy:', time_gke(1,4)/60., 'min'
        write (*,fmt=101) 'wstar:', time_gke(1,6)/60., 'min'
+       write (*,fmt=101) 'collisions:', time_collisions(1,1)/60., 'min'
+       write (*,fmt=101) '(redistribute):', time_collisions(1,2)/60., 'min'
        write (*,fmt=101) 'ExB nonlin:', time_gke(1,7)/60., 'min'
        write (*,fmt=101) 'parallel nonlin:', time_gke(1,10)/60., 'min'
        write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'

@@ -11,6 +11,7 @@ module stella_diagnostics
   integer :: nwrite, nsave, nmovie, navg
   logical :: save_for_restart
   logical :: write_omega
+  logical :: write_moments
   logical :: write_phi_vs_time
   logical :: write_gvmus
   logical :: write_gzvs
@@ -79,6 +80,7 @@ contains
     call broadcast (save_for_restart)
     call broadcast (write_omega)
     call broadcast (write_kspectra)
+    call broadcast (write_moments)
     call broadcast (write_phi_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
@@ -88,7 +90,7 @@ contains
     
     call init_averages
     call init_stella_io (write_phi_vs_time, write_kspectra, &
-         write_gvmus, write_gzvs, write_symmetry)
+         write_gvmus, write_gzvs, write_symmetry, write_moments)
     call open_loop_ascii_files
     
   end subroutine init_stella_diagnostics
@@ -106,7 +108,7 @@ contains
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-         write_omega, write_kspectra, write_symmetry
+         write_omega, write_kspectra, write_symmetry, write_moments
 
     if (proc0) then
        nwrite = 50
@@ -119,6 +121,7 @@ contains
        write_gvmus = .false.
        write_gzvs = .false.
        write_kspectra = .false.
+       write_moments = .false.
        write_symmetry = .false.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
@@ -218,6 +221,7 @@ contains
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
+    use stella_io, only: write_moments_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
@@ -238,6 +242,7 @@ contains
     real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: phi2_vs_kxky
+    complex, dimension (:,:,:,:), allocatable :: density, upar, temperature
     complex, dimension (:,:), allocatable :: omega_avg
 
     ! calculation of omega requires computation of omega more
@@ -288,6 +293,15 @@ contains
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi)
+       end if
+       if (write_moments) then
+          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_moments'
+          allocate (density(naky,nakx,nztot,nspec))
+          allocate (upar(naky,nakx,nztot,nspec))
+          allocate (temperature(naky,nakx,nztot,nspec))
+          call get_moments (gnew, density, upar, temperature)
+          call write_moments_nc (nout, density, upar, temperature)
+          deallocate (density, upar, temperature)
        end if
        if (write_kspectra) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
@@ -530,6 +544,57 @@ contains
     deallocate (flx_norm)
 
   end subroutine get_fluxes_vs_zvpa
+
+  subroutine get_moments (g, dens, upar, temp)
+    
+    use zgrid, only: nzgrid
+    use species, only: spec
+    use vpamu_grids, only: integrate_vmu
+    use vpamu_grids, only: ztmax, maxwell_mu, vpa, vperp2
+    use kt_grids, only: naky, nakx
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use dist_fn_arrays, only: g1, g2, aj0x
+    use fields_arrays, only: phi
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,:,:), intent (out) :: dens, upar, temp
+
+    integer :: ivmu, iv, imu, is
+
+    ! f = h - Ze*phi/T * F0
+    ! g = h - Ze*<phi>/T * F0
+    ! f = g + Ze*(<phi>-phi)/T * F0
+    g1 = g*aj0x
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g2(:,:,:,ivmu) = g1(:,:,:,ivmu) &
+            + ztmax(iv,is)*spread(spread(maxwell_mu(1,:,imu),1,naky),2,nakx)*(aj0x(:,:,:,ivmu)**2-1.0)*phi
+    end do
+    call integrate_vmu (g2, spec%dens, dens)
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g2(:,:,:,ivmu) = g2(:,:,:,ivmu)*(vpa(iv)**2+spread(spread(vperp2(1,:,imu),1,naky),2,nakx)-1.5)
+    end do
+    ! integrate to get dTs/Tr
+    call integrate_vmu (g2, spec%temp, temp)
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g2(:,:,:,ivmu) = vpa(iv)*g1(:,:,:,ivmu)
+    end do
+    call integrate_vmu (g2, spec%stm, upar)
+
+  end subroutine get_moments
 
   ! get_gvmus takes g(kx,ky,z) and returns average over z of int dxdy g(x,y,z)^2
   ! SHOULD MODIFY TO TAKE ADVANTAGE OF FACT THAT G(KY,KX,Z) LOCAL IS AVAILABLE

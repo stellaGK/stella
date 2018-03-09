@@ -9,6 +9,7 @@ module run_parameters
   public :: include_parallel_nonlinearity
   public :: include_parallel_streaming
   public :: include_mirror
+  public :: include_collisions
   public :: nonlinear
   public :: code_delt_max
   public :: nstep
@@ -28,7 +29,7 @@ module run_parameters
   real :: delt, code_delt_max
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: include_parallel_streaming
-  logical :: include_mirror
+  logical :: include_mirror, include_collisions
   logical :: nonlinear, include_parallel_nonlinearity
   logical :: stream_implicit, mirror_implicit
   logical :: fully_explicit
@@ -81,6 +82,7 @@ contains
          stream_cell, stream_matrix_inversion, &
          mirror_semi_lagrange, mirror_linear_interp, &
          include_parallel_streaming, include_mirror, &
+         include_collisions, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz
 
@@ -95,6 +97,7 @@ contains
        include_parallel_nonlinearity = .false.
        include_parallel_streaming = .true.
        include_mirror = .true.
+       include_collisions = .false.
        mirror_semi_lagrange = .true.
        mirror_linear_interp = .false.
        stream_cell = .true.
@@ -131,6 +134,7 @@ contains
     call broadcast (include_parallel_nonlinearity)
     call broadcast (include_parallel_streaming)
     call broadcast (include_mirror)
+    call broadcast (include_collisions)
     call broadcast (mirror_semi_lagrange)
     call broadcast (mirror_linear_interp)
     call broadcast (stream_cell)

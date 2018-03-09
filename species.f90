@@ -39,7 +39,7 @@ contains
 
 !    use mp, only: trin_flag
     use mp, only: proc0, broadcast
-    use physics_parameters, only: vnew_ref
+    use physics_parameters, only: vnew_ref, zeff
     use inputprofiles_interface, only: read_inputprof_spec
 
     implicit none
@@ -62,9 +62,13 @@ contains
        end select
 
        do is = 1, nspec
-          ! FLAG -- only contains self-collisions as the moment
+          ! FLAG -- only contains self-collisions at the moment
           spec(is)%vnew(is) = vnew_ref*spec(is)%dens*spec(is)%z**4 &
                / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
+          ! include electron-ion collisions
+          if (spec(is)%type == electron_species) then
+             spec(is)%vnew(is) = spec(is)%vnew(is)*(1.+zeff)
+          end if
        end do
 
        open (1003,file='species.input',status='unknown')

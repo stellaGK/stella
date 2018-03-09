@@ -843,6 +843,7 @@ contains
     use kt_grids, only: nakx, ny
     use kt_grids, only: alpha_global
     use run_parameters, only: stream_implicit, mirror_implicit
+    use dissipation, only: include_collisions, advance_collisions
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_explicit
@@ -896,6 +897,8 @@ contains
 
        ! calculate and add omega_* term to RHS of GK eqn
        call advance_wstar_explicit (rhs)
+
+       if (include_collisions) call advance_collisions (gin, phi, rhs)
        
        if (alpha_global) then
           call transform_y2ky (rhs_y, rhs_ky)

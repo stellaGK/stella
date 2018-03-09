@@ -7,13 +7,14 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-infile = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/no_pnl.out.nc'
+#infile = '/Users/michaelbarnes/Documents/stella_data/cyclone/nl_ae/ae_cyclone_nl.out.nc'
+infile = '/Users/michaelbarnes/codes/stella/runs/collisions/conserve_hres.out.nc'
 #infile = '../stella.out.nc'
 print()
 #outdir = input("Path for output: ")
 #outdir = '/Users/michaelbarnes/codes/gs2/runs/flow_shear_tests/nofs01_figs/'
-outdir = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/figures/'
-ncfile = netcdf.netcdf_file(infile,'r')   
+outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/conserve_hres_figures/'
+ncfile = netcdf.netcdf_file(infile,'r')
 
 print()
 print('reading data from netcdf file...')
@@ -145,29 +146,18 @@ es_mom_sym, es_mom_sym_present = \
 # if vpa not present then do not try to plot es_mom_sym
 if vpa_present == False:
     es_mom_sym_present = False
-# phi(kx,ky,t) for given z (usually outboard midplane)
-# note that name of phi_igomega_by_mode used to be phi0
-# so must allows for this case
-phi_igomega_by_mode, phi_igomega_by_mode_present  = \
-    read_stella_float('phi_igomega_by_mode')
-if phi_igomega_by_mode_present == False:
-    phi_igomega_by_mode, phi_igomega_by_mode_present  = \
-        read_stella_float('phi0')
 xgrid, xgrid_present = \
     read_stella_float('xgrid')
 xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
-# density fluctuation (kx,ky,t) for given z (usually outboard midplane)
-ntot_igomega_by_mode, ntot_igomega_by_mode_present = \
-    read_stella_float('ntot_igomega_by_mode')
-# parallel flow fluctuation (kx,ky,t) for given z (usually outboard midplane)
-upar_igomega_by_mode, upar_igomega_by_mode_present = \
-    read_stella_float('upar_igomega_by_mode')
-# parallel temperature fluctuation (kx,ky,t) for given z (usually outboard midplane)
-tpar_igomega_by_mode, tpar_igomega_by_mode_present = \
-    read_stella_float('tpar_igomega_by_mode')
-# perp termperature fluctuation (kx,ky,t) for given z (usually outboard midplane)
-tperp_igomega_by_mode, tperp_igomega_by_mode_present = \
-    read_stella_float('tperp_igomega_by_mode')
+# density fluctuation (kx,ky,z,t)
+density, density_present = \
+    read_stella_float('density')
+# parallel flow fluctuation (kx,ky,z,t)
+upar, upar_present = \
+    read_stella_float('upar')
+# temperature fluctuation (kx,ky,z,t)
+temperature, temperature_present = \
+    read_stella_float('temperature')
 
 ncfile.close()
 

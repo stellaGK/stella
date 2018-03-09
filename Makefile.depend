@@ -2,6 +2,7 @@
 # Auto-generated file by fortdep. Do not edit!
 #
 stella_mod = \
+	 collisions.o \
 	 command_line.o \
 	 common_types.o \
 	 constants.o \
@@ -59,6 +60,21 @@ test_vmec_to_gs2_geometry_interface_mod = \
 	 test_vmec_to_gs2_geometry_interface.o \
 	 vmec_to_gs2_geometry_interface.o 
 
+collisions.o: \
+	 dist_fn_arrays.o \
+	 dist_redistribute.o \
+	 finite_differences.o \
+	 geometry.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 command_line.o: 
 common_types.o: 
 constants.o: 
@@ -103,7 +119,6 @@ dist_redistribute.o: \
 extended_zgrid.o: \
 	 kt_grids.o \
 	 species.o \
-	 vpamu_grids.o \
 	 zgrid.o 
 fft_work.o: \
 	 constants.o \
@@ -136,6 +151,7 @@ gauss_quad.o: \
 	 mp.o 
 geometry.o: \
 	 common_types.o \
+	 constants.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
 	 millerlocal.o \
@@ -274,7 +290,6 @@ run_parameters.o: \
 	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
-	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
 	 common_types.o \
@@ -287,6 +302,7 @@ spfunc.o: \
 	 constants.o 
 spl.o: 
 stella.o: \
+	 collisions.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
@@ -314,6 +330,7 @@ stella_diagnostics.o: \
 	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
+	 dist_redistribute.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
@@ -321,6 +338,7 @@ stella_diagnostics.o: \
 	 kt_grids.o \
 	 mp.o \
 	 physics_parameters.o \
+	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
@@ -364,6 +382,7 @@ test_vmec_to_gs2_geometry_interface.o: \
 	 vmec_to_gs2_geometry_interface.o 
 text_options.o: 
 time_advance.o: \
+	 collisions.o \
 	 constants.o \
 	 dissipation.o \
 	 dist_fn_arrays.o \

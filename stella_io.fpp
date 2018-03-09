@@ -17,7 +17,8 @@ module stella_io
   public :: write_gvmus_nc
   public :: write_gzvs_nc
   public :: write_kspectra_nc
-  
+  public :: write_moments_nc
+
 # ifdef NETCDF
   integer (kind_nf) :: ncid
 
@@ -27,6 +28,7 @@ module stella_io
   integer (kind_nf) :: nttotext_dim, time_big_dim
   integer (kind_nf) :: nalpha_dim
 
+  integer, dimension (6) :: moment_dim
   integer, dimension (5) :: field_dim
   integer, dimension (4) :: vmus_dim
   integer, dimension (4) :: zvs_dim
@@ -44,12 +46,12 @@ module stella_io
   integer :: es_heat_by_k_id, es_mom_by_k_id, es_part_by_k_id
   integer :: es_parmom_by_k_id, es_perpmom_by_k_id, es_mom0_by_k_id, es_mom1_by_k_id
   integer :: phi_vs_t_id, phi2_vs_kxky_id
+  integer :: density_id, upar_id, temperature_id
   integer :: gvmus_id, gzvs_id
   integer :: apar_t_id, bpar_t_id
   integer :: ntot_t_id
   integer :: phi_norm_id, apar_norm_id, bpar_norm_id
   integer :: phi_id, apar_id, bpar_id, epar_id
-  integer :: ntot_id, density_id, upar_id, tpar_id, tperp_id
   integer :: input_id
   integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
   integer :: vnew_id, spec_type_id
@@ -66,7 +68,8 @@ module stella_io
   
 contains
 
-  subroutine init_stella_io (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry)
+  subroutine init_stella_io (write_phi_vs_t, write_kspectra, write_gvmus, &
+       write_gzvs, write_symmetry, write_moments)
 
     use mp, only: proc0
     use file_utils, only: run_name
@@ -77,7 +80,8 @@ contains
 
     implicit none
 
-    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry
+    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
+    logical, intent (in) :: write_moments, write_symmetry
 # ifdef NETCDF
     character (300) :: filename
     integer :: status
@@ -94,7 +98,7 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, file=filename)
 
        call define_dims
-       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry)
+       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry, write_moments)
        call nc_grids
        call nc_species
        call nc_geo
@@ -249,7 +253,8 @@ contains
 # endif
   end subroutine save_input
 
-  subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry)
+  subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, &
+       write_gzvs, write_symmetry, write_moments)
 
     use mp, only: nproc
     use species, only: nspec
@@ -264,6 +269,7 @@ contains
     implicit none
 
     logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry
+    logical, intent (in) :: write_moments
 # ifdef NETCDF
     character (5) :: ci
     character (20) :: datestamp, timestamp, timezone
@@ -304,6 +310,13 @@ contains
     field_dim (3) = nakx_dim
     field_dim (4) = nttot_dim
     field_dim (5) = time_dim
+
+    moment_dim (1) = ri_dim
+    moment_dim (2) = naky_dim
+    moment_dim (3) = nakx_dim
+    moment_dim (4) = nttot_dim
+    moment_dim (5) = nspec_dim
+    moment_dim (6) = time_dim
 
     vmus_dim (1) = nvtot_dim
     vmus_dim (2) = nmu_dim
@@ -578,6 +591,23 @@ contains
           status = nf90_put_att (ncid, phi2_vs_kxky_id, 'long_name', 'Electrostatic Potential vs (ky,kx,t)')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi2_vs_kxky_id, att='long_name')
        end if
+       if (write_moments) then
+          status = nf90_def_var &
+               (ncid, 'density', netcdf_real, moment_dim, density_id)
+          if (status /= nf90_noerr) call netcdf_error (status, var='density')
+          status = nf90_put_att (ncid, density_id, 'long_name', 'perturbed density vs (ky,kx,z,t)')
+          if (status /= nf90_noerr) call netcdf_error (status, ncid, density_id, att='long_name')
+          status = nf90_def_var &
+               (ncid, 'upar', netcdf_real, moment_dim, upar_id)
+          if (status /= nf90_noerr) call netcdf_error (status, var='upar')
+          status = nf90_put_att (ncid, upar_id, 'long_name', 'perturbed parallel flow vs (ky,kx,z,t)')
+          if (status /= nf90_noerr) call netcdf_error (status, ncid, upar_id, att='long_name')
+          status = nf90_def_var &
+               (ncid, 'temperature', netcdf_real, moment_dim, temperature_id)
+          if (status /= nf90_noerr) call netcdf_error (status, var='temperature')
+          status = nf90_put_att (ncid, temperature_id, 'long_name', 'perturbed temperature vs (ky,kx,z,t)')
+          if (status /= nf90_noerr) call netcdf_error (status, ncid, temperature_id, att='long_name')
+       end if
     end if
 
     if (write_gvmus) then
@@ -704,6 +734,55 @@ contains
 # endif
 
   end subroutine write_kspectra_nc
+
+  subroutine write_moments_nc (nout, density, upar, temperature)
+
+    use convert, only: c2r
+    use zgrid, only: nztot
+    use kt_grids, only: nakx, naky
+    use species, only: nspec
+# ifdef NETCDF
+    use netcdf, only: nf90_put_var
+# endif
+
+    implicit none
+
+    integer, intent (in) :: nout
+    complex, dimension (:,:,:,:), intent (in) :: density, upar, temperature
+
+# ifdef NETCDF
+    integer :: status
+    integer, dimension (6) :: start, count
+    real, dimension (:,:,:,:,:), allocatable :: mom_ri
+
+    start = 1
+    start(6) = nout
+    count(1) = 2
+    count(2) = naky
+    count(3) = nakx
+    count(4) = nztot
+    count(5) = nspec
+    count(6) = 1
+
+    allocate (mom_ri(2, naky, nakx, nztot, nspec))
+
+    call c2r (density, mom_ri)
+    status = nf90_put_var (ncid, density_id, mom_ri, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, density_id)
+
+    call c2r (upar, mom_ri)
+    status = nf90_put_var (ncid, upar_id, mom_ri, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, upar_id)
+
+    call c2r (temperature, mom_ri)
+    status = nf90_put_var (ncid, temperature_id, mom_ri, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, temperature_id)
+
+    deallocate (mom_ri)
+
+# endif
+
+  end subroutine write_moments_nc
 
   subroutine write_gvmus_nc (nout, g)
 

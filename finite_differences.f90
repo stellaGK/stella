@@ -15,7 +15,8 @@ module finite_differences
 
   interface fd3pt
      module procedure fd3pt_real
-     module procedure fd3pt_array
+     module procedure fd3pt_real_array
+     module procedure fd3pt_complex_array
   end interface
 
   interface fd5pt
@@ -41,6 +42,11 @@ module finite_differences
   interface second_order_centered_zed
      module procedure second_order_centered_zed_real
      module procedure second_order_centered_zed_complex
+  end interface
+
+  interface d2_3pt
+     module procedure d2_3pt_real
+     module procedure d2_3pt_complex
   end interface
 
 contains
@@ -653,7 +659,7 @@ contains
     
   end subroutine fd3pt_real
   
-  subroutine fd3pt_array (prof, profgrad, dr)
+  subroutine fd3pt_real_array (prof, profgrad, dr)
     
     implicit none
     
@@ -661,21 +667,56 @@ contains
     real, dimension (:), intent (out) :: profgrad
     
     integer :: ix, npts
-    real, dimension (:), allocatable :: aa, bb, cc
+    real :: a, b, c
     
     npts = size(prof)
-    allocate (aa(npts), bb(npts), cc(npts))
     
     do ix = 2, npts-1
        profgrad(ix) = ((prof(ix)-prof(ix-1))*dr(ix)/dr(ix-1) &
             + (prof(ix+1)-prof(ix))*dr(ix-1)/dr(ix)) / (dr(ix-1)+dr(ix))
     end do
-    profgrad(1) = (prof(2)-prof(1))/dr(1)
-    profgrad(npts) = (prof(npts)-prof(npts-1))/dr(npts-1)
+    ix = 1
+    a = -(2.*dr(1) + dr(2))/(dr(1)*(dr(1)+dr(2)))
+    b = (dr(1)+dr(2))/(dr(1)*dr(2))
+    c = -dr(1)/(dr(2)*(dr(1)+dr(2)))
+    profgrad(1) = a*prof(1)+b*prof(2)+c*prof(3)
+    ix = npts
+    a = dr(npts-1)/(dr(npts-2)*(dr(npts-2)+dr(npts-1)))
+    b = -(dr(npts-1)+dr(npts-2))/(dr(npts-2)*dr(npts-1))
+    c = (2.*dr(npts-1)+dr(npts-2))/(dr(npts-1)*(dr(npts-1)+dr(npts-2)))
+    profgrad(npts) = a*prof(npts-2) + b*prof(npts-1) + c*prof(npts)
     
-    deallocate (aa, bb, cc)
+  end subroutine fd3pt_real_array
+
+  subroutine fd3pt_complex_array (prof, profgrad, dr)
     
-  end subroutine fd3pt_array
+    implicit none
+    
+    complex, dimension (:), intent (in) :: prof
+    real, dimension (:), intent (in) :: dr
+    complex, dimension (:), intent (out) :: profgrad
+    
+    integer :: ix, npts
+    real :: a, b, c
+    
+    npts = size(prof)
+    
+    do ix = 2, npts-1
+       profgrad(ix) = ((prof(ix)-prof(ix-1))*dr(ix)/dr(ix-1) &
+            + (prof(ix+1)-prof(ix))*dr(ix-1)/dr(ix)) / (dr(ix-1)+dr(ix))
+    end do
+    ix = 1
+    a = -(2.*dr(1) + dr(2))/(dr(1)*(dr(1)+dr(2)))
+    b = (dr(1)+dr(2))/(dr(1)*dr(2))
+    c = -dr(1)/(dr(2)*(dr(1)+dr(2)))
+    profgrad(1) = a*prof(1)+b*prof(2)+c*prof(3)
+    ix = npts
+    a = dr(npts-1)/(dr(npts-2)*(dr(npts-2)+dr(npts-1)))
+    b = -(dr(npts-1)+dr(npts-2))/(dr(npts-2)*dr(npts-1))
+    c = (2.*dr(npts-1)+dr(npts-2))/(dr(npts-1)*(dr(npts-1)+dr(npts-2)))
+    profgrad(npts) = a*prof(npts-2) + b*prof(npts-1) + c*prof(npts)
+    
+  end subroutine fd3pt_complex_array
 
   ! boundary points are 2nd-order accurate (2-pt compact difference)
   ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
@@ -753,7 +794,7 @@ contains
 
   ! second derivative using centered differences
   ! second order accurate
-  subroutine d2_3pt (f, d2f, dr)
+  subroutine d2_3pt_real (f, d2f, dr)
 
     implicit none
 
@@ -761,7 +802,7 @@ contains
     real, dimension (:), intent (in) :: dr
     real, dimension (:), intent (out) :: d2f
 
-    real :: a, b, c
+    real :: a, b, c, d
     integer :: i, n
 
     n = size(f)
@@ -772,13 +813,76 @@ contains
        c = 2./(dr(i)*(dr(i)+dr(i-1)))
        d2f(i) = a*f(i-1)+b*f(i)+c*f(i+1)
     end do
-    ! FLAG -- this is a hack
-    ! do not anticipate needing 2nd derivatives
-    ! at first and last grid points
-    d2f(1) = d2f(2)
-    d2f(n) = d2f(n-1)
+    i = 1
+    a = (6.*dr(1)+4.*dr(2)+2.*dr(3)) &
+         / (dr(1)*(dr(1)+dr(2))*(dr(1)+dr(2)+dr(3)))
+    b = -(4.*(dr(1)+dr(2))+2.*dr(3)) &
+         / (dr(1)*dr(2)*(dr(2)+dr(3)))
+    c = (4.*dr(1)+2.*(dr(2)+dr(3))) &
+         / ((dr(2)+dr(1))*dr(2)*dr(3))
+    d = -(4.*dr(1)+2.*dr(2)) &
+         / ((dr(3)+dr(2)+dr(1))*(dr(3)+dr(2))*dr(3))
+    d2f(i) = a*f(1)+b*f(2)+c*f(3)+d*f(4)
+    i = n
+    a = -(4.*dr(n-1)+2.*dr(n-2)) &
+         / (dr(n-3)*(dr(n-3)+dr(n-2))*(dr(n-3)+dr(n-2)+dr(n-1)))
+    b = (4.*dr(n-1)+2.*(dr(n-2)+dr(n-3))) &
+         / (dr(n-3)*dr(n-2)*(dr(n-2)+dr(n-1)))
+    c = -(4.*(dr(n-1)+dr(n-2))+2.*dr(n-3)) &
+         / (dr(n-1)*dr(n-2)*(dr(n-2)+dr(n-3)))
+    d = (6.*dr(n-1)+4.*dr(n-2)+2.*dr(n-3)) &
+         / (dr(n-1)*(dr(n-1)+dr(n-2))*(dr(n-1)+dr(n-2)+dr(n-3)))
+    d2f(i) = a*f(n-3)+b*f(n-2)+c*f(n-1)+d*f(n)
 
-  end subroutine d2_3pt
+!     ! FLAG -- this is a hack
+!     ! do not anticipate needing 2nd derivatives
+!     ! at first and last grid points
+!     d2f(1) = d2f(2)
+!     d2f(n) = d2f(n-1)
+
+  end subroutine d2_3pt_real
+
+  subroutine d2_3pt_complex (f, d2f, dr)
+
+    implicit none
+
+    complex, dimension (:), intent (in) :: f
+    real, dimension (:), intent (in) :: dr
+    complex, dimension (:), intent (out) :: d2f
+
+    real :: a, b, c, d
+    integer :: i, n
+
+    n = size(f)
+
+    do i = 2, n-1
+       a = 2./(dr(i-1)*(dr(i)+dr(i-1)))
+       b = -2./(dr(i-1)*dr(i))
+       c = 2./(dr(i)*(dr(i)+dr(i-1)))
+       d2f(i) = a*f(i-1)+b*f(i)+c*f(i+1)
+    end do
+    i = 1
+    a = (6.*dr(1)+4.*dr(2)+2.*dr(3)) &
+         / (dr(1)*(dr(1)+dr(2))*(dr(1)+dr(2)+dr(3)))
+    b = -(4.*(dr(1)+dr(2))+2.*dr(3)) &
+         / (dr(1)*dr(2)*(dr(2)+dr(3)))
+    c = (4.*dr(1)+2.*(dr(2)+dr(3))) &
+         / ((dr(2)+dr(1))*dr(2)*dr(3))
+    d = -(4.*dr(1)+2.*dr(2)) &
+         / ((dr(3)+dr(2)+dr(1))*(dr(3)+dr(2))*dr(3))
+    d2f(i) = a*f(1)+b*f(2)+c*f(3)+d*f(4)
+    i = n
+    a = -(4.*dr(n-1)+2.*dr(n-2)) &
+         / (dr(n-3)*(dr(n-3)+dr(n-2))*(dr(n-3)+dr(n-2)+dr(n-1)))
+    b = (4.*dr(n-1)+2.*(dr(n-2)+dr(n-3))) &
+         / (dr(n-3)*dr(n-2)*(dr(n-2)+dr(n-1)))
+    c = -(4.*(dr(n-1)+dr(n-2))+2.*dr(n-3)) &
+         / (dr(n-1)*dr(n-2)*(dr(n-2)+dr(n-3)))
+    d = (6.*dr(n-1)+4.*dr(n-2)+2.*dr(n-3)) &
+         / (dr(n-1)*(dr(n-1)+dr(n-2))*(dr(n-1)+dr(n-2)+dr(n-3)))
+    d2f(i) = a*f(n-3)+b*f(n-2)+c*f(n-1)+d*f(n)
+
+  end subroutine d2_3pt_complex
 
   subroutine tridag_real (aa, bb, cc, sol)
     

@@ -7,7 +7,7 @@ module vpamu_grids
   public :: integrate_mu
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
-  public :: mu, nmu, wgts_mu
+  public :: mu, nmu, wgts_mu, dmu
   public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
   
   integer :: nvgrid, nvpa
@@ -21,6 +21,7 @@ module vpamu_grids
   real, dimension (:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
+  real, dimension (:), allocatable :: dmu
 
   ! vpa-mu related arrays that are declared here
   ! but allocated and filled elsewhere because they depend on z, etc.
@@ -34,8 +35,9 @@ module vpamu_grids
   end interface
 
   interface integrate_vmu
-     module procedure integrate_vmu_real
-     module procedure integrate_vmu_complex
+     module procedure integrate_vmu_local_real
+     module procedure integrate_vmu_local_complex
+     module procedure integrate_vmu_vmulo_complex
   end interface
 
   interface integrate_mu
@@ -229,7 +231,7 @@ contains
 
   end subroutine integrate_mu_nonlocal
 
-  subroutine integrate_vmu_real (g, iz, total)
+  subroutine integrate_vmu_local_real (g, iz, total)
 
     use geometry, only: bmag
 
@@ -249,9 +251,9 @@ contains
        end do
     end do
 
-  end subroutine integrate_vmu_real
+  end subroutine integrate_vmu_local_real
 
-  subroutine integrate_vmu_complex (g, iz, total)
+  subroutine integrate_vmu_local_complex (g, iz, total)
 
     use geometry, only: bmag
 
@@ -271,7 +273,39 @@ contains
        end do
     end do
 
-  end subroutine integrate_vmu_complex
+  end subroutine integrate_vmu_local_complex
+
+  ! integrave over v-space in vmu_lo
+  subroutine integrate_vmu_vmulo_complex (g, weights, total)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use zgrid, only: nzgrid
+    use geometry, only: bmag
+
+    implicit none
+
+    integer :: ivmu, iv, iz, is, imu
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (:), intent (in) :: weights
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: total
+
+    total = 0.
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do iz = -nzgrid, nzgrid
+          total(:,:,iz,is) = total(:,:,iz,is) + &
+               wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(:,:,iz,ivmu)*weights(is)
+       end do
+    end do
+
+    call sum_allreduce (total)
+
+  end subroutine integrate_vmu_vmulo_complex
 
   subroutine integrate_species_local_real (g, weights, iz, total)
 
@@ -407,17 +441,14 @@ contains
     
     implicit none
 
-    real, dimension (:), allocatable :: dmu
-
     ! allocate arrays and initialize to zero
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
        allocate (wgts_mu(nmu)) ; wgts_mu = 0.0
        allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu)) ; maxwell_mu = 0.0
+       allocate (dmu(nmu-1))
     end if
 
-    allocate (dmu(nmu-1)) ; dmu = 0.0
-    
 !    ! dvpe * vpe = d(2*mu*B(z=0)) * B/2B(z=0)
     ! dvpe * vpe = d(2*mu*B0) * B/2B0
     
@@ -441,7 +472,9 @@ contains
     ! this is the mu part of the v-space Maxwellian
     maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
 
-    deallocate (dmu)
+    dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
+    ! leave dmu(nmu) uninitialized. should never be used, so want 
+    ! valgrind or similar to return error if it is
 
   end subroutine init_mu_grid
 
@@ -452,6 +485,7 @@ contains
     if (allocated(mu)) deallocate (mu)
     if (allocated(wgts_mu)) deallocate (wgts_mu)
     if (allocated(maxwell_mu)) deallocate (maxwell_mu)
+    if (allocated(dmu)) deallocate (dmu)
 
   end subroutine finish_mu_grid
 
