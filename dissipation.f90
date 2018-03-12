@@ -154,11 +154,11 @@ contains
 
     ! use h = 0 at ghost cells beyond +/- vpa_max
     iv = 1
-    Dh(iv) = (0.5*h(iv+1)*(1.0+vpa(iv+1))-h(iv))/dvpa
+    Dh(iv) = (0.5*h(iv+1)*(1.0/dvpa+vpa(iv+1))-h(iv)/dvpa)/dvpa
     iv = nvpa
-    Dh(iv) = (-h(iv)+0.5*h(iv-1)*(1.0-vpa(iv-1)))/dvpa
+    Dh(iv) = (-h(iv)/dvpa+0.5*h(iv-1)*(1.0/dvpa-vpa(iv-1)))/dvpa
     do iv = 2, nvpa-1
-       Dh(iv) = (0.5*h(iv+1)*(1.0+vpa(iv+1))-h(iv)+0.5*h(iv-1)*(1.0-vpa(iv-1)))/dvpa
+       Dh(iv) = (0.5*h(iv+1)*(1.0/dvpa+vpa(iv+1))-h(iv)/dvpa+0.5*h(iv-1)*(1.0/dvpa-vpa(iv-1)))/dvpa
     end do
 
   end subroutine vpa_differential_operator
@@ -255,7 +255,7 @@ contains
     T_fac = spread(aj0v(:,ikxkyz),1,nvpa)*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
     call integrate_vmu (T_fac*h,iz,integral)
 
-    Ch = Ch + 2.0*T_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+    Ch = Ch + 4.0*T_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)/3.0
 
     deallocate (T_fac)
 

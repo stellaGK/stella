@@ -581,10 +581,12 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       g2(:,:,:,ivmu) = g2(:,:,:,ivmu)*(vpa(iv)**2+spread(spread(vperp2(1,:,imu),1,naky),2,nakx)-1.5)
+!       g2(:,:,:,ivmu) = 2.*g2(:,:,:,ivmu)*(vpa(iv)**2+spread(spread(vperp2(1,:,imu),1,naky),2,nakx)-1.5)/3.0
+       g2(:,:,:,ivmu) = g2(:,:,:,ivmu)*(vpa(iv)**2+spread(spread(vperp2(1,:,imu),1,naky),2,nakx))/1.5
     end do
     ! integrate to get dTs/Tr
-    call integrate_vmu (g2, spec%temp, temp)
+!    call integrate_vmu (g2, spec%temp, temp)
+    call integrate_vmu (g2, spec%temp*spec%dens, temp)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
