@@ -294,15 +294,6 @@ contains
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi)
        end if
-       if (write_moments) then
-          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_moments'
-          allocate (density(naky,nakx,nztot,nspec))
-          allocate (upar(naky,nakx,nztot,nspec))
-          allocate (temperature(naky,nakx,nztot,nspec))
-          call get_moments (gnew, density, upar, temperature)
-          call write_moments_nc (nout, density, upar, temperature)
-          deallocate (density, upar, temperature)
-       end if
        if (write_kspectra) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
           allocate (phi2_vs_kxky(naky,nakx))
@@ -310,6 +301,15 @@ contains
           call write_kspectra_nc (nout, phi2_vs_kxky)
           deallocate (phi2_vs_kxky)
        end if
+    end if
+    if (write_moments) then
+       if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_moments'
+       allocate (density(naky,nakx,nztot,nspec))
+       allocate (upar(naky,nakx,nztot,nspec))
+       allocate (temperature(naky,nakx,nztot,nspec))
+       call get_moments (gnew, density, upar, temperature)
+       if (proc0) call write_moments_nc (nout, density, upar, temperature)
+       deallocate (density, upar, temperature)
     end if
     if (write_gvmus) then
        allocate (gvmus(nvpa,nmu,nspec))
