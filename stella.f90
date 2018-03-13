@@ -170,7 +170,8 @@ contains
     use run_parameters, only: finish_run_parameters
     use zgrid, only: finish_zgrid
     use species, only: finish_species
-    use time_advance, only: time_gke, finish_time_advance
+    use time_advance, only: time_gke, time_parallel_nl
+    use time_advance, only: finish_time_advance
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
     use dissipation, only: time_collisions
@@ -230,7 +231,8 @@ contains
        write (*,fmt=101) 'collisions:', time_collisions(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_collisions(1,2)/60., 'min'
        write (*,fmt=101) 'ExB nonlin:', time_gke(1,7)/60., 'min'
-       write (*,fmt=101) 'parallel nonlin:', time_gke(1,10)/60., 'min'
+       write (*,fmt=101) 'parallel nonlin:', time_parallel_nl(1,1)/60., 'min'
+       write (*,fmt=101) '(redistribute):', time_parallel_nl(1,2)/60., 'min'
        write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'
        write (*,fmt=101) 'total explicit: ', time_gke(1,8)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'

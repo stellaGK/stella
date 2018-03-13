@@ -2,7 +2,7 @@ module time_advance
 
   public :: init_time_advance, finish_time_advance
   public :: advance_stella
-  public :: time_gke
+  public :: time_gke, time_parallel_nl
   public :: checksum
 
   private
@@ -54,7 +54,8 @@ module time_advance
   real, dimension (:,:), allocatable :: par_nl_fac
 
   ! needed for timing various pieces of gke solve
-  real, dimension (2,10) :: time_gke
+  real, dimension (2,9) :: time_gke
+  real, dimension (2,2) :: time_parallel_nl
 
   logical :: debug = .false.
 
@@ -1256,7 +1257,7 @@ contains
     complex, dimension (:,:), allocatable :: tmp
 
     ! alpha-component of magnetic drift (requires ky -> y)
-    if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')
+    if (proc0) call time_message(.false.,time_parallel_nl(:,1),' parallel nonlinearity advance')
 
     restart_time_step = .false.
 
@@ -1322,7 +1323,9 @@ contains
 
     ! we now have the advection velocity in vpa in (x,y) space
     ! next redistribute it so that (vpa,mu) are local
+    if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
     call scatter (xyz2vmu, g0xy, gxy_vmulocal)
+    if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
     ! advect_speed does not depend on vpa
     advect_speed = gxy_vmulocal(1,:,:)
 
@@ -1343,7 +1346,9 @@ contains
     deallocate (g0k)
 
     ! redistribute so that (vpa,mu) local
+    if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
     call scatter (xyz2vmu, g0xy, gxy_vmulocal)
+    if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
     
     allocate (dgdv(nvpa))
 
@@ -1365,7 +1370,9 @@ contains
     
     ! now that we have the full parallel nonlinearity in (x,y)-space
     ! need to redistribute so that (x,y) local for transforms
+    if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
     call gather (xyz2vmu, gxy_vmulocal, g0xy)
+    if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
 
     ! finished with gxy_vmulocal
     deallocate (gxy_vmulocal)
@@ -1409,7 +1416,7 @@ contains
 !       gout = code_dt*gout
     end if
 
-    if (proc0) call time_message(.false.,time_gke(:,10),' parallel nonlinearity advance')
+    if (proc0) call time_message(.false.,time_parallel_nl(:,1),' parallel nonlinearity advance')
 
   end subroutine advance_parallel_nonlinearity
 
