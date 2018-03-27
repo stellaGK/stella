@@ -62,6 +62,8 @@ contains
        end select
 
        do is = 1, nspec
+          ! initialize nu_ss' = 0 for all s'
+          spec(is)%vnew = 0.
           ! FLAG -- only contains self-collisions at the moment
           spec(is)%vnew(is) = vnew_ref*spec(is)%dens*spec(is)%z**4 &
                / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
