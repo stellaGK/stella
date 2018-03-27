@@ -338,7 +338,8 @@ contains
     use species, only: spec
     use geometry, only: bmag
     use zgrid, only: nzgrid
-    use kt_grids, only: naky, nakx, aky, reality
+    use extended_zgrid, only: ikxmod, nsegments, neigen
+    use kt_grids, only: naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: vpa, mu
     use dist_fn_arrays, only: gvmu
@@ -351,7 +352,16 @@ contains
 
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
     real :: a, b, kmin
-    integer :: ikxkyz, iz, iky, ikx, is
+    integer :: ikxkyz, iz, iky, ikx, is, ie, iseg
+
+    if (naky == 1 .and. nakx==1) then
+       if (proc0) then
+          write (*,*) 'noise initialization option is not suited for single mode simulations.'
+          write (*,*) 'using default initialization option'
+       end if
+       call ginit_default
+       return
+    end if
 
     if (proc0) then
        ! keep old (it, ik) loop order to get old results exactly: 
@@ -381,7 +391,7 @@ contains
        end do
 
        !Sort out the zonal/self-periodic modes
-       if (naky .ge. 1 .and. aky(1) < epsilon(0.0)) then
+       if (zonal_mode(1)) then
           ! ensure that the zonal modes are periodic
           phi(1,:,nzgrid) = phi(1,:,-nzgrid)
           
@@ -400,6 +410,22 @@ contains
        end if
        
     end if
+
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          ! enforce zero BC at ends of domain
+          if (.not.zonal_mode(iky)) then
+             phi(iky,ikxmod(1,ie,iky),-nzgrid) = 0.0
+             phi(iky,ikxmod(nsegments(ie,iky),ie,iky),nzgrid) = 0.0
+          end if
+          ! enforce equality of g values at duplicate zed points
+          if (nsegments(ie,iky) > 1) then
+             do iseg = 2, nsegments(ie,iky)
+                phi(iky,ikxmod(iseg,ie,iky),-nzgrid) = phi(iky,ikxmod(iseg-1,ie,iky),nzgrid)
+             end do
+          end if
+       end do
+    end do
 
     call broadcast (phi)
 
