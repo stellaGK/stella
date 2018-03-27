@@ -54,8 +54,8 @@ module time_advance
   real, dimension (:,:), allocatable :: par_nl_fac
 
   ! needed for timing various pieces of gke solve
-  real, dimension (2,9) :: time_gke
-  real, dimension (2,2) :: time_parallel_nl
+  real, dimension (2,9) :: time_gke = 0.
+  real, dimension (2,2) :: time_parallel_nl = 0.
 
   logical :: debug = .false.
 
@@ -583,7 +583,8 @@ contains
 
   end subroutine reset_dt
 
-  subroutine advance_stella (istep)
+!  subroutine advance_stella (istep)
+  subroutine advance_stella
 
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
@@ -592,7 +593,7 @@ contains
 
     implicit none
 
-    integer, intent (in) :: istep
+!    integer, intent (in) :: istep
 
     ! save value of phi at z=0
     ! for use in diagnostics (to obtain frequency)
@@ -603,7 +604,8 @@ contains
     ! this is needed to ensure 2nd order accuracy in time
 !    if (mod(istep,2)==1) then
        ! advance the explicit parts of the GKE
-    call advance_explicit (phi, apar, gnew)
+!    call advance_explicit (phi, apar, gnew)
+    call advance_explicit (gnew)
 
 !    call checksum (phi, phitot)
 !    call checksum (gnew, gtot)
@@ -636,7 +638,8 @@ contains
 
   end subroutine advance_stella
 
-  subroutine advance_explicit (phi, apar, g)
+!  subroutine advance_explicit (phi, apar, g)
+  subroutine advance_explicit (g)
 
     use mp, only: proc0
     use job_manage, only: time_message
@@ -647,7 +650,7 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+!    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
     integer :: ivmu, iv, sgn
@@ -840,11 +843,12 @@ contains
     use redistribute, only: gather, scatter
     use run_parameters, only: fphi, fapar
     use run_parameters, only: nonlinear, include_parallel_nonlinearity
+    use run_parameters, only: include_mirror, include_parallel_streaming
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ny
     use kt_grids, only: alpha_global
     use run_parameters, only: stream_implicit, mirror_implicit
-    use dissipation, only: include_collisions, advance_collisions
+    use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_explicit
@@ -887,7 +891,7 @@ contains
 
     if (.not.restart_time_step) then
        ! calculate and add mirror term to RHS of GK eqn
-       if (.not.mirror_implicit) then
+       if (include_mirror.and..not.mirror_implicit) then
           call advance_mirror_explicit (gin, rhs)
        end if
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
@@ -899,7 +903,7 @@ contains
        ! calculate and add omega_* term to RHS of GK eqn
        call advance_wstar_explicit (rhs)
 
-       if (include_collisions) call advance_collisions (gin, phi, rhs)
+       if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
        
        if (alpha_global) then
           call transform_y2ky (rhs_y, rhs_ky)
@@ -907,7 +911,7 @@ contains
        end if
        
        ! calculate and add parallel streaming term to RHS of GK eqn
-       if (.not.stream_implicit) call advance_parallel_streaming_explicit (gin, rhs_ky)
+       if (include_parallel_streaming.and..not.stream_implicit) call advance_parallel_streaming_explicit (gin, rhs_ky)
        ! calculate and add omega_* term to RHS of GK eqn
 !       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
 !       call advance_wstar_explicit (rhs_ky)
@@ -1029,7 +1033,7 @@ contains
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
-    use kt_grids, only: nakx, naky, ny
+    use kt_grids, only: nakx, naky, ny, akx
     use kt_grids, only: alpha_global
     use dist_fn_arrays, only: aj0x
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
@@ -1046,6 +1050,12 @@ contains
 
     ! psi-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
+
+    ! do not calculate if wdriftx terms are all zero
+    if (maxval(abs(akx))<epsilon(0.)) then
+       if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
+       return
+    end if
 
     allocate (dphidx(naky,nakx,-nzgrid:nzgrid))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -1715,6 +1725,8 @@ contains
     use parallel_streaming, only: advance_parallel_streaming_implicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_implicit
+    use dissipation, only: collisions_implicit, include_collisions
+    use dissipation, only: advance_collisions_implicit
 
     implicit none
 
@@ -1740,8 +1752,14 @@ contains
 !       call checksum (g, gtot)
 !       if (proc0) write (*,*) 'hyper', phitot, gtot
 
+       if (collisions_implicit .and. include_collisions) then
+          call advance_fields (g, phi, apar, dist='gbar')
+          call advance_collisions_implicit (mirror_implicit, phi, apar, g)
+          fields_updated = .false.
+       end if
+
        if (mirror_implicit .and. include_mirror) then
-          call advance_mirror_implicit (g)
+          call advance_mirror_implicit (collisions_implicit, g)
           fields_updated = .false.
        end if
 
@@ -1934,11 +1952,13 @@ contains
     use mirror_terms, only: finish_mirror
     use dist_redistribute, only: finish_redistribute
     use neoclassical_terms, only: finish_neoclassical_terms
+    use dissipation, only: finish_dissipation
 
     implicit none
 
     if (alpha_global) call finish_transforms
     call finish_redistribute
+    call finish_dissipation
     call finish_parallel_nonlinearity
     call finish_wstar
     call finish_wdrift

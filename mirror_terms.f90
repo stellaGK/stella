@@ -11,7 +11,7 @@ module mirror_terms
   private
 
   logical :: mirror_initialized = .false.
-  real, dimension (2,2) :: time_mirror
+  real, dimension (2,2) :: time_mirror = 0.
 
   integer, dimension (:,:), allocatable :: mirror_sign
   real, dimension (:,:,:,:), allocatable :: mirror
@@ -412,7 +412,7 @@ contains
   end subroutine add_mirror_term_global
 
   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-  subroutine advance_mirror_implicit (g)
+  subroutine advance_mirror_implicit (collisions_implicit, g)
 
     use constants, only: zi
     use mp, only: proc0
@@ -435,6 +435,7 @@ contains
 
     implicit none
 
+    logical, intent (in) :: collisions_implicit
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxyz, ikxkyz, ivmu
@@ -508,11 +509,14 @@ contains
        ! finally transform back from y to ky space
        call transform_y2ky (g0x, g)
     else
-       ! get g^{*} with v-space on processor
-       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
-       call scatter (kxkyz2vmu, g, gvmu)
-       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
-       
+       ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
+       if (.not.collisions_implicit) then
+          ! get g^{*} with v-space on processor
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+          call scatter (kxkyz2vmu, g, gvmu)
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       end if
+
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(1,1,1,1))
 
@@ -602,9 +606,6 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
-             ! TMP FOR TESTING -- MAB
-!             interp(:,imu,ikxkyz) = -99.0
-
              tmp0 = mirror_interp_loc(1,iz,imu,is)
              tmp1 = tmp0 - 2.0
              tmp2 = tmp0 - 1.0

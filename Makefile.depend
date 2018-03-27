@@ -66,11 +66,13 @@ convert.o:
 dissipation.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 fields.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 geometry.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -159,6 +161,7 @@ hdf_wrapper.o: \
 init_g.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
+	 extended_zgrid.o \
 	 file_utils.o \
 	 geometry.o \
 	 kt_grids.o \

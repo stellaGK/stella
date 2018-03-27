@@ -3,7 +3,8 @@ module fields
   implicit none
 
   public :: init_fields, finish_fields
-  public :: advance_fields, get_fields
+  public :: advance_fields, get_fields, get_fields_vmulo
+  public :: get_fields_by_spec
   public :: gamtot, gamtot3
   public :: time_field_solve
   public :: fields_updated
@@ -89,7 +90,7 @@ contains
        call sum_allreduce (gamtot)
        ! avoid divide by zero when kx=ky=0
        ! do not evolve this mode, so value is irrelevant
-       if (zonal_mode(1) .and. akx(1) < epsilon(0.)) gamtot(1,1,:) = 1.0
+       if (zonal_mode(1).and.akx(1)<epsilon(0.).and.has_electron_species(spec)) gamtot(1,1,:) = 1.0
 
        gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
 
@@ -413,6 +414,66 @@ contains
     end if
     
   end subroutine get_fields_vmulo
+
+  subroutine get_fields_by_spec (g, fld)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
+    use dist_fn_arrays, only: aj0v
+    use run_parameters, only: fphi
+    use geometry, only: dl_over_b
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: integrate_vmu
+    use kt_grids, only: nakx
+    use kt_grids, only: zonal_mode
+    use species, only: spec, nspec, has_electron_species
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+
+    implicit none
+    
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+
+    real :: wgt
+    complex, dimension (:,:), allocatable :: g0
+    integer :: ikxkyz, iz, ikx, iky, is
+    complex, dimension (nspec) :: tmp
+
+    fld = 0.
+    if (fphi > epsilon(0.0)) then
+       allocate (g0(nvpa,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          wgt = spec(is)%z*spec(is)%dens
+          g0 = spread(aj0v(:,ikxkyz),1,nvpa)*g(:,:,ikxkyz)*wgt
+          call integrate_vmu (g0, iz, fld(iky,ikx,iz,is))
+       end do
+       call sum_allreduce (fld)
+
+       fld = fld/gamtot_h
+
+       if (.not.has_electron_species(spec) .and. &
+            adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if (zonal_mode(1)) then
+             do ikx = 1, nakx
+                do is = 1, nspec
+                   tmp(is) = sum(dl_over_b*fld(1,ikx,:,is))
+                   fld(1,ikx,:,is) = fld(1,ikx,:,is) + tmp(is)*gamtot3_h
+                end do
+             end do
+          end if
+       end if
+
+       deallocate (g0)
+    end if
+
+  end subroutine get_fields_by_spec
 
   subroutine finish_fields
 

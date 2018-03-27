@@ -145,6 +145,8 @@ contains
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
     
+    if (.not.include_mirror) mirror_implicit = .false.
+
     code_delt_max = delt
 
     delt_saved = delt

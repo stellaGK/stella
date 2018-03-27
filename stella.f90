@@ -24,7 +24,8 @@ program stella
   if (debug) write (*,*) 'stella::advance_stella'
   do istep = 1, nstep
      if (debug) write (*,*) 'istep = ', istep
-     call advance_stella (istep)
+!     call advance_stella (istep)
+     call advance_stella
      call update_time
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
@@ -117,10 +118,10 @@ contains
     call init_dist_fn
     if (debug) write (6,*) 'stella::init_stella::init_extended_zgrid'
     call init_extended_zgrid
-    if (debug) write (6,*) 'stella::init_stella::init_time_advance'
-    call init_time_advance
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
+    if (debug) write (6,*) 'stella::init_stella::init_time_advance'
+    call init_time_advance
     if (debug) write(6,*) "stella::init_stella::ginit"
     call ginit (restarted)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
