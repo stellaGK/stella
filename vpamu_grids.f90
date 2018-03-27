@@ -9,6 +9,7 @@ module vpamu_grids
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu, dmu
   public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
+  public :: equally_spaced_mu_grid
   
   integer :: nvgrid, nvpa
   integer :: nmu
@@ -22,6 +23,7 @@ module vpamu_grids
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
   real, dimension (:), allocatable :: dmu
+  logical :: equally_spaced_mu_grid
 
   ! vpa-mu related arrays that are declared here
   ! but allocated and filled elsewhere because they depend on z, etc.
@@ -70,7 +72,8 @@ contains
 
     implicit none
 
-    namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max
+    namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
+         equally_spaced_mu_grid
 
     integer :: in_file
     logical :: exist
@@ -81,6 +84,7 @@ contains
        vpa_max = 3.0
        nmu = 12
        vperp_max = 3.0
+       equally_spaced_mu_grid = .false.
 
        in_file = input_unit_exist("vpamu_grids_parameters", exist)
        if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
@@ -91,6 +95,7 @@ contains
     call broadcast (vpa_max)
     call broadcast (nmu)
     call broadcast (vperp_max)
+    call broadcast (equally_spaced_mu_grid)
 
     nvpa = 2*nvgrid
 
@@ -441,6 +446,9 @@ contains
     
     implicit none
 
+    integer :: imu
+    real :: mu_max
+
     ! allocate arrays and initialize to zero
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
@@ -449,18 +457,34 @@ contains
        allocate (dmu(nmu-1))
     end if
 
-!    ! dvpe * vpe = d(2*mu*B(z=0)) * B/2B(z=0)
     ! dvpe * vpe = d(2*mu*B0) * B/2B0
+    if (equally_spaced_mu_grid) then
+       ! first get equally spaced grid in mu with max value
+       ! mu_max = vperp_max**2/(2*max(bmag))
+       mu_max = vperp_max**2/(2.*maxval(bmag))
+       ! want first grid point at dmu/2 to avoid mu=0 special point
+       ! dmu/2 + (nmu-1)*dmu = mu_max
+       ! so dmu = mu_max/(nmu-1/2)
+       dmu = mu_max/(nmu-0.5)
+       mu(1) = 0.5*dmu(1)
+       do imu = 2, nmu
+          mu(imu) = mu(1)+(imu-1)*dmu(1)
+       end do
+       ! do simplest thing to start
+       wgts_mu = dmu(1)
+    else
+       !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
+       ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
+       call get_laguerre_grids (mu, wgts_mu)
+       wgts_mu = wgts_mu*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
     
-!    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
-    ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
-    call get_laguerre_grids (mu, wgts_mu)
-!    wgts_mu = wgts_mu*exp(mu)/(2.*bmag(1,0))
-    wgts_mu = wgts_mu*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
-    
-!    ! get mu grid from grid in 2*mu*bmag(z=0)
-!    mu = mu/(2.*bmag(1,0))
-    mu = mu/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+       !    mu = mu/(2.*bmag(1,0))
+       mu = mu/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+
+       dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
+       ! leave dmu(nmu) uninitialized. should never be used, so want 
+       ! valgrind or similar to return error if it is
+    end if
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
@@ -471,10 +495,6 @@ contains
 
     ! this is the mu part of the v-space Maxwellian
     maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
-
-    dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
-    ! leave dmu(nmu) uninitialized. should never be used, so want 
-    ! valgrind or similar to return error if it is
 
   end subroutine init_mu_grid
 
