@@ -3,7 +3,7 @@ module fields
   implicit none
 
   public :: init_fields, finish_fields
-  public :: advance_fields, get_fields, get_fields_vmulo
+  public :: advance_fields, get_fields
   public :: get_fields_by_spec
   public :: gamtot, gamtot3
   public :: time_field_solve

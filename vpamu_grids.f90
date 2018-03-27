@@ -10,6 +10,7 @@ module vpamu_grids
   public :: mu, nmu, wgts_mu, dmu
   public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
   public :: equally_spaced_mu_grid
+  public :: set_vpa_weights
   
   integer :: nvgrid, nvpa
   integer :: nmu
@@ -17,7 +18,7 @@ module vpamu_grids
 
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: mu, wgts_mu
-  real, dimension (:), allocatable :: vpa, wgts_vpa
+  real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
   real, dimension (:), allocatable :: maxwell_vpa
   real, dimension (:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
@@ -117,6 +118,7 @@ contains
        ! wgts_vpa are the integration weights assigned
        ! to the parallel velocity grid points
        allocate (wgts_vpa(nvpa)) ; wgts_vpa = 0.0
+       allocate (wgts_vpa_default(nvpa)) ; wgts_vpa_default = 0.0
        ! this is the Maxwellian in vpa
        allocate (maxwell_vpa(nvpa)) ; maxwell_vpa = 0.0
        allocate (ztmax(nvpa,nspec)) ; ztmax = 0.0
@@ -182,7 +184,23 @@ contains
     ! divide by 2 to account for double-counting
     wgts_vpa = 0.5*wgts_vpa
 
+    wgts_vpa_default = wgts_vpa
+
   end subroutine init_vpa_grid
+
+  subroutine set_vpa_weights (conservative)
+
+    implicit none
+
+    logical, intent (in) :: conservative
+
+    if (conservative) then
+       wgts_vpa = dvpa
+    else
+       wgts_vpa = wgts_vpa_default
+    end if
+
+  end subroutine set_vpa_weights
 
   subroutine integrate_mu_local (iz, g, total)
 
@@ -432,6 +450,7 @@ contains
 
     if (allocated(vpa)) deallocate (vpa)
     if (allocated(wgts_vpa)) deallocate (wgts_vpa)
+    if (allocated(wgts_vpa_default)) deallocate (wgts_vpa_default)
     if (allocated(maxwell_vpa)) deallocate (maxwell_vpa)
     if (allocated(ztmax)) deallocate (ztmax)
 

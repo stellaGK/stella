@@ -17,13 +17,14 @@ module dissipation
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation
   real :: D_hyper
-  integer :: nresponse_vpa
-
-  real :: upfac
+  integer :: nresponse_vpa, nresponse_mu
 
   real, dimension (:,:), allocatable :: aa_vpa, bb_vpa, cc_vpa
+  real, dimension (:,:,:), allocatable :: aa_mu, bb_mu, cc_mu
   complex, dimension (:,:,:), allocatable :: vpadiff_response
   integer, dimension (:,:), allocatable :: vpadiff_idx
+  complex, dimension (:,:,:), allocatable :: mudiff_response
+  integer, dimension (:,:), allocatable :: mudiff_idx
 
   logical :: collisions_initialized = .false.
   real, dimension (2,2) :: time_collisions = 0.
@@ -48,7 +49,7 @@ contains
 
     namelist /dissipation/ hyper_dissipation, D_hyper, &
          include_collisions, collisions_implicit, &
-         momentum_conservation, energy_conservation, upfac
+         momentum_conservation, energy_conservation
 
     integer :: in_file
     logical :: dexist
@@ -60,7 +61,6 @@ contains
        energy_conservation = .true.
        hyper_dissipation = .false.
        D_hyper = 0.05
-       upfac = 1.0
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
@@ -72,7 +72,6 @@ contains
     call broadcast (collisions_implicit)
     call broadcast (hyper_dissipation)
     call broadcast (D_hyper)
-    call broadcast (upfac)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -95,9 +94,11 @@ contains
 
     if (collisions_implicit) then
        call init_vpadiff_matrix
-       call init_vpadiff_response
-!       call init_mudiff_matrix
-
+       call init_mudiff_matrix
+       if (momentum_conservation .or. energy_conservation) then
+          call init_vpadiff_conserve
+          call init_mudiff_conserve
+       end if
     else
        vnew_max = 0.0
        do is = 1, nspec
@@ -134,7 +135,54 @@ contains
 
   end subroutine init_vpadiff_matrix
 
-  subroutine init_vpadiff_response
+  subroutine init_mudiff_matrix
+
+    use stella_time, only: code_dt
+    use species, only: nspec, spec
+    use zgrid, only: nzgrid
+    use geometry, only: bmag
+    use vpamu_grids, only: dmu, mu, nmu
+
+    implicit none
+
+    integer :: is, iz
+    real, dimension (:), allocatable :: dmu_ghost, dmu_cell, mu_cell
+
+    ! add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
+    ! note assuming here that grid spacing for ghost cell is equal to
+    ! grid spacing for last non-ghost cell
+    allocate (dmu_ghost(nmu+1))
+    dmu_ghost(2:nmu) = dmu ; dmu_ghost(nmu+1) = dmu(nmu-1) ; dmu_ghost(1) = mu(1)
+    ! this is mu_{j+1/2} - mu_{j-1/2}
+    allocate (dmu_cell(nmu))
+    dmu_cell = 0.5*(dmu_ghost(:nmu)+dmu_ghost(2:))
+    ! this is mu at cell centres (including to left and right of mu grid boundary points)
+    allocate (mu_cell(nmu+1))
+    mu_cell(1) = 0.
+    mu_cell(2:nmu) = 0.5*(mu(1:nmu-1)+mu(2:))
+    mu_cell(nmu+1) = mu_cell(nmu)+dmu_ghost(nmu)
+
+    if (.not.allocated(aa_mu)) allocate (aa_mu(-nzgrid:nzgrid,nmu,nspec))
+    if (.not.allocated(bb_mu)) allocate (bb_mu(-nzgrid:nzgrid,nmu,nspec))
+    if (.not.allocated(cc_mu)) allocate (cc_mu(-nzgrid:nzgrid,nmu,nspec))
+
+    ! deal with boundary points (BC is f(mu)=0 beyond mu_max and collision operator vanishes for mu -> 0)
+    aa_mu(:,1,:) = 0.0 ; cc_mu(:,nmu,:) = 0.0
+    ! 2nd order centered differences for d/dvpa (1/2 dh/dvpa + vpa h)
+    do is = 1, nspec
+       do iz = -nzgrid, nzgrid
+          aa_mu(iz,2:,is) = -code_dt*spec(is)%vnew(is)*(mu_cell(2:nmu)/(bmag(1,iz)*dmu)-mu(:nmu-1))/dmu_cell(2:)
+          bb_mu(iz,:,is) = 1.0+code_dt*spec(is)%vnew(is) &
+               *(mu_cell(2:)/dmu_ghost(2:)+mu_cell(:nmu)/dmu_ghost(:nmu))/(dmu_cell*bmag(1,iz))
+          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*(mu_cell(2:nmu)/(bmag(1,iz)*dmu)-mu(2:nmu))/dmu_cell(:nmu-1)
+       end do
+    end do
+
+    deallocate (dmu_ghost, dmu_cell, mu_cell)
+
+  end subroutine init_mudiff_matrix
+
+  subroutine init_vpadiff_conserve
 
     use finite_differences, only: tridag
     use linear_solve, only: lu_decomposition
@@ -143,6 +191,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nmu, vpa, vperp2
+    use vpamu_grids, only: set_vpa_weights
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -154,6 +203,7 @@ contains
     integer :: ikxkyz, iky, ikx, iz, is
     integer :: imu
     integer :: idx
+    logical :: conservative_wgts
     real :: dum2
     complex, dimension (:,:,:), allocatable :: dum1
     complex, dimension (:,:,:,:), allocatable :: field
@@ -168,6 +218,10 @@ contains
     end if
     allocate (dum1(naky,nakx,-nzgrid:nzgrid))
     allocate (field(naky,nakx,-nzgrid:nzgrid,nspec))
+
+    ! set wgts to be equally spaced to ensure exact conservation properties
+    conservative_wgts = .true.
+    call set_vpa_weights (conservative_wgts)
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -309,9 +363,197 @@ contains
        call lu_decomposition (vpadiff_response(:,:,ikxkyz),vpadiff_idx(:,ikxkyz),dum2)
     end do
 
+    ! reset wgts to default setting
+    conservative_wgts = .false.
+    call set_vpa_weights (conservative_wgts)
+
     deallocate (dum1, field)
 
-  end subroutine init_vpadiff_response
+  end subroutine init_vpadiff_conserve
+
+  subroutine init_mudiff_conserve
+
+    use finite_differences, only: tridag
+    use linear_solve, only: lu_decomposition
+    use stella_time, only: code_dt
+    use species, only: nspec, spec
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: nmu, vpa, vperp2
+    use kt_grids, only: naky, nakx
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use dist_fn_arrays, only: aj0v, aj1v, gvmu, kperp2
+    use fields, only: get_fields, get_fields_by_spec
+    use geometry, only: bmag
+
+    implicit none
+
+    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: imu
+    integer :: idx
+    logical :: conservative_wgts
+    real :: dum2
+    complex, dimension (:,:,:), allocatable :: dum1
+    complex, dimension (:,:,:,:), allocatable :: field
+
+    if (.not.allocated(mudiff_response)) then
+       nresponse_mu = 1
+       if (momentum_conservation) nresponse_mu = nresponse_mu + nspec
+       if (energy_conservation) nresponse_mu = nresponse_mu + nspec
+       allocate (mudiff_response(nresponse_mu,nresponse_mu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+       mudiff_response = 0.
+       allocate (mudiff_idx(nresponse_mu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+    end if
+    allocate (dum1(naky,nakx,-nzgrid:nzgrid))
+    allocate (field(naky,nakx,-nzgrid:nzgrid,nspec))
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       do imu = 1, nmu
+          gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu)*aj0v(imu,ikxkyz)
+          call tridag (1, aa_mu(iz,:,is), bb_mu(iz,:,is), cc_mu(iz,:,is), gvmu(:,imu,ikxkyz))
+       end do
+    end do
+    
+    ! gvmu contains dhs/dphi
+    ! for phi equation, need 1-P[dhs/dphi]
+    ! for uperp equations, need -Us[dhs/dphi]
+    ! for energy conservation, need -Qs[dhs/dphi]
+    call get_fields (gvmu, field(:,:,:,1), dum1, dist='h')
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       mudiff_response(1,1,ikxkyz) = 1.0-field(iky,ikx,iz,1)
+    end do
+    idx = 2
+    if (momentum_conservation) then
+       call get_uperp (gvmu, field)
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,:)
+       end do
+       idx = idx + nspec
+    end if
+    if (energy_conservation) then
+       call get_temp_mu (gvmu, field)
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,:)
+       end do
+    end if
+    idx = 2
+
+    if (momentum_conservation) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,iz)*vperp2(1,iz,imu) &
+                  *(spec(is)%smz/bmag(1,iz))**2*aj1v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
+             call tridag (1, aa_mu(iz,:,is), bb_mu(iz,:,is), cc_mu(iz,:,is), gvmu(:,imu,ikxkyz))
+          end do
+       end do
+       ! gvmu now contains dhs/dupars
+       ! need to get -Ps[dhs/dupars] for phi equation
+       ! need to get 1-Us[dhs/dupars] for momentum conservation
+       ! need to get -Qs[dhs/dupars] for energy conservation
+       call get_fields_by_spec (gvmu, field)
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,:)
+       end do
+
+       call get_uperp (gvmu, field)
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          do is = 1, nspec
+             mudiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,is)
+          end do
+       end do
+
+       if (energy_conservation) then
+          call get_temp_mu (gvmu, field)
+          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+             iky = iky_idx(kxkyz_lo,ikxkyz)
+             ikx = ikx_idx(kxkyz_lo,ikxkyz)
+             iz = iz_idx(kxkyz_lo,ikxkyz)
+             do is = 1, nspec
+                mudiff_response(idx+is+nspec-1,idx+is-1,ikxkyz) = -field(iky,ikx,iz,is)
+             end do
+          end do
+       end if
+       idx = idx + nspec
+    end if
+
+    if (energy_conservation) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             gvmu(:,imu,ikxkyz) = code_dt*spec(is)%vnew(is)*(vpa**2+vperp2(1,iz,imu)-1.5) &
+                  *aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
+             call tridag (1, aa_mu(iz,:,is), bb_mu(iz,:,is), cc_mu(iz,:,is), gvmu(:,imu,ikxkyz))
+          end do
+       end do
+       ! gvmu now contains dhs/dQs
+       ! need to get -Ps[dhs/dQs] for phi equation
+       ! need to get 1-Us[dhs/dQs] for momentum conservation
+       ! need to get -Qs[dhs/dQs] for energy conservation
+       call get_fields_by_spec (gvmu, field)
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,:)
+       end do
+
+       if (momentum_conservation) then
+          call get_uperp (gvmu, field)
+          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+             iky = iky_idx(kxkyz_lo,ikxkyz)
+             ikx = ikx_idx(kxkyz_lo,ikxkyz)
+             iz = iz_idx(kxkyz_lo,ikxkyz)
+             do is = 1, nspec
+                mudiff_response(idx+is-1-nspec,idx+is-1,ikxkyz) = -field(iky,ikx,iz,is)
+             end do
+          end do
+       end if
+
+       call get_temp_mu (gvmu, field)
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          do is = 1, nspec
+             mudiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,is)
+          end do
+       end do
+    end if
+
+    ! now get LU decomposition for mudiff_response
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       call lu_decomposition (mudiff_response(:,:,ikxkyz),mudiff_idx(:,ikxkyz),dum2)
+    end do
+
+    deallocate (dum1, field)
+
+  end subroutine init_mudiff_conserve
 
   subroutine get_upar (g, fld)
 
@@ -348,6 +590,42 @@ contains
     call sum_allreduce (fld)
 
   end subroutine get_upar
+
+  subroutine get_uperp (g, fld)
+
+    use mp, only: sum_allreduce
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: integrate_vmu
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: vpa, vperp2
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use dist_fn_arrays, only: aj1v
+
+    implicit none
+
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+
+    integer :: ikxkyz, iky, ikx, iz, is
+    complex, dimension (:,:), allocatable :: g0
+
+    allocate (g0(nvpa,nmu))
+
+    fld = 0.
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
+       call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
+    end do
+    deallocate (g0)
+
+    call sum_allreduce (fld)
+
+  end subroutine get_uperp
 
   subroutine get_temp (g, fld)
 
@@ -386,6 +664,42 @@ contains
 
   end subroutine get_temp
 
+  subroutine get_temp_mu (g, fld)
+
+    use mp, only: sum_allreduce
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: integrate_vmu
+    use vpamu_grids, only: nvpa, nmu, vperp2
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use dist_fn_arrays, only: aj0v
+
+    implicit none
+
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+
+    integer :: ikxkyz, iky, ikx, iz, is
+    complex, dimension (:,:), allocatable :: g0
+
+    allocate (g0(nvpa,nmu))
+
+    fld = 0.
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       g0 = g(:,:,ikxkyz)*(spread(vperp2(1,iz,:),1,nvpa)-1.0) &
+            *spread(aj0v(:,ikxkyz),1,nvpa)
+       call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
+    end do
+    deallocate (g0)
+
+    call sum_allreduce (fld)
+
+  end subroutine get_temp_mu
+
   subroutine finish_dissipation
 
     implicit none
@@ -400,7 +714,7 @@ contains
 
     if (collisions_implicit) then
        call finish_vpadiff_matrix
-!       call finish_mudiff_matrix
+       call finish_mudiff_matrix
        call finish_vpadiff_response
     end if
 
@@ -418,6 +732,16 @@ contains
 
   end subroutine finish_vpadiff_matrix
 
+  subroutine finish_mudiff_matrix
+
+    implicit none
+
+    if (allocated(aa_mu)) deallocate (aa_mu)
+    if (allocated(bb_mu)) deallocate (bb_mu)
+    if (allocated(cc_mu)) deallocate (cc_mu)
+
+  end subroutine finish_mudiff_matrix
+
   subroutine finish_vpadiff_response
 
     implicit none
@@ -426,6 +750,15 @@ contains
     if (allocated(vpadiff_idx)) deallocate (vpadiff_idx)
 
   end subroutine finish_vpadiff_response
+
+  subroutine finish_mudiff_response
+
+    implicit none
+
+    if (allocated(mudiff_response)) deallocate (mudiff_response)
+    if (allocated(mudiff_idx)) deallocate (mudiff_idx)
+
+  end subroutine finish_mudiff_response
 
   subroutine advance_collisions_explicit (g, phi, gke_rhs)
 
@@ -438,6 +771,7 @@ contains
     use run_parameters, only: fphi
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: set_vpa_weights
     use geometry, only: bmag
     use stella_layouts, only: vmu_lo, kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
@@ -451,6 +785,7 @@ contains
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
     integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz
+    logical :: conservative_wgts
     complex, dimension (:), allocatable :: mucoll
     complex, dimension (:,:,:), allocatable :: coll
     complex, dimension (:,:,:,:), allocatable :: tmp_vmulo
@@ -458,6 +793,10 @@ contains
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
 
     allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    ! want exact conservation properties for collision operator
+    conservative_wgts = .true.
+    call set_vpa_weights (conservative_wgts)
 
     ! switch from g = <f> to h = f + Z*e*phi/T * F0
     tmp_vmulo = g
@@ -503,6 +842,10 @@ contains
     end do
 
     deallocate (tmp_vmulo)
+
+    ! reset to default integration wgts
+    conservative_wgts = .false.
+    call set_vpa_weights (conservative_wgts)
 
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
 
@@ -652,10 +995,53 @@ contains
 
   subroutine advance_collisions_implicit (mirror_implicit, phi, apar, g)
 
-    use mp, only: proc0, sum_allreduce
+    use mp, only: proc0
     use redistribute, only: gather, scatter
     use dist_redistribute, only: kxkyz2vmu
     use job_manage, only: time_message
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: set_vpa_weights
+    use stella_layouts, only: vmu_lo
+    use dist_fn_arrays, only: gvmu
+
+    implicit none
+
+    logical, intent (in) :: mirror_implicit
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+
+    logical :: conservative_wgts
+
+    if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
+
+    conservative_wgts = .true.
+    call set_vpa_weights (conservative_wgts)
+
+    if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+    call scatter (kxkyz2vmu, g, gvmu)
+    if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+
+    call advance_vpadiff_implicit (phi, apar, gvmu)
+    call advance_mudiff_implicit (phi, apar, gvmu)
+
+    if (.not.mirror_implicit) then
+       ! then take the results and remap again so ky,kx,z local.
+       if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+       call gather (kxkyz2vmu, gvmu, g)
+       if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+    end if
+
+    conservative_wgts = .false.
+    call set_vpa_weights (conservative_wgts)
+
+    if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
+    
+  end subroutine advance_collisions_implicit
+
+  subroutine advance_vpadiff_implicit (phi, apar, g)
+
+    use mp, only: sum_allreduce
+    use dist_redistribute, only: kxkyz2vmu
     use finite_differences, only: tridag
     use linear_solve, only: lu_back_substitution
     use stella_time, only: code_dt
@@ -664,17 +1050,17 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
+    use vpamu_grids, only: set_vpa_weights
     use kt_grids, only: naky, nakx
-    use stella_layouts, only: kxkyz_lo, vmu_lo
+    use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: g_to_h, gvmu, aj0v
-    use fields, only: get_fields, get_fields_vmulo
+    use fields, only: get_fields
 
     implicit none
 
-    logical, intent (in) :: mirror_implicit
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxkyz, iky, ikx, iz, is
     integer :: imu
@@ -683,22 +1069,12 @@ contains
     complex, dimension (:,:,:,:), allocatable :: flds
     complex, dimension (:,:,:), allocatable :: g_in
 
-    if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
-
-    if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
-    call scatter (kxkyz2vmu, g, gvmu)
-    if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
-
-    ! collision operator acts on h, not g
-!    call g_to_h (gvmu, phi, fphi)
-
-    ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
-    ! gvmu = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
-
     ! store input g for use later, as gvmu will be overwritten below
     allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     g_in = gvmu
 
+    ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
+    ! gvmu = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
@@ -735,9 +1111,6 @@ contains
        phi = flds(iky,ikx,iz,1)
     end do
     call sum_allreduce (phi)
-
-    ! then get phi^{n+1}
-!    phi = phi*vpadiff_response
 
     gvmu = g_in
 
@@ -776,18 +1149,124 @@ contains
     ! now get g^{n+1} from h^{n+1} and phi^{n+1}
     call g_to_h (gvmu, phi, -fphi)
 
-    if (.not.mirror_implicit) then
-       ! then take the results and remap again so ky,kx,z local.
-       if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
-       call gather (kxkyz2vmu, gvmu, g)
-       if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+    deallocate (g_in)
+
+  end subroutine advance_vpadiff_implicit
+
+  subroutine advance_mudiff_implicit (phi, apar, g)
+
+    use mp, only: sum_allreduce
+    use dist_redistribute, only: kxkyz2vmu
+    use finite_differences, only: tridag
+    use linear_solve, only: lu_back_substitution
+    use stella_time, only: code_dt
+    use run_parameters, only: fphi
+    use species, only: nspec, spec
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: nmu, nvpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
+    use vpamu_grids, only: set_vpa_weights
+    use kt_grids, only: naky, nakx
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use dist_fn_arrays, only: g_to_h, gvmu, aj0v
+    use fields, only: get_fields
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
+
+    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: imu
+    integer :: idx
+    real, dimension (:,:), allocatable :: tmp
+    complex, dimension (:,:,:,:), allocatable :: flds
+    complex, dimension (:,:,:), allocatable :: g_in
+
+    ! store input g for use later, as gvmu will be overwritten below
+    allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+    g_in = gvmu
+
+    ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
+    ! gvmu = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       is = is_idx(kxkyz_lo,ikxkyz)
+       do imu = 1, nmu
+          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+       end do
+    end do
+
+    allocate (flds(naky,nakx,-nzgrid:nzgrid,nresponse_vpa))
+
+    ! need to obtain phi^{n+1} and conservation terms using response matrix approach
+    ! first get phi_inh^{n+1}
+    call get_fields (gvmu, phi, apar, dist='h')
+    flds(:,:,:,1) = phi
+
+    idx = 2
+    ! get upar_inh^{n+1}
+    if (momentum_conservation) then
+       call get_upar (gvmu, flds(:,:,:,idx:idx+nspec-1))
+       idx = idx + nspec
     end if
+
+    ! get temp_inh^{n+1}
+    if (energy_conservation) call get_temp (gvmu, flds(:,:,:,idx:idx+nspec-1))
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       ! all is indices inside ikxkyz super-index have same info
+       ! no need to compute multiple times
+       is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
+       call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
+            flds(iky,ikx,iz,:))
+       phi = flds(iky,ikx,iz,1)
+    end do
+    call sum_allreduce (phi)
+
+    gvmu = g_in
+
+    ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + 2*dt*nu*J0*F0*(vpa*upar+(v^2-3/2)*temp)
+    ! first two terms added via g_to_h subroutine
+    call g_to_h (gvmu, phi, fphi)
+
+    allocate (tmp(nvpa,nmu))
+
+    if (momentum_conservation .or. energy_conservation) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          tmp = 2.0*code_dt*spec(is)%vnew(is) &
+               *spread(maxwell_vpa,2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:),1,nvpa)
+          if (momentum_conservation) &
+               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,is+1),2,nmu)
+          if (energy_conservation) &
+               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+               + tmp*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)*flds(iky,ikx,iz,idx+is-1)
+       end do
+    end if
+
+    deallocate (tmp, flds)
+
+    ! now invert system to get h^{n+1}
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       is = is_idx(kxkyz_lo,ikxkyz)
+       do imu = 1, nmu
+          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+       end do
+    end do
+
+    ! now get g^{n+1} from h^{n+1} and phi^{n+1}
+    call g_to_h (gvmu, phi, -fphi)
 
     deallocate (g_in)
 
-    if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
-    
-  end subroutine advance_collisions_implicit
+  end subroutine advance_mudiff_implicit
 
   subroutine advance_hyper_dissipation (g)
 
