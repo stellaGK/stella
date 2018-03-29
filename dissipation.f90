@@ -12,15 +12,17 @@ module dissipation
 
   private
 
-  logical :: include_collisions
+  logical :: include_collisions, vpa_operator, mu_operator
   logical :: collisions_implicit
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation
   real :: D_hyper
-  integer :: nresponse_vpa, nresponse_mu
+  integer :: nresponse_vpa = 1
+  integer :: nresponse_mu = 1
 
   real, dimension (:,:), allocatable :: aa_vpa, bb_vpa, cc_vpa
-  real, dimension (:,:,:), allocatable :: aa_mu, bb_mu, cc_mu
+  real, dimension (:,:,:), allocatable :: aa_mu, cc_mu
+  real, dimension (:,:), allocatable :: bb_mu
   complex, dimension (:,:,:), allocatable :: vpadiff_response
   integer, dimension (:,:), allocatable :: vpadiff_idx
   complex, dimension (:,:,:), allocatable :: mudiff_response
@@ -49,7 +51,8 @@ contains
 
     namelist /dissipation/ hyper_dissipation, D_hyper, &
          include_collisions, collisions_implicit, &
-         momentum_conservation, energy_conservation
+         momentum_conservation, energy_conservation, &
+         vpa_operator, mu_operator
 
     integer :: in_file
     logical :: dexist
@@ -59,6 +62,8 @@ contains
        collisions_implicit = .true.
        momentum_conservation = .true.
        energy_conservation = .true.
+       vpa_operator = .true.
+       mu_operator = .true.
        hyper_dissipation = .false.
        D_hyper = 0.05
 
@@ -67,9 +72,11 @@ contains
     end if
 
     call broadcast (include_collisions)
+    call broadcast (collisions_implicit)
     call broadcast (momentum_conservation)
     call broadcast (energy_conservation)
-    call broadcast (collisions_implicit)
+    call broadcast (vpa_operator)
+    call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
     call broadcast (D_hyper)
 
@@ -93,10 +100,12 @@ contains
     collisions_initialized = .true.
 
     if (collisions_implicit) then
-       call init_vpadiff_matrix
-       call init_mudiff_matrix
-       if (momentum_conservation .or. energy_conservation) then
+       if (vpa_operator) then
+          call init_vpadiff_matrix
           call init_vpadiff_conserve
+       end if
+       if (mu_operator) then
+          call init_mudiff_matrix
           call init_mudiff_conserve
        end if
     else
@@ -115,13 +124,18 @@ contains
     use stella_time, only: code_dt
     use species, only: nspec, spec
     use vpamu_grids, only: dvpa, vpa, nvpa
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use geometry, only: bmag
+    use dist_fn_arrays, only: kperp2
 
     implicit none
 
-    integer :: is
+    integer :: ikxkyz, iky, ikx, iz, is
 
     if (.not.allocated(aa_vpa)) allocate (aa_vpa(nvpa,nspec))
-    if (.not.allocated(bb_vpa)) allocate (bb_vpa(nvpa,nspec))
+!    if (.not.allocated(bb_vpa)) allocate (bb_vpa(nvpa,nspec))
+    if (.not.allocated(bb_vpa)) allocate (bb_vpa(nvpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     if (.not.allocated(cc_vpa)) allocate (cc_vpa(nvpa,nspec))
 
     ! deal with boundary points (BC is f(vpa)=0 beyond +/- vpa_max)
@@ -129,8 +143,17 @@ contains
     ! 2nd order centered differences for d/dvpa (1/2 dh/dvpa + vpa h)
     do is = 1, nspec
        aa_vpa(2:,is) = -code_dt*spec(is)%vnew(is)*0.5*(1.0/dvpa-vpa(:nvpa-1))/dvpa
-       bb_vpa(:,is) = 1.0+code_dt*spec(is)%vnew(is)/dvpa**2
+!       bb_vpa(:,is) = 1.0+code_dt*spec(is)%vnew(is)/dvpa**2
        cc_vpa(:nvpa-1,is) = -code_dt*spec(is)%vnew(is)*0.5*(1.0/dvpa+vpa(2:))/dvpa
+    end do
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       bb_vpa(:,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
+            * (0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 + 1./dvpa**2)
     end do
 
   end subroutine init_vpadiff_matrix
@@ -142,40 +165,61 @@ contains
     use zgrid, only: nzgrid
     use geometry, only: bmag
     use vpamu_grids, only: dmu, mu, nmu
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use dist_fn_arrays, only: kperp2
 
     implicit none
 
-    integer :: is, iz
+    integer :: ikxkyz, iky, ikx, iz, is
+    ! TMP FOR TESTING -- MAB
+!    integer :: imu
+
     real, dimension (:), allocatable :: dmu_ghost, dmu_cell, mu_cell
 
     ! add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
     ! note assuming here that grid spacing for ghost cell is equal to
     ! grid spacing for last non-ghost cell
-    allocate (dmu_ghost(nmu+1))
-    dmu_ghost(2:nmu) = dmu ; dmu_ghost(nmu+1) = dmu(nmu-1) ; dmu_ghost(1) = mu(1)
+    allocate (dmu_ghost(nmu))
+    dmu_ghost(:nmu-1) = dmu ; dmu_ghost(nmu) = dmu(nmu-1)
+    ! this is mu at cell centres (including to left and right of mu grid boundary points)
+    allocate (mu_cell(nmu))
+    mu_cell(:nmu-1) = 0.5*(mu(:nmu-1)+mu(2:))
+    mu_cell(nmu) = mu(nmu)+0.5*dmu(nmu-1)
     ! this is mu_{j+1/2} - mu_{j-1/2}
     allocate (dmu_cell(nmu))
-    dmu_cell = 0.5*(dmu_ghost(:nmu)+dmu_ghost(2:))
-    ! this is mu at cell centres (including to left and right of mu grid boundary points)
-    allocate (mu_cell(nmu+1))
-    mu_cell(1) = 0.
-    mu_cell(2:nmu) = 0.5*(mu(1:nmu-1)+mu(2:))
-    mu_cell(nmu+1) = mu_cell(nmu)+dmu_ghost(nmu)
+    dmu_cell(1) = mu_cell(1)
+    dmu_cell(2:) = mu_cell(2:)-mu_cell(:nmu-1)
 
     if (.not.allocated(aa_mu)) allocate (aa_mu(-nzgrid:nzgrid,nmu,nspec))
-    if (.not.allocated(bb_mu)) allocate (bb_mu(-nzgrid:nzgrid,nmu,nspec))
+    if (.not.allocated(bb_mu)) allocate (bb_mu(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     if (.not.allocated(cc_mu)) allocate (cc_mu(-nzgrid:nzgrid,nmu,nspec))
 
     ! deal with boundary points (BC is f(mu)=0 beyond mu_max and collision operator vanishes for mu -> 0)
     aa_mu(:,1,:) = 0.0 ; cc_mu(:,nmu,:) = 0.0
-    ! 2nd order centered differences for d/dvpa (1/2 dh/dvpa + vpa h)
+    ! 2nd order centered differences for dt * nu * d/dmu (mu/B*dh/dmu + 2*mu*h)
     do is = 1, nspec
        do iz = -nzgrid, nzgrid
-          aa_mu(iz,2:,is) = -code_dt*spec(is)%vnew(is)*(mu_cell(2:nmu)/(bmag(1,iz)*dmu)-mu(:nmu-1))/dmu_cell(2:)
-          bb_mu(iz,:,is) = 1.0+code_dt*spec(is)%vnew(is) &
-               *(mu_cell(2:)/dmu_ghost(2:)+mu_cell(:nmu)/dmu_ghost(:nmu))/(dmu_cell*bmag(1,iz))
-          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*(mu_cell(2:nmu)/(bmag(1,iz)*dmu)-mu(2:nmu))/dmu_cell(:nmu-1)
+          aa_mu(iz,2:,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(1,iz)*dmu)-1.0)/dmu_cell(2:)
+          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(1,iz)*dmu)+1.0)/dmu_cell(:nmu-1)
        end do
+    end do
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       bb_mu(1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
+            *( 0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 &
+            + 1.0/(dmu(1)*bmag(1,iz)) - 1.0)
+       bb_mu(2:nmu-1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
+            *( 0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 &
+            + (mu_cell(2:nmu-1)/dmu(2:)+mu_cell(:nmu-2)/dmu(:nmu-2)) &
+            /(dmu_cell(2:nmu-1)*bmag(1,iz)) - 1.0)
+       bb_mu(nmu,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
+            *( 0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 &
+            + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(1,iz)) + 1.0)/dmu_cell(nmu))
     end do
 
     deallocate (dmu_ghost, dmu_cell, mu_cell)
@@ -230,7 +274,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu)*aj0v(imu,ikxkyz)
-          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+          call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
        end do
     end do
 
@@ -274,7 +318,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
              gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*vpa*aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
-             call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+             call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
           end do
        end do
        ! gvmu now contains dhs/dupars
@@ -320,7 +364,7 @@ contains
           do imu = 1, nmu
              gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*(vpa**2+vperp2(1,iz,imu)-1.5) &
                   *aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
-             call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+             call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
           end do
        end do
        ! gvmu now contains dhs/dQs
@@ -379,7 +423,7 @@ contains
     use species, only: nspec, spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
-    use vpamu_grids, only: nmu, vpa, vperp2
+    use vpamu_grids, only: nvpa, vpa, vperp2
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -390,9 +434,8 @@ contains
     implicit none
 
     integer :: ikxkyz, iky, ikx, iz, is
-    integer :: imu
+    integer :: iv
     integer :: idx
-    logical :: conservative_wgts
     real :: dum2
     complex, dimension (:,:,:), allocatable :: dum1
     complex, dimension (:,:,:,:), allocatable :: field
@@ -413,9 +456,9 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       do imu = 1, nmu
-          gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu)*aj0v(imu,ikxkyz)
-          call tridag (1, aa_mu(iz,:,is), bb_mu(iz,:,is), cc_mu(iz,:,is), gvmu(:,imu,ikxkyz))
+       do iv = 1, nvpa
+          gvmu(iv,:,ikxkyz) = ztmax(iv,is)*maxwell_mu(1,iz,:)*aj0v(:,ikxkyz)
+          call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
        end do
     end do
     
@@ -459,10 +502,10 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          do imu = 1, nmu
-             gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,iz)*vperp2(1,iz,imu) &
-                  *(spec(is)%smz/bmag(1,iz))**2*aj1v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
-             call tridag (1, aa_mu(iz,:,is), bb_mu(iz,:,is), cc_mu(iz,:,is), gvmu(:,imu,ikxkyz))
+          do iv = 1, nvpa
+             gvmu(iv,:,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,iz)*vperp2(1,iz,:) &
+                  *(spec(is)%smz/bmag(1,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(1,iz,:)
+             call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
        ! gvmu now contains dhs/dupars
@@ -505,10 +548,10 @@ contains
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          do imu = 1, nmu
-             gvmu(:,imu,ikxkyz) = code_dt*spec(is)%vnew(is)*(vpa**2+vperp2(1,iz,imu)-1.5) &
-                  *aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
-             call tridag (1, aa_mu(iz,:,is), bb_mu(iz,:,is), cc_mu(iz,:,is), gvmu(:,imu,ikxkyz))
+          do iv = 1, nvpa
+             gvmu(iv,:,ikxkyz) = 2.0*code_dt*spec(is)%vnew(is)*(vpa(iv)**2+vperp2(1,iz,:)-1.5) &
+                  *aj0v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(1,iz,:)
+             call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
        ! gvmu now contains dhs/dQs
@@ -597,7 +640,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: vperp2
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: aj1v
@@ -618,7 +661,8 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
+!       g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
+       g0 = g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
        call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
     end do
     deallocate (g0)
@@ -691,7 +735,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        g0 = g(:,:,ikxkyz)*(spread(vperp2(1,iz,:),1,nvpa)-1.0) &
-            *spread(aj0v(:,ikxkyz),1,nvpa)
+            *spread(aj0v(:,ikxkyz),1,nvpa)/1.5
        call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
     end do
     deallocate (g0)
@@ -716,6 +760,7 @@ contains
        call finish_vpadiff_matrix
        call finish_mudiff_matrix
        call finish_vpadiff_response
+       call finish_mudiff_response
     end if
 
     collisions_initialized = .false.
@@ -818,13 +863,17 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       do imu = 1, nmu
-          call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz)) 
-       end do      
-       do iv = 1, nvpa
-          call mu_differential_operator (iz, gvmu(iv,:,ikxkyz), mucoll)
-          coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
-       end do
+       if (vpa_operator) then
+          do imu = 1, nmu
+             call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz)) 
+          end do
+       end if
+       if (mu_operator) then
+          do iv = 1, nvpa
+             call mu_differential_operator (iz, gvmu(iv,:,ikxkyz), mucoll)
+             coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
+          end do
+       end if
        if (momentum_conservation) call conserve_momentum (iky, ikx, iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
        if (energy_conservation) call conserve_energy (iz, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
        ! save memory by using gvmu and deallocating coll below
@@ -1021,8 +1070,8 @@ contains
     call scatter (kxkyz2vmu, g, gvmu)
     if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
 
-    call advance_vpadiff_implicit (phi, apar, gvmu)
-    call advance_mudiff_implicit (phi, apar, gvmu)
+    if (vpa_operator) call advance_vpadiff_implicit (phi, apar, gvmu)
+    if (mu_operator) call advance_mudiff_implicit (phi, apar, gvmu)
 
     if (.not.mirror_implicit) then
        ! then take the results and remap again so ky,kx,z local.
@@ -1041,7 +1090,6 @@ contains
   subroutine advance_vpadiff_implicit (phi, apar, g)
 
     use mp, only: sum_allreduce
-    use dist_redistribute, only: kxkyz2vmu
     use finite_differences, only: tridag
     use linear_solve, only: lu_back_substitution
     use stella_time, only: code_dt
@@ -1054,7 +1102,7 @@ contains
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: g_to_h, gvmu, aj0v
+    use dist_fn_arrays, only: g_to_h, aj0v
     use fields, only: get_fields
 
     implicit none
@@ -1069,16 +1117,16 @@ contains
     complex, dimension (:,:,:,:), allocatable :: flds
     complex, dimension (:,:,:), allocatable :: g_in
 
-    ! store input g for use later, as gvmu will be overwritten below
+    ! store input g for use later, as g will be overwritten below
     allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-    g_in = gvmu
+    g_in = g
 
     ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
-    ! gvmu = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
+    ! g = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+          call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), g(:,imu,ikxkyz))
        end do
     end do
 
@@ -1086,18 +1134,18 @@ contains
 
     ! need to obtain phi^{n+1} and conservation terms using response matrix approach
     ! first get phi_inh^{n+1}
-    call get_fields (gvmu, phi, apar, dist='h')
+    call get_fields (g, phi, apar, dist='h')
     flds(:,:,:,1) = phi
 
     idx = 2
     ! get upar_inh^{n+1}
     if (momentum_conservation) then
-       call get_upar (gvmu, flds(:,:,:,idx:idx+nspec-1))
+       call get_upar (g, flds(:,:,:,idx:idx+nspec-1))
        idx = idx + nspec
     end if
 
     ! get temp_inh^{n+1}
-    if (energy_conservation) call get_temp (gvmu, flds(:,:,:,idx:idx+nspec-1))
+    if (energy_conservation) call get_temp (g, flds(:,:,:,idx:idx+nspec-1))
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -1112,11 +1160,11 @@ contains
     end do
     call sum_allreduce (phi)
 
-    gvmu = g_in
+    g = g_in
 
     ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + 2*dt*nu*J0*F0*(vpa*upar+(v^2-3/2)*temp)
     ! first two terms added via g_to_h subroutine
-    call g_to_h (gvmu, phi, fphi)
+    call g_to_h (g, phi, fphi)
 
     allocate (tmp(nvpa,nmu))
 
@@ -1129,9 +1177,9 @@ contains
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
                *spread(maxwell_vpa,2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:),1,nvpa)
           if (momentum_conservation) &
-               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,is+1),2,nmu)
+               g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,is+1),2,nmu)
           if (energy_conservation) &
-               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+               g(:,:,ikxkyz) = g(:,:,ikxkyz) &
                + tmp*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)*flds(iky,ikx,iz,idx+is-1)
        end do
     end if
@@ -1142,12 +1190,12 @@ contains
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+          call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), g(:,imu,ikxkyz))
        end do
     end do
 
     ! now get g^{n+1} from h^{n+1} and phi^{n+1}
-    call g_to_h (gvmu, phi, -fphi)
+    call g_to_h (g, phi, -fphi)
 
     deallocate (g_in)
 
@@ -1156,7 +1204,6 @@ contains
   subroutine advance_mudiff_implicit (phi, apar, g)
 
     use mp, only: sum_allreduce
-    use dist_redistribute, only: kxkyz2vmu
     use finite_differences, only: tridag
     use linear_solve, only: lu_back_substitution
     use stella_time, only: code_dt
@@ -1169,8 +1216,12 @@ contains
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: g_to_h, gvmu, aj0v
+    use dist_fn_arrays, only: g_to_h, aj0v, aj1v, kperp2
     use fields, only: get_fields
+    use geometry, only: bmag
+
+    ! TMP FOR TESTING
+!    use vpamu_grids, only: mu
 
     implicit none
 
@@ -1178,41 +1229,57 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxkyz, iky, ikx, iz, is
-    integer :: imu
+    integer :: iv
     integer :: idx
+
+    ! TMP FOR TESTING 
+!    integer :: imu
+
     real, dimension (:,:), allocatable :: tmp
     complex, dimension (:,:,:,:), allocatable :: flds
     complex, dimension (:,:,:), allocatable :: g_in
 
-    ! store input g for use later, as gvmu will be overwritten below
+    ! store input g for use later, as g will be overwritten below
     allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-    g_in = gvmu
+    g_in = g
 
     ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
-    ! gvmu = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
+    ! g = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       do imu = 1, nmu
-          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+       ! TMP FOR TESTING
+!       do imu = 1, nmu
+!          g(:,imu,ikxkyz) = maxwell_vpa*maxwell_mu(1,iz,imu)
+!       end do
+       do iv = 1, nvpa
+          call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), g(iv,:,ikxkyz))
        end do
+       ! TMP FOR TESTING
+!       iv = nvpa/2
+!       do imu = 1, nmu
+!          write (*,*) 'ggg', mu(imu), real(g(iv,imu,ikxkyz)), aimag(g(iv,imu,ikxkyz)), maxwell_vpa(iv)*maxwell_mu(1,iz,imu)
+!       end do
     end do
 
-    allocate (flds(naky,nakx,-nzgrid:nzgrid,nresponse_vpa))
+    
+
+    allocate (flds(naky,nakx,-nzgrid:nzgrid,nresponse_mu))
 
     ! need to obtain phi^{n+1} and conservation terms using response matrix approach
     ! first get phi_inh^{n+1}
-    call get_fields (gvmu, phi, apar, dist='h')
+    call get_fields (g, phi, apar, dist='h')
     flds(:,:,:,1) = phi
 
     idx = 2
     ! get upar_inh^{n+1}
     if (momentum_conservation) then
-       call get_upar (gvmu, flds(:,:,:,idx:idx+nspec-1))
+       call get_uperp (g, flds(:,:,:,idx:idx+nspec-1))
        idx = idx + nspec
     end if
 
     ! get temp_inh^{n+1}
-    if (energy_conservation) call get_temp (gvmu, flds(:,:,:,idx:idx+nspec-1))
+    if (energy_conservation) call get_temp_mu (g, flds(:,:,:,idx:idx+nspec-1))
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -1221,17 +1288,17 @@ contains
        ! all is indices inside ikxkyz super-index have same info
        ! no need to compute multiple times
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
-       call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
+       call lu_back_substitution (mudiff_response(:,:,ikxkyz), mudiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,:))
        phi = flds(iky,ikx,iz,1)
     end do
     call sum_allreduce (phi)
 
-    gvmu = g_in
+    g = g_in
 
-    ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + 2*dt*nu*J0*F0*(vpa*upar+(v^2-3/2)*temp)
+    ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + ...
     ! first two terms added via g_to_h subroutine
-    call g_to_h (gvmu, phi, fphi)
+    call g_to_h (g, phi, fphi)
 
     allocate (tmp(nvpa,nmu))
 
@@ -1242,27 +1309,31 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
-               *spread(maxwell_vpa,2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:),1,nvpa)
+               *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
           if (momentum_conservation) &
-               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,is+1),2,nmu)
+               g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,iz) &
+               *spread(vperp2(1,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(1,iz))**2 &
+               *flds(iky,ikx,iz,is+1)
           if (energy_conservation) &
-               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
-               + tmp*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)*flds(iky,ikx,iz,idx+is-1)
+               g(:,:,ikxkyz) = g(:,:,ikxkyz) &
+               + flds(iky,ikx,iz,idx+is-1)*tmp*spread(aj0v(:,ikxkyz),1,nvpa) &
+               *(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
        end do
     end if
-
+    
     deallocate (tmp, flds)
 
     ! now invert system to get h^{n+1}
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       do imu = 1, nmu
-          call tridag (1, aa_vpa(:,is), bb_vpa(:,is), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
+       do iv = 1, nvpa
+          call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), g(iv,:,ikxkyz))
        end do
     end do
 
     ! now get g^{n+1} from h^{n+1} and phi^{n+1}
-    call g_to_h (gvmu, phi, -fphi)
+    call g_to_h (g, phi, -fphi)
 
     deallocate (g_in)
 
