@@ -7,13 +7,22 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-#infile = '/Users/michaelbarnes/Documents/stella_data/cyclone/nl_ae/ae_cyclone_nl.out.nc'
-infile = '/Users/michaelbarnes/codes/stella/runs/collisions/conserve_hres.out.nc'
+infile = '/Users/michaelbarnes/Documents/stella_data/parallel_nonlinearity/tprim1p5_nopnl/jet92404_nu0p005_tprim1p5_fprim0p7_nl.out.nc'
+#infile = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/jet92404_base/jet92404_base.out.nc'
+#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_impcoll.out.nc'
+#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_expcoll.out.nc'
+#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/mu_conserve.out.nc'
+#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/vpadiff.out.nc'
 #infile = '../stella.out.nc'
 print()
 #outdir = input("Path for output: ")
-#outdir = '/Users/michaelbarnes/codes/gs2/runs/flow_shear_tests/nofs01_figs/'
-outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/conserve_hres_figures/'
+outdir = '/Users/michaelbarnes/Documents/stella_data/parallel_nonlinearity/tprim1p5_nopnl/'
+#outdir = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/jet92404_base/jet92404_base_figures/'
+#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/conserve_energy_figures/'
+#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_impcoll_figures/'
+#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_expcoll_figures/'
+#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/mu_conserve_figures/'
+#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/vpadiff_figures/'
 ncfile = netcdf.netcdf_file(infile,'r')
 
 print()
@@ -33,6 +42,8 @@ kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
 
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])
+nzed = zed.size
+iz0 = nzed//2+1
 
 # get time grid
 time = np.copy(ncfile.variables['t'][:])
