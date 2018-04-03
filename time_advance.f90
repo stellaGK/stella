@@ -1752,11 +1752,8 @@ contains
 !       call checksum (g, gtot)
 !       if (proc0) write (*,*) 'hyper', phitot, gtot
 
-       if (collisions_implicit .and. include_collisions) then
-          call advance_fields (g, phi, apar, dist='gbar')
-          call advance_collisions_implicit (mirror_implicit, phi, apar, g)
-          fields_updated = .false.
-       end if
+       if (collisions_implicit .and. include_collisions) &
+            call advance_collisions_implicit (mirror_implicit, phi, apar, g)
 
        if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (collisions_implicit, g)
