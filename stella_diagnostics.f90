@@ -4,6 +4,7 @@ module stella_diagnostics
 
   public :: init_stella_diagnostics, finish_stella_diagnostics
   public :: diagnose_stella
+  public :: nsave
 
   private
 
@@ -679,13 +680,25 @@ contains
   subroutine finish_stella_diagnostics
 
     use mp, only: proc0
+    use redistribute, only: scatter
     use stella_io, only: finish_stella_io
+    use run_parameters, only: fphi, fapar
+    use stella_time, only: code_dt, code_time
+    use stella_save, only: stella_save_for_restart
+    use dist_redistribute, only: kxkyz2vmu
+    use dist_fn_arrays, only: gnew, gvmu
 
     implicit none
+
+    integer :: istatus
 
     if (proc0) then
        call write_final_ascii_files
        call close_loop_ascii_files
+    end if
+    if (save_for_restart) then
+        call scatter (kxkyz2vmu, gnew, gvmu)
+        call stella_save_for_restart (gvmu, code_time, code_dt, istatus, fphi, fapar, .true.)
     end if
     call finish_stella_io
     call finish_averages

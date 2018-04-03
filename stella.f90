@@ -1,10 +1,14 @@
 program stella
 
+  use redistribute, only: scatter
   use job_manage, only: time_message, checkstop
-  use run_parameters, only: nstep
-  use stella_time, only: update_time
+  use run_parameters, only: nstep, fphi, fapar
+  use stella_time, only: update_time, code_time, code_dt
+  use dist_redistribute, only: kxkyz2vmu
   use time_advance, only: advance_stella
-  use stella_diagnostics, only: diagnose_stella
+  use stella_diagnostics, only: diagnose_stella, nsave
+  use stella_save, only: stella_save_for_restart
+  use dist_fn_arrays, only: gnew, gvmu
 
   implicit none
 
@@ -12,6 +16,7 @@ program stella
   logical :: stop_stella = .false.
 
   integer :: istep
+  integer :: istatus
   real, dimension (2) :: time_init = 0.
   real, dimension (2) :: time_diagnostics = 0.
   real, dimension (2) :: time_total = 0.
@@ -26,6 +31,10 @@ program stella
      if (debug) write (*,*) 'istep = ', istep
 !     call advance_stella (istep)
      call advance_stella
+     if (nsave > 0 .and. mod(istep,nsave)==0) then
+        call scatter (kxkyz2vmu, gnew, gvmu)
+        call stella_save_for_restart (gvmu, code_time, code_dt, istatus, fphi, fapar)
+     end if
      call update_time
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)

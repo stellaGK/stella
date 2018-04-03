@@ -301,6 +301,7 @@ stella.o: \
 	 dissipation.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
+	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
@@ -313,11 +314,13 @@ stella.o: \
 	 mp.o \
 	 parallel_streaming.o \
 	 physics_parameters.o \
+	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_diagnostics.o \
 	 stella_layouts.o \
+	 stella_save.o \
 	 stella_time.o \
 	 time_advance.o \
 	 vpamu_grids.o \
@@ -339,6 +342,7 @@ stella_diagnostics.o: \
 	 species.o \
 	 stella_io.o \
 	 stella_layouts.o \
+	 stella_save.o \
 	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
