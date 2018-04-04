@@ -52,6 +52,9 @@ module time_advance
   real :: nonlin_fac
   ! factor multiplying parallel nonlinearity
   real, dimension (:,:), allocatable :: par_nl_fac
+  ! factor multiplying higher order linear term in parallel acceleration
+  real, dimension (:,:), allocatable :: par_nl_curv
+  real, dimension (:,:), allocatable :: par_nl_driftx, par_nl_drifty
 
   ! needed for timing various pieces of gke solve
   real, dimension (2,9) :: time_gke = 0.
@@ -428,15 +431,26 @@ contains
     use physics_parameters, only: rhostar
     use species, only: spec, nspec
     use zgrid, only: nztot, nzgrid
-    use geometry, only: gradpar
-    
+    use kt_grids, only: akx, aky
+    use kt_grids, only: nakx, naky
+    use geometry, only: geo_surf, drhodpsi
+    use geometry, only: gradpar, dbdzed, bmag
+    use geometry, only: cvdrift, cvdrift0
+
     implicit none
 
-    if (.not. allocated(par_nl_fac)) &
-         allocate (par_nl_fac(-nzgrid:nzgrid,nspec))
-
+    if (.not. allocated(par_nl_fac)) allocate (par_nl_fac(-nzgrid:nzgrid,nspec))
     ! this is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
     par_nl_fac = 0.5*rhostar*spread(spec%stm*spec%zt,1,nztot)*spread(gradpar(1,:),2,nspec)
+
+    if (.not. allocated(par_nl_curv)) allocate (par_nl_curv(-nzgrid:nzgrid,nspec))
+    par_nl_curv = -rhostar*geo_surf%rgeo*geo_surf%betaprim*drhodpsi &
+         *spread(dbdzed(1,:)*gradpar(1,:)/bmag(1,:),2,nspec)/spread(spec%zt,1,nztot)
+
+    if (.not. allocated(par_nl_drifty)) allocate (par_nl_drifty(naky,-nzgrid:nzgrid))
+    par_nl_drifty = 0.25*rhostar*spread(aky,2,nztot)*spread(cvdrift(1,:),1,naky)
+    if (.not. allocated(par_nl_drifty)) allocate (par_nl_driftx(nakx,-nzgrid:nzgrid))
+    par_nl_driftx = 0.25*rhostar*spread(akx/geo_surf%shat,2,nztot)*spread(cvdrift0(1,:),1,nakx)
 
     parnlinit = .true.
 
@@ -1223,9 +1237,10 @@ contains
 
   subroutine advance_parallel_nonlinearity (g, gout, restart_time_step)
 
+    use constants, only: zi
     use mp, only: proc0, min_allreduce
     use stella_layouts, only: vmu_lo, xyz_lo
-    use stella_layouts, only: iv_idx, is_idx
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
     use finite_differences, only: second_order_centered_zed
     use finite_differences, only: third_order_upwind
@@ -1241,7 +1256,8 @@ contains
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: alpha_global, zonal_mode
     use kt_grids, only: swap_kxky, swap_kxky_back
-    use vpamu_grids, only: nvpa, nmu, dvpa
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: dvpa, vpa, mu
     use dist_fn_arrays, only: aj0x
     use parallel_streaming, only: stream_sign
     use dist_redistribute, only: xyz2vmu
@@ -1262,8 +1278,8 @@ contains
     real, dimension (:,:,:), allocatable :: gxy_vmulocal
     real, dimension (:,:), allocatable :: advect_speed
     complex, dimension (2) :: gleft, gright
-    complex, dimension (:,:,:), allocatable :: phi_gyro, dphidz
-    complex, dimension (:,:), allocatable :: g0k, g0kxy, dphidz_swap
+    complex, dimension (:,:,:), allocatable :: phi_gyro, dphi
+    complex, dimension (:,:), allocatable :: g0k, g0kxy, dphi_swap
     complex, dimension (:,:), allocatable :: tmp
 
     ! alpha-component of magnetic drift (requires ky -> y)
@@ -1287,8 +1303,8 @@ contains
     allocate (g0xy(ny,nx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     allocate (g0kxy(ny,ikx_max))
     allocate (phi_gyro(naky,nakx,-nzgrid:nzgrid))
-    allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
-    allocate (dphidz_swap(2*naky-1,ikx_max))
+    allocate (dphi(naky,nakx,-nzgrid:nzgrid))
+    allocate (dphi_swap(2*naky-1,ikx_max))
     allocate (tmp(size(gout,1),size(gout,2)))
 
     ! get d<phi>/dz in vmu_lo
@@ -1296,6 +1312,7 @@ contains
     ! as its sign is needed for upwinding of dg/dvpa
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        ! construct <phi>
        phi_gyro = aj0x(:,:,:,ivmu)*phi
@@ -1308,25 +1325,30 @@ contains
                 call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                      phi_gyro(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
                      delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
-                     dphidz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+                     dphi(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
              end do
           end do
        end do
        
+       dphi = dphi*spread(spread(par_nl_fac(:,is),1,naky),2,nakx) &
+            + spread(spread(par_nl_curv(:,is),1,naky),2,nakx)*vpa(iv)*mu(imu) &
+            + zi*vpa(iv)*phi_gyro*(spread(par_nl_driftx,1,naky)+spread(par_nl_drifty,2,nakx))
+
        do iz = -nzgrid, nzgrid
           ! use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
-          call swap_kxky (dphidz(:,:,iz), dphidz_swap)
+          call swap_kxky (dphi(:,:,iz), dphi_swap)
           ! transform in y
-          call transform_ky2y (dphidz_swap, g0kxy)
+          call transform_ky2y (dphi_swap, g0kxy)
           ! transform in x
           call transform_kx2x (g0kxy, g0xy(:,:,iz,ivmu))
-          ! get dvpa/dt
-          g0xy(:,:,iz,ivmu) = g0xy(:,:,iz,ivmu)*par_nl_fac(iz,is)
+!          ! get dvpa/dt
+!          g0xy(:,:,iz,ivmu) = g0xy(:,:,iz,ivmu)*par_nl_fac(iz,is) + par_nl_curv(iz,is)*vpa(iv)*mu(imu)
        end do
     end do
 
     ! do not need phi_gyro or dphidz  again so deallocate
-    deallocate (phi_gyro, dphidz)
+    deallocate (phi_gyro)
+    deallocate (dphi, dphi_swap)
 
     allocate (gxy_vmulocal(nvpa,nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
     allocate (advect_speed(nmu,xyz_lo%llim_proc:xyz_lo%ulim_alloc))
@@ -1974,6 +1996,9 @@ contains
     implicit none
 
     if (allocated(par_nl_fac)) deallocate (par_nl_fac)
+    if (allocated(par_nl_curv)) deallocate (par_nl_curv)
+    if (allocated(par_nl_driftx)) deallocate (par_nl_driftx)
+    if (allocated(par_nl_drifty)) deallocate (par_nl_drifty)
 
     parnlinit = .false.
 
