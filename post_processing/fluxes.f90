@@ -2,8 +2,8 @@ program fluxes
 
   ! takes argument 1 as .fluxes output file path
   ! argument 2 as number of time steps in .fluxes file
-  ! argument 3 as starting time for time average
-  ! argument 4 as number of species in simulation
+  ! argument 3 as number of species in simulation
+  ! argument 4 as starting time for time average
   ! writes the time average of the fluxes to screen
 
   implicit none
