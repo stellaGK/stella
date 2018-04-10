@@ -285,7 +285,14 @@ run_parameters.o: \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
+	 constants.o \
+	 file_utils.o \
+	 geometry.o \
 	 mp.o \
+	 physics_parameters.o \
+	 species.o \
+	 spl.o \
+	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
 	 common_types.o \
@@ -296,7 +303,8 @@ species.o: \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
-spl.o: 
+spl.o: \
+	 constants.o 
 stella.o: \
 	 dissipation.o \
 	 dist_fn.o \

@@ -1,5 +1,8 @@
 module splines
+
   implicit none
+
+  public :: geo_spline, linear_interp_periodic
 
   type :: spline
      integer :: n
@@ -4250,6 +4253,47 @@ contains
      end do
      deallocate (ypp, dum3)
    end subroutine geo_spline_array
+
+   ! assumes that y is periodic in x
+   ! if x has m entries, then assumes that y(m+1)=y(1)
+   subroutine linear_interp_periodic (x, y, xint, yint)
+
+     use constants, only: pi
+
+     implicit none
+
+     real, dimension (:), intent (in) :: x, y, xint
+     real, dimension (:), intent (out) :: yint
+     
+     integer :: i, j, m, n
+     logical :: not_finished
+     real, dimension (:), allocatable :: xp, yp
+
+     m = size(x)+1
+     n = size(xint)
+
+     allocate (xp(m), yp(m))
+     xp(:m-1) = x
+     xp(m) = x(1)+2.*pi
+     yp(:m-1) = y
+     yp(m) = y(1)
+
+     j = 1
+     do i = 1, n
+        not_finished = .true.
+        do while (not_finished)
+           if (xint(i) > xp(j)) then
+              j = j + 1
+           else
+              not_finished = .false.
+              yint(i) = (yp(j-1)*(xp(j)-xint(i))+yp(j)*(xint(i)-xp(j-1)))/(xp(j)-xp(j-1))
+           end if
+        end do
+     end do
+
+     deallocate (xp, yp)
+
+   end subroutine linear_interp_periodic
 
  end module splines
 

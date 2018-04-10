@@ -4,7 +4,7 @@ module zgrid
 
   public :: init_zgrid, finish_zgrid
   public :: nzed, nzgrid, nperiod
-  public :: nztot
+  public :: nztot, nz2pi
   public :: zed
   public :: delzed
   public :: shat_zero
@@ -15,7 +15,7 @@ module zgrid
 
   private
 
-  integer :: nzed, nzgrid, nperiod, nztot
+  integer :: nzed, nzgrid, nperiod, nztot, nz2pi
   real :: shat_zero
   real, dimension (:), allocatable :: zed, delzed
 
@@ -53,6 +53,7 @@ contains
     delzed(nzgrid) = delzed(-nzgrid)
 
     nztot = 2*nzgrid+1
+    nz2pi = 2*(nzed/2)+1
 
   end subroutine init_zgrid
 

@@ -336,9 +336,7 @@ contains
        call geo_spline (rhoc, ni, local%rhoc, nref)
        ! only needed for collisions -- reference mass in units of proton mass
        ! and is only included for clarity -- factors of mref cancel in the end
-!       mref = 2.0
-       ! TMP FOR TESTING
-       mref = 1.0
+       mref = 2.0
     end if
     ! next get the normalized density and temperature for all other species
     if (nspec == 2) then

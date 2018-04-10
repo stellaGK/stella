@@ -21,12 +21,12 @@ module neoclassical_terms
   real, dimension (:), allocatable :: dphineo_dzed, dphineo_drho
 
   logical :: neoinit = .false.
+  logical :: debug = .false.
 
 contains
 
   subroutine init_neoclassical_terms
 
-    use mp, only: proc0
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
@@ -59,12 +59,18 @@ contains
        case (neo_option_sfincs)
           call get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical)
        end select
+       if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dzed'
        call get_dfneo_dzed (f_neoclassical(:,:,:,:,0), dfneo_dzed)
+       if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dvpa'
        call get_dfneo_dvpa (f_neoclassical(:,:,:,:,0), dfneo_dvpa)
+       if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_drho'
        call get_dfneo_drho (f_neoclassical, dfneo_drho)
+       if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_dzed'
        call get_dphineo_dzed (phi_neoclassical(:,0), dphineo_dzed)
+       if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_drho'
        call get_dphineo_drho (phi_neoclassical, dphineo_drho)
-       if (proc0) call write_neoclassical (f_neoclassical, phi_neoclassical)
+       if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::write_neoclassical'
+       call write_neoclassical (f_neoclassical, phi_neoclassical)
        deallocate (f_neoclassical, phi_neoclassical)
     end if
 
