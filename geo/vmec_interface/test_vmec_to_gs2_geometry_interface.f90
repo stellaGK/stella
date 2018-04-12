@@ -26,6 +26,7 @@ program test_vmec_to_gs2_geometry_interface
   real, dimension(nalpha) :: alpha
   real, dimension(-nzgrid:nzgrid) :: zeta
   real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0
+  real, dimension(nalpha, -nzgrid:nzgrid) :: theta_vmec
   ! This code uses normalizations in which kxfac is always 1, so kxfac is not presently returned.
 
   !*********************************************************************
@@ -41,7 +42,8 @@ program test_vmec_to_gs2_geometry_interface
   call vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
-       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0)
+       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0, &
+       theta_vmec)
 
   print *,"-------------- Input parameters ------------------"
   print *,"vmec_filename: ",trim(vmec_filename)
@@ -109,6 +111,11 @@ program test_vmec_to_gs2_geometry_interface
      print *,cvdrift0(j,:)
   end do
 
+  print *,"theta_vmec:"
+  do j=1,nalpha
+     print *,theta_vmec(j,:)
+  end do
+
   iunit = 6
   open(file='geometry.dat',unit=iunit)
   write (iunit,*) 'nalpha nzgrid'
@@ -161,6 +168,11 @@ program test_vmec_to_gs2_geometry_interface
   write (iunit,*) 'cvdrift0'
   do j=1,nalpha
      write (iunit,*) cvdrift0(j,:)
+  end do
+
+  write (iunit,*) 'theta_vmec'
+  do j=1,nalpha
+     write (iunit,*) theta_vmec(j,:)
   end do
 
   close(iunit)

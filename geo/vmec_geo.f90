@@ -52,7 +52,7 @@ contains
   end subroutine init_vmec_defaults
 
   subroutine get_vmec_geo (nzgrid, surf, bmag, gradpar, gds2, gds21, gds22, &
-       gbdrift, gbdrift0, cvdrift, cvdrift0)
+       gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
 
     use common_types, only: flux_surface_type
     use vmec_to_gs2_geometry_interface_mod, only: vmec_to_gs2_geometry_interface
@@ -62,7 +62,7 @@ contains
     integer, intent (in) :: nzgrid
     type (flux_surface_type), intent (out) :: surf
     real, dimension (:,-nzgrid:), intent (out) :: bmag, gradpar, gds2, gds21, gds22, &
-         gbdrift, gbdrift0, cvdrift, cvdrift0
+         gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
 
     integer :: i, j
     real :: L_reference, B_reference, nfp
@@ -75,7 +75,7 @@ contains
          zeta_center, nfield_periods, torflux, surface_option, verbose, &
          surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
          alpha, zeta, bmag, gradpar, gds2, gds21, gds22, &
-         gbdrift, gbdrift0, cvdrift, cvdrift0)
+         gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
 
     ! scale the vmec output
     theta = zeta/nfp/surf%qinp
@@ -92,10 +92,10 @@ contains
        end do
     end do
     write (2001,*)
-    write (2001,'(6a12)') 'alpha', 'zeta', 'gbdrift', 'gbdrift0', 'cvdrift', 'cvdrift0'
+    write (2001,'(7a12)') 'alpha', 'zeta', 'gbdrift', 'gbdrift0', 'cvdrift', 'cvdrift0', 'theta_vmec'
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
-          write (2001,'(6e12.4)') alpha(i), zeta(j), gbdrift(i,j), gbdrift0(i,j), cvdrift(i,j), cvdrift0(i,j)
+          write (2001,'(7e12.4)') alpha(i), zeta(j), gbdrift(i,j), gbdrift0(i,j), cvdrift(i,j), cvdrift0(i,j), theta_vmec(i,j)
        end do
     end do
     close (2001)

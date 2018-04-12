@@ -51,6 +51,7 @@ module common_types
      real :: d2psitordrho2
      real :: rhotor
      real :: drhotordrho
+     real :: psitor_lcfs
   end type flux_surface_type
   
   type spec_type

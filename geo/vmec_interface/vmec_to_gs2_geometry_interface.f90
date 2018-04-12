@@ -20,7 +20,8 @@ contains
   subroutine vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
-       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0)
+       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0, &
+       theta_vmec)
 
     use fzero_mod, only: fzero
     use read_wout_mod, nzgrid_vmec => nzgrid  ! VMEC has a variable nzgrid which conflicts with our nzgrid, so rename vmec's version.
@@ -93,6 +94,8 @@ contains
     ! On exit, zeta holds the grid points in the toroidal angle zeta
     real, dimension(-nzgrid:nzgrid), intent(out) :: zeta
 
+    real, dimension(nalpha, -nzgrid:nzgrid), intent(out) :: theta_vmec
+
     real, dimension(nalpha, -nzgrid:nzgrid), intent(out) :: bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0
 
     !*********************************************************************
@@ -106,7 +109,7 @@ contains
 
     integer :: j, index, izeta, ialpha, isurf, m, n, imn, imn_nyq
     real :: angle, sin_angle, cos_angle, temp, edge_toroidal_flux_over_2pi
-    real, dimension(:,:), allocatable :: theta_vmec
+!    real, dimension(:,:), allocatable :: theta_vmec
     integer :: ierr, iopen, fzero_flag
     real :: number_of_field_periods_to_include_final
     real :: dphi, iota, min_dr2, ds, d_pressure_d_s, d_iota_d_s, scale_factor
@@ -488,7 +491,7 @@ contains
     ! theta_vmec = theta_pest - Lambda.
     !*********************************************************************
 
-    allocate(theta_vmec(nalpha, -nzgrid:nzgrid))
+!    allocate(theta_vmec(nalpha, -nzgrid:nzgrid))
 
     if (verbose) print *,"  Beginning root solves to determine theta_vmec."
     root_solve_absolute_tolerance = 1.0d-10
@@ -1215,7 +1218,7 @@ contains
 
     deallocate(normalized_toroidal_flux_full_grid)
     deallocate(normalized_toroidal_flux_half_grid)
-    deallocate(theta_vmec)
+!    deallocate(theta_vmec)
 
     if (verbose) print *,"Leaving vmec_to_gs2_geometry_interface."
 

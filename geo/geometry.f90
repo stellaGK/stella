@@ -18,13 +18,14 @@ module geometry
   public :: geo_surf
   public :: Rmajor
   public :: nalpha
+  public :: theta_vmec
 
   private
 
   type (flux_surface_type) :: geo_surf
 
   real :: dIdrho
-  real :: drhodpsi, rhotor, drhotordrho, shat, qinp, rgeo
+  real :: drhodpsi, shat, qinp, rgeo
   real :: gradpar_eqarc
   real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:), allocatable :: grho
@@ -33,6 +34,7 @@ module geometry
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
   real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24
+  real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:), allocatable :: jacob
   real, dimension (:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
@@ -114,9 +116,9 @@ contains
           call allocate_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
           call get_vmec_geo (nzgrid, geo_surf, bmag, gradpar, gds2, gds21, gds22, &
-               gbdrift, gbdrift0, cvdrift, cvdrift0)
+               gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
           ! FLAG -- NOT SURE IF THIS IS CORRECT
-          drhodpsi = 1.0 ; grho = 1.0
+          drhodpsi = 1.0 ; grho = 1.0 ; geo_surf%psitor_lcfs = 1.0
           ! FLAG -- NEED TO SEE IF MATT CAN PROVIDE THESE
           gds23 = 0. ; gds24 = 0.
        end select
@@ -176,6 +178,7 @@ contains
     if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift0)) allocate (cvdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dbdzed)) allocate (dbdzed(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(theta_vmec)) allocate (theta_vmec(nalpha,-nzgrid:nzgrid))
 
     ! FLAG - NEED TO SORT OUT 1D VS 2D FOR GRADPAR
     if (.not.allocated(gradpar)) allocate (gradpar(nalpha,-nzgrid:nzgrid))
@@ -269,6 +272,7 @@ contains
     call broadcast (geo_surf%d2psidr2)
     call broadcast (geo_surf%dpsitordrho)
     call broadcast (geo_surf%rhotor)
+    call broadcast (geo_surf%psitor_lcfs)
     call broadcast (geo_surf%drhotordrho)
 
   end subroutine broadcast_arrays
@@ -379,6 +383,7 @@ contains
     if (allocated(dBdrho)) deallocate (dBdrho)
     if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
     if (allocated(dgradpardrho)) deallocate (dgradpardrho)
+    if (allocated(theta_vmec)) deallocate (theta_vmec)
 
     geoinit = .false.
 

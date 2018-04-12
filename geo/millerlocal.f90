@@ -20,6 +20,7 @@ module millerlocal
   real :: qinp, shat, d2qdr2
   real :: rgeo
   real :: d2psidr2
+  real :: psitor_lcfs
   real :: rhotor, drhotordrho
   logical :: write_profile_variation, read_profile_variation
 
@@ -85,6 +86,7 @@ contains
     ! only needed for sfincs when not using 
     ! geo info from file
     rhotor = rhoc
+    psitor_lcfs = 1.0
     drhotordrho = 1.0
 
   end subroutine init_local_defaults
@@ -129,6 +131,7 @@ contains
     ! following two variables are not inputs
     local%dr = 1.e-3
     local%rhotor = rhotor
+    local%psitor_lcfs = psitor_lcfs
     local%drhotordrho = drhotordrho
     local%dpsitordrho = 0.0
     local%d2psitordrho2 = 0.0
@@ -407,8 +410,8 @@ contains
     write (1002,'(5e16.8)') local%betaprim, local%dpsitordrho, local%rhotor, &
          local%drhotordrho, local%d2qdr2
     write (1002,*)
-    write (1002,'(2a16)') '16.d2psidr2', '17.betadbprim'
-    write (1002,'(2e16.8)') local%d2psidr2, local%betadbprim
+    write (1002,'(3a16)') '16.d2psidr2', '17.betadbprim', '18.psitor_lcfs'
+    write (1002,'(3e16.8)') local%d2psidr2, local%betadbprim, local%psitor_lcfs
     close (1002)
 
     open (1001,file='millerlocal.output',status='unknown')

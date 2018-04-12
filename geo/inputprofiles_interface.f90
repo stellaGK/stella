@@ -26,6 +26,9 @@ module inputprofiles_interface
   real, dimension (:), allocatable :: pres_tot
   real, dimension (:), allocatable :: loglam
 
+  real :: bref, omega_ref, rho_ref
+  real :: bunit
+
 contains
 
   subroutine read_inputprof_geo (surf)
@@ -35,6 +38,7 @@ contains
     use finite_differences, only: fd3pt, d2_3pt
     use splines, only: geo_spline
     use millerlocal, only: local
+    use physics_parameters, only: rhostar
 
     implicit none
 
@@ -183,6 +187,7 @@ contains
     call geo_spline (rhoc, betadbprim, local%rhoc, local%betadbprim)
     call geo_spline (rhoc, rhotor, local%rhoc, local%rhotor)
     call geo_spline (rhoc, drhotordrho, local%rhoc, local%drhotordrho)
+    local%psitor_lcfs = psitor(n_exp)
 
     surf = local
 
@@ -197,7 +202,7 @@ contains
     use splines, only: geo_spline
     use common_types, only: spec_type
     use millerlocal, only: local
-    use physics_parameters, only: vnew_ref
+    use physics_parameters, only: vnew_ref, rhostar
 
     implicit none
 
@@ -383,6 +388,15 @@ contains
     ! vnew_ref = (aref/vtref)*(4/3)sqrt(2pi)/(4pi*epsilon_0)**2 * nref * e**4 * loglam / sqrt(mref) / Tref**1.5
     ! note that all quantities are given in SI units and epsilon_0 is permittivity of vacuum
     vnew_ref = 28.5134*(aref/vtref)*local_loglam*nref/(sqrt(mref)*tref**1.5)
+
+    bref = bt_exp
+    omega_ref = 9.5791e7*bref/mref
+
+    rho_ref = vtref/omega_ref
+
+    rhostar = rho_ref/aref
+    ! I think this is incorrect -- MAB
+    bunit = (bref*arho_exp**2)/(local%rhotor/aref/local%rhoc)*local%drhotordrho
 
 !    vnewki = 9.21e-5*aref*zi**4/sqrt(2.)*loglam*ni/ti**2
 !    vnewke = 3.95e-3*aref*zi**2*sqrt(0.5*mi)*loglam*ne &

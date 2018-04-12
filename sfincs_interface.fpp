@@ -62,7 +62,7 @@ contains
           call pass_inputoptions_to_sfincs (irad*drho)
           call pass_outputoptions_to_sfincs
           call prepare_sfincs
-          call pass_geometry_to_sfincs (irad*drho)
+          if (geometryScheme /= 5) call pass_geometry_to_sfincs (irad*drho)
           call run_sfincs
           if (proc0) call get_sfincs_output &
                (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))
@@ -95,6 +95,7 @@ contains
     use file_utils, only: input_unit_exist
     use species, only: nspec
     use physics_parameters, only: rhostar, vnew_ref
+    use geometry, only: geo_surf
 
     implicit none
 
@@ -136,15 +137,15 @@ contains
     inputRadialCoordinateForGradients = 3
     ! corresponds to r_LCFS as reference length in sfincs
     aHat = 1.0
-    ! corresponds to psitor_LCFS = B_ref * a_ref^2
-    psiAHat = 1.0
+    ! psitor_LCFS / (B_ref * a_ref^2)
+    psiAHat = geo_surf%psitor_lcfs
     ! Delta is rho* = mref*vt_ref/(e*Bref*aref), with reference
     ! quantities given in SI units
     Delta = rhostar
     ! nu_n = nu_ref * aref/vt_ref
     ! nu_ref = 4*sqrt(2*pi)*nref*e**4*loglam/(3*sqrt(mref)*Tref**3/2)
     ! (with nref, Tref, and mref in Gaussian units)
-    nu_N = vnew_ref*(4./(3.*pi))
+    nu_N = vnew_ref*(4./(3.*sqrt(pi)))
     ! number of spectral coefficients in pitch angle
     nxi = 48
     ! number of speeds
