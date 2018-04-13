@@ -225,7 +225,6 @@ contains
     use globalVariables, only: psiAHat_sfincs => psiAHat
     use globalVariables, only: Delta_sfincs => Delta
     use globalVariables, only: nu_n_sfincs => nu_n
-    use globalVariables, only: Er_sfincs => Er
 
     implicit none
 
@@ -313,7 +312,7 @@ contains
     real, intent (in) :: delrho
 
     integer :: nzeta = 1
-    integer :: nzpi, iz
+    integer :: nzpi
     real :: q_local
     real, dimension (:), allocatable :: B_local, dBdz_local, gradpar_local
     real, dimension (:), allocatable :: zed_stella, zed_sfincs
@@ -406,8 +405,8 @@ contains
     use mp, only: mp_abort
     use species, only: nspec, spec
     use zgrid, only: nzgrid, nz2pi, nperiod, zed
-    use vpamu_grids, only: nvgrid, nmu
-    use vpamu_grids, only: vpa, mu, ztmax, vperp2, maxwell_mu
+    use vpamu_grids, only: nvgrid, nmu, nvpa
+    use vpamu_grids, only: vpa, ztmax, vperp2, maxwell_mu
     use export_f, only: h_sfincs => delta_f
     use export_f, only: zed_sfincs => export_f_theta
     use globalVariables, only: nxi_sfincs => nxi
@@ -415,7 +414,6 @@ contains
     use globalVariables, only: x_sfincs => x
     use globalVariables, only: phi_sfincs => Phi1Hat
     use xGrid, only: xGrid_k
-    use geometry, only: bmag
 
     implicit none
 
@@ -434,11 +432,17 @@ contains
     real, dimension (:), allocatable :: hdum
     real, dimension (:,:,:), allocatable :: h_stella
     real, dimension (:,:), allocatable :: xsfincs_to_xstella, legpoly
-    real, dimension (:,:), allocatable :: hsfincs
+
+    ! each (vpa,mu) pair in stella specifies a speed
+    ! on each speed arc, there are two (vpa,mu) pairs:
+    ! one each corresponding to a given +/- vpa
+    nxi_stella = 2
+    allocate (xi_stella(nxi_stella))
+    allocate (hstella(nxi_stella))
+    allocate (legpoly(nxi_stella,0:nxi_sfincs-1))
 
     allocate (htmp(nxi_sfincs))
     allocate (dhtmp_dx(nxi_sfincs))
-    allocate (hsfincs(nxi_sfincs,nx_sfincs))
     allocate (xsfincs_to_xstella(1,nx_sfincs))
 
     allocate (zed_stella(nz2pi))
@@ -489,40 +493,33 @@ contains
              end if
           end do
        end do
-       do iz = -nzgrid, nzgrid
-          ! hsfincs is on the sfincs energy grid
-          ! but is spectral in pitch-angle
-          hsfincs = h_stella(iz,:,:)
 
+       do iz = -nzgrid, nzgrid
+          ! h_stella is on the sfincs energy grid
+          ! but is spectral in pitch-angle
           do imu = 1, nmu
-             do iv = 1, nvgrid
+             ! loop over positive vpa values
+             ! negative vpa values will be treated inside loop using symmetry
+             do iv = nvgrid+1, nvpa
                 ! x_stella is the speed 
                 ! corresponding to this (vpa,mu) grid point
                 ! FLAG -- NEED TO EXTEND SFINCS TREATMENT TO INCLUDE MULTIPLE ALPHAS
                 x_stella = sqrt(vpa(iv)**2+vperp2(1,iz,imu))
-                ! note that with exception of vpa=0
-                ! can use symmetry of vpa grid to see that
-                ! each speed arc has two pitch angles on it
-                ! correspondong to +/- vpa
-                nxi_stella = 2
-                allocate (xi_stella(nxi_stella))
-                allocate (hstella(nxi_stella))
-                allocate (legpoly(nxi_stella,0:nxi_sfincs-1))
-                ! xi_stella is the pitch angle (vpa/v)
+                ! xi_stella contains the two pitch angles (+/-)vpa/v
                 ! corresponding to this (vpa,mu) grid point
-                xi_stella = sgnvpa(:nxi_stella)*vpa(iv)/x_stella(1)
+                xi_stella = sgnvpa*vpa(iv)/x_stella(1)
 
                 ! set up matrix that interpolates from sfincs speed grid
                 ! to the speed corresponding to this (vpa,mu) grid point
                 call polynomialInterpolationMatrix (nx_sfincs, 1, &
                      x_sfincs, x_stella, exp(-x_sfincs*x_sfincs)*(x_sfincs**xGrid_k), &
                      exp(-x_stella*x_stella)*(x_stella**xGrid_k), xsfincs_to_xstella)
-                
+                        
                 ! do the interpolation
                 do ixi = 1, nxi_sfincs
-                   htmp(ixi) = sum(hsfincs(ixi,:)*xsfincs_to_xstella(1,:))
+                   htmp(ixi) = sum(h_stella(iz,ixi,:)*xsfincs_to_xstella(1,:))
                 end do
-
+        
                 ! next need to Legendre transform in pitch-angle
                 ! first evaluate Legendre polynomials at requested pitch angles
                 call legendre (xi_stella, legpoly)
@@ -530,15 +527,13 @@ contains
                 ! then do the transforms
                 call legendre_transform (legpoly, htmp, hstella)
 
-                f_neoclassical(iz,nvgrid-iv+1,imu,is) = hstella(2)
-                f_neoclassical(iz,iv+nvgrid,imu,is) = hstella(1)
+                f_neoclassical(iz,nvpa-iv+1,imu,is) = hstella(2)
+                f_neoclassical(iz,iv,imu,is) = hstella(1)
 
-                deallocate (xi_stella, hstella, legpoly)
              end do
              ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
              ! NB: n_ref, etc. is fixed in stella to be the reference density
              ! at the central sfincs simulation; i.e., it does not vary with radius
-             ! similarly, bmag below is the normalized B-field at the central radial location
              ! to be consistent with stella distribution functions,
              ! want H_nc / (n_s / vt_s^3 * pi^(3/2))
              f_neoclassical(iz,:,imu,is) = f_neoclassical(iz,:,imu,is) &
@@ -552,10 +547,10 @@ contains
        end do
     end do
 
+    deallocate (xi_stella, hstella, legpoly)
     deallocate (hdum, h_stella)
     deallocate (zed_stella)
     deallocate (htmp, dhtmp_dx)
-    deallocate (hsfincs)
     deallocate (xsfincs_to_xstella)
 
   end subroutine get_sfincs_output

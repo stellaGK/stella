@@ -154,7 +154,7 @@ contains
     use finite_differences, only: fd5pt
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
-    use vpamu_grids, only: nvpa, nmu, nvpa
+    use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa
     use species, only: nspec
 
@@ -340,7 +340,7 @@ contains
     use file_utils, only: open_output_file, close_output_file
     use species, only: nspec
     use zgrid, only: nzgrid, zed
-    use vpamu_grids, only: vpa, mu, nvpa
+    use vpamu_grids, only: vpa, mu
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_layouts, only: idx_local, proc_id
@@ -369,8 +369,6 @@ contains
           iv = iv_idx(vmu_lo,ivmu)
           imu = imu_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
-!          ! TMP FOR TESTING -- MAB
-!          if (is /=1) cycle
           if (idx_local(vmu_lo, iv, imu, is)) then
              if (proc0) then
                 dfdv_local = dfneo_dvpa(:,ivmu)
@@ -387,19 +385,15 @@ contains
              call receive (dfdz_local, proc_id(vmu_lo,ivmu))
           end if
           if (proc0) then
-!             ! TMP FOR TESTING -- MAB
-!             iz = 0
              do iz = -nzgrid, nzgrid
                 write (neo_unit,'(2i8,10e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
-                     fnc(iz,iv,imu,is,irad), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                     dfdv_local(iz), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                     dfdr_local(iz), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
-                     dfdz_local(iz), &!*exp(-2.0*mu(imu)*bmag(1,iz)), &
+                     fnc(iz,iv,imu,is,irad), &
+                     dfdv_local(iz), &
+                     dfdr_local(iz), &
+                     dfdz_local(iz), &
                      phinc(iz,irad), dphineo_drho(iz), dphineo_dzed(iz)
              end do
           end if
-!          ! TMP FOR TESTING -- MAB
-!          if (iv == nvpa) write (neo_unit,*)
        end do
        if (proc0) write (neo_unit,*)
     end do
