@@ -51,8 +51,8 @@ contains
 
   end subroutine init_vmec_defaults
 
-  subroutine get_vmec_geo (nzgrid, surf, bmag, gradpar, gds2, gds21, gds22, &
-       gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
+  subroutine get_vmec_geo (nzgrid, surf, grho, bmag, gradpar, gds2, gds21, gds22, &
+       gds23, gds24, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
 
     use common_types, only: flux_surface_type
     use vmec_to_gs2_geometry_interface_mod, only: vmec_to_gs2_geometry_interface
@@ -61,8 +61,8 @@ contains
 
     integer, intent (in) :: nzgrid
     type (flux_surface_type), intent (out) :: surf
-    real, dimension (:,-nzgrid:), intent (out) :: bmag, gradpar, gds2, gds21, gds22, &
-         gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
+    real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, gradpar, gds2, gds21, gds22, &
+         gds23, gds24, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
 
     integer :: i, j
     real :: L_reference, B_reference, nfp
@@ -74,21 +74,39 @@ contains
     call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, nzgrid, &
          zeta_center, nfield_periods, torflux, surface_option, verbose, &
          surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
-         alpha, zeta, bmag, gradpar, gds2, gds21, gds22, &
+         alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, &
          gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
 
+    ! vmec_to_gs2_geometry_interface returns psitor/psitor_lcfs as rhoc
+    ! stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor
+    surf%rhoc = sqrt(surf%rhoc)
+    surf%rhotor = surf%rhoc
+    ! grho = |grad rho| = |drho/dx| * |grad x|
+    ! |drho/dx| = L_reference
+    ! gds22 = shat^2 * |grad x|^2
+    grho = sqrt(gds22/surf%shat**2)/L_reference
+    surf%drhotordrho = 1.0
+    surf%psitor_lcfs = 0.5
+
     ! scale the vmec output
+    ! theta is theta_pest from -pi to pi
     theta = zeta/nfp/surf%qinp
     gradpar = gradpar/nfp/surf%qinp
+    gds23 = gds23/nfp/surf%qinp
+    gds24 = gds24/nfp/surf%qinp
+    ! this is the vmec theta (not straight-field-line coordinate)
+    ! scaled to run between -pi and pi
+    theta_vmec = theta_vmec/nfp
 
     open (2001,file='vmec.geo',status='unknown')
-    write (2001,'(5a12)') 'torflux', 'qinp', 'shat', 'aref', 'Bref'
+    write (2001,'(5a12)') 'rhotor', 'qinp', 'shat', 'aref', 'Bref'
     write (2001,'(5e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference
     write (2001,*)
-    write (2001,'(7a12)') 'alpha', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22'
+    write (2001,'(9a12)') 'alpha', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24'
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
-          write (2001,'(7e12.4)') alpha(i), zeta(j), bmag(i,j), gradpar(i,j), gds2(i,j), gds21(i,j), gds22(i,j)
+          write (2001,'(9e12.4)') alpha(i), zeta(j), bmag(i,j), gradpar(i,j), &
+               gds2(i,j), gds21(i,j), gds22(i,j), gds23(i,j), gds24(i,j)
        end do
     end do
     write (2001,*)

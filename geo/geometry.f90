@@ -11,6 +11,7 @@ module geometry
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
   public :: gds2, gds21, gds22, gds23, gds24
+  public :: exb_nonlin_fac
   public :: jacob
   public :: drhodpsi
   public :: dl_over_b
@@ -26,16 +27,16 @@ module geometry
 
   real :: dIdrho
   real :: drhodpsi, shat, qinp, rgeo
+  real :: exb_nonlin_fac
   real :: gradpar_eqarc
   real, dimension (:), allocatable :: zed_eqarc
-  real, dimension (:), allocatable :: grho
   real, dimension (:,:), allocatable :: gradpar
   real, dimension (:,:), allocatable :: bmag, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
   real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24
   real, dimension (:,:), allocatable :: theta_vmec
-  real, dimension (:), allocatable :: jacob
+  real, dimension (:,:), allocatable :: jacob, grho
   real, dimension (:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
@@ -83,13 +84,14 @@ contains
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho, bmag(1,:), &
+               dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar(1,:), &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
           drhodpsi = 1./dpsidrho
+          exb_nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
@@ -101,13 +103,14 @@ contains
           ! use rhoc from input as surface
           call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho, bmag(1,:), &
+               dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar(1,:), &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
           drhodpsi = 1./dpsidrho
+          exb_nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
@@ -115,12 +118,14 @@ contains
           ! allocate geometry arrays
           call allocate_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
-          call get_vmec_geo (nzgrid, geo_surf, bmag, gradpar, gds2, gds21, gds22, &
-               gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
-          ! FLAG -- NOT SURE IF THIS IS CORRECT
-          drhodpsi = 1.0 ; grho = 1.0 ; geo_surf%psitor_lcfs = 1.0
-          ! FLAG -- NEED TO SEE IF MATT CAN PROVIDE THESE
-          gds23 = 0. ; gds24 = 0.
+          call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
+               gds23, gds24, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
+          ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
+          exb_nonlin_fac = -0.5
+          ! if using vmec, rho = sqrt(psitor/psitor_lcfs)
+          ! psiN = -psitor/(aref**2*Bref)
+          ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
+          drhodpsi = -1.0/geo_surf%rhotor
        end select
     end if
 
@@ -129,9 +134,9 @@ contains
     call broadcast_arrays
 
     ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION
-    jacob = 1.0/(drhodpsi*gradpar(1,:)*bmag(1,:))
+    jacob(1,:) = 1.0/abs(drhodpsi*gradpar(1,:)*bmag(1,:))
     
-    dl_over_b = delzed*jacob
+    dl_over_b = delzed*jacob(1,:)
     dl_over_b = dl_over_b / sum(dl_over_b)
 
     do iy = 1, nalpha
@@ -179,15 +184,14 @@ contains
     if (.not.allocated(cvdrift0)) allocate (cvdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dbdzed)) allocate (dbdzed(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(theta_vmec)) allocate (theta_vmec(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(jacob)) allocate (jacob(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(grho)) allocate (grho(nalpha,-nzgrid:nzgrid))
 
     ! FLAG - NEED TO SORT OUT 1D VS 2D FOR GRADPAR
     if (.not.allocated(gradpar)) allocate (gradpar(nalpha,-nzgrid:nzgrid))
-
     if (.not.allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
-    if (.not.allocated(grho)) allocate (grho(-nzgrid:nzgrid))
     if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
     if (.not.allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
-    if (.not.allocated(jacob)) allocate (jacob(-nzgrid:nzgrid))
     if (.not.allocated(dl_over_b)) allocate (dl_over_b(-nzgrid:nzgrid))
     if (.not.allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
     if (.not.allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
@@ -236,6 +240,7 @@ contains
     call broadcast (qinp)
     call broadcast (shat)
     call broadcast (drhodpsi)
+    call broadcast (exb_nonlin_fac)
     call broadcast (dIdrho)
     call broadcast (grho)
     call broadcast (bmag)

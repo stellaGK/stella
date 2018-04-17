@@ -13,9 +13,11 @@ module sfincs_interface
   logical :: includePhi1
   logical :: includePhi1InKineticEquation
   integer :: geometryScheme
+  integer :: VMECRadialOption
   integer :: coordinateSystem
   integer :: inputRadialCoordinate
   integer :: inputRadialCoordinateForGradients
+  character (200) :: equilibriumFile
   real :: aHat, psiAHat, Delta
   real :: nu_n
   integer :: nxi, nx, ntheta
@@ -62,6 +64,10 @@ contains
           call pass_inputoptions_to_sfincs (irad*drho)
           call pass_outputoptions_to_sfincs
           call prepare_sfincs
+          ! if geometryScheme = 5, then sfincs will read in equilibrium
+          ! parameters from vmec file separately
+          ! otherwise, assume system is axisymmetric and pass geometry
+          ! from stella (miller local equilibrium or similar)
           if (geometryScheme /= 5) call pass_geometry_to_sfincs (irad*drho)
           call run_sfincs
           if (proc0) call get_sfincs_output &
@@ -106,6 +112,8 @@ contains
          includePhi1, &
          includePhi1InKineticEquation, &
          geometryScheme, &
+         VMECRadialOption, &
+         equilibriumFile, &
          coordinateSystem, &
          inputRadialCoordinate, &
          inputRadialCoordinateForGradients, &
@@ -126,7 +134,18 @@ contains
     includePhi1 = .true.
     includePhi1InKineticEquation = .false.
     ! will be overridden by direct input of geometric quantities
+    ! unless geometryScheme = 5 (vmec equilibrium)
     geometryScheme = 1
+    ! only relevant if geometryScheme = 5
+    ! radial option to use for vmec equilibrium
+    ! 0 corresponds to using radial interpolation to get desired surface
+    ! 1 corresponds to using nearest surface on VMEC HALF grid
+    ! 2 corresponds to using nearest surface on VMEC FULL grid
+    ! should not change this unless self-consistently change in the
+    ! vmec input namelist
+    VMECRadialOption = 0
+    ! path of vmec equilibrium file
+    equilibriumFile = 'wout_161s1.nc'
     ! seems to be a nonsensical option
     coordinateSystem = 3
     ! option 3 corresponds to using sqrt of toroidal flux
@@ -162,11 +181,12 @@ contains
        write (*,*) 'allocating ', nproc, ' processors for sfincs.'
     end if
 
-    if (nspec == 1 .and. includePhi1) then
-       write (*,*) 'includePhi1 = .true. is incompatible with a single-species run.'
-       write (*,*) 'forcing includePhi1 = .false.'
-       includePhi1 = .false.
-    end if
+! FLAG -- NOT YET SURE IF THIS SHOULD BE HERE
+!    if (nspec == 1 .and. includePhi1) then
+!       write (*,*) 'includePhi1 = .true. is incompatible with a single-species run.'
+!       write (*,*) 'forcing includePhi1 = .false.'
+!       includePhi1 = .false.
+!    end if
     
     ! ensure that ntheta is odd for SFINCS
     ntheta = 2*(ntheta/2)+1
@@ -186,6 +206,8 @@ contains
     call broadcast (includePhi1)
     call broadcast (includePhi1InKineticEquation)
     call broadcast (geometryScheme)
+    call broadcast (VMECRadialOption)
+    call broadcast (equilibriumFile)
     call broadcast (coordinateSystem)
     call broadcast (inputRadialCoordinate)
     call broadcast (inputRadialCoordinateForGradients)
@@ -211,6 +233,8 @@ contains
     use globalVariables, only: includePhi1_sfincs => includePhi1
     use globalVariables, only: includePhi1InKineticEquation_sfincs => includePhi1InKineticEquation
     use globalVariables, only: geometryScheme_sfincs => geometryScheme
+    use globalVariables, only: equilibriumFile_sfincs => equilibriumFile
+    use globalVariables, only: VMECRadialOption_sfincs => VMECRadialOption
     use globalVariables, only: coordinateSystem_sfincs => coordinateSystem
     use globalVariables, only: RadialCoordinate => inputRadialCoordinate
     use globalVariables, only: RadialCoordinateForGradients => inputRadialCoordinateForGradients
@@ -225,6 +249,7 @@ contains
     use globalVariables, only: psiAHat_sfincs => psiAHat
     use globalVariables, only: Delta_sfincs => Delta
     use globalVariables, only: nu_n_sfincs => nu_n
+    use globalVariables, only: withAdiabatic
 
     implicit none
 
@@ -236,6 +261,8 @@ contains
     includePhi1_sfincs = includePhi1
     includePhi1InKineticEquation_sfincs = includePhi1InKineticEquation
     geometryScheme_sfincs = geometryScheme
+    VMECRadialOption_sfincs = VMECRadialOption
+    equilibriumFile_sfincs = trim(equilibriumFile)
     coordinateSystem_sfincs = coordinateSystem
     RadialCoordinate = inputRadialCoordinate
     RadialCoordinateForGradients = inputRadialCoordinateForGradients
@@ -256,6 +283,7 @@ contains
     psiAHat_sfincs = psiAHat
     Delta_sfincs = Delta
     nu_n_sfincs = nu_n
+    if (nspec == 1) withAdiabatic = .true.
 
     if (inputRadialCoordinate == 3) then
        rN_wish = geo_surf%rhotor + delrho*geo_surf%drhotordrho
@@ -414,6 +442,7 @@ contains
     use globalVariables, only: x_sfincs => x
     use globalVariables, only: phi_sfincs => Phi1Hat
     use xGrid, only: xGrid_k
+    use geometry, only: theta_vmec
 
     implicit none
 
@@ -450,7 +479,14 @@ contains
 
     nzpi = nz2pi/2
 
-    zed_stella = zed(-nzpi:nzpi) + pi
+    ! if geometryScheme is 5, then sfincs using 
+    ! theta_vmec, which is not a straight-field-line coordinate
+    ! need to interpolate onto stella straight-field-line grid
+    if (geometryScheme == 5) then
+       zed_stella = theta_vmec(1,-nzpi:nzpi) + pi
+    else
+       zed_stella = zed(-nzpi:nzpi) + pi
+    end if
 
     phi_stella(1) = phi_sfincs(1,1)
     phi_stella(nz2pi) = phi_stella(1)

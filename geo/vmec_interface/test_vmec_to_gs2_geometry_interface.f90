@@ -25,7 +25,8 @@ program test_vmec_to_gs2_geometry_interface
   real :: normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp
   real, dimension(nalpha) :: alpha
   real, dimension(-nzgrid:nzgrid) :: zeta
-  real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0
+  real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, gds2, gds21, gds22, gds23, gds24 
+  real, dimension (nalpha, -nzgrid:nzgrid) :: gbdrift, gbdrift0, cvdrift, cvdrift0
   real, dimension(nalpha, -nzgrid:nzgrid) :: theta_vmec
   ! This code uses normalizations in which kxfac is always 1, so kxfac is not presently returned.
 
@@ -42,7 +43,8 @@ program test_vmec_to_gs2_geometry_interface
   call vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
-       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gbdrift, gbdrift0, cvdrift, cvdrift0, &
+       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, &
+       gbdrift, gbdrift0, cvdrift, cvdrift0, &
        theta_vmec)
 
   print *,"-------------- Input parameters ------------------"
@@ -89,6 +91,16 @@ program test_vmec_to_gs2_geometry_interface
   print *,"gds22:"
   do j=1,nalpha
      print *,gds22(j,:)
+  end do
+
+  print *,"gds23:"
+  do j=1,nalpha
+     print *,gds23(j,:)
+  end do
+
+  print *,"gds24:"
+  do j=1,nalpha
+     print *,gds24(j,:)
   end do
 
   print *,"gbdrift:"
@@ -148,6 +160,16 @@ program test_vmec_to_gs2_geometry_interface
   write (iunit,*) 'gds22'
   do j=1,nalpha
      write (iunit,*) gds22(j,:)
+  end do
+
+  write (iunit,*) 'gds23'
+  do j=1,nalpha
+     write (iunit,*) gds23(j,:)
+  end do
+
+  write (iunit,*) 'gds24'
+  do j=1,nalpha
+     write (iunit,*) gds24(j,:)
   end do
 
   write (iunit,*) 'gbdrift'

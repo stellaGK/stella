@@ -48,8 +48,6 @@ module time_advance
 !  complex, dimension (:,:,:), allocatable :: gamtot_wstar, apar_denom_wstar
 !  complex, dimension (:,:), allocatable :: gamtot3_wstar
 
-  ! geometrical factor multiplying ExB nonlinearity
-  real :: nonlin_fac
   ! factor multiplying parallel nonlinearity
   real, dimension (:,:), allocatable :: par_nl_fac
   ! factor multiplying higher order linear term in parallel acceleration
@@ -197,8 +195,6 @@ contains
     call init_wdrift
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
     call init_wstar
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_ExB_nonlinearity'
-    if (nonlinear) call init_ExB_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
@@ -415,16 +411,6 @@ contains
     deallocate (energy)
 
   end subroutine init_wstar
-
-  subroutine init_ExB_nonlinearity
-
-    use geometry, only: geo_surf, drhodpsi
-
-    implicit none
-
-    nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
-
-  end subroutine init_ExB_nonlinearity
 
   subroutine init_parallel_nonlinearity
 
@@ -1121,6 +1107,7 @@ contains
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust
     use zgrid, only: nzgrid
+    use geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky
     use kt_grids, only: alpha_global
@@ -1175,7 +1162,7 @@ contains
           call swap_kxky (g0k, g0k_swap)
           call transform_ky2y (g0k_swap, g0kxy)
           call transform_kx2x (g0kxy, g1xy)
-          g1xy = g1xy*nonlin_fac
+          g1xy = g1xy*exb_nonlin_fac
           bracket = g0xy*g1xy
           cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
@@ -1187,7 +1174,7 @@ contains
           call swap_kxky (g0k, g0k_swap)
           call transform_ky2y (g0k_swap, g0kxy)
           call transform_kx2x (g0kxy, g1xy)
-          g1xy = g1xy*nonlin_fac
+          g1xy = g1xy*exb_nonlin_fac
           bracket = bracket - g0xy*g1xy
           cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 

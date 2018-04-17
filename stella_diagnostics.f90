@@ -415,8 +415,8 @@ contains
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
 
-    flx_norm = jacob*delzed
-    flx_norm = flx_norm/sum(flx_norm*grho)
+    flx_norm = jacob(1,:)*delzed
+    flx_norm = flx_norm/sum(flx_norm*grho(1,:))
 
     ! get electrostatic contributions to fluxes
     if (fphi > epsilon(0.0)) then
@@ -530,8 +530,8 @@ contains
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
 
-    flx_norm = jacob*delzed
-    flx_norm = flx_norm/sum(flx_norm*grho)
+    flx_norm = jacob(1,:)*delzed
+    flx_norm = flx_norm/sum(flx_norm*grho(1,:))
 
 !     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
 !        do ikx = 1, nakx
