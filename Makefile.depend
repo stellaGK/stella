@@ -224,6 +224,7 @@ mt19937.o:
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
+	 geometry.o \
 	 mp.o \
 	 sfincs_interface.o \
 	 species.o \
@@ -350,6 +351,7 @@ stella_diagnostics.o: \
 stella_io.o: \
 	 constants.o \
 	 convert.o \
+	 dist_fn_arrays.o \
 	 file_utils.o \
 	 geometry.o \
 	 kt_grids.o \

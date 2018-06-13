@@ -49,7 +49,7 @@ contains
     
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
     if (include_neoclassical_terms) then
-       neoclassical_term = spread(dphineo_dzed,2,nspec)*spread(spec%zt,1,nztot)*0.5
+       neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt,1,nztot)*0.5
     else
        neoclassical_term = 0.
     end if
@@ -150,7 +150,7 @@ contains
              do iy = 1, nalpha
                 where (abs(mu(imu)*dbdzed(iy,:)) > zero)
                    mirror_int_fac(iy,:,ivmu) = exp( vpa(iv)**2*mu(imu)*dbdzed(iy,:) &
-                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt*dphineo_dzed*0.5) )
+                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt*dphineo_dzed(1,:)*0.5) )
                 elsewhere
                    mirror_int_fac(iy,:,ivmu) = 1.0
                 end where

@@ -29,8 +29,8 @@ program stella
   if (debug) write (*,*) 'stella::advance_stella'
   do istep = 1, nstep
      if (debug) write (*,*) 'istep = ', istep
-!     call advance_stella (istep)
-     call advance_stella
+     call advance_stella (istep)
+!     call advance_stella
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
         call stella_save_for_restart (gvmu, code_time, code_dt, istatus, fphi, fapar)

@@ -195,6 +195,7 @@ module mp
 
      module procedure send_real
      module procedure send_real_array
+     module procedure send_real_array_2d
 
      module procedure send_complex
      module procedure send_complex_array
@@ -212,6 +213,7 @@ module mp
 
      module procedure receive_real
      module procedure receive_real_array
+     module procedure receive_real_array_2d
 
      module procedure receive_complex
      module procedure receive_complex_array
@@ -1304,6 +1306,22 @@ contains
 # endif
   end subroutine send_real_array
 
+  subroutine send_real_array_2d (a, dest, tag)
+    implicit none
+    real, dimension (:,:), intent (in) :: a
+    integer, intent (in) :: dest
+    integer, intent (in), optional :: tag
+# ifdef MPI
+    integer :: ierror
+    integer :: tagp
+    tagp = 0
+    if (present(tag)) tagp = tag
+    call mpi_send (a, size(a), mpireal, dest, tagp, mp_comm, ierror)
+# else
+    call error ("send")
+# endif
+  end subroutine send_real_array_2d
+
   subroutine send_complex (z, dest, tag)
     implicit none
     complex, intent (in) :: z
@@ -1656,6 +1674,28 @@ contains
     call error ("receive")
 # endif
   end subroutine receive_real_array
+
+  subroutine receive_real_array_2d (a, src, tag)
+    implicit none
+# ifdef MPI
+    real, dimension (:,:), intent (out) :: a
+# else
+    real, dimension (:,:) :: a
+# endif
+    integer, intent (in) :: src
+    integer, intent (in), optional :: tag
+# ifdef MPI
+    integer :: ierror
+    integer :: tagp
+    integer, dimension (MPI_STATUS_SIZE) :: status
+    tagp = 0
+    if (present(tag)) tagp = tag
+    call mpi_recv (a, size(a), mpireal, src, tagp, mp_comm, &
+        status, ierror)
+# else
+    call error ("receive")
+# endif
+  end subroutine receive_real_array_2d
 
   subroutine receive_complex (z, src, tag)
     implicit none

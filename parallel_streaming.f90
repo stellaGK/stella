@@ -168,6 +168,7 @@ contains
     use dist_fn_arrays, only: aj0x
     use fields_arrays, only: phi
     use vpamu_grids, only: ztmax, maxwell_mu
+    use run_parameters, only: driftkinetic_implicit
 
     implicit none
 
@@ -175,18 +176,28 @@ contains
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     integer :: ivmu, iv, imu, is
+    real :: dk_knob
     complex, dimension (:,:,:,:), allocatable :: g0, g1
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     allocate (g1(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
+
+    if (driftkinetic_implicit) then
+       dk_knob = 1.0
+    else
+       dk_knob = 0.0
+    end if
     ! get dg/dz, with z the parallel coordinate and store in g0
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g0(:,:,:,ivmu) = aj0x(:,:,:,ivmu)*phi
+       g0(:,:,:,ivmu) = (aj0x(:,:,:,ivmu)-dk_knob)*phi
     end do
+
     call get_dgdz (g0, g1)
+!    call get_dgdz_centered (g0, g1)
     call get_dgdz (g, g0)
+
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -226,11 +237,6 @@ contains
     ! FLAG -- assuming delta zed is equally spaced below!
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
-!       ! no need to calculate dgdz for vpa=0, as will be multipled by vpa
-!       if (iv==0) then
-!          dgdz(:,:,:,ivmu) = 0.
-!          cycle
-!       end if
        do iky = 1, naky
           do ie = 1, neigen(iky)
              do iseg = 1, nsegments(ie,iky)
@@ -247,6 +253,46 @@ contains
     end do
 
   end subroutine get_dgdz
+
+  subroutine get_dgdz_centered (g, dgdz)
+
+    use finite_differences, only: second_order_centered_zed
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx
+    use zgrid, only: nzgrid, delzed
+    use extended_zgrid, only: neigen, nsegments
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: fill_zed_ghost_zones
+    use kt_grids, only: naky
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
+
+    integer :: ivmu, iseg, ie, iky, iv
+    complex, dimension (2) :: gleft, gright
+
+    ! FLAG -- assuming delta zed is equally spaced below!
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       do iky = 1, naky
+          do ie = 1, neigen(iky)
+             do iseg = 1, nsegments(ie,iky)
+                ! first fill in ghost zones at boundaries in g(z)
+                call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
+                ! now get dg/dz
+                call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
+                     delzed(0), stream_sign(iv), gleft, gright, .false., &
+                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine get_dgdz_centered
 
   subroutine add_stream_term (g, src)
 
@@ -298,10 +344,8 @@ contains
     g1 = g
     phi1 = phi
 
-!    ! if iv=0, vpa=0. in this case, dg/dt = 0, so g_out = g_in
-
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu) !; if (iv==0) cycle
+       iv = iv_idx(vmu_lo,ivmu)
 
        ! obtain RHS of inhomogeneous GK eqn;
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
@@ -368,6 +412,7 @@ contains
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
     use run_parameters, only: stream_cell, time_upwind
+    use run_parameters, only: driftkinetic_implicit
 
     implicit none
 
@@ -416,7 +461,9 @@ contains
     end if
 
     ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
-    g = aj0x(:,:,:,ivmu)*(tupwnd1*phiold+tupwnd2*phi)
+    g = tupwnd1*phiold+tupwnd2*phi
+    if (.not.driftkinetic_implicit) g = aj0x(:,:,:,ivmu)*g
+!    g = aj0x(:,:,:,ivmu)*(tupwnd1*phiold+tupwnd2*phi)
     ! obtain d<phi>/dz and store in dphidz
     if (stream_cell) then
        call get_dzed_cell (iv,g,dphidz)
@@ -433,7 +480,7 @@ contains
     ! then must also account for -vpa*dF_neo/dvpa
     if (include_neoclassical_terms) then
        do iz = -nzgrid, nzgrid
-          vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(iz,ivmu)
+          vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(1,iz,ivmu)
        end do
     end if
 

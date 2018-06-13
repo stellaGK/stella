@@ -7,3 +7,4 @@ INSTALLATION
 FFTW_INC_DIR (directory including fftw3.f), NETCDF_LIB_DIR (directory containing libnetcdff.a),
 and NETCDF_INC_DIR (directory including netcdf.inc)
 4) set the environmental variable MAKEFLAGS=-IMakefiles
+5) type 'make'

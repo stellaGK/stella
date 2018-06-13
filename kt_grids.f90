@@ -24,7 +24,7 @@ contains
 
     naky = 1 ; nakx = 1
     aky_min = 0.0 ; aky_max = 0.0
-    akx_min = 0.0 ; akx_max = 0.0
+    akx_min = 0.0 ; akx_max = -1.0
     ! set these to be nonsense values
     ! so can check later if they've been set
     theta0_min = 0.0 ; theta0_max = -1.0
@@ -61,7 +61,7 @@ contains
     real, dimension (:), intent (out) :: akx, aky
     real, dimension (:,:), intent (out) :: theta0
 
-    real :: dkx, dky, dtheta0
+    real :: dkx, dky, dtheta0, zero
     integer :: i, j
 
     if (size(aky) /= naky) call mp_abort ('range_get_grids: size(aky) /= naky')
@@ -76,22 +76,26 @@ contains
     ! set default akx and theta0 to 0
     akx = 0.0 ; theta0=0.0
 
+    zero = 100.*epsilon(0.)
+
     ! if theta0_min and theta0_max have been specified,
     ! use them to determine akx_min and akx_max
-    if (theta0_max > theta0_min) then
-       akx_min = theta0_min * shat * aky(1)
-       akx_max = theta0_max * shat * aky(1)
+    if (theta0_max > theta0_min-zero) then
+       if (shat > epsilon(0.)) then
+          akx_min = theta0_min * shat * aky(1)
+          akx_max = theta0_max * shat * aky(1)
+       else
+          akx_min = theta0_max * shat * aky(1)
+          akx_max = theta0_min * shat * aky(1)
+       end if
     end if
 
-!
-! BD: Assumption here differs from convention that abs(shat) <= 1.e-5 triggers periodic bc
-!
     ! shat_zero is minimum shat value below which periodic BC is enforced
     if (abs(shat) > shat_zero) then  ! ie assumes boundary_option .eq. 'linked'
        ! if akx_min and akx_max specified in input
        ! instead of theta0_min and theta0_max,
        ! use them to get theta0_min and theta0_max
-       if (theta0_min > theta0_max .and. abs(aky(1)) > epsilon(0.)) then
+       if (theta0_min > theta0_max+zero .and. abs(aky(1)) > epsilon(0.)) then
           theta0_min = akx_min/(shat*aky(1))
           theta0_max = akx_max/(shat*aky(1))
           dtheta0 = 0.0
@@ -102,11 +106,12 @@ contains
                   = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
           end do
           akx = theta0(1,:) * shat * aky(1)
-       else if (akx_max > epsilon(0.)) then
+       else if (akx_max > akx_min-zero) then
           dkx = 0.0
           if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
           akx = (/ (akx_min + dkx*real(i), i = 0,nakx-1) /)
        else
+          write (*,*) akx_max, akx_min, theta0_max, theta0_min
           call mp_abort ('ky=0 is inconsistent with kx_min different from kx_max. aborting.')
        end if
        

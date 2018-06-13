@@ -32,7 +32,7 @@ module stella_io
   integer, dimension (5) :: field_dim
   integer, dimension (4) :: vmus_dim
   integer, dimension (4) :: zvs_dim
-  integer, dimension (3) :: mode_dim, heat_dim
+  integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim
 
@@ -57,6 +57,7 @@ module stella_io
   integer :: vnew_id, spec_type_id
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
+  integer :: kperp2_id
   integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, surfarea_id
   integer :: beta_id
   integer :: code_id, datestamp_id, timestamp_id, timezone_id
@@ -328,6 +329,10 @@ contains
     zvs_dim (3) = nspec_dim
     zvs_dim (4) = time_dim
     
+    kykxz_dim (1) = naky_dim
+    kykxz_dim (2) = nakx_dim
+    kykxz_dim (3) = nttot_dim
+
     ! Write some useful general information such as the website,
     ! date and time into the NetCDF file
     status = nf90_put_att (ncid, nf90_global, 'title', 'GS2 Simulation Data')
@@ -521,6 +526,8 @@ contains
     status = nf90_def_var (ncid, 'cvdrift0', netcdf_real, flux_surface_dim, cvdrift0_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='cvdrift0')
 
+    status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxz_dim, kperp2_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='kperp2')
     status = nf90_def_var (ncid, 'gds2', netcdf_real, flux_surface_dim, gds2_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds2')
     status = nf90_def_var (ncid, 'gds21', netcdf_real, flux_surface_dim, gds21_id)
@@ -891,6 +898,8 @@ contains
     use geometry, only: nalpha
     use zgrid, only: nzgrid
     use physics_parameters, only: beta
+    use dist_fn_arrays, only: kperp2
+    use kt_grids, only: naky, nakx
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 
@@ -898,10 +907,16 @@ contains
 
     integer :: status
     integer, dimension (2) :: start, count
+    integer, dimension (3) :: start2, count2
 
     start = 1
     count(1) = nalpha
     count(2) = 2*nzgrid+1
+
+    start2 = 1
+    count2(1) = naky
+    count2(2) = nakx
+    count2(3) = 2*nzgrid+1
 
     status = nf90_put_var (ncid, bmag_id, bmag, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id)
@@ -915,6 +930,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, cvdrift_id)
     status = nf90_put_var (ncid, cvdrift0_id, cvdrift0, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, cvdrift0_id)
+    status = nf90_put_var (ncid, kperp2_id, kperp2, start=start2, count=count2)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, kperp2_id)
     status = nf90_put_var (ncid, gds2_id, gds2, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds2_id)
     status = nf90_put_var (ncid, gds21_id, gds21, start=start, count=count)

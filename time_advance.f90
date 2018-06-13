@@ -44,6 +44,7 @@ module time_advance
 !  logical :: wdrifty_explicit, wdrifty_implicit
 !  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, wstarknob
+  logical :: flip_flop
 
 !  complex, dimension (:,:,:), allocatable :: gamtot_wstar, apar_denom_wstar
 !  complex, dimension (:,:), allocatable :: gamtot3_wstar
@@ -215,6 +216,7 @@ contains
     use file_utils, only: error_unit, input_unit_exist
     use text_options, only: text_option, get_option_value
     use mp, only: proc0, broadcast
+    use run_parameters, only: fully_explicit
 
     implicit none
 
@@ -227,7 +229,7 @@ contains
          text_option('rk4', explicit_option_rk4) /)
     character(10) :: explicit_option
 
-    namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option
+    namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
 
     integer :: ierr, in_file
 
@@ -239,6 +241,7 @@ contains
        xdriftknob = 1.0
        ydriftknob = 1.0
        wstarknob = 1.0
+       flip_flop = .false.
 !       wdrifty_explicit = .true.
 !       wstar_explicit = .true.
 
@@ -255,8 +258,11 @@ contains
     call broadcast (xdriftknob)
     call broadcast (ydriftknob)
     call broadcast (wstarknob)
+    call broadcast (flip_flop)
 !    call broadcast (wdrifty_explicit)
 !    call broadcast (wstar_explicit)
+
+    if (fully_explicit) flip_flop = .false.
 
   end subroutine read_parameters 
 
@@ -320,8 +326,8 @@ contains
        ! if including neoclassical correction to equilibrium Maxwellian,
        ! then add in v_E^{nc} . grad y dg/dy coefficient here
        if (include_neoclassical_terms) then
-          wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)-code_dt*0.5*(gds23*spread(dphineo_dzed,1,nalpha) &
-               + spread(dphineo_drho,1,nalpha))
+          wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)-code_dt*0.5*(gds23*dphineo_dzed &
+               + dphineo_drho)
        end if
 
        wdrifty_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
@@ -331,8 +337,8 @@ contains
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
        if (include_neoclassical_terms) then
           wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
-               - 0.5*spec(is)%zt*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdrifty &
-               - code_dt*0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds23
+               - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdrifty &
+               - code_dt*0.5*dfneo_dzed(:,:,ivmu)*gds23
        end if
 
        fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
@@ -346,7 +352,7 @@ contains
        ! if including neoclassical correction to equilibrium Maxwellian,
        ! then add in v_E^{nc} . grad x dg/dx coefficient here
        if (include_neoclassical_terms) then
-          wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)-code_dt*0.5*gds24*spread(dphineo_dzed,1,nalpha)
+          wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)-code_dt*0.5*gds24*dphineo_dzed
        end if
        wdriftx_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
             * (wgbdriftx + wcvdriftx*vpa(iv))
@@ -355,8 +361,8 @@ contains
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
-               - 0.5*spec(is)%zt*spread(dfneo_dvpa(:,ivmu),1,nalpha)*wcvdriftx &
-               - code_dt*0.5*spread(dfneo_dzed(:,ivmu),1,nalpha)*gds24
+               - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdriftx &
+               - code_dt*0.5*dfneo_dzed(:,:,ivmu)*gds24
        end if
     end do
 
@@ -400,7 +406,7 @@ contains
           wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
                * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-                - spread(dfneo_drho(:,ivmu),1,nalpha))
+                - dfneo_drho(:,:,ivmu))
        else
           wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
                * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
@@ -500,7 +506,7 @@ contains
     ! compare these max values across processors to get global max
     if (nproc > 1) call max_allreduce (wdriftx_max)
     ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
-    cfl_dt_wdriftx = code_dt/max(maxval(akx)*wdriftx_max,zero)
+    cfl_dt_wdriftx = code_dt/max(maxval(abs(akx))*wdriftx_max,zero)
     cfl_dt = cfl_dt_wdriftx
 
     if (.not.stream_implicit) then
@@ -584,29 +590,28 @@ contains
 
   end subroutine reset_dt
 
-!  subroutine advance_stella (istep)
-  subroutine advance_stella
+  subroutine advance_stella (istep)
 
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi0_old
+    use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit
 
     implicit none
 
-!    integer, intent (in) :: istep
+    integer, intent (in) :: istep
 
-    ! save value of phi at z=0
+    ! save value of phi
     ! for use in diagnostics (to obtain frequency)
-    phi0_old = phi(:,:,0)
+    phi_old = phi
 
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting
     ! this is needed to ensure 2nd order accuracy in time
-!    if (mod(istep,2)==1) then
+    if (mod(istep,2)==1 .or. .not.flip_flop) then
        ! advance the explicit parts of the GKE
 !    call advance_explicit (phi, apar, gnew)
-    call advance_explicit (gnew)
+       call advance_explicit (gnew)
 
 !    call checksum (phi, phitot)
 !    call checksum (gnew, gtot)
@@ -617,8 +622,11 @@ contains
 
        ! use operator splitting to separately evolve
        ! all terms treated implicitly
-    if (.not.fully_explicit) call advance_implicit (phi, apar, gnew)
-
+       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+    else
+       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+       call advance_explicit (gnew)
+    end if
 !    call checksum (phi, phitot)
 !    call checksum (gnew, gtot)
 !    if (proc0) write (*,*) 'implicit', phitot, gtot
@@ -912,7 +920,8 @@ contains
        end if
        
        ! calculate and add parallel streaming term to RHS of GK eqn
-       if (include_parallel_streaming.and..not.stream_implicit) call advance_parallel_streaming_explicit (gin, rhs_ky)
+       if (include_parallel_streaming.and.(.not.stream_implicit)) &
+            call advance_parallel_streaming_explicit (gin, rhs_ky)
        ! calculate and add omega_* term to RHS of GK eqn
 !       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
 !       call advance_wstar_explicit (rhs_ky)
@@ -1720,8 +1729,8 @@ contains
 
   end subroutine add_wstar_term
 
-!  subroutine advance_implicit (istep, phi, apar, g)
-  subroutine advance_implicit (phi, apar, g)
+  subroutine advance_implicit (istep, phi, apar, g)
+!  subroutine advance_implicit (phi, apar, g)
 
     use mp, only: proc0
     use job_manage, only: time_message
@@ -1737,10 +1746,11 @@ contains
     use mirror_terms, only: advance_mirror_implicit
     use dissipation, only: collisions_implicit, include_collisions
     use dissipation, only: advance_collisions_implicit
+    use run_parameters, only: driftkinetic_implicit
 
     implicit none
 
-!    integer, intent (in) :: istep
+    integer, intent (in) :: istep
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
@@ -1753,40 +1763,63 @@ contains
 !    if (mod(istep,2)==0) then
        ! g^{*} (coming from explicit solve) is input
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
+
+    if (mod(istep,2)==1 .or. .not.flip_flop) then
        if (hyper_dissipation) then
           call advance_hyper_dissipation (g)
           fields_updated = .false.
        end if
 
-!       call checksum (phi, phitot)
-!       call checksum (g, gtot)
-!       if (proc0) write (*,*) 'hyper', phitot, gtot
-
-       if (collisions_implicit .and. include_collisions) &
-            call advance_collisions_implicit (mirror_implicit, phi, apar, g)
+       if (collisions_implicit .and. include_collisions) then
+          call advance_fields (g, phi, apar, dist='gbar')
+          call advance_collisions_implicit (mirror_implicit, phi, apar, g)
+          fields_updated = .false.
+       end if
 
        if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (collisions_implicit, g)
           fields_updated = .false.
        end if
+       
+       ! get updated fields corresponding to advanced g
+       ! note that hyper-dissipation and mirror advances
+       ! depended only on g and so did not need field update
+       call advance_fields (g, phi, apar, dist='gbar')
 
-!       call checksum (phi, phitot)
-!       call checksum (g, gtot)
-!       if (proc0) write (*,*) 'mirror', phitot, gtot
+       ! g^{**} is input
+       ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
+       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
+            call advance_parallel_streaming_implicit (g, phi, apar)
+
+    else
 
        ! get updated fields corresponding to advanced g
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update
        call advance_fields (g, phi, apar, dist='gbar')
 
-!       call checksum (phi, phitot)
-!       call checksum (g, gtot)
-!       if (proc0) write (*,*) 'fieldadvance', phitot, gtot
-
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if (stream_implicit .and. include_parallel_streaming) &
+       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
             call advance_parallel_streaming_implicit (g, phi, apar)
+       
+       if (mirror_implicit .and. include_mirror) then
+          call advance_mirror_implicit (collisions_implicit, g)
+          fields_updated = .false.
+       end if
+
+       if (collisions_implicit .and. include_collisions) then
+          call advance_fields (g, phi, apar, dist='gbar')
+          call advance_collisions_implicit (mirror_implicit, phi, apar, g)
+          fields_updated = .false.
+       end if
+
+       if (hyper_dissipation) then
+          call advance_hyper_dissipation (g)
+          fields_updated = .false.
+       end if
+
+    end if
 
 !       call checksum (phi, phitot)
 !       call checksum (g, gtot)

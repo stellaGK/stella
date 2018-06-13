@@ -17,8 +17,8 @@ module neoclassical_terms
   integer :: neo_option_switch
   integer, parameter :: neo_option_sfincs = 1
 
-  real, dimension (:,:), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho
-  real, dimension (:), allocatable :: dphineo_dzed, dphineo_drho
+  real, dimension (:,:,:), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho
+  real, dimension (:,:), allocatable :: dphineo_dzed, dphineo_drho
 
   logical :: neoinit = .false.
   logical :: debug = .false.
@@ -28,6 +28,7 @@ contains
   subroutine init_neoclassical_terms
 
     use zgrid, only: nzgrid
+    use geometry, only: nalpha
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
@@ -35,38 +36,38 @@ contains
     
     implicit none
 
-    real, dimension (:,:,:,:,:), allocatable :: f_neoclassical
-    real, dimension (:,:), allocatable :: phi_neoclassical
+    real, dimension (:,:,:,:,:,:), allocatable :: f_neoclassical
+    real, dimension (:,:,:), allocatable :: phi_neoclassical
     
     if (neoinit) return
     neoinit = .true.
 
     call read_parameters
     if (include_neoclassical_terms) then
-       allocate (f_neoclassical(-nzgrid:nzgrid,nvpa,nmu,nspec,-nradii/2:nradii/2))
-       allocate (phi_neoclassical(-nzgrid:nzgrid,-nradii/2:nradii/2))
+       allocate (f_neoclassical(nalpha,-nzgrid:nzgrid,nvpa,nmu,nspec,-nradii/2:nradii/2))
+       allocate (phi_neoclassical(nalpha,-nzgrid:nzgrid,-nradii/2:nradii/2))
        if (.not.allocated(dfneo_dvpa)) &
-            allocate (dfneo_dvpa(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            allocate (dfneo_dvpa(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dfneo_drho)) &
-            allocate (dfneo_drho(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            allocate (dfneo_drho(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dfneo_dzed)) &
-            allocate (dfneo_dzed(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            allocate (dfneo_dzed(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dphineo_dzed)) &
-            allocate (dphineo_dzed(-nzgrid:nzgrid))
+            allocate (dphineo_dzed(nalpha,-nzgrid:nzgrid))
        if (.not.allocated(dphineo_drho)) &
-            allocate (dphineo_drho(-nzgrid:nzgrid))
+            allocate (dphineo_drho(nalpha,-nzgrid:nzgrid))
        select case (neo_option_switch)
        case (neo_option_sfincs)
           call get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical)
        end select
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dzed'
-       call get_dfneo_dzed (f_neoclassical(:,:,:,:,0), dfneo_dzed)
+       call get_dfneo_dzed (f_neoclassical(:,:,:,:,:,0), dfneo_dzed)
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dvpa'
-       call get_dfneo_dvpa (f_neoclassical(:,:,:,:,0), dfneo_dvpa)
+       call get_dfneo_dvpa (f_neoclassical(:,:,:,:,:,0), dfneo_dvpa)
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_drho'
        call get_dfneo_drho (f_neoclassical, dfneo_drho)
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_dzed'
-       call get_dphineo_dzed (phi_neoclassical(:,0), dphineo_dzed)
+       call get_dphineo_dzed (phi_neoclassical(:,:,0), dphineo_dzed)
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_drho'
        call get_dphineo_drho (phi_neoclassical, dphineo_drho)
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::write_neoclassical'
@@ -157,37 +158,42 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa
     use species, only: nspec
+    use geometry, only: nalpha
 
     implicit none
 
-    real, dimension (-nzgrid:,:,:,:), intent (in) :: fneo
-    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
+    real, dimension (:,-nzgrid:,:,:,:), intent (in) :: fneo
+    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
-    integer :: iz, imu, is
+    integer :: ia, iz, imu, is
     real, dimension (:), allocatable :: tmp1, tmp2
-    real, dimension (:,:,:,:), allocatable :: dfneo_local
+    real, dimension (:,:,:,:,:), allocatable :: dfneo_local
 
     allocate (tmp1(nvpa), tmp2(nvpa))
-    allocate (dfneo_local(-nzgrid:nzgrid,nvpa,nmu,nspec))
+    allocate (dfneo_local(nalpha,-nzgrid:nzgrid,nvpa,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
           do iz = -nzgrid, nzgrid
-             ! hack to avoid dealing with negative indices in fd5pt
-             tmp1 = fneo(iz,:,imu,is)
-             call fd5pt (tmp1, tmp2, dvpa)
-             dfneo_local(iz,:,imu,is) = tmp2
+             do ia = 1, nalpha
+                ! hack to avoid dealing with negative indices in fd5pt
+                tmp1 = fneo(ia,iz,:,imu,is)
+                call fd5pt (tmp1, tmp2, dvpa)
+                dfneo_local(ia,iz,:,imu,is) = tmp2
+             end do
           end do
        end do
     end do
 
     do iz = -nzgrid, nzgrid
-       call distribute_vmus_over_procs (dfneo_local(iz,:,:,:), dfneo(iz,:))
+       do ia = 1, nalpha
+          call distribute_vmus_over_procs (dfneo_local(ia,iz,:,:,:), dfneo(ia,iz,:))
+       end do
     end do
 
     deallocate (dfneo_local)
     deallocate (tmp1, tmp2)
-
+    
   end subroutine get_dfneo_dvpa
 
   subroutine get_dfneo_dzed (fneo, dfneo)
@@ -197,36 +203,37 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
+    use geometry, only: nalpha
 
     implicit none
 
-    real, dimension (-nzgrid:,:,:,:), intent (in) :: fneo
-    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
+    real, dimension (:,-nzgrid:,:,:,:), intent (in) :: fneo
+    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
-    integer :: iv, imu, is, iz
+    integer :: iv, imu, is, iz, ia
     real, dimension (:), allocatable :: tmp1, tmp2
-    real, dimension (:), allocatable :: dfneo_local(:,:,:,:)
+    real, dimension (:), allocatable :: dfneo_local(:,:,:,:,:)
 
     allocate (tmp1(nztot), tmp2(nztot))
-    allocate (dfneo_local(-nzgrid:nzgrid,nvpa,nmu,nspec))
+    allocate (dfneo_local(nalpha,-nzgrid:nzgrid,nvpa,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
           do iv = 1, nvpa
-             ! hack to avoid dealing with negative indices in fd5pt
-!             ! fneo is F_nc * exp(2*mu*B) * ...
-!             ! need to get rid of z-dependent exponential before
-!             ! taking d/dz
-             tmp1 = fneo(:,iv,imu,is)!*exp(-2.0*mu(imu)*bmag(1,:))
-             call fd5pt (tmp1, tmp2, delzed(0))
-             ! put the z-dependent exponential normalization factor back
-             dfneo_local(:,iv,imu,is) = tmp2!*exp(2.0*mu(imu)*bmag(1,:))
+             do ia = 1, nalpha
+                ! hack to avoid dealing with negative indices in fd5pt
+                tmp1 = fneo(ia,:,iv,imu,is)
+                call fd5pt (tmp1, tmp2,delzed(0))
+                dfneo_local(ia,:,iv,imu,is) = tmp2
+             end do
           end do
        end do
     end do
 
     do iz = -nzgrid, nzgrid
-       call distribute_vmus_over_procs (dfneo_local(iz,:,:,:), dfneo(iz,:))
+       do ia = 1, nalpha
+          call distribute_vmus_over_procs (dfneo_local(ia,iz,:,:,:), dfneo(ia,iz,:))
+       end do
     end do
 
     deallocate (dfneo_local)
@@ -241,38 +248,43 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
+    use geometry, only: nalpha
 
     implicit none
 
-    real, dimension (-nzgrid:,:,:,:,-nradii/2:), intent (in) :: fneo
-    real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
+    real, dimension (:,-nzgrid:,:,:,:,-nradii/2:), intent (in) :: fneo
+    real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dfneo
 
-    integer :: iz, iv, imu, is
+    integer :: ia, iz, iv, imu, is
     real, dimension (:), allocatable :: tmp1, tmp2
-    real, dimension (:,:,:,:), allocatable :: dfneo_local
+    real, dimension (:,:,:,:,:), allocatable :: dfneo_local
 
     allocate (tmp1(nradii), tmp2(nradii))
-    allocate (dfneo_local(-nzgrid:nzgrid,nvpa,nmu,nspec))
+    allocate (dfneo_local(nalpha,-nzgrid:nzgrid,nvpa,nmu,nspec))
 
     do is = 1, nspec
        do imu = 1, nmu
           do iv = 1, nvpa
              do iz = -nzgrid, nzgrid
-                ! hack to avoid dealing with negative indices in fd5pt
-                tmp1 = fneo(iz,iv,imu,is,:)
-                if (nradii == 5) then
-                   call fd5pt (tmp1, tmp2, drho)
-                else
-                   call fd3pt (tmp1, tmp2, drho)
-                end if
-                dfneo_local(iz,iv,imu,is) = tmp2(nradii/2+1)
+                do ia = 1, nalpha
+                   ! hack to avoid dealing with negative indices in fd5pt
+                   tmp1 = fneo(ia,iz,iv,imu,is,:)
+                   if (nradii == 5) then
+                      call fd5pt (tmp1, tmp2, drho)
+                   else
+                      call fd3pt (tmp1, tmp2, drho)
+                   end if
+                   dfneo_local(ia,iz,iv,imu,is) = tmp2(nradii/2+1)
+                end do
              end do
           end do
        end do
     end do
 
     do iz = -nzgrid, nzgrid
-       call distribute_vmus_over_procs (dfneo_local(iz,:,:,:), dfneo(iz,:))
+       do ia = 1, nalpha
+          call distribute_vmus_over_procs (dfneo_local(ia,iz,:,:,:), dfneo(ia,iz,:))
+       end do
     end do
 
     deallocate (dfneo_local)
@@ -284,20 +296,24 @@ contains
 
     use finite_differences, only: fd5pt
     use zgrid, only: nztot, nzgrid, delzed
+    use geometry, only: nalpha
 
     implicit none
 
-    real, dimension (-nzgrid:), intent (in) :: phineo
-    real, dimension (-nzgrid:), intent (out) :: dphineo
+    real, dimension (:,-nzgrid:), intent (in) :: phineo
+    real, dimension (:,-nzgrid:), intent (out) :: dphineo
 
+    integer :: ia
     real, dimension (:), allocatable :: tmp1, tmp2
 
     allocate (tmp1(nztot), tmp2(nztot))
 
-    ! hack to avoid dealing with negative indices in fd5pt
-    tmp1 = phineo
-    call fd5pt (tmp1, tmp2, delzed(0))
-    dphineo = tmp2
+    do ia = 1, nalpha
+       ! hack to avoid dealing with negative indices in fd5pt
+       tmp1 = phineo(ia,:)
+       call fd5pt (tmp1, tmp2, delzed(0))
+       dphineo(ia,:) = tmp2
+    end do
 
     deallocate (tmp1, tmp2)
 
@@ -307,26 +323,29 @@ contains
 
     use finite_differences, only: fd3pt, fd5pt
     use zgrid, only: nzgrid
+    use geometry, only: nalpha
 
     implicit none
 
-    real, dimension (-nzgrid:,-nradii/2:), intent (in) :: phineo
-    real, dimension (-nzgrid:), intent (out) :: dphineo
+    real, dimension (:,-nzgrid:,-nradii/2:), intent (in) :: phineo
+    real, dimension (:,-nzgrid:), intent (out) :: dphineo
 
-    integer :: iz
+    integer :: iz, ia
     real, dimension (:), allocatable :: tmp1, tmp2
 
     allocate (tmp1(nradii), tmp2(nradii))
 
     do iz = -nzgrid, nzgrid
-       ! hack to avoid dealing with negative indices in fd5pt
-       tmp1 = phineo(iz,:)
-       if (nradii == 5) then
-          call fd5pt (tmp1, tmp2, drho)
-       else
-          call fd3pt (tmp1, tmp2, drho)
-       end if
-       dphineo(iz) = tmp2(nradii/2+1)
+       do ia = 1, nalpha
+          ! hack to avoid dealing with negative indices in fd5pt
+          tmp1 = phineo(ia,iz,:)
+          if (nradii == 5) then
+             call fd5pt (tmp1, tmp2, drho)
+          else
+             call fd3pt (tmp1, tmp2, drho)
+          end if
+          dphineo(ia,iz) = tmp2(nradii/2+1)
+       end do
     end do
 
     deallocate (tmp1, tmp2)
@@ -344,19 +363,20 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_layouts, only: idx_local, proc_id
+    use geometry, only: nalpha
 
     implicit none
 
-    real, dimension (-nzgrid:,:,:,:,-nradii/2:), intent (in) :: fnc
-    real, dimension (-nzgrid:,-nradii/2:), intent (in) :: phinc
+    real, dimension (:,-nzgrid:,:,:,:,-nradii/2:), intent (in) :: fnc
+    real, dimension (:,-nzgrid:,-nradii/2:), intent (in) :: phinc
     
     integer :: neo_unit
-    integer :: irad, iz, ivmu, iv, imu, is
-    real, dimension (:), allocatable :: dfdv_local, dfdr_local, dfdz_local
+    integer :: irad, iz, ivmu, iv, imu, is, ia
+    real, dimension (:,:), allocatable :: dfdv_local, dfdr_local, dfdz_local
 
-    allocate (dfdv_local(-nzgrid:nzgrid))
-    allocate (dfdr_local(-nzgrid:nzgrid))
-    allocate (dfdz_local(-nzgrid:nzgrid))
+    allocate (dfdv_local(nalpha,-nzgrid:nzgrid))
+    allocate (dfdr_local(nalpha,-nzgrid:nzgrid))
+    allocate (dfdz_local(nalpha,-nzgrid:nzgrid))
 
     if (proc0) then
        call open_output_file (neo_unit,'.neoclassical')
@@ -371,13 +391,13 @@ contains
           is = is_idx(vmu_lo,ivmu)
           if (idx_local(vmu_lo, iv, imu, is)) then
              if (proc0) then
-                dfdv_local = dfneo_dvpa(:,ivmu)
-                dfdr_local = dfneo_drho(:,ivmu)
-                dfdz_local = dfneo_dzed(:,ivmu)
+                dfdv_local = dfneo_dvpa(:,:,ivmu)
+                dfdr_local = dfneo_drho(:,:,ivmu)
+                dfdz_local = dfneo_dzed(:,:,ivmu)
              else
-                call send (dfneo_dvpa(:,ivmu), 0)
-                call send (dfneo_drho(:,ivmu), 0)
-                call send (dfneo_dzed(:,ivmu), 0)
+                call send (dfneo_dvpa(:,:,ivmu), 0)
+                call send (dfneo_drho(:,:,ivmu), 0)
+                call send (dfneo_dzed(:,:,ivmu), 0)
              end if
           else if (proc0) then
              call receive (dfdv_local, proc_id(vmu_lo,ivmu))
@@ -386,12 +406,14 @@ contains
           end if
           if (proc0) then
              do iz = -nzgrid, nzgrid
-                write (neo_unit,'(2i8,10e13.5)') irad, is, zed(iz), mu(imu), vpa(iv), &
-                     fnc(iz,iv,imu,is,irad), &
-                     dfdv_local(iz), &
-                     dfdr_local(iz), &
-                     dfdz_local(iz), &
-                     phinc(iz,irad), dphineo_drho(iz), dphineo_dzed(iz)
+                do ia = 1, nalpha
+                   write (neo_unit,'(3i8,10e13.5)') irad, is, ia, zed(iz), mu(imu), vpa(iv), &
+                        fnc(ia,iz,iv,imu,is,irad), &
+                        dfdv_local(ia,iz), &
+                        dfdr_local(ia,iz), &
+                        dfdz_local(ia,iz), &
+                        phinc(ia,iz,irad), dphineo_drho(ia,iz), dphineo_dzed(ia,iz)
+                end do
              end do
           end if
        end do

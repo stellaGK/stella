@@ -219,7 +219,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz) &
-            *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
+            *phiinit*spread(exp(-vpa**2),2,nmu)/abs(spec(is)%z)
     end do
 
   end subroutine ginit_default

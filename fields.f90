@@ -141,7 +141,7 @@ contains
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi0_old
+    use fields_arrays, only: phi_old
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
 
@@ -155,9 +155,9 @@ contains
        allocate (apar(naky,nakx,-nzgrid:nzgrid))
        apar = 0.
     end if
-    if (.not.allocated(phi0_old)) then
-       allocate (phi0_old(naky,nakx))
-       phi0_old = 0.
+    if (.not.allocated(phi_old)) then
+       allocate (phi_old(naky,nakx,-nzgrid:nzgrid))
+       phi_old = 0.
     end if
 
   end subroutine allocate_arrays
@@ -477,13 +477,13 @@ contains
 
   subroutine finish_fields
 
-    use fields_arrays, only: phi, phi0_old
+    use fields_arrays, only: phi, phi_old
     use fields_arrays, only: apar
 
     implicit none
 
     if (allocated(phi)) deallocate (phi)
-    if (allocated(phi0_old)) deallocate (phi0_old)
+    if (allocated(phi_old)) deallocate (phi_old)
     if (allocated(apar)) deallocate (apar)
     if (allocated(gamtot)) deallocate (gamtot)
     if (allocated(gamtot3)) deallocate (gamtot3)

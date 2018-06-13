@@ -20,7 +20,7 @@ contains
   subroutine vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
-       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, &
+       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
        gbdrift, gbdrift0, cvdrift, cvdrift0, &
        theta_vmec)
 
@@ -97,7 +97,8 @@ contains
 
     real, dimension(nalpha, -nzgrid:nzgrid), intent(out) :: theta_vmec
 
-    real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: bmag, gradpar, gds2, gds21, gds22, gds23, gds24
+    real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: bmag, gradpar, gds2, gds21, gds22
+    real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: gds23, gds24, gds25, gds26
     real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
 
     !*********************************************************************
@@ -135,6 +136,7 @@ contains
     real, dimension(:), allocatable :: d_Lambda_d_s_mnc, d_Lambda_d_s_mns
     real, dimension(:,:), allocatable :: grad_s_X, grad_s_Y, grad_s_Z
     real, dimension(:,:), allocatable :: grad_theta_vmec_X, grad_theta_vmec_Y, grad_theta_vmec_Z
+    real, dimension(:,:), allocatable :: grad_theta_pest_X, grad_theta_pest_Y, grad_theta_pest_Z
     real, dimension(:,:), allocatable :: grad_zeta_X, grad_zeta_Y, grad_zeta_Z
     real, dimension(:,:), allocatable :: grad_psi_X, grad_psi_Y, grad_psi_Z
     real, dimension(:,:), allocatable :: grad_alpha_X, grad_alpha_Y, grad_alpha_Z
@@ -142,7 +144,8 @@ contains
     real, dimension(:,:), allocatable :: B_cross_grad_s_dot_grad_alpha, B_cross_grad_s_dot_grad_alpha_alternate
     real, dimension(:,:), allocatable :: grad_B_X, grad_B_Y, grad_B_Z
     real, dimension(:,:), allocatable :: B_X, B_Y, B_Z
-    real, dimension (:,:), allocatable :: gradz_grady, gradz_gradx
+    real, dimension (:,:), allocatable :: gradzeta_grady, gradzeta_gradx
+    real, dimension (:,:), allocatable :: gradtheta_grady, gradtheta_gradx
 
     !*********************************************************************
     ! VMEC variables of interest:
@@ -536,6 +539,8 @@ contains
     gds22 = 0
     gds23 = 0.0
     gds24 = 0.0
+    gds25 = 0.0
+    gds26 = 0.0
     gbdrift = 0
     gbdrift0 = 0
     cvdrift = 0
@@ -585,6 +590,9 @@ contains
     allocate(grad_theta_vmec_X(nalpha, -nzgrid:nzgrid))
     allocate(grad_theta_vmec_Y(nalpha, -nzgrid:nzgrid))
     allocate(grad_theta_vmec_Z(nalpha, -nzgrid:nzgrid))
+    allocate(grad_theta_pest_X(nalpha, -nzgrid:nzgrid))
+    allocate(grad_theta_pest_Y(nalpha, -nzgrid:nzgrid))
+    allocate(grad_theta_pest_Z(nalpha, -nzgrid:nzgrid))
     allocate(grad_zeta_X(nalpha, -nzgrid:nzgrid))
     allocate(grad_zeta_Y(nalpha, -nzgrid:nzgrid))
     allocate(grad_zeta_Z(nalpha, -nzgrid:nzgrid))
@@ -606,8 +614,10 @@ contains
     allocate(B_cross_grad_s_dot_grad_alpha(nalpha, -nzgrid:nzgrid))
     allocate(B_cross_grad_s_dot_grad_alpha_alternate(nalpha, -nzgrid:nzgrid))
 
-    allocate (gradz_grady(nalpha,-nzgrid:nzgrid))
-    allocate (gradz_gradx(nalpha,-nzgrid:nzgrid))
+    allocate (gradzeta_grady(nalpha,-nzgrid:nzgrid))
+    allocate (gradzeta_gradx(nalpha,-nzgrid:nzgrid))
+    allocate (gradtheta_grady(nalpha,-nzgrid:nzgrid))
+    allocate (gradtheta_gradx(nalpha,-nzgrid:nzgrid))
 
     B = 0
     sqrt_g = 0
@@ -987,6 +997,14 @@ contains
     grad_zeta_Z = (d_X_d_s * d_Y_d_theta_vmec - d_Y_d_s * d_X_d_theta_vmec) / sqrt_g
     ! End of the dual relations.
 
+    ! next get grad_theta_pest = grad (theta_vmec + Lambda)
+    grad_theta_pest_X = (1.0 + d_Lambda_d_theta_vmec)*grad_theta_vmec_X &
+         + d_Lambda_d_zeta*grad_zeta_X + d_Lambda_d_s*grad_s_X
+    grad_theta_pest_Y = (1.0 + d_Lambda_d_theta_vmec)*grad_theta_vmec_Y &
+         + d_Lambda_d_zeta*grad_zeta_Y + d_Lambda_d_s*grad_s_Y
+    grad_theta_pest_Z = (1.0 + d_Lambda_d_theta_vmec)*grad_theta_vmec_Z &
+         + d_Lambda_d_zeta*grad_zeta_Z + d_Lambda_d_s*grad_s_Z
+
     ! Sanity check: grad_zeta_X should be -sin(zeta) / R:
     do izeta = -nzgrid,nzgrid
        temp2D(:,izeta) = -sin(zeta(izeta)) / R(:,izeta)
@@ -1143,20 +1161,38 @@ contains
          * shat * shat / (L_reference * L_reference * B_reference * B_reference * normalized_toroidal_flux_used)
 
     ! this is (grad zeta . grad x_stella) / bmag^2
-    gradz_gradx = (grad_zeta_X * grad_psi_X + grad_zeta_Y * grad_psi_Y + grad_zeta_Z * grad_psi_Z) &
+    gradzeta_gradx = (grad_zeta_X * grad_psi_X + grad_zeta_Y * grad_psi_Y + grad_zeta_Z * grad_psi_Z) &
          / (L_reference * B_reference * sqrt(normalized_toroidal_flux_used) * bmag**2)
 
     ! this is (grad zeta . grad y_stella) / bmag^2
-    gradz_grady = (grad_zeta_X * grad_alpha_X + grad_zeta_Y * grad_alpha_Y + grad_zeta_Z * grad_alpha_Z) &
+    gradzeta_grady = (grad_zeta_X * grad_alpha_X + grad_zeta_Y * grad_alpha_Y + grad_zeta_Z * grad_alpha_Z) &
+         * L_reference * sqrt(normalized_toroidal_flux_used) / bmag**2
+
+    ! this is (grad theta_pest . grad x_stella) / bmag^2
+    gradtheta_gradx = (grad_theta_pest_X * grad_psi_X + grad_theta_pest_Y * grad_psi_Y &
+         + grad_theta_pest_Z * grad_psi_Z) &
+         / (L_reference * B_reference * sqrt(normalized_toroidal_flux_used) * bmag**2)
+
+    ! this is (grad theta_pest . grad y_stella) / bmag^2
+    gradtheta_grady = (grad_theta_pest_X * grad_alpha_X + grad_theta_pest_Y * grad_alpha_Y &
+         + grad_theta_pest_Z * grad_alpha_Z) &
          * L_reference * sqrt(normalized_toroidal_flux_used) / bmag**2
 
     ! this is ((grad y_stella . grad zeta)*(grad x_stella . grad y_stella) 
     ! - (grad x_stella . grad zeta)*|grad y_stella|^2) / (B/Bref)^2
-    gds23 = gradz_grady * gds21/shat - gradz_gradx * gds2
+    gds23 = gradzeta_grady * gds21/shat - gradzeta_gradx * gds2
 
     ! this is ((grad y_stella . grad zeta) * |grad x_stella|^2 
     ! - (grad x_stella . grad zeta)*(grad x_stella . grad y_stella)) / 2 / (B/Bref)^2
-    gds24 = 0.5*(gradz_grady * gds22/shat**2 - gradz_gradx * gds21/shat)
+    gds24 = 0.5*(gradzeta_grady * gds22/shat**2 - gradzeta_gradx * gds21/shat)
+
+    ! this is ((grad y_stella . grad theta_pest)*(grad x_stella . grad y_stella)
+    ! - (grad x_stella . grad theta_pest)*|grad y_stella|^2) / (B/Bref)^2
+    gds25 = gradtheta_grady * gds21/shat - gradtheta_gradx * gds2
+
+    ! this is ((grad y_stella . grad theta_pest) * |grad x_stella|^2 
+    ! - (grad x_stella . grad theta_pest)*(grad x_stella . grad y_stella)) / 2 / (B/Bref)^2
+    gds26 = 0.5*(gradtheta_grady * gds22/shat**2 - gradtheta_gradx * gds21/shat)
 
     gbdrift = 2 * B_reference * L_reference * L_reference * sqrt_s * B_cross_grad_B_dot_grad_alpha &
          / (B * B * B)
@@ -1218,6 +1254,9 @@ contains
     deallocate(grad_theta_vmec_X)
     deallocate(grad_theta_vmec_Y)
     deallocate(grad_theta_vmec_Z)
+    deallocate(grad_theta_pest_X)
+    deallocate(grad_theta_pest_Y)
+    deallocate(grad_theta_pest_Z)
     deallocate(grad_zeta_X)
     deallocate(grad_zeta_Y)
     deallocate(grad_zeta_Z)
@@ -1239,8 +1278,10 @@ contains
     deallocate(B_cross_grad_s_dot_grad_alpha)
     deallocate(B_cross_grad_s_dot_grad_alpha_alternate)
 
-    deallocate (gradz_grady)
-    deallocate (gradz_gradx)
+    deallocate (gradzeta_grady)
+    deallocate (gradzeta_gradx)
+    deallocate (gradtheta_grady)
+    deallocate (gradtheta_gradx)
 
     deallocate(normalized_toroidal_flux_full_grid)
     deallocate(normalized_toroidal_flux_half_grid)

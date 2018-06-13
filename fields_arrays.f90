@@ -7,7 +7,7 @@ module fields_arrays
   complex, dimension (:,:,:), allocatable :: phi, apar
   ! (naky, nakx, -nzgrid:nzgrid)
 
-  complex, dimension (:,:), allocatable :: phi0_old
+  complex, dimension (:,:,:), allocatable :: phi_old
   ! (naky, nakx)
 
   type (response_matrix_type), dimension (:), allocatable :: response_matrix

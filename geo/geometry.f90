@@ -10,7 +10,7 @@ module geometry
   public :: gradpar, gradpar_eqarc, zed_eqarc
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
-  public :: gds2, gds21, gds22, gds23, gds24
+  public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   public :: exb_nonlin_fac
   public :: jacob
   public :: drhodpsi
@@ -20,6 +20,7 @@ module geometry
   public :: Rmajor
   public :: nalpha
   public :: theta_vmec
+  public :: zed_scalefac
 
   private
 
@@ -29,12 +30,13 @@ module geometry
   real :: drhodpsi, shat, qinp, rgeo
   real :: exb_nonlin_fac
   real :: gradpar_eqarc
+  real :: zed_scalefac
   real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:,:), allocatable :: gradpar
   real, dimension (:,:), allocatable :: bmag, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
-  real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24
+  real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, grho
   real, dimension (:), allocatable :: dl_over_b
@@ -72,6 +74,9 @@ contains
 
     if (geoinit) return
     geoinit = .true.
+
+    ! default is no re-scaling of zed
+    zed_scalefac = 1.0
 
     if (proc0) then
        call read_parameters
@@ -119,7 +124,8 @@ contains
           call allocate_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
           call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
-               gds23, gds24, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
+               gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec, &
+               zed_scalefac)
           ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
           exb_nonlin_fac = -0.5
           ! if using vmec, rho = sqrt(psitor/psitor_lcfs)
@@ -178,6 +184,8 @@ contains
     if (.not.allocated(gds22)) allocate (gds22(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds23)) allocate (gds23(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds24)) allocate (gds24(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds25)) allocate (gds25(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gds26)) allocate (gds26(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift)) allocate (gbdrift(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift0)) allocate (gbdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
@@ -252,6 +260,8 @@ contains
     call broadcast (gds22)
     call broadcast (gds23)
     call broadcast (gds24)
+    call broadcast (gds25)
+    call broadcast (gds26)
     call broadcast (gbdrift0)
     call broadcast (gbdrift)
     call broadcast (cvdrift0)
@@ -279,6 +289,8 @@ contains
     call broadcast (geo_surf%rhotor)
     call broadcast (geo_surf%psitor_lcfs)
     call broadcast (geo_surf%drhotordrho)
+
+    call broadcast (zed_scalefac)
 
   end subroutine broadcast_arrays
 
@@ -381,6 +393,8 @@ contains
     if (allocated(gds22)) deallocate (gds22)
     if (allocated(gds23)) deallocate (gds23)
     if (allocated(gds24)) deallocate (gds24)
+    if (allocated(gds25)) deallocate (gds25)
+    if (allocated(gds26)) deallocate (gds26)
     if (allocated(gbdrift)) deallocate (gbdrift)
     if (allocated(gbdrift0)) deallocate (gbdrift0)
     if (allocated(cvdrift)) deallocate (cvdrift)

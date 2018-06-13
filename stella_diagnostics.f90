@@ -8,6 +8,11 @@ module stella_diagnostics
 
   private
 
+  interface fieldline_average
+     module procedure fieldline_average_real
+     module procedure fieldline_average_complex
+  end interface
+
   integer :: ntg_out
   integer :: nwrite, nsave, nmovie, navg
   logical :: save_for_restart
@@ -214,7 +219,7 @@ contains
     use constants, only: zi
     use redistribute, only: scatter
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi0_old
+    use fields_arrays, only: phi_old
     use dist_fn_arrays, only: gvmu, gnew
     use dist_fn_arrays, only: g_to_h
     use stella_io, only: write_time_nc
@@ -246,18 +251,25 @@ contains
     complex, dimension (:,:,:,:), allocatable :: density, upar, temperature
     complex, dimension (:,:), allocatable :: omega_avg
 
+    complex, dimension (:,:), allocatable :: phiavg, phioldavg
+
     ! calculation of omega requires computation of omega more
     ! frequently than every nwrite time steps
     if (write_omega .and. proc0) then
        zero = 100.*epsilon(0.)
        allocate (omega_avg(naky,nakx))
        if (istep > 0) then
-          where (abs(phi(:,:,0)) < zero .or. abs(phi0_old) < zero)
+          allocate (phiavg(naky,nakx))
+          allocate (phioldavg(naky,nakx))
+          call fieldline_average (phi, phiavg)
+          call fieldline_average (phi_old, phioldavg)
+          where (abs(phiavg) < zero .or. abs(phioldavg) < zero)
              omega_vs_time(mod(istep,navg)+1,:,:) = 0.0
           elsewhere
-             omega_vs_time(mod(istep,navg)+1,:,:) = log(phi(:,:,0)/phi0_old)*zi/code_dt
+             omega_vs_time(mod(istep,navg)+1,:,:) = log(phiavg/phioldavg)*zi/code_dt
           end where
           omega_avg = sum(omega_vs_time,dim=1)/real(navg)
+          deallocate (phiavg, phioldavg)
        end if
     else
        allocate (omega_avg(1,1))
@@ -343,7 +355,7 @@ contains
 
   end subroutine diagnose_stella
 
-  subroutine fieldline_average (unavg, avg)
+  subroutine fieldline_average_real (unavg, avg)
 
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky
@@ -356,7 +368,22 @@ contains
 
     avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg,dim=3)
 
-  end subroutine fieldline_average
+  end subroutine fieldline_average_real
+
+  subroutine fieldline_average_complex (unavg, avg)
+
+    use zgrid, only: nzgrid
+    use kt_grids, only: nakx, naky
+    use geometry, only: dl_over_b
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:), intent (in) :: unavg
+    complex, dimension (:,:), intent (out) :: avg
+
+    avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg,dim=3)
+
+  end subroutine fieldline_average_complex
 
   subroutine volume_average (unavg, avg)
 
@@ -737,7 +764,7 @@ contains
     if (write_omega .and. istep > 0) then
        do iky = 1, naky
           do ikx = 1, nakx
-             write (omega_unit,'(7e12.4)') code_time, aky(iky), akx(ikx),&
+             write (omega_unit,'(7e16.8)') code_time, aky(iky), akx(ikx),&
                   real(om(iky,ikx)), aimag(om(iky,ikx)), &
                   real(om_avg(iky,ikx)), aimag(om_avg(iky,ikx))
           end do

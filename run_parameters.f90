@@ -16,6 +16,7 @@ module run_parameters
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
+  public :: driftkinetic_implicit
   public :: fully_explicit
   public :: stream_cell, stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp
@@ -32,6 +33,7 @@ module run_parameters
   logical :: include_mirror, include_collisions
   logical :: nonlinear, include_parallel_nonlinearity
   logical :: stream_implicit, mirror_implicit
+  logical :: driftkinetic_implicit
   logical :: fully_explicit
   logical :: stream_cell, stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
@@ -78,7 +80,7 @@ contains
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
          delt_option, nonlinear, include_parallel_nonlinearity, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
-         stream_implicit, mirror_implicit, &
+         stream_implicit, mirror_implicit, driftkinetic_implicit, &
          stream_cell, stream_matrix_inversion, &
          mirror_semi_lagrange, mirror_linear_interp, &
          include_parallel_streaming, include_mirror, &
@@ -93,6 +95,7 @@ contains
        fields_kxkyz = .false.
        stream_implicit = .true.
        mirror_implicit = .true.
+       driftkinetic_implicit = .false.
        nonlinear = .false.
        include_parallel_nonlinearity = .false.
        include_parallel_streaming = .true.
@@ -130,6 +133,7 @@ contains
     call broadcast (fbpar)
     call broadcast (stream_implicit)
     call broadcast (mirror_implicit)
+    call broadcast (driftkinetic_implicit)
     call broadcast (nonlinear)
     call broadcast (include_parallel_nonlinearity)
     call broadcast (include_parallel_streaming)
@@ -155,7 +159,9 @@ contains
        if (istatus == 0) delt  = delt_saved
     endif
 
-    if (mirror_implicit .or. stream_implicit) then
+    if (driftkinetic_implicit) stream_implicit = .false.
+
+    if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit) then
        fully_explicit = .false.
     else
        fully_explicit = .true.
