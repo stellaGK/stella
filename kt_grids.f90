@@ -110,6 +110,13 @@ contains
           dkx = 0.0
           if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
           akx = (/ (akx_min + dkx*real(i), i = 0,nakx-1) /)
+
+          dtheta0 = 0.0
+          if (ntheta0 > 1) dtheta0 = (theta0_max - theta0_min)/real(ntheta0 - 1)
+          do j = 1, naky
+             theta0(j,:) &
+                  = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
+          end do
        else
           write (*,*) akx_max, akx_min, theta0_max, theta0_min
           call mp_abort ('ky=0 is inconsistent with kx_min different from kx_max. aborting.')
