@@ -12,6 +12,7 @@ program test_vmec_to_gs2_geometry_interface
 !  character(len=2000) :: vmec_filename = 'equilibria/wout_161s1.nc'
   integer, parameter :: nalpha = 5
   integer, parameter :: nzgrid = 7
+  real :: alpha0 = 0.0
   real :: zeta_center = 0.0
   real :: number_of_field_periods_to_include = 1
   real :: desired_normalized_toroidal_flux = 0.6354167d+0
@@ -40,7 +41,8 @@ program test_vmec_to_gs2_geometry_interface
   ! Beginning of executable statements
   !*********************************************************************
 
-  call vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
+  call vmec_to_gs2_geometry_interface(vmec_filename, nalpha, alpha0, nzgrid, zeta_center, &
+       number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
        alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
@@ -50,6 +52,7 @@ program test_vmec_to_gs2_geometry_interface
   print *,"-------------- Input parameters ------------------"
   print *,"vmec_filename: ",trim(vmec_filename)
   print *,"nalpha:",nalpha
+  print *,"alpha0:",alpha0
   print *,"nzgrid:",nzgrid
   print *,"zeta_center:",zeta_center
   print *,"number_of_field_periods_to_include:",number_of_field_periods_to_include

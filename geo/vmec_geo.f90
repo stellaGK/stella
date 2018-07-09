@@ -6,6 +6,7 @@ module vmec_geo
   public :: get_vmec_geo
 
   integer :: nalpha
+  real :: alpha0
   integer :: surface_option
   real :: nfield_periods
   real :: zeta_center, torflux
@@ -25,7 +26,7 @@ contains
     integer :: in_file
     logical :: exist
 
-    namelist /vmec_parameters/ nalpha, zeta_center, nfield_periods, &
+    namelist /vmec_parameters/ nalpha, alpha0, zeta_center, nfield_periods, &
          torflux, surface_option, verbose, vmec_filename
 
     call init_vmec_defaults
@@ -42,7 +43,8 @@ contains
     implicit none
 
     vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
-    nalpha = 5
+    nalpha = 1
+    alpha0 = 0.0
     zeta_center = 0.0
     nfield_periods = -1.0
     torflux = 0.6354167d+0
@@ -73,7 +75,7 @@ contains
     real, dimension (-nzgrid:nzgrid) :: zeta
     real, dimension (-nzgrid:nzgrid) :: theta
 
-    call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, nzgrid, &
+    call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, alpha0, nzgrid, &
          zeta_center, nfield_periods, torflux, surface_option, verbose, &
          surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
          alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, &

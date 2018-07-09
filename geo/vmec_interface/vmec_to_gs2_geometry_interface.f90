@@ -17,7 +17,8 @@ module vmec_to_gs2_geometry_interface_mod
 
 contains
 
-  subroutine vmec_to_gs2_geometry_interface(vmec_filename, nalpha, nzgrid, zeta_center, number_of_field_periods_to_include, &
+  subroutine vmec_to_gs2_geometry_interface(vmec_filename, nalpha, alpha0, nzgrid, &
+       zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
        alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
@@ -38,6 +39,9 @@ contains
 
     ! nalpha is the number of grid points in the alpha coordinate:
     integer, intent(in) :: nalpha
+
+    ! alpha0 is the first alpha value to include in the alpha grid
+    real, intent(in) :: alpha0
 
     ! The zeta grid has nzgrid*2+1 points, including the "repeated" point at index -nzgrid and +nzgrid.
     integer, intent(in) :: nzgrid
@@ -475,7 +479,7 @@ contains
     ! Set up the coordinate grids.
     !*********************************************************************
 
-    alpha = [( ((j-1)*2*pi) / nalpha, j=1, nalpha )]
+    alpha = [( alpha0 + ((j-1)*2*pi) / nalpha, j=1, nalpha )]
 
 !!$    if (number_of_field_periods_to_include > nfp) then
 !!$       print *,"Error! number_of_field_periods_to_include > nfp"
