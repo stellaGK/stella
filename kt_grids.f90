@@ -113,12 +113,19 @@ contains
 
           dtheta0 = 0.0
           if (ntheta0 > 1) dtheta0 = (theta0_max - theta0_min)/real(ntheta0 - 1)
-          do j = 1, naky
-             theta0(j,:) &
-                  = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
-          end do
+
+          if (shat > epsilon(0.)) then
+             do j = 1, naky
+                theta0(j,:) &
+                     = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
+             end do
+          else
+             do j = 1, naky
+                theta0(j,:) &
+                     = (/ (theta0_min + dtheta0*real(i), i=ntheta0-1,0,-1) /)
+             end do
+          end if
        else
-          write (*,*) akx_max, akx_min, theta0_max, theta0_min
           call mp_abort ('ky=0 is inconsistent with kx_min different from kx_max. aborting.')
        end if
        
