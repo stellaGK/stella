@@ -24,6 +24,7 @@ program test_vmec_to_gs2_geometry_interface
   !*********************************************************************
   
   real :: normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp
+  integer :: sign_toroidal_flux
   real, dimension(nalpha) :: alpha
   real, dimension(-nzgrid:nzgrid) :: zeta
   real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26
@@ -45,6 +46,7 @@ program test_vmec_to_gs2_geometry_interface
        number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
+       sign_toroidal_flux, &
        alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
        gbdrift, gbdrift0, cvdrift, cvdrift0, &
        theta_vmec)

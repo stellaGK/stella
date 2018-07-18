@@ -54,8 +54,8 @@ contains
   end subroutine init_vmec_defaults
 
   subroutine get_vmec_geo (nzgrid, surf, grho, bmag, gradpar, gds2, gds21, gds22, &
-       gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec, &
-       zed_scalefac, alpha)
+       gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
+       theta_vmec, zed_scalefac, alpha)
 
     use common_types, only: flux_surface_type
     use vmec_to_gs2_geometry_interface_mod, only: vmec_to_gs2_geometry_interface
@@ -68,6 +68,7 @@ contains
          gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac
+    integer, intent (out) :: sign_torflux
 
     integer :: i, j
     real :: L_reference, B_reference, nfp
@@ -79,6 +80,7 @@ contains
     call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, alpha0, nzgrid, &
          zeta_center, nfield_periods, torflux, surface_option, verbose, &
          surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
+         sign_torflux, &
          alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, &
          gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
 

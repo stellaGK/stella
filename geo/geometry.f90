@@ -76,6 +76,7 @@ contains
 
     real :: dpsidrho
     integer :: iy
+    integer :: sign_torflux
 
     if (geoinit) return
     geoinit = .true.
@@ -145,19 +146,25 @@ contains
           call allocate_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
           call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
-               gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec, &
-               zed_scalefac, alpha)
-          ! dxdpsi = a*Bref*dx/dpsi = sign(dxdpsi)/rhotor
-          dxdpsi_sign = 1
-          dxdpsi = dxdpsi_sign/geo_surf%rhotor
+               gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
+               theta_vmec, zed_scalefac, alpha)
+          ! Bref = 2*abs(psi_tor_LCFS)/a^2
+          ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
+          ! psi = -psi_tor
+          ! dxdpsi = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
+!          ! dxdpsi = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = sign(dxdpsi)/rhotor
+          dxdpsi_sign = -1
+!          dxdpsi = dxdpsi_sign/geo_surf%rhotor
+          dxdpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
-          dydalpha_sign = -1
+          dydalpha_sign = 1
           dydalpha = dydalpha_sign*geo_surf%rhotor
           ! if using vmec, rho = sqrt(psitor/psitor_lcfs)
           ! psiN = -psitor/(aref**2*Bref)
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
-          drhodpsi = -1.0/geo_surf%rhotor
-
+          drhodpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
+!          drhodpsi = -1.0/geo_surf%rhotor
+          
           ! get_vmec_geo returns geometric quantities on assumption that dx/dpsi is negative
           ! and dy/dalpha is positive
           ! take into account possibility that this is not the case
@@ -330,6 +337,10 @@ contains
 
     call broadcast (zed_scalefac)
     call broadcast (alpha)
+    call broadcast (dxdpsi_sign)
+    call broadcast (dxdpsi)
+    call broadcast (dydalpha_sign)
+    call broadcast (dydalpha)
 
   end subroutine broadcast_arrays
 

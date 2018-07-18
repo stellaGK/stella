@@ -21,6 +21,7 @@ contains
        zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
+       sign_toroidal_flux, &
        alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
        gbdrift, gbdrift0, cvdrift, cvdrift0, &
        theta_vmec)
@@ -93,11 +94,15 @@ contains
     ! nfp is the number of field periods given by VMEC
     real, intent(out) :: nfp_out
 
+    integer, intent (out) :: sign_toroidal_flux
+
     ! On exit, alpha holds the grid points in alpha = theta_p - iota * zeta, where theta_p is the PEST toroidal angle
     real, dimension(nalpha), intent(out) :: alpha
 
     ! On exit, zeta holds the grid points in the toroidal angle zeta
     real, dimension(-nzgrid:nzgrid), intent(out) :: zeta
+
+
 
     real, dimension(nalpha, -nzgrid:nzgrid), intent(out) :: theta_vmec
 
@@ -226,10 +231,17 @@ contains
 
     edge_toroidal_flux_over_2pi = phi(ns) / (2*pi) * isigng ! isigns is called signgs in the wout*.nc file. Why is this signgs here?
 
+    ! this gives the sign of the edge toroidal flux
+    sign_toroidal_flux = int(sign(1.1,edge_toroidal_flux_over_2pi))
+
+    write (*,*) 'sign_toroidal_flux', sign_toroidal_flux
+
     ! Set reference length and magnetic field for stella's normalization, 
     ! using the choices made by Pavlos Xanthopoulos in GIST:
     L_reference = Aminor ! Note that 'Aminor' in read_wout_mod is called 'Aminor_p' in the wout*.nc file.
+!    B_reference = 2 * edge_toroidal_flux_over_2pi / (L_reference * L_reference)
     B_reference = 2 * abs(edge_toroidal_flux_over_2pi) / (L_reference * L_reference)
+
     if (verbose) then
        print *,"  Reference length for stella normalization:",L_reference," meters."
        print *,"  Reference magnetic field strength for stella normalization:",B_reference," Tesla."
@@ -1159,7 +1171,8 @@ contains
          * L_reference * L_reference * normalized_toroidal_flux_used
 
     gds21 = (grad_alpha_X * grad_psi_X + grad_alpha_Y * grad_psi_Y + grad_alpha_Z * grad_psi_Z) &
-         * shat / B_reference
+         * sign_toroidal_flux * shat / B_reference
+!         * shat / B_reference
 
     gds22 = (grad_psi_X * grad_psi_X + grad_psi_Y * grad_psi_Y + grad_psi_Z * grad_psi_Z) &
          * shat * shat / (L_reference * L_reference * B_reference * B_reference * normalized_toroidal_flux_used)
@@ -1201,7 +1214,9 @@ contains
     gbdrift = 2 * B_reference * L_reference * L_reference * sqrt_s * B_cross_grad_B_dot_grad_alpha &
          / (B * B * B)
 
-    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
+!    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
+    gbdrift0 = abs(edge_toroidal_flux_over_2pi) &
+         * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g &
          * 2 * shat / (B * B * B * sqrt_s)
     ! In the above 2-line expression for gbdrift0, the first line is \vec{B} \times \nabla B \cdot \nabla \psi.
 
