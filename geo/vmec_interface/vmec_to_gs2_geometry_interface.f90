@@ -1187,8 +1187,8 @@ contains
     gds23 = gradzeta_grady * gds21/shat - gradzeta_gradx * gds2
 
     ! this is ((grad y_stella . grad zeta) * |grad x_stella|^2 
-    ! - (grad x_stella . grad zeta)*(grad x_stella . grad y_stella)) / 2 / (B/Bref)^2
-    gds24 = 0.5*(gradzeta_grady * gds22/shat**2 - gradzeta_gradx * gds21/shat)
+    ! - (grad x_stella . grad zeta)*(grad x_stella . grad y_stella)) / (B/Bref)^2
+    gds24 = gradzeta_grady * gds22/shat**2 - gradzeta_gradx * gds21/shat
 
     ! this is ((grad y_stella . grad theta_pest)*(grad x_stella . grad y_stella)
     ! - (grad x_stella . grad theta_pest)*|grad y_stella|^2) / (B/Bref)^2

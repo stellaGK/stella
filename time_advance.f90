@@ -280,10 +280,11 @@ contains
     use geometry, only: gds23, gds24
     use geometry, only: geo_surf
     use geometry, only: nalpha
+    use geometry, only: dxdpsi_sign, dxdpsi
     use vpamu_grids, only: vpa, vperp2, ztmax, maxwell_mu
     use neoclassical_terms, only: include_neoclassical_terms
-    use neoclassical_terms, only: dphineo_dzed, dphineo_drho
-    use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed
+    use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
+    use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
 
     implicit none
 
@@ -326,8 +327,8 @@ contains
        ! if including neoclassical correction to equilibrium Maxwellian,
        ! then add in v_E^{nc} . grad y dg/dy coefficient here
        if (include_neoclassical_terms) then
-          wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)-code_dt*0.5*(gds23*dphineo_dzed &
-               + dphineo_drho)
+          wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)+code_dt*0.5*(gds23*dphineo_dzed &
+               + dxdpsi_sign*dphineo_drho)
        end if
 
        wdrifty_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
@@ -352,17 +353,19 @@ contains
        ! if including neoclassical correction to equilibrium Maxwellian,
        ! then add in v_E^{nc} . grad x dg/dx coefficient here
        if (include_neoclassical_terms) then
-          wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)-code_dt*0.5*gds24*dphineo_dzed
+          wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)+code_dt*0.5*(gds24*dphineo_dzed &
+               - dxdpsi*dphineo_dalpha)
        end if
        wdriftx_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
             * (wgbdriftx + wcvdriftx*vpa(iv))
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
+       ! and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
                - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdriftx &
-               - code_dt*0.5*dfneo_dzed(:,:,ivmu)*gds24
+               + code_dt*0.5*(dfneo_dalpha(:,:,ivmu)*dxdpsi-dfneo_dzed(:,:,ivmu)*gds24)
        end if
     end do
 
@@ -378,6 +381,7 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use geometry, only: nalpha
+    use geometry, only: dydalpha, drhodpsi
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: vperp2, vpa
     use dist_fn_arrays, only: wstar
@@ -403,12 +407,12 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        energy = vpa(iv)**2 + vperp2(:,:,imu)
        if (include_neoclassical_terms) then
-          wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
+          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
                * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
                 - dfneo_drho(:,:,ivmu))
        else
-          wstar(:,:,ivmu) = 0.5*wstarknob*0.5*code_dt &
+          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
                * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
@@ -1724,7 +1728,7 @@ contains
     integer :: ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + 2.0*spread(spread(wstar(1,:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(wstar(1,:,ivmu),1,naky),2,nakx)*g(:,:,:,ivmu)
     end do
 
   end subroutine add_wstar_term

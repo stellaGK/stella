@@ -5,8 +5,8 @@ module neoclassical_terms
   public :: init_neoclassical_terms
   public :: finish_neoclassical_terms
   public :: include_neoclassical_terms
-  public :: dfneo_dzed, dfneo_dvpa, dfneo_drho
-  public :: dphineo_dzed, dphineo_drho
+  public :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
+  public :: dphineo_dzed, dphineo_drho, dphineo_dalpha
 
   private
 
@@ -17,8 +17,8 @@ module neoclassical_terms
   integer :: neo_option_switch
   integer, parameter :: neo_option_sfincs = 1
 
-  real, dimension (:,:,:), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho
-  real, dimension (:,:), allocatable :: dphineo_dzed, dphineo_drho
+  real, dimension (:,:,:), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
+  real, dimension (:,:), allocatable :: dphineo_dzed, dphineo_drho, dphineo_dalpha
 
   logical :: neoinit = .false.
   logical :: debug = .false.
@@ -38,7 +38,10 @@ contains
 
     real, dimension (:,:,:,:,:,:), allocatable :: f_neoclassical
     real, dimension (:,:,:), allocatable :: phi_neoclassical
+    real, dimension (:,:,:,:,:), allocatable :: dfneo_dalpha_local
     
+    integer :: iz, ialpha
+
     if (neoinit) return
     neoinit = .true.
 
@@ -46,19 +49,24 @@ contains
     if (include_neoclassical_terms) then
        allocate (f_neoclassical(nalpha,-nzgrid:nzgrid,nvpa,nmu,nspec,-nradii/2:nradii/2))
        allocate (phi_neoclassical(nalpha,-nzgrid:nzgrid,-nradii/2:nradii/2))
+       allocate (dfneo_dalpha_local(nalpha,-nzgrid:nzgrid,nvpa,nmu,nspec))
        if (.not.allocated(dfneo_dvpa)) &
             allocate (dfneo_dvpa(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dfneo_drho)) &
             allocate (dfneo_drho(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dfneo_dzed)) &
             allocate (dfneo_dzed(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       if (.not.allocated(dfneo_dalpha)) &
+            allocate (dfneo_dalpha(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(dphineo_dzed)) &
             allocate (dphineo_dzed(nalpha,-nzgrid:nzgrid))
        if (.not.allocated(dphineo_drho)) &
             allocate (dphineo_drho(nalpha,-nzgrid:nzgrid))
+       if (.not.allocated(dphineo_dalpha)) &
+            allocate (dphineo_dalpha(nalpha,-nzgrid:nzgrid))
        select case (neo_option_switch)
        case (neo_option_sfincs)
-          call get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical)
+          call get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical, dfneo_dalpha_local, dphineo_dalpha)
        end select
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dzed'
        call get_dfneo_dzed (f_neoclassical(:,:,:,:,:,0), dfneo_dzed)
@@ -70,9 +78,14 @@ contains
        call get_dphineo_dzed (phi_neoclassical(:,:,0), dphineo_dzed)
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_drho'
        call get_dphineo_drho (phi_neoclassical, dphineo_drho)
+       do iz = -nzgrid, nzgrid
+          do ialpha = 1, nalpha
+             call distribute_vmus_over_procs (dfneo_dalpha_local(ialpha,iz,:,:,:), dfneo_dalpha(ialpha,iz,:))
+          end do
+       end do
        if (debug) write (6,*) 'neoclassical_terms::init_neoclassical_terms::write_neoclassical'
        call write_neoclassical (f_neoclassical, phi_neoclassical)
-       deallocate (f_neoclassical, phi_neoclassical)
+       deallocate (f_neoclassical, phi_neoclassical, dfneo_dalpha_local)
     end if
 
   end subroutine init_neoclassical_terms
@@ -102,7 +115,7 @@ contains
        ! number of radial points used for radial derivatives
        ! of neoclassical quantities
        nradii = 5
-       ! spacing in rhoc between radial points used for radial derivatives
+       ! spacing in rhoc between points used for radial derivatives
        drho = 0.01
        ! option for obtaining neoclassical distribution function and potential
        neo_option = 'sfincs'
@@ -432,8 +445,10 @@ contains
     if (allocated(dfneo_dvpa)) deallocate (dfneo_dvpa)
     if (allocated(dfneo_drho)) deallocate (dfneo_drho)
     if (allocated(dfneo_dzed)) deallocate (dfneo_dzed)
+    if (allocated(dfneo_dalpha)) deallocate (dfneo_dalpha)
     if (allocated(dphineo_dzed)) deallocate (dphineo_dzed)
     if (allocated(dphineo_drho)) deallocate (dphineo_drho)
+    if (allocated(dphineo_dalpha)) deallocate (dphineo_dalpha)
 
     neoinit = .false.
 

@@ -53,6 +53,7 @@ contains
     delzed(nzgrid) = delzed(-nzgrid)
 
     nztot = 2*nzgrid+1
+    ! number of zed in a 2*pi segment, including points at +/- pi
     nz2pi = 2*(nzed/2)+1
 
   end subroutine init_zgrid

@@ -88,6 +88,7 @@ module mp
      module procedure broadcast_real_2array
      module procedure broadcast_real_3array
      module procedure broadcast_real_4array
+     module procedure broadcast_real_5array
 
      module procedure broadcast_complex 
      module procedure broadcast_complex_array
@@ -398,6 +399,15 @@ contains
     call mpi_bcast (x, size(x), mpireal, 0, mp_comm, ierror)
 # endif
   end subroutine broadcast_real_4array
+
+  subroutine broadcast_real_5array(x)
+  implicit none
+  real, dimension(:,:,:,:,:), intent (in out) :: x
+# ifdef MPI
+    integer :: ierror
+    call mpi_bcast (x, size(x), mpireal, 0, mp_comm, ierror)
+# endif
+  end subroutine broadcast_real_5array
 
   subroutine broadcast_complex (z)
     implicit none

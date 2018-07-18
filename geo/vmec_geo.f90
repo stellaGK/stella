@@ -55,7 +55,7 @@ contains
 
   subroutine get_vmec_geo (nzgrid, surf, grho, bmag, gradpar, gds2, gds21, gds22, &
        gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec, &
-       zed_scalefac)
+       zed_scalefac, alpha)
 
     use common_types, only: flux_surface_type
     use vmec_to_gs2_geometry_interface_mod, only: vmec_to_gs2_geometry_interface
@@ -66,14 +66,15 @@ contains
     type (flux_surface_type), intent (out) :: surf
     real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, gradpar, gds2, gds21, gds22, &
          gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
+    real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac
 
     integer :: i, j
     real :: L_reference, B_reference, nfp
 
-    real, dimension (nalpha) :: alpha
+!    real, dimension (nalpha) :: alpha
     real, dimension (-nzgrid:nzgrid) :: zeta
-    real, dimension (-nzgrid:nzgrid) :: theta
+    real, dimension (nalpha,-nzgrid:nzgrid) :: theta
 
     call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, alpha0, nzgrid, &
          zeta_center, nfield_periods, torflux, surface_option, verbose, &
@@ -104,7 +105,7 @@ contains
     zed_scalefac = real(nfp)/nfield_periods
 
 !    theta = zeta/nfp/surf%qinp
-    theta = alpha+zeta/surf%qinp
+    theta = spread(alpha,2,2*nzgrid+1)+spread(zeta,1,nalpha)/surf%qinp
     ! this is b . grad zed
     ! with zed = zeta scaled to run from -pi to pi
 !    gradpar = gradpar/nfp/surf%qinp

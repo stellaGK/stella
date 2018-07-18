@@ -4256,13 +4256,14 @@ contains
 
    ! assumes that y is periodic in x
    ! if x has m entries, then assumes that y(m+1)=y(1)
-   subroutine linear_interp_periodic (x, y, xint, yint)
+   subroutine linear_interp_periodic (x, y, xint, yint, period)
 
      use constants, only: pi
 
      implicit none
 
      real, dimension (:), intent (in) :: x, y, xint
+     real, intent (in), optional :: period
      real, dimension (:), intent (out) :: yint
      
      integer :: i, j, m, n
@@ -4274,7 +4275,11 @@ contains
 
      allocate (xp(m), yp(m))
      xp(:m-1) = x
-     xp(m) = x(1)+2.*pi
+     if (present(period)) then
+        xp(m) = x(1)+period
+     else
+        xp(m) = x(1)+2.*pi
+     end if
      yp(:m-1) = y
      yp(m) = y(1)
 
@@ -4282,11 +4287,14 @@ contains
      do i = 1, n
         not_finished = .true.
         do while (not_finished)
-           if (xint(i) > xp(j)) then
+           if (abs(xint(i)-xp(j)) < 100.*epsilon(0.)) then
+              yint(i) = yp(j)
+              not_finished = .false.
+           else if (xint(i) > xp(j)) then
               j = j + 1
            else
-              not_finished = .false.
               yint(i) = (yp(j-1)*(xp(j)-xint(i))+yp(j)*(xint(i)-xp(j-1)))/(xp(j)-xp(j-1))
+              not_finished = .false.
            end if
         end do
      end do

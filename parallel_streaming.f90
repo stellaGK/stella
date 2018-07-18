@@ -254,45 +254,45 @@ contains
 
   end subroutine get_dgdz
 
-  subroutine get_dgdz_centered (g, dgdz)
+!   subroutine get_dgdz_centered (g, dgdz)
 
-    use finite_differences, only: second_order_centered_zed
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx
-    use zgrid, only: nzgrid, delzed
-    use extended_zgrid, only: neigen, nsegments
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: ikxmod
-    use extended_zgrid, only: fill_zed_ghost_zones
-    use kt_grids, only: naky
+!     use finite_differences, only: second_order_centered_zed
+!     use stella_layouts, only: vmu_lo
+!     use stella_layouts, only: iv_idx
+!     use zgrid, only: nzgrid, delzed
+!     use extended_zgrid, only: neigen, nsegments
+!     use extended_zgrid, only: iz_low, iz_up
+!     use extended_zgrid, only: ikxmod
+!     use extended_zgrid, only: fill_zed_ghost_zones
+!     use kt_grids, only: naky
 
-    implicit none
+!     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
 
-    integer :: ivmu, iseg, ie, iky, iv
-    complex, dimension (2) :: gleft, gright
+!     integer :: ivmu, iseg, ie, iky, iv
+!     complex, dimension (2) :: gleft, gright
 
-    ! FLAG -- assuming delta zed is equally spaced below!
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       do iky = 1, naky
-          do ie = 1, neigen(iky)
-             do iseg = 1, nsegments(ie,iky)
-                ! first fill in ghost zones at boundaries in g(z)
-                call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
-                ! now get dg/dz
-                call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
-                     delzed(0), stream_sign(iv), gleft, gright, .false., &
-                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
-             end do
-          end do
-       end do
-    end do
+!     ! FLAG -- assuming delta zed is equally spaced below!
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        iv = iv_idx(vmu_lo,ivmu)
+!        do iky = 1, naky
+!           do ie = 1, neigen(iky)
+!              do iseg = 1, nsegments(ie,iky)
+!                 ! first fill in ghost zones at boundaries in g(z)
+!                 call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
+!                 ! now get dg/dz
+!                 call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+!                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
+!                      delzed(0), stream_sign(iv), gleft, gright, .false., &
+!                      dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
+!              end do
+!           end do
+!        end do
+!     end do
 
-  end subroutine get_dgdz_centered
+!   end subroutine get_dgdz_centered
 
   subroutine add_stream_term (g, src)
 
@@ -477,10 +477,10 @@ contains
     ! this is vpa*Z/T*exp(-vpa^2)
     vpadf0dE_fac = vpa(iv)*ztmax(iv,is)*maxwell_mu(1,:,imu)
     ! if including neoclassical correction to equilibrium distribution function
-    ! then must also account for -vpa*dF_neo/dvpa
+    ! then must also account for -vpa*dF_neo/dvpa*Z/T
     if (include_neoclassical_terms) then
        do iz = -nzgrid, nzgrid
-          vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(1,iz,ivmu)
+          vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(1,iz,ivmu)*spec(is)%zt
        end do
     end if
 

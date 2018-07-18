@@ -24,10 +24,10 @@ module sfincs_interface
 
 contains
 
-  subroutine get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical)
+  subroutine get_neo_from_sfincs (nradii, drho, f_neoclassical, phi_neoclassical, &
+       dfneo_dalpha, dphineo_dalpha)
 
 # ifdef USE_SFINCS
-    use geometry, only: geo_surf
     use mp, only: proc0, iproc
     use mp, only: comm_split, comm_free
     use sfincs_main, only: init_sfincs, prepare_sfincs, run_sfincs, finish_sfincs
@@ -42,12 +42,14 @@ contains
     real, intent (in) :: drho
     real, dimension (:,-nzgrid:,:,:,:,-nradii/2:), intent (out) :: f_neoclassical
     real, dimension (:,-nzgrid:,-nradii/2:), intent (out) :: phi_neoclassical
+    real, dimension (:,-nzgrid:,:,:,:), intent (out) :: dfneo_dalpha
+    real, dimension (:,-nzgrid:), intent (out) :: dphineo_dalpha
 
 # ifdef USE_SFINCS
     integer :: sfincs_comm
     integer :: color, ierr
     integer :: irad
-    real :: rhoc_neighbor
+!    real :: rhoc_neighbor
 
     if (proc0) call read_sfincs_parameters
     call broadcast_sfincs_parameters
@@ -59,7 +61,7 @@ contains
     call comm_split (color, sfincs_comm, ierr)
     if (iproc < nproc_sfincs) then
        do irad = -nradii/2, nradii/2
-          rhoc_neighbor = geo_surf%rhoc + irad*drho
+!          rhoc_neighbor = geo_surf%rhoc + irad*drho
           call init_sfincs (sfincs_comm)
           call pass_inputoptions_to_sfincs (irad*drho)
           call pass_outputoptions_to_sfincs
@@ -70,10 +72,18 @@ contains
           ! from stella (miller local equilibrium or similar)
           if (geometryScheme /= 5) call pass_geometry_to_sfincs (irad*drho)
           call run_sfincs
-          if (proc0) call get_sfincs_output &
-               (f_neoclassical(:,:,:,:,:,irad), phi_neoclassical(:,:,irad))
-!          call broadcast_sfincs_output &
-!               (f_neoclassical(:,:,:,:,irad), phi_neoclassical(:,irad))
+          if (proc0) then
+             ! only need to compute dfneo_dalpha and dphineo_dalpha
+             ! for central radius and for stellarator calculation
+             if (irad == 0 .and. geometryScheme == 5) then
+                call get_sfincs_output &
+                     (f_neoclassical(:,:,:,:,:,irad), phi_neoclassical(:,:,irad), &
+                     dfneo_dalpha, dphineo_dalpha)
+             else
+                call get_sfincs_output &
+                     (f_neoclassical(:,:,:,:,:,irad), phi_neoclassical(:,:,irad))
+             end if
+          end if
           call finish_sfincs
        end do
     end if
@@ -84,9 +94,11 @@ contains
        call broadcast_sfincs_output &
             (f_neoclassical(:,:,:,:,:,irad), phi_neoclassical(:,:,irad))
     end do
- 
+    call broadcast_sfincs_output (dfneo_dalpha, dphineo_dalpha)
+
 # else
     f_neoclassical = 0 ; phi_neoclassical = 0.
+    dfneo_dalpha = 0. ; dphineo_dalpha = 0.
     call mp_abort ('to run with include_neoclassical_terms=.true., &
          & USE_SFINCS must be defined at compilation time.  Aborting.')
 # endif
@@ -231,6 +243,7 @@ contains
     use geometry, only: geo_surf
     use species, only: spec, nspec
     use zgrid, only: nzed
+    use physics_parameters, only: nine, tite
     use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
     use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
     use globalVariables, only: magneticDriftScheme_sfincs => magneticDriftScheme
@@ -244,6 +257,7 @@ contains
     use globalVariables, only: RadialCoordinateForGradients => inputRadialCoordinateForGradients
     use globalVariables, only: rN_wish
     use globalVariables, only: Nspecies, nHats, THats, MHats, Zs
+    use globalVariables, only: adiabaticNHat, adiabaticTHat, adiabaticZ
     use globalVariables, only: nxi_sfincs => Nxi
     use globalVariables, only: nx_sfincs => Nx
     use globalVariables, only: ntheta_sfincs => Ntheta
@@ -283,7 +297,12 @@ contains
     psiAHat_sfincs = psiAHat
     Delta_sfincs = Delta
     nu_n_sfincs = nu_n
-    if (nspec == 1) withAdiabatic = .true.
+    if (nspec == 1) then
+       withAdiabatic = .true.
+       adiabaticNHat = nHats(1)/nine
+       adiabaticTHat = THats(1)/tite
+       adiabaticZ = -1
+    end if
 
     if (inputRadialCoordinate == 3) then
        rN_wish = geo_surf%rhotor + delrho*geo_surf%drhotordrho
@@ -370,6 +389,8 @@ contains
 
     iota = 1./q_local
 
+    write (*,*) 'BHat'
+
     ! interpolate from stella zed-grid to sfincs theta grid
     ! point at -pi (stella) is same as point at 0 (sfincs)
     BHat(1,1) = B_local(-nzpi)
@@ -390,6 +411,8 @@ contains
     ! this is grad psitor . (grad theta x grad zeta)
     ! note that + sign below relies on B = I grad zeta + grad zeta x grad psi
     DHat = q_local*BHat_sup_theta
+
+    write (*,*) 'endSub'
 
     deallocate (B_local, dBdz_local, gradpar_local)
     deallocate (theta_sfincs, zed_stella)
@@ -430,48 +453,477 @@ contains
     dBHat_sup_zeta_dtheta = 0.
   end subroutine init_zero_arrays
 
-  subroutine get_sfincs_output (f_neoclassical, phi_neoclassical)
+  subroutine get_sfincs_output (f_neoclassical, phi_neoclassical, &
+       dfneo_dalpha, dphineo_dalpha)
     
     use constants, only: pi
-    use splines, only: linear_interp_periodic
-    use mp, only: mp_abort
-    use species, only: nspec, spec
-    use zgrid, only: nzgrid, nz2pi, nperiod, zed
-    use vpamu_grids, only: nvgrid, nmu, nvpa
-    use vpamu_grids, only: vpa, ztmax, vperp2, maxwell_mu
+    use sort, only: sort_array_ascending, unsort_array_ascending
+    use species, only: nspec
+    use zgrid, only: nzgrid, nz2pi
     use export_f, only: h_sfincs => delta_f
-    use export_f, only: export_f_theta, export_f_zeta
-    use globalVariables, only: nxi_sfincs => nxi
-    use globalVariables, only: nx_sfincs => nx
-    use globalVariables, only: x_sfincs => x
     use globalVariables, only: Phi1Hat
-    use globalVariables, only: iota
-    use xGrid, only: xGrid_k
-!    use geometry, only: theta_vmec
-    use geometry, only: zed_scalefac, nalpha
+    use geometry, only: nalpha
 
     implicit none
 
     real, dimension (:,-nzgrid:,:,:,:), intent (out) :: f_neoclassical
     real, dimension (:,-nzgrid:), intent (out) :: phi_neoclassical
+    real, dimension (:,-nzgrid:,:,:,:), intent (out), optional :: dfneo_dalpha
+    real, dimension (:,-nzgrid:), intent (out), optional :: dphineo_dalpha
 
-    integer :: iz, iv, imu, is, ixi, ip, i, j
+    integer :: i, j
+    integer :: ialpha, iz, is
 
-    integer :: nzpi, iz_low, iz_up
-    integer :: nxi_stella
-    integer :: izeta, itheta, ialpha
+    real, dimension (:), allocatable :: zed_stella
+    integer :: nfp, nfp_stella
+    integer, dimension (:), allocatable :: nzed_per_field_period
+    real, dimension (:,:), allocatable :: zed_stella_by_field_period
+    real, dimension (:,:), allocatable :: alpha_like_stella
+    integer, dimension (:,:), allocatable :: alpha_sort_map
+
     integer :: nzed_sfincs, nalpha_sfincs
+    real, dimension (:), allocatable :: zed_sfincs, alpha_like_sfincs
+    real, dimension (:,:), allocatable :: phi_sfincs
+
+    real, dimension (:,:), allocatable :: phi_stella_zgrid, phi_stella
+    real, dimension (:,:), allocatable :: dphi_dalpha_stella_zgrid
+    real, dimension (:,:), allocatable :: tmp_sfincs, tmp_stella_zgrid, tmp_stella
+    real, dimension (:,:), allocatable :: dh_stella_zgrid
+    real, dimension (:,:,:,:), allocatable :: h_stella, dh_stella
+
+    ! zed coordinate in stella is zeta when simulating stellarators (using vmec)
+    ! and theta otherwise.  this leads to some complications, treated below
+
+    allocate (zed_stella(nz2pi))
+    allocate (alpha_like_stella(nalpha,nz2pi))
+    allocate (alpha_sort_map(nalpha,nz2pi))
+    ! obtain theta and zeta grids used in stella, and assign them
+    ! to the zed and alpha-like coordinates.
+    ! for stellarator, zed=zeta and alpha_like=theta.
+    ! for tokamak, zed=theta and alpha_like = zeta.
+    call get_stella_theta_zeta_grids (alpha_like_stella, zed_stella)
+!    do iz = 1, nz2pi
+!       do ialpha = 1, size(alpha_like_stella,1)
+!          write (*,*) 'unsorted_alpha_like_stella', alpha_like_stella(ialpha,iz)
+!       end do
+!       write (*,*)
+!    end do
+    ! rearrange alpha_like_stella to be in ascending order and store map
+    ! so that sorting can be undone later
+    do iz = 1, nz2pi
+       call sort_array_ascending (alpha_like_stella(:,iz), alpha_sort_map(:,iz))
+    end do
+!    do iz = 1, nz2pi
+!       do ialpha = 1, size(alpha_like_stella,1)
+!          write (*,*) 'sorted_alpha_like_stella', alpha_like_stella(ialpha,iz)
+!       end do
+!       write (*,*)
+!    end do
+    ! obtain the number of alpha-like and zed grid points to use in sfincs theta-zeta grid
+    ! also obtain the number of field periods per 2*pi segment in zed
+    call get_sfincs_theta_zeta_grid_sizes (nalpha_sfincs, nzed_sfincs, nfp)
+    ! obtain the alpha-like and zed coordinate grids
+    ! note that additional points are added at periodic points
+    ! that are not sampled in sfincs
+    allocate (zed_sfincs(nzed_sfincs))
+    allocate (alpha_like_sfincs(nalpha_sfincs))
+    call get_sfincs_theta_zeta_grids (alpha_like_sfincs, zed_sfincs)
+
+    allocate (phi_sfincs(nalpha_sfincs,nzed_sfincs))
+    call get_sfincs_field_theta_zeta (Phi1Hat, phi_sfincs)    
+
+    ! this is the number of field periods included in stella
+    ! simulation domain
+    nfp_stella = int((zed_stella(nz2pi)*nfp-100.*epsilon(0.))/(2.*pi)) + 1
+
+    ! obtain the number of zed grid points in each field period within the zed domain
+    allocate (nzed_per_field_period(nfp_stella))
+    call get_nzed_per_field_period (zed_stella, nfp, nzed_per_field_period)
+    ! obtain the zed grid within each field period
+    allocate (zed_stella_by_field_period(maxval(nzed_per_field_period),nfp_stella))
+    call sort_zed_by_field_period (zed_stella, nzed_per_field_period, nfp, zed_stella_by_field_period)
+
+    ! interpolate phi from sfincs zed grid to stella zed grid
+    allocate (phi_stella_zgrid(nalpha_sfincs,nz2pi))
+    call get_field_on_stella_zed_grid (phi_sfincs, nfp_stella, nfp, nzed_per_field_period, &
+         nalpha_sfincs, zed_sfincs, zed_stella_by_field_period, phi_stella_zgrid)
+
+    allocate (phi_stella(nalpha,nz2pi))
+    ! interpolate onto stella (sorted) alpha grid
+    call get_field_stella (phi_stella_zgrid, alpha_like_sfincs, alpha_like_stella, phi_stella)
+    ! need to remap from ascending (sorted) alpha grid to original ordering
+    do iz = 1, nz2pi
+       call unsort_array_ascending (phi_stella(:,iz), alpha_sort_map(:,iz))
+    end do
+    call get_field_on_extended_zed (phi_stella, phi_neoclassical)
+
+    if (present(dphineo_dalpha)) then
+       allocate (dphi_dalpha_stella_zgrid(nalpha_sfincs,nz2pi))
+       call get_dfield_dalpha (phi_stella_zgrid, alpha_like_sfincs, dphi_dalpha_stella_zgrid)
+       call get_field_stella (dphi_dalpha_stella_zgrid, alpha_like_sfincs, alpha_like_stella, phi_stella)
+       do iz = 1, nz2pi
+          call unsort_array_ascending (phi_stella(:,iz), alpha_sort_map(:,iz))
+       end do
+       call get_field_on_extended_zed (phi_stella, dphineo_dalpha)
+       deallocate (dphi_dalpha_stella_zgrid)
+    end if
+
+    deallocate (phi_stella, phi_stella_zgrid, phi_sfincs)
+
+    allocate (tmp_sfincs(nalpha_sfincs,nzed_sfincs))
+    allocate (tmp_stella_zgrid(nalpha_sfincs,nz2pi))
+    allocate (tmp_stella(nalpha,nz2pi))
+    allocate (h_stella(nalpha,nz2pi,size(h_sfincs,4),size(h_sfincs,5)))
+    if (present(dfneo_dalpha)) then
+       allocate (dh_stella_zgrid(nalpha_sfincs,nz2pi))
+       allocate (dh_stella(nalpha,nz2pi,size(h_sfincs,4),size(h_sfincs,5)))
+    end if
+
+    do is = 1, nspec
+       do i = 1, size(h_sfincs,5)
+          do j = 1, size(h_sfincs,4)
+             ! re-order theta and zeta indices for sfincs h to ensure alpha-like coordinate
+             ! appears before zed coordinate
+             call get_sfincs_field_theta_zeta (h_sfincs(is,:,:,j,i), tmp_sfincs)
+             ! interpolate onto stella zed grid
+             call get_field_on_stella_zed_grid (tmp_sfincs, nfp_stella, nfp, nzed_per_field_period, &
+                  nalpha_sfincs, zed_sfincs, zed_stella_by_field_period, tmp_stella_zgrid)
+             ! interpolate onto (sorted) stella alpha-like coordinate
+             call get_field_stella (tmp_stella_zgrid, alpha_like_sfincs, alpha_like_stella, tmp_stella)
+             do iz = 1, nz2pi
+                call unsort_array_ascending (tmp_stella(:,iz), alpha_sort_map(:,iz))
+             end do
+             ! use periodicity to copy onto extended zed grid if nperiod > 1
+             call get_field_on_extended_zed (tmp_stella, h_stella(:,:,j,i))
+
+             if (present(dfneo_dalpha)) then
+                call get_dfield_dalpha (tmp_stella_zgrid, alpha_like_sfincs, dh_stella_zgrid)
+                call get_field_stella (dh_stella_zgrid, alpha_like_sfincs, &
+                     alpha_like_stella, tmp_stella)
+                do iz = 1, nz2pi
+                   call unsort_array_ascending (tmp_stella(:,iz), alpha_sort_map(:,iz))
+                end do
+                call get_field_on_extended_zed (tmp_stella, dh_stella(:,:,j,i))
+             end if
+          end do
+       end do
+
+       do ialpha = 1, nalpha
+          do iz = -nzgrid, nzgrid
+             call sfincs_vspace_to_stella_vspace (ialpha, iz, is, h_stella(ialpha,iz+nzgrid+1,:,:), &
+                  phi_neoclassical(ialpha,iz), f_neoclassical(ialpha,iz,:,:,is))
+             if (present(dfneo_dalpha)) call sfincs_vspace_to_stella_vspace (ialpha, iz, is, &
+                  dh_stella(ialpha,iz+nzgrid+1,:,:), dphineo_dalpha(ialpha,iz), &
+                  dfneo_dalpha(ialpha,iz,:,:,is))
+          end do
+       end do
+
+    end do
+
+    deallocate (tmp_sfincs, tmp_stella_zgrid, tmp_stella)
+    deallocate (zed_stella, alpha_like_stella)
+    deallocate (alpha_sort_map)
+    deallocate (zed_sfincs, alpha_like_sfincs)
+    deallocate (nzed_per_field_period, zed_stella_by_field_period)
+    deallocate (h_stella)
+    if (present(dfneo_dalpha)) deallocate (dh_stella, dh_stella_zgrid)
+
+  end subroutine get_sfincs_output
+
+  subroutine get_stella_theta_zeta_grids (alpha_like_stella, zed_stella)
+    
+    use constants, only: pi
+    use zgrid, only: nz2pi, zed
+    use geometry, only: zed_scalefac
+    use geometry, only: nalpha, alpha
+    use globalVariables, only: iota
+    
+    implicit none
+    
+    real, dimension (:,:), intent (out) :: alpha_like_stella
+    real, dimension (:), intent (out) :: zed_stella
+    
+    integer :: nzpi
+    
+    nzpi = nz2pi/2
+    
+    ! convert from scaled zed grid on [-pi,pi]
+    ! to un-scaled grid with lower bound of zero
+    ! note that zed_scalefac=1 unless geometryScheme=5 (VMEC)
+    ! for geometryScheme=5, this will get extended zeta domain
+    ! with lower bound of 0
+    zed_stella = (zed(-nzpi:nzpi) + pi)/zed_scalefac
+    
+    ! if geometryScheme is 5, then using vmec geo
+    ! and thus zed in stella is scaled zeta
+    ! otherwise zed in stella is theta
+    if (geometryScheme == 5) then
+       ! alpha_like coordinate is theta = alpha + iota*zeta
+       alpha_like_stella = spread(alpha,2,nz2pi) + spread(iota*zed_stella,1,nalpha)
+    else
+       ! alpha_like coordinate is zeta = (theta-alpha)/iota
+       alpha_like_stella = (spread(zed_stella,1,nalpha)-spread(alpha,2,nz2pi))/iota
+    end if
+
+    ! restrict alpha to [0,2*pi]
+    alpha_like_stella = modulo(alpha_like_stella,2.*pi)
+    
+  end subroutine get_stella_theta_zeta_grids
+
+  subroutine get_nzed_per_field_period (zed_stella, nfp, nzed_per_field_period)
+
+    use constants, only: pi
+    use zgrid, only: nz2pi
+
+    implicit none
+
+    real, dimension (:), intent (in) :: zed_stella
+    integer, intent (in) :: nfp
+    integer, dimension (:), intent (out)  :: nzed_per_field_period
+
+    integer :: ifp, iz
+
+    nzed_per_field_period = 0
+
+    ifp = 1 ; iz = 1
+    do while (iz <= nz2pi)
+       if (zed_stella(iz) <= ifp*2.*pi/nfp) then
+          nzed_per_field_period(ifp) = nzed_per_field_period(ifp) + 1
+          iz = iz + 1
+       else
+          ifp = ifp + 1
+       end if
+    end do
+
+  end subroutine get_nzed_per_field_period
+
+  subroutine sort_zed_by_field_period (zed_ext, nzed_per_fp, nfp, zed_by_fp)
+
+    use constants, only: pi
+
+    implicit none
+
+    real, dimension (:), intent (in) :: zed_ext
+    integer, dimension (:), intent (in) :: nzed_per_fp
+    integer, intent (in) :: nfp
+    real, dimension (:,:), intent (out) :: zed_by_fp
+    
+    integer :: ifp, llim, ulim
+
+    ulim = 0
+    do ifp = 1, size(zed_by_fp,2)
+       llim = ulim + 1
+       ulim = llim + nzed_per_fp(ifp) - 1
+       zed_by_fp(:nzed_per_fp(ifp),ifp) = modulo(zed_ext(llim:ulim)-100.*epsilon(0.),2.*pi/nfp)
+    end do
+
+    ! avoid special case of setting zed = 0 to zed=2*pi/nfp
+    zed_by_fp(1,1) = 0.0
+
+  end subroutine sort_zed_by_field_period
+
+  subroutine get_sfincs_theta_zeta_grid_sizes (nalpha_sfincs, nzed_sfincs, nfp)
+    
+    use constants, only: pi
+    use export_f, only: export_f_zeta
+
+    implicit none
+    
+    integer, intent (out) :: nalpha_sfincs, nzed_sfincs, nfp
+    
+    ! if geometryScheme is 5, then using vmec geo
+    ! and thus zed in stella is scaled zeta
+    ! otherwise zed in stella is theta
+    if (geometryScheme == 5) then
+       ! note that zeta grid in sfincs only covers one field period of the stellarator
+       ! get the number of field periods from the sfincs zeta grid
+       nfp = nint(2.*pi/(export_f_zeta(nzeta)+export_f_zeta(2)))
+       ! zed coordinate is zeta
+       nzed_sfincs = nzeta+1
+       ! alpha_like coordinate is theta = alpha + iota*zeta
+       nalpha_sfincs = ntheta+1
+    else
+       nfp = 1
+       ! zed coordinate is theta
+       nzed_sfincs = ntheta+1
+       ! alpha_like coordinate is zeta = (theta-alpha)*q
+       nalpha_sfincs = nzeta
+    end if
+
+  end subroutine get_sfincs_theta_zeta_grid_sizes
+
+  subroutine get_sfincs_theta_zeta_grids (alpha_like_sfincs, zed_sfincs)
+
+    use export_f, only: export_f_theta, export_f_zeta
+    
+    implicit none
+
+    real, dimension (:), intent (out) :: zed_sfincs, alpha_like_sfincs
+
+    if (geometryScheme == 5) then
+       ! zed is zeta.  it goes from 0 to 2*pi/nfp - dzeta in sfincs,
+       ! where nfp is the number of field periods
+       zed_sfincs(:nzeta) = export_f_zeta(:nzeta)
+       ! add in point at 2*pi/nfp using periodicity
+       zed_sfincs(nzeta+1) = zed_sfincs(nzeta) + zed_sfincs(2)
+
+       ! alpha-like coordinate is theta.  it goes from 0 to 2*pi-dtheta in sfincs
+       alpha_like_sfincs(:ntheta) = export_f_theta(:ntheta)
+       ! add in point at 2*pi using periodicity
+       alpha_like_sfincs(ntheta+1) = export_f_theta(ntheta)+export_f_theta(2)
+    else
+       ! zed is theta.  it goes from 0 to 2*pi-dtheta in sfincs
+       zed_sfincs(:ntheta) = export_f_theta(:ntheta)
+       ! add in point at 2*pi using periodicity
+       zed_sfincs(ntheta+1) = export_f_theta(ntheta) + export_f_theta(2)
+
+       ! alpha-like coordinate is zeta.  there should only be 1 zeta for tokamak calculation
+       alpha_like_sfincs(:nzeta) = export_f_zeta(:nzeta)
+    end if
+
+  end subroutine get_sfincs_theta_zeta_grids
+
+  subroutine get_sfincs_field_theta_zeta (field_in, field_out)
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: field_in
+    real, dimension (:,:), intent (out) :: field_out
+
+    integer :: itheta, izeta
+
+    ! want phi from sfincs such that alpha-like coordinate
+    ! appears in first index and zed coordinate in second index
+    if (geometryScheme == 5) then
+       ! get phi on sfincs (theta,zeta) grid
+       field_out(:ntheta,:nzeta) = field_in
+       ! use periodicity in theta to add point at theta=2*pi
+       field_out(ntheta+1,:nzeta) = field_out(1,:nzeta)
+       ! use periodicity in zeta to add point at zeta = 2*pi/nfp
+       field_out(:,nzeta+1) = field_out(:,1)
+    else
+       ! get phi on sfincs (zeta,theta) grid
+       do izeta = 1, nzeta
+          do itheta = 1, ntheta
+             field_out(izeta,itheta) = field_in(itheta,izeta)
+          end do
+       end do
+       ! use periodicity in theta to add point at 2*pi
+       field_out(:,ntheta+1) = field_out(:,1)
+    end if
+
+  end subroutine get_sfincs_field_theta_zeta
+
+  subroutine get_field_on_stella_zed_grid (field_sfincs, nfp_stella, nfp, nzed_per_field_period, &
+       nalpha_sfincs, zed_sfincs, zed_stella_by_field_period, field_stella_zgrid)
+
+    use constants, only: pi
+    use splines, only: linear_interp_periodic
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: field_sfincs
+    integer, intent (in) :: nfp_stella, nfp, nalpha_sfincs
+    integer, dimension (:), intent (in) :: nzed_per_field_period
+    real, dimension (:), intent (in) ::  zed_sfincs
+    real, dimension (:,:), intent (in) :: zed_stella_by_field_period
+    real, dimension (:,:), intent (out) :: field_stella_zgrid
+
+    integer :: ialpha, ifp
+    integer :: llim, ulim
+
+    do ialpha = 1, nalpha_sfincs
+       ulim = 0
+       do ifp = 1, nfp_stella
+          llim = ulim + 1
+          ulim = llim + nzed_per_field_period(ifp) - 1
+          call linear_interp_periodic (zed_sfincs, field_sfincs(ialpha,:), &
+               zed_stella_by_field_period(:nzed_per_field_period(ifp),ifp), &
+               field_stella_zgrid(ialpha,llim:ulim), 2.*pi/nfp)
+       end do
+    end do
+
+  end subroutine get_field_on_stella_zed_grid
+
+  subroutine get_field_stella (field_stella_zgrid, alpha_like_sfincs, alpha_like_stella, field_stella)
+
+    use splines, only: linear_interp_periodic
+    use zgrid, only: nz2pi
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: field_stella_zgrid
+    real, dimension (:), intent (in) :: alpha_like_sfincs
+    real, dimension (:,:), intent (in) :: alpha_like_stella
+    real, dimension (:,:), intent (out) :: field_stella
+
+    integer :: iz
+
+    do iz = 1, nz2pi
+       call linear_interp_periodic (alpha_like_sfincs, field_stella_zgrid(:,iz), &
+            alpha_like_stella(:,iz), field_stella(:,iz))
+    end do
+
+  end subroutine get_field_stella
+
+  subroutine get_field_on_extended_zed (field_stella, field_neoclassical)
+
+    use zgrid, only: nzgrid, nz2pi, nperiod
+    use geometry, only: nalpha
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: field_stella
+    real, dimension (:,-nzgrid:), intent (out) :: field_neoclassical
+
+    integer :: ialpha
+    integer :: iz_low, iz_up
+    integer :: ip
+
+    ! need to account for cases with nperiod > 1
+    do ialpha = 1, nalpha
+       iz_low = -nzgrid
+       iz_up = -nzgrid+nz2pi-1
+       field_neoclassical(ialpha,iz_low:iz_up) = field_stella(ialpha,:)
+       ! if nperiod > 1 need to make copies of
+       ! neoclassical potential for other 2pi segments
+       if (nperiod > 1) then
+          do ip = 2, 2*nperiod-1
+             iz_low = iz_up + 1
+             iz_up = iz_low + nz2pi -2
+             field_neoclassical(ialpha,iz_low:iz_up) = field_stella(ialpha,2:)
+          end do
+       end if
+    end do
+    
+  end subroutine get_field_on_extended_zed
+
+  subroutine sfincs_vspace_to_stella_vspace (ialpha, iz, is, h_stella, phi_neoclassical, f_neoclassical)
+
+    use constants, only: pi
+    use species, only: spec
+    use vpamu_grids, only: nvpa, nvgrid, nmu
+    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: ztmax, maxwell_mu
+    use globalVariables, only: nxi_sfincs => nxi
+    use globalVariables, only: nx_sfincs => nx
+    use globalVariables, only: x_sfincs => x
+    use xGrid, only: xGrid_k
+
+    implicit none
+
+    integer, intent (in) :: ialpha, iz, is
+    real, dimension (:,:), intent (in) :: h_stella
+    real, intent (in) :: phi_neoclassical
+    real, dimension (:,:), intent (out) :: f_neoclassical
+
+    integer :: iv, imu, ixi
     real, dimension (1) :: x_stella
     integer, dimension (2) :: sgnvpa
-    real, dimension (:), allocatable :: zed_stella, phi_stella
+    integer :: nxi_stella
     real, dimension (:), allocatable :: xi_stella, hstella
-    real, dimension (:), allocatable :: htmp, dhtmp_dx
-    real, dimension (:), allocatable :: hdum
-    real, dimension (:,:,:), allocatable :: h_stella
     real, dimension (:,:), allocatable :: xsfincs_to_xstella, legpoly
-    real, dimension (:), allocatable :: zed_sfincs
-    real, dimension (:,:), allocatable :: alpha_sfincs
-    real, dimension (:,:), allocatable :: phi_sfincs
+    real, dimension (:), allocatable :: htmp
 
     ! each (vpa,mu) pair in stella specifies a speed
     ! on each speed arc, there are two (vpa,mu) pairs:
@@ -482,185 +934,156 @@ contains
     allocate (legpoly(nxi_stella,0:nxi_sfincs-1))
 
     allocate (htmp(nxi_sfincs))
-    allocate (dhtmp_dx(nxi_sfincs))
     allocate (xsfincs_to_xstella(1,nx_sfincs))
 
-    allocate (zed_stella(nz2pi))
-
-    nzpi = nz2pi/2
-    
-!     ! if geometryScheme is 5, then sfincs using !     ! zeta and theta_vmec, which is not a straight-field-line coordinate
-!     ! need to interpolate onto stella straight-field-line grid in 
-!     ! zed = scaled zeta and theta_pest
-!     if (geometryScheme == 5) then
-! !       zed_stella = theta_vmec(1,-nzpi:nzpi) + pi
-!        zed_stella = (zed(-nzpi:nzpi) + pi)/zed_scalefac
-!     else
-!        zed_stella = zed(-nzpi:nzpi) + pi
-!     end if
-    
-    ! if geometryScheme is 5, then using vmec geo
-    ! and thus zed in stella is scaled zeta
-    ! otherwise zed in stella is theta
-    if (geometryScheme == 5) then
-       nzed_sfincs = nzeta
-       nalpha_sfincs = ntheta
-    else
-       nzed_sfincs = ntheta
-       nalpha_sfincs = nzeta
-    end if
-
-    allocate (phi_stella_zgrid(nalpha_sfincs,nz2pi))
-
-    allocate (zed_sfincs(nzed_sfincs))
-    allocate (alpha_sfincs(nalpha_sfincs,nzed_sfincs))
-    allocate (phi_sfincs(nalpha_sfincs,nzed_sfincs))
-
-    ! define phi_sfincs to always have the stella zed coordinate as second index
-    if (geometryScheme==5) then
-       zed_sfincs = export_f_zeta(:nzeta)
-       alpha_sfincs = spread(export_f_theta(:ntheta),2,nzeta)-spread(iota*export_f_zeta(:nzeta),1,ntheta)
-       phi_sfincs = Phi1Hat
-    else
-       zed_sfincs = export_f_theta(:ntheta)
-       alpha_sfincs = 0.0
-       do izeta = 1, nzeta
-          do itheta = 1, ntheta
-             phi_sfincs(izeta,itheta) = Phi1Hat(itheta,izeta)
-          end do
-       end do
-    end if
-
-    ! convert from scaled zed grid on [-pi,pi]
-    ! to un-scaled grid with lower bound of zero
-    ! note that zed_scalefac=1 unless geometryScheme=5 (VMEC)
-    zed_stella = (zed(-nzpi:nzpi) + pi)/zed_scalefac
-
-    ! flux tube calculation, so evaluate everything at target alpha
-    if (nalpha == 1) then
-       ! first interpolate phi from sfincs onto stella zed grid
-       ! but keep on sfincs alpha grid (if sfincs was computed with more than one alpha)
-       phi_stella_zgrid(:,1) = phi_sfincs(:,1)
-       phi_stella_zgrid(:,nz2pi) = phi_stella_zgrid(:,1)
-       
-       do ialpha = 1, nalpha_sfincs
-!          call linear_interp_periodic (zed_sfincs(:ntheta), phi_sfincs(:ntheta,1), zed_stella(2:nz2pi-1), phi_stella(2:nz2pi-1))
-          call linear_interp_periodic (zed_sfincs, phi_sfincs(ialpha,:), &
-               zed_stella(2:nz2pi-1), phi_stella_zgrid(ialpha,2:nz2pi-1))
-       end do
-
-       ! if sfincs was run with more than one alpha (i.e., for stellarator)
-       ! then need to interpolate onto desired alpha for stella
-       if (nalpha_sfincs > 1) then
-          do iz = 1, nz2pi
-             call linear_interp_periodic (alpha_sfincs(:,iz), phi_stella_zgrid(:,iz), &
-                  alpha_stella, phi_stella(:,iz))
-       end if
-
-          iz_low = -nzgrid
-          iz_up = -nzgrid+nz2pi-1
-          phi_neoclassical(ialpha,iz_low:iz_up) = phi_stella_zgrid(ialpha,:)
-          ! if nperiod > 1 need to make copies of
-          ! neoclassical potential for other 2pi segments
-          if (nperiod > 1) then
-             do ip = 2, 2*nperiod-1
-                iz_low = iz_up + 1
-                iz_up = iz_low + nz2pi -2
-                phi_neoclassical(ialpha,iz_low:iz_up) = phi_stella(ialpha,2:)
-             end do
-          end if
-       end do
-
-    end if
-
-    deallocate (zed_sfincs, alpha_sfincs, phi_sfincs)
-    deallocate (phi_stella)
-    allocate (h_stella(-nzgrid:nzgrid,size(h_sfincs,4),size(h_sfincs,5)))
-    allocate (hdum(nz2pi))
-
     sgnvpa(1) = 1 ; sgnvpa(2) = -1
-    do is = 1, nspec
-       do i = 1, size(h_sfincs,5)
-          do j = 1, size(h_sfincs,4)
-             hdum(1) = h_sfincs(is,1,1,j,i)
-             hdum(nz2pi) = hdum(1)
-             call linear_interp_periodic (zed_sfincs(:ntheta), h_sfincs(is,:ntheta,1,j,i), &
-                  zed_stella(2:nz2pi-1), hdum(2:nz2pi-1))
-             iz_low = -nzgrid
-             iz_up = -nzgrid+nz2pi-1
-             h_stella(iz_low:iz_up,j,i) = hdum
-             if (nperiod > 1) then
-                do ip = 2, 2*nperiod-1
-                   iz_low = iz_up + 1
-                   iz_up = iz_low + nz2pi -2
-                   h_stella(iz_low:iz_up,j,i) = hdum(2:)
-                end do
-             end if
+
+    ! h_stella is on the sfincs energy grid
+    ! but is spectral in pitch-angle
+    do imu = 1, nmu
+       ! loop over positive vpa values
+       ! negative vpa values will be treated inside loop using symmetry
+       do iv = nvgrid+1, nvpa
+          ! x_stella is the speed 
+          ! corresponding to this (vpa,mu) grid point
+          x_stella = sqrt(vpa(iv)**2+vperp2(ialpha,iz,imu))
+          ! xi_stella contains the two pitch angles (+/-)vpa/v
+          ! corresponding to this (vpa,mu) grid point
+          xi_stella = sgnvpa*vpa(iv)/x_stella(1)
+          
+          ! set up matrix that interpolates from sfincs speed grid
+          ! to the speed corresponding to this (vpa,mu) grid point
+          call polynomialInterpolationMatrix (nx_sfincs, 1, &
+               x_sfincs, x_stella, exp(-x_sfincs*x_sfincs)*(x_sfincs**xGrid_k), &
+               exp(-x_stella*x_stella)*(x_stella**xGrid_k), xsfincs_to_xstella)
+                   
+          ! do the interpolation
+          do ixi = 1, nxi_sfincs
+             htmp(ixi) = sum(h_stella(ixi,:)*xsfincs_to_xstella(1,:))
           end do
+                   
+          ! next need to Legendre transform in pitch-angle
+          ! first evaluate Legendre polynomials at requested pitch angles
+          call legendre (xi_stella, legpoly)
+          
+          ! then do the transforms
+          call legendre_transform (legpoly, htmp, hstella)
+          
+          f_neoclassical(nvpa-iv+1,imu) = hstella(2)
+          f_neoclassical(iv,imu) = hstella(1)
+          
        end do
-
-       do iz = -nzgrid, nzgrid
-          ! h_stella is on the sfincs energy grid
-          ! but is spectral in pitch-angle
-          do imu = 1, nmu
-             ! loop over positive vpa values
-             ! negative vpa values will be treated inside loop using symmetry
-             do iv = nvgrid+1, nvpa
-                ! x_stella is the speed 
-                ! corresponding to this (vpa,mu) grid point
-                ! FLAG -- NEED TO EXTEND SFINCS TREATMENT TO INCLUDE MULTIPLE ALPHAS
-                x_stella = sqrt(vpa(iv)**2+vperp2(1,iz,imu))
-                ! xi_stella contains the two pitch angles (+/-)vpa/v
-                ! corresponding to this (vpa,mu) grid point
-                xi_stella = sgnvpa*vpa(iv)/x_stella(1)
-
-                ! set up matrix that interpolates from sfincs speed grid
-                ! to the speed corresponding to this (vpa,mu) grid point
-                call polynomialInterpolationMatrix (nx_sfincs, 1, &
-                     x_sfincs, x_stella, exp(-x_sfincs*x_sfincs)*(x_sfincs**xGrid_k), &
-                     exp(-x_stella*x_stella)*(x_stella**xGrid_k), xsfincs_to_xstella)
-                        
-                ! do the interpolation
-                do ixi = 1, nxi_sfincs
-                   htmp(ixi) = sum(h_stella(iz,ixi,:)*xsfincs_to_xstella(1,:))
-                end do
-        
-                ! next need to Legendre transform in pitch-angle
-                ! first evaluate Legendre polynomials at requested pitch angles
-                call legendre (xi_stella, legpoly)
-
-                ! then do the transforms
-                call legendre_transform (legpoly, htmp, hstella)
-
-                f_neoclassical(iz,nvpa-iv+1,imu,is) = hstella(2)
-                f_neoclassical(iz,iv,imu,is) = hstella(1)
-
-             end do
-             ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
-             ! NB: n_ref, etc. is fixed in stella to be the reference density
-             ! at the central sfincs simulation; i.e., it does not vary with radius
-             ! to be consistent with stella distribution functions,
-             ! want H_nc / (n_s / vt_s^3 * pi^(3/2))
-             f_neoclassical(iz,:,imu,is) = f_neoclassical(iz,:,imu,is) &
-                  * pi**1.5 * spec(is)%stm**3/spec(is)%dens
-             
-             ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
-             ! need to multiply by Z_s * Tref/T_s * exp(-v^2)
-             f_neoclassical(iz,:,imu,is) = f_neoclassical(iz,:,imu,is) &
-                  - phi_neoclassical(iz)*ztmax(:,is)*maxwell_mu(1,iz,imu)
-          end do
-       end do
+       ! h_sfincs is H_nc / (nref/vt_ref^3), with H_nc the non-Boltzmann part of F_nc
+       ! NB: n_ref, etc. is fixed in stella to be the reference density
+       ! at the central sfincs simulation; i.e., it does not vary with radius
+       ! to be consistent with stella distribution functions,
+       ! want H_nc / (n_s / vt_s^3 * pi^(3/2))
+       f_neoclassical(:,imu) = f_neoclassical(:,imu) &
+            * pi**1.5 * spec(is)%stm**3/spec(is)%dens
+       
+       ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
+       ! need to multiply by Z_s * Tref/T_s * exp(-v^2)
+       f_neoclassical(:,imu) = f_neoclassical(:,imu) &
+            - phi_neoclassical*ztmax(:,is)*maxwell_mu(ialpha,iz,imu)
     end do
 
     deallocate (xi_stella, hstella, legpoly)
-    deallocate (hdum, h_stella)
-    deallocate (zed_stella)
-    deallocate (htmp, dhtmp_dx)
     deallocate (xsfincs_to_xstella)
+    deallocate (htmp)
 
-    deallocate (phi_sfincs)
+  end subroutine sfincs_vspace_to_stella_vspace
 
-  end subroutine get_sfincs_output
+  subroutine get_dfield_dalpha (field, alpha_like_sfincs, dfield_dalpha)
+
+    use zgrid, only: nz2pi
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: field
+    real, dimension (:), intent (in) :: alpha_like_sfincs
+    real, dimension (:,:), intent (out) :: dfield_dalpha
+
+    integer :: iz
+
+    do iz = 1, nz2pi
+       call get_periodic_derivative (field(:,iz),alpha_like_sfincs,dfield_dalpha(:,iz))
+    end do
+
+  end subroutine get_dfield_dalpha
+
+  ! 4th order accurate, centered differences, assumes 
+  ! first and last elements of f are equal (periodic)
+  subroutine get_periodic_derivative (f, x, dfdx)
+
+    implicit none
+
+    real, dimension (:), intent (in) :: f, x
+    real, dimension (:), intent (out) :: dfdx
+
+    integer :: i, n
+    real, dimension (:), allocatable :: fp
+
+    n = size(x)
+
+    allocate (fp(-1:n+2))
+    ! extend f using periodicity, as these additional points 
+    ! required near boundaries for finite differences
+    fp(1:n) = f
+    fp(-1:0) = f(n-1:n)
+    fp(n+1:n+2) = f(1:2)
+
+    do i = 1, n
+       dfdx(i) = (0.25*(fp(i-2)-fp(i+2)) + 2.0*(fp(i+1)-fp(i-1)))/3.0
+    end do
+
+    deallocate (fp)
+
+  end subroutine get_periodic_derivative
+
+!   subroutine bilinear_interpolation (alpha_in, zed_in, phi_in, alpha_out, zed_out, phi_out)
+    
+!     use zgrid, only: nz2pi
+    
+!     implicit none
+    
+!     real, dimension (:,:), intent (in) :: alpha_sfincs, phi_sfincs
+!     real, dimension (:), intent (in) :: zed_sfincs
+!     real, dimension (:), intent (in) :: alpha_stella, zed_stella
+!     real, dimension (:,:), intent (out) :: phi_stella
+    
+!     integer :: ialpha, iz
+    
+!     do ialpha = 1, nalpha
+!        do iz = 1, nz2pi
+!           call find_sfincs_cell (alpha_stella(ialpha), zed_stella(iz), alpha_sfincs, zed_sfincs, &
+!                alpha_grids, zed_grids)
+!        end do
+!     end do
+    
+!   contains
+    
+!     subroutine find_sfincs_cell (alpha_target, zed_target, alpha, zed, ialpha_out, ized_out)
+      
+!       use zgrid, only: nz2pi
+
+!       implicit none
+
+!       real, intent (in) :: alpha_target, zed_target
+!       real, dimension (:,:), intent (in) :: alpha
+!       real, dimension (:), intent (in) :: zed
+!       integer, dimension (2), intent (out) :: ialpha_out, ized_out
+
+!       integer :: iz, ia
+
+!       do iz = 1, nz2pi
+!          do ia = 1, size(alpha,1)
+!             if (
+!          end do
+!       end do
+
+!     end subroutine find_sfincs_cell
+    
+!   end subroutine bilinear_interpolation
 
   ! returns the Legendre polynomials (legp)
   ! on requested grid (x)
@@ -705,8 +1128,8 @@ contains
     use mp, only: broadcast
     use zgrid, only: nzgrid
     implicit none
-    real, dimension (-nzgrid:,:,:,:), intent (in out) :: fneo
-    real, dimension (-nzgrid:), intent (in out) :: phineo
+    real, dimension (-nzgrid:,:,:,:,:), intent (in out) :: fneo
+    real, dimension (-nzgrid:,:), intent (in out) :: phineo
     call broadcast (fneo)
     call broadcast (phineo)
   end subroutine broadcast_sfincs_output

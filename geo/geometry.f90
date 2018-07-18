@@ -18,14 +18,18 @@ module geometry
   public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
   public :: Rmajor
-  public :: nalpha
+  public :: nalpha, alpha
   public :: theta_vmec
   public :: zed_scalefac
+  public :: dxdpsi_sign, dxdpsi
+  public :: dydalpha_sign, dydalpha
 
   private
 
   type (flux_surface_type) :: geo_surf
 
+  integer :: dxdpsi_sign, dydalpha_sign
+  real :: dxdpsi, dydalpha
   real :: dIdrho
   real :: drhodpsi, shat, qinp, rgeo
   real :: exb_nonlin_fac
@@ -42,6 +46,7 @@ module geometry
   real, dimension (:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
+  real, dimension (:), allocatable :: alpha
 
   integer :: geo_option_switch
   integer, parameter :: geo_option_local = 1
@@ -75,6 +80,12 @@ contains
     if (geoinit) return
     geoinit = .true.
 
+    ! B = grad alpha x grad psi
+    ! for tokamak calculations, alpha = zeta - q * theta
+    ! and psi = psi_poloidal
+    ! for stellarator calculations, alpha = theta - iota * zeta
+    ! and psi = -psi_toroidal
+
     ! default is no re-scaling of zed
     zed_scalefac = 1.0
 
@@ -96,7 +107,12 @@ contains
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
           drhodpsi = 1./dpsidrho
-          exb_nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
+          ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+          dxdpsi_sign = 1
+          dxdpsi = dxdpsi_sign*geo_surf%qinp/geo_surf%rhoc
+          ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+          dydalpha_sign = 1
+          dydalpha = dydalpha_sign*dpsidrho
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
@@ -115,7 +131,12 @@ contains
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
           drhodpsi = 1./dpsidrho
-          exb_nonlin_fac = 0.5*geo_surf%qinp/(geo_surf%rhoc*drhodpsi)
+          ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+          dxdpsi_sign = 1
+          dxdpsi = dxdpsi_sign*geo_surf%qinp/geo_surf%rhoc
+          ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+          dydalpha_sign = 1
+          dydalpha = dydalpha_sign*dpsidrho
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
@@ -125,14 +146,29 @@ contains
           ! get geometry coefficients from vmec
           call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
                gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec, &
-               zed_scalefac)
-          ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
-          exb_nonlin_fac = -0.5
+               zed_scalefac, alpha)
+          ! dxdpsi = a*Bref*dx/dpsi = sign(dxdpsi)/rhotor
+          dxdpsi_sign = 1
+          dxdpsi = dxdpsi_sign/geo_surf%rhotor
+          ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
+          dydalpha_sign = -1
+          dydalpha = dydalpha_sign*geo_surf%rhotor
           ! if using vmec, rho = sqrt(psitor/psitor_lcfs)
           ! psiN = -psitor/(aref**2*Bref)
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
           drhodpsi = -1.0/geo_surf%rhotor
+
+          ! get_vmec_geo returns geometric quantities on assumption that dx/dpsi is negative
+          ! and dy/dalpha is positive
+          ! take into account possibility that this is not the case
+          gds21 = -gds21*dydalpha_sign*dxdpsi_sign
+          gbdrift = gbdrift*dydalpha_sign
+          cvdrift = cvdrift*dydalpha_sign
+          gbdrift0 = -gbdrift0*dxdpsi_sign
+          cvdrift0 = -cvdrift0*dxdpsi_sign
        end select
+       ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
+       exb_nonlin_fac = 0.5*dxdpsi*dydalpha
     end if
 
     if (.not.proc0) call allocate_arrays (nalpha, nzgrid)
@@ -204,6 +240,8 @@ contains
     if (.not.allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
     if (.not.allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
     if (.not.allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
+
+    if (.not.allocated(alpha)) allocate (alpha(nalpha)) ; alpha = 0.
 
   end subroutine allocate_arrays
 
@@ -291,6 +329,7 @@ contains
     call broadcast (geo_surf%drhotordrho)
 
     call broadcast (zed_scalefac)
+    call broadcast (alpha)
 
   end subroutine broadcast_arrays
 
@@ -403,6 +442,8 @@ contains
     if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
     if (allocated(dgradpardrho)) deallocate (dgradpardrho)
     if (allocated(theta_vmec)) deallocate (theta_vmec)
+
+    if (allocated(alpha)) deallocate (alpha)
 
     geoinit = .false.
 
