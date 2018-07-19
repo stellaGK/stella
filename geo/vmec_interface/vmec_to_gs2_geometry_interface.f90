@@ -1167,21 +1167,33 @@ contains
 
     gradpar = L_reference * B_sup_zeta / B
 
+    ! gds2 = |grad y|^2 = (dy/dalpha)^2 * |grad alpha|^2 = Lref^2*rhotor^2*|grad alpha|^2
+
     gds2 = (grad_alpha_X * grad_alpha_X + grad_alpha_Y * grad_alpha_Y + grad_alpha_Z * grad_alpha_Z) &
          * L_reference * L_reference * normalized_toroidal_flux_used
 
+    ! dx/dpsitor = sign_torflux/rhotor/Lref/Bref
+    ! dy/dalpha = Lref*rhotor
+
+    ! this is shat * grad x . grad y = shat * (grad psi_tor . grad alpha) * dx/dpsi_tor * dy/dalpha
+    ! = sign_torflux * shat * (grad psi_tor . grad alpha) / Bref
     gds21 = (grad_alpha_X * grad_psi_X + grad_alpha_Y * grad_psi_Y + grad_alpha_Z * grad_psi_Z) &
          * sign_toroidal_flux * shat / B_reference
 !         * shat / B_reference
 
+    ! this is shat^2 * | grad x | ^2 = shat^2 * |grad psi_tor|^2 * (dx/dpsitor)^2
+    ! = shat^2 * |grad psi_tor|^2 * / rhotor^2 / Lref^2 / Bref^2
     gds22 = (grad_psi_X * grad_psi_X + grad_psi_Y * grad_psi_Y + grad_psi_Z * grad_psi_Z) &
          * shat * shat / (L_reference * L_reference * B_reference * B_reference * normalized_toroidal_flux_used)
 
-    ! this is (grad zeta . grad x_stella) / bmag^2
-    gradzeta_gradx = (grad_zeta_X * grad_psi_X + grad_zeta_Y * grad_psi_Y + grad_zeta_Z * grad_psi_Z) &
+    ! this is (grad zeta . grad x_stella) / bmag^2 = (grad zeta . grad psitor) * dx/dpsitor / bmag^2
+    ! = (grad zeta . grad psitor) * sign_torflux/rhotor/Lref/Bref/ bmag^2
+    gradzeta_gradx = sign_toroidal_flux &
+         * (grad_zeta_X * grad_psi_X + grad_zeta_Y * grad_psi_Y + grad_zeta_Z * grad_psi_Z) &
          / (L_reference * B_reference * sqrt(normalized_toroidal_flux_used) * bmag**2)
 
-    ! this is (grad zeta . grad y_stella) / bmag^2
+    ! this is (grad zeta . grad y_stella) / bmag^2 = (grad zeta . grad alpha) * dy/dalpha / bmag^2
+    ! = (grad zeta . grad alpha) * Lref * rhotor / bmag^2
     gradzeta_grady = (grad_zeta_X * grad_alpha_X + grad_zeta_Y * grad_alpha_Y + grad_zeta_Z * grad_alpha_Z) &
          * L_reference * sqrt(normalized_toroidal_flux_used) / bmag**2
 
@@ -1195,13 +1207,13 @@ contains
          + grad_theta_pest_Z * grad_alpha_Z) &
          * L_reference * sqrt(normalized_toroidal_flux_used) / bmag**2
 
-    ! this is ((grad y_stella . grad zeta)*(grad x_stella . grad y_stella) 
+    ! this is psitor/|psitor|*((grad y_stella . grad zeta)*(grad x_stella . grad y_stella) 
     ! - (grad x_stella . grad zeta)*|grad y_stella|^2) / (B/Bref)^2
-    gds23 = gradzeta_grady * gds21/shat - gradzeta_gradx * gds2
+    gds23 = sign_toroidal_flux*(gradzeta_grady * gds21/shat - gradzeta_gradx * gds2)
 
-    ! this is ((grad y_stella . grad zeta) * |grad x_stella|^2 
+    ! this is psitor/|psitor| * ((grad y_stella . grad zeta) * |grad x_stella|^2 
     ! - (grad x_stella . grad zeta)*(grad x_stella . grad y_stella)) / (B/Bref)^2
-    gds24 = gradzeta_grady * gds22/shat**2 - gradzeta_gradx * gds21/shat
+    gds24 = (gradzeta_grady * gds22/shat**2 - gradzeta_gradx * gds21/shat) * sign_toroidal_flux
 
     ! this is ((grad y_stella . grad theta_pest)*(grad x_stella . grad y_stella)
     ! - (grad x_stella . grad theta_pest)*|grad y_stella|^2) / (B/Bref)^2

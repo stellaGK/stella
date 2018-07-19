@@ -280,7 +280,7 @@ contains
     use geometry, only: gds23, gds24
     use geometry, only: geo_surf
     use geometry, only: nalpha
-    use geometry, only: dxdpsi_sign, dxdpsi
+    use geometry, only: dxdpsi, drhodpsi, dydalpha
     use vpamu_grids, only: vpa, vperp2, ztmax, maxwell_mu
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
@@ -328,7 +328,7 @@ contains
        ! then add in v_E^{nc} . grad y dg/dy coefficient here
        if (include_neoclassical_terms) then
           wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)+code_dt*0.5*(gds23*dphineo_dzed &
-               + dxdpsi_sign*dphineo_drho)
+               + drhodpsi*dydalpha*dphineo_drho)
        end if
 
        wdrifty_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &

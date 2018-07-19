@@ -21,14 +21,12 @@ module geometry
   public :: nalpha, alpha
   public :: theta_vmec
   public :: zed_scalefac
-  public :: dxdpsi_sign, dxdpsi
-  public :: dydalpha_sign, dydalpha
+  public :: dxdpsi, dydalpha
 
   private
 
   type (flux_surface_type) :: geo_surf
 
-  integer :: dxdpsi_sign, dydalpha_sign
   real :: dxdpsi, dydalpha
   real :: dIdrho
   real :: drhodpsi, shat, qinp, rgeo
@@ -77,6 +75,7 @@ contains
     real :: dpsidrho
     integer :: iy
     integer :: sign_torflux
+    integer :: dxdpsi_sign, dydalpha_sign
 
     if (geoinit) return
     geoinit = .true.
@@ -164,15 +163,6 @@ contains
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
           drhodpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
 !          drhodpsi = -1.0/geo_surf%rhotor
-          
-          ! get_vmec_geo returns geometric quantities on assumption that dx/dpsi is negative
-          ! and dy/dalpha is positive
-          ! take into account possibility that this is not the case
-          gds21 = -gds21*dydalpha_sign*dxdpsi_sign
-          gbdrift = gbdrift*dydalpha_sign
-          cvdrift = cvdrift*dydalpha_sign
-          gbdrift0 = -gbdrift0*dxdpsi_sign
-          cvdrift0 = -cvdrift0*dxdpsi_sign
        end select
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
        exb_nonlin_fac = 0.5*dxdpsi*dydalpha
@@ -337,9 +327,7 @@ contains
 
     call broadcast (zed_scalefac)
     call broadcast (alpha)
-    call broadcast (dxdpsi_sign)
     call broadcast (dxdpsi)
-    call broadcast (dydalpha_sign)
     call broadcast (dydalpha)
 
   end subroutine broadcast_arrays
