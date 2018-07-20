@@ -21,6 +21,7 @@ module sfincs_interface
   real :: aHat, psiAHat, Delta
   real :: nu_n
   integer :: nxi, nx, ntheta, nzeta
+  logical :: read_sfincs_output_from_file
 
 contains
 
@@ -71,7 +72,15 @@ contains
           ! otherwise, assume system is axisymmetric and pass geometry
           ! from stella (miller local equilibrium or similar)
           if (geometryScheme /= 5) call pass_geometry_to_sfincs (irad*drho)
-          call run_sfincs
+          if (read_sfincs_output_from_file) then
+             if (proc0) call read_sfincs_output (irad, nradii/2)
+          else
+             call run_sfincs
+             ! write Phi1Hat and delta_f to file
+             ! so we have the option of using it
+             ! again without re-running sfincs
+             if (proc0) call write_sfincs (irad, nradii/2)
+          end if
           if (proc0) then
              ! only need to compute dfneo_dalpha and dphineo_dalpha
              ! for central radius and for stellarator calculation
@@ -89,12 +98,16 @@ contains
     end if
     call comm_free (sfincs_comm, ierr)
 
+    write (*,*) 'fneo1', maxval(f_neoclassical), maxval(phi_neoclassical)
+
     ! NB: NEED TO CHECK THIS BROADCAST OF SFINCS RESULTS 
     do irad = -nradii/2, nradii/2
        call broadcast_sfincs_output &
             (f_neoclassical(:,:,:,:,:,irad), phi_neoclassical(:,:,irad))
     end do
     call broadcast_sfincs_output (dfneo_dalpha, dphineo_dalpha)
+
+    write (*,*) 'fneo2', maxval(f_neoclassical), maxval(phi_neoclassical)
 
 # else
     f_neoclassical = 0 ; phi_neoclassical = 0.
@@ -130,11 +143,19 @@ contains
          inputRadialCoordinate, &
          inputRadialCoordinateForGradients, &
          aHat, psiAHat, nu_N, nxi, nx, Delta, &
-         ntheta, nzeta
+         ntheta, nzeta, &
+         read_sfincs_output_from_file
 
     logical :: exist
     integer :: in_file
 
+    ! if read_sfincs_output_from_file=.true.,
+    ! will try to read in Phi1Hat and delta_f
+    ! from pre-saved file named sfincs.output
+    ! otherwise, run sfincs to compute these
+    ! quantities on the fly
+    read_sfincs_output_from_file = .false.
+    ! number of processors to use for sfincs calculation
     nproc_sfincs = 1
     ! do not include radial electric field term
     includeXDotTerm = .false.
@@ -214,6 +235,7 @@ contains
 
     implicit none
 
+    call broadcast (read_sfincs_output_from_file)
     call broadcast (nproc_sfincs)
     call broadcast (includeXDotTerm)
     call broadcast (includeElectricFieldTermInXiDot)
@@ -389,8 +411,6 @@ contains
 
     iota = 1./q_local
 
-    write (*,*) 'BHat'
-
     ! interpolate from stella zed-grid to sfincs theta grid
     ! point at -pi (stella) is same as point at 0 (sfincs)
     BHat(1,1) = B_local(-nzpi)
@@ -411,8 +431,6 @@ contains
     ! this is grad psitor . (grad theta x grad zeta)
     ! note that + sign below relies on B = I grad zeta + grad zeta x grad psi
     DHat = q_local*BHat_sup_theta
-
-    write (*,*) 'endSub'
 
     deallocate (B_local, dBdz_local, gradpar_local)
     deallocate (theta_sfincs, zed_stella)
@@ -1133,6 +1151,93 @@ contains
     call broadcast (fneo)
     call broadcast (phineo)
   end subroutine broadcast_sfincs_output
+
+  subroutine write_sfincs (irad, nrad_max)
+
+    use species, only: nspec
+    use globalVariables, only: Phi1Hat
+    use export_f, only: export_f_zeta, export_f_theta
+    use export_f, only: delta_f
+
+    implicit none
+
+    integer, intent (in) :: irad, nrad_max
+    
+    integer :: unit = 999
+    integer :: izeta, itheta, is, i, j
+
+    if (irad == -nrad_max) open (unit=unit,file='sfincs.output',status='replace',action='write')
+
+    do izeta = 1, nzeta
+       do itheta = 1, ntheta
+          write (unit,'(a8,3e13.5,i3)') 'Phi1Hat', export_f_theta(itheta), export_f_zeta(izeta), Phi1Hat(itheta,izeta), irad
+       end do
+       write (unit,*)
+    end do
+    write (unit,*)
+
+    do is = 1, nspec
+       do i = 1, size(delta_f,5)
+          do j = 1, size(delta_f,4)
+             do izeta = 1, nzeta
+                do itheta = 1, ntheta
+                   write (unit,'(a8,3e13.5,4i5)') 'delta_f', export_f_theta(itheta), export_f_zeta(izeta), &
+                        delta_f(is,itheta,izeta,j,i), i, j, is, irad
+                end do
+                write (unit,*)
+             end do
+          end do
+       end do
+    end do
+    write (unit,*)
+
+    if (irad == nrad_max) close (unit)
+
+  end subroutine write_sfincs
+
+  subroutine read_sfincs_output (irad, nrad_max)
+
+    use species, only: nspec
+    use globalVariables, only: Phi1Hat
+    use export_f, only: export_f_zeta, export_f_theta
+    use export_f, only: delta_f
+
+    implicit none
+
+    integer, intent (in) :: irad, nrad_max
+    
+    integer :: unit = 999
+    integer :: izeta, itheta, is, i, j
+    character (8) :: dum
+
+    if (irad == -nrad_max) open (unit=unit,file='sfincs.output',status='old',action='read')
+
+    do izeta = 1, nzeta
+       do itheta = 1, ntheta
+          read (unit,*) dum, export_f_theta(itheta), export_f_zeta(izeta), Phi1Hat(itheta,izeta), dum
+       end do
+       read (unit,*)
+    end do
+    read (unit,*)
+
+    do is = 1, nspec
+       do i = 1, size(delta_f,5)
+          do j = 1, size(delta_f,4)
+             do izeta = 1, nzeta
+                do itheta = 1, ntheta
+                   read (unit,*) dum, export_f_theta(itheta), export_f_zeta(izeta), &
+                        delta_f(is,itheta,izeta,j,i), dum, dum, dum, dum
+                end do
+                read (unit,*)
+             end do
+          end do
+       end do
+    end do
+    read (unit,*)
+
+    if (irad == nrad_max) close (unit)
+
+  end subroutine read_sfincs_output
 
 # endif
 

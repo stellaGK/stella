@@ -393,9 +393,9 @@ contains
 
     if (proc0) then
        call open_output_file (neo_unit,'.neoclassical')
-       write (neo_unit,'(2a8,10a13)') '#1.rad', '2.spec', '3.zed', '4.mu', '5.vpa', &
-            '6.f_neo', '7.dfdvpa_neo', '8.dfdrho_neo', '9.dfdzed_neo', '10.phi_neo', &
-            '11.dphidrho', '12.dphidzed'
+       write (neo_unit,'(3a8,10a13)') '#1.rad', '2.spec', '3.alpha', '4.zed', '5.mu', &
+            '6.vpa', '7.f_neo', '8.dfdvpa_neo', '9.dfdrho_neo', '10.dfdzed_neo', '11.phi_neo', &
+            '12.dphidrho', '13.dphidzed'
     end if
     do irad = -nradii/2, nradii/2
        do ivmu = vmu_lo%llim_world, vmu_lo%ulim_world

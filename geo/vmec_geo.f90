@@ -93,7 +93,7 @@ contains
     ! gds22 = shat^2 * |grad x|^2
     grho = sqrt(gds22/surf%shat**2)/L_reference
     surf%drhotordrho = 1.0
-    surf%psitor_lcfs = 0.5
+    surf%psitor_lcfs = 0.5*sign_torflux
 
     ! scale the vmec output
     ! alpha = theta_pest - iota*zeta
