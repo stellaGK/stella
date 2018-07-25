@@ -22,11 +22,13 @@ module geometry
   public :: theta_vmec
   public :: zed_scalefac
   public :: dxdpsi, dydalpha
+  public :: aref, bref
 
   private
 
   type (flux_surface_type) :: geo_surf
 
+  real :: aref, bref
   real :: dxdpsi, dydalpha
   real :: dIdrho
   real :: drhodpsi, shat, qinp, rgeo
@@ -113,6 +115,8 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
+          ! aref and bref should not be needed, so set to 1
+          aref = 1.0 ; bref = 1.0
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
@@ -137,6 +141,8 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
+          ! aref and bref should not be needed so set to 1
+          aref = 1.0 ; bref = 1.0
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
@@ -146,7 +152,7 @@ contains
           ! get geometry coefficients from vmec
           call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
                gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
-               theta_vmec, zed_scalefac, alpha)
+               theta_vmec, zed_scalefac, aref, bref, alpha)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
@@ -329,6 +335,9 @@ contains
     call broadcast (alpha)
     call broadcast (dxdpsi)
     call broadcast (dydalpha)
+
+    call broadcast (aref)
+    call broadcast (bref)
 
   end subroutine broadcast_arrays
 

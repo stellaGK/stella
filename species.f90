@@ -21,6 +21,7 @@ module species
   integer :: species_option_switch
   integer, parameter :: species_option_stella = 1
   integer, parameter :: species_option_inputprofs = 2
+  integer, parameter :: species_option_euterpe = 3
 
   integer :: nspec
   type (spec_type), dimension (:), allocatable :: spec
@@ -41,6 +42,7 @@ contains
     use mp, only: proc0, broadcast
     use physics_parameters, only: vnew_ref, zeff
     use inputprofiles_interface, only: read_inputprof_spec
+    use euterpe_interface, only: read_species_euterpe
 
     implicit none
 
@@ -59,6 +61,9 @@ contains
        case (species_option_inputprofs)
           call read_species_stella
           call read_inputprof_spec (nspec, spec)
+       case (species_option_euterpe)
+          call read_species_stella
+          call read_species_euterpe (nspec, spec)
        end select
 
        do is = 1, nspec
@@ -102,10 +107,11 @@ contains
 
     namelist /species_knobs/ nspec, species_option
 
-    type (text_option), dimension (3), parameter :: specopts = (/ &
+    type (text_option), dimension (4), parameter :: specopts = (/ &
          text_option('default', species_option_stella), &
          text_option('stella', species_option_stella), &
-         text_option('input.profiles', species_option_inputprofs) /)
+         text_option('input.profiles', species_option_inputprofs), &
+         text_option('euterpe', species_option_euterpe) /)
 
     nspec = 2
     species_option = 'stella'

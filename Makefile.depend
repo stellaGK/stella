@@ -1,6 +1,9 @@
 #
 # Auto-generated file by fortdep. Do not edit!
 #
+rhostar_nu_calculator_mod = \
+	 rhostar_nu_calculator.o 
+
 stella_mod = \
 	 command_line.o \
 	 common_types.o \
@@ -10,6 +13,7 @@ stella_mod = \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 euterpe_interface.o \
 	 extended_zgrid.o \
 	 fft_work.o \
 	 fields.o \
@@ -112,6 +116,14 @@ dist_redistribute.o: \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+euterpe_interface.o: \
+	 common_types.o \
+	 file_utils.o \
+	 finite_differences.o \
+	 geometry.o \
+	 mp.o \
+	 physics_parameters.o \
+	 spl.o 
 extended_zgrid.o: \
 	 kt_grids.o \
 	 species.o \
@@ -280,6 +292,7 @@ response_matrix.o: \
 	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+rhostar_nu_calculator.o: 
 run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
@@ -300,6 +313,7 @@ sfincs_interface.o: \
 sort.o: 
 species.o: \
 	 common_types.o \
+	 euterpe_interface.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
 	 mp.o \

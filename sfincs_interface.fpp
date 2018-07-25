@@ -76,14 +76,21 @@ contains
           fprim_local = 1.0/geo_surf%drhotordrho*(spec%fprim - irad*drho*spec%d2ndr2)
           tprim_local = 1.0/geo_surf%drhotordrho*(spec%tprim - irad*drho*spec%d2Tdr2)
           if (calculate_radial_electric_field) then
+
              ! get best guess at radial electric field
              ! using force balance with radial pressure gradient
              dPhiHatdrN_best_guess = sum(fprim_local+tprim_local)
              call iterate_sfincs_until_electric_field_converged (sfincs_comm, &
                   irad, drho, nradii/2, dPhiHatdrN_best_guess, &
                   Er_converged, nsfincs_calls)
-             if (proc0) write (*,*) 'At irad= ', irad, 'Er_converged= ', Er_converged, &
+
+             if (proc0) then
+                write (*,*)
+                write (*,*) 'At irad= ', irad, 'Er_converged= ', Er_converged, &
                   'nsfincs_calls_required= ', nsfincs_calls, 'dPhiHatdrN= ', dPhiHatdrN
+                write (*,*)
+             end if
+
              ! write_and_finish_sfincs manipulates sfincs output
              ! to get the neoclassical distribution function and potential
              ! on the stella (zed,alpha,vpa,mu) grid; it then
@@ -106,6 +113,7 @@ contains
           end if
        end do
     end if
+
     call comm_free (sfincs_comm, ierr)
 
     ! NB: NEED TO CHECK THIS BROADCAST OF SFINCS RESULTS 
@@ -117,7 +125,11 @@ contains
 
     deallocate (fprim_local, tprim_local)
 
-    write (*,*) 'maxval(fneo): ', maxval(f_neoclassical), 'maxval(phineo): ', maxval(phi_neoclassical)
+    if (proc0) then
+       write (*,*)
+       write (*,*) 'maxval(fneo): ', maxval(f_neoclassical), 'maxval(phineo): ', maxval(phi_neoclassical)
+       write (*,*)
+    end if
 
 # else
     f_neoclassical = 0 ; phi_neoclassical = 0.
@@ -132,8 +144,7 @@ contains
   subroutine iterate_sfincs_until_electric_field_converged (sfincs_comm, irad, drho, &
        nrad_max, dPhiHatdrN_best_guess, dphiHatdrN_is_converged, number_of_sfincs_calls_for_convergence)
 
-    use mp, only: proc0
-    use zgrid, only: nzgrid
+    use mp, only: proc0, iproc
 
     implicit none
 
@@ -153,10 +164,10 @@ contains
 
     dPhiHatdrN_is_converged = .false.
 
+    a = dPhiHatdrN_best_guess*(1.0-window)
+    b = dPhiHatdrN_best_guess*(1.0+window)
     do it = 1, itmax_bracket
-       a = dPhiHatdrN_best_guess*(1.0-window)
        eps = epsilon(a)
-       b = dPhiHatdrN_best_guess*(1.0+window)
        
        ! initialize sfincs, run it, and return the total charge flux as fa
        call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
@@ -164,11 +175,14 @@ contains
        
        if ((fa > 0.0 .and. fb > 0.0) .or. (fa < 0.0 .and. fb < 0.0)) then
           if (proc0) then
+             write (*,*)
              write (*,*) 'dPhiHatdrN values ', a, ' and ', b, ' do not bracket root.'
-             a = a*(1.0-window) ; b = b*(1.0+window)
-             write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
           end if
           a = a*(1.0-window) ; b = b*(1.0+window)
+          if (proc0) then
+             write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+             write (*,*)
+          end if
        else
           exit
        end if
@@ -234,9 +248,9 @@ contains
   subroutine get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, &
        dPhiHatdrN_in, total_charge_flux)
 
+    use mp, only: iproc, broadcast
     use sfincs_main, only: finish_sfincs
     use globalVariables, only: Zs, particleFlux_vd_psiHat
-    use zgrid, only: nzgrid
     use species, only: nspec
 
     implicit none
@@ -248,6 +262,8 @@ contains
 
     dPhiHatdrN = dPhiHatdrN_in
     call init_and_run_sfincs (sfincs_comm, irad, drho, nrad_max)
+    call broadcast (Zs)
+    call broadcast (particleFlux_vd_psiHat)
 
     total_charge_flux = sum(Zs(:nspec)*particleFlux_vd_psiHat(:nspec))
 
@@ -255,10 +271,9 @@ contains
 
   subroutine init_and_run_sfincs (sfincs_comm, irad, drho, nrad_max)
 
-    use mp, only: proc0
+    use mp, only: proc0, iproc
     use sfincs_main, only: init_sfincs, prepare_sfincs, run_sfincs, finish_sfincs
     use globalVariables, only: Zs, particleFlux_vd_psiHat
-    use zgrid, only: nzgrid
     use species, only: nspec
 
     implicit none
@@ -282,11 +297,15 @@ contains
     if (read_sfincs_output_from_file) then
        if (proc0) call read_sfincs_output (irad, nrad_max)
     else
-       if (proc0) &
-            write (*,*) 'About to run sfincs at irad= ', irad, ', with dPhiHatdrN= ', dPhiHatdrN
+       if (proc0) then
+          write (*,*)
+          write (*,*) 'Running sfincs at irad= ', irad, ', with dPhiHatdrN= ', dPhiHatdrN
+       end if
        call run_sfincs
-       if (proc0) &
-            write (*,*) 'sfincs finished running.  total charge flux= ', sum(Zs(:nspec)*particleFlux_vd_psiHat(:nspec))
+       if (proc0) then
+          write (*,*) 'sfincs finished running.  total charge flux= ', sum(Zs(:nspec)*particleFlux_vd_psiHat(:nspec))
+          write (*,*)
+       end if
        ! write Phi1Hat and delta_f to file
        ! so we have the option of using it
        ! again without re-running sfincs
