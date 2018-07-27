@@ -7,6 +7,7 @@ module sfincs_interface
   private
 
   integer :: nproc_sfincs
+  integer :: irad_min, irad_max
   logical :: calculate_radial_electric_field
   logical :: includeXDotTerm
   logical :: includeElectricFieldTermInXiDot
@@ -37,9 +38,8 @@ contains
     use mp, only: comm_split, comm_free
     use geometry, only: geo_surf
     use species, only: spec, nspec
-# else
-    use mp, only: mp_abort
 # endif
+    use mp, only: mp_abort
     use zgrid, only: nzgrid
     
     implicit none
@@ -62,7 +62,7 @@ contains
     if (.not.allocated(fprim_local)) allocate (fprim_local(nspec))
     if (.not.allocated(tprim_local)) allocate (tprim_local(nspec))
 
-    if (proc0) call read_sfincs_parameters
+    if (proc0) call read_sfincs_parameters (nradii)
     call broadcast_sfincs_parameters
     if (iproc < nproc_sfincs) then
        color = 0
@@ -71,7 +71,7 @@ contains
     end if
     call comm_split (color, sfincs_comm, ierr)
     if (iproc < nproc_sfincs) then
-       do irad = -nradii/2, nradii/2
+       do irad = irad_min, irad_max
           ! get local values of -dlog(ns)/drho and -dlog(Ts)/drho
           fprim_local = 1.0/geo_surf%drhotordrho*(spec%fprim - irad*drho*spec%d2ndr2)
           tprim_local = 1.0/geo_surf%drhotordrho*(spec%tprim - irad*drho*spec%d2Tdr2)
@@ -81,7 +81,7 @@ contains
              ! using force balance with radial pressure gradient
              dPhiHatdrN_best_guess = sum(fprim_local+tprim_local)
              call iterate_sfincs_until_electric_field_converged (sfincs_comm, &
-                  irad, drho, nradii/2, dPhiHatdrN_best_guess, &
+                  irad, drho, irad_max, dPhiHatdrN_best_guess, &
                   Er_converged, nsfincs_calls)
 
              if (proc0) then
@@ -102,7 +102,7 @@ contains
              ! init_and_run_sfincs initializes sfincs,
              ! including passing geometry info if necessary;
              ! and runs sfincs (if requested)
-             call init_and_run_sfincs (sfincs_comm, irad, drho, nradii/2)
+             call init_and_run_sfincs (sfincs_comm, irad, drho, irad_max)
              ! write_and_finish_sfincs manipulates sfincs output
              ! to get the neoclassical distribution function and potential
              ! on the stella (zed,alpha,vpa,mu) grid; it then
@@ -117,7 +117,7 @@ contains
     call comm_free (sfincs_comm, ierr)
 
     ! NB: NEED TO CHECK THIS BROADCAST OF SFINCS RESULTS 
-    do irad = -nradii/2, nradii/2
+    do irad = irad_min, irad_max
        call broadcast_sfincs_output &
             (f_neoclassical(:,:,:,:,:,irad), phi_neoclassical(:,:,irad))
     end do
@@ -130,6 +130,10 @@ contains
        write (*,*) 'maxval(fneo): ', maxval(f_neoclassical), 'maxval(phineo): ', maxval(phi_neoclassical)
        write (*,*)
     end if
+
+    if ((irad_min /= -nradii/2) .or. (irad_max /= nradii/2)) &
+         call mp_abort ('WARNING: irad_min must equal -nradii/2 and irad_max must equal &
+         & nradii/2 to proceed to stella calculation.  aborting.')
 
 # else
     f_neoclassical = 0 ; phi_neoclassical = 0.
@@ -155,7 +159,7 @@ contains
 
     integer :: itmax_bracket = 10
     integer :: itmax_root = 10
-    real :: window = 0.5
+    real :: window = 0.3
     real :: tol = 0.1
 
     integer :: it
@@ -166,22 +170,35 @@ contains
 
     a = dPhiHatdrN_best_guess*(1.0-window)
     b = dPhiHatdrN_best_guess*(1.0+window)
+    ! initialize sfincs, run it, and return the total charge flux as fa
+    call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
+    call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
     do it = 1, itmax_bracket
        eps = epsilon(a)
-       
-       ! initialize sfincs, run it, and return the total charge flux as fa
-       call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
-       call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
-       
        if ((fa > 0.0 .and. fb > 0.0) .or. (fa < 0.0 .and. fb < 0.0)) then
           if (proc0) then
              write (*,*)
              write (*,*) 'dPhiHatdrN values ', a, ' and ', b, ' do not bracket root.'
           end if
-          a = a*(1.0-window) ; b = b*(1.0+window)
-          if (proc0) then
-             write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
-             write (*,*)
+          ! eliminate the endpoint corresonding to the flux that is furthest from zero in magnitude
+          if (abs(fa) > abs(fb)) then
+             ! keep b as an endpoint and eliminate a
+             a = b ; fa = fb
+             b = a*(1.0+window)
+             if (proc0) then
+                write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+                write (*,*)
+             end if
+             call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
+          else
+             ! keep a as an endpoint and eliminate b
+             b = a ; fb = fa
+             a = b*(1.0-window)
+             if (proc0) then
+                write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+                write (*,*)
+             end if
+             call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
           end if
        else
           exit
@@ -248,7 +265,7 @@ contains
   subroutine get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, &
        dPhiHatdrN_in, total_charge_flux)
 
-    use mp, only: iproc, broadcast
+    use mp, only: iproc, broadcast_with_comm
     use sfincs_main, only: finish_sfincs
     use globalVariables, only: Zs, particleFlux_vd_psiHat
     use species, only: nspec
@@ -262,8 +279,9 @@ contains
 
     dPhiHatdrN = dPhiHatdrN_in
     call init_and_run_sfincs (sfincs_comm, irad, drho, nrad_max)
-    call broadcast (Zs)
-    call broadcast (particleFlux_vd_psiHat)
+
+    call broadcast_with_comm (Zs, sfincs_comm)
+    call broadcast_with_comm (particleFlux_vd_psiHat, sfincs_comm)
 
     total_charge_flux = sum(Zs(:nspec)*particleFlux_vd_psiHat(:nspec))
 
@@ -343,7 +361,7 @@ contains
 
   end subroutine write_and_finish_sfincs
 
-  subroutine read_sfincs_parameters
+  subroutine read_sfincs_parameters (nradii)
 
     use constants, only: pi
     use mp, only: nproc
@@ -353,12 +371,14 @@ contains
     use geometry, only: geo_surf
 
     implicit none
+    
+    integer, intent (in) :: nradii
 
     namelist /sfincs_input/ nproc_sfincs, &
          calculate_radial_electric_field, &
          includeXDotTerm, &
          includeElectricFieldTermInXiDot, &
-!         includeRadialExBDrive, &
+         irad_min, irad_max, &
          magneticDriftScheme, &
          includePhi1, &
          includePhi1InKineticEquation, &
@@ -384,6 +404,8 @@ contains
     read_sfincs_output_from_file = .false.
     ! number of processors to use for sfincs calculation
     nproc_sfincs = 1
+    ! minimum and maximum radial index (irad=0 corresponds to central radius)
+    irad_min = -nradii/2 ; irad_max = nradii/2
     ! if calculate_radial_electric_field, then
     ! will scan in radial electric field to find value
     ! for which ambipolarity is satisfied, and then
@@ -470,11 +492,14 @@ contains
   subroutine broadcast_sfincs_parameters
 
     use mp, only: broadcast
+    use physics_parameters, only: rhostar
 
     implicit none
 
     call broadcast (read_sfincs_output_from_file)
     call broadcast (nproc_sfincs)
+    call broadcast (irad_min)
+    call broadcast (irad_max)
     call broadcast (calculate_radial_electric_field)
     call broadcast (includeXDotTerm)
     call broadcast (includeElectricFieldTermInXiDot)
@@ -497,6 +522,8 @@ contains
     call broadcast (nx)
     call broadcast (ntheta)
     call broadcast (nzeta)
+
+    write (*,*) 'Delta stella', Delta, rhostar
 
   end subroutine broadcast_sfincs_parameters
 

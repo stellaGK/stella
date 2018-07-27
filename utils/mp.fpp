@@ -26,6 +26,7 @@ module mp
 
   public :: init_mp, finish_mp
   public :: broadcast, sum_reduce, sum_allreduce
+  public :: broadcast_with_comm
   public :: max_reduce, max_allreduce
   public :: min_reduce, min_allreduce
   public :: comm_split, comm_free
@@ -2189,5 +2190,15 @@ contains
          1, mpi_integer, 0, mp_comm, ierr)
 
   end subroutine mp_gather
+
+  subroutine broadcast_with_comm (x, comm)
+    implicit none
+    real, dimension (:), intent (in out) :: x
+    integer, intent (in) :: comm
+# ifdef MPI
+    integer :: ierror
+    call mpi_bcast (x, size(x), mpireal, 0, comm, ierror)
+# endif
+  end subroutine broadcast_with_comm
 
 end module mp

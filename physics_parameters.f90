@@ -38,8 +38,8 @@ contains
 
     if (proc0) then
        beta = 0.0
-       vnew_ref = 0.01
-       rhostar = 3.0e-3 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
+       vnew_ref = -1.0 ! various input options will override this value if it is negative
+       rhostar = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
        zeff = 1.0
        tite = 1.0
        nine = 1.0
@@ -54,6 +54,8 @@ contains
     call broadcast (rhostar)
     call broadcast (tite)
     call broadcast (nine)
+
+    write (*,*) 'rhostar', rhostar
 
   end subroutine read_parameters
 

@@ -25,6 +25,7 @@ contains
     character (1000) :: euterpe_infile
 
     real :: mref, tref, nref, local_loglam, vtref, omega_ref, rho_ref
+    real :: vnew_ref_euterpe, rhostar_euterpe
 
     real, dimension (:), allocatable :: dr, rhotor, psitor
     real, dimension (:), allocatable :: ni, Ti
@@ -170,18 +171,22 @@ contains
     ! along with the proton charge in the expression
     ! vnew_ref = (aref/vtref)*(4/3)sqrt(2pi)/(4pi*epsilon_0)**2 * nref * e**4 * loglam / sqrt(mref) / Tref**1.5
     ! note that all quantities are given in SI units and epsilon_0 is permittivity of vacuum
-    vnew_ref = 28.5134*(aref/vtref)*local_loglam*nref/(sqrt(mref)*tref**1.5)
+    vnew_ref_euterpe = 28.5134*(aref/vtref)*local_loglam*nref/(sqrt(mref)*tref**1.5)
 
     omega_ref = 9.5791e7*bref/mref
     rho_ref = vtref/omega_ref
 
-    rhostar = rho_ref/aref
+    rhostar_euterpe = rho_ref/aref
+
+    if (rhostar < 0.0) rhostar = rhostar_euterpe
+    if (vnew_ref < 0.0) vnew_ref = vnew_ref_euterpe
 
     open (unit=out_unit, file='euterpe.input', status='replace', action='write')
 
-    write (out_unit,*) 'aref: ', aref, 'vtref: ', vtref, 'loglam: ', local_loglam, 'vnew_ref: ', vnew_ref
-    write (out_unit,*) 'nref: ', nref, 'tref: ', tref, 'mref: ', mref
-    write (out_unit,*) 'omega_ref: ', omega_ref, 'rho_ref: ', rho_ref, 'rhostar: ', rhostar
+    write (out_unit,*) 'aref: ', aref, 'mref: ', mref, 'nref: ', nref, 'tref: ', tref
+    write (out_unit,*) 'loglam: ', local_loglam, 'vnew_ref_euterpe: ', vnew_ref_euterpe, 'vnew_ref: ', vnew_ref
+    write (out_unit,*) 'omega_ref: ', omega_ref, 'rho_ref: ', rho_ref
+    write (out_unit,*) 'rhostar_euterpe: ', rhostar_euterpe, 'rhostar: ', rhostar
     write (out_unit,*) 'nine: ', nine, 'tite: ', tite, 'fprim: ', spec(1)%fprim, 'tprim: ', spec(1)%tprim
     write (out_unit,*) 'd2ndr2: ', spec(1)%d2ndr2, 'd2Tdr2: ', spec(1)%d2Tdr2
 
