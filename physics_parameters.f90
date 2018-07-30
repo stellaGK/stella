@@ -55,8 +55,6 @@ contains
     call broadcast (tite)
     call broadcast (nine)
 
-    write (*,*) 'rhostar', rhostar
-
   end subroutine read_parameters
 
   subroutine finish_physics_parameters

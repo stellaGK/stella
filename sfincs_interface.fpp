@@ -73,8 +73,13 @@ contains
     if (iproc < nproc_sfincs) then
        do irad = irad_min, irad_max
           ! get local values of -dlog(ns)/drho and -dlog(Ts)/drho
-          fprim_local = 1.0/geo_surf%drhotordrho*(spec%fprim - irad*drho*spec%d2ndr2)
-          tprim_local = 1.0/geo_surf%drhotordrho*(spec%tprim - irad*drho*spec%d2Tdr2)
+          ! using dlog(n)/drho = dlog(n0)/drho + delrho*d/drho(dlog(n)/drho)
+          fprim_local = 1.0/geo_surf%drhotordrho*(spec%fprim &
+               + irad*drho*(spec%fprim**2-spec%d2ndr2)/geo_surf%drhotordrho)
+          tprim_local = 1.0/geo_surf%drhotordrho*(spec%tprim &
+               + irad*drho*(spec%tprim**2-spec%d2Tdr2)/geo_surf%drhotordrho)
+!          fprim_local = 1.0/geo_surf%drhotordrho*(spec%fprim - irad*drho*spec%d2ndr2)
+!          tprim_local = 1.0/geo_surf%drhotordrho*(spec%tprim - irad*drho*spec%d2Tdr2)
           if (calculate_radial_electric_field) then
 
              ! get best guess at radial electric field
@@ -179,6 +184,8 @@ contains
           if (proc0) then
              write (*,*)
              write (*,*) 'dPhiHatdrN values ', a, ' and ', b, ' do not bracket root.'
+             write (*,*) 'flux at ', a, ' is ', fa, '.'
+             write (*,*) 'flux at ', b, ' is ', fb, '.'
           end if
           ! eliminate the endpoint corresonding to the flux that is furthest from zero in magnitude
           if (abs(fa) > abs(fb)) then
@@ -368,7 +375,7 @@ contains
     use file_utils, only: input_unit_exist
     use species, only: nspec
     use physics_parameters, only: rhostar, vnew_ref
-    use geometry, only: geo_surf
+    use geometry, only: geo_surf, aref, bref
 
     implicit none
     
@@ -451,11 +458,15 @@ contains
     psiAHat = geo_surf%psitor_lcfs
     ! Delta is rho* = mref*vt_ref/(e*Bref*aref), with reference
     ! quantities given in SI units
-    Delta = rhostar
+    ! unless geometryScheme = 5, in which case Bref=1T
+    ! and aref = 1m (these are hardwired in sfincs)
+    ! set negative to allow check later to see if any value given in input file
+    Delta = -1.0
     ! nu_n = nu_ref * aref/vt_ref
     ! nu_ref = 4*sqrt(2*pi)*nref*e**4*loglam/(3*sqrt(mref)*Tref**3/2)
     ! (with nref, Tref, and mref in Gaussian units)
-    nu_N = vnew_ref*(4./(3.*sqrt(pi)))
+    ! set negative to allow check later to see if any value given in input file
+    nu_n = -1.0
     ! radial derivative of normalized phi
     dPhiHatdrN = 0.0
     ! number of spectral coefficients in pitch angle
@@ -474,6 +485,20 @@ contains
        write (*,*) 'requested number of processors for sfincs is greater &
             & than total processor count.'
        write (*,*) 'allocating ', nproc, ' processors for sfincs.'
+    end if
+
+    if (Delta < 0.0) then
+       Delta = rhostar
+       ! if geometryScheme=5, Bref=1T and aref=1m are hard-wired in sfincs
+       ! but these are not the values used in stella to define rhostar
+       if (geometryScheme == 5) Delta = rhostar*bref*aref
+    end if
+
+    if (nu_n < 0.0) then
+       nu_n = vnew_ref*(4./(3.*sqrt(pi)))
+       ! if geometryScheme=5, aref=1m is hard-wired in sfincs
+       ! but this is not the value used in stella
+       if (geometryScheme == 5) nu_n = nu_n/aref
     end if
 
 ! FLAG -- NOT YET SURE IF THIS SHOULD BE HERE
