@@ -113,7 +113,7 @@ contains
     use file_utils, only: num_input_lines
     use kt_grids, only: naky, nakx
     use zgrid, only: nzgrid
-    use geometry, only: nalpha
+    use stella_geometry, only: nalpha
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
 # ifdef NETCDF
@@ -891,11 +891,11 @@ contains
 
   subroutine nc_geo
 
-    use geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
+    use stella_geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
          cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
          drhodpsi
-    use geometry, only: geo_surf
-    use geometry, only: nalpha
+    use stella_geometry, only: geo_surf
+    use stella_geometry, only: nalpha
     use zgrid, only: nzgrid
     use physics_parameters, only: beta
     use dist_fn_arrays, only: kperp2

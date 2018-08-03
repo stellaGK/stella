@@ -55,7 +55,7 @@ contains
     use init_g, only: init_init_g
     use stella_io, only: init_stella_io
     use mp, only: broadcast, proc0
-    use geometry, only: geo_surf
+    use stella_geometry, only: geo_surf
 
     implicit none
 
@@ -359,7 +359,7 @@ contains
 
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
 
     implicit none
 
@@ -374,7 +374,7 @@ contains
 
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
 
     implicit none
 
@@ -389,7 +389,7 @@ contains
 
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
 
     implicit none
 
@@ -418,9 +418,9 @@ contains
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use species, only: spec
-    use geometry, only: jacob, grho, bmag
-    use geometry, only: gds21, gds22
-    use geometry, only: geo_surf
+    use stella_geometry, only: jacob, grho, bmag
+    use stella_geometry, only: gds21, gds22
+    use stella_geometry, only: geo_surf
     use zgrid, only: delzed, nzgrid
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
@@ -539,7 +539,7 @@ contains
 
     use zgrid, only: nzgrid, delzed
     use stella_layouts, only: vmu_lo
-    use geometry, only: jacob, grho
+    use stella_geometry, only: jacob, grho
 
     implicit none
 
@@ -634,7 +634,7 @@ contains
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, iz_idx
     use vpamu_grids, only: nvpa, nmu
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
 
     implicit none
 
@@ -783,7 +783,7 @@ contains
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
-    use geometry, only: zed_eqarc
+    use stella_geometry, only: zed_eqarc
 
     implicit none
 

@@ -30,7 +30,7 @@ contains
     use vpamu_grids, only: mu
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: ny_ffs
-    use geometry, only: dbdzed, gradpar, nalpha
+    use stella_geometry, only: dbdzed, gradpar, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange
@@ -91,7 +91,7 @@ contains
   subroutine init_mirror_semi_lagrange
 
     use zgrid, only: nzgrid
-    use geometry, only: nalpha
+    use stella_geometry, only: nalpha
     use vpamu_grids, only: nmu, dvpa
     use species, only: nspec
 
@@ -121,7 +121,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use kt_grids, only: alpha_global
     use species, only: spec, nspec
-    use geometry, only: dbdzed, nalpha
+    use stella_geometry, only: dbdzed, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: vpa_upwind, time_upwind

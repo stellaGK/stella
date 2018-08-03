@@ -34,7 +34,7 @@ contains
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
@@ -213,7 +213,7 @@ contains
     use dist_fn_arrays, only: aj0v, kperp2
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: beta
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
@@ -325,7 +325,7 @@ contains
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: aj0x
     use run_parameters, only: fphi, fapar
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: integrate_species
     use kt_grids, only: nakx
@@ -422,7 +422,7 @@ contains
     use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: aj0v
     use run_parameters, only: fphi
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: integrate_vmu

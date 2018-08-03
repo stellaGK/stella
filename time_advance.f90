@@ -74,7 +74,7 @@ contains
 !     use run_parameters, only: tite, nine, beta
 !     use stella_time, only: code_dt
 !     use species, only: spec, has_electron_species
-!     use geometry, only: dl_over_b
+!     use stella_geometry, only: dl_over_b
 !     use zgrid, only: nzgrid
 !     use vpamu_grids, only: nvpa, nvgrid, nmu
 !     use vpamu_grids, only: energy
@@ -275,12 +275,12 @@ contains
     use stella_time, only: code_dt
     use species, only: spec
     use zgrid, only: nzgrid
-    use geometry, only: cvdrift, gbdrift
-    use geometry, only: cvdrift0, gbdrift0
-    use geometry, only: gds23, gds24
-    use geometry, only: geo_surf
-    use geometry, only: nalpha
-    use geometry, only: dxdpsi, drhodpsi, dydalpha
+    use stella_geometry, only: cvdrift, gbdrift
+    use stella_geometry, only: cvdrift0, gbdrift0
+    use stella_geometry, only: gds23, gds24
+    use stella_geometry, only: geo_surf
+    use stella_geometry, only: nalpha
+    use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
     use vpamu_grids, only: vpa, vperp2, ztmax, maxwell_mu
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
@@ -380,8 +380,8 @@ contains
     use stella_time, only: code_dt
     use species, only: spec
     use zgrid, only: nzgrid
-    use geometry, only: nalpha
-    use geometry, only: dydalpha, drhodpsi
+    use stella_geometry, only: nalpha
+    use stella_geometry, only: dydalpha, drhodpsi
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: vperp2, vpa
     use dist_fn_arrays, only: wstar
@@ -429,9 +429,9 @@ contains
     use zgrid, only: nztot, nzgrid
     use kt_grids, only: akx, aky
     use kt_grids, only: nakx, naky
-    use geometry, only: geo_surf, drhodpsi
-    use geometry, only: gradpar, dbdzed, bmag
-    use geometry, only: cvdrift, cvdrift0
+    use stella_geometry, only: geo_surf, drhodpsi
+    use stella_geometry, only: gradpar, dbdzed, bmag
+    use stella_geometry, only: cvdrift, cvdrift0
 
     implicit none
 
@@ -1121,7 +1121,7 @@ contains
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust
     use zgrid, only: nzgrid
-    use geometry, only: exb_nonlin_fac
+    use stella_geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky
     use kt_grids, only: alpha_global

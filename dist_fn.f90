@@ -120,8 +120,8 @@ contains
   subroutine init_kperp2
 
     use dist_fn_arrays, only: kperp2
-    use geometry, only: gds2, gds21, gds22
-    use geometry, only: geo_surf
+    use stella_geometry, only: gds2, gds21, gds22
+    use stella_geometry, only: geo_surf
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
@@ -176,7 +176,7 @@ contains
 
   subroutine init_vperp2
 
-    use geometry, only: nalpha, bmag
+    use stella_geometry, only: nalpha, bmag
     use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, mu
     use vpamu_grids, only: nmu
@@ -202,7 +202,7 @@ contains
     use dist_fn_arrays, only: aj0x
     use dist_fn_arrays, only: kperp2
     use species, only: spec, nspec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, nmu
     use kt_grids, only: naky, nakx

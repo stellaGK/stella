@@ -184,7 +184,7 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid, zed
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0
     use kt_grids, only: reality, zonal_mode
@@ -336,7 +336,7 @@ contains
     use mp, only: proc0, broadcast
     use dist_fn_arrays, only: kperp2
     use species, only: spec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use zgrid, only: nzgrid
     use extended_zgrid, only: ikxmod, nsegments, neigen
     use kt_grids, only: naky, nakx, reality, zonal_mode

@@ -205,7 +205,7 @@ contains
   subroutine integrate_mu_local (iz, g, total)
 
     use species, only: nspec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -231,7 +231,7 @@ contains
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, imu_idx, iv_idx
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -256,7 +256,7 @@ contains
 
   subroutine integrate_vmu_local_real (g, iz, total)
 
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -278,7 +278,7 @@ contains
 
   subroutine integrate_vmu_local_complex (g, iz, total)
 
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -304,7 +304,7 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -333,7 +333,7 @@ contains
   subroutine integrate_species_local_real (g, weights, iz, total)
 
     use species, only: nspec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -359,7 +359,7 @@ contains
   subroutine integrate_species_local_complex (g, weights, iz, total)
 
     use species, only: nspec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -388,7 +388,7 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -419,7 +419,7 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -461,7 +461,7 @@ contains
     use constants, only: pi
     use gauss_quad, only: get_laguerre_grids
     use zgrid, only: nzgrid, nztot
-    use geometry, only: bmag, nalpha
+    use stella_geometry, only: bmag, nalpha
     
     implicit none
 

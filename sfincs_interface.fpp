@@ -36,7 +36,7 @@ contains
 # ifdef USE_SFINCS
     use mp, only: proc0, iproc
     use mp, only: comm_split, comm_free
-    use geometry, only: geo_surf
+    use stella_geometry, only: geo_surf
     use species, only: spec, nspec
 # endif
     use mp, only: mp_abort
@@ -385,7 +385,7 @@ contains
     use file_utils, only: input_unit_exist
     use species, only: nspec
     use physics_parameters, only: rhostar, vnew_ref
-    use geometry, only: geo_surf, aref, bref
+    use stella_geometry, only: geo_surf, aref, bref
 
     implicit none
     
@@ -565,7 +565,7 @@ contains
   subroutine pass_inputoptions_to_sfincs (delrho)
 
     use mp, only: mp_abort
-    use geometry, only: geo_surf
+    use stella_geometry, only: geo_surf
     use species, only: spec, nspec
     use zgrid, only: nzed
     use physics_parameters, only: nine, tite
@@ -676,9 +676,9 @@ contains
     use constants, only: pi
     use splines, only: linear_interp_periodic
     use zgrid, only: nz2pi, zed
-    use geometry, only: bmag, dbdzed, gradpar
-    use geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
-    use geometry, only: geo_surf
+    use stella_geometry, only: bmag, dbdzed, gradpar
+    use stella_geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
+    use stella_geometry, only: geo_surf
     use globalVariables, only: BHat
     use globalVariables, only: dBHatdtheta
     use globalVariables, only: iota
@@ -788,7 +788,7 @@ contains
     use zgrid, only: nzgrid, nz2pi
     use export_f, only: h_sfincs => delta_f
     use globalVariables, only: Phi1Hat
-    use geometry, only: nalpha
+    use stella_geometry, only: nalpha
 
     implicit none
 
@@ -960,8 +960,8 @@ contains
     
     use constants, only: pi
     use zgrid, only: nz2pi, zed
-    use geometry, only: zed_scalefac
-    use geometry, only: nalpha, alpha
+    use stella_geometry, only: zed_scalefac
+    use stella_geometry, only: nalpha, alpha
     use globalVariables, only: iota
     
     implicit none
@@ -1195,7 +1195,7 @@ contains
   subroutine get_field_on_extended_zed (field_stella, field_neoclassical)
 
     use zgrid, only: nzgrid, nz2pi, nperiod
-    use geometry, only: nalpha
+    use stella_geometry, only: nalpha
 
     implicit none
 
@@ -1475,7 +1475,7 @@ contains
     integer :: izeta, itheta, is, i, j
     character (1) :: irad_str
 
-    write (irad_str,'(i0)') irad+nrad_max
+    write (irad_str,'(i0)') irad+min(nrad_max,1)
     open (unit=unit,file='sfincs.output.rad'//irad_str,status='replace',action='write')
 
     do izeta = 1, nzeta

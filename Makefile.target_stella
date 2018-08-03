@@ -25,7 +25,7 @@ vmec:
 ### GEO
 geo_all: vmec geo.a
 
-GEO_OBJ = geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
+GEO_OBJ = stella_geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
 
 geo.a: $(GEO_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^

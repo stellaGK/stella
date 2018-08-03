@@ -88,7 +88,7 @@ contains
 
     use species, only: spec, nspec
     use vpamu_grids, only: dvpa, dmu, mu, nmu
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -126,7 +126,7 @@ contains
     use vpamu_grids, only: dvpa, vpa, nvpa
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use dist_fn_arrays, only: kperp2
 
     implicit none
@@ -163,7 +163,7 @@ contains
     use stella_time, only: code_dt
     use species, only: nspec, spec
     use zgrid, only: nzgrid
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use vpamu_grids, only: dmu, mu, nmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -429,7 +429,7 @@ contains
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: aj0v, aj1v, gvmu, kperp2
     use fields, only: get_fields, get_fields_by_spec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -817,7 +817,7 @@ contains
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: set_vpa_weights
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use stella_layouts, only: vmu_lo, kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
     use dist_redistribute, only: kxkyz2vmu
@@ -927,7 +927,7 @@ contains
     use vpamu_grids, only: nmu, mu, dmu
     use vpamu_grids, only: equally_spaced_mu_grid
     use finite_differences, only: d2_3pt, fd3pt
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     implicit none
 
@@ -984,7 +984,7 @@ contains
   subroutine conserve_momentum (iky, ikx, iz, is, ikxkyz, h, Ch)
 
     use species, only: spec
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
@@ -1218,7 +1218,7 @@ contains
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: g_to_h, aj0v, aj1v, kperp2
     use fields, only: get_fields
-    use geometry, only: bmag
+    use stella_geometry, only: bmag
 
     ! TMP FOR TESTING
 !    use vpamu_grids, only: mu

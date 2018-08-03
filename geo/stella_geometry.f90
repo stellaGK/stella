@@ -1,4 +1,4 @@
-module geometry
+module stella_geometry
 
   use common_types, only: flux_surface_type
 
@@ -457,4 +457,4 @@ contains
 
   end subroutine finish_geometry
 
-end module geometry
+end module stella_geometry

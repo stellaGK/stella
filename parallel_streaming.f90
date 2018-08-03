@@ -39,7 +39,7 @@ contains
     use vpamu_grids, only: nvpa, nvpa
     use vpamu_grids, only: vpa
     use zgrid, only: nzgrid, nztot
-    use geometry, only: gradpar, nalpha
+    use stella_geometry, only: gradpar, nalpha
     use run_parameters, only: stream_implicit
     use run_parameters, only: stream_cell
     use run_parameters, only: include_parallel_streaming
@@ -408,7 +408,7 @@ contains
     use kt_grids, only: zonal_mode
     use dist_fn_arrays, only: aj0x
     use vpamu_grids, only: vpa, ztmax, maxwell_mu
-    use geometry, only: gradpar, nalpha
+    use stella_geometry, only: gradpar, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
     use run_parameters, only: stream_cell, time_upwind

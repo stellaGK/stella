@@ -135,7 +135,7 @@ contains
     use zgrid, only: delzed, nzgrid
     use kt_grids, only: zonal_mode
     use species, only: spec
-    use geometry, only: gradpar
+    use stella_geometry, only: gradpar
     use vpamu_grids, only: ztmax, vpa, maxwell_mu
     use fields_arrays, only: response_matrix
     use dist_fn_arrays, only: aj0x
@@ -412,7 +412,7 @@ contains
     use stella_layouts, only: vmu_lo
     use species, only: nspec, spec
     use species, only: has_electron_species
-    use geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: nsegments

@@ -61,7 +61,7 @@ contains
     use run_parameters, only: stream_implicit
     use species, only: init_species
     use zgrid, only: init_zgrid
-    use geometry, only: init_geometry
+    use stella_geometry, only: init_geometry
     use stella_layouts, only: init_stella_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
@@ -74,7 +74,7 @@ contains
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
-    use geometry, only: geo_surf
+    use stella_geometry, only: geo_surf
     use kt_grids, only: init_kt_grids
     use vpamu_grids, only: init_vpamu_grids
 
@@ -190,7 +190,7 @@ contains
     use fields, only: time_field_solve
     use stella_diagnostics, only: finish_stella_diagnostics
     use response_matrix, only: finish_response_matrix
-    use geometry, only: finish_geometry
+    use stella_geometry, only: finish_geometry
     use extended_zgrid, only: finish_extended_zgrid
     use vpamu_grids, only: finish_vpamu_grids
     use kt_grids, only: finish_kt_grids
