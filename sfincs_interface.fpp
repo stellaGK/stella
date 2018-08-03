@@ -132,7 +132,8 @@ contains
 
     if (proc0) then
        write (*,*)
-       write (*,*) 'maxval(fneo): ', maxval(f_neoclassical), 'maxval(phineo): ', maxval(phi_neoclassical)
+       write (*,*) 'maxval(fneo): ', maxval(f_neoclassical(:,:,:,:,:,irad_min:irad_max)), &
+            'maxval(phineo): ', maxval(phi_neoclassical(:,:,irad_min:irad_max))
        write (*,*)
     end if
 
@@ -187,26 +188,35 @@ contains
              write (*,*) 'flux at ', a, ' is ', fa, '.'
              write (*,*) 'flux at ', b, ' is ', fb, '.'
           end if
-          ! eliminate the endpoint corresonding to the flux that is furthest from zero in magnitude
-          if (abs(fa) > abs(fb)) then
-             ! keep b as an endpoint and eliminate a
-             a = b ; fa = fb
-             b = a*(1.0+window)
-             if (proc0) then
-                write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
-                write (*,*)
-             end if
-             call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
-          else
-             ! keep a as an endpoint and eliminate b
-             b = a ; fb = fa
-             a = b*(1.0-window)
-             if (proc0) then
-                write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
-                write (*,*)
-             end if
-             call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
+          a = a*(1.0-window)
+          b = b*(1.0+window)
+          if (proc0) then
+             write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+             write (*,*)
           end if
+          call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
+          call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
+
+!           ! eliminate the endpoint corresonding to the flux that is furthest from zero in magnitude
+!           if (abs(fa) > abs(fb)) then
+!              ! keep b as an endpoint and eliminate a
+!              a = b ; fa = fb
+!              b = a*(1.0+window)
+!              if (proc0) then
+!                 write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+!                 write (*,*)
+!              end if
+!              call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
+!           else
+!              ! keep a as an endpoint and eliminate b
+!              b = a ; fb = fa
+!              a = b*(1.0-window)
+!              if (proc0) then
+!                 write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+!                 write (*,*)
+!              end if
+!              call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
+!           end if
        else
           exit
        end if
