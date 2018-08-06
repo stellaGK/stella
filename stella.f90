@@ -74,7 +74,6 @@ contains
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
-    use stella_geometry, only: geo_surf
     use kt_grids, only: init_kt_grids
     use vpamu_grids, only: init_vpamu_grids
 
@@ -120,7 +119,7 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
-    call init_kt_grids (geo_surf%shat)
+    call init_kt_grids
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"
