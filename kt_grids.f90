@@ -51,13 +51,13 @@ contains
 
   end subroutine range_get_sizes
 
-  subroutine range_get_grids (shat, aky, theta0, akx)
+  subroutine range_get_grids (aky, theta0, akx)
     use mp, only: mp_abort
     use zgrid, only: shat_zero
+    use stella_geometry, only: geo_surf
 
     implicit none
 
-    real, intent (in) :: shat
     real, dimension (:), intent (out) :: akx, aky
     real, dimension (:,:), intent (out) :: theta0
 
@@ -81,23 +81,23 @@ contains
     ! if theta0_min and theta0_max have been specified,
     ! use them to determine akx_min and akx_max
     if (theta0_max > theta0_min-zero) then
-       if (shat > epsilon(0.)) then
-          akx_min = theta0_min * shat * aky(1)
-          akx_max = theta0_max * shat * aky(1)
+       if (geo_surf%shat > epsilon(0.)) then
+          akx_min = theta0_min * geo_surf%shat * aky(1)
+          akx_max = theta0_max * geo_surf%shat * aky(1)
        else
-          akx_min = theta0_max * shat * aky(1)
-          akx_max = theta0_min * shat * aky(1)
+          akx_min = theta0_max * geo_surf%shat * aky(1)
+          akx_max = theta0_min * geo_surf%shat * aky(1)
        end if
     end if
 
     ! shat_zero is minimum shat value below which periodic BC is enforced
-    if (abs(shat) > shat_zero) then  ! ie assumes boundary_option .eq. 'linked'
+    if (abs(geo_surf%shat) > shat_zero) then  ! ie assumes boundary_option .eq. 'linked'
        ! if akx_min and akx_max specified in input
        ! instead of theta0_min and theta0_max,
        ! use them to get theta0_min and theta0_max
        if (theta0_min > theta0_max+zero .and. abs(aky(1)) > epsilon(0.)) then
-          theta0_min = akx_min/(shat*aky(1))
-          theta0_max = akx_max/(shat*aky(1))
+          theta0_min = akx_min/(geo_surf%shat*aky(1))
+          theta0_max = akx_max/(geo_surf%shat*aky(1))
           dtheta0 = 0.0
           if (ntheta0 > 1) dtheta0 = (theta0_max - theta0_min)/real(ntheta0 - 1)
           
@@ -105,7 +105,7 @@ contains
              theta0(j,:) &
                   = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
           end do
-          akx = theta0(1,:) * shat * aky(1)
+          akx = theta0(1,:) * geo_surf%shat * aky(1)
        else if (akx_max > akx_min-zero) then
           dkx = 0.0
           if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
@@ -114,7 +114,7 @@ contains
           dtheta0 = 0.0
           if (ntheta0 > 1) dtheta0 = (theta0_max - theta0_min)/real(ntheta0 - 1)
 
-          if (shat > epsilon(0.)) then
+          if (geo_surf%shat > epsilon(0.)) then
              do j = 1, naky
                 theta0(j,:) &
                      = (/ (theta0_min + dtheta0*real(i), i=0,ntheta0-1) /)
@@ -157,14 +157,13 @@ module kt_grids_box
 
 contains
 
-  subroutine init_kt_grids_box (shat)
+  subroutine init_kt_grids_box
     use zgrid, only: init_zgrid
     use file_utils, only: input_unit, input_unit_exist
     use constants
+    use stella_geometry, only: twist_and_shift_geo_fac, geo_surf
 
     implicit none
-
-    real, intent (in) :: shat
 
     integer :: naky, nakx, nx, ny
     integer :: in_file
@@ -182,7 +181,8 @@ contains
     nx = 0
     ny = 0
 
-    jtwist = max(int(2.0*pi*shat + 0.5),1)
+    ! for stellarators, twist_and_shift_geo_fac = p/q (see stella_JCP)
+    jtwist = max(int(2.0*pi*geo_surf%shat*twist_and_shift_geo_fac + 0.5),1)
     rtwist = 0.0
 
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
@@ -213,14 +213,14 @@ contains
     ny = ny_box
   end subroutine box_get_sizes
 
-  subroutine box_get_grids (shat, aky, theta0, akx)
+  subroutine box_get_grids (aky, theta0, akx)
 
     use zgrid, only: shat_zero
     use constants
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
 
     implicit none
 
-    real, intent (in) :: shat
     real, dimension (:), intent (out) :: akx, aky
     real, dimension (:,:), intent (out) :: theta0
 
@@ -236,7 +236,7 @@ contains
 
     ! non-quantized b/c assumed to be periodic instead 
     ! of linked boundary conditions
-    if(abs(shat) <=  shat_zero) then   
+    if (abs(geo_surf%shat) <=  shat_zero) then   
        if (abs(x0) < epsilon(0.)) then          
           if (rtwist > 0) then 
              ratio = rtwist
@@ -253,7 +253,8 @@ contains
        end if
     else
        if (jtwist /= 0) then
-          dkx = dky * 2.0*pi*abs(shat)/real(jtwist)
+          ! twist_and_shift_geo_fac = p/q (see stella_JCP)
+          dkx = dky * 2.0*pi*abs(geo_surf%shat)*twist_and_shift_geo_fac/real(jtwist)
        else
           dkx = dky
        end if
@@ -277,10 +278,10 @@ contains
 
     ! set theta0=0 for ky=0
     theta0(1,:) = 0.0
-    if (abs(shat) > epsilon(0.)) then
+    if (abs(geo_surf%shat) > epsilon(0.)) then
        do i = 1, nakx
           ! theta0 = kx/ky/shat
-          theta0(2:,i) = akx(i)/(aky(2:)*shat)
+          theta0(2:,i) = akx(i)/(aky(2:)*geo_surf%shat)
        end do
     else
        do i = 1, nakx
@@ -336,15 +337,15 @@ module kt_grids
 
 contains
 
-  subroutine init_kt_grids (shat)
+  subroutine init_kt_grids
 
     use zgrid, only: init_zgrid
+    use zgrid, only: shat_zero
     use mp, only: proc0, broadcast
     use constants, only: pi
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
 
     implicit none
-
-    real, intent (in) :: shat
 
     integer :: ik
 
@@ -355,7 +356,7 @@ contains
 
     if (proc0) then
        call read_parameters
-       call get_sizes (shat)
+       call get_sizes
        jtwist_out = jtwist
        ! get the ikx index corresponding to kx_max
        ikx_max = nakx/2+1
@@ -372,7 +373,7 @@ contains
     call broadcast (ikx_max)
     call allocate_arrays
 
-    if (proc0) call get_grids (shat)
+    if (proc0) call get_grids
     call broadcast (aky)
     call broadcast (akx)
     call broadcast (jtwist_out)
@@ -381,8 +382,8 @@ contains
     end do
 
     ly = 2.*pi*y0
-    if (abs(shat) > epsilon(0.)) then
-       lx = y0*jtwist/shat
+    if (abs(geo_surf%shat) > shat_zero) then
+       lx = y0*jtwist/(geo_surf%shat*twist_and_shift_geo_fac)
     else
        lx = ly
     end if
@@ -428,21 +429,19 @@ contains
     allocate (theta0(naky,nakx))
   end subroutine allocate_arrays
 
-  subroutine get_sizes (shat)
+  subroutine get_sizes
 
     use kt_grids_range, only: init_kt_grids_range, range_get_sizes
     use kt_grids_box, only: init_kt_grids_box, box_get_sizes
 
     implicit none
 
-    real, intent (in) :: shat
-
     select case (gridopt_switch)
     case (gridopt_range)
        call init_kt_grids_range
        call range_get_sizes (naky, nakx, ntheta0, nx, ny)
     case (gridopt_box)
-       call init_kt_grids_box (shat)
+       call init_kt_grids_box
        call box_get_sizes (naky, nakx, ntheta0, nx, ny)
        reality = .true.
        box = .true.
@@ -450,20 +449,18 @@ contains
 
   end subroutine get_sizes
 
-  subroutine get_grids (shat)
+  subroutine get_grids
 
     use kt_grids_range, only: range_get_grids
     use kt_grids_box, only: box_get_grids
 
     implicit none
 
-    real, intent (in) :: shat
-
     select case (gridopt_switch)
     case (gridopt_range)
-       call range_get_grids (shat, aky, theta0, akx)
+       call range_get_grids (aky, theta0, akx)
     case (gridopt_box)
-       call box_get_grids (shat, aky, theta0, akx)
+       call box_get_grids (aky, theta0, akx)
     end select
 
   end subroutine get_grids

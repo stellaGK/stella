@@ -104,6 +104,7 @@ contains
 
     ! scale zed so that it is zeta compressed (or expanded)
     ! to the range [-pi,pi]
+    ! this is 1/p from stella JCP paper
     zed_scalefac = real(nfp)/nfield_periods
 
 !    theta = zeta/nfp/surf%qinp

@@ -55,7 +55,6 @@ contains
     use init_g, only: init_init_g
     use stella_io, only: init_stella_io
     use mp, only: broadcast, proc0
-    use stella_geometry, only: geo_surf
 
     implicit none
 
@@ -70,7 +69,7 @@ contains
     
     call init_zgrid
     call init_physics_parameters
-    call init_kt_grids (geo_surf%shat)
+    call init_kt_grids
     call init_run_parameters
     call init_species
     call init_init_g
