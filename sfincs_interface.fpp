@@ -15,6 +15,7 @@ module sfincs_interface
   integer :: magneticDriftScheme
   logical :: includePhi1
   logical :: includePhi1InKineticEquation
+!  logical :: includePhi1InCollisionOperator
   integer :: geometryScheme
   integer :: VMECRadialOption
   integer :: coordinateSystem
@@ -84,7 +85,11 @@ contains
 
              ! get best guess at radial electric field
              ! using force balance with radial pressure gradient
-             dPhiHatdrN_best_guess = sum(fprim_local+tprim_local)
+             if (dPhiHatdrN > -9999.0) then
+                dPhiHatdrN_best_guess = dPhiHatdrN
+             else
+                dPhiHatdrN_best_guess = fprim_local(1)+tprim_local(1)
+             end if
              call iterate_sfincs_until_electric_field_converged (sfincs_comm, &
                   irad, drho, irad_max, dPhiHatdrN_best_guess, &
                   Er_converged, nsfincs_calls)
@@ -165,7 +170,7 @@ contains
 
     integer :: itmax_bracket = 10
     integer :: itmax_root = 10
-    real :: window = 0.3
+    real :: window = 0.1
     real :: tol = 0.1
 
     integer :: it
@@ -179,6 +184,7 @@ contains
     ! initialize sfincs, run it, and return the total charge flux as fa
     call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
     call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
+    number_of_sfincs_calls_for_convergence = 2
     do it = 1, itmax_bracket
        eps = epsilon(a)
        if ((fa > 0.0 .and. fb > 0.0) .or. (fa < 0.0 .and. fb < 0.0)) then
@@ -196,6 +202,7 @@ contains
           end if
           call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
           call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
+          number_of_sfincs_calls_for_convergence = number_of_sfincs_calls_for_convergence + 2
 
 !           ! eliminate the endpoint corresonding to the flux that is furthest from zero in magnitude
 !           if (abs(fa) > abs(fb)) then
@@ -244,7 +251,7 @@ contains
        if (abs(xm) <= tol1 .or. fb == 0.0) then
           converged_dPhiHatdrN = b
           dPhiHatdrN_is_converged = .true.
-          number_of_sfincs_calls_for_convergence = it+1
+!          number_of_sfincs_calls_for_convergence = it+1
           exit
        end if
        if (abs(e) >= tol1 .and. abs(fa) > abs(fb)) then
@@ -275,6 +282,7 @@ contains
        fa=fb
        b=b+merge(d,sign(tol1,xm), abs(d) > tol1)
        call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
+       number_of_sfincs_calls_for_convergence = number_of_sfincs_calls_for_convergence + 1
     end do
 
   end subroutine iterate_sfincs_until_electric_field_converged
@@ -399,6 +407,7 @@ contains
          magneticDriftScheme, &
          includePhi1, &
          includePhi1InKineticEquation, &
+!         includePhi1InCollisionOperator, &
          geometryScheme, &
          VMECRadialOption, &
          equilibriumFile, &
@@ -440,6 +449,7 @@ contains
     ! phi1 will be calculated via quasineutrality
     includePhi1 = .true.
     includePhi1InKineticEquation = .false.
+!    includePhi1InCollisionOperator = .false.
     ! will be overridden by direct input of geometric quantities
     ! unless geometryScheme = 5 (vmec equilibrium)
     geometryScheme = 1
@@ -478,7 +488,7 @@ contains
     ! set negative to allow check later to see if any value given in input file
     nu_n = -1.0
     ! radial derivative of normalized phi
-    dPhiHatdrN = 0.0
+    dPhiHatdrN = -9999.9
     ! number of spectral coefficients in pitch angle
     nxi = 48
     ! number of speeds
@@ -542,6 +552,7 @@ contains
     call broadcast (magneticDriftScheme)
     call broadcast (includePhi1)
     call broadcast (includePhi1InKineticEquation)
+!    call broadcast (includePhi1InCollisionOperator)
     call broadcast (geometryScheme)
     call broadcast (VMECRadialOption)
     call broadcast (equilibriumFile)
@@ -575,6 +586,7 @@ contains
     use globalVariables, only: magneticDriftScheme_sfincs => magneticDriftScheme
     use globalVariables, only: includePhi1_sfincs => includePhi1
     use globalVariables, only: includePhi1InKineticEquation_sfincs => includePhi1InKineticEquation
+!    use globalVariables, only: includePhi1InCollisionOperator_sfincs => includePhi1InCollisionOperator
     use globalVariables, only: geometryScheme_sfincs => geometryScheme
     use globalVariables, only: equilibriumFile_sfincs => equilibriumFile
     use globalVariables, only: VMECRadialOption_sfincs => VMECRadialOption
@@ -606,6 +618,7 @@ contains
     magneticDriftScheme_sfincs = magneticDriftScheme
     includePhi1_sfincs = includePhi1
     includePhi1InKineticEquation_sfincs = includePhi1InKineticEquation
+!    includePhi1InCollisionOperator_sfincs = includePhi1InCollisionOperator
     geometryScheme_sfincs = geometryScheme
     VMECRadialOption_sfincs = VMECRadialOption
     equilibriumFile_sfincs = trim(equilibriumFile)

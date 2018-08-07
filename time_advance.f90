@@ -359,7 +359,7 @@ contains
        wdriftx_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
             * (wgbdriftx + wcvdriftx*vpa(iv))
        ! if including neoclassical corrections to equilibrium,
-       ! add in -(Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
+       ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
        ! and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
        if (include_neoclassical_terms) then

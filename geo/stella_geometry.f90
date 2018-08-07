@@ -92,8 +92,6 @@ contains
 
     ! default is no re-scaling of zed
     zed_scalefac = 1.0
-    ! default is axisymmetric
-    twist_and_shift_geo_fac = 1.0
 
     if (proc0) then
        call read_parameters
@@ -173,7 +171,7 @@ contains
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
           drhodpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
 !          drhodpsi = -1.0/geo_surf%rhotor
-          twist_and_shift_geo_fac = 1./(zed_scalefac*geo_surf%qinp)
+!          twist_and_shift_geo_fac = 1./(zed_scalefac*geo_surf%qinp)
        end select
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
        exb_nonlin_fac = 0.5*dxdpsi*dydalpha
@@ -182,6 +180,10 @@ contains
     if (.not.proc0) call allocate_arrays (nalpha, nzgrid)
 
     call broadcast_arrays
+
+    ! should reduce to 2*pi*shat in axisymmetric case
+    ! but not in non-axisymmetric case
+    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
 
     ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION
     jacob(1,:) = 1.0/abs(drhodpsi*gradpar(1,:)*bmag(1,:))
@@ -337,7 +339,6 @@ contains
     call broadcast (geo_surf%drhotordrho)
 
     call broadcast (zed_scalefac)
-    call broadcast (twist_and_shift_geo_fac)
     call broadcast (alpha)
     call broadcast (dxdpsi)
     call broadcast (dydalpha)

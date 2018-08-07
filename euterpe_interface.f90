@@ -117,12 +117,6 @@ contains
        call geo_spline (rhotor, Ti, geo_surf%rhotor, tref)
        call geo_spline (rhotor, ni, geo_surf%rhotor, nref)
     end if
-    ! assume mass in stella input file given in units of proton mass
-    mref = spec(is)%mass
-    ! convert from eV to keV
-    tref = tref*0.001
-    ! convert from 1/m^3 to 10^19/m^3
-    nref = nref*1.e-19
     ! next get the normalized density and temperature for all other species
     if (nspec == 2) then
        do is = 2, nspec
@@ -137,6 +131,13 @@ contains
     else if (nspec > 2) then
        call mp_abort ('multiple ion species not currently supported for euterpe option. aborting.')
     end if
+
+    ! assume mass in stella input file given in units of proton mass
+    mref = spec(1)%mass
+    ! convert from eV to keV
+    tref = tref*0.001
+    ! convert from 1/m^3 to 10^19/m^3
+    nref = nref*1.e-19
 
     ! now get the density and temperature gradients at the requested flux surface
     do is = 1, nspec

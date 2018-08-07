@@ -182,8 +182,12 @@ contains
     ny = 0
 
     ! for stellarators, twist_and_shift_geo_fac = p/q (see stella_JCP)
-    jtwist = max(int(2.0*pi*geo_surf%shat*twist_and_shift_geo_fac + 0.5),1)
+!    jtwist = max(int(2.0*pi*geo_surf%shat*twist_and_shift_geo_fac + 0.5),1)
+!    jtwist = max(1,geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))+0.5)
+    jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
     rtwist = 0.0
+
+    write (*,*) 'jtwist', jtwist
 
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_box_parameters)
@@ -254,7 +258,8 @@ contains
     else
        if (jtwist /= 0) then
           ! twist_and_shift_geo_fac = p/q (see stella_JCP)
-          dkx = dky * 2.0*pi*abs(geo_surf%shat)*twist_and_shift_geo_fac/real(jtwist)
+!          dkx = dky * 2.0*pi*abs(geo_surf%shat)*twist_and_shift_geo_fac/real(jtwist)
+          dkx = dky * abs(twist_and_shift_geo_fac)/real(jtwist)
        else
           dkx = dky
        end if
@@ -278,7 +283,7 @@ contains
 
     ! set theta0=0 for ky=0
     theta0(1,:) = 0.0
-    if (abs(geo_surf%shat) > epsilon(0.)) then
+    if (abs(geo_surf%shat) > shat_zero) then
        do i = 1, nakx
           ! theta0 = kx/ky/shat
           theta0(2:,i) = akx(i)/(aky(2:)*geo_surf%shat)
@@ -383,7 +388,8 @@ contains
 
     ly = 2.*pi*y0
     if (abs(geo_surf%shat) > shat_zero) then
-       lx = y0*jtwist/(geo_surf%shat*twist_and_shift_geo_fac)
+!       lx = y0*jtwist/(geo_surf%shat*twist_and_shift_geo_fac)
+       lx = ly*jtwist/abs(twist_and_shift_geo_fac)
     else
        lx = ly
     end if
