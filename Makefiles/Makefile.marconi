@@ -51,3 +51,14 @@ ifdef USE_NETCDF
   NETCDF_INC= -I $(NETCDF_DIR)/include/ -I$(NETCDF_INCLUDE)
   NETCDF_LIB= -L $(NETCDF_DIR)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 endif
+
+ifdef USE_SFINCS
+      SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs
+      SFINCS_INC = -I$(SFINCS_DIR)
+
+      PETSC_INC = -I$(PETSC_HOME)/include -I$(LAPACK_HOME)/include -I$(MKL_HOME)/include
+      PETSC_LIB = -L$(PETSC_HOME)/lib -lpetsc -L$(LAPACK_HOME)/lib -llapack -L$(MKL_HOME)/lib/intel64 -lmkl_intel_lp64
+
+      HDF5_INC = -I$(HDF5_HOME)/include
+      HDF5_LIB = -L$(HDF5_HOME)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5 -lhdf5_hl
+endif
