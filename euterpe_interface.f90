@@ -142,14 +142,14 @@ contains
     ! now get the density and temperature gradients at the requested flux surface
     do is = 1, nspec
        if (spec(is)%type == electron_species) then
-          call geo_spline (rhotor, Teprim, geo_surf%rhotor, spec(is)%tprim)
+          if (spec(is)%tprim < -999.0) call geo_spline (rhotor, Teprim, geo_surf%rhotor, spec(is)%tprim)
           call geo_spline (rhotor, Tedbprim, geo_surf%rhotor, spec(is)%d2Tdr2)
-          call geo_spline (rhotor, neprim, geo_surf%rhotor, spec(is)%fprim)
+          if (spec(is)%fprim < -999.0) call geo_spline (rhotor, neprim, geo_surf%rhotor, spec(is)%fprim)
           call geo_spline (rhotor, nedbprim, geo_surf%rhotor, spec(is)%d2ndr2)
        else
-          call geo_spline (rhotor, Tiprim, geo_surf%rhotor, spec(is)%tprim)
+          if (spec(is)%tprim < -999.0) call geo_spline (rhotor, Tiprim, geo_surf%rhotor, spec(is)%tprim)
           call geo_spline (rhotor, Tidbprim, geo_surf%rhotor, spec(is)%d2Tdr2)
-          call geo_spline (rhotor, niprim, geo_surf%rhotor, spec(is)%fprim)
+          if (spec(is)%fprim < -999.0) call geo_spline (rhotor, niprim, geo_surf%rhotor, spec(is)%fprim)
           call geo_spline (rhotor, nidbprim, geo_surf%rhotor, spec(is)%d2ndr2)
        end if
     end do

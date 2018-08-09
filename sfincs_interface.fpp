@@ -9,6 +9,7 @@ module sfincs_interface
   integer :: nproc_sfincs
   integer :: irad_min, irad_max
   logical :: calculate_radial_electric_field
+  real :: Er_window
   logical :: includeXDotTerm
   logical :: includeElectricFieldTermInXiDot
 !  logical :: includeRadialExBDrive
@@ -170,7 +171,7 @@ contains
 
     integer :: itmax_bracket = 10
     integer :: itmax_root = 10
-    real :: window = 0.1
+    real :: window = 0.3
     real :: tol = 0.1
 
     integer :: it
@@ -179,8 +180,8 @@ contains
 
     dPhiHatdrN_is_converged = .false.
 
-    a = dPhiHatdrN_best_guess*(1.0-window)
-    b = dPhiHatdrN_best_guess*(1.0+window)
+    a = dPhiHatdrN_best_guess*(1.0-Er_window)
+    b = dPhiHatdrN_best_guess*(1.0+Er_window)
     ! initialize sfincs, run it, and return the total charge flux as fa
     call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, a, fa)
     call get_total_charge_flux (sfincs_comm, irad, drho, nrad_max, b, fb)
@@ -194,8 +195,8 @@ contains
              write (*,*) 'flux at ', a, ' is ', fa, '.'
              write (*,*) 'flux at ', b, ' is ', fb, '.'
           end if
-          a = a*(1.0-window)
-          b = b*(1.0+window)
+          a = a*(1.0-Er_window)
+          b = b*(1.0+Er_window)
           if (proc0) then
              write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
              write (*,*)
@@ -417,7 +418,7 @@ contains
          aHat, psiAHat, nu_N, nxi, nx, Delta, &
          dPhiHatdrN, &
          ntheta, nzeta, &
-         read_sfincs_output_from_file
+         read_sfincs_output_from_file, Er_window
 
     logical :: exist
     integer :: in_file
@@ -489,6 +490,7 @@ contains
     nu_n = -1.0
     ! radial derivative of normalized phi
     dPhiHatdrN = -9999.9
+    Er_window = 0.3
     ! number of spectral coefficients in pitch angle
     nxi = 48
     ! number of speeds
@@ -564,6 +566,7 @@ contains
     call broadcast (Delta)
     call broadcast (nu_N)
     call broadcast (dPhiHatdrN)
+    call broadcast (Er_window)
     call broadcast (nxi)
     call broadcast (nx)
     call broadcast (ntheta)

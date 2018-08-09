@@ -163,8 +163,8 @@ contains
        mass = 1.0
        dens = 1.0
        temp = 1.0
-       tprim = 6.9
-       fprim = 2.2
+       tprim = -999.9
+       fprim = -999.9
        d2ndr2 = 0.0
        d2Tdr2 = 0.0
        type = "default"
