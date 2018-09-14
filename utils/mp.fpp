@@ -1237,7 +1237,14 @@ contains
     integer, intent (in) :: comm_in
     integer, intent (out) :: ierr
 # ifdef MPI
-    call mpi_comm_free (comm_in, ierr)
+    ! this seemingly unnecessary complication appears to be needed
+    ! for compiling with open-mpi and gfortran on macosx
+    integer, pointer :: comm_local
+    integer, target :: comm_target
+
+    comm_target = comm_in
+    comm_local => comm_target
+    call mpi_comm_free (comm_local, ierr)
 # endif
   end subroutine comm_free
 

@@ -88,6 +88,7 @@ CPPFLAGS	= -P -traditional
 export FC	= f90
 #MPIFC		?= mpif90-mpich-gcc48
 export MPIFC	?= mpif90
+#export MPIFC	?= mpifort
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
 F90FLAGS	=
