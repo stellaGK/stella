@@ -1,0 +1,25 @@
+\begin{center}
+
+{\Huge \textbf{KNOSOS}:} \\
+\vskip0.5cm
+{\LARGE \textbf{K}i\textbf{N}etic \textbf{O}rbit-averaging \textbf{SO}lver for \textbf{S}tellarators}
+
+\vskip0.5cm
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=1.0\textwidth]{knosos_logo_new}
+\end{center}
+\end{figure}
+
+
+{\Large Technical Documentation and User Manual}
+
+\vspace{0.5in}
+
+
+Version 0 (in preparation, last revised, \today)
+
+\end{center}
+
+

@@ -796,7 +796,7 @@ contains
     do iky = 1, naky
        do ikx = 1, nakx
           do ig = -nzgrid, nzgrid
-             write (tmpunit,'(9e14.5)') zed(ig), zed(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
+             write (tmpunit,'(9es15.4e3)') zed(ig), zed(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,ig)), aimag(phi(iky,ikx,ig)), &
                   real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig)), zed_eqarc(ig)-theta0(iky,ikx)
           end do

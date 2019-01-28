@@ -119,22 +119,18 @@ contains
     ! scaled to run between -pi and pi
     theta_vmec = theta_vmec/nfp
 
-    open (2001,file='vmec.geo',status='unknown')
+    open (2001,file='vmec_geo',status='unknown')
     write (2001,'(5a12)') 'rhotor', 'qinp', 'shat', 'aref', 'Bref'
     write (2001,'(5e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference
     write (2001,*)
-    write (2001,'(9a12)') 'alpha', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24'
+    write (2001,'(14a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'gds2',&
+         'gds21', 'gds22', 'gds23', 'gds24','gbdrift', 'gbdrift0', 'cvdrift',&
+         'cvdrift0', 'theta_vmec'
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
-          write (2001,'(9e12.4)') alpha(i), zeta(j), bmag(i,j), gradpar(i,j), &
-               gds2(i,j), gds21(i,j), gds22(i,j), gds23(i,j), gds24(i,j)
-       end do
-    end do
-    write (2001,*)
-    write (2001,'(7a12)') 'alpha', 'zeta', 'gbdrift', 'gbdrift0', 'cvdrift', 'cvdrift0', 'theta_vmec'
-    do j = -nzgrid, nzgrid
-       do i = 1, nalpha
-          write (2001,'(7e12.4)') alpha(i), zeta(j), gbdrift(i,j), gbdrift0(i,j), cvdrift(i,j), cvdrift0(i,j), theta_vmec(i,j)
+          write (2001,'(14e12.4)') alpha(i), zeta(j), bmag(i,j), gradpar(i,j), &
+               gds2(i,j), gds21(i,j), gds22(i,j), gds23(i,j), gds24(i,j), &
+               gbdrift(i,j), gbdrift0(i,j), cvdrift(i,j), cvdrift0(i,j), theta_vmec(i,j)
        end do
     end do
     close (2001)
