@@ -32,7 +32,7 @@ module stella_geometry
   real :: aref, bref
   real :: dxdpsi, dydalpha
   real :: dIdrho
-  real :: drhodpsi, shat, qinp, rgeo
+  real :: drhodpsi, shat, qinp
   real :: exb_nonlin_fac
   real :: gradpar_eqarc
   real :: zed_scalefac

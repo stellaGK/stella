@@ -161,7 +161,8 @@ contains
     use zgrid, only: init_zgrid
     use file_utils, only: input_unit, input_unit_exist
     use constants
-    use stella_geometry, only: twist_and_shift_geo_fac, geo_surf
+    use stella_geometry, only: twist_and_shift_geo_fac
+!    use stella_geometry, only: geo_surf
 
     implicit none
 
