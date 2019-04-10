@@ -19,8 +19,6 @@ module fields
 
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
-  logical :: exist
-
   logical :: debug = .false.
 
 contains

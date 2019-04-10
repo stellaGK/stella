@@ -43,7 +43,7 @@ module run_parameters
   integer, public :: delt_option_switch
   integer, public, parameter :: delt_option_hand = 1, delt_option_auto = 2
   logical :: initialized = .false.
-  logical :: rpexist, knexist
+  logical :: knexist
 
 contains
 

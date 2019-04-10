@@ -5,7 +5,6 @@ module stella_time
   private
 
   real :: code_dt 
-  real :: code_tstart
   real :: cfl_dt = -1.
   real :: code_dt_min, code_dt_max
 

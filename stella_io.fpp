@@ -22,10 +22,9 @@ module stella_io
 # ifdef NETCDF
   integer (kind_nf) :: ncid
 
-  integer (kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim, ncoord_dim, ncoordt_dim
+  integer (kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim
   integer (kind_nf) :: nakx_dim
   integer (kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
-  integer (kind_nf) :: nttotext_dim, time_big_dim
   integer (kind_nf) :: nalpha_dim
 
   integer, dimension (6) :: moment_dim
@@ -39,28 +38,19 @@ module stella_io
   integer :: nakx_id
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
-  integer :: time_id, phi2_id, apar2_id, bpar2_id, theta0_id, nproc_id, nmesh_id
-  integer :: phtot_id
-  integer :: es_heat_flux_id, es_mom_flux_id, es_part_flux_id, es_energy_exchange_id
-  integer :: es_heat_par_id, es_heat_perp_id
-  integer :: es_heat_by_k_id, es_mom_by_k_id, es_part_by_k_id
-  integer :: es_parmom_by_k_id, es_perpmom_by_k_id, es_mom0_by_k_id, es_mom1_by_k_id
+  integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
   integer :: phi_vs_t_id, phi2_vs_kxky_id
   integer :: density_id, upar_id, temperature_id
   integer :: gvmus_id, gzvs_id
-  integer :: apar_t_id, bpar_t_id
-  integer :: ntot_t_id
-  integer :: phi_norm_id, apar_norm_id, bpar_norm_id
-  integer :: phi_id, apar_id, bpar_id, epar_id
   integer :: input_id
   integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
   integer :: vnew_id, spec_type_id
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
   integer :: kperp2_id
-  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, surfarea_id
+  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id
   integer :: beta_id
-  integer :: code_id, datestamp_id, timestamp_id, timezone_id
+  integer :: code_id
 
 # endif
   real :: zero
@@ -70,7 +60,8 @@ module stella_io
 contains
 
   subroutine init_stella_io (write_phi_vs_t, write_kspectra, write_gvmus, &
-       write_gzvs, write_symmetry, write_moments)
+!       write_gzvs, write_symmetry, write_moments)
+       write_gzvs, write_moments)
 
     use mp, only: proc0
     use file_utils, only: run_name
@@ -82,7 +73,7 @@ contains
     implicit none
 
     logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
-    logical, intent (in) :: write_moments, write_symmetry
+    logical, intent (in) :: write_moments!, write_symmetry
 # ifdef NETCDF
     character (300) :: filename
     integer :: status
@@ -99,7 +90,8 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, file=filename)
 
        call define_dims
-       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry, write_moments)
+!       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry, write_moments)
+       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments)
        call nc_grids
        call nc_species
        call nc_geo
@@ -255,7 +247,8 @@ contains
   end subroutine save_input
 
   subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, &
-       write_gzvs, write_symmetry, write_moments)
+!       write_gzvs, write_symmetry, write_moments)
+       write_gzvs, write_moments)
 
     use mp, only: nproc
     use species, only: nspec
@@ -269,7 +262,7 @@ contains
 
     implicit none
 
-    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry
+    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
     logical, intent (in) :: write_moments
 # ifdef NETCDF
     character (5) :: ci
@@ -635,14 +628,14 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id, att='long_name')
     end if
 
-    if (write_symmetry) then
+!    if (write_symmetry) then
 !        status = nf90_def_var &
 !             (ncid, 'pflx_zvpa', netcdf_real, zvs_dim, gzvs_id)
 !        if (status /= nf90_noerr) call netcdf_error (status, var='gzvs')
 !        status = nf90_put_att (ncid, gvmus_id, 'long_name', &
 !             'guiding center distribution function averaged over (kx,ky,mu)')
 !        if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id, att='long_name')
-    end if
+!    end if
 
     status = nf90_def_var (ncid, 'input_file', nf90_char, nin_dim, input_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='input_file')

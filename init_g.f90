@@ -28,7 +28,6 @@ module init_g
   character(300), public :: restart_file
   character (len=150) :: restart_dir
 
-  logical :: debug = .false.
   logical :: initialized = .false.
   logical :: exist
 

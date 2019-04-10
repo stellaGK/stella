@@ -6,9 +6,9 @@ module sfincs_interface
 
   private
 
+# ifdef USE_SFINCS
   integer :: nproc_sfincs
   integer :: irad_min, irad_max
-  logical :: calculate_radial_electric_field
   real :: Er_window
   logical :: includeXDotTerm
   logical :: includeElectricFieldTermInXiDot
@@ -26,9 +26,11 @@ module sfincs_interface
   real :: aHat, psiAHat, Delta
   real :: nu_n, dPhiHatdrN
   integer :: nxi, nx, ntheta, nzeta
+  logical :: calculate_radial_electric_field
   logical :: read_sfincs_output_from_file
   logical :: sfincs_finished = .true.
   real, dimension (:), allocatable :: fprim_local, tprim_local
+# endif
 
 contains
 
@@ -148,7 +150,12 @@ contains
          & nradii/2 to proceed to stella calculation.  aborting.')
 
 # else
-    f_neoclassical = 0 ; phi_neoclassical = 0.
+    real :: dum
+    ! this pointless dum assignment only here to avoid 
+    ! annoying warning messages during compilation
+    ! about unused variable drho 
+    dum = drho
+    f_neoclassical = 0. ; phi_neoclassical = 0.
     dfneo_dalpha = 0. ; dphineo_dalpha = 0.
     call mp_abort ("to run with include_neoclassical_terms=.true., &
          & USE_SFINCS must be defined at compilation time.  Aborting.")
