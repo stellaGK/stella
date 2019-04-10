@@ -43,7 +43,7 @@ module file_utils
   ! integer :: input_unit
   !    Rewind the input file to start of namelist NML,
   !    and return its unit number, setexist=.true.
-  !    If the namelist NML isn't found, set exist=.false.
+  !    If the namelist NML is not found, set exist=.false.
 
   public :: init_error_unit
   public :: init_input_unit
@@ -101,9 +101,9 @@ module file_utils
 contains
 
   subroutine init_file_utils (list, input, error, trin_run, name, n_ensembles)
-    ! <doc> Find out the [[run_name]], and use the run name to determine whether
-    ! this is a [[list]] run ''(i.e. a list of runs has been given)'' or a [[Trinity]] run. 
-    ! If not, open the error file and call init_input_unit </doc>
+    ! Find out the [[run_name]], and use the run name to determine whether
+    ! this is a [[list]] run (i.e. a list of runs has been given) or a [[Trinity]] run. 
+    ! If not, open the error file and call init_input_unit
     implicit none
     logical, intent (out) :: list
     logical, intent (in), optional :: input, error, trin_run
@@ -161,9 +161,9 @@ contains
   end subroutine init_file_utils
 
   subroutine run_type (list)
-    ! <doc> This determines the type of run, by reading the name of the input file 
-    !  on the command line into [[arun_name]], and then looking at the extension. If 
-    ! the extension is ''.list'', then [[list]] is set to ''.true.''). </doc>
+    ! This determines the type of run, by reading the name of the input file 
+    ! on the command line into [[arun_name]], and then looking at the extension. If 
+    ! the extension is .list, then [[list]] is set to .true.).
 
     use command_line, only: cl_getarg, cl_iargc
 
@@ -193,10 +193,10 @@ contains
   end subroutine run_type
 
   subroutine init_run_name
-    ! <doc> This is called for a non [[Trinity]] or [[list]] run -
-    ! it checks that the input file name ends in ''.in'', chops 
+    ! This is called for a non [[Trinity]] or [[list]] run -
+    ! it checks that the input file name ends in ".in", chops 
     ! the extension off and stores it in [[arun_name]]. It 
-    ! also assigns the pointer [[run_name]] to [[arun_name]]. </doc>
+    ! also assigns the pointer [[run_name]] to [[arun_name]].
     implicit none
     integer :: l
 
@@ -216,7 +216,7 @@ contains
   end subroutine init_job_name
 
   subroutine get_unused_unit (unit)
-    ! <doc> Get an unused ''unit number'' for I/O. </doc>
+    ! Get an unused unit number for I/O.
     implicit none
     integer, intent (out) :: unit
     logical :: od
@@ -229,9 +229,9 @@ contains
   end subroutine get_unused_unit
 
   subroutine open_output_file (unit, ext)
-    ! <doc> - open an output file to write (replacing any existing)
+    ! open an output file to write (replacing any existing)
     ! whose name is [[run_name]] + [[ext]], and set [[unit]] to the 
-    ! ''unit number'' of that output file. </doc>
+    ! unit number of that output file.
     implicit none
     integer, intent (out) :: unit
     character (*), intent (in) :: ext
@@ -308,11 +308,10 @@ contains
   end subroutine strip_comments
 
   subroutine init_input_unit (open_it)
-    ! <doc> open the input file, strip out any comments and 
-    !  write them into the file '''''.'''run_name.in''. Check 
+    ! open the input file, strip out any comments and 
+    !  write them into the file ".run_name.in". Check 
     ! for includes, read any lines from the includes, strip 
     ! any comments from them and add them to the same file.
-    ! </doc>
     implicit none
     logical, intent (in) :: open_it
     integer :: in_unit, out_unit, iostat
@@ -332,7 +331,7 @@ contains
     open (unit=in_unit, file=trim(run_name)//".in", status="old", &
          action="read", iostat=iostat)
     if (iostat /= 0) then
-       print "(a)", "Couldn't open input file: "//trim(run_name)//".in"
+       print "(a)", "Could not open input file: "//trim(run_name)//".in"
     end if
 
     call get_unused_unit (out_unit)
@@ -421,8 +420,8 @@ contains
           end if
        end do
     end if
-    write (unit=error_unit_no, fmt="('Couldn''t find namelist: ',a)") nml
-    write (unit=*, fmt="('Couldn''t find namelist: ',a)") nml
+    write (unit=error_unit_no, fmt="('Could not find namelist: ',a)") nml
+    write (unit=*, fmt="('Could not find namelist: ',a)") nml
   end function input_unit
 
   function input_unit_exist (nml,exist)

@@ -35,7 +35,7 @@ module millerlocal
   real, dimension (:), allocatable :: d2Rdth2, d2Zdth2, d2Rdrdth, d2Zdrdth
   real, dimension (:), allocatable :: gpsi, dBdrho, d2Bdrdth
   real, dimension (:), allocatable :: dgradpardrho, dgradparBdrho, dBdth, gradparb
-  real, dimension (:), allocatable :: dcvdrift0drho, dgbdrift0drho, theta, thetatot
+  real, dimension (:), allocatable :: dcvdrift0drho, dgbdrift0drho, theta
   real, dimension (:), allocatable :: varthet, dvarthdr, gradrho_gradthet, cross, d2varthdr2
   real, dimension (:), allocatable :: gradthet2, gradalph_gradthet, gradrho_gradalph, gradalph2
   real, dimension (:), allocatable :: d2Bdr2, d2Rdr2, d2Zdr2, drz, drzdth

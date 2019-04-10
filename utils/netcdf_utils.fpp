@@ -26,7 +26,6 @@ module netcdf_utils
   integer, parameter :: kind_nf = kind (1) 
 # endif
   integer (kind_nf) :: netcdf_real=0, netcdf_int=0
-  logical :: initialized = .false.
   logical :: test = .false.
 
 contains
@@ -153,20 +152,16 @@ contains
 
     ierr = error_unit()
 
-!    write (ierr, '(2a,$)') 'ERROR: ', trim (nf90_strerror (istatus))
     write (ierr, '(2a)', advance='no') 'ERROR: ', trim (nf90_strerror (istatus))
     ! TT: If $ control fails, there is an alternative advance='no' specifier
 
     if (present(file)) &
-!         write (ierr, '(2a,$)') ' in file: ', trim (file)
          write (ierr, '(2a)', advance='no') ' in file: ', trim (file)
 
     if (present(dim)) &
-!         write (ierr, '(2a,$)') ' in dimension: ', trim (dim)
          write (ierr, '(2a)', advance='no') ' in dimension: ', trim (dim)
 
     if (present(var)) &
-!         write (ierr, '(2a,$)') ' in variable: ', trim (var)
          write (ierr, '(2a)', advance='no') ' in variable: ', trim (var)
 
     if (present(varid)) then
@@ -177,12 +172,10 @@ contains
           else
              ist = nf90_inquire_variable (ncid, varid, varname)
              if (ist == NF90_NOERR) then
-!                write (ierr, '(a,i8,2a,$)') ' in varid: ', varid, &
                 write (ierr, '(a,i8,2a)', advance='no') ' in varid: ', varid, &
                      & ' variable name: ', trim (varname)
              else
-                write (ierr, *) ''
-!                write (ierr, '(3a,i8,a,i8,$)') 'ERROR in netcdf_error: ', &
+                write (ierr, *)
                 write (ierr, '(3a,i8,a,i8)', advance='no') 'ERROR in netcdf_error: ', &
                      trim (nf90_strerror(ist)), ' in varid: ', varid, &
                      ', ncid: ', ncid
@@ -191,8 +184,7 @@ contains
           if (present(att)) &
                write (ierr, '(2a)') ' with the attribute: ', trim(att)
        else
-          write (ierr, *) ''
-!          write (ierr, '(2a,$)') 'ERROR in netcdf_error: ', &
+          write (ierr, *)
           write (ierr, '(2a)', advance='no') 'ERROR in netcdf_error: ', &
                & 'ncid missing while varid present in the argument'
        end if
@@ -202,30 +194,23 @@ contains
        if (present(ncid)) then
           ist = nf90_inquire_dimension (ncid, dimid, dimname)
           if (ist == NF90_NOERR) then
-!             write (ierr, '(a,i8,2a,$)') ' in dimid: ', dimid, &
              write (ierr, '(a,i8,2a)', advance='no') ' in dimid: ', dimid, &
                   & ' dimension name: ', trim (dimname)
           else
-             write (ierr, *) ''
-!             write (ierr, '(3a,i8,a,i8,$)') 'ERROR in netcdf_error: ', &
+             write (ierr, *)
              write (ierr, '(3a,i8,a,i8)', advance='no') 'ERROR in netcdf_error: ', &
                   trim (nf90_strerror(ist)), ' in dimid: ', dimid, &
                   ', ncid: ', ncid
           end if
        else
-          write (ierr, *) ''
-!          write (ierr, '(2a,$)') 'ERROR in netcdf_error: ', &
+          write (ierr, *)
           write (ierr, '(2a)', advance='no') 'ERROR in netcdf_error: ', &
                & 'ncid missing while dimid present in the argument'
        end if
     end if
 
-!    if (present(message)) write (ierr, '(a,$)') trim(message)
     if (present(message)) write (ierr, '(a)', advance='no') trim(message)
     
-!    if (present(iproc)) &
-!         write (ierr, '(a,i8)') ' on iproc: ', iproc
-
     ! append line-break
     write(ierr,*)
 

@@ -12,7 +12,6 @@ module job_manage
   public :: njobs
 
   integer :: njobs
-  logical :: debug=.false.
 
 contains
 

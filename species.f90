@@ -27,8 +27,8 @@ module species
   type (spec_type), dimension (:), allocatable :: spec
 
   integer :: ions, electrons, impurity
-  integer :: ntspec_trin
-  real, dimension (:), allocatable :: dens_trin, temp_trin, fprim_trin, tprim_trin, nu_trin
+!  integer :: ntspec_trin
+!  real, dimension (:), allocatable :: dens_trin, temp_trin, fprim_trin, tprim_trin, nu_trin
 
   character (20) :: species_option
 

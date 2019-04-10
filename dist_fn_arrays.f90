@@ -43,8 +43,6 @@ module dist_fn_arrays
 
   real, dimension (:,:,:), allocatable :: kperp2
 
-  real, dimension (:,:,:), allocatable :: vperp2
-
   interface gbar_to_g
      module procedure gbar_to_g_kxkyz
      module procedure gbar_to_g_vmu
