@@ -22,8 +22,7 @@ module stella_diagnostics
   logical :: write_gvmus
   logical :: write_gzvs
   logical :: write_kspectra
-  logical :: write_fluxes_vs_zvpa
-  logical :: write_symmetry
+!  logical :: write_symmetry
 
   integer :: stdout_unit, fluxes_unit, omega_unit
 
@@ -89,13 +88,14 @@ contains
     call broadcast (write_phi_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
-    call broadcast (write_symmetry)
+!    call broadcast (write_symmetry)
     
     nmovie_tot = nstep/nmovie
     
     call init_averages
     call init_stella_io (write_phi_vs_time, write_kspectra, &
-         write_gvmus, write_gzvs, write_symmetry, write_moments)
+!         write_gvmus, write_gzvs, write_symmetry, write_moments)
+         write_gvmus, write_gzvs, write_moments)
     call open_loop_ascii_files
     
   end subroutine init_stella_diagnostics
@@ -113,7 +113,8 @@ contains
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-         write_omega, write_kspectra, write_symmetry, write_moments
+!         write_omega, write_kspectra, write_symmetry, write_moments
+         write_omega, write_kspectra, write_moments
 
     if (proc0) then
        nwrite = 50
@@ -127,7 +128,7 @@ contains
        write_gzvs = .false.
        write_kspectra = .false.
        write_moments = .false.
-       write_symmetry = .false.
+!       write_symmetry = .false.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
        if (exist) read (unit=in_file, nml=stella_diagnostics_knobs)
@@ -244,7 +245,7 @@ contains
     real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:), allocatable :: gzvs
-    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
+!    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:,:,:), allocatable :: density, upar, temperature
@@ -340,13 +341,13 @@ contains
        if (proc0) call write_gzvs_nc (nout, gzvs)
        deallocate (gzvs)
     end if
-    if (write_symmetry) then
-       allocate (pflx_zvpa(nztot,nvpa,nspec))
-       allocate (vflx_zvpa(nztot,nvpa,nspec))
-       allocate (qflx_zvpa(nztot,nvpa,nspec))
-       call get_fluxes_vs_zvpa (gnew, pflx_zvpa, vflx_zvpa, qflx_zvpa)
-       deallocate (pflx_zvpa, vflx_zvpa, qflx_zvpa)
-    end if
+!     if (write_symmetry) then
+!        allocate (pflx_zvpa(nztot,nvpa,nspec))
+!        allocate (vflx_zvpa(nztot,nvpa,nspec))
+!        allocate (qflx_zvpa(nztot,nvpa,nspec))
+!        call get_fluxes_vs_zvpa (gnew, pflx_zvpa, vflx_zvpa, qflx_zvpa)
+!        deallocate (pflx_zvpa, vflx_zvpa, qflx_zvpa)
+!     end if
 
     deallocate (part_flux, mom_flux, heat_flux)
 
@@ -534,43 +535,43 @@ contains
 
   end subroutine get_one_flux
 
-  subroutine get_fluxes_vs_zvpa (g, pflx, vflx, qflx)
+!   subroutine get_fluxes_vs_zvpa (g, pflx, vflx, qflx)
 
-    use zgrid, only: nzgrid, delzed
-    use stella_layouts, only: vmu_lo
-    use stella_geometry, only: jacob, grho
+!     use zgrid, only: nzgrid, delzed
+!     use stella_layouts, only: vmu_lo
+!     use stella_geometry, only: jacob, grho
 
-    implicit none
+!     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (-nzgrid:,:,:), intent (out) :: pflx, vflx, qflx
+!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
+!     real, dimension (-nzgrid:,:,:), intent (out) :: pflx, vflx, qflx
 
-    real, dimension (:), allocatable :: flx_norm
-!    real, dimension (:,:), allocatable :: gtmp
+!     real, dimension (:), allocatable :: flx_norm
+! !    real, dimension (:,:), allocatable :: gtmp
 
-!    allocate (gtmp(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+! !    allocate (gtmp(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-    allocate (flx_norm(-nzgrid:nzgrid))
+!     allocate (flx_norm(-nzgrid:nzgrid))
 
-!    gtmp = 0.
+! !    gtmp = 0.
 
-    pflx = 0. ; vflx = 0. ; qflx = 0.
+!     pflx = 0. ; vflx = 0. ; qflx = 0.
 
-    flx_norm = jacob(1,:)*delzed
-    flx_norm = flx_norm/sum(flx_norm*grho(1,:))
+!     flx_norm = jacob(1,:)*delzed
+!     flx_norm = flx_norm/sum(flx_norm*grho(1,:))
 
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        do ikx = 1, nakx
-!           do iky = 1, naky
-!        = g(:,:,:,ivmu)*aj0x(:,:,:,ivmu)
-!        integrate_mu (,pflx)
-!        pflx(iky,ikx,iz) = pflx + 0.5*fac(iky)*aky(iky)*aimag(pflx*conjg(phi))*flx_norm(iz)
-!     end do
+! !     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+! !        do ikx = 1, nakx
+! !           do iky = 1, naky
+! !        = g(:,:,:,ivmu)*aj0x(:,:,:,ivmu)
+! !        integrate_mu (,pflx)
+! !        pflx(iky,ikx,iz) = pflx + 0.5*fac(iky)*aky(iky)*aimag(pflx*conjg(phi))*flx_norm(iz)
+! !     end do
 
-!    deallocate (gtmp)
-    deallocate (flx_norm)
+! !    deallocate (gtmp)
+!     deallocate (flx_norm)
 
-  end subroutine get_fluxes_vs_zvpa
+!   end subroutine get_fluxes_vs_zvpa
 
   subroutine get_moments (g, dens, upar, temp)
     

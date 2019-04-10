@@ -47,14 +47,12 @@ module stella_save
 # ifdef NETCDF
   real, allocatable, dimension (:,:,:) :: tmpr, tmpi
   real, allocatable, dimension (:,:,:) :: ftmpr, ftmpi
-  real, allocatable, dimension(:) :: atmp
   integer (kind_nf) :: ncid, zedid, vpaid, gloid, kyid, kxid, muid
-  integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id, bparr_id, bpari_id
+  integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id
+!  integer (kind_nf) :: bparr_id, bpari_id
   integer (kind_nf) :: t0id, gr_id, gi_id, delt0id
-  integer (kind_nf) :: gpr_id, gpi_id
 
   logical :: initialized = .false.
-  logical :: test = .false.
 # endif
 
 contains
