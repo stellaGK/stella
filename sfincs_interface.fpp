@@ -150,8 +150,8 @@ contains
 # else
     f_neoclassical = 0 ; phi_neoclassical = 0.
     dfneo_dalpha = 0. ; dphineo_dalpha = 0.
-    call mp_abort ('to run with include_neoclassical_terms=.true., &
-         & USE_SFINCS must be defined at compilation time.  Aborting.')
+    call mp_abort ("to run with include_neoclassical_terms=.true., &
+         & USE_SFINCS must be defined at compilation time.  Aborting.")
 # endif
 
   end subroutine get_neo_from_sfincs

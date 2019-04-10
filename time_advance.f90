@@ -63,106 +63,6 @@ module time_advance
 
 contains
 
-!   subroutine init_get_fields_wstar
-
-!     use constants, only: zi
-!     use mp, only: sum_allreduce, mp_abort
-!     use stella_layouts, only: kxkyz_lo
-!     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
-!     use dist_fn_arrays, only: aj0v
-!     use run_parameters, only: fphi, fapar
-!     use run_parameters, only: tite, nine, beta
-!     use stella_time, only: code_dt
-!     use species, only: spec, has_electron_species
-!     use stella_geometry, only: dl_over_b
-!     use zgrid, only: nzgrid
-!     use vpamu_grids, only: nvpa, nvgrid, nmu
-!     use vpamu_grids, only: energy
-!     use vpamu_grids, only: maxwell_vpa, integrate_vmu
-!     use species, only: spec
-!     use kt_grids, only: naky, nakx, aky, akx
-
-!     implicit none
-
-!     integer :: ikxkyz, ig, ikx, iky, is
-!     complex :: tmp
-!     complex, dimension (:,:), allocatable :: g0
-
-!     if (get_fields_wstar_initialized) return
-!     get_fields_wstar_initialized = .true.
-
-!     if (.not.allocated(gamtot_wstar)) &
-!          allocate (gamtot_wstar(naky,nakx,-nzgrid:nzgrid))
-!     gamtot_wstar = 0.
-!     if (.not.allocated(gamtot3_wstar)) &
-!          allocate (gamtot3_wstar(nakx,-nzgrid:nzgrid))
-!     gamtot3_wstar = 0.
-!     if (.not.allocated(apar_denom_wstar)) &
-!          allocate (apar_denom_wstar(naky,nakx,-nzgrid:nzgrid))
-!     apar_denom_wstar = 0.
-
-!     if (fphi > epsilon(0.0)) then
-!        allocate (g0(-nvgrid:nvgrid,nmu))
-!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!           iky = iky_idx(kxkyz_lo,ikxkyz)
-!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!           ig = iz_idx(kxkyz_lo,ikxkyz)
-!           is = is_idx(kxkyz_lo,ikxkyz)
-!           g0 = -zi*aky(iky)*spec(is)%z*spec(is)%dens*spread(aj0v(:,ikxkyz)**2,1,nvpa) &
-!                ! BACKWARDS DIFFERENCE FLAG
-! !               *anon(ig,:,:)*0.25*code_dt &
-!                *spread(maxwell_vpa,2,nmu)*0.5*code_dt &
-!                *(spec(is)%fprim+spec(is)%tprim*(energy(ig,:,:)-1.5))
-!           call integrate_vmu (g0, ig, tmp)
-!           gamtot_wstar(iky,ikx,ig) = gamtot_wstar(iky,ikx,ig) + tmp
-!        end do
-!        call sum_allreduce (gamtot_wstar)
-
-!        gamtot_wstar = gamtot_wstar + gamtot
-
-!        deallocate (g0)
-
-!        if (.not.has_electron_species(spec)) then
-!           ! no need to do anything extra for ky /= 0 because
-!           ! already accounted for in gamtot_h
-!           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-!              if (abs(aky(1)) < epsilon(0.)) then
-!                 do ikx = 1, nakx
-!                    ! do not need kx=ky=0 mode
-!                    if (abs(akx(ikx)) < epsilon(0.)) cycle
-!                    tmp = nine/tite-sum(dl_over_b/gamtot_wstar(1,ikx,:))
-!                    gamtot3_wstar(ikx,:) = 1./(gamtot_wstar(1,ikx,:)*tmp)
-!                 end do
-!              end if
-!           end if
-!        end if
-!     end if
-
-!     ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
-!      if (fapar > epsilon(0.)) then
-!         write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
-!         call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
-!      end if
-        
-! !        allocate (g0(-nvgrid:nvgrid,nmu))
-! !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-! !           iky = iky_idx(kxkyz_lo,ikxkyz)
-! !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-! !           ig = iz_idx(kxkyz_lo,ikxkyz)
-! !           is = is_idx(kxkyz_lo,ikxkyz)
-! !           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
-! !           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
-! !           call integrate_vmu (g0, ig, tmp)
-! !           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
-! !        end do
-! !        call sum_allreduce (apar_denom)
-! !        apar_denom = apar_denom + kperp2
-
-! !        deallocate (g0)
-! !     end if
-    
-!   end subroutine init_get_fields_wstar
-
   subroutine init_time_advance
 
     use mp, only: proc0
@@ -617,11 +517,7 @@ contains
 !    call advance_explicit (phi, apar, gnew)
        call advance_explicit (gnew)
 
-!    call checksum (phi, phitot)
-!    call checksum (gnew, gtot)
-!    if (proc0) write (*,*) 'explicit', phitot, gtot
-
-    ! enforce periodicity for zonal mode
+       ! enforce periodicity for zonal mode
 !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
 
        ! use operator splitting to separately evolve
@@ -631,11 +527,6 @@ contains
        if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
        call advance_explicit (gnew)
     end if
-!    call checksum (phi, phitot)
-!    call checksum (gnew, gtot)
-!    if (proc0) write (*,*) 'implicit', phitot, gtot
-
-!    if (proc0) write (*,*) 'phizf', code_time, real(phi(1,1,0)), aimag(phi(1,1,0))
 
 !    else
 !       ! use operator splitting to separately evolve
@@ -1986,6 +1877,106 @@ contains
     call sum_allreduce (total)
 
   end subroutine checksum_dist
+
+!   subroutine init_get_fields_wstar
+
+!     use constants, only: zi
+!     use mp, only: sum_allreduce, mp_abort
+!     use stella_layouts, only: kxkyz_lo
+!     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
+!     use dist_fn_arrays, only: aj0v
+!     use run_parameters, only: fphi, fapar
+!     use run_parameters, only: tite, nine, beta
+!     use stella_time, only: code_dt
+!     use species, only: spec, has_electron_species
+!     use stella_geometry, only: dl_over_b
+!     use zgrid, only: nzgrid
+!     use vpamu_grids, only: nvpa, nvgrid, nmu
+!     use vpamu_grids, only: energy
+!     use vpamu_grids, only: maxwell_vpa, integrate_vmu
+!     use species, only: spec
+!     use kt_grids, only: naky, nakx, aky, akx
+
+!     implicit none
+
+!     integer :: ikxkyz, ig, ikx, iky, is
+!     complex :: tmp
+!     complex, dimension (:,:), allocatable :: g0
+
+!     if (get_fields_wstar_initialized) return
+!     get_fields_wstar_initialized = .true.
+
+!     if (.not.allocated(gamtot_wstar)) &
+!          allocate (gamtot_wstar(naky,nakx,-nzgrid:nzgrid))
+!     gamtot_wstar = 0.
+!     if (.not.allocated(gamtot3_wstar)) &
+!          allocate (gamtot3_wstar(nakx,-nzgrid:nzgrid))
+!     gamtot3_wstar = 0.
+!     if (.not.allocated(apar_denom_wstar)) &
+!          allocate (apar_denom_wstar(naky,nakx,-nzgrid:nzgrid))
+!     apar_denom_wstar = 0.
+
+!     if (fphi > epsilon(0.0)) then
+!        allocate (g0(-nvgrid:nvgrid,nmu))
+!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+!           iky = iky_idx(kxkyz_lo,ikxkyz)
+!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+!           ig = iz_idx(kxkyz_lo,ikxkyz)
+!           is = is_idx(kxkyz_lo,ikxkyz)
+!           g0 = -zi*aky(iky)*spec(is)%z*spec(is)%dens*spread(aj0v(:,ikxkyz)**2,1,nvpa) &
+!                ! BACKWARDS DIFFERENCE FLAG
+! !               *anon(ig,:,:)*0.25*code_dt &
+!                *spread(maxwell_vpa,2,nmu)*0.5*code_dt &
+!                *(spec(is)%fprim+spec(is)%tprim*(energy(ig,:,:)-1.5))
+!           call integrate_vmu (g0, ig, tmp)
+!           gamtot_wstar(iky,ikx,ig) = gamtot_wstar(iky,ikx,ig) + tmp
+!        end do
+!        call sum_allreduce (gamtot_wstar)
+
+!        gamtot_wstar = gamtot_wstar + gamtot
+
+!        deallocate (g0)
+
+!        if (.not.has_electron_species(spec)) then
+!           ! no need to do anything extra for ky /= 0 because
+!           ! already accounted for in gamtot_h
+!           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+!              if (abs(aky(1)) < epsilon(0.)) then
+!                 do ikx = 1, nakx
+!                    ! do not need kx=ky=0 mode
+!                    if (abs(akx(ikx)) < epsilon(0.)) cycle
+!                    tmp = nine/tite-sum(dl_over_b/gamtot_wstar(1,ikx,:))
+!                    gamtot3_wstar(ikx,:) = 1./(gamtot_wstar(1,ikx,:)*tmp)
+!                 end do
+!              end if
+!           end if
+!        end if
+!     end if
+
+!     ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
+!      if (fapar > epsilon(0.)) then
+!         write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
+!         call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
+!      end if
+        
+! !        allocate (g0(-nvgrid:nvgrid,nmu))
+! !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+! !           iky = iky_idx(kxkyz_lo,ikxkyz)
+! !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+! !           ig = iz_idx(kxkyz_lo,ikxkyz)
+! !           is = is_idx(kxkyz_lo,ikxkyz)
+! !           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
+! !           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
+! !           call integrate_vmu (g0, ig, tmp)
+! !           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
+! !        end do
+! !        call sum_allreduce (apar_denom)
+! !        apar_denom = apar_denom + kperp2
+
+! !        deallocate (g0)
+! !     end if
+    
+!   end subroutine init_get_fields_wstar
 
   subroutine finish_time_advance
 

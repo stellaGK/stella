@@ -27,7 +27,7 @@ module constants
   integer, parameter :: kind_id = selected_int_kind (15)
   integer, parameter :: kind_rs = selected_real_kind (p=6)
   integer, parameter :: kind_rd = selected_real_kind (p=12)
-  ! There is a selected_real_kind bug in xlf and the following doesn't work
+  ! There is a selected_real_kind bug in xlf and the following does not work
   integer, parameter :: kind_rq = selected_real_kind (p=24)
 
 !   integer, parameter :: sizeof_i1 = 1
@@ -67,14 +67,14 @@ module constants
 !
 ! The fortran-90 "kind" types is kind of awkward.  But the old trick of
 ! using a "-r8" compiler switch to promote all real variables to 64 bits 
-! doesn't work on some fortran 90 compilers, and so the above use of 
+! does not work on some fortran 90 compilers, and so the above use of 
 ! the standard fortran-90 routine selected_real_kind is more portable.
 !
 ! It may not be a good idea to mimic "-r8" by making sp to be identical
 ! to dp, or to write single and double-precision versions of 
 ! generic subroutines, since on the Cray computers both single and
 ! "double" precision are 64 bits, and the compiler will complain that
-! it can't distinguish the two specific subroutines.  In some cases,
+! it cannot distinguish the two specific subroutines.  In some cases,
 ! the cray compiler may be able to distinguish between two real "kinds"
 ! for the purposes of distinguishing overloaded procedure names,
 ! even though the two real kinds map to the same precision (64 bits).
