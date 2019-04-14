@@ -132,6 +132,7 @@ contains
     implicit none
 
     integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ia
 
     if (.not.allocated(aa_vpa)) allocate (aa_vpa(nvpa,nspec))
 !    if (.not.allocated(bb_vpa)) allocate (bb_vpa(nvpa,nspec))
@@ -147,13 +148,14 @@ contains
        cc_vpa(:nvpa-1,is) = -code_dt*spec(is)%vnew(is)*0.5*(1.0/dvpa+vpa(2:))/dvpa
     end do
 
+    ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_vpa(:,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            * (0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 + 1./dvpa**2)
+            * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(1,iz))**2 + 1./dvpa**2)
     end do
 
   end subroutine init_vpadiff_matrix
@@ -172,6 +174,7 @@ contains
     implicit none
 
     integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ia
     ! TMP FOR TESTING -- MAB
 !    integer :: imu
 
@@ -205,21 +208,22 @@ contains
        end do
     end do
 
+    ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_mu(1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            *( 0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 &
+            *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + 1.0/(dmu(1)*bmag(1,iz)) - 1.0)
        bb_mu(2:nmu-1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            *( 0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 &
+            *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + (mu_cell(2:nmu-1)/dmu(2:)+mu_cell(:nmu-2)/dmu(:nmu-2)) &
             /(dmu_cell(2:nmu-1)*bmag(1,iz)) - 1.0)
        bb_mu(nmu,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            *( 0.25*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2 &
-            + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(1,iz)) + 1.0)/dmu_cell(nmu))
+            *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
+            + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(nmu))
     end do
 
     deallocate (dmu_ghost, dmu_cell, mu_cell)
@@ -239,7 +243,8 @@ contains
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: aj0v, gvmu
+    use dist_fn_arrays, only: gvmu
+    use gyro_averages, only: aj0v
     use fields, only: get_fields, get_fields_by_spec
 
     implicit none
@@ -427,13 +432,14 @@ contains
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: aj0v, aj1v, gvmu, kperp2
+    use dist_fn_arrays, only: gvmu, kperp2
+    use gyro_averages, only: aj0v, aj1v
     use fields, only: get_fields, get_fields_by_spec
     use stella_geometry, only: bmag
 
     implicit none
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, is, ia
     integer :: iv
     integer :: idx
     real :: dum2
@@ -497,14 +503,15 @@ contains
     idx = 2
 
     if (momentum_conservation) then
+       ia = 1
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           do iv = 1, nvpa
-             gvmu(iv,:,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,iz)*vperp2(1,iz,:) &
-                  *(spec(is)%smz/bmag(1,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(1,iz,:)
+             gvmu(iv,:,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,ia,iz)*vperp2(ia,iz,:) &
+                  *(spec(is)%smz/bmag(ia,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(ia,iz,:)
              call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
@@ -607,7 +614,7 @@ contains
     use vpamu_grids, only: vpa
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: aj0v
+    use gyro_averages, only: aj0v
 
     implicit none
 
@@ -643,7 +650,7 @@ contains
     use vpamu_grids, only: vperp2
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: aj1v
+    use gyro_averages, only: aj1v
 
     implicit none
 
@@ -680,7 +687,7 @@ contains
     use vpamu_grids, only: vpa
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: aj0v
+    use gyro_averages, only: aj0v
 
     implicit none
 
@@ -716,7 +723,7 @@ contains
     use vpamu_grids, only: nvpa, nmu, vperp2
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: aj0v
+    use gyro_averages, only: aj0v
 
     implicit none
 
@@ -821,7 +828,8 @@ contains
     use stella_layouts, only: vmu_lo, kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
     use dist_redistribute, only: kxkyz2vmu
-    use dist_fn_arrays, only: gvmu, g_to_h, kperp2
+    use dist_fn_arrays, only: gvmu, kperp2
+    use g_tofrom_h, only: g_to_h
 
     implicit none
 
@@ -829,7 +837,7 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
-    integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz
+    integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia
     logical :: conservative_wgts
     complex, dimension (:), allocatable :: mucoll
     complex, dimension (:,:,:), allocatable :: coll
@@ -857,6 +865,7 @@ contains
     allocate (coll(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     allocate (mucoll(nmu))
 
+    ia = 1
     ! take vpa derivatives
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -878,7 +887,7 @@ contains
        if (energy_conservation) call conserve_energy (iz, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
        ! save memory by using gvmu and deallocating coll below
        ! before re-allocating tmp_vmulo
-       gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,iz)*(spec(is)%smz/bmag(1,iz))**2*gvmu(:,:,ikxkyz)
+       gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
     end do
     deallocate (coll, mucoll)
     allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -988,8 +997,9 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
-    use dist_fn_arrays, only: aj0v, aj1v, kperp2
-    
+    use dist_fn_arrays, only: kperp2
+    use gyro_averages, only: aj0v, aj1v
+
     implicit none
 
     integer, intent (in) :: iky, ikx, iz, is, ikxkyz
@@ -998,15 +1008,18 @@ contains
 
     complex, dimension (:,:), allocatable :: u_fac
     complex :: integral
+    integer :: ia
 
     allocate (u_fac(nvpa,nmu))
+
+    ia = 1
 
     u_fac = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)
     call integrate_vmu (u_fac*h,iz,integral)
 
     Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
 
-    u_fac = spread(vperp2(1,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,iz))*spec(is)%smz/bmag(1,iz)
+    u_fac = spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,ia,iz))*spec(is)%smz/bmag(ia,iz)
     call integrate_vmu (u_fac*h,iz,integral)
     
     Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
@@ -1020,7 +1033,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
-    use dist_fn_arrays, only: aj0v
+    use gyro_averages, only: aj0v
     
     implicit none
 
@@ -1102,7 +1115,8 @@ contains
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: g_to_h, aj0v
+    use g_tofrom_h, only: g_to_h
+    use gyro_averages, only: aj0v
     use fields, only: get_fields
 
     implicit none
@@ -1216,7 +1230,9 @@ contains
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use dist_fn_arrays, only: g_to_h, aj0v, aj1v, kperp2
+    use dist_fn_arrays, only: kperp2
+    use gyro_averages, only: aj0v, aj1v
+    use g_tofrom_h, only: g_to_h
     use fields, only: get_fields
     use stella_geometry, only: bmag
 
@@ -1228,7 +1244,7 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, is, ia
     integer :: iv
     integer :: idx
 
@@ -1302,6 +1318,8 @@ contains
 
     allocate (tmp(nvpa,nmu))
 
+    ia = 1
+
     if (momentum_conservation .or. energy_conservation) then
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -1311,8 +1329,8 @@ contains
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
                *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
           if (momentum_conservation) &
-               g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,iz) &
-               *spread(vperp2(1,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(1,iz))**2 &
+               g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,ia,iz) &
+               *spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(ia,iz))**2 &
                *flds(iky,ikx,iz,is+1)
           if (energy_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) &
@@ -1350,14 +1368,16 @@ contains
 
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
 
+    integer :: ia
     integer :: ivmu
     real :: k2max
 
     k2max = maxval(kperp2)
 
+    ia = 1
     ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g(:,:,:,ivmu) = g(:,:,:,ivmu)/(1.+code_dt*(kperp2/k2max)**2*D_hyper)
+       g(:,:,:,ivmu) = g(:,:,:,ivmu)/(1.+code_dt*(kperp2(:,:,ia,:)/k2max)**2*D_hyper)
     end do
 
   end subroutine advance_hyper_dissipation

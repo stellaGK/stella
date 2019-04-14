@@ -28,7 +28,8 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
-    use dist_fn_arrays, only: aj0v, kperp2
+    use dist_fn_arrays, only: kperp2
+    use gyro_averages, only: aj0v
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: tite, nine, beta
     use species, only: spec, has_electron_species
@@ -46,7 +47,7 @@ contains
 
     implicit none
 
-    integer :: ikxkyz, iz, ikx, iky, is
+    integer :: ikxkyz, iz, ikx, iky, is, ia
     real :: tmp, wgt
     real, dimension (:,:), allocatable :: g0
 
@@ -114,6 +115,7 @@ contains
     end if
 
     if (fapar > epsilon(0.)) then
+       ia = 1
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -127,7 +129,7 @@ contains
           apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
        end do
        call sum_allreduce (apar_denom)
-       apar_denom = apar_denom + kperp2
+       apar_denom = apar_denom + kperp2(:,:,ia,:)
 
        deallocate (g0)
     end if
@@ -208,7 +210,8 @@ contains
     use mp, only: sum_allreduce, mp_abort
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
-    use dist_fn_arrays, only: aj0v, kperp2
+    use dist_fn_arrays, only: kperp2
+    use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: beta
     use stella_geometry, only: dl_over_b
@@ -230,7 +233,7 @@ contains
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
-    integer :: ikxkyz, iz, ikx, iky, is
+    integer :: ikxkyz, iz, ikx, iky, is, ia
     complex :: tmp
 
     phi = 0.
@@ -241,7 +244,7 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread(aj0v(:,ikxkyz),1,nvpa)*g(:,:,ikxkyz)
+          call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
           wgt = spec(is)%z*spec(is)%dens
           call integrate_vmu (g0, iz, tmp)
           phi(iky,ikx,iz) = phi(iky,ikx,iz) + wgt*tmp
@@ -289,20 +292,21 @@ contains
 
     apar = 0.
     if (fapar > epsilon(0.0)) then
+       ia = 1
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
+          call gyro_average (spread(vpa,2,nmu)*g(:,:,ikxkyz), ikxkyz, g0)
           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
           call integrate_vmu (g0, iz, tmp)
           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
        end do
        call sum_allreduce (apar)
        if (dist == 'h') then
-          apar = apar/kperp2
+          apar = apar/kperp2(:,:,ia,:)
        else if (dist == 'gbar') then
           apar = apar/apar_denom
        else if (dist == 'gstar') then
@@ -321,12 +325,12 @@ contains
 
     use mp, only: proc0, mp_abort
     use stella_layouts, only: vmu_lo
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use vpamu_grids, only: integrate_species
-    use kt_grids, only: nakx
+    use kt_grids, only: nakx, naky
     use kt_grids, only: zonal_mode
     use species, only: spec, has_electron_species
     use dist_fn, only: adiabatic_option_switch
@@ -338,12 +342,26 @@ contains
     complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
-    integer :: ikx
+    integer :: ikx, iky, ivmu, iz
     complex :: tmp
+    complex, dimension (:,:,:), allocatable :: gyro_g
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
-       call integrate_species (aj0x*g, spec%z*spec%dens, phi)
+
+       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+       do iz = -nzgrid, nzgrid
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             call gyro_average (g(:,:,iz,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+          end do
+          do ikx = 1, nakx
+             do iky = 1, naky
+                call integrate_species (gyro_g(iky,ikx,:), iz, spec%z*spec%dens, phi(iky,ikx,iz))
+             end do
+          end do
+       end do
+       deallocate (gyro_g)
+
        if (dist == 'h') then
           phi = phi/gamtot_h
        else if (dist == 'gbar') then
@@ -418,7 +436,7 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
-    use dist_fn_arrays, only: aj0v
+    use gyro_averages, only: gyro_average
     use run_parameters, only: fphi
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
@@ -449,7 +467,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           wgt = spec(is)%z*spec(is)%dens
-          g0 = spread(aj0v(:,ikxkyz),1,nvpa)*g(:,:,ikxkyz)*wgt
+          call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
+          g0 = g0*wgt
           call integrate_vmu (g0, iz, fld(iky,ikx,iz,is))
        end do
        call sum_allreduce (fld)

@@ -351,7 +351,7 @@ contains
 
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
     real :: a, b, kmin
-    integer :: ikxkyz, iz, iky, ikx, is, ie, iseg
+    integer :: ikxkyz, iz, iky, ikx, is, ie, iseg, ia
 
     if (naky == 1 .and. nakx==1) then
        if (proc0) then
@@ -362,10 +362,11 @@ contains
        return
     end if
 
+    ia = 1
     if (proc0) then
        ! keep old (it, ik) loop order to get old results exactly: 
        if (naky > 1 .and. nakx > 1) then
-          kmin = min(minval(kperp2(1,2,:)),minval(kperp2(2,1,:)))
+          kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
           phi(1,1,:) = 0.0
        end if
 
@@ -377,7 +378,7 @@ contains
                 b = ranf()-0.5
                 ! do not populate high k modes with large amplitudes
 !                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin/sqrt(kperp2(iky,ikx,iz))
-                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,iz)
+                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,ia,iz)
              end do
              if (chop_side) then
                 if (left) then
@@ -519,19 +520,20 @@ contains
 
     implicit none
     
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, is, ia
     
     ! initialize g to be a Maxwellian with a constant density perturbation
 
     gvmu = 0.
     
+    ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
 
-       gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,iz) &
+       gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
             *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
     end do
 

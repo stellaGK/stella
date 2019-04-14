@@ -13,7 +13,7 @@ module dist_fn
   logical :: gxyz_initialized = .false.
   logical :: kp2init = .false.
   logical :: vp2init = .false.
-  logical :: bessinit = .false.
+!  logical :: bessinit = .false.
   logical :: readinit = .false.
 
   integer :: adiabatic_option_switch
@@ -51,6 +51,7 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, ny, nx
     use vpamu_grids, only: nvgrid, nmu
+    use gyro_averages, only: init_bessel
 
     implicit none
 
@@ -122,6 +123,7 @@ contains
     use dist_fn_arrays, only: kperp2
     use stella_geometry, only: gds2, gds21, gds22
     use stella_geometry, only: geo_surf
+    use stella_geometry, only: nalpha
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
@@ -134,17 +136,17 @@ contains
     if (kp2init) return
     kp2init = .true.
 
-    allocate (kperp2(naky,nakx,-nzgrid:nzgrid))
+    allocate (kperp2(naky,nakx,nalpha,-nzgrid:nzgrid))
     do iky = 1, naky
        if (zonal_mode(iky)) then
           do ikx = 1, nakx
-             kperp2(iky,ikx,:) = akx(ikx)*akx(ikx)*gds22(1,:)/(geo_surf%shat**2)
+             kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
           end do
        else
           do ikx = 1, nakx
-             kperp2(iky,ikx,:) = aky(iky)*aky(iky) &
-                  *(gds2(1,:) + 2.0*theta0(iky,ikx)*gds21(1,:) &
-                  + theta0(iky,ikx)*theta0(iky,ikx)*gds22(1,:))
+             kperp2(iky,ikx,:,:) = aky(iky)*aky(iky) &
+                  *(gds2 + 2.0*theta0(iky,ikx)*gds21 &
+                  + theta0(iky,ikx)*theta0(iky,ikx)*gds22)
           end do
        end if
     end do
@@ -196,75 +198,9 @@ contains
 
   end subroutine init_vperp2
 
-  subroutine init_bessel
-
-    use dist_fn_arrays, only: aj0v, aj1v
-    use dist_fn_arrays, only: aj0x
-    use dist_fn_arrays, only: kperp2
-    use species, only: spec, nspec
-    use stella_geometry, only: bmag
-    use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp2, nmu
-    use kt_grids, only: naky, nakx
-    use stella_layouts, only: kxkyz_lo, vmu_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
-    use spfunc, only: j0, j1
-
-    implicit none
-
-    integer :: iz, iky, ikx, imu, is
-    integer :: ikxkyz, ivmu
-    real :: arg
-
-    if (bessinit) return
-    bessinit = .true.
-
-    call init_kperp2
-
-    if (.not.allocated(aj0v)) then
-       allocate (aj0v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-       aj0v = 0.
-    end if
-    if (.not.allocated(aj0x)) then
-       allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       aj0x = 0.
-    end if
-    if (.not.allocated(aj1v)) then
-       allocate (aj1v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-       aj1v = 0.
-    end if
-    
-    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       iky = iky_idx(kxkyz_lo,ikxkyz)
-       ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       iz = iz_idx(kxkyz_lo,ikxkyz)
-       is = is_idx(kxkyz_lo,ikxkyz)
-       do imu = 1, nmu
-          arg = spec(is)%smz*sqrt(vperp2(1,iz,imu)*kperp2(iky,ikx,iz))/bmag(1,iz)
-          aj0v(imu,ikxkyz) = j0(arg)
-          ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
-          aj1v(imu,ikxkyz) = j1(arg)
-       end do
-    end do
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       is = is_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       do iz = -nzgrid, nzgrid
-          do ikx = 1, nakx
-             do iky = 1, naky
-                arg = spec(is)%smz*sqrt(vperp2(1,iz,imu)*kperp2(iky,ikx,iz))/bmag(1,iz)
-                aj0x(iky,ikx,iz,ivmu) = j0(arg)
-             ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
-!             aj1(iz,ivmu) = j1(arg)
-             end do
-          end do
-       end do
-    end do
-
-  end subroutine init_bessel
-
   subroutine finish_dist_fn
+
+    use gyro_averages, only: finish_bessel
 
     implicit none
 
@@ -313,18 +249,5 @@ contains
     vp2init = .false.
     
   end subroutine finish_vperp2
-
-  subroutine finish_bessel
-
-    use dist_fn_arrays, only: aj0v, aj0x
-
-    implicit none
-
-    if (allocated(aj0v)) deallocate (aj0v)
-    if (allocated(aj0x)) deallocate (aj0x)
-
-    bessinit = .false.
-
-  end subroutine finish_bessel
 
 end module dist_fn

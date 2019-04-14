@@ -40,7 +40,7 @@ contains
     use vpamu_grids, only: vpa
     use zgrid, only: nzgrid, nztot
     use stella_geometry, only: gradpar, nalpha
-    use run_parameters, only: stream_implicit
+    use run_parameters, only: stream_implicit, driftkinetic_implicit
     use run_parameters, only: stream_cell
     use run_parameters, only: include_parallel_streaming
 
@@ -71,7 +71,7 @@ contains
     ! vpa = 0 is special case
 !    stream_sign(0) = 0
 
-    if (stream_implicit) then
+    if (stream_implicit .or. driftkinetic_implicit) then
        call init_invert_stream_operator
        if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
        stream_c = stream
@@ -165,7 +165,7 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use fields_arrays, only: phi
     use vpamu_grids, only: ztmax, maxwell_mu
     use run_parameters, only: driftkinetic_implicit
@@ -175,8 +175,7 @@ contains
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    integer :: ivmu, iv, imu, is
-    real :: dk_knob
+    integer :: ivmu, iv, imu, is, ia
     complex, dimension (:,:,:,:), allocatable :: g0, g1
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -184,27 +183,28 @@ contains
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
-    if (driftkinetic_implicit) then
-       dk_knob = 1.0
-    else
-       dk_knob = 0.0
-    end if
     ! get dg/dz, with z the parallel coordinate and store in g0
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g0(:,:,:,ivmu) = (aj0x(:,:,:,ivmu)-dk_knob)*phi
+       call gyro_average (phi, ivmu, g0(:,:,:,ivmu))
+       if (driftkinetic_implicit) g0(:,:,:,ivmu) = g0(:,:,:,ivmu) - phi
     end do
 
     call get_dgdz (g0, g1)
 !    call get_dgdz_centered (g0, g1)
-    call get_dgdz (g, g0)
+    ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
+    if (driftkinetic_implicit) then
+       g0 = 0.
+    else
+       call get_dgdz (g, g0)
+    end if
 
-
+    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        g0(:,:,:,ivmu) = g0(:,:,:,ivmu) + g1(:,:,:,ivmu)*ztmax(iv,is) &
-            * spread(spread(maxwell_mu(1,:,imu),1,naky),2,nakx)
+            * spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx)
     end do
 
     ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
@@ -406,7 +406,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
     use kt_grids, only: zonal_mode
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use vpamu_grids, only: vpa, ztmax, maxwell_mu
     use stella_geometry, only: gradpar, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
@@ -427,6 +427,7 @@ contains
     real, dimension (:), allocatable :: vpadf0dE_fac, vpadf0dE_fac_zf
     real, dimension (:,:), allocatable :: gp, gpz
     complex, dimension (:,:,:), allocatable :: dgdz, dphidz
+    complex, dimension (:,:,:), allocatable :: field
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (vpadf0dE_fac_zf(-nzgrid:nzgrid))
@@ -460,10 +461,18 @@ contains
        call get_dzed (iv,gold,dgdz)
     end if
 
+    allocate (field(naky,nakx,-nzgrid:nzgrid))
     ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
-    g = tupwnd1*phiold+tupwnd2*phi
-    if (.not.driftkinetic_implicit) g = aj0x(:,:,:,ivmu)*g
-!    g = aj0x(:,:,:,ivmu)*(tupwnd1*phiold+tupwnd2*phi)
+    field = tupwnd1*phiold+tupwnd2*phi
+    ! set g to be phi or <phi> depending on whether parallel streaming is 
+    ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+    if (driftkinetic_implicit) then
+       g = field
+    else
+       call gyro_average (field, ivmu, g)
+    end if
+    deallocate (field)
+
     ! obtain d<phi>/dz and store in dphidz
     if (stream_cell) then
        call get_dzed_cell (iv,g,dphidz)
@@ -956,7 +965,7 @@ contains
   
   subroutine finish_parallel_streaming
 
-    use run_parameters, only: stream_implicit
+    use run_parameters, only: stream_implicit, driftkinetic_implicit
 
     implicit none
 
@@ -965,7 +974,7 @@ contains
     if (allocated(stream_sign)) deallocate (stream_sign)
     if (allocated(gradpar_c)) deallocate (gradpar_c)
 
-    if (stream_implicit) call finish_invert_stream_operator
+    if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 
     parallel_streaming_initialized = .false.
 

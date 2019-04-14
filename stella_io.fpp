@@ -30,7 +30,7 @@ module stella_io
   integer, dimension (6) :: moment_dim
   integer, dimension (5) :: field_dim
   integer, dimension (4) :: vmus_dim
-  integer, dimension (4) :: zvs_dim
+  integer, dimension (4) :: zvs_dim, kykxaz_dim
   integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim
@@ -326,6 +326,11 @@ contains
     kykxz_dim (2) = nakx_dim
     kykxz_dim (3) = nttot_dim
 
+    kykxaz_dim (1) = naky_dim
+    kykxaz_dim (2) = nakx_dim
+    kykxaz_dim (3) = nalpha_dim
+    kykxaz_dim (4) = nttot_dim
+
     ! Write some useful general information such as the website,
     ! date and time into the NetCDF file
     status = nf90_put_att (ncid, nf90_global, 'title', 'GS2 Simulation Data')
@@ -519,7 +524,7 @@ contains
     status = nf90_def_var (ncid, 'cvdrift0', netcdf_real, flux_surface_dim, cvdrift0_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='cvdrift0')
 
-    status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxz_dim, kperp2_id)
+    status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxaz_dim, kperp2_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='kperp2')
     status = nf90_def_var (ncid, 'gds2', netcdf_real, flux_surface_dim, gds2_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds2')
@@ -900,7 +905,7 @@ contains
 
     integer :: status
     integer, dimension (2) :: start, count
-    integer, dimension (3) :: start2, count2
+    integer, dimension (4) :: start2, count2
 
     start = 1
     count(1) = nalpha
@@ -909,7 +914,8 @@ contains
     start2 = 1
     count2(1) = naky
     count2(2) = nakx
-    count2(3) = 2*nzgrid+1
+    count2(3) = nalpha
+    count2(4) = 2*nzgrid+1
 
     status = nf90_put_var (ncid, bmag_id, bmag, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id)

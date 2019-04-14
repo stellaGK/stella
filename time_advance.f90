@@ -461,7 +461,7 @@ contains
 
     use parallel_streaming, only: parallel_streaming_initialized
     use parallel_streaming, only: init_parallel_streaming
-    use run_parameters, only: stream_implicit
+    use run_parameters, only: stream_implicit, driftkinetic_implicit
     use response_matrix, only: response_matrix_initialized
     use response_matrix, only: init_response_matrix
     use mirror_terms, only: mirror_initialized
@@ -481,7 +481,7 @@ contains
     call init_parallel_streaming
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
-    if (stream_implicit .and. response_matrix_initialized) then
+    if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then
        response_matrix_initialized = .false.
        call init_response_matrix
     end if
@@ -615,6 +615,7 @@ contains
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
     ! solve_gke returns rhs*dt
     do while (icnt <= 2)
+
        select case (icnt)
        case (1)
           call solve_gke (gold, g1, restart_time_step)
@@ -777,7 +778,6 @@ contains
     end if
 
     ! start with gbar in k-space and (ky,kx,z) local
-
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
 
@@ -794,10 +794,12 @@ contains
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
 
     if (.not.restart_time_step) then
+
        ! calculate and add mirror term to RHS of GK eqn
        if (include_mirror.and..not.mirror_implicit) then
           call advance_mirror_explicit (gin, rhs)
        end if
+
        ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
        call advance_wdrifty_explicit (gin, phi, rhs)
 
@@ -817,6 +819,7 @@ contains
        ! calculate and add parallel streaming term to RHS of GK eqn
        if (include_parallel_streaming.and.(.not.stream_implicit)) &
             call advance_parallel_streaming_explicit (gin, rhs_ky)
+
        ! calculate and add omega_* term to RHS of GK eqn
 !       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
 !       call advance_wstar_explicit (rhs_ky)
@@ -876,7 +879,7 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
     use kt_grids, only: alpha_global
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
 
     implicit none
@@ -907,7 +910,7 @@ contains
        call add_dg_term_global (g0y, wdrifty_g, gout)
        ! get <dphi/dy> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          g0k(:,:,:,ivmu) = dphidy*aj0x(:,:,:,ivmu)
+          call gyro_average (dphidy, ivmu, g0k(:,:,:,ivmu))
        end do
        ! transform d<phi>/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
@@ -920,7 +923,7 @@ contains
        call add_dg_term (g0k, wdrifty_g(1,:,:), gout)
        ! get <dphi/dy> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          g0k(:,:,:,ivmu) = dphidy*aj0x(:,:,:,ivmu)
+          call gyro_average (dphidy, ivmu, g0k(:,:,:,ivmu))
        end do
        ! add vM . grad y d<phi>/dy term to equation
        call add_dphi_term (g0k, wdrifty_phi(1,:,:), gout)
@@ -940,7 +943,7 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny, akx
     use kt_grids, only: alpha_global
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
 
     implicit none
@@ -977,7 +980,7 @@ contains
        call add_dg_term_global (g0y, wdriftx_g, gout)
        ! get <dphi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          g0k(:,:,:,ivmu) = dphidx*aj0x(:,:,:,ivmu)
+          call gyro_average (dphidx, ivmu, g0k(:,:,:,ivmu))
        end do
        ! transform d<phi>/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
@@ -990,7 +993,7 @@ contains
        call add_dg_term (g0k, wdriftx_g(1,:,:), gout)
        ! get <dphi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          g0k(:,:,:,ivmu) = dphidx*aj0x(:,:,:,ivmu)
+          call gyro_average (dphidx, ivmu, g0k(:,:,:,ivmu))
        end do
        ! add vM . grad x d<phi>/dx term to equation
        call add_dphi_term (g0k, wdriftx_phi(1,:,:), gout)
@@ -1150,7 +1153,7 @@ contains
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, vpa, mu
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use parallel_streaming, only: stream_sign
     use dist_redistribute, only: xyz2vmu
     use extended_zgrid, only: fill_zed_ghost_zones
@@ -1207,7 +1210,7 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        ! construct <phi>
-       phi_gyro = aj0x(:,:,:,ivmu)*phi
+       call gyro_average (phi, ivmu, phi_gyro)
        do iky = 1, naky
           do ie = 1, neigen(iky)
              do iseg = 1, nsegments(ie,iky)
@@ -1527,14 +1530,14 @@ contains
   subroutine get_dchidy_4d (phi, apar, dchidy)
 
     use constants, only: zi
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, iv_idx
     use run_parameters, only: fphi, fapar
     use species, only: spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: vpa
-    use kt_grids, only: nakx, aky
+    use kt_grids, only: nakx, aky, naky
 
     implicit none
 
@@ -1542,26 +1545,32 @@ contains
     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dchidy
 
     integer :: ivmu, iv, is
+    complex, dimension (:,:,:), allocatable :: field
+
+    allocate (field(naky,nakx,-nzgrid:nzgrid))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       dchidy(:,:,:,ivmu) = zi*spread(spread(aky,2,nakx),3,2*nzgrid+1)*aj0x(:,:,:,ivmu) &
+       field = zi*spread(spread(aky,2,nakx),3,2*nzgrid+1) &
             * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+       call gyro_average (field, ivmu, dchidy(:,:,:,ivmu))
     end do
+
+    deallocate (field)
 
   end subroutine get_dchidy_4d
 
   subroutine get_dchidy_2d (iz, ivmu, phi, apar, dchidy)
 
     use constants, only: zi
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, iv_idx
     use run_parameters, only: fphi, fapar
     use species, only: spec
     use vpamu_grids, only: vpa
-    use kt_grids, only: nakx, aky
+    use kt_grids, only: nakx, aky, naky
 
     implicit none
 
@@ -1570,24 +1579,30 @@ contains
     complex, dimension (:,:), intent (out) :: dchidy
 
     integer :: iv, is
+    complex, dimension (:,:), allocatable :: field
+
+    allocate (field(naky,nakx))
 
     is = is_idx(vmu_lo,ivmu)
     iv = iv_idx(vmu_lo,ivmu)
-    dchidy = zi*spread(aky,2,nakx)*aj0x(:,:,iz,ivmu) &
+    field = zi*spread(aky,2,nakx) &
          * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+    call gyro_average (field, iz, ivmu, dchidy)
     
+    deallocate (field)
+
   end subroutine get_dchidy_2d
 
   subroutine get_dchidx (iz, ivmu, phi, apar, dchidx)
 
     use constants, only: zi
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, iv_idx
     use run_parameters, only: fphi, fapar
     use species, only: spec
     use vpamu_grids, only: vpa
-    use kt_grids, only: akx, naky
+    use kt_grids, only: akx, naky, nakx
 
     implicit none
 
@@ -1596,12 +1611,18 @@ contains
     complex, dimension (:,:), intent (out) :: dchidx
 
     integer :: iv, is
+    complex, dimension (:,:), allocatable :: field
+
+    allocate (field(naky,nakx))
 
     is = is_idx(vmu_lo,ivmu)
     iv = iv_idx(vmu_lo,ivmu)
-    dchidx = zi*spread(akx,1,naky)*aj0x(:,:,iz,ivmu) &
+    field = zi*spread(akx,1,naky) &
          * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+    call gyro_average (field, iz, ivmu, dchidx)
     
+    deallocate (field)
+
   end subroutine get_dchidx
 
   subroutine add_wstar_term (g, src)
@@ -1632,7 +1653,6 @@ contains
     use run_parameters, only: fphi, fapar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
-    use dist_fn_arrays, only: gbar_to_h
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use run_parameters, only: stream_implicit, mirror_implicit
     use run_parameters, only: include_mirror, include_parallel_streaming
@@ -1660,6 +1680,7 @@ contains
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
+
        if (hyper_dissipation) then
           call advance_hyper_dissipation (g)
           fields_updated = .false.

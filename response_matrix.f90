@@ -138,8 +138,9 @@ contains
     use stella_geometry, only: gradpar
     use vpamu_grids, only: ztmax, vpa, maxwell_mu
     use fields_arrays, only: response_matrix
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: aj0x
     use run_parameters, only: stream_cell
+    use run_parameters, only: driftkinetic_implicit
     use parallel_streaming, only: stream_tridiagonal_solve
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
@@ -151,7 +152,7 @@ contains
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
     integer :: ivmu, iv, imu, is
-    real :: fac, fac0, fac1
+    real :: fac, fac0, fac1, gyro_fac
 
     ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -168,8 +169,13 @@ contains
        ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
        ! b.gradz left out because needs to be centred in zed
        ! if stream_cell = T
+       if (driftkinetic_implicit) then
+          gyro_fac = 1.0
+       else
+          gyro_fac = aj0x(iky,ikx,iz,ivmu)
+       end if
        fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-            *aj0x(iky,ikx,iz,ivmu)*ztmax(iv,is)/delzed(0)
+            *gyro_fac*ztmax(iv,is)/delzed(0)
        if (stream_cell) then
           fac = 0.5*fac
           ! stream_sign < 0 corresponds to positive advection speed
@@ -418,7 +424,7 @@ contains
     use extended_zgrid, only: nsegments
     use kt_grids, only: zonal_mode
     use vpamu_grids, only: integrate_species
-    use dist_fn_arrays, only: aj0x
+    use gyro_averages, only: gyro_average
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use fields, only: gamtot, gamtot3
@@ -445,7 +451,7 @@ contains
     ikx = ikxmod(iseg,ie,iky)
     do iz = iz_low(iseg), iz_up(iseg)
        idx = idx + 1
-       g0 = aj0x(iky,ikx,iz,:)*g(idx,:)
+       call gyro_average (g(idx,:), iky, ikx, iz, g0)
        call integrate_species (g0, iz, wgt, phi(idx))
        phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
     end do
@@ -455,7 +461,7 @@ contains
           ikx = ikxmod(iseg,ie,iky)
           do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
              idx = idx + 1
-             g0 = aj0x(iky,ikx,iz,:)*g(idx,:)
+             call gyro_average (g(idx,:), iky, ikx, iz, g0)
              call integrate_species (g0, iz, wgt, phi(idx))
              phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
           end do

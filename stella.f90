@@ -58,7 +58,7 @@ contains
     use physics_parameters, only: init_physics_parameters
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep
-    use run_parameters, only: stream_implicit
+    use run_parameters, only: stream_implicit, driftkinetic_implicit
     use species, only: init_species
     use zgrid, only: init_zgrid
     use stella_geometry, only: init_geometry
@@ -135,7 +135,7 @@ contains
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz
     if (debug) write(6,*) "stella::init_stella::init_response_matrix"
-    if (stream_implicit) call init_response_matrix
+    if (stream_implicit .or. driftkinetic_implicit) call init_response_matrix
 
     if (.not.restarted) then
        if (debug) write (6,*) 'stella::init_stella::get_fields'

@@ -1,9 +1,6 @@
 #
 # Auto-generated file by fortdep. Do not edit!
 #
-rhostar_nu_calculator_mod = \
-	 rhostar_nu_calculator.o 
-
 stella_mod = \
 	 command_line.o \
 	 common_types.o \
@@ -21,7 +18,9 @@ stella_mod = \
 	 file_utils.o \
 	 finite_differences.o \
 	 fzero.o \
+	 g_tofrom_h.o \
 	 gauss_quad.o \
+	 gyro_averages.o \
 	 init_g.o \
 	 inputprofiles_interface.o \
 	 job_manage.o \
@@ -40,7 +39,6 @@ stella_mod = \
 	 response_matrix.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
-	 sort.o \
 	 species.o \
 	 spfunc.o \
 	 spl.o \
@@ -74,6 +72,8 @@ dissipation.o: \
 	 fields.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 g_tofrom_h.o \
+	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 linear_solve.o \
@@ -90,24 +90,17 @@ dist_fn.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 file_utils.o \
+	 gyro_averages.o \
 	 kt_grids.o \
 	 mp.o \
 	 redistribute.o \
 	 species.o \
-	 spfunc.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-dist_fn_arrays.o: \
-	 constants.o \
-	 extended_zgrid.o \
-	 kt_grids.o \
-	 species.o \
-	 stella_layouts.o \
-	 vpamu_grids.o \
-	 zgrid.o 
+dist_fn_arrays.o: 
 dist_redistribute.o: \
 	 kt_grids.o \
 	 mp.o \
@@ -136,6 +129,7 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
@@ -153,10 +147,27 @@ file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
 fzero.o: 
+g_tofrom_h.o: \
+	 extended_zgrid.o \
+	 gyro_averages.o \
+	 kt_grids.o \
+	 species.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 gauss_quad.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o 
+gyro_averages.o: \
+	 dist_fn_arrays.o \
+	 kt_grids.o \
+	 species.o \
+	 spfunc.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 hdf_wrapper.o: \
 	 constants.o \
 	 convert.o \
@@ -192,6 +203,7 @@ kt_grids.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o \
+	 stella_geometry.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
@@ -244,6 +256,7 @@ parallel_streaming.o: \
 	 fields.o \
 	 fields_arrays.o \
 	 finite_differences.o \
+	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 linear_solve.o \
@@ -268,10 +281,10 @@ redistribute.o: \
 	 mp.o 
 response_matrix.o: \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
+	 gyro_averages.o \
 	 kt_grids.o \
 	 linear_solve.o \
 	 parallel_streaming.o \
@@ -282,7 +295,6 @@ response_matrix.o: \
 	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-rhostar_nu_calculator.o: 
 run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
@@ -290,17 +302,8 @@ run_parameters.o: \
 	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
-	 constants.o \
-	 file_utils.o \
 	 mp.o \
-	 physics_parameters.o \
-	 sort.o \
-	 species.o \
-	 spl.o \
-	 stella_geometry.o \
-	 vpamu_grids.o \
 	 zgrid.o 
-sort.o: 
 species.o: \
 	 common_types.o \
 	 euterpe_interface.o \
@@ -348,6 +351,7 @@ stella_diagnostics.o: \
 	 dist_redistribute.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 gyro_averages.o \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
@@ -418,6 +422,7 @@ time_advance.o: \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mirror_terms.o \
