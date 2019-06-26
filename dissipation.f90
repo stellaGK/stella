@@ -155,7 +155,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_vpa(:,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(1,iz))**2 + 1./dvpa**2)
+            * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 + 1./dvpa**2)
     end do
 
   end subroutine init_vpadiff_matrix
@@ -198,17 +198,18 @@ contains
     if (.not.allocated(bb_mu)) allocate (bb_mu(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     if (.not.allocated(cc_mu)) allocate (cc_mu(-nzgrid:nzgrid,nmu,nspec))
 
+    ia = 1
+
     ! deal with boundary points (BC is f(mu)=0 beyond mu_max and collision operator vanishes for mu -> 0)
     aa_mu(:,1,:) = 0.0 ; cc_mu(:,nmu,:) = 0.0
     ! 2nd order centered differences for dt * nu * d/dmu (mu/B*dh/dmu + 2*mu*h)
     do is = 1, nspec
        do iz = -nzgrid, nzgrid
-          aa_mu(iz,2:,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(1,iz)*dmu)-1.0)/dmu_cell(2:)
-          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(1,iz)*dmu)+1.0)/dmu_cell(:nmu-1)
+          aa_mu(iz,2:,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)-1.0)/dmu_cell(2:)
+          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)+1.0)/dmu_cell(:nmu-1)
        end do
     end do
 
-    ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -216,11 +217,11 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_mu(1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
             *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
-            + 1.0/(dmu(1)*bmag(1,iz)) - 1.0)
+            + 1.0/(dmu(1)*bmag(ia,iz)) - 1.0)
        bb_mu(2:nmu-1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
             *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + (mu_cell(2:nmu-1)/dmu(2:)+mu_cell(:nmu-2)/dmu(:nmu-2)) &
-            /(dmu_cell(2:nmu-1)*bmag(1,iz)) - 1.0)
+            /(dmu_cell(2:nmu-1)*bmag(ia,iz)) - 1.0)
        bb_mu(nmu,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
             *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(nmu))
@@ -879,7 +880,7 @@ contains
        end if
        if (mu_operator) then
           do iv = 1, nvpa
-             call mu_differential_operator (iz, gvmu(iv,:,ikxkyz), mucoll)
+             call mu_differential_operator (iz, ia, gvmu(iv,:,ikxkyz), mucoll)
              coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
           end do
        end if
@@ -931,7 +932,7 @@ contains
 
   end subroutine vpa_differential_operator
 
-  subroutine mu_differential_operator (iz, h, Dh)
+  subroutine mu_differential_operator (iz, ia, h, Dh)
 
     use vpamu_grids, only: nmu, mu, dmu
     use vpamu_grids, only: equally_spaced_mu_grid
@@ -940,7 +941,7 @@ contains
 
     implicit none
 
-    integer, intent (in) :: iz
+    integer, intent (in) :: iz, ia
     complex, dimension (:), intent (in) :: h
     complex, dimension (:), intent (out) :: Dh
 
@@ -956,17 +957,17 @@ contains
     if (equally_spaced_mu_grid) then
        ! use mu_{i-1/2} = 0 for i = 1
        imu = 1
-       mup = 0.5*(mu(imu+1)+mu(imu))/(bmag(1,iz)*dmu(1))
+       mup = 0.5*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
        Dh(imu) = (h(imu+1)*(mup+mu(imu+1)) &
             -h(imu)*(mup-mu(imu)))/dmu(1)
        ! use h = 0 at ghost cells beyond mu_max
        imu = nmu
-       mup = 0.5*(2.*mu(imu)+dmu(1))/(bmag(1,iz)*dmu(1))
-       mum = 0.5*(mu(imu)+mu(imu-1))/(bmag(1,iz)*dmu(1))
+       mup = 0.5*(2.*mu(imu)+dmu(1))/(bmag(ia,iz)*dmu(1))
+       mum = 0.5*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
        Dh(imu) = (-h(imu)*(mup+mum) + h(imu-1)*(mum-mu(imu-1)))/dmu(1)
        do imu = 2, nmu-1
-          mup = 0.5*(mu(imu+1)+mu(imu))/(bmag(1,iz)*dmu(1))
-          mum = 0.5*(mu(imu)+mu(imu-1))/(bmag(1,iz)*dmu(1))
+          mup = 0.5*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
+          mum = 0.5*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
           Dh(imu) = (h(imu+1)*(mup+mu(imu+1)) &
                -h(imu)*(mup+mum) + h(imu-1)*(mum-mu(imu-1)))/dmu(1)
        end do
@@ -979,11 +980,11 @@ contains
        dmu_ghost(:nmu-1) = dmu(:nmu-1) ; dmu_ghost(nmu) = 1.0
        
        call d2_3pt (h_ghost, Dh_ghost, dmu_ghost)
-       Dh = Dh_ghost(:nmu)*mu/bmag(1,iz)
+       Dh = Dh_ghost(:nmu)*mu/bmag(ia,iz)
        
        ! next add (1/B + 2*mu)*dh/dmu + 2*h
        call fd3pt (h_ghost, Dh_ghost, dmu_ghost)
-       Dh = Dh + (1./bmag(1,iz) + 2.*mu)*Dh_ghost(:nmu) + 2.*h
+       Dh = Dh + (1./bmag(ia,iz) + 2.*mu)*Dh_ghost(:nmu) + 2.*h
     end if
 
     deallocate (h_ghost, Dh_ghost, dmu_ghost)
