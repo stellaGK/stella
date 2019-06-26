@@ -67,7 +67,7 @@ contains
 
     use mp, only: proc0
     use stella_transforms, only: init_transforms
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use run_parameters, only: nonlinear, include_parallel_nonlinearity
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
@@ -104,7 +104,7 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
-    if (nonlinear .or. alpha_global .or. include_parallel_nonlinearity) then
+    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
        if (debug) write (6,*) 'time_advance::init_time_advance::init_transforms'
        call init_transforms
     end if
@@ -751,7 +751,7 @@ contains
     use run_parameters, only: include_mirror, include_parallel_streaming
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ny
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use run_parameters, only: stream_implicit, mirror_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use parallel_streaming, only: advance_parallel_streaming_explicit
@@ -769,7 +769,7 @@ contains
 
     rhs_ky = 0.
 
-    if (alpha_global) then
+    if (full_flux_surface) then
        allocate (rhs_y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_proc))
        rhs_y = 0.
        rhs => rhs_y
@@ -811,7 +811,7 @@ contains
 
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
        
-       if (alpha_global) then
+       if (full_flux_surface) then
           call transform_y2ky (rhs_y, rhs_ky)
           deallocate (rhs_y)
        end if
@@ -841,7 +841,7 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
 
     implicit none
 
@@ -855,9 +855,9 @@ contains
     ! omega_* stays in ky,kx,z space with ky,kx,z local
     ! get d<chi>/dy
     if (debug) write (*,*) 'time_advance::solve_gke::get_dchidy'
-    if (alpha_global) then
+    if (full_flux_surface) then
        ! FLAG -- ADD SOMETHING HERE
-       call mp_abort ('wstar term not yet setup for alpha_global = .true. aborting.')
+       call mp_abort ('wstar term not yet setup for full_flux_surface = .true. aborting.')
     else
        call get_dchidy (phi, apar, g0)
        ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
@@ -878,7 +878,7 @@ contains
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
 
@@ -902,7 +902,7 @@ contains
     call get_dgdy (g, g0k)
     call get_dgdy (phi, dphidy)
 
-    if (alpha_global) then
+    if (full_flux_surface) then
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! transform dg/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
@@ -942,7 +942,7 @@ contains
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny, akx
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
 
@@ -972,7 +972,7 @@ contains
     call get_dgdx (g, g0k)
     call get_dgdx (phi, dphidx)
 
-    if (alpha_global) then
+    if (full_flux_surface) then
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! transform dg/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
@@ -1018,7 +1018,7 @@ contains
     use stella_geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
 
@@ -1088,7 +1088,7 @@ contains
 
           call transform_x2kx (bracket, g0kxy)
 
-          if (alpha_global) then
+          if (full_flux_surface) then
              gout(:,:,iz,ivmu) = g0kxy
           else
              call transform_y2ky (g0kxy, g0k_swap)
@@ -1149,7 +1149,7 @@ contains
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: alpha_global, zonal_mode
+    use kt_grids, only: full_flux_surface, zonal_mode
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, vpa, mu
@@ -1311,7 +1311,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do iz = -nzgrid, nzgrid
           call transform_x2kx (g0xy(:,:,iz,ivmu), g0kxy)
-          if (alpha_global) then
+          if (full_flux_surface) then
              gout(:,:,iz,ivmu) = gout(:,:,iz,ivmu) + code_dt*g0kxy
           else
              call transform_y2ky (g0kxy, g0k)
@@ -2002,7 +2002,7 @@ contains
   subroutine finish_time_advance
 
     use stella_transforms, only: finish_transforms
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use extended_zgrid, only: finish_extended_zgrid
     use parallel_streaming, only: finish_parallel_streaming
     use mirror_terms, only: finish_mirror
@@ -2012,7 +2012,7 @@ contains
 
     implicit none
 
-    if (alpha_global) call finish_transforms
+    if (full_flux_surface) call finish_transforms
     call finish_redistribute
     call finish_dissipation
     call finish_parallel_nonlinearity

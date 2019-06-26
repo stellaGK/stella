@@ -314,7 +314,7 @@ module kt_grids
   public :: gridopt_switch, grid_option
   public :: gridopt_range, gridopt_box
   public :: lx, ly
-  public :: alpha_global, ny_ffs
+  public :: full_flux_surface, ny_ffs
   public :: ikx_max
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
@@ -328,10 +328,10 @@ module kt_grids
   integer :: ikx_max
   character(20) :: grid_option
   integer :: ny_ffs = 1
-  logical :: alpha_global
+  logical :: full_flux_surface
   logical, dimension (:), allocatable :: zonal_mode
 
-  namelist /kt_grids_knobs/ grid_option, alpha_global
+  namelist /kt_grids_knobs/ grid_option, full_flux_surface
 
   ! internal variables
   integer :: gridopt_switch
@@ -375,7 +375,7 @@ contains
     call broadcast (ntheta0)
     call broadcast (ny)
     call broadcast (nx)
-    call broadcast (alpha_global)
+    call broadcast (full_flux_surface)
     call broadcast (ikx_max)
     call allocate_arrays
 
@@ -402,7 +402,7 @@ contains
     zonal_mode = .false.
     if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
 
-    if (alpha_global) ny_ffs = ny
+    if (full_flux_surface) ny_ffs = ny
 
   end subroutine init_kt_grids
 
@@ -417,7 +417,7 @@ contains
             text_option('nonlinear', gridopt_box) /)
     integer :: ierr, in_file
 
-    alpha_global = .false.
+    full_flux_surface = .false.
     grid_option = 'default'
 
     in_file = input_unit_exist ("kt_grids_knobs", nml_exist)

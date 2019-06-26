@@ -21,7 +21,7 @@ contains
 
   subroutine init_redistribute
 
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use run_parameters, only: include_parallel_nonlinearity
 
     implicit none
@@ -30,7 +30,7 @@ contains
     redistribute_initialized = .true.
 
     call init_kxkyz_to_vmu_redistribute
-    if (alpha_global) call init_kxyz_to_vmu_redistribute
+    if (full_flux_surface) call init_kxyz_to_vmu_redistribute
     if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
     
   end subroutine init_redistribute

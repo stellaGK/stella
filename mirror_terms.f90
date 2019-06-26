@@ -119,7 +119,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: dvpa, vpa, mu
     use vpamu_grids, only: nvpa, nmu
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use species, only: spec, nspec
     use stella_geometry, only: dbdzed, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
@@ -167,7 +167,7 @@ contains
     allocate (c(nvpa,-1:1)) ; c = 0.
 
     if (.not.allocated(mirror_tri_a)) then
-       if (alpha_global) then
+       if (full_flux_surface) then
           llim = kxyz_lo%llim_proc
           ulim = kxyz_lo%ulim_proc
        else
@@ -200,7 +200,7 @@ contains
     c = c*tupwndfac
     ! NB: b must be treated a bit differently -- see below
 
-    if (alpha_global) then
+    if (full_flux_surface) then
        do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
           iy = iy_idx(kxyz_lo,ikxyz)
           iz = iz_idx(kxyz_lo,ikxyz)
@@ -244,7 +244,7 @@ contains
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
@@ -264,7 +264,7 @@ contains
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
     ! the mirror term is most complicated of all when doing full flux surface
-    if (alpha_global) then
+    if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -424,7 +424,7 @@ contains
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use zgrid, only: nzgrid
     use dist_fn_arrays, only: gvmu
-    use kt_grids, only: alpha_global
+    use kt_grids, only: full_flux_surface
     use kt_grids, only: ny, nakx
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, maxwell_vpa
@@ -449,7 +449,7 @@ contains
     tupwnd = (1.0-time_upwind)*0.5
 
     ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
-    ! FOR ALPHA_GLOBAL
+    ! FOR FULL_FLUX_SURFACE
 
     ! now that we have g^{*}, need to solve
     ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
@@ -457,14 +457,14 @@ contains
     ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
     ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
     ! to invert and obtain h^{n+1}
-    if (alpha_global) then
+    if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
        ! first must take g^{*}(ky) and transform to g^{*}(y)
        call transform_ky2y (g, g0x)
 
-       write (*,*) 'WARNING: alpha_global not working in implicit_mirror advance!'
+       write (*,*) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
 
        ! convert g to g*(integrating factor), as this is what is being advected
        ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
