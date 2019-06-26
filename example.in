@@ -50,7 +50,7 @@
 
 &kt_grids_knobs
  grid_option='range'
- alpha_global = .false.
+ full_flux_surface = .false.
 /
 &kt_grids_range_parameters
  naky = 1
