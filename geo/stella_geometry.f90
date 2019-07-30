@@ -110,6 +110,7 @@ contains
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
+          ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
           dxdpsi_sign = 1
@@ -136,6 +137,7 @@ contains
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
+          ! psi here is enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
           dxdpsi_sign = 1
@@ -159,9 +161,7 @@ contains
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
           ! dxdpsi = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
-!          ! dxdpsi = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = sign(dxdpsi)/rhotor
           dxdpsi_sign = -1
-!          dxdpsi = dxdpsi_sign/geo_surf%rhotor
           dxdpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
           dydalpha_sign = 1

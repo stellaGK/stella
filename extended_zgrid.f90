@@ -35,14 +35,15 @@ contains
     use zgrid, only: boundary_option_linked
     use zgrid, only: nperiod, nzgrid, nzed
     use kt_grids, only: nakx, naky
-    use kt_grids, only: jtwist_out, aky, ikx_max
+    use kt_grids, only: jtwist_out, ikx_twist_shift
+    use kt_grids, only: aky, ikx_max
     use species, only: nspec
 
     implicit none
 
     integer :: iseg, iky, ie, ntg, ikx
     integer :: nseg_max, neigen_max
-    integer, dimension (:), allocatable :: ikx_shift_left
+    integer, dimension (:), allocatable :: ikx_shift_end
     integer, dimension (:,:), allocatable :: ikx_shift
 
     if (extended_zgrid_initialized) return
@@ -74,54 +75,107 @@ contains
 
        neigen_max = maxval(neigen)
 
-       if (.not. allocated(ikx_shift_left)) then
-          allocate (ikx_shift_left(neigen_max)) ; ikx_shift_left = 0
+       if (.not. allocated(ikx_shift_end)) then
+          allocate (ikx_shift_end(neigen_max)) ; ikx_shift_end = 0
           allocate (ikx_shift(nakx,naky)) ; ikx_shift = 0
        end if
 
-       ! figure out how much to shift ikx by to get to
-       ! the left-most (theta-theta0) in each set of connected 2pi segments
+       ! phi(kx-kx_shift,-nzgrid) = phi(kx,nzgrid) from twist-and-shift BC
+       ! for positive (negative) magnetic shear, kx_shift is positive (negative),
+       ! so start at most positive (negative) kx and
+       ! progress to smaller (larger) kx values as connections occur
+
+       ! figure out how much to shift ikx by to get to the end of the kx chain
+       ! for positive (negative) magnetic shear, this is the left-most (right-most) theta-theta0 
+       ! in each set of connected 2pi segments
        ! note that theta0 goes from 0 to theta0_max and then from theta0_min back
        ! to -dtheta0
+
        do ikx = 1, neigen_max
           ! first ikx_max=nakx/2+1 theta0s are 0 and all positive theta0 values
           ! remainder are negative theta0s
           ! theta_0 = kx / ky / shat
           ! if ky > 0, then most positive theta_0 corresponds to most positive kx
-          if (ikx <= ikx_max) then
-             ikx_shift_left(ikx) = ikx_max-2*ikx+1
-          else
-             ikx_shift_left(ikx) = 3*ikx_max-2*ikx
+          
+          ! first consider case where shift in kx is negative (corresponds to positive magnetic shear)
+          if (ikx_twist_shift < 0) then
+             if (ikx <= ikx_max) then
+                ikx_shift_end(ikx) = ikx_max-2*ikx+1
+             else
+                ikx_shift_end(ikx) = 3*ikx_max-2*ikx
+             end if
+          ! then consider case where shift in kx is positive
+          else if (ikx_twist_shift > 0) then
+             if (ikx < ikx_max) then
+                if (ikx + ikx_max <= nakx) then
+                   ikx_shift_end(ikx) = ikx_max
+                else
+                   ikx_shift_end(ikx) = ikx - nakx
+                end if
+             else
+                ikx_shift_end(ikx) = 1 - ikx_max
+             end if
           end if
+          ! note that zero shift case is taken care of by initialization of ikx_shift_end
        end do
 
        do iky = 1, naky
           ! ikx_shift is how much to shift each ikx by to connect
-          ! to the next theta0 (from most positive to most negative)
+          ! to the next theta0 (from most positive to most negative for positive magnetic shear
+          ! and vice versa for negative magnetic shear)
 
-          ! if ky > 0, then going to more negative theta0
-          ! corresponds to going to more negative kx
-          do ikx = 1, ikx_max
-             ! if theta0 is sufficiently positive, shifting to more
-             ! negative theta0 corresponds to decreasing ikx
-             if (ikx-neigen(iky) > 0) then
-                ikx_shift(ikx,iky) = -neigen(iky)
-                ! if a positive theta0 connects to a negative theta0
-                ! must do more complicated mapping of ikx
-             else if (ikx-neigen(iky)+nakx >= ikx_max+1) then
-                ikx_shift(ikx,iky) = nakx - neigen(iky)
-             end if
-          end do
-          ! if theta0 is negative, then shifting to more negative
-          ! theta0 corresponds to decreasing ikx
-          do ikx = ikx_max+1, nakx
-             ! if theta0 is sufficiently negative, it has no
-             ! more negative theta0 with which it can connect
-             if (ikx-neigen(iky) >= ikx_max) then
-                ikx_shift(ikx,iky) = -neigen(iky)
-             end if
-             ! theta0 is positive
-          end  do
+          ! first consider shift in index for case where shift is negative
+          ! (corresponds to positive magnetic shear)
+          if (ikx_twist_shift < 0) then
+             ! if ky > 0, then going to more negative theta0
+             ! corresponds to going to more negative kx
+             do ikx = 1, ikx_max
+                ! if theta0 is sufficiently positive, shifting to more
+                ! negative theta0 corresponds to decreasing ikx
+                if (ikx-neigen(iky) > 0) then
+                   ikx_shift(ikx,iky) = -neigen(iky)
+                   ! if a positive theta0 connects to a negative theta0
+                   ! must do more complicated mapping of ikx
+                else if (ikx-neigen(iky)+nakx >= ikx_max+1) then
+                   ikx_shift(ikx,iky) = nakx - neigen(iky)
+                end if
+             end do
+             ! if theta0 is negative, then shifting to more negative
+             ! theta0 corresponds to decreasing ikx
+             do ikx = ikx_max+1, nakx
+                ! if theta0 is sufficiently negative, it has no
+                ! more negative theta0 with which it can connect
+                if (ikx-neigen(iky) >= ikx_max) then
+                   ikx_shift(ikx,iky) = -neigen(iky)
+                end if
+                ! theta0 is positive
+             end  do
+          else if (ikx_twist_shift > 0) then
+             ! if ky > 0, then going to more positive theta0
+             ! corresponds to going to more positive kx
+             do ikx = 1, ikx_max
+                ! if shift in kx, kx_shift, is less than kx-kx_max,
+                ! then shift by the appropriate amount
+                if (ikx+neigen(iky) <= ikx_max) then
+                   ikx_shift(ikx,iky) = neigen(iky)
+                end if
+                ! otherwise, no kx on grid to connect with
+             end do
+             do ikx = ikx_max+1, nakx
+                ! if kx+kx_shift < 0, then simple shift by neigen
+                if (ikx+neigen(iky) <= nakx) then
+                   ikx_shift(ikx,iky) = neigen(iky)
+                ! if 0 < kx+kx_shift <= kx_max, then more complicated shift
+                ! to positive set of kx values
+
+
+                   ! HERE IA AM AND THIS IS WRONG !
+                else if (ikx-ikx_max+neigen(iky) <= nakx) then
+                   ikx_shift(ikx,iky) = neigen(iky) - nakx
+                end if
+                ! otherwise, no kx on grid with which to connect
+             end  do
+          end if
        end do
 
        if (.not. allocated(nsegments)) allocate (nsegments(neigen_max,naky))
@@ -150,11 +204,11 @@ contains
        
        neigen = nakx ; neigen_max = nakx
        
-       if (.not. allocated(ikx_shift_left)) then
-          allocate (ikx_shift_left(neigen_max))
+       if (.not. allocated(ikx_shift_end)) then
+          allocate (ikx_shift_end(neigen_max))
           allocate (ikx_shift(nakx,naky))
        end if
-       ikx_shift = 0 ; ikx_shift_left = 0
+       ikx_shift = 0 ; ikx_shift_end = 0
        
        if (.not. allocated(nsegments)) then
           allocate (nsegments(neigen_max,naky))
@@ -189,15 +243,15 @@ contains
        ! a value beyond nsegments(ie,iky)
        ikxmod = nakx
     end if
+
     do iky = 1, naky
        ! only do the following once for each independent set of theta0s
        ! the assumption here is that all kx are on processor and sequential
        do ie = 1, neigen(iky)
-          ! remap to start at theta0 = theta0_max
-          ! (so that theta-theta0 is most negative)
+          ! remap to start at theta0 = theta0_max (theta0_min) for negative (positive) kx shift
           ! for this set of connected theta0s
           iseg = 1
-          ikxmod(iseg,ie,iky) = ie + ikx_shift_left(ie)
+          ikxmod(iseg,ie,iky) = ie + ikx_shift_end(ie)
           if (nsegments(ie,iky) > 1) then
              do iseg = 2, nsegments(ie,iky)
                 ikxmod(iseg,ie,iky) = ikxmod(iseg-1,ie,iky) + ikx_shift(ikxmod(iseg-1,ie,iky),iky)
@@ -206,7 +260,7 @@ contains
        end do
     end do
 
-    if (allocated(ikx_shift_left)) deallocate (ikx_shift_left)
+    if (allocated(ikx_shift_end)) deallocate (ikx_shift_end)
     if (allocated(ikx_shift)) deallocate (ikx_shift)
 
     ! this is the number of unique zed values in all segments but the first
