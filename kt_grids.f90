@@ -365,7 +365,7 @@ contains
        jtwist_out = jtwist
        ! may be better to calculate ikx_twist_shift
        ! in case of stellarators
-       ikx_twist_shift = -jtwist*int(sign(1.0,geo_surf%shat))
+       ikx_twist_shift = -jtwist*int(sign(1.0,twist_and_shift_geo_fac))
        ! get the ikx index corresponding to kx_max
        ikx_max = nakx/2+1
     end if

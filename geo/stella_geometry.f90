@@ -65,6 +65,7 @@ contains
 
   subroutine init_geometry
 
+    use constants, only: pi
     use mp, only: proc0
     use millerlocal, only: read_local_parameters, get_local_geo
     use vmec_geo, only: read_vmec_parameters, get_vmec_geo
@@ -118,6 +119,10 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
+          ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+          ! minus its sign gives the direction of the shift in kx
+          ! to be used for twist-and-shift BC
+          twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
        case (geo_option_inputprof)
@@ -145,6 +150,10 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
+          ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+          ! minus its sign gives the direction of the shift in kx
+          ! to be used for twist-and-shift BC
+          twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
           ! aref and bref should not be needed so set to 1
           aref = 1.0 ; bref = 1.0
        case (geo_option_vmec)
@@ -170,6 +179,10 @@ contains
           ! psiN = -psitor/(aref**2*Bref)
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
           drhodpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
+          ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+          ! minus its sign gives the direction of the shift in kx
+          ! to be used for twist-and-shift BC
+          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
 !          drhodpsi = -1.0/geo_surf%rhotor
 !          twist_and_shift_geo_fac = 1./(zed_scalefac*geo_surf%qinp)
        end select
@@ -183,7 +196,7 @@ contains
 
     ! should reduce to 2*pi*shat in axisymmetric case
     ! but not in non-axisymmetric case
-    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
+!    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
 
     ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION
     jacob(1,:) = 1.0/abs(drhodpsi*gradpar(1,:)*bmag(1,:))
@@ -342,6 +355,7 @@ contains
     call broadcast (alpha)
     call broadcast (dxdpsi)
     call broadcast (dydalpha)
+    call broadcast (twist_and_shift_geo_fac)
 
     call broadcast (aref)
     call broadcast (bref)
