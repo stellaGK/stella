@@ -188,8 +188,6 @@ contains
     jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
     rtwist = 0.0
 
-    write (*,*) 'jtwist', jtwist
-
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_box_parameters)
 
@@ -310,7 +308,7 @@ module kt_grids
   public :: init_kt_grids, box, finish_kt_grids
   public :: aky, theta0, akx
   public :: naky, nakx, ntheta0, nx, ny, reality
-  public :: jtwist_out
+  public :: jtwist_out, ikx_twist_shift
   public :: gridopt_switch, grid_option
   public :: gridopt_range, gridopt_box
   public :: lx, ly
@@ -324,7 +322,8 @@ module kt_grids
   real :: lx, ly
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
-  integer :: naky, nakx, ntheta0, nx, ny, jtwist_out
+  integer :: naky, nakx, ntheta0, nx, ny
+  integer :: jtwist_out, ikx_twist_shift
   integer :: ikx_max
   character(20) :: grid_option
   integer :: ny_ffs = 1
@@ -364,6 +363,9 @@ contains
        call read_parameters
        call get_sizes
        jtwist_out = jtwist
+       ! may be better to calculate ikx_twist_shift
+       ! in case of stellarators
+       ikx_twist_shift = -jtwist*int(sign(1.0,geo_surf%shat))
        ! get the ikx index corresponding to kx_max
        ikx_max = nakx/2+1
     end if
@@ -383,6 +385,7 @@ contains
     call broadcast (aky)
     call broadcast (akx)
     call broadcast (jtwist_out)
+    call broadcast (ikx_twist_shift)
     do ik = 1, naky
        call broadcast (theta0(ik,:))
     end do
