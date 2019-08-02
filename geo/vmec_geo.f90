@@ -7,6 +7,7 @@ module vmec_geo
 
   integer :: nalpha
   real :: alpha0
+  real :: nzgrid_scalefac
   integer :: surface_option
   real :: nfield_periods
   real :: zeta_center, torflux
@@ -18,6 +19,8 @@ contains
   subroutine read_vmec_parameters (nalpha_out)
 
     use file_utils, only: input_unit_exist
+    use mp, only: mp_abort
+    use zgrid, only: zed_equal_arc
 
     implicit none
 
@@ -27,18 +30,29 @@ contains
     logical :: exist
 
     namelist /vmec_parameters/ nalpha, alpha0, zeta_center, nfield_periods, &
-         torflux, surface_option, verbose, vmec_filename
+         torflux, nzgrid_scalefac, surface_option, verbose, vmec_filename
 
     call init_vmec_defaults
 
     in_file = input_unit_exist("vmec_parameters", exist)
     if (exist) read (unit=in_file, nml=vmec_parameters)
 
+    if (nzgrid_scalefac < 1.0-epsilon(0.)) then
+       write (*,*) 'nzgrid_scalefac = ', nzgrid_scalefac
+       call mp_abort ('nzgrid_scalefac should always be >= 1.0.  aborting')
+    else if (nzgrid_scalefac > 1.0+epsilon(0.) .and. .not.zed_equal_arc) then
+       write (*,*) 'There is no reason to use nzgrid_scalefac different from 1 unless zed_equal_arc=T'
+       write (*,*) 'Setting nzgrid_scalefac = 1.0'
+       nzgrid_scalefac = 1.0
+    end if
+
     nalpha_out = nalpha
 
   end subroutine read_vmec_parameters
 
   subroutine init_vmec_defaults
+
+    use zgrid, only: zed_equal_arc
 
     implicit none
 
@@ -50,6 +64,17 @@ contains
     torflux = 0.6354167d+0
     surface_option = 0
     verbose = .true.
+    ! if simulating entire flux surface,
+    ! must obtain vmec geo quantities
+    ! on zeta grid that is longer than
+    ! will ultimately be used in simulation
+    ! this is related to need for gradpar to
+    ! be independent of alpha
+    if (zed_equal_arc) then
+       nzgrid_scalefac = 2.0
+    else
+       nzgrid_scalefac = 1.0
+    end if
 
   end subroutine init_vmec_defaults
 
@@ -71,19 +96,81 @@ contains
     integer, intent (out) :: sign_torflux
 
     integer :: i, j
+    integer :: nzgrid_vmec
     real :: nfp
+
+    real, dimension (:), allocatable :: zeta_vmec
+    real, dimension (:,:), allocatable :: bmag_vmec, gradpar_vmec
+    real, dimension (:,:), allocatable :: gds2_vmec, gds21_vmec, gds22_vmec
+    real, dimension (:,:), allocatable :: gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec
+    real, dimension (:,:), allocatable :: gbdrift_vmec, gbdrift0_vmec
+    real, dimension (:,:), allocatable :: cvdrift_vmec, cvdrift0_vmec
 
 !    real, dimension (nalpha) :: alpha
     real, dimension (-nzgrid:nzgrid) :: zeta
     real, dimension (nalpha,-nzgrid:nzgrid) :: theta
 
-    call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, alpha0, nzgrid, &
-         zeta_center, nfield_periods, torflux, surface_option, verbose, &
-         surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
-         sign_torflux, &
-         alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, &
-         gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec)
+    ! nzgrid_vmec is the number of positive/negative zeta locations
+    ! at which to get geometry data from vmec
+    ! can be > than nzgrid for full_flux_surface case
+    ! where z(zeta_max)-z(zeta_min) varies with alpha
+    ! and thus a larger than usual range of zeta_max/min
+    ! values are needed to avoid extrapolation
+    nzgrid_vmec = nint(nzgrid*nzgrid_scalefac)
 
+    ! allocate arrays of size 2*nzgrid_vmec+1
+    allocate (zeta_vmec(-nzgrid_vmec:nzgrid_vmec))
+    allocate (bmag_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gradpar_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds2_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds21_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds22_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds23_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds24_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds25_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gds26_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gbdrift_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gbdrift0_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (cvdrift_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (cvdrift0_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+
+    call vmec_to_gs2_geometry_interface (vmec_filename, nalpha, alpha0, &
+         nzgrid_vmec, zeta_center, nfield_periods*nzgrid_scalefac, torflux, &
+         surface_option, verbose, &
+         surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
+         sign_torflux, alpha, zeta_vmec, &
+         bmag_vmec, gradpar_vmec, gds2_vmec, gds21_vmec, &
+         gds22_vmec, gds23_vmec, gds24_vmec, &
+         gds25_vmec, gds26_vmec, gbdrift_vmec, gbdrift0_vmec, cvdrift_vmec, &
+         cvdrift0_vmec, theta_vmec)
+
+    if (nzgrid_vmec /= nzgrid) then
+       ! do some stuff
+    else
+       zeta = zeta_vmec
+       bmag = bmag_vmec
+       gradpar = gradpar_vmec
+       gds2 = gds2_vmec
+       gds21 = gds21_vmec
+       gds22 = gds22_vmec
+       gds23 = gds23_vmec
+       gds24 = gds24_vmec
+       gds25 = gds25_vmec
+       gds26 = gds26_vmec
+       gbdrift = gbdrift_vmec
+       gbdrift0 = gbdrift0_vmec
+       cvdrift = cvdrift_vmec
+       cvdrift0 = cvdrift0_vmec
+    end if
+    
+    ! arrays over extended zeta-grid no longer needed, so deallocate
+    deallocate (zeta_vmec)
+    deallocate (bmag_vmec, gradpar_vmec)
+    deallocate (gds2_vmec, gds21_vmec, gds22_vmec)
+    deallocate (gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec)
+    deallocate (gbdrift_vmec, gbdrift0_vmec)
+    deallocate (cvdrift_vmec, cvdrift0_vmec)
+    
     ! vmec_to_gs2_geometry_interface returns psitor/psitor_lcfs as rhoc
     ! stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor
     surf%rhoc = sqrt(surf%rhoc)

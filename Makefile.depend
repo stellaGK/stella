@@ -452,7 +452,9 @@ time_advance.o: \
 vmec_geo.o: \
 	 common_types.o \
 	 file_utils.o \
-	 vmec_to_gs2_geometry_interface.o 
+	 mp.o \
+	 vmec_to_gs2_geometry_interface.o \
+	 zgrid.o 
 vmec_to_gs2_geometry_interface.o: \
 	 fzero.o 
 vpamu_grids.o: \
@@ -468,4 +470,5 @@ zgrid.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o \
+	 physics_flags.o \
 	 text_options.o 
