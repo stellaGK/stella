@@ -6,7 +6,6 @@ module run_parameters
 
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
-  public :: include_parallel_streaming
   public :: include_mirror
   public :: include_collisions
   public :: nonlinear
@@ -28,7 +27,6 @@ module run_parameters
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max
   real :: zed_upwind, vpa_upwind, time_upwind
-  logical :: include_parallel_streaming
   logical :: include_mirror, include_collisions
   logical :: nonlinear
   logical :: stream_implicit, mirror_implicit
@@ -82,7 +80,7 @@ contains
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          stream_cell, stream_matrix_inversion, &
          mirror_semi_lagrange, mirror_linear_interp, &
-         include_parallel_streaming, include_mirror, &
+         include_mirror, &
          include_collisions, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz
@@ -96,7 +94,6 @@ contains
        mirror_implicit = .true.
        driftkinetic_implicit = .false.
        nonlinear = .false.
-       include_parallel_streaming = .true.
        include_mirror = .true.
        include_collisions = .false.
        mirror_semi_lagrange = .true.
@@ -133,7 +130,6 @@ contains
     call broadcast (mirror_implicit)
     call broadcast (driftkinetic_implicit)
     call broadcast (nonlinear)
-    call broadcast (include_parallel_streaming)
     call broadcast (include_mirror)
     call broadcast (include_collisions)
     call broadcast (mirror_semi_lagrange)
