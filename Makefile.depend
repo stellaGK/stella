@@ -303,6 +303,7 @@ response_matrix.o: \
 run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
+	 physics_flags.o \
 	 stella_save.o \
 	 stella_time.o \
 	 text_options.o 

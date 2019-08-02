@@ -69,7 +69,7 @@ contains
     use stella_transforms, only: init_transforms
     use physics_flags, only: full_flux_surface
     use physics_flags, only: include_parallel_nonlinearity
-    use run_parameters, only: nonlinear
+    use physics_flags, only: nonlinear
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
     use parallel_streaming, only: init_parallel_streaming
@@ -750,8 +750,8 @@ contains
     use physics_flags, only: include_parallel_nonlinearity
     use physics_flags, only: include_parallel_streaming
     use physics_flags, only: include_mirror
+    use physics_flags, only: nonlinear
     use run_parameters, only: fphi, fapar
-    use run_parameters, only: nonlinear
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ny
     use physics_flags, only: full_flux_surface

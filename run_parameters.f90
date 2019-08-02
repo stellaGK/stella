@@ -6,7 +6,6 @@ module run_parameters
 
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
-  public :: nonlinear
   public :: code_delt_max
   public :: nstep
   public :: cfl_cushion, delt_adjust
@@ -25,7 +24,6 @@ module run_parameters
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max
   real :: zed_upwind, vpa_upwind, time_upwind
-  logical :: nonlinear
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
   logical :: fully_explicit
@@ -76,7 +74,7 @@ contains
     real :: delt_saved
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
-         delt_option, nonlinear, &
+         delt_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          stream_cell, stream_matrix_inversion, &
@@ -92,7 +90,6 @@ contains
        stream_implicit = .true.
        mirror_implicit = .true.
        driftkinetic_implicit = .false.
-       nonlinear = .false.
        mirror_semi_lagrange = .true.
        mirror_linear_interp = .false.
        stream_cell = .true.
@@ -126,7 +123,6 @@ contains
     call broadcast (stream_implicit)
     call broadcast (mirror_implicit)
     call broadcast (driftkinetic_implicit)
-    call broadcast (nonlinear)
     call broadcast (mirror_semi_lagrange)
     call broadcast (mirror_linear_interp)
     call broadcast (stream_cell)

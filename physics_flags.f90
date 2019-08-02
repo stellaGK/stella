@@ -8,6 +8,7 @@ module physics_flags
   public :: include_parallel_nonlinearity
   public :: include_parallel_streaming
   public :: include_mirror
+  public :: nonlinear
 
   private
 
@@ -15,6 +16,7 @@ module physics_flags
   logical :: include_parallel_nonlinearity
   logical :: include_parallel_streaming
   logical :: include_mirror
+  logical :: nonlinear
 
   logical :: initialized = .false.
 
@@ -42,13 +44,14 @@ contains
     logical :: rpexist
     
     namelist /physics_flags/ full_flux_surface, include_parallel_nonlinearity, &
-         include_parallel_streaming, include_mirror
+         include_parallel_streaming, include_mirror, nonlinear
 
     if (proc0) then
        full_flux_surface = .false.
        include_parallel_nonlinearity = .false.
        include_parallel_streaming = .true.
        include_mirror = .true.
+       nonlinear = .false.
 
        in_file = input_unit_exist("physics_flags", rpexist)
        if (rpexist) read (unit=in_file,nml=physics_flags)
@@ -58,6 +61,7 @@ contains
     call broadcast (include_parallel_nonlinearity)
     call broadcast (include_parallel_streaming)
     call broadcast (include_mirror)
+    call broadcast (nonlinear)
 
   end subroutine read_parameters
 
