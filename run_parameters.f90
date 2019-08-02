@@ -6,8 +6,6 @@ module run_parameters
 
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
-  public :: include_mirror
-  public :: include_collisions
   public :: nonlinear
   public :: code_delt_max
   public :: nstep
@@ -27,7 +25,6 @@ module run_parameters
   real :: fphi, fapar, fbpar
   real :: delt, code_delt_max
   real :: zed_upwind, vpa_upwind, time_upwind
-  logical :: include_mirror, include_collisions
   logical :: nonlinear
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
@@ -60,11 +57,15 @@ contains
   end subroutine init_run_parameters
 
   subroutine read_parameters
+
     use file_utils, only: input_unit, error_unit, input_unit_exist
     use mp, only: proc0, broadcast
     use stella_save, only: init_dt
     use text_options, only: text_option, get_option_value
+    use physics_flags, only: include_mirror
+
     implicit none
+
     type (text_option), dimension (3), parameter :: deltopts = &
          (/ text_option('default', delt_option_hand), &
             text_option('set_by_hand', delt_option_hand), &
@@ -80,8 +81,6 @@ contains
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          stream_cell, stream_matrix_inversion, &
          mirror_semi_lagrange, mirror_linear_interp, &
-         include_mirror, &
-         include_collisions, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz
 
@@ -94,8 +93,6 @@ contains
        mirror_implicit = .true.
        driftkinetic_implicit = .false.
        nonlinear = .false.
-       include_mirror = .true.
-       include_collisions = .false.
        mirror_semi_lagrange = .true.
        mirror_linear_interp = .false.
        stream_cell = .true.
@@ -130,8 +127,6 @@ contains
     call broadcast (mirror_implicit)
     call broadcast (driftkinetic_implicit)
     call broadcast (nonlinear)
-    call broadcast (include_mirror)
-    call broadcast (include_collisions)
     call broadcast (mirror_semi_lagrange)
     call broadcast (mirror_linear_interp)
     call broadcast (stream_cell)

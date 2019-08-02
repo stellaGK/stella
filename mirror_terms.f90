@@ -34,7 +34,7 @@ contains
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange
-    use run_parameters, only: include_mirror
+    use physics_flags, only: include_mirror
 
     implicit none
 

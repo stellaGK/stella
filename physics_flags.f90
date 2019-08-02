@@ -7,12 +7,14 @@ module physics_flags
   public :: full_flux_surface
   public :: include_parallel_nonlinearity
   public :: include_parallel_streaming
+  public :: include_mirror
 
   private
 
   logical :: full_flux_surface
   logical :: include_parallel_nonlinearity
   logical :: include_parallel_streaming
+  logical :: include_mirror
 
   logical :: initialized = .false.
 
@@ -40,12 +42,13 @@ contains
     logical :: rpexist
     
     namelist /physics_flags/ full_flux_surface, include_parallel_nonlinearity, &
-         include_parallel_streaming
+         include_parallel_streaming, include_mirror
 
     if (proc0) then
        full_flux_surface = .false.
        include_parallel_nonlinearity = .false.
        include_parallel_streaming = .true.
+       include_mirror = .true.
 
        in_file = input_unit_exist("physics_flags", rpexist)
        if (rpexist) read (unit=in_file,nml=physics_flags)
@@ -54,6 +57,7 @@ contains
     call broadcast (full_flux_surface)
     call broadcast (include_parallel_nonlinearity)
     call broadcast (include_parallel_streaming)
+    call broadcast (include_mirror)
 
   end subroutine read_parameters
 

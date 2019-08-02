@@ -749,9 +749,9 @@ contains
     use redistribute, only: gather, scatter
     use physics_flags, only: include_parallel_nonlinearity
     use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: include_mirror
     use run_parameters, only: fphi, fapar
     use run_parameters, only: nonlinear
-    use run_parameters, only: include_mirror
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ny
     use physics_flags, only: full_flux_surface
@@ -1659,8 +1659,8 @@ contains
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: include_mirror
     use run_parameters, only: stream_implicit, mirror_implicit
-    use run_parameters, only: include_mirror
     use parallel_streaming, only: advance_parallel_streaming_implicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_implicit
