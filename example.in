@@ -29,6 +29,7 @@
 
 &physics_flags
  full_flux_surface = .false.
+ nonlinear = .false.
 /
 
 &parameters
@@ -76,7 +77,6 @@
  zed_upwind = 0.02
  time_upwind = 0.02
  vpa_upwind = 0.02
- nonlinear = .false.
  delt = 0.03
  nstep = 2000
 /
