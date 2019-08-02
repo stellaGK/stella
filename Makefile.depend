@@ -33,6 +33,7 @@ stella_mod = \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 ran.o \
 	 redistribute.o \
@@ -102,8 +103,8 @@ dist_fn.o: \
 	 zgrid.o 
 dist_fn_arrays.o: 
 dist_redistribute.o: \
-	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 stella_layouts.o \
@@ -148,7 +149,6 @@ file_utils.o: \
 finite_differences.o: 
 fzero.o: 
 g_tofrom_h.o: \
-	 extended_zgrid.o \
 	 gyro_averages.o \
 	 kt_grids.o \
 	 species.o \
@@ -203,6 +203,7 @@ kt_grids.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o \
+	 physics_flags.o \
 	 stella_geometry.o \
 	 text_options.o \
 	 zgrid.o 
@@ -223,6 +224,7 @@ mirror_terms.o: \
 	 kt_grids.o \
 	 mp.o \
 	 neoclassical_terms.o \
+	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -271,6 +273,9 @@ parallel_streaming.o: \
 	 zgrid.o 
 pgplot_utils.o: \
 	 constants.o 
+physics_flags.o: \
+	 file_utils.o \
+	 mp.o 
 physics_parameters.o: \
 	 file_utils.o \
 	 mp.o 
@@ -331,6 +336,7 @@ stella.o: \
 	 mirror_terms.o \
 	 mp.o \
 	 parallel_streaming.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
 	 response_matrix.o \
@@ -429,6 +435,7 @@ time_advance.o: \
 	 mp.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
 	 response_matrix.o \

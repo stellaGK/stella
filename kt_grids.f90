@@ -312,7 +312,7 @@ module kt_grids
   public :: gridopt_switch, grid_option
   public :: gridopt_range, gridopt_box
   public :: lx, ly
-  public :: full_flux_surface, ny_ffs
+  public :: ny_ffs
   public :: ikx_max
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
@@ -327,10 +327,9 @@ module kt_grids
   integer :: ikx_max
   character(20) :: grid_option
   integer :: ny_ffs = 1
-  logical :: full_flux_surface
   logical, dimension (:), allocatable :: zonal_mode
 
-  namelist /kt_grids_knobs/ grid_option, full_flux_surface
+  namelist /kt_grids_knobs/ grid_option
 
   ! internal variables
   integer :: gridopt_switch
@@ -349,6 +348,7 @@ contains
     use mp, only: proc0, broadcast
     use constants, only: pi
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
+    use physics_flags, only: full_flux_surface
 
     implicit none
 
@@ -377,7 +377,6 @@ contains
     call broadcast (ntheta0)
     call broadcast (ny)
     call broadcast (nx)
-    call broadcast (full_flux_surface)
     call broadcast (ikx_max)
     call allocate_arrays
 
@@ -420,7 +419,6 @@ contains
             text_option('nonlinear', gridopt_box) /)
     integer :: ierr, in_file
 
-    full_flux_surface = .false.
     grid_option = 'default'
 
     in_file = input_unit_exist ("kt_grids_knobs", nml_exist)

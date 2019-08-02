@@ -119,7 +119,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: dvpa, vpa, mu
     use vpamu_grids, only: nvpa, nmu
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use species, only: spec, nspec
     use stella_geometry, only: dbdzed, nalpha
     use neoclassical_terms, only: include_neoclassical_terms
@@ -244,7 +244,7 @@ contains
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
@@ -424,7 +424,7 @@ contains
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use zgrid, only: nzgrid
     use dist_fn_arrays, only: gvmu
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use kt_grids, only: ny, nakx
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, maxwell_vpa

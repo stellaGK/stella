@@ -67,7 +67,7 @@ contains
 
     use mp, only: proc0
     use stella_transforms, only: init_transforms
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use run_parameters, only: nonlinear, include_parallel_nonlinearity
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
@@ -751,7 +751,7 @@ contains
     use run_parameters, only: include_mirror, include_parallel_streaming
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ny
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use run_parameters, only: stream_implicit, mirror_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use parallel_streaming, only: advance_parallel_streaming_explicit
@@ -841,7 +841,7 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
 
     implicit none
 
@@ -878,7 +878,7 @@ contains
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
 
@@ -942,7 +942,7 @@ contains
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, naky, ny, akx
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
 
@@ -1018,7 +1018,7 @@ contains
     use stella_geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
 
@@ -1148,8 +1148,9 @@ contains
     use zgrid, only: nzgrid, delzed
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
+    use physics_flags, only: full_flux_surface
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: full_flux_surface, zonal_mode
+    use kt_grids, only: zonal_mode
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, vpa, mu
@@ -2002,7 +2003,7 @@ contains
   subroutine finish_time_advance
 
     use stella_transforms, only: finish_transforms
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use extended_zgrid, only: finish_extended_zgrid
     use parallel_streaming, only: finish_parallel_streaming
     use mirror_terms, only: finish_mirror

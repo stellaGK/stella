@@ -27,6 +27,10 @@
  betadbprim = 0.0
 /
 
+&physics_flags
+ full_flux_surface = .false.
+/
+
 &parameters
  zeff = 1.0
  beta = 0.01
@@ -50,7 +54,6 @@
 
 &kt_grids_knobs
  grid_option='range'
- full_flux_surface = .false.
 /
 &kt_grids_range_parameters
  naky = 1

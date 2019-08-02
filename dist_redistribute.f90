@@ -21,7 +21,7 @@ contains
 
   subroutine init_redistribute
 
-    use kt_grids, only: full_flux_surface
+    use physics_flags, only: full_flux_surface
     use run_parameters, only: include_parallel_nonlinearity
 
     implicit none

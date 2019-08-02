@@ -56,6 +56,7 @@ contains
     use file_utils, only: run_name
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
+    use physics_flags, only: init_physics_flags
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep
     use run_parameters, only: stream_implicit, driftkinetic_implicit
@@ -110,6 +111,8 @@ contains
     call init_geometry
     if (debug) write(6,*) "stella::init_stella::init_physics_parameters"
     call init_physics_parameters
+    if (debug) write(6,*) "stella::init_stella::init_physics_flags"
+    call init_physics_flags
     if (debug) write (6,*) 'stella::init_stella::init_species'
     call init_species
     if (debug) write(6,*) "stella::init_stella::init_init_g"
@@ -176,6 +179,7 @@ contains
     use file_utils, only: finish_file_utils
     use job_manage, only: time_message
     use physics_parameters, only: finish_physics_parameters
+    use physics_flags, only: finish_physics_flags
     use run_parameters, only: finish_run_parameters
     use zgrid, only: finish_zgrid
     use species, only: finish_species
@@ -216,6 +220,8 @@ contains
     call finish_run_parameters
     if (debug) write (*,*) 'stella::finish_stella::finish_species'
     call finish_species
+    if (debug) write (*,*) 'stella::finish_stella::finish_physics_flags'
+    call finish_physics_flags
     if (debug) write (*,*) 'stella::finish_stella::finish_physics_parameters'
     call finish_physics_parameters
     if (debug) write (*,*) 'stella::finish_stella::finish_geometry'
