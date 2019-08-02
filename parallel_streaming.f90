@@ -42,7 +42,7 @@ contains
     use stella_geometry, only: gradpar, nalpha
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use run_parameters, only: stream_cell
-    use run_parameters, only: include_parallel_streaming
+    use physics_flags, only: include_parallel_streaming
 
     implicit none
 

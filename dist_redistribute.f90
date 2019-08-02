@@ -22,7 +22,7 @@ contains
   subroutine init_redistribute
 
     use physics_flags, only: full_flux_surface
-    use run_parameters, only: include_parallel_nonlinearity
+    use physics_flags, only: include_parallel_nonlinearity
 
     implicit none
 
