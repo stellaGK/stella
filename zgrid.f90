@@ -7,6 +7,7 @@ module zgrid
   public :: nztot, nz2pi
   public :: zed
   public :: delzed
+  public :: zed_equal_arc
   public :: shat_zero
   public :: boundary_option_switch
   public :: boundary_option_zero
@@ -16,6 +17,7 @@ module zgrid
   private
 
   integer :: nzed, nzgrid, nperiod, nztot, nz2pi
+  logical :: zed_equal_arc
   real :: shat_zero
   real, dimension (:), allocatable :: zed, delzed
 
@@ -62,6 +64,7 @@ contains
 
     use file_utils, only: input_unit_exist, error_unit
     use text_options, only: text_option, get_option_value
+    use physics_flags, only: full_flux_surface
 
     implicit none
 
@@ -77,11 +80,15 @@ contains
             text_option('linked', boundary_option_linked) /)
     character(20) :: boundary_option
 
-    namelist /zgrid_parameters/ nzed, nperiod, shat_zero, boundary_option
+    namelist /zgrid_parameters/ nzed, nperiod, shat_zero, boundary_option, zed_equal_arc
 
     nzed = 24
     nperiod = 1
     boundary_option = 'default'
+    ! if zed_equal_arc = T, then zed is chosen to be arc length
+    ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
+    ! or zeta (toroidal) angle
+    zed_equal_arc = .false.
     ! set minimum shat value below which we assume
     ! periodic BC
     shat_zero = 1.e-5
@@ -100,6 +107,10 @@ contains
 
     nzgrid = nzed/2 + (nperiod-1)*nzed
 
+    ! force use of equal arc grid to ensure gradpar alpha-independent
+    ! necessary to obtain efficient numerical solution of parallel streaming
+    if (full_flux_surface) zed_equal_arc = .true.
+
   end subroutine read_parameters
 
   subroutine broadcast_parameters
@@ -111,6 +122,7 @@ contains
     call broadcast (nzed)
     call broadcast (nzgrid)
     call broadcast (nperiod)
+    call broadcast (zed_equal_arc)
     call broadcast (shat_zero)
     call broadcast (boundary_option_switch)
 
