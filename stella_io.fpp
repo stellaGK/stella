@@ -23,19 +23,20 @@ module stella_io
   integer (kind_nf) :: ncid
 
   integer (kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim
-  integer (kind_nf) :: nakx_dim
+  integer (kind_nf) :: nakx_dim, ntubes_dim
   integer (kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
   integer (kind_nf) :: nalpha_dim
 
-  integer, dimension (6) :: moment_dim
-  integer, dimension (5) :: field_dim
+  integer, dimension (7) :: moment_dim
+  integer, dimension (6) :: field_dim
+  integer, dimension (5) :: zvs_dim
   integer, dimension (4) :: vmus_dim
-  integer, dimension (4) :: zvs_dim, kykxaz_dim
+  integer, dimension (4) :: kykxaz_dim
   integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim
 
-  integer :: nakx_id
+  integer :: nakx_id, ntubes_id
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
   integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
@@ -104,7 +105,7 @@ contains
 
     use file_utils, only: num_input_lines
     use kt_grids, only: naky, nakx
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: nalpha
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
@@ -122,6 +123,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, dim='ky')
     status = nf90_def_dim (ncid, 'kx', nakx, nakx_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='kx')
+    status = nf90_def_dim (ncid, 'tube', ntubes, ntubes_dim)
+    if (status /= nf90_noerr) call netcdf_error (status, dim='tube')
     status = nf90_def_dim (ncid, 'theta0', nakx, nakx_dim)
     if (status /= nf90_noerr) call netcdf_error (status, dim='theta0')
     status = nf90_def_dim (ncid, 'zed', 2*nzgrid+1, nttot_dim)
@@ -149,7 +152,7 @@ contains
 
   subroutine nc_grids
 
-    use zgrid, only: nzgrid, zed
+    use zgrid, only: nzgrid, zed, ntubes
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0, akx, aky
     use species, only: nspec
@@ -166,6 +169,8 @@ contains
     status = nf90_put_var (ncid, nttot_id, 2*nzgrid+1)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nttot_id)
     status = nf90_put_var (ncid, naky_id, naky)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, ntubes_id)
+    status = nf90_put_var (ncid, ntubes_id, ntubes)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, naky_id)
     status = nf90_put_var (ncid, nakx_id, nakx)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nakx_id)
@@ -192,7 +197,7 @@ contains
 !    if (nonlin) then
 !       nmesh = (2*nzgrid+1)*(2*nvgrid+1)*nmu*nx*ny*nspec
 !    else
-       nmesh = (2*nzgrid+1)*nvpa*nmu*nakx*naky*nspec
+       nmesh = (2*nzgrid+1)*ntubes*nvpa*nmu*nakx*naky*nspec
 !    end if
 
     status = nf90_put_var (ncid, nmesh_id, nmesh)
@@ -303,24 +308,27 @@ contains
     field_dim (2) = naky_dim
     field_dim (3) = nakx_dim
     field_dim (4) = nttot_dim
-    field_dim (5) = time_dim
+    field_dim (5) = ntubes_dim
+    field_dim (6) = time_dim
 
     moment_dim (1) = ri_dim
     moment_dim (2) = naky_dim
     moment_dim (3) = nakx_dim
     moment_dim (4) = nttot_dim
-    moment_dim (5) = nspec_dim
-    moment_dim (6) = time_dim
+    moment_dim (5) = ntubes_dim
+    moment_dim (6) = nspec_dim
+    moment_dim (7) = time_dim
 
     vmus_dim (1) = nvtot_dim
     vmus_dim (2) = nmu_dim
     vmus_dim (3) = nspec_dim
     vmus_dim (4) = time_dim
 
-    zvs_dim (1) = nttot_dim
-    zvs_dim (2) = nvtot_dim
-    zvs_dim (3) = nspec_dim
-    zvs_dim (4) = time_dim
+    zvs_dim (1) = ntubes_dim
+    zvs_dim (2) = nttot_dim
+    zvs_dim (3) = nvtot_dim
+    zvs_dim (4) = nspec_dim
+    zvs_dim (5) = time_dim
     
     kykxz_dim (1) = naky_dim
     kykxz_dim (2) = nakx_dim
@@ -415,6 +423,8 @@ contains
     status = nf90_put_att (ncid, nmesh_id, 'long_name', 'Number of meshpoints')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nmesh_id, att='long_name')
 
+    status = nf90_def_var (ncid, 'ntubes', nf90_int, ntubes_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='ntubes')
     status = nf90_def_var (ncid, 'nkx', nf90_int, nakx_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='nkx')
     status = nf90_def_var (ncid, 'nky', nf90_int, naky_id)
@@ -679,7 +689,7 @@ contains
   subroutine write_phi_nc (nout, phi)
 
     use convert, only: c2r
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
@@ -688,22 +698,23 @@ contains
     implicit none
 
     integer, intent (in) :: nout
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
 
 # ifdef NETCDF
     integer :: status
-    integer, dimension (5) :: start, count
-    real, dimension (:,:,:,:), allocatable :: phi_ri
+    integer, dimension (6) :: start, count
+    real, dimension (:,:,:,:,:), allocatable :: phi_ri
 
     start = 1
-    start(5) = nout
+    start(6) = nout
     count(1) = 2
     count(2) = naky
     count(3) = nakx
     count(4) = 2*nzgrid+1
-    count(5) = 1
+    count(5) = ntubes
+    count(6) = 1
 
-    allocate (phi_ri(2, naky, nakx, 2*nzgrid+1))
+    allocate (phi_ri(2, naky, nakx, 2*nzgrid+1, ntubes))
     call c2r (phi, phi_ri)
     status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id)
@@ -743,7 +754,7 @@ contains
   subroutine write_moments_nc (nout, density, upar, temperature)
 
     use convert, only: c2r
-    use zgrid, only: nztot
+    use zgrid, only: nztot, ntubes
     use kt_grids, only: nakx, naky
     use species, only: nspec
 # ifdef NETCDF
@@ -753,23 +764,24 @@ contains
     implicit none
 
     integer, intent (in) :: nout
-    complex, dimension (:,:,:,:), intent (in) :: density, upar, temperature
+    complex, dimension (:,:,:,:,:), intent (in) :: density, upar, temperature
 
 # ifdef NETCDF
     integer :: status
-    integer, dimension (6) :: start, count
-    real, dimension (:,:,:,:,:), allocatable :: mom_ri
+    integer, dimension (7) :: start, count
+    real, dimension (:,:,:,:,:,:), allocatable :: mom_ri
 
     start = 1
-    start(6) = nout
+    start(7) = nout
     count(1) = 2
     count(2) = naky
     count(3) = nakx
     count(4) = nztot
-    count(5) = nspec
-    count(6) = 1
+    count(5) = ntubes
+    count(6) = nspec
+    count(7) = 1
 
-    allocate (mom_ri(2, naky, nakx, nztot, nspec))
+    allocate (mom_ri(2, naky, nakx, nztot, ntubes, nspec))
 
     call c2r (density, mom_ri)
     status = nf90_put_var (ncid, density_id, mom_ri, start=start, count=count)
@@ -822,7 +834,7 @@ contains
 
   subroutine write_gzvs_nc (nout, g)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa
     use species, only: nspec
 # ifdef NETCDF
@@ -832,18 +844,19 @@ contains
     implicit none
 
     integer, intent (in) :: nout
-    real, dimension (:,:,:), intent (in) :: g
+    real, dimension (:,:,:,:), intent (in) :: g
 
 # ifdef NETCDF
     integer :: status
-    integer, dimension (4) :: start, count
+    integer, dimension (5) :: start, count
 
-    start(1:3) = 1
-    start(4) = nout
-    count(1) = 2*nzgrid+1
-    count(2) = nvpa
-    count(3) = nspec
-    count(4) = 1
+    start = 1
+    start(5) = nout
+    count(1) = ntubes
+    count(2) = 2*nzgrid+1
+    count(3) = nvpa
+    count(4) = nspec
+    count(5) = 1
 
     status = nf90_put_var (ncid, gzvs_id, g, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id)

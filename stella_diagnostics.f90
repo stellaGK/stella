@@ -231,7 +231,7 @@ contains
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
-    use zgrid, only: nztot
+    use zgrid, only: nztot, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
     use kt_grids, only: naky, nakx
@@ -244,11 +244,11 @@ contains
     real :: phi2, apar2
     real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
-    real, dimension (:,:,:), allocatable :: gzvs
+    real, dimension (:,:,:,:), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: phi2_vs_kxky
-    complex, dimension (:,:,:,:), allocatable :: density, upar, temperature
+    complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
     complex, dimension (:,:), allocatable :: omega_avg
 
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
@@ -317,9 +317,9 @@ contains
     end if
     if (write_moments) then
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_moments'
-       allocate (density(naky,nakx,nztot,nspec))
-       allocate (upar(naky,nakx,nztot,nspec))
-       allocate (temperature(naky,nakx,nztot,nspec))
+       allocate (density(naky,nakx,nztot,ntubes,nspec))
+       allocate (upar(naky,nakx,nztot,ntubes,nspec))
+       allocate (temperature(naky,nakx,nztot,ntubes,nspec))
        call get_moments (gnew, density, upar, temperature)
        if (proc0) call write_moments_nc (nout, density, upar, temperature)
        deallocate (density, upar, temperature)
@@ -334,7 +334,7 @@ contains
        deallocate (gvmus)
     end if
     if (write_gzvs) then
-       allocate (gzvs(nztot,nvpa,nspec))
+       allocate (gzvs(ntubes,nztot,nvpa,nspec))
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::get_gzvs'
        call get_gzvs (gnew, gzvs)
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_gzvs_nc'
@@ -357,55 +357,70 @@ contains
 
   subroutine fieldline_average_real (unavg, avg)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky
     use stella_geometry, only: dl_over_b
 
     implicit none
 
-    real, dimension (:,:,-nzgrid:), intent (in) :: unavg
+    real, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
     real, dimension (:,:), intent (out) :: avg
 
-    avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg,dim=3)
+    integer :: it
 
+    avg = 0.0
+    do it = 1, ntubes
+       avg = avg + sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
+    end do
+    avg = avg/real(ntubes)
+    
   end subroutine fieldline_average_real
 
   subroutine fieldline_average_complex (unavg, avg)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky
     use stella_geometry, only: dl_over_b
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in) :: unavg
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
     complex, dimension (:,:), intent (out) :: avg
 
-    avg = sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg,dim=3)
+    integer :: it
+
+    avg = 0.0
+    do it = 1, ntubes
+       avg = avg + sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
+    end do
+    avg = avg/real(ntubes)
 
   end subroutine fieldline_average_complex
 
   subroutine volume_average (unavg, avg)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use stella_geometry, only: dl_over_b
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in) :: unavg
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
     real, intent (out) :: avg
 
-    integer :: iky, ikx, iz
+    integer :: iky, ikx, iz, it
 
     avg = 0.
-    do iz = -nzgrid, nzgrid
-       do ikx = 1, nakx
-          do iky = 1, naky
-             avg = avg + real(unavg(iky,ikx,iz)*conjg(unavg(iky,ikx,iz)))*fac(iky)*dl_over_b(iz)
+    do it = 1, ntubes
+       do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+             do iky = 1, naky
+                avg = avg + real(unavg(iky,ikx,iz,it)*conjg(unavg(iky,ikx,iz,it)))*fac(iky)*dl_over_b(iz)
+             end do
           end do
        end do
     end do
+    avg = avg/real(ntubes)
 
   end subroutine volume_average
 
@@ -416,12 +431,12 @@ contains
     use constants, only: zi
     use fields_arrays, only: phi, apar
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use species, only: spec
     use stella_geometry, only: jacob, grho, bmag
     use stella_geometry, only: gds21, gds22
     use stella_geometry, only: geo_surf
-    use zgrid, only: delzed, nzgrid
+    use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
     use run_parameters, only: fphi, fapar
@@ -433,7 +448,7 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (out) :: pflx, vflx, qflx
 
-    integer :: ikxkyz, iky, ikx, iz, is, ia
+    integer :: ikxkyz, iky, ikx, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm
     complex, dimension (:,:), allocatable :: gtmp1, gtmp2, gtmp3
 
@@ -452,16 +467,17 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           
           ! get particle flux
           call gyro_average (g(:,:,ikxkyz), ikxkyz, gtmp1)
-          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz), pflx(is))
-          
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx(is))
+
           ! get heat flux
           ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
           gtmp1 = gtmp1*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
-          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz), qflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx(is))
 
           ! get momentum flux
           ! parallel component
@@ -473,7 +489,7 @@ contains
           call gyro_average_j1 (gtmp1, ikxkyz, gtmp3)
           gtmp1 = gtmp2 + gtmp3
 
-          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz), vflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx(is))
        end do
     end if
 
@@ -483,16 +499,17 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           
           ! Apar contribution to particle flux
           gtmp1 = -g(:,:,ikxkyz)*spec(is)%stm*spread(vpa,2,nmu)
           call gyro_average (gtmp1, ikxkyz, gtmp2)
-          call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz), pflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), pflx(is))
           
           ! Apar contribution to heat flux
           gtmp2 = gtmp2*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa))
-          call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz), qflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), qflx(is))
           
           ! Apar contribution to momentum flux
           ! parallel component
@@ -509,13 +526,19 @@ contains
 
           gtmp1 = gtmp2 + gtmp3
 
-          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, apar(iky,ikx,iz), vflx(is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, apar(iky,ikx,iz,it), vflx(is))
        end do
     end if
 
     call sum_reduce (pflx, 0) ; pflx = pflx*spec%dens
     call sum_reduce (qflx, 0) ; qflx = qflx*spec%dens*spec%temp
     call sum_reduce (vflx, 0) ; vflx = vflx*spec%dens*sqrt(spec%mass*spec%temp)
+
+    ! normalise to account for contributions from multiple flux tubes
+    ! in flux tube train
+    pflx = pflx/real(ntubes)
+    qflx = qflx/real(ntubes)
+    vflx = vflx/real(ntubes)
 
     deallocate (gtmp1, gtmp2, gtmp3)
     deallocate (flx_norm)
@@ -583,7 +606,7 @@ contains
 
   subroutine get_moments (g, dens, upar, temp)
     
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: ztmax, maxwell_mu, vpa, vperp2
@@ -596,8 +619,8 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,:,:), intent (out) :: dens, upar, temp
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp
 
     integer :: ivmu, iv, imu, is
 
@@ -608,10 +631,10 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       call gyro_average (g(:,:,:,ivmu), ivmu, g1(:,:,:,ivmu))
+       call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
        ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-       g2(:,:,:,ivmu) = g1(:,:,:,ivmu) &
-            + ztmax(iv,is)*spread(spread(maxwell_mu(1,:,imu),1,naky),2,nakx)*(aj0x(:,:,:,ivmu)**2-1.0)*phi
+       g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
+            + spread(spread(spread(maxwell_mu(1,:,imu),1,naky),2,nakx)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
     end do
     call integrate_vmu (g2, spec%dens, dens)
 
@@ -620,7 +643,8 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 !       g2(:,:,:,ivmu) = 2.*g2(:,:,:,ivmu)*(vpa(iv)**2+spread(spread(vperp2(1,:,imu),1,naky),2,nakx)-1.5)/3.0
-       g2(:,:,:,ivmu) = g2(:,:,:,ivmu)*(vpa(iv)**2+spread(spread(vperp2(1,:,imu),1,naky),2,nakx))/1.5
+       g2(:,:,:,:,ivmu) = g2(:,:,:,:,ivmu) &
+            *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))/1.5
     end do
     ! integrate to get dTs/Tr
 !    call integrate_vmu (g2, spec%temp, temp)
@@ -630,7 +654,7 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       g2(:,:,:,ivmu) = vpa(iv)*g1(:,:,:,ivmu)
+       g2(:,:,:,:,ivmu) = vpa(iv)*g1(:,:,:,:,ivmu)
     end do
     call integrate_vmu (g2, spec%stm, upar)
 
@@ -643,6 +667,7 @@ contains
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, iz_idx
+    use zgrid, only: ntubes
     use vpamu_grids, only: nvpa, nmu
     use stella_geometry, only: dl_over_b
 
@@ -651,7 +676,7 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gv
 
-    integer :: ikxkyz, iv, is, imu, ig, iky!, ivp
+    integer :: ikxkyz, iv, is, imu, iz, iky!, ivp
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2
@@ -661,13 +686,14 @@ contains
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        is = is_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
-       ig = iz_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = 1, nvpa
-             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(ig)
+             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(iz)
           end do
        end do
     end do
+    gv = gv/real(ntubes)
 
     if (nproc > 1) call sum_reduce (gv,0)
 
@@ -677,20 +703,20 @@ contains
   subroutine get_gzvs (g, gz)
 
     use stella_layouts, only: vmu_lo
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_mu
     use kt_grids, only: nakx, naky
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (:,:,:), intent (out) :: gz
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (:,:,:,:), intent (out) :: gz
 
-    integer :: ivmu, ig, ikx, iky, igp
+    integer :: ivmu, iz, it, ikx, iky, izp
 
-    real, dimension (:,:), allocatable :: gtmp
+    real, dimension (:,:,:), allocatable :: gtmp
 
-    allocate (gtmp(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (gtmp(-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_kx |g(kx,ky=0)|^2 + 2 * sum_{kx,ky} |g(kx,ky>0)|^2
@@ -700,14 +726,16 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do ikx = 1, nakx
           do iky = 1, naky
-             gtmp(:,ivmu) = gtmp(:,ivmu) + real(g(iky,ikx,:,ivmu)*conjg(g(iky,ikx,:,ivmu)))*fac(iky)
+             gtmp(:,:,ivmu) = gtmp(:,:,ivmu) + real(g(iky,ikx,:,:,ivmu)*conjg(g(iky,ikx,:,:,ivmu)))*fac(iky)
           end do
        end do
     end do
-
-    do ig = -nzgrid, nzgrid
-       igp = ig+nzgrid+1
-       call integrate_mu (ig, gtmp(ig,:), gz(igp,:,:))
+    
+    do it = 1, ntubes
+       do iz = -nzgrid, nzgrid
+          izp = iz+nzgrid+1
+          call integrate_mu (iz, gtmp(iz,it,:), gz(it,izp,:,:))
+       end do
     end do
 
     deallocate (gtmp)
@@ -789,7 +817,7 @@ contains
 
     use file_utils, only: open_output_file, close_output_file
     use fields_arrays, only: phi, apar
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
     use kt_grids, only: aky, akx, theta0
@@ -798,7 +826,7 @@ contains
     implicit none
 
     integer :: tmpunit
-    integer :: iky, ikx, ig
+    integer :: iky, ikx, iz, it
 
     call open_output_file (tmpunit,'.final_fields')
     write (tmpunit,'(9a14)') '# z', 'z-thet0', 'aky', 'akx', &
@@ -806,12 +834,14 @@ contains
          'z_eqarc-thet0'
     do iky = 1, naky
        do ikx = 1, nakx
-          do ig = -nzgrid, nzgrid
-             write (tmpunit,'(9es15.4e3)') zed(ig), zed(ig)-theta0(iky,ikx), aky(iky), akx(ikx), &
-                  real(phi(iky,ikx,ig)), aimag(phi(iky,ikx,ig)), &
-                  real(apar(iky,ikx,ig)), aimag(apar(iky,ikx,ig)), zed_eqarc(ig)-theta0(iky,ikx)
+          do it = 1, ntubes
+             do iz = -nzgrid, nzgrid
+                write (tmpunit,'(9es15.4e3,i3)') zed(iz), zed(iz)-theta0(iky,ikx), aky(iky), akx(ikx), &
+                  real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it)), &
+                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-theta0(iky,ikx), it
+             end do
+             write (tmpunit,*)
           end do
-          write (tmpunit,*)
        end do
     end do
     call close_output_file (tmpunit)

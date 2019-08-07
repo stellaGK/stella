@@ -19,6 +19,7 @@ module convert
      module procedure x3c2r
      module procedure x4c2r
      module procedure x5c2r
+     module procedure x6c2r
   end interface
 
   interface r2c
@@ -48,6 +49,22 @@ contains
     a_ri(2,:,:,:,:,:) = aimag(a(:,:,:,:,:))
 
   end subroutine x5c2r
+
+  subroutine x6c2r(a, a_ri)
+
+    complex, dimension(:,:,:,:,:,:), intent(in) :: a
+    real, dimension(:,:,:,:,:,:,:), intent(out) :: a_ri
+
+    if(size(a, 1) /= size(a_ri, 2)) call aborter (6, 'x6c2r: size(a, 1) does not match size(a_ri, 2)')
+    if(size(a, 2) /= size(a_ri, 3)) call aborter (6, 'x6c2r: size(a, 2) does not match size(a_ri, 3)')
+    if(size(a, 3) /= size(a_ri, 4)) call aborter (6, 'x6c2r: size(a, 3) does not match size(a_ri, 4)')
+    if(size(a, 4) /= size(a_ri, 5)) call aborter (6, 'x6c2r: size(a, 4) does not match size(a_ri, 5)')
+    if(size(a, 5) /= size(a_ri, 6)) call aborter (6, 'x6c2r: size(a, 5) does not match size(a_ri, 6)')
+    if(size(a, 6) /= size(a_ri, 7)) call aborter (6, 'x6c2r: size(a, 6) does not match size(a_ri, 7)')
+    a_ri(1,:,:,:,:,:,:) = real(a(:,:,:,:,:,:))
+    a_ri(2,:,:,:,:,:,:) = aimag(a(:,:,:,:,:,:))
+
+  end subroutine x6c2r
 !------------------------------------------------------------------------------
 !                              AstroGK, 2009
 !------------------------------------------------------------------------------

@@ -243,7 +243,7 @@ contains
     use job_manage, only: time_message
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
     use stella_transforms, only: transform_ky2y
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use physics_flags, only: full_flux_surface
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvpa, nmu
@@ -253,11 +253,11 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:), allocatable :: g0v
-    complex, dimension (:,:,:,:), allocatable :: g0x
+    complex, dimension (:,:,:,:,:), allocatable :: g0x
 
     integer :: iv
 
@@ -266,7 +266,7 @@ contains
     ! the mirror term is most complicated of all when doing full flux surface
     if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-       allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
        ! for upwinding, need to evaluate dh/dvpa in y-space
        ! first must take h(ky) and transform to h(y)
@@ -288,7 +288,7 @@ contains
        call add_mirror_term_global (g0x, gout)
     else
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-       allocate (g0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
        if (.not.fields_kxkyz) then
           if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
@@ -371,20 +371,20 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(mirror(1,:,imu,is),1,naky),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(mirror(1,:,imu,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
   end subroutine add_mirror_term
@@ -393,20 +393,20 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(mirror(:,:,imu,is),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(mirror(:,:,imu,is),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
   end subroutine add_mirror_term_global
@@ -422,7 +422,7 @@ contains
     use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
     use stella_layouts, only: iz_idx, is_idx, iv_idx, imu_idx
     use stella_transforms, only: transform_ky2y, transform_y2ky
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use dist_fn_arrays, only: gvmu
     use physics_flags, only: full_flux_surface
     use kt_grids, only: ny, nakx
@@ -436,13 +436,13 @@ contains
     implicit none
 
     logical, intent (in) :: collisions_implicit
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxyz, ikxkyz, ivmu
     integer :: iv, imu, iz, is
     real :: tupwnd
     complex, dimension (:,:,:), allocatable :: g0v
-    complex, dimension (:,:,:,:), allocatable :: g0x
+    complex, dimension (:,:,:,:,:), allocatable :: g0x
 
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
@@ -459,7 +459,7 @@ contains
     ! to invert and obtain h^{n+1}
     if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-       allocate (g0x(ny,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
        ! first must take g^{*}(ky) and transform to g^{*}(y)
        call transform_ky2y (g, g0x)
@@ -471,12 +471,12 @@ contains
        ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
        if (include_neoclassical_terms) then
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)*spread(mirror_int_fac(:,:,ivmu),2,nakx)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*spread(spread(mirror_int_fac(:,:,ivmu),2,nakx),4,ntubes)
           end do
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
-             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)/maxwell_vpa(iv)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv)
           end do
        end if
 
@@ -497,12 +497,12 @@ contains
        ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
        if (include_neoclassical_terms) then
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)/spread(mirror_int_fac(:,:,ivmu),2,nakx)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/spread(spread(mirror_int_fac(:,:,ivmu),2,nakx),4,ntubes)
           end do
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
-             g0x(:,:,:,ivmu) = g0x(:,:,:,ivmu)*maxwell_vpa(iv)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*maxwell_vpa(iv)
           end do
        end if
 
@@ -518,7 +518,7 @@ contains
        end if
 
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-       allocate (g0x(1,1,1,1))
+       allocate (g0x(1,1,1,1,1))
 
        if (mirror_semi_lagrange) then
           call vpa_interpolation (gvmu, g0v)

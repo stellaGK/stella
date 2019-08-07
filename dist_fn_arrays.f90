@@ -13,11 +13,11 @@ module dist_fn_arrays
   public :: wdriftx_phi, wdrifty_phi
 
   ! dist fn
-  complex, dimension (:,:,:,:), allocatable :: gnew, gold
-  ! (naky, nakx, -nzgrid:nzgrid, -vmu-layout-)
+  complex, dimension (:,:,:,:,:), allocatable :: gnew, gold
+  ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
-  complex, dimension (:,:,:,:), allocatable :: g1, g2, g3
-  ! (naky, nakx, -nzgrid:nzgrid, -vmu-layout-)
+  complex, dimension (:,:,:,:,:), allocatable :: g1, g2, g3
+  ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (nvpa, nmu, nspec, -kxkyz-layout-)

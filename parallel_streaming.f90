@@ -163,7 +163,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use gyro_averages, only: gyro_average
     use fields_arrays, only: phi
@@ -172,21 +172,21 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     integer :: ivmu, iv, imu, is, ia
-    complex, dimension (:,:,:,:), allocatable :: g0, g1
+    complex, dimension (:,:,:,:,:), allocatable :: g0, g1
 
-    allocate (g0(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    allocate (g1(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
     ! get dg/dz, with z the parallel coordinate and store in g0
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       call gyro_average (phi, ivmu, g0(:,:,:,ivmu))
-       if (driftkinetic_implicit) g0(:,:,:,ivmu) = g0(:,:,:,ivmu) - phi
+       call gyro_average (phi, ivmu, g0(:,:,:,:,ivmu))
+       if (driftkinetic_implicit) g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) - phi
     end do
 
     call get_dgdz (g0, g1)
@@ -203,8 +203,8 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       g0(:,:,:,ivmu) = g0(:,:,:,ivmu) + g1(:,:,:,ivmu)*ztmax(iv,is) &
-            * spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx)
+       g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) + g1(:,:,:,:,ivmu)*ztmax(iv,is) &
+            * spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
     end do
 
     ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
@@ -219,7 +219,7 @@ contains
     use finite_differences, only: third_order_upwind_zed
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use zgrid, only: nzgrid, delzed
+    use zgrid, only: nzgrid, delzed, ntubes
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
@@ -228,25 +228,27 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dgdz
 
-    integer :: ivmu, iseg, ie, iky, iv
+    integer :: ivmu, iseg, ie, it, iky, iv
     complex, dimension (2) :: gleft, gright
 
     ! FLAG -- assuming delta zed is equally spaced below!
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        do iky = 1, naky
-          do ie = 1, neigen(iky)
-             do iseg = 1, nsegments(ie,iky)
-                ! first fill in ghost zones at boundaries in g(z)
-                call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
-                ! now get dg/dz
-                call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
-                     delzed(0), stream_sign(iv), gleft, gright, &
-                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
+          do it = 1, ntubes
+             do ie = 1, neigen(iky)
+                do iseg = 1, nsegments(ie,iky)
+                   ! first fill in ghost zones at boundaries in g(z)
+                   call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:,ivmu), gleft, gright)
+                   ! now get dg/dz
+                   call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                        g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it,ivmu), &
+                        delzed(0), stream_sign(iv), gleft, gright, &
+                        dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it,ivmu))
+                end do
              end do
           end do
        end do
@@ -298,20 +300,20 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx!, zonal_mode
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: iv, is, ivmu
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,ivmu) = src(:,:,:,ivmu) + spread(spread(stream(:,iv,is),1,naky),2,nakx)*g(:,:,:,ivmu)
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
 !       if (zonal_mode(1)) src(1,:,-nzgrid,ivmu) = src(1,:,nzgrid,ivmu)
     end do
 
@@ -322,7 +324,7 @@ contains
     use mp, only: proc0
     use job_manage, only: time_message
     use stella_layouts, only: vmu_lo, iv_idx
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use dist_fn_arrays, only: g1
     use run_parameters, only: stream_matrix_inversion
@@ -330,15 +332,15 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
 
     integer :: ivmu, iv
-    complex, dimension (:,:,:), allocatable :: phi1
+    complex, dimension (:,:,:,:), allocatable :: phi1
 
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
-    allocate (phi1(naky,nakx,-nzgrid:nzgrid))
+    allocate (phi1(naky,nakx,-nzgrid:nzgrid,ntubes))
 
     ! save the incoming g and phi, as they will be needed later
     g1 = g
@@ -351,14 +353,14 @@ contains
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
        ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-       call get_gke_rhs (ivmu, g1(:,:,:,ivmu), phi1, phi, g(:,:,:,ivmu), eqn='inhomogeneous')
+       call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='inhomogeneous')
        
        if (stream_matrix_inversion) then
           ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
           ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
-          call invert_parstream (ivmu, g(:,:,:,ivmu))
+          call invert_parstream (ivmu, g(:,:,:,:,ivmu))
        else
-          call sweep_g_zed (ivmu, g(:,:,:,ivmu))
+          call sweep_g_zed (ivmu, g(:,:,:,:,ivmu))
        end if
     end do
 
@@ -380,14 +382,14 @@ contains
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
        ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-       call get_gke_rhs (ivmu, g1(:,:,:,ivmu), phi1, phi, g(:,:,:,ivmu), eqn='full')
+       call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='full')
     
        if (stream_matrix_inversion) then
           ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
           ! g = RHS is input and overwritten by g = g^{n+1}
-          call invert_parstream (ivmu, g(:,:,:,ivmu))
+          call invert_parstream (ivmu, g(:,:,:,:,ivmu))
        else
-          call sweep_g_zed (ivmu, g(:,:,:,ivmu))
+          call sweep_g_zed (ivmu, g(:,:,:,:,ivmu))
        end if
     end do
 
@@ -400,7 +402,7 @@ contains
   subroutine get_gke_rhs (ivmu, gold, phiold, phi, g, eqn)
 
     use stella_time, only: code_dt
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -417,24 +419,24 @@ contains
     implicit none
 
     integer, intent (in) :: ivmu
-    complex, dimension (:,:,-nzgrid:), intent (in) :: gold
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phiold, phi
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: gold
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phiold, phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
     character (*), intent (in) :: eqn
 
-    integer :: iv, imu, is, iz, ikx
+    integer :: iv, imu, is, iz, it, ikx
     real :: tupwnd1, tupwnd2, fac
     real, dimension (:), allocatable :: vpadf0dE_fac, vpadf0dE_fac_zf
     real, dimension (:,:), allocatable :: gp, gpz
-    complex, dimension (:,:,:), allocatable :: dgdz, dphidz
-    complex, dimension (:,:,:), allocatable :: field
+    complex, dimension (:,:,:,:), allocatable :: dgdz, dphidz
+    complex, dimension (:,:,:,:), allocatable :: field
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (vpadf0dE_fac_zf(-nzgrid:nzgrid))
     allocate (gp(nalpha,-nzgrid:nzgrid))
     allocate (gpz(nalpha,-nzgrid:nzgrid))
-    allocate (dgdz(naky,nakx,-nzgrid:nzgrid))
-    allocate (dphidz(naky,nakx,-nzgrid:nzgrid))
+    allocate (dgdz(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (dphidz(naky,nakx,-nzgrid:nzgrid,ntubes))
 
     tupwnd1 = 0.5*(1.0-time_upwind)
     if (eqn=='full') then
@@ -461,7 +463,7 @@ contains
        call get_dzed (iv,gold,dgdz)
     end if
 
-    allocate (field(naky,nakx,-nzgrid:nzgrid))
+    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
     ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
     field = tupwnd1*phiold+tupwnd2*phi
     ! set g to be phi or <phi> depending on whether parallel streaming is 
@@ -509,8 +511,10 @@ contains
        gp = gradpar
        ! treat zonal flow specially
        if (zonal_mode(1)) then
-          do ikx = 1, nakx
-             call center_zed (iv,g(1,ikx,:))
+          do it = 1, ntubes
+             do ikx = 1, nakx
+                call center_zed (iv,g(1,ikx,:,it))
+             end do
           end do
           vpadf0dE_fac_zf = vpadf0dE_fac
           call center_zed (iv,vpadf0dE_fac_zf)
@@ -526,15 +530,15 @@ contains
     ! construct RHS of GK eqn
     if (zonal_mode(1)) then
        do iz = -nzgrid, nzgrid
-          g(1,:,iz) = g(1,:,iz) - fac*gpz(1,iz) &
-               * (tupwnd1*vpa(iv)*dgdz(1,:,iz) + vpadf0dE_fac_zf(iz)*dphidz(1,:,iz))
-          g(2:,:,iz) = g(2:,:,iz) - fac*gp(1,iz) &
-               * (tupwnd1*vpa(iv)*dgdz(2:,:,iz) + vpadf0dE_fac(iz)*dphidz(2:,:,iz))
+          g(1,:,iz,:) = g(1,:,iz,:) - fac*gpz(1,iz) &
+               * (tupwnd1*vpa(iv)*dgdz(1,:,iz,:) + vpadf0dE_fac_zf(iz)*dphidz(1,:,iz,:))
+          g(2:,:,iz,:) = g(2:,:,iz,:) - fac*gp(1,iz) &
+               * (tupwnd1*vpa(iv)*dgdz(2:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(2:,:,iz,:))
        end do
     else
        do iz = -nzgrid, nzgrid
-          g(:,:,iz) = g(:,:,iz) - fac*gp(1,iz) &
-               * (tupwnd1*vpa(iv)*dgdz(:,:,iz) + vpadf0dE_fac(iz)*dphidz(:,:,iz))
+          g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(1,iz) &
+               * (tupwnd1*vpa(iv)*dgdz(:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(:,:,iz,:))
        end do
     end if
 
@@ -547,7 +551,7 @@ contains
   ! g = RHS is input and overwritten by g = g^{n+1}
   subroutine invert_parstream (ivmu, g)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: neigen
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
@@ -561,10 +565,10 @@ contains
     implicit none
 
     integer, intent (in) :: ivmu
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
 
     integer :: iv, is
-    integer :: iky, ie
+    integer :: iky, ie, it
     integer :: ulim, sgn
     complex, dimension (:), allocatable :: gext
 
@@ -574,21 +578,23 @@ contains
 
     do iky = 1, naky
        if (zonal_mode(iky)) then
-          call sweep_zed_zonal (iv, is, sgn, g(iky,:,:))
+          call sweep_zed_zonal (iv, is, sgn, g(iky,:,:,:))
        else
-          do ie = 1, neigen(iky)
-             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
-             ! get g on extended domain in zed
-             call map_to_extended_zgrid (ie, iky, g(iky,:,:), gext, ulim)
-             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-             call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
-             ! extract g from extended domain in zed
-             call map_from_extended_zgrid (ie, iky, gext, g(iky,:,:))
-             deallocate (gext)
+          do it = 1, ntubes
+             do ie = 1, neigen(iky)
+                allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+                ! get g on extended domain in zed
+                call map_to_extended_zgrid (it, ie, iky, g(iky,:,:,:), gext, ulim)
+                ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
+                call stream_tridiagonal_solve (iky, ie, iv, is, gext(:ulim))
+                ! extract g from extended domain in zed
+                call map_from_extended_zgrid (it, ie, iky, gext, g(iky,:,:,:))
+                deallocate (gext)
+             end do
           end do
        end if
     end do
-
+    
   end subroutine invert_parstream
 
   subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
@@ -652,7 +658,7 @@ contains
   ! g = g^{n+1} is output
   subroutine sweep_g_zed (ivmu, g)
 
-    use zgrid, only: nzgrid, delzed
+    use zgrid, only: nzgrid, delzed, ntubes
     use extended_zgrid, only: neigen, nsegments, nzed_segment
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
@@ -665,10 +671,10 @@ contains
     implicit none
 
     integer, intent (in) :: ivmu
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
     
     integer :: iv, is
-    integer :: iky, ie
+    integer :: iky, ie, it
     integer :: ulim, sgn
     integer :: iz, izext, iz1, iz2
     real :: fac1, fac2
@@ -681,33 +687,35 @@ contains
     ! and solve for g on the extended z-grid
     do iky = 1, naky
        if (zonal_mode(iky)) then
-          call sweep_zed_zonal (iv, is, sgn, g(iky,:,:))
+          call sweep_zed_zonal (iv, is, sgn, g(iky,:,:,:))
        else
-          do ie = 1, neigen(iky)
-             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
-             ! get g on extended domain in zed
-             call map_to_extended_zgrid (ie, iky, g(iky,:,:), gext, ulim)
-             if (sgn < 0) then
-                iz1 = 1 ; iz2 = ulim
-             else
-                iz1 = ulim ; iz2 = 1
-             end if
-             izext = iz1 ; iz = sgn*nzgrid
-             fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
-             gext(izext) = gext(izext)*2.0/fac1
-             do izext = iz1-sgn, iz2, -sgn
-                if (iz == -sgn*nzgrid) then
-                   iz = sgn*nzgrid-sgn
+          do it = 1, ntubes
+             do ie = 1, neigen(iky)
+                allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+                ! get g on extended domain in zed
+                call map_to_extended_zgrid (it, ie, iky, g(iky,:,:,:), gext, ulim)
+                if (sgn < 0) then
+                   iz1 = 1 ; iz2 = ulim
                 else
-                   iz = iz - sgn
+                   iz1 = ulim ; iz2 = 1
                 end if
+                izext = iz1 ; iz = sgn*nzgrid
                 fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
-                fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
-                gext(izext) = (-gext(izext+sgn)*fac2 + 2.0*gext(izext))/fac1
+                gext(izext) = gext(izext)*2.0/fac1
+                do izext = iz1-sgn, iz2, -sgn
+                   if (iz == -sgn*nzgrid) then
+                      iz = sgn*nzgrid-sgn
+                   else
+                      iz = iz - sgn
+                   end if
+                   fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
+                   fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
+                   gext(izext) = (-gext(izext+sgn)*fac2 + 2.0*gext(izext))/fac1
+                end do
+                ! extract g from extended domain in zed
+                call map_from_extended_zgrid (it, ie, iky, gext, g(iky,:,:,:))
+                deallocate (gext)
              end do
-             ! extract g from extended domain in zed
-             call map_from_extended_zgrid (ie, iky, gext, g(iky,:,:))
-             deallocate (gext)
           end do
        end if
     end do
@@ -716,21 +724,21 @@ contains
 
   subroutine sweep_zed_zonal (iv, is, sgn, g)
 
-    use zgrid, only: nzgrid, delzed, nztot
+    use zgrid, only: nzgrid, delzed, nztot, ntubes
     use kt_grids, only: nakx
     use run_parameters, only: zed_upwind, time_upwind
 
     implicit none
 
     integer, intent (in) :: iv, is, sgn
-    complex, dimension (:,-nzgrid:), intent (in out) :: g
+    complex, dimension (:,-nzgrid:,:), intent (in out) :: g
 
     integer :: iz, iz1, iz2
     real :: fac1, fac2
     complex, dimension (:), allocatable :: gcf
-    complex, dimension (:,:), allocatable :: gpi
+    complex, dimension (:,:,:), allocatable :: gpi
 
-    allocate (gpi(nakx,-nzgrid:nzgrid))
+    allocate (gpi(nakx,-nzgrid:nzgrid,ntubes))
     allocate (gcf(-nzgrid:nzgrid))
     ! ky=0 is 2pi periodic (no extended zgrid)
     ! decompose into complementary function + particular integral
@@ -741,15 +749,15 @@ contains
     else
        iz1 = nzgrid ; iz2 = -nzgrid
     end if
-    gpi(:,iz1) = 0. ; gcf(iz1) = 1.
+    gpi(:,iz1,:) = 0. ; gcf(iz1) = 1.
     do iz = iz1-sgn, iz2, -sgn
        fac1 = 1.0+zed_upwind+sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
        fac2 = 1.0-zed_upwind-sgn*(1.0+time_upwind)*stream_c(iz,iv,is)/delzed(0)
-       gpi(:,iz) = (-gpi(:,iz+sgn)*fac2 + 2.0*g(:,iz))/fac1
+       gpi(:,iz,:) = (-gpi(:,iz+sgn,:)*fac2 + 2.0*g(:,iz,:))/fac1
        gcf(iz) = -gcf(iz+sgn)*fac2/fac1
     end do
     ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-    g = gpi + (spread(gpi(:,iz2),2,nztot)/(1.-gcf(iz2)))*spread(gcf,1,nakx)
+    g = gpi + (spread(gpi(:,iz2,:),2,nztot)/(1.-gcf(iz2)))*spread(spread(gcf,1,nakx),3,ntubes)
     deallocate (gpi, gcf)
 
   end subroutine sweep_zed_zonal
@@ -757,7 +765,7 @@ contains
   subroutine invert_parstream_response (phi)
  
     use linear_solve, only: lu_back_substitution
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: neigen
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
@@ -769,9 +777,9 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
 
-    integer :: iky, ie, ulim
+    integer :: iky, ie, it, ulim
     integer :: ikx
     complex, dimension (:), allocatable :: gext
     
@@ -779,21 +787,25 @@ contains
     do iky = 1, naky
        ! avoid double counting of periodic endpoints for zonal modes
        if (zonal_mode(iky)) then
-          do ie = 1, neigen(iky)
-             ikx = ikxmod(1,ie,iky)
-             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
-                  response_matrix(iky)%eigen(ie)%idx, phi(iky,ikx,:nzgrid-1))
-             phi(iky,ikx,nzgrid) = phi(iky,ikx,-nzgrid)
+          do it = 1, ntubes
+             do ie = 1, neigen(iky)
+                ikx = ikxmod(1,ie,iky)
+                call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
+                     response_matrix(iky)%eigen(ie)%idx, phi(iky,ikx,:nzgrid-1,it))
+                phi(iky,ikx,nzgrid,it) = phi(iky,ikx,-nzgrid,it)
+             end do
           end do
        else
-          do ie = 1, neigen(iky)
-             ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-             allocate (gext(nsegments(ie,iky)*nzed_segment+1))
-             call map_to_extended_zgrid (ie, iky, phi(iky,:,:), gext, ulim)
-             call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
-                  response_matrix(iky)%eigen(ie)%idx, gext)
-             call map_from_extended_zgrid (ie, iky, gext, phi(iky,:,:))
-             deallocate (gext)
+          do it = 1, ntubes
+             do ie = 1, neigen(iky)
+                ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+                allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+                call map_to_extended_zgrid (it, ie, iky, phi(iky,:,:,:), gext, ulim)
+                call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
+                     response_matrix(iky)%eigen(ie)%idx, gext)
+                call map_from_extended_zgrid (it, ie, iky, gext, phi(iky,:,:,:))
+                deallocate (gext)
+             end do
           end do
        end if
     end do
@@ -805,7 +817,7 @@ contains
     use finite_differences, only: fd_variable_upwinding_zed, fd_cell_centres_zed
     use kt_grids, only: naky
     use kt_grids, only: zonal_mode
-    use zgrid, only: nzgrid, delzed
+    use zgrid, only: nzgrid, delzed, ntubes
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
@@ -815,35 +827,37 @@ contains
     implicit none
 
     integer, intent (in) :: iv
-    complex, dimension (:,:,-nzgrid:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:), intent (out) :: dgdz
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
 
-    integer :: iky, ie, iseg
+    integer :: iky, ie, iseg, it
     complex, dimension (2) :: gleft, gright
 
     do iky = 1, naky
-       do ie = 1, neigen(iky)
-          do iseg = 1, nsegments(ie,iky)
-             ! first fill in ghost zones at boundaries in g(z)
-             call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
-             ! treat zonal flow specially
-             if (zonal_mode(iky)) then
-                ! get finite difference approximation for dg/dz at cell centres
-                ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-                call fd_cell_centres_zed (iz_low(iseg), &
-                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                     delzed(0), stream_sign(iv), gleft(2), gright(1), &
-                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
-             else
-                ! get finite difference approximation for dg/dz
-                ! with mixture of centered and upwinded scheme
-                ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
-                ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-                call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                     delzed(0), stream_sign(iv), zed_upwind, gleft, gright, zonal_mode(iky), &
-                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
-             end if
+       do it = 1, ntubes
+          do ie = 1, neigen(iky)
+             do iseg = 1, nsegments(ie,iky)
+                ! first fill in ghost zones at boundaries in g(z)
+                call fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
+                ! treat zonal flow specially
+                if (zonal_mode(iky)) then
+                   ! get finite difference approximation for dg/dz at cell centres
+                   ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
+                   call fd_cell_centres_zed (iz_low(iseg), &
+                        g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                        delzed(0), stream_sign(iv), gleft(2), gright(1), &
+                        dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+                else
+                   ! get finite difference approximation for dg/dz
+                   ! with mixture of centered and upwinded scheme
+                   ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
+                   ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
+                   call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                        g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                        delzed(0), stream_sign(iv), zed_upwind, gleft, gright, zonal_mode(iky), &
+                        dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+                end if
+             end do
           end do
        end do
     end do
@@ -854,7 +868,7 @@ contains
 
     use finite_differences, only: fd_cell_centres_zed
     use kt_grids, only: naky
-    use zgrid, only: nzgrid, delzed
+    use zgrid, only: nzgrid, delzed, ntubes
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
@@ -863,23 +877,25 @@ contains
     implicit none
 
     integer, intent (in) :: iv
-    complex, dimension (:,:,-nzgrid:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:), intent (out) :: dgdz
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
 
-    integer :: iky, ie, iseg
+    integer :: iky, ie, iseg, it
     complex, dimension (2) :: gleft, gright
 
-    do iky = 1, naky
-       do ie = 1, neigen(iky)
-          do iseg = 1, nsegments(ie,iky)
-             ! first fill in ghost zones at boundaries in g(z)
-             call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
-             ! get finite difference approximation for dg/dz at cell centres
-             ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-             call fd_cell_centres_zed (iz_low(iseg), &
-                  g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                  delzed(0), stream_sign(iv), gleft(2), gright(1), &
-                  dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+    do it = 1, ntubes
+       do iky = 1, naky
+          do ie = 1, neigen(iky)
+             do iseg = 1, nsegments(ie,iky)
+                ! first fill in ghost zones at boundaries in g(z)
+                call fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
+                ! get finite difference approximation for dg/dz at cell centres
+                ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
+                call fd_cell_centres_zed (iz_low(iseg), &
+                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                     delzed(0), stream_sign(iv), gleft(2), gright(1), &
+                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+             end do
           end do
        end do
     end do
@@ -890,7 +906,7 @@ contains
 
     use finite_differences, only: cell_centres_zed
     use kt_grids, only: naky, nakx
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
@@ -900,27 +916,29 @@ contains
     implicit none
 
     integer, intent (in) :: iv
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
 
-    integer :: iky, ie, iseg
+    integer :: iky, ie, iseg, it
     complex, dimension (2) :: gleft, gright
-    complex, dimension (:,:), allocatable :: gc
+    complex, dimension (:,:,:), allocatable :: gc
 
-    allocate (gc(nakx,-nzgrid:nzgrid))
+    allocate (gc(nakx,-nzgrid:nzgrid,ntubes))
 
     do iky = 1, naky
-       do ie = 1, neigen(iky)
-          do iseg = 1, nsegments(ie,iky)
-             ! first fill in ghost zones at boundaries in g(z)
-             call fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
-             ! get cell centres values 
-             call cell_centres_zed (iz_low(iseg), &
-                  g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)), &
-                  zed_upwind, stream_sign(iv), gleft(2), gright(1), &
-                  gc(ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg)))
+       do it = 1, ntubes
+          do ie = 1, neigen(iky)
+             do iseg = 1, nsegments(ie,iky)
+                ! first fill in ghost zones at boundaries in g(z)
+                call fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
+                ! get cell centres values 
+                call cell_centres_zed (iz_low(iseg), &
+                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                     zed_upwind, stream_sign(iv), gleft(2), gright(1), &
+                     gc(ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+             end do
           end do
        end do
-       g(iky,:,:) = gc
+       g(iky,:,:,:) = gc
     end do
 
     deallocate (gc)

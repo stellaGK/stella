@@ -11,12 +11,12 @@ module stella_transforms
   public :: transform_kx2x, transform_x2kx
 
   interface transform_ky2y
-     module procedure transform_ky2y_4d
+     module procedure transform_ky2y_5d
      module procedure transform_ky2y_2d
   end interface
 
   interface transform_y2ky
-     module procedure transform_y2ky_4d
+     module procedure transform_y2ky_5d
      module procedure transform_y2ky_2d
   end interface
 
@@ -110,17 +110,17 @@ contains
 
   end subroutine init_x_fft
 
-  subroutine transform_ky2y_4d (gky_unpad, gy)
+  subroutine transform_ky2y_5d (gky_unpad, gy)
 
     use stella_layouts, only: vmu_lo
 
     implicit none
 
-    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (in) :: gky_unpad
-    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (out) :: gy
+    complex, dimension (:,:,-vmu_lo%nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gky_unpad
+    complex, dimension (:,:,-vmu_lo%nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: gy
 
     integer :: iky_max, ipad_up
-    integer :: ikx, ig, ivmu
+    integer :: ikx, iz, it, ivmu
 
     ! first need to pad input array with zeros
     iky_max = vmu_lo%naky
@@ -129,20 +129,21 @@ contains
 
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-
-       do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
-          do ikx = 1, vmu_lo%nakx/2+1
-             fft_y_in(iky_max+1:ipad_up) = 0.
-             fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx,ig,ivmu)
-             fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx,ig,ivmu)
-             call dfftw_execute_dft(yf_fft%plan, fft_y_in, fft_y_out)
-             fft_y_out = fft_y_out*yf_fft%scale
-             gy(:,ikx,ig,ivmu) = fft_y_out
+       do it = 1, vmu_lo%ntubes
+          do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
+             do ikx = 1, vmu_lo%nakx/2+1
+                fft_y_in(iky_max+1:ipad_up) = 0.
+                fft_y_in(:iky_max) = gky_unpad(:iky_max,ikx,iz,it,ivmu)
+                fft_y_in(ipad_up+1:) = gky_unpad(iky_max+1:,ikx,iz,it,ivmu)
+                call dfftw_execute_dft(yf_fft%plan, fft_y_in, fft_y_out)
+                fft_y_out = fft_y_out*yf_fft%scale
+                gy(:,ikx,iz,it,ivmu) = fft_y_out
+             end do
           end do
        end do
     end do
 
-  end subroutine transform_ky2y_4d
+  end subroutine transform_ky2y_5d
 
   subroutine transform_ky2y_2d (gky_unpad, gy)
 
@@ -173,34 +174,36 @@ contains
 
   end subroutine transform_ky2y_2d
 
-  subroutine transform_y2ky_4d (gy, gky)
+  subroutine transform_y2ky_5d (gy, gky)
 
     use stella_layouts, only: vmu_lo
 
     implicit none
 
-    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gy
-    complex, dimension (:,:,-vmu_lo%nzgrid:,vmu_lo%llim_proc:), intent (out) :: gky
+    complex, dimension (:,:,-vmu_lo%nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gy
+    complex, dimension (:,:,-vmu_lo%nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: gky
 
     integer :: iky_max, ipad_up
-    integer :: ikx, ig, ivmu
+    integer :: ikx, iz, it, ivmu
 
     iky_max = vmu_lo%naky
     ipad_up = iky_max+vmu_lo%ny-(2*vmu_lo%naky-1)
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       do ig = -vmu_lo%nzgrid, vmu_lo%nzgrid
-          do ikx = 1, vmu_lo%nakx/2+1
-             fft_y_in = gy(:,ikx,ig,ivmu)
-             call dfftw_execute_dft(yb_fft%plan, fft_y_in, fft_y_out)
-             fft_y_out = fft_y_out*yb_fft%scale
-             gky(:iky_max,ikx,ig,ivmu) = fft_y_out(:iky_max)
-             gky(iky_max+1:,ikx,ig,ivmu) = fft_y_out(ipad_up+1:)
+       do it = 1, vmu_lo%ntubes
+          do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
+             do ikx = 1, vmu_lo%nakx/2+1
+                fft_y_in = gy(:,ikx,iz,it,ivmu)
+                call dfftw_execute_dft(yb_fft%plan, fft_y_in, fft_y_out)
+                fft_y_out = fft_y_out*yb_fft%scale
+                gky(:iky_max,ikx,iz,it,ivmu) = fft_y_out(:iky_max)
+                gky(iky_max+1:,ikx,iz,it,ivmu) = fft_y_out(ipad_up+1:)
+             end do
           end do
        end do
     end do
 
-  end subroutine transform_y2ky_4d
+  end subroutine transform_y2ky_5d
 
   subroutine transform_y2ky_2d (gy, gky)
 

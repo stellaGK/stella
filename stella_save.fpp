@@ -46,8 +46,8 @@ module stella_save
 
 # ifdef NETCDF
   real, allocatable, dimension (:,:,:) :: tmpr, tmpi
-  real, allocatable, dimension (:,:,:) :: ftmpr, ftmpi
-  integer (kind_nf) :: ncid, zedid, vpaid, gloid, kyid, kxid, muid
+  real, allocatable, dimension (:,:,:,:) :: ftmpr, ftmpi
+  integer (kind_nf) :: ncid, zedid, vpaid, gloid, kyid, kxid, muid, tubeid
   integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id
 !  integer (kind_nf) :: bparr_id, bpari_id
   integer (kind_nf) :: t0id, gr_id, gi_id, delt0id
@@ -67,7 +67,7 @@ contains
     use mp, only: proc0
 # endif    
     use mp, only: iproc, barrier
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
     use stella_layouts, only: kxkyz_lo, xyzs_layout, vms_layout
@@ -184,6 +184,13 @@ contains
 # endif
        
        if (n_elements > 0) then
+          istatus = nf90_def_dim (ncid, "tube", ntubes, tubeid)
+          if (istatus /= NF90_NOERR) then
+             ierr = error_unit()
+             write(ierr,*) "nf90_def_dim zed error: ", nf90_strerror(istatus)
+             goto 1
+          end if
+
           istatus = nf90_def_dim (ncid, "zed", 2*nzgrid+1, zedid)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
@@ -270,7 +277,7 @@ contains
              
           if (fphi > epsilon(0.)) then
              istatus = nf90_def_var (ncid, "phi_r", netcdf_real, &
-                  (/ kyid, kxid, zedid /), phir_id)
+                  (/ kyid, kxid, zedid, tubeid/), phir_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var phi error: ", nf90_strerror(istatus)
@@ -278,7 +285,7 @@ contains
              end if
              
              istatus = nf90_def_var (ncid, "phi_i", netcdf_real, &
-                  (/ kyid, kxid, zedid /), phii_id)
+                  (/ kyid, kxid, zedid, tubeid /), phii_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var phi error: ", nf90_strerror(istatus)
@@ -288,7 +295,7 @@ contains
 
           if (fapar > epsilon(0.)) then
              istatus = nf90_def_var (ncid, "apar_r", netcdf_real, &
-                  (/ kyid, kxid, zedid /), aparr_id)
+                  (/ kyid, kxid, zedid, tubeid /), aparr_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
@@ -296,7 +303,7 @@ contains
              end if
              
              istatus = nf90_def_var (ncid, "apar_i", netcdf_real, &
-                  (/ kyid, kxid, zedid /), apari_id)
+                  (/ kyid, kxid, zedid, tubeid /), apari_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
@@ -423,8 +430,8 @@ contains
        if(save_many .or. iproc == 0) then
 # endif
 
-          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1))
-          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1))
+          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1,ntubes))
+          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1,ntubes))
           
           if (fphi > epsilon(0.)) then
              ftmpr = real(phi)
@@ -487,7 +494,7 @@ contains
     use fields_arrays, only: phi, apar
     use kt_grids, only: naky, nakx
 # endif
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo
     use file_utils, only: error_unit
@@ -534,6 +541,9 @@ contains
        if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
        call check_netcdf_file_precision (ncid)
 
+       istatus = nf90_inq_dimid (ncid, "tube", tubeid)
+       if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='tube')
+
        istatus = nf90_inq_dimid (ncid, "zed", zedid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='zed')
        
@@ -546,6 +556,10 @@ contains
        istatus = nf90_inq_dimid (ncid, "glo", gloid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='glo')
               
+       istatus = nf90_inquire_dimension (ncid, tubeid, len=i)
+       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=tubeid)
+       if (i /= ntubes) write(*,*) 'Restart error: ntubes=? ',i,' : ',ntubes,' : ',iproc
+
        istatus = nf90_inquire_dimension (ncid, zedid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=zedid)
        if (i /= 2*nzgrid + 1) write(*,*) 'Restart error: nzgrid=? ',i,' : ',nzgrid,' : ',iproc
@@ -640,8 +654,8 @@ contains
 
     g = cmplx(tmpr, tmpi)
     
-    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1))
-    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1))
+    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1,ntubes))
+    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1,ntubes))
 
 !    if (allocated(kx_shift)) then   ! MR begin
 !       if (.not. allocated(stmp)) allocate (stmp(naky))   ! MR 

@@ -336,22 +336,24 @@ contains
     use dist_fn_arrays, only: kperp2
     use species, only: spec
     use stella_geometry, only: bmag
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: ikxmod, nsegments, neigen
+    use extended_zgrid, only: it_right
     use kt_grids, only: naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: vpa, mu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use mp, only: proc0, broadcast
     use ran
 
     implicit none
 
-    complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
+    complex, dimension (naky,nakx,-nzgrid:nzgrid,ntubes) :: phi
     real :: a, b, kmin
-    integer :: ikxkyz, iz, iky, ikx, is, ie, iseg, ia
+    integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
+    integer :: itmod
 
     if (naky == 1 .and. nakx==1) then
        if (proc0) then
@@ -364,48 +366,49 @@ contains
 
     ia = 1
     if (proc0) then
-       ! keep old (it, ik) loop order to get old results exactly: 
+       ! keep old (ikx, iky) loop order to get old results exactly: 
        if (naky > 1 .and. nakx > 1) then
           kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
-          phi(1,1,:) = 0.0
+          phi(1,1,:,:) = 0.0
        end if
 
        !Fill phi with random (complex) numbers between -0.5 and 0.5
        do ikx = 1, nakx
           do iky = 1, naky
-             do iz = -nzgrid, nzgrid
-                a = ranf()-0.5
-                b = ranf()-0.5
-                ! do not populate high k modes with large amplitudes
-!                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin/sqrt(kperp2(iky,ikx,iz))
-                if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,ia,iz)
+             do it = 1, ntubes
+                do iz = -nzgrid, nzgrid
+                   a = ranf()-0.5
+                   b = ranf()-0.5
+                   ! do not populate high k modes with large amplitudes
+                   if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz,it) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,ia,iz)
+                end do
+                if (chop_side) then
+                   if (left) then
+                      phi(iky,ikx,:-1,it) = 0.0
+                   else
+                      phi(iky,ikx,1:,it) = 0.0
+                   endif
+                end if
              end do
-             if (chop_side) then
-                if (left) then
-                   phi(iky,ikx,:-1) = 0.0
-                else
-                   phi(iky,ikx,1:) = 0.0
-                endif
-             end if
           end do
        end do
 
        !Sort out the zonal/self-periodic modes
        if (zonal_mode(1)) then
           ! ensure that the zonal modes are periodic
-          phi(1,:,nzgrid) = phi(1,:,-nzgrid)
+          phi(1,:,nzgrid,:) = phi(1,:,-nzgrid,:)
           
           !Apply scaling factor
-          phi(1,:,:) = phi(1,:,:)*zf_init
+          phi(1,:,:,:) = phi(1,:,:,:)*zf_init
           
           !Set ky=kx=0.0 mode to zero in amplitude
-          phi(1,1,:) = 0.0
+          phi(1,1,:,:) = 0.0
        end if
        
        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
        if (reality) then
           do ikx = nakx/2+2, nakx
-             phi(1,ikx,:) = conjg(phi(1,nakx-ikx+2,:))
+             phi(1,ikx,:,:) = conjg(phi(1,nakx-ikx+2,:,:))
           enddo
        end if
        
@@ -415,27 +418,32 @@ contains
        do ie = 1, neigen(iky)
           ! enforce zero BC at ends of domain
           if (.not.zonal_mode(iky)) then
-             phi(iky,ikxmod(1,ie,iky),-nzgrid) = 0.0
-             phi(iky,ikxmod(nsegments(ie,iky),ie,iky),nzgrid) = 0.0
+             phi(iky,ikxmod(1,ie,iky),-nzgrid,:) = 0.0
+             phi(iky,ikxmod(nsegments(ie,iky),ie,iky),nzgrid,:) = 0.0
           end if
           ! enforce equality of g values at duplicate zed points
           if (nsegments(ie,iky) > 1) then
-             do iseg = 2, nsegments(ie,iky)
-                phi(iky,ikxmod(iseg,ie,iky),-nzgrid) = phi(iky,ikxmod(iseg-1,ie,iky),nzgrid)
+             do it = 1, ntubes
+                itmod = it
+                do iseg = 2, nsegments(ie,iky)
+                   phi(iky,ikxmod(iseg,ie,iky),-nzgrid,it_right(itmod)) = phi(iky,ikxmod(iseg-1,ie,iky),nzgrid,itmod)
+                   itmod = it_right(itmod)
+                end do
              end do
           end if
        end do
     end do
-
+    
     call broadcast (phi)
 
     !Now set g using data in phi
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz) &
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz,it) &
             *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
     end do
 

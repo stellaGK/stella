@@ -48,7 +48,7 @@ contains
     use mp, only: proc0
     use stella_layouts, only: init_dist_fn_layouts
     use species, only: nspec
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx, ny, nx
     use vpamu_grids, only: nvgrid, nmu
     use gyro_averages, only: init_bessel
@@ -63,7 +63,7 @@ contains
     if (debug) write (*,*) 'dist_fn::init_dist_fn::read_parameters'
     call read_parameters
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_dist_fn_layouts'
-    call init_dist_fn_layouts (nzgrid, naky, nakx, nvgrid, nmu, nspec, ny, nx)
+    call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
     if (debug) write (*,*) 'dist_fn::init_dist_fn::allocate_arrays'
     call allocate_arrays
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kperp2'
@@ -156,7 +156,7 @@ contains
   subroutine allocate_arrays
 
     use stella_layouts, only: kxkyz_lo, vmu_lo
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: nvpa, nmu
     use dist_fn_arrays, only: gnew, gold
@@ -165,10 +165,10 @@ contains
     implicit none
 
     if (.not.allocated(gnew)) &
-         allocate (gnew(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (gnew(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     gnew = 0.
     if (.not.allocated(gold)) &
-         allocate (gold(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (gold(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     gold = 0.
     if (.not.allocated(gvmu)) &
          allocate (gvmu(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))

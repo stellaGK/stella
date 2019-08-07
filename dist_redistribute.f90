@@ -44,16 +44,16 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvpa, nmu
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
 
     implicit none
 
     type (index_list_type), dimension (0:nproc-1) :: to_list, from_list
     integer, dimension (0:nproc-1) :: nn_to, nn_from
     integer, dimension (3) :: from_low, from_high
-    integer, dimension (4) :: to_high, to_low
+    integer, dimension (5) :: to_high, to_low
     integer :: ikxkyz, ivmu
-    integer :: iv, imu, iky, ikx, iz
+    integer :: iv, imu, iky, ikx, iz, it
     integer :: ip, n
     logical :: initialized = .false.
 
@@ -66,7 +66,7 @@ contains
     do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
        do imu = 1, nmu
           do iv = 1, nvpa
-             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, ivmu)
+             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
              if (idx_local(kxkyz_lo,ikxkyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
              if (idx_local(vmu_lo,ivmu)) &
@@ -86,6 +86,7 @@ contains
           allocate (to_list(ip)%second(nn_to(ip)))
           allocate (to_list(ip)%third(nn_to(ip)))
           allocate (to_list(ip)%fourth(nn_to(ip)))
+          allocate (to_list(ip)%fifth(nn_to(ip)))
        end if
     end do
 
@@ -98,7 +99,7 @@ contains
        do imu = 1, nmu
           do iv = 1, nvpa
              ! obtain corresponding y indices
-             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, ivmu)
+             call kxkyzidx2vmuidx (iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
              ! if vmu index local, set:
              ! ip = corresponding y processor
              ! from_list%first-third arrays = iv,imu,ikxkyz  (ie vmu indices)
@@ -121,7 +122,8 @@ contains
                 to_list(ip)%first(n) = iky
                 to_list(ip)%second(n) = ikx
                 to_list(ip)%third(n) = iz
-                to_list(ip)%fourth(n) = ivmu
+                to_list(ip)%fourth(n) = it
+                to_list(ip)%fifth(n) = ivmu
              end if
           end do
        end do
@@ -138,12 +140,14 @@ contains
     to_low(1) = 1
     to_low(2) = 1
     to_low(3) = -nzgrid
-    to_low(4) = vmu_lo%llim_proc
+    to_low(4) = 1
+    to_low(5) = vmu_lo%llim_proc
 
     to_high(1) = vmu_lo%naky
     to_high(2) = vmu_lo%nakx
     to_high(3) = vmu_lo%nzed
-    to_high(4) = vmu_lo%ulim_alloc
+    to_high(4) = vmu_lo%ntubes
+    to_high(5) = vmu_lo%ulim_alloc
 
     call set_redist_character_type (kxkyz2vmu, 'kxkyz2vmu')
 
@@ -164,16 +168,16 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvpa, nmu
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
 
     implicit none
 
     type (index_list_type), dimension (0:nproc-1) :: to_list, from_list
     integer, dimension (0:nproc-1) :: nn_to, nn_from
     integer, dimension (3) :: from_low, from_high
-    integer, dimension (4) :: to_high, to_low
+    integer, dimension (5) :: to_high, to_low
     integer :: ikxyz, ivmu
-    integer :: iv, imu, iy, ikx, iz
+    integer :: iv, imu, iy, ikx, iz, it
     integer :: ip, n
     logical :: initialized = .false.
 
@@ -186,7 +190,7 @@ contains
     do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
        do imu = 1, nmu
           do iv = 1, nvpa
-             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, ivmu)
+             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, it, ivmu)
              if (idx_local(kxyz_lo,ikxyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
              if (idx_local(vmu_lo,ivmu)) &
@@ -206,6 +210,7 @@ contains
           allocate (to_list(ip)%second(nn_to(ip)))
           allocate (to_list(ip)%third(nn_to(ip)))
           allocate (to_list(ip)%fourth(nn_to(ip)))
+          allocate (to_list(ip)%fifth(nn_to(ip)))
        end if
     end do
 
@@ -218,7 +223,7 @@ contains
        do imu = 1, nmu
           do iv = 1, nvpa
              ! obtain corresponding y indices
-             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, ivmu)
+             call kxyzidx2vmuidx (iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, it, ivmu)
              ! if vmu index local, set:
              ! ip = corresponding y processor
              ! from_list%first-third arrays = iv,imu,ikxyz  (ie vmu indices)
@@ -241,7 +246,8 @@ contains
                 to_list(ip)%first(n) = iy
                 to_list(ip)%second(n) = ikx
                 to_list(ip)%third(n) = iz
-                to_list(ip)%fourth(n) = ivmu
+                to_list(ip)%fourth(n) = it
+                to_list(ip)%fifth(n) = ivmu
              end if
           end do
        end do
@@ -258,12 +264,14 @@ contains
     to_low(1) = 1
     to_low(2) = 1
     to_low(3) = -nzgrid
-    to_low(4) = vmu_lo%llim_proc
+    to_low(4) = 1
+    to_low(5) = vmu_lo%llim_proc
 
     to_high(1) = vmu_lo%ny
     to_high(2) = vmu_lo%nakx
     to_high(3) = vmu_lo%nzed
-    to_high(4) = vmu_lo%ulim_alloc
+    to_high(4) = vmu_lo%ntubes
+    to_high(5) = vmu_lo%ulim_alloc
 
     call set_redist_character_type (kxyz2vmu, 'kxyz2vmu')
 
@@ -284,16 +292,16 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvpa, nmu
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
 
     implicit none
 
     type (index_list_type), dimension (0:nproc-1) :: to_list, from_list
     integer, dimension (0:nproc-1) :: nn_to, nn_from
     integer, dimension (3) :: from_low, from_high
-    integer, dimension (4) :: to_high, to_low
+    integer, dimension (5) :: to_high, to_low
     integer :: ixyz, ivmu
-    integer :: iv, imu, iy, ix, iz
+    integer :: iv, imu, iy, ix, iz, it
     integer :: ip, n
     logical :: initialized = .false.
 
@@ -306,7 +314,7 @@ contains
     do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
        do imu = 1, nmu
           do iv = 1, nvpa
-             call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, ivmu)
+             call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, it, ivmu)
              if (idx_local(xyz_lo,ixyz)) &
                   nn_from(proc_id(vmu_lo,ivmu)) = nn_from(proc_id(vmu_lo,ivmu)) + 1
              if (idx_local(vmu_lo,ivmu)) &
@@ -326,6 +334,7 @@ contains
           allocate (to_list(ip)%second(nn_to(ip)))
           allocate (to_list(ip)%third(nn_to(ip)))
           allocate (to_list(ip)%fourth(nn_to(ip)))
+          allocate (to_list(ip)%fifth(nn_to(ip)))
        end if
     end do
 
@@ -338,7 +347,7 @@ contains
        do imu = 1, nmu
           do iv = 1, nvpa
              ! obtain corresponding y indices
-             call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, ivmu)
+             call xyzidx2vmuidx (iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, it, ivmu)
              ! if vmu index local, set:
              ! ip = corresponding y processor
              ! from_list%first-third arrays = iv,imu,ixyz  (ie vmu indices)
@@ -361,7 +370,8 @@ contains
                 to_list(ip)%first(n) = iy
                 to_list(ip)%second(n) = ix
                 to_list(ip)%third(n) = iz
-                to_list(ip)%fourth(n) = ivmu
+                to_list(ip)%fourth(n) = it
+                to_list(ip)%fifth(n) = ivmu
              end if
           end do
        end do
@@ -378,12 +388,14 @@ contains
     to_low(1) = 1
     to_low(2) = 1
     to_low(3) = -nzgrid
-    to_low(4) = vmu_lo%llim_proc
+    to_low(4) = 1
+    to_low(5) = vmu_lo%llim_proc
 
     to_high(1) = vmu_lo%ny
     to_high(2) = vmu_lo%nx
     to_high(3) = vmu_lo%nzed
-    to_high(4) = vmu_lo%ulim_alloc
+    to_high(4) = vmu_lo%ntubes
+    to_high(5) = vmu_lo%ulim_alloc
 
     call set_redist_character_type (xyz2vmu, 'xyz2vmu')
 

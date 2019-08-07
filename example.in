@@ -1,5 +1,6 @@
 &zgrid_parameters
  nzed = 24
+ ntubes = 1
  nperiod = 2
  boundary_option="default"
 /

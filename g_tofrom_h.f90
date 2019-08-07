@@ -166,7 +166,7 @@ contains
   subroutine g_to_h_vmu (g, phi, facphi)
 
     use species, only: spec
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -174,11 +174,12 @@ contains
     use gyro_averages, only: gyro_average
 
     implicit none
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     real, intent (in) :: facphi
 
-    integer :: ivmu, iz, is, imu, iv, ia
+    integer :: ivmu, iz, it, is, imu, iv, ia
     complex, dimension (:,:), allocatable :: field, adjust
 
     allocate (field(naky,nakx))
@@ -189,11 +190,13 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       do iz = -nzgrid, nzgrid
-          field = spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu) &
-               * facphi*phi(:,:,iz)
-          call gyro_average (field, iz, ivmu, adjust)
-          g(:,:,iz,ivmu) = g(:,:,iz,ivmu) + adjust
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+             field = spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu) &
+                  * facphi*phi(:,:,iz,it)
+             call gyro_average (field, iz, ivmu, adjust)
+             g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
+          end do
        end do
     end do
 
@@ -258,15 +261,15 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use gyro_averages, only: gyro_average
 
     implicit none
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     real, intent (in) :: facphi
 
-    integer :: ikxkyz, iz, iky, ikx, is, ia
+    integer :: ikxkyz, iz, it, iky, ikx, is, ia
     complex, dimension (:,:), allocatable :: adjust, field
 
     allocate (adjust(nvpa,nmu))
@@ -274,10 +277,11 @@ contains
     ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       field = spread(facphi*phi(iky,ikx,iz)*spec(is)%zt*maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       field = spread(facphi*phi(iky,ikx,iz,it)*spec(is)%zt*maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
        call gyro_average (field, ikxkyz, adjust)
        g(:,:,ikxkyz) = g(:,:,ikxkyz) + adjust
     end do
