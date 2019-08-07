@@ -237,26 +237,26 @@ contains
     use linear_solve, only: lu_decomposition
     use stella_time, only: code_dt
     use species, only: nspec, spec
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nmu, vpa, vperp2
     use vpamu_grids, only: set_vpa_weights
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use dist_fn_arrays, only: gvmu
     use gyro_averages, only: aj0v
     use fields, only: get_fields, get_fields_by_spec
 
     implicit none
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, it, is
     integer :: imu
     integer :: idx
     logical :: conservative_wgts
     real :: dum2
-    complex, dimension (:,:,:), allocatable :: dum1
-    complex, dimension (:,:,:,:), allocatable :: field
+    complex, dimension (:,:,:,:), allocatable :: dum1
+    complex, dimension (:,:,:,:,:), allocatable :: field
 
     if (.not.allocated(vpadiff_response)) then
        nresponse_vpa = 1
@@ -266,8 +266,8 @@ contains
        vpadiff_response = 0.
        allocate (vpadiff_idx(nresponse_vpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     end if
-    allocate (dum1(naky,nakx,-nzgrid:nzgrid))
-    allocate (field(naky,nakx,-nzgrid:nzgrid,nspec))
+    allocate (dum1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
     ! set wgts to be equally spaced to ensure exact conservation properties
     conservative_wgts = .true.
@@ -288,13 +288,14 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for upar equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
-    call get_fields (gvmu, field(:,:,:,1), dum1, dist='h')
+    call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
-       vpadiff_response(1,1,ikxkyz) = 1.0-field(iky,ikx,iz,1)
+       it = it_idx(kxkyz_lo,ikxkyz)
+       vpadiff_response(1,1,ikxkyz) = 1.0-field(iky,ikx,iz,it,1)
     end do
     idx = 2
     if (momentum_conservation) then
@@ -303,7 +304,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          vpadiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          vpadiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
        idx = idx + nspec
     end if
@@ -313,7 +315,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          vpadiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          vpadiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
     end if
     idx = 2
@@ -336,7 +339,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          vpadiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          vpadiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
 
        call get_upar (gvmu, field)
@@ -344,8 +348,9 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           do is = 1, nspec
-             vpadiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,is)
+             vpadiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,it,is)
           end do
        end do
 
@@ -355,8 +360,9 @@ contains
              iky = iky_idx(kxkyz_lo,ikxkyz)
              ikx = ikx_idx(kxkyz_lo,ikxkyz)
              iz = iz_idx(kxkyz_lo,ikxkyz)
+             it = it_idx(kxkyz_lo,ikxkyz)
              do is = 1, nspec
-                vpadiff_response(idx+is+nspec-1,idx+is-1,ikxkyz) = -field(iky,ikx,iz,is)
+                vpadiff_response(idx+is+nspec-1,idx+is-1,ikxkyz) = -field(iky,ikx,iz,it,is)
              end do
           end do
        end if
@@ -382,7 +388,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          vpadiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          vpadiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
 
        if (momentum_conservation) then
@@ -391,8 +398,9 @@ contains
              iky = iky_idx(kxkyz_lo,ikxkyz)
              ikx = ikx_idx(kxkyz_lo,ikxkyz)
              iz = iz_idx(kxkyz_lo,ikxkyz)
+             it = it_idx(kxkyz_lo,ikxkyz)
              do is = 1, nspec
-                vpadiff_response(idx+is-1-nspec,idx+is-1,ikxkyz) = -field(iky,ikx,iz,is)
+                vpadiff_response(idx+is-1-nspec,idx+is-1,ikxkyz) = -field(iky,ikx,iz,it,is)
              end do
           end do
        end if
@@ -402,8 +410,9 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           do is = 1, nspec
-             vpadiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,is)
+             vpadiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,it,is)
           end do
        end do
     end if
@@ -427,12 +436,12 @@ contains
     use linear_solve, only: lu_decomposition
     use stella_time, only: code_dt
     use species, only: nspec, spec
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nvpa, vpa, vperp2
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use dist_fn_arrays, only: gvmu, kperp2
     use gyro_averages, only: aj0v, aj1v
     use fields, only: get_fields, get_fields_by_spec
@@ -440,12 +449,12 @@ contains
 
     implicit none
 
-    integer :: ikxkyz, iky, ikx, iz, is, ia
+    integer :: ikxkyz, iky, ikx, iz, it, is, ia
     integer :: iv
     integer :: idx
     real :: dum2
-    complex, dimension (:,:,:), allocatable :: dum1
-    complex, dimension (:,:,:,:), allocatable :: field
+    complex, dimension (:,:,:,:), allocatable :: dum1
+    complex, dimension (:,:,:,:,:), allocatable :: field
 
     if (.not.allocated(mudiff_response)) then
        nresponse_mu = 1
@@ -455,8 +464,8 @@ contains
        mudiff_response = 0.
        allocate (mudiff_idx(nresponse_mu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     end if
-    allocate (dum1(naky,nakx,-nzgrid:nzgrid))
-    allocate (field(naky,nakx,-nzgrid:nzgrid,nspec))
+    allocate (dum1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -473,13 +482,14 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for uperp equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
-    call get_fields (gvmu, field(:,:,:,1), dum1, dist='h')
+    call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
-       mudiff_response(1,1,ikxkyz) = 1.0-field(iky,ikx,iz,1)
+       it = it_idx(kxkyz_lo,ikxkyz)
+       mudiff_response(1,1,ikxkyz) = 1.0-field(iky,ikx,iz,it,1)
     end do
     idx = 2
     if (momentum_conservation) then
@@ -488,7 +498,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          mudiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
        idx = idx + nspec
     end if
@@ -498,7 +509,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          mudiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(idx:idx+nspec-1,1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
     end if
     idx = 2
@@ -525,7 +537,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          mudiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
 
        call get_uperp (gvmu, field)
@@ -533,8 +546,9 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           do is = 1, nspec
-             mudiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,is)
+             mudiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,it,is)
           end do
        end do
 
@@ -544,8 +558,9 @@ contains
              iky = iky_idx(kxkyz_lo,ikxkyz)
              ikx = ikx_idx(kxkyz_lo,ikxkyz)
              iz = iz_idx(kxkyz_lo,ikxkyz)
+             it = it_idx(kxkyz_lo,ikxkyz)
              do is = 1, nspec
-                mudiff_response(idx+is+nspec-1,idx+is-1,ikxkyz) = -field(iky,ikx,iz,is)
+                mudiff_response(idx+is+nspec-1,idx+is-1,ikxkyz) = -field(iky,ikx,iz,it,is)
              end do
           end do
        end if
@@ -571,7 +586,8 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
-          mudiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,:)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          mudiff_response(1,idx:idx+nspec-1,ikxkyz) = -field(iky,ikx,iz,it,:)
        end do
 
        if (momentum_conservation) then
@@ -580,8 +596,9 @@ contains
              iky = iky_idx(kxkyz_lo,ikxkyz)
              ikx = ikx_idx(kxkyz_lo,ikxkyz)
              iz = iz_idx(kxkyz_lo,ikxkyz)
+             it = it_idx(kxkyz_lo,ikxkyz)
              do is = 1, nspec
-                mudiff_response(idx+is-1-nspec,idx+is-1,ikxkyz) = -field(iky,ikx,iz,is)
+                mudiff_response(idx+is-1-nspec,idx+is-1,ikxkyz) = -field(iky,ikx,iz,it,is)
              end do
           end do
        end if
@@ -591,8 +608,9 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           do is = 1, nspec
-             mudiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,is)
+             mudiff_response(idx+is-1,idx+is-1,ikxkyz) = 1.0-field(iky,ikx,iz,it,is)
           end do
        end do
     end if
@@ -614,15 +632,15 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use gyro_averages, only: aj0v
 
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, it, is
     complex, dimension (:,:), allocatable :: g0
 
     allocate (g0(nvpa,nmu))
@@ -632,9 +650,10 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        g0 = g(:,:,ikxkyz)*spread(vpa,2,nmu)*spread(aj0v(:,ikxkyz),1,nvpa)
-       call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
+       call integrate_vmu (g0,iz,fld(iky,ikx,iz,it,is))
     end do
     deallocate (g0)
 
@@ -650,15 +669,15 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use gyro_averages, only: aj1v
 
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, it, is
     complex, dimension (:,:), allocatable :: g0
 
     allocate (g0(nvpa,nmu))
@@ -668,10 +687,11 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
 !       g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
        g0 = g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
-       call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
+       call integrate_vmu (g0,iz,fld(iky,ikx,iz,it,is))
     end do
     deallocate (g0)
 
@@ -687,15 +707,15 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use gyro_averages, only: aj0v
 
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, it, is
     complex, dimension (:,:), allocatable :: g0
 
     allocate (g0(nvpa,nmu))
@@ -705,10 +725,11 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        g0 = g(:,:,ikxkyz)*(spread(vpa**2,2,nmu)-0.5) &
             *spread(aj0v(:,ikxkyz),1,nvpa)/1.5
-       call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
+       call integrate_vmu (g0,iz,fld(iky,ikx,iz,it,is))
     end do
     deallocate (g0)
 
@@ -723,15 +744,15 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: nvpa, nmu, vperp2
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use gyro_averages, only: aj0v
 
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, it, is
     complex, dimension (:,:), allocatable :: g0
 
     allocate (g0(nvpa,nmu))
@@ -741,10 +762,11 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        g0 = g(:,:,ikxkyz)*(spread(vperp2(1,iz,:),1,nvpa)-1.0) &
             *spread(aj0v(:,ikxkyz),1,nvpa)/1.5
-       call integrate_vmu (g0,iz,fld(iky,ikx,iz,is))
+       call integrate_vmu (g0,iz,fld(iky,ikx,iz,it,is))
     end do
     deallocate (g0)
 
@@ -819,7 +841,7 @@ contains
     use job_manage, only: time_message
     use redistribute, only: scatter, gather
     use stella_time, only: code_dt
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use run_parameters, only: fphi
     use kt_grids, only: naky, nakx
@@ -834,19 +856,19 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:), intent (in) :: phi
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
     integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia
     logical :: conservative_wgts
     complex, dimension (:), allocatable :: mucoll
     complex, dimension (:,:,:), allocatable :: coll
-    complex, dimension (:,:,:,:), allocatable :: tmp_vmulo
+    complex, dimension (:,:,:,:,:), allocatable :: tmp_vmulo
 
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
 
-    allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     ! want exact conservation properties for collision operator
     conservative_wgts = .true.
@@ -891,13 +913,13 @@ contains
        gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
     end do
     deallocate (coll, mucoll)
-    allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    ! remap so that (ky,kx,z) local
+    allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    ! remap so that (ky,kx,z,tube) local
     call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
-       gke_rhs(:,:,:,ivmu) =  gke_rhs(:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,ivmu)
+       gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
     end do
 
     deallocate (tmp_vmulo)
@@ -1070,8 +1092,8 @@ contains
     implicit none
 
     logical, intent (in) :: mirror_implicit
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
     logical :: conservative_wgts
 
@@ -1109,27 +1131,27 @@ contains
     use stella_time, only: code_dt
     use run_parameters, only: fphi
     use species, only: nspec, spec
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
     use vpamu_grids, only: set_vpa_weights
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use g_tofrom_h, only: g_to_h
     use gyro_averages, only: aj0v
     use fields, only: get_fields
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ikxkyz, iky, ikx, iz, is
+    integer :: ikxkyz, iky, ikx, iz, it, is
     integer :: imu
     integer :: idx
     real, dimension (:,:), allocatable :: tmp
-    complex, dimension (:,:,:,:), allocatable :: flds
+    complex, dimension (:,:,:,:,:), allocatable :: flds
     complex, dimension (:,:,:), allocatable :: g_in
 
     ! store input g for use later, as g will be overwritten below
@@ -1145,33 +1167,34 @@ contains
        end do
     end do
 
-    allocate (flds(naky,nakx,-nzgrid:nzgrid,nresponse_vpa))
+    allocate (flds(naky,nakx,-nzgrid:nzgrid,ntubes,nresponse_vpa))
 
     ! need to obtain phi^{n+1} and conservation terms using response matrix approach
     ! first get phi_inh^{n+1}
     call get_fields (g, phi, apar, dist='h')
-    flds(:,:,:,1) = phi
+    flds(:,:,:,:,1) = phi
 
     idx = 2
     ! get upar_inh^{n+1}
     if (momentum_conservation) then
-       call get_upar (g, flds(:,:,:,idx:idx+nspec-1))
+       call get_upar (g, flds(:,:,:,:,idx:idx+nspec-1))
        idx = idx + nspec
     end if
 
     ! get temp_inh^{n+1}
-    if (energy_conservation) call get_temp (g, flds(:,:,:,idx:idx+nspec-1))
+    if (energy_conservation) call get_temp (g, flds(:,:,:,:,idx:idx+nspec-1))
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        ! all is indices inside ikxkyz super-index have same info
        ! no need to compute multiple times
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
-            flds(iky,ikx,iz,:))
-       phi = flds(iky,ikx,iz,1)
+            flds(iky,ikx,iz,it,:))
+       phi = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
@@ -1188,14 +1211,15 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
                *spread(maxwell_vpa,2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:),1,nvpa)
           if (momentum_conservation) &
-               g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,is+1),2,nmu)
+               g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,it,is+1),2,nmu)
           if (energy_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) &
-               + tmp*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)*flds(iky,ikx,iz,idx+is-1)
+               + tmp*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)*flds(iky,ikx,iz,it,idx+is-1)
        end do
     end if
 
@@ -1224,13 +1248,13 @@ contains
     use stella_time, only: code_dt
     use run_parameters, only: fphi
     use species, only: nspec, spec
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
     use vpamu_grids, only: set_vpa_weights
     use kt_grids, only: naky, nakx
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use dist_fn_arrays, only: kperp2
     use gyro_averages, only: aj0v, aj1v
     use g_tofrom_h, only: g_to_h
@@ -1242,10 +1266,10 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ikxkyz, iky, ikx, iz, is, ia
+    integer :: ikxkyz, iky, ikx, iz, it, is, ia
     integer :: iv
     integer :: idx
 
@@ -1253,7 +1277,7 @@ contains
 !    integer :: imu
 
     real, dimension (:,:), allocatable :: tmp
-    complex, dimension (:,:,:,:), allocatable :: flds
+    complex, dimension (:,:,:,:,:), allocatable :: flds
     complex, dimension (:,:,:), allocatable :: g_in
 
     ! store input g for use later, as g will be overwritten below
@@ -1279,35 +1303,34 @@ contains
 !       end do
     end do
 
-    
-
-    allocate (flds(naky,nakx,-nzgrid:nzgrid,nresponse_mu))
+    allocate (flds(naky,nakx,-nzgrid:nzgrid,ntubes,nresponse_mu))
 
     ! need to obtain phi^{n+1} and conservation terms using response matrix approach
     ! first get phi_inh^{n+1}
     call get_fields (g, phi, apar, dist='h')
-    flds(:,:,:,1) = phi
+    flds(:,:,:,:,1) = phi
 
     idx = 2
     ! get upar_inh^{n+1}
     if (momentum_conservation) then
-       call get_uperp (g, flds(:,:,:,idx:idx+nspec-1))
+       call get_uperp (g, flds(:,:,:,:,idx:idx+nspec-1))
        idx = idx + nspec
     end if
 
     ! get temp_inh^{n+1}
-    if (energy_conservation) call get_temp_mu (g, flds(:,:,:,idx:idx+nspec-1))
+    if (energy_conservation) call get_temp_mu (g, flds(:,:,:,:,idx:idx+nspec-1))
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
        ! all is indices inside ikxkyz super-index have same info
        ! no need to compute multiple times
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (mudiff_response(:,:,ikxkyz), mudiff_idx(:,ikxkyz), &
-            flds(iky,ikx,iz,:))
-       phi = flds(iky,ikx,iz,1)
+            flds(iky,ikx,iz,it,:))
+       phi = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
@@ -1326,16 +1349,17 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
                *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
           if (momentum_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,ia,iz) &
                *spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(ia,iz))**2 &
-               *flds(iky,ikx,iz,is+1)
+               *flds(iky,ikx,iz,it,is+1)
           if (energy_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) &
-               + flds(iky,ikx,iz,idx+is-1)*tmp*spread(aj0v(:,ikxkyz),1,nvpa) &
+               + flds(iky,ikx,iz,it,idx+is-1)*tmp*spread(aj0v(:,ikxkyz),1,nvpa) &
                *(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
        end do
     end if
@@ -1361,13 +1385,13 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
     integer :: ia
     integer :: ivmu
@@ -1378,7 +1402,7 @@ contains
     ia = 1
     ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g(:,:,:,ivmu) = g(:,:,:,ivmu)/(1.+code_dt*(kperp2(:,:,ia,:)/k2max)**2*D_hyper)
+       g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt*(spread(kperp2(:,:,ia,:),4,ntubes)/k2max)**2*D_hyper)
     end do
 
   end subroutine advance_hyper_dissipation

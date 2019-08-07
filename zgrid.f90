@@ -3,7 +3,7 @@ module zgrid
   implicit none
 
   public :: init_zgrid, finish_zgrid
-  public :: nzed, nzgrid, nperiod
+  public :: nzed, nzgrid, nperiod, ntubes
   public :: nztot, nz2pi
   public :: zed
   public :: delzed
@@ -16,7 +16,8 @@ module zgrid
 
   private
 
-  integer :: nzed, nzgrid, nperiod, nztot, nz2pi
+  integer :: nzed, nzgrid, nztot, nz2pi
+  integer :: nperiod, ntubes
   logical :: zed_equal_arc
   real :: shat_zero
   real, dimension (:), allocatable :: zed, delzed
@@ -80,10 +81,12 @@ contains
             text_option('linked', boundary_option_linked) /)
     character(20) :: boundary_option
 
-    namelist /zgrid_parameters/ nzed, nperiod, shat_zero, boundary_option, zed_equal_arc
+    namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
+         shat_zero, boundary_option, zed_equal_arc
 
     nzed = 24
     nperiod = 1
+    ntubes = 1
     boundary_option = 'default'
     ! if zed_equal_arc = T, then zed is chosen to be arc length
     ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
@@ -122,6 +125,7 @@ contains
     call broadcast (nzed)
     call broadcast (nzgrid)
     call broadcast (nperiod)
+    call broadcast (ntubes)
     call broadcast (zed_equal_arc)
     call broadcast (shat_zero)
     call broadcast (boundary_option_switch)

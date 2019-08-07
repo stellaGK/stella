@@ -37,26 +37,26 @@ contains
 
     if (response_matrix_initialized) return
     response_matrix_initialized = .true.
-
+    
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
-
+    
     ! for a given ky and set of connected kx values
     ! give a unit impulse to phi at each zed location
     ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
-
+    
     do iky = 1, naky
-
+       
        ! the response matrix for each ky has neigen(ky)
        ! independent sets of connected kx values
        if (.not.associated(response_matrix(iky)%eigen)) &
             allocate (response_matrix(iky)%eigen(neigen(iky)))
-
+       
        ! loop over the sets of connected kx values
        do ie = 1, neigen(iky)
-
+          
           ! number of zeds x number of segments
           nz_ext = nsegments(ie,iky)*nzed_segment+1
-
+          
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
           if (zonal_mode(iky)) then

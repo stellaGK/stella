@@ -27,7 +27,7 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2
     use gyro_averages, only: aj0v
     use run_parameters, only: fphi, fapar
@@ -47,15 +47,17 @@ contains
 
     implicit none
 
-    integer :: ikxkyz, iz, ikx, iky, is, ia
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia
     real :: tmp, wgt
     real, dimension (:,:), allocatable :: g0
 
+    ! do not see why this is before fields_initialized check below
     call allocate_arrays
 
     if (fields_initialized) return
     fields_initialized = .true.
 
+    ! could move these array allocations to allocate_arrays to clean up code
     if (.not.allocated(gamtot)) allocate (gamtot(naky,nakx,-nzgrid:nzgrid)) ; gamtot = 0.
     if (.not.allocated(gamtot3)) then
        if (.not.has_electron_species(spec) &
@@ -76,6 +78,10 @@ contains
     if (fphi > epsilon(0.0)) then
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          it = it_idx(kxkyz_lo,ikxkyz)
+          ! gamtot does not depend on flux tube index,
+          ! so only compute for one flux tube index
+          if (it /= 1) cycle
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -118,6 +124,10 @@ contains
        ia = 1
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          it = it_idx(kxkyz_lo,ikxkyz)
+          ! apar_denom does not depend on flux tube index,
+          ! so only compute for one flux tube index
+          if (it /= 1) cycle
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -142,21 +152,21 @@ contains
 
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
 
     implicit none
 
     if (.not.allocated(phi)) then
-       allocate (phi(naky,nakx,-nzgrid:nzgrid))
+       allocate (phi(naky,nakx,-nzgrid:nzgrid,ntubes))
        phi = 0.
     end if
     if (.not. allocated(apar)) then
-       allocate (apar(naky,nakx,-nzgrid:nzgrid))
+       allocate (apar(naky,nakx,-nzgrid:nzgrid,ntubes))
        apar = 0.
     end if
     if (.not.allocated(phi_old)) then
-       allocate (phi_old(naky,nakx,-nzgrid:nzgrid))
+       allocate (phi_old(naky,nakx,-nzgrid:nzgrid,ntubes))
        phi_old = 0.
     end if
 
@@ -172,12 +182,18 @@ contains
     use zgrid, only: nzgrid
     use dist_redistribute, only: kxkyz2vmu
     use run_parameters, only: fields_kxkyz
+    ! TMP FOR TESTING
+!    use zgrid, only: ntubes
+!    use kt_grids, only: naky, nakx
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
+
+    ! TMP FOR TESTING
+!    integer :: iky, ikx, iz, it
 
     if (fields_updated) return
 
@@ -196,6 +212,20 @@ contains
     else
        call get_fields_vmulo (g, phi, apar, dist)
     end if
+
+!     if (proc0) then
+!        do it = 1, ntubes
+!           do iz = -nzgrid, nzgrid
+!              do ikx = 1, nakx
+!                 do iky = 1, naky
+!                    write (*,*) 'get_phi (iky, ikx, iz, it):', iky, ikx, iz, it, real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it))
+!                 end do
+!              end do
+!           end do
+!        end do
+!        write (*,*)
+!     end if
+
     ! set a flag to indicate that the fields have been updated
     ! this helps avoid unnecessary field solves
     fields_updated = .true.
@@ -209,13 +239,13 @@ contains
     use mp, only: proc0
     use mp, only: sum_allreduce, mp_abort
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2
     use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: beta
     use stella_geometry, only: dl_over_b
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: integrate_vmu
@@ -228,12 +258,12 @@ contains
     implicit none
     
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
-    integer :: ikxkyz, iz, ikx, iky, is, ia
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia
     complex :: tmp
 
     phi = 0.
@@ -241,20 +271,21 @@ contains
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
           wgt = spec(is)%z*spec(is)%dens
           call integrate_vmu (g0, iz, tmp)
-          phi(iky,ikx,iz) = phi(iky,ikx,iz) + wgt*tmp
+          phi(iky,ikx,iz,it) = phi(iky,ikx,iz,it) + wgt*tmp
        end do
        call sum_allreduce (phi)
 
        if (dist == 'h') then
           phi = phi/gamtot_h
        else if (dist == 'gbar') then
-          phi = phi/gamtot
+          phi = phi/spread(gamtot,4,ntubes)
 !       else if (dist == 'gstar') then
 !          phi = phi/gamtot_wstar
        else
@@ -267,13 +298,17 @@ contains
           if (zonal_mode(1)) then
              if (dist == 'h') then
                 do ikx = 1, nakx
-                   tmp = sum(dl_over_b*phi(1,ikx,:))
-                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_h
+                   do it = 1, ntubes
+                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
+                   end do
                 end do
              else if (dist == 'gbar') then
                 do ikx = 1, nakx
-                   tmp = sum(dl_over_b*phi(1,ikx,:))
-                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3(ikx,:)
+                   do it = 1, ntubes
+                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:)
+                   end do
                 end do
 !             else if (dist == 'gstar') then
 !                do ikx = 1, nakx
@@ -296,19 +331,20 @@ contains
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           call gyro_average (spread(vpa,2,nmu)*g(:,:,ikxkyz), ikxkyz, g0)
           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
           call integrate_vmu (g0, iz, tmp)
-          apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
+          apar(iky,ikx,iz,it) = apar(iky,ikx,iz,it) + tmp*wgt
        end do
        call sum_allreduce (apar)
        if (dist == 'h') then
-          apar = apar/kperp2(:,:,ia,:)
+          apar = apar/spread(kperp2(:,:,ia,:),4,ntubes)
        else if (dist == 'gbar') then
-          apar = apar/apar_denom
+          apar = apar/spread(apar_denom,4,ntubes)
        else if (dist == 'gstar') then
           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
@@ -328,7 +364,7 @@ contains
     use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
     use stella_geometry, only: dl_over_b
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species
     use kt_grids, only: nakx, naky
     use kt_grids, only: zonal_mode
@@ -338,11 +374,11 @@ contains
 
     implicit none
     
-    complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:), intent (out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
-    integer :: ikx, iky, ivmu, iz
+    integer :: ikx, iky, ivmu, iz, it
     complex :: tmp
     complex, dimension (:,:,:), allocatable :: gyro_g
 
@@ -350,13 +386,15 @@ contains
     if (fphi > epsilon(0.0)) then
 
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_proc))
-       do iz = -nzgrid, nzgrid
-          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             call gyro_average (g(:,:,iz,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
-          end do
-          do ikx = 1, nakx
-             do iky = 1, naky
-                call integrate_species (gyro_g(iky,ikx,:), iz, spec%z*spec%dens, phi(iky,ikx,iz))
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+             end do
+             do ikx = 1, nakx
+                do iky = 1, naky
+                   call integrate_species (gyro_g(iky,ikx,:), iz, spec%z*spec%dens, phi(iky,ikx,iz,it))
+                end do
              end do
           end do
        end do
@@ -365,7 +403,7 @@ contains
        if (dist == 'h') then
           phi = phi/gamtot_h
        else if (dist == 'gbar') then
-          phi = phi/gamtot
+          phi = phi/spread(gamtot,4,ntubes)
 !       else if (dist == 'gstar') then
 !          phi = phi/gamtot_wstar
        else
@@ -377,14 +415,18 @@ contains
             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
           if (zonal_mode(1)) then
              if (dist == 'h') then
-                do ikx = 1, nakx
-                   tmp = sum(dl_over_b*phi(1,ikx,:))
-                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3_h
+                do it = 1, ntubes
+                   do ikx = 1, nakx
+                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
+                   end do
                 end do
              else if (dist == 'gbar') then
-                do ikx = 1, nakx
-                   tmp = sum(dl_over_b*phi(1,ikx,:))
-                   phi(1,ikx,:) = phi(1,ikx,:) + tmp*gamtot3(ikx,:)
+                do it = 1, ntubes
+                   do ikx = 1, nakx
+                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:)
+                   end do
                 end do
 !             else if (dist == 'gstar') then
 !                do ikx = 1, nakx
@@ -398,7 +440,7 @@ contains
           end if
        end if
     end if
-
+    
     apar = 0.
     if (fapar > epsilon(0.0)) then
        ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
@@ -435,11 +477,11 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
-    use stella_layouts, only: iz_idx, ikx_idx, iky_idx, is_idx
+    use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use gyro_averages, only: gyro_average
     use run_parameters, only: fphi
     use stella_geometry, only: dl_over_b
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: integrate_vmu
     use kt_grids, only: nakx
@@ -451,11 +493,11 @@ contains
     implicit none
     
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: fld
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
-    integer :: ikxkyz, iz, ikx, iky, is
+    integer :: ikxkyz, iz, it, ikx, iky, is
     complex, dimension (nspec) :: tmp
 
     fld = 0.
@@ -463,13 +505,14 @@ contains
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           wgt = spec(is)%z*spec(is)%dens
           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
           g0 = g0*wgt
-          call integrate_vmu (g0, iz, fld(iky,ikx,iz,is))
+          call integrate_vmu (g0, iz, fld(iky,ikx,iz,it,is))
        end do
        call sum_allreduce (fld)
 
@@ -479,9 +522,11 @@ contains
             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
           if (zonal_mode(1)) then
              do ikx = 1, nakx
-                do is = 1, nspec
-                   tmp(is) = sum(dl_over_b*fld(1,ikx,:,is))
-                   fld(1,ikx,:,is) = fld(1,ikx,:,is) + tmp(is)*gamtot3_h
+                do it = 1, ntubes
+                   do is = 1, nspec
+                      tmp(is) = sum(dl_over_b*fld(1,ikx,:,it,is))
+                      fld(1,ikx,:,it,is) = fld(1,ikx,:,it,is) + tmp(is)*gamtot3_h
+                   end do
                 end do
              end do
           end if

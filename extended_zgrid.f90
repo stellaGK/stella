@@ -20,6 +20,11 @@ module extended_zgrid
   integer, dimension (:), allocatable :: iz_low, iz_mid, iz_up
   integer, dimension (:,:), allocatable :: nsegments
   integer, dimension (:,:,:), allocatable :: ikxmod
+  ! arrays indicate which flux tube index to connect to
+  ! on the left and on the right
+  ! as a function of current flux tube index
+  ! pre-compute to avoid conditionals in loops
+  integer, dimension (:), allocatable :: it_left, it_right
 
   ! FLAG -- NEED TO IMPLEMENT PERIODIC FOR ZONAL FLOW
   logical, dimension (:), allocatable :: periodic
@@ -33,7 +38,7 @@ contains
     use zgrid, only: boundary_option_switch
     use zgrid, only: boundary_option_self_periodic
     use zgrid, only: boundary_option_linked
-    use zgrid, only: nperiod, nzgrid, nzed
+    use zgrid, only: nperiod, nzgrid, nzed, ntubes
     use kt_grids, only: nakx, naky
     use kt_grids, only: jtwist_out, ikx_twist_shift
     use kt_grids, only: aky, ikx_max
@@ -41,7 +46,7 @@ contains
 
     implicit none
 
-    integer :: iseg, iky, ie, ntg, ikx
+    integer :: iseg, iky, ie, ntg, ikx, it
     integer :: nseg_max, neigen_max
     integer, dimension (:), allocatable :: ikx_shift_end
     integer, dimension (:,:), allocatable :: ikx_shift
@@ -263,6 +268,23 @@ contains
     if (allocated(ikx_shift_end)) deallocate (ikx_shift_end)
     if (allocated(ikx_shift)) deallocate (ikx_shift)
 
+    if (.not.allocated(it_left)) allocate (it_left(ntubes))
+    if (.not.allocated(it_right)) allocate (it_right(ntubes))
+
+    it_right(ntubes) = 1
+    if (ntubes > 1) then
+       do it = 1, ntubes-1
+          it_right(it) = it+1
+       end do
+    end if
+
+    it_left(1) = ntubes
+    if (ntubes > 1) then
+       do it = 2, ntubes
+          it_left(it) = it-1
+       end do
+    end if
+
     ! this is the number of unique zed values in all segments but the first
     ! the first has one extra unique zed value (all others have one grid common
     ! with the previous segment due to periodicity)
@@ -270,15 +292,15 @@ contains
 
   end subroutine init_extended_zgrid
 
-  subroutine fill_zed_ghost_zones (iseg, ie, iky, g, gleft, gright)
+  subroutine fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
     use kt_grids, only: zonal_mode
 
     implicit none
 
-    integer, intent (in) :: iseg, ie, iky
-    complex, dimension (:,:,-nzgrid:), intent (in) :: g
+    integer, intent (in) :: it, iseg, ie, iky
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:), intent (out) :: gleft, gright
 
     ! stream_sign > 0 --> stream speed < 0
@@ -286,21 +308,21 @@ contains
     if (iseg == 1) then
        ! if zonal mode, then periodic BC instead of zero BC
        if (zonal_mode(iky)) then
-          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1)
+          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1,it)
        else
           gleft = 0.0
        end if
     else
-       gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1)
+       gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
     end if
     
     if (nsegments(ie,iky) > iseg) then
        ! connect to segment with larger theta-theta0 (on right)
-       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2)
+       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))
     else
        ! apply periodic BC to zonal mode and zero BC otherwise
        if (zonal_mode(iky)) then
-          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2)
+          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2,it)
        else
           gright = 0.0
        end if
@@ -308,60 +330,64 @@ contains
     
   end subroutine fill_zed_ghost_zones
 
-  subroutine map_to_extended_zgrid (ie, iky, g, gext, ulim)
+  subroutine map_to_extended_zgrid (it, ie, iky, g, gext, ulim)
 
     use zgrid, only: nzgrid
 
     implicit none
 
-    integer, intent (in) :: ie, iky
-    complex, dimension (:,-nzgrid:), intent (in) :: g
+    integer, intent (in) :: it, ie, iky
+    complex, dimension (:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:), intent (out) :: gext
     integer, intent (out) :: ulim
 
-    integer :: iseg, ikx
+    integer :: iseg, ikx, itmod
     integer :: llim
 
     ! avoid double-counting at boundaries between 2pi segments
     iseg = 1
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
-    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg))
+    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg),it)
     if (nsegments(ie,iky) > 1) then
+       itmod = it
        do iseg = 2, nsegments(ie,iky)
           ikx = ikxmod(iseg,ie,iky)
+          itmod = it_right(itmod)
           llim = ulim+1
           ulim = llim+nzed_segment-1
-          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg))
+          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)
        end do
     end if
 
   end subroutine map_to_extended_zgrid
 
-  subroutine map_from_extended_zgrid (ie, iky, gext, g)
+  subroutine map_from_extended_zgrid (it, ie, iky, gext, g)
 
     use zgrid, only: nzgrid
 
     implicit none
 
-    integer, intent (in) :: ie, iky
+    integer, intent (in) :: it, ie, iky
     complex, dimension (:), intent (in) :: gext
-    complex, dimension (:,-nzgrid:), intent (in out) :: g
+    complex, dimension (:,-nzgrid:,:), intent (in out) :: g
 
-    integer :: iseg, ikx
+    integer :: iseg, ikx, itmod
     integer :: llim, ulim
 
     iseg = 1
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
-    g(ikx,iz_low(iseg):iz_up(iseg)) = gext(llim:ulim)
+    g(ikx,iz_low(iseg):iz_up(iseg),it) = gext(llim:ulim)
     if (nsegments(ie,iky) > 1) then
+       itmod = it
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
           ulim = llim+nzed_segment-1
           ikx = ikxmod(iseg,ie,iky)
-          g(ikx,iz_low(iseg)) = gext(llim-1)
-          g(ikx,iz_low(iseg)+1:iz_up(iseg)) = gext(llim:ulim)
+          itmod = it_right(itmod)
+          g(ikx,iz_low(iseg),itmod) = gext(llim-1)
+          g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod) = gext(llim:ulim)
        end do
     end if
 
@@ -376,6 +402,8 @@ contains
     if (allocated(nsegments)) deallocate (nsegments)
     if (allocated(iz_low)) deallocate (iz_low, iz_mid, iz_up)
     if (allocated(ikxmod)) deallocate (ikxmod)
+    if (allocated(it_right)) deallocate (it_right)
+    if (allocated(it_left)) deallocate (it_left)
 
     extended_zgrid_initialized = .false.
 

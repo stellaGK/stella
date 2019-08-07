@@ -95,6 +95,7 @@ module mp
      module procedure broadcast_complex_array
      module procedure broadcast_complex_2array
      module procedure broadcast_complex_3array
+     module procedure broadcast_complex_4array
 
      module procedure broadcast_logical 
      module procedure broadcast_logical_array 
@@ -445,6 +446,15 @@ contains
     call mpi_bcast (z, size(z), mpicmplx, 0, mp_comm, ierror)
 # endif
   end subroutine broadcast_complex_3array
+
+  subroutine broadcast_complex_4array (z)
+    implicit none
+    complex, dimension (:,:,:,:), intent (in out) :: z
+# ifdef MPI
+    integer :: ierror
+    call mpi_bcast (z, size(z), mpicmplx, 0, mp_comm, ierror)
+# endif
+  end subroutine broadcast_complex_4array
 
   subroutine broadcast_logical (f)
     implicit none

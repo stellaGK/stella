@@ -114,15 +114,15 @@ contains
 
   subroutine gyro_average_kxkyz_local (field, ivmu, gyro_field)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:), intent (in) :: field
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: field
     integer, intent (in) :: ivmu
-    complex, dimension (:,:,-nzgrid:), intent (out) :: gyro_field
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_field
 
-    gyro_field = aj0x(:,:,:,ivmu)*field
+    gyro_field = spread(aj0x(:,:,:,ivmu),4,ntubes)*field
 
   end subroutine gyro_average_kxkyz_local
 

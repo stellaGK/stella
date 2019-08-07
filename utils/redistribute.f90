@@ -38,6 +38,7 @@ module redistribute
      module procedure c_redist_23
      module procedure c_redist_34, r_redist_34
      module procedure c_redist_33
+     module procedure c_redist_35, r_redist_35
   end interface
 
   interface scatter
@@ -47,6 +48,7 @@ module redistribute
      module procedure c_redist_42_inv, r_redist_42_inv, i_redist_42_inv, l_redist_42_inv
      module procedure c_redist_33_inv
      module procedure c_redist_34_inv, r_redist_34_inv
+     module procedure c_redist_35_inv, r_redist_35_inv
   end interface
 
 ! TT>
@@ -73,16 +75,17 @@ module redistribute
 
   type :: index_map
      integer :: nn
-     integer, dimension (:), pointer :: k => null() 
-     integer, dimension (:), pointer :: l => null() 
-     integer, dimension (:), pointer :: m => null() 
-     integer, dimension (:), pointer :: n => null() 
+     integer, dimension (:), pointer :: k => null()
+     integer, dimension (:), pointer :: l => null()
+     integer, dimension (:), pointer :: m => null()
+     integer, dimension (:), pointer :: n => null()
+     integer, dimension (:), pointer :: o => null()
   end type index_map
 
   ! TT: want to add map name, from_layout and to_layout
   type :: redist_type
      private
-     integer, dimension (4) :: to_low, from_low, to_high, from_high
+     integer, dimension (5) :: to_low, from_low, to_high, from_high
      type (index_map), dimension (:), pointer :: to   => null()
      type (index_map), dimension (:), pointer :: from => null()
      complex, dimension (:), pointer :: complex_buff  => null()
@@ -97,6 +100,7 @@ module redistribute
      integer, dimension (:), pointer :: second => null()
      integer, dimension (:), pointer :: third  => null()
      integer, dimension (:), pointer :: fourth => null()
+     integer, dimension (:), pointer :: fifth => null()
   end type index_list_type
 
 
@@ -168,6 +172,11 @@ contains
              r%to(ip)%n = to_list(ip)%fourth
           end if
 
+          if (associated(to_list(ip)%fifth)) then
+             allocate (r%to(ip)%o(n_to))
+             r%to(ip)%o = to_list(ip)%fifth
+          end if
+
           if (ip /= iproc) buff_size = max(buff_size, n_to)
        else
           r%to(ip)%nn = 0
@@ -210,6 +219,11 @@ contains
           if (associated (from_list(ip)%fourth)) then
              allocate (r%from(ip)%n(n_from))
              r%from(ip)%n = from_list(ip)%fourth
+          endif
+
+          if (associated (from_list(ip)%fifth)) then
+             allocate (r%from(ip)%o(n_from))
+             r%from(ip)%o = from_list(ip)%fifth
           endif
 
           if (ip /= iproc) buff_size = max(buff_size, n_from)
@@ -289,6 +303,11 @@ contains
              f%to(ip)%n = to_list(ip)%fourth
           endif
 
+          if (associated (to_list(ip)%fifth)) then
+             allocate (f%to(ip)%o(n_to))
+             f%to(ip)%o = to_list(ip)%fifth
+          endif
+
           if (ip /= iproc) buff_size = max(buff_size, n_to)
        else
           f%to(ip)%nn = 0
@@ -315,6 +334,11 @@ contains
           if (associated (from_list(ip)%fourth)) then
              allocate (f%from(ip)%n(n_from))
              f%from(ip)%n = from_list(ip)%fourth
+          endif
+
+          if (associated (from_list(ip)%fifth)) then
+             allocate (f%from(ip)%o(n_from))
+             f%from(ip)%o = from_list(ip)%fifth
           endif
 
           if (ip /= iproc) buff_size = max(buff_size, n_from)
@@ -390,6 +414,7 @@ contains
        if(associated(list(ip)%second)) deallocate(list(ip)%second)
        if(associated(list(ip)%third)) deallocate(list(ip)%third)
        if(associated(list(ip)%fourth)) deallocate(list(ip)%fourth)
+       if(associated(list(ip)%fifth)) deallocate(list(ip)%fifth)
     enddo
 
   end subroutine delete_list
@@ -1539,6 +1564,364 @@ contains
     end do
 
   end subroutine r_redist_34_inv
+
+  subroutine c_redist_35 (r, from_here, to_here)
+
+    use mp, only: iproc, nproc, send, receive
+    type (redist_type), intent (in out) :: r
+
+    complex, dimension (r%from_low(1):, &
+                        r%from_low(2):, &
+                        r%from_low(3):), intent (in) :: from_here
+
+    complex, dimension (r%to_low(1):, &
+                        r%to_low(2):, &
+                        r%to_low(3):, &
+                        r%to_low(4):, &
+                        r%to_low(5):), intent (in out) :: to_here
+
+    integer :: i, idp, ipto, ipfrom, iadp
+
+    ! redistribute from local processor to local processor
+    do i = 1, r%from(iproc)%nn
+       to_here(r%to(iproc)%k(i),&
+               r%to(iproc)%l(i),&
+               r%to(iproc)%m(i),&
+               r%to(iproc)%n(i),&
+               r%to(iproc)%o(i)) &
+               = from_here(r%from(iproc)%k(i), &
+                           r%from(iproc)%l(i), &
+                           r%from(iproc)%m(i))
+    end do
+
+    ! redistribute to idpth next processor from idpth preceding processor
+    ! or redistribute from idpth preceding processor to idpth next processor
+    ! to avoid deadlocks
+    do idp = 1, nproc-1
+       ipto = mod(iproc + idp, nproc)
+       ipfrom = mod(iproc + nproc - idp, nproc)
+       iadp = min(idp, nproc - idp)
+       ! avoid deadlock AND ensure mostly parallel resolution
+       if (mod(iproc/iadp,2) == 0) then
+
+          ! send to idpth next processor
+          if (r%from(ipto)%nn > 0) then
+             do i = 1, r%from(ipto)%nn
+                r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
+                                              r%from(ipto)%l(i), &
+                                              r%from(ipto)%m(i))
+             end do
+             call send (r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
+          end if
+
+          ! receive from idpth preceding processor
+          if (r%to(ipfrom)%nn > 0) then
+             call receive (r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%to(ipfrom)%nn
+                to_here(r%to(ipfrom)%k(i), &
+                        r%to(ipfrom)%l(i), &
+                        r%to(ipfrom)%m(i), &
+                        r%to(ipfrom)%n(i), &
+                        r%to(ipfrom)%o(i)) &
+                        = r%complex_buff(i)
+             end do
+          end if
+       else
+          ! receive from idpth preceding processor
+          if (r%to(ipfrom)%nn > 0) then
+             call receive (r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%to(ipfrom)%nn
+                to_here(r%to(ipfrom)%k(i), &
+                        r%to(ipfrom)%l(i), &
+                        r%to(ipfrom)%m(i), &
+                        r%to(ipfrom)%n(i), &
+                        r%to(ipfrom)%o(i)) &
+                        = r%complex_buff(i)
+             end do
+          end if
+
+          ! send to idpth next processor
+          if (r%from(ipto)%nn > 0) then
+             do i = 1, r%from(ipto)%nn
+                r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
+                                              r%from(ipto)%l(i), &
+                                              r%from(ipto)%m(i))
+             end do
+             call send (r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
+          end if
+       end if
+    end do
+
+  end subroutine c_redist_35
+
+  subroutine r_redist_35 (r, from_here, to_here)
+
+    use mp, only: iproc, nproc, send, receive
+    type (redist_type), intent (in out) :: r
+
+    real, dimension (r%from_low(1):, &
+                        r%from_low(2):, &
+                        r%from_low(3):), intent (in) :: from_here
+
+    real, dimension (r%to_low(1):, &
+                        r%to_low(2):, &
+                        r%to_low(3):, &
+                        r%to_low(4):, &
+                        r%to_low(5):), intent (in out) :: to_here
+
+    integer :: i, idp, ipto, ipfrom, iadp
+
+    ! redistribute from local processor to local processor
+    do i = 1, r%from(iproc)%nn
+       to_here(r%to(iproc)%k(i),&
+               r%to(iproc)%l(i),&
+               r%to(iproc)%m(i),&
+               r%to(iproc)%n(i),&
+               r%to(iproc)%o(i)) &
+               = from_here(r%from(iproc)%k(i), &
+                           r%from(iproc)%l(i), &
+                           r%from(iproc)%m(i))
+    end do
+
+    ! redistribute to idpth next processor from idpth preceding processor
+    ! or redistribute from idpth preceding processor to idpth next processor
+    ! to avoid deadlocks
+    do idp = 1, nproc-1
+       ipto = mod(iproc + idp, nproc)
+       ipfrom = mod(iproc + nproc - idp, nproc)
+       iadp = min(idp, nproc - idp)
+       ! avoid deadlock AND ensure mostly parallel resolution
+       if (mod(iproc/iadp,2) == 0) then
+
+          ! send to idpth next processor
+          if (r%from(ipto)%nn > 0) then
+             do i = 1, r%from(ipto)%nn
+                r%real_buff(i) = from_here(r%from(ipto)%k(i), &
+                                              r%from(ipto)%l(i), &
+                                              r%from(ipto)%m(i))
+             end do
+             call send (r%real_buff(1:r%from(ipto)%nn), ipto, idp)
+          end if
+
+          ! receive from idpth preceding processor
+          if (r%to(ipfrom)%nn > 0) then
+             call receive (r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%to(ipfrom)%nn
+                to_here(r%to(ipfrom)%k(i), &
+                        r%to(ipfrom)%l(i), &
+                        r%to(ipfrom)%m(i), &
+                        r%to(ipfrom)%n(i), &
+                        r%to(ipfrom)%o(i)) &
+                        = r%real_buff(i)
+             end do
+          end if
+       else
+          ! receive from idpth preceding processor
+          if (r%to(ipfrom)%nn > 0) then
+             call receive (r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%to(ipfrom)%nn
+                to_here(r%to(ipfrom)%k(i), &
+                        r%to(ipfrom)%l(i), &
+                        r%to(ipfrom)%m(i), &
+                        r%to(ipfrom)%n(i), &
+                        r%to(ipfrom)%o(i)) &
+                        = r%real_buff(i)
+             end do
+          end if
+
+          ! send to idpth next processor
+          if (r%from(ipto)%nn > 0) then
+             do i = 1, r%from(ipto)%nn
+                r%real_buff(i) = from_here(r%from(ipto)%k(i), &
+                                              r%from(ipto)%l(i), &
+                                              r%from(ipto)%m(i))
+             end do
+             call send (r%real_buff(1:r%from(ipto)%nn), ipto, idp)
+          end if
+       end if
+    end do
+
+  end subroutine r_redist_35
+
+  subroutine c_redist_35_inv (r, from_here, to_here)
+
+    use mp, only: iproc, nproc, send, receive
+    type (redist_type), intent (in out) :: r
+
+    complex, dimension (r%to_low(1):, &
+                        r%to_low(2):, &
+                        r%to_low(3):, &
+                        r%to_low(4):, &
+                        r%to_low(5):), intent (in) :: from_here
+
+    complex, dimension (r%from_low(1):, &
+                        r%from_low(2):, &
+                        r%from_low(3):), intent (in out) :: to_here
+
+    integer :: i, idp, ipto, ipfrom, iadp
+
+    ! redistribute from local processor to local processor
+    do i = 1, r%to(iproc)%nn
+       to_here(r%from(iproc)%k(i), &
+               r%from(iproc)%l(i), &
+               r%from(iproc)%m(i)) &
+               = from_here(r%to(iproc)%k(i), &
+                           r%to(iproc)%l(i), &
+                           r%to(iproc)%m(i), &
+                           r%to(iproc)%n(i), &
+                           r%to(iproc)%o(i))
+    end do
+
+    ! redistribute to idpth next processor from idpth preceding processor
+    ! or redistribute from idpth preceding processor to idpth next processor
+    ! to avoid deadlocks
+    do idp = 1, nproc-1
+       ipto = mod(iproc + idp, nproc)
+       ipfrom = mod(iproc + nproc - idp, nproc)
+       iadp = min(idp, nproc - idp)
+       ! avoid deadlock AND ensure mostly parallel resolution
+       if (mod(iproc/iadp,2) == 0) then
+
+          ! send to idpth next processor
+          if (r%to(ipto)%nn > 0) then
+             do i = 1, r%to(ipto)%nn
+                r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
+                                              r%to(ipto)%l(i), &
+                                              r%to(ipto)%m(i), &
+                                              r%to(ipto)%n(i), &
+                                              r%to(ipto)%o(i))
+             end do
+             call send (r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
+          end if
+
+          ! receive from idpth preceding processor
+          if (r%from(ipfrom)%nn > 0) then
+             call receive (r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%from(ipfrom)%nn
+                to_here(r%from(ipfrom)%k(i), &
+                        r%from(ipfrom)%l(i), &
+                        r%from(ipfrom)%m(i)) &
+                        = r%complex_buff(i)
+             end do
+          end if
+       else
+          ! receive from idpth preceding processor
+          if (r%from(ipfrom)%nn > 0) then
+             call receive (r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%from(ipfrom)%nn
+                to_here(r%from(ipfrom)%k(i), &
+                        r%from(ipfrom)%l(i), &
+                        r%from(ipfrom)%m(i)) &
+                        = r%complex_buff(i)
+             end do
+          end if
+
+          ! send to idpth next processor
+          if (r%to(ipto)%nn > 0) then
+             do i = 1, r%to(ipto)%nn
+                r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
+                                              r%to(ipto)%l(i), &
+                                              r%to(ipto)%m(i), &
+                                              r%to(ipto)%n(i), &
+                                              r%to(ipto)%o(i))
+             end do
+             call send (r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
+          end if
+
+       end if
+    end do
+
+  end subroutine c_redist_35_inv
+
+  subroutine r_redist_35_inv (r, from_here, to_here)
+
+    use mp, only: iproc, nproc, send, receive
+    type (redist_type), intent (in out) :: r
+
+    real, dimension (r%to_low(1):, &
+                        r%to_low(2):, &
+                        r%to_low(3):, &
+                        r%to_low(4):, &
+                        r%to_low(5):), intent (in) :: from_here
+
+    real, dimension (r%from_low(1):, &
+                        r%from_low(2):, &
+                        r%from_low(3):), intent (in out) :: to_here
+
+    integer :: i, idp, ipto, ipfrom, iadp
+
+    ! redistribute from local processor to local processor
+    do i = 1, r%to(iproc)%nn
+       to_here(r%from(iproc)%k(i), &
+               r%from(iproc)%l(i), &
+               r%from(iproc)%m(i)) &
+               = from_here(r%to(iproc)%k(i), &
+                           r%to(iproc)%l(i), &
+                           r%to(iproc)%m(i), &
+                           r%to(iproc)%n(i), &
+                           r%to(iproc)%o(i))
+    end do
+
+    ! redistribute to idpth next processor from idpth preceding processor
+    ! or redistribute from idpth preceding processor to idpth next processor
+    ! to avoid deadlocks
+    do idp = 1, nproc-1
+       ipto = mod(iproc + idp, nproc)
+       ipfrom = mod(iproc + nproc - idp, nproc)
+       iadp = min(idp, nproc - idp)
+       ! avoid deadlock AND ensure mostly parallel resolution
+       if (mod(iproc/iadp,2) == 0) then
+
+          ! send to idpth next processor
+          if (r%to(ipto)%nn > 0) then
+             do i = 1, r%to(ipto)%nn
+                r%real_buff(i) = from_here(r%to(ipto)%k(i), &
+                                              r%to(ipto)%l(i), &
+                                              r%to(ipto)%m(i), &
+                                              r%to(ipto)%n(i), &
+                                              r%to(ipto)%o(i))
+             end do
+             call send (r%real_buff(1:r%to(ipto)%nn), ipto, idp)
+          end if
+
+          ! receive from idpth preceding processor
+          if (r%from(ipfrom)%nn > 0) then
+             call receive (r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%from(ipfrom)%nn
+                to_here(r%from(ipfrom)%k(i), &
+                        r%from(ipfrom)%l(i), &
+                        r%from(ipfrom)%m(i)) &
+                        = r%real_buff(i)
+             end do
+          end if
+       else
+          ! receive from idpth preceding processor
+          if (r%from(ipfrom)%nn > 0) then
+             call receive (r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+             do i = 1, r%from(ipfrom)%nn
+                to_here(r%from(ipfrom)%k(i), &
+                        r%from(ipfrom)%l(i), &
+                        r%from(ipfrom)%m(i)) &
+                        = r%real_buff(i)
+             end do
+          end if
+
+          ! send to idpth next processor
+          if (r%to(ipto)%nn > 0) then
+             do i = 1, r%to(ipto)%nn
+                r%real_buff(i) = from_here(r%to(ipto)%k(i), &
+                                              r%to(ipto)%l(i), &
+                                              r%to(ipto)%m(i), &
+                                              r%to(ipto)%n(i), &
+                                              r%to(ipto)%o(i))
+             end do
+             call send (r%real_buff(1:r%to(ipto)%nn), ipto, idp)
+          end if
+
+       end if
+    end do
+
+  end subroutine r_redist_35_inv
 
   subroutine r_redist_12 (r, from_here, to_here)
 
