@@ -167,10 +167,6 @@ gyro_averages.o: \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-hdf_wrapper.o: \
-	 constants.o \
-	 convert.o \
-	 file_utils.o 
 init_g.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
@@ -207,8 +203,6 @@ kt_grids.o: \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
-mds.o: \
-	 constants.o 
 millerlocal.o: \
 	 common_types.o \
 	 constants.o \
@@ -271,8 +265,6 @@ parallel_streaming.o: \
 	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-pgplot_utils.o: \
-	 constants.o 
 physics_flags.o: \
 	 file_utils.o \
 	 mp.o 
