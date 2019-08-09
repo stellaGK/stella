@@ -56,19 +56,19 @@ LIBSTELL_DIR = mini_libstell
 
 # The variable LIBSTELL_FOR_SFINCS should either be "mini_libstell/mini_libstell.a", if you use this reduced version of libstell
 # that comes packaged with this repository, or else it should point to a libstell.a library elsewhere on your system.
-LIBSTELL_FOR_GS2 = mini_libstell/mini_libstell.a
-#LIBSTELL_FOR_GS2=/Users/mattland/stellopt/LIBSTELL/Release/libstell.a
+LIBSTELL_FOR_STELLA = mini_libstell/mini_libstell.a
+#LIBSTELL_FOR_STELLA=/Users/mattland/stellopt/LIBSTELL/Release/libstell.a
 
 # End of system-dependent variable assignments
 
-# Promote real to double, as gs2 does:
+# Promote real to double, as stella does:
 #EXTRA_COMPILE_FLAGS += -fdefault-real-8 -fdefault-double-8
 
 export
 
 .PHONY: all clean
 
-all: test_vmec_to_gs2_geometry_interface
+all: test_vmec_to_stella_geometry_interface
 
 include makefile.depend
 
@@ -78,14 +78,14 @@ include makefile.depend
 %.o: %.f
 	$(FC) $(EXTRA_COMPILE_FLAGS) -I $(LIBSTELL_DIR) -c $<
 
-test_vmec_to_gs2_geometry_interface: $(OBJ_FILES)
-	$(FC) -o test_vmec_to_gs2_geometry_interface $(OBJ_FILES) $(LIBSTELL_FOR_GS2) $(EXTRA_LINK_FLAGS)
+test_vmec_to_stella_geometry_interface: $(OBJ_FILES)
+	$(FC) -o test_vmec_to_stella_geometry_interface $(OBJ_FILES) $(LIBSTELL_FOR_STELLA) $(EXTRA_LINK_FLAGS)
 
 mini_libstell/mini_libstell.a:
 	$(MAKE) -C mini_libstell
 
 clean:
-	rm -f *.o *.mod *.MOD *~ test_vmec_to_gs2_geometry_interface
+	rm -f *.o *.mod *.MOD *~ test_vmec_to_stella_geometry_interface
 	cd mini_libstell; rm -f *.o *.mod *.MOD *.a
 
 test_make:

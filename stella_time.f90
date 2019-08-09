@@ -33,10 +33,6 @@ contains
   subroutine init_delt (delt)
     real, intent (in) :: delt
 
-!
-! delt_in is a user input, from the run_parameters module.
-! In a perfect world, we could have a gs2_time namelist. 
-! 
     code_dt = delt
     ! do not allow code_dt to increase beyond input value
     code_dt_max = code_dt

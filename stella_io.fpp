@@ -341,11 +341,8 @@ contains
 
     ! Write some useful general information such as the website,
     ! date and time into the NetCDF file
-    status = nf90_put_att (ncid, nf90_global, 'title', 'GS2 Simulation Data')
+    status = nf90_put_att (ncid, nf90_global, 'title', 'stella simulation data')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, nf90_global, att='title')
-    status = nf90_put_att (ncid, nf90_global, 'Conventions', &
-         'http://gs2.sourceforge.net')
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, nf90_global, att='Conventions')
 
     datestamp(:) = ' '
     timestamp(:) = ' '
@@ -354,7 +351,7 @@ contains
     
     status = nf90_def_var (ncid, 'code_info', nf90_char, char10_dim, code_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='code_info')
-    status = nf90_put_att (ncid, code_id, 'long_name', 'GS2')
+    status = nf90_put_att (ncid, code_id, 'long_name', 'stella')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, code_id, att='long_name')
 
     ci = 'c1'

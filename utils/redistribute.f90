@@ -515,7 +515,7 @@ contains
     integer :: i
 
 !CMR 
-! In the GS2 standard FFT situation this routine maps 
+! In the stella standard FFT situation this routine maps 
 !         xxf(it,ixxf) to yxf(ik,iyxf) data type 
 !         where it is kx (or x) index, ik is ky (or y) index, 
 !         ixxf is (y,ig,isgn,"les") and iyxf is (x,ig,isgn,"les") 
@@ -527,7 +527,7 @@ contains
 !    In this situation the data at (r%to(iproc)%k(i),r%to(iproc)%l(i)) 
 !    should come from (r%from(iproc)%k(i), r%from(iproc)%l(i)). 
 !
-! This do loop, in GS2 standard FFT situation, corresponds to:
+! This do loop, in stella standard FFT situation, corresponds to:
 !    to_here(ik,iyxf)=from_here(it,ixxf)
 !
        to_here(r%to(iproc)%k(i), &
@@ -633,7 +633,7 @@ contains
     integer :: i
 
 !CMR 
-! In the GS2 standard FFT situation this routine maps 
+! In the stella standard FFT situation this routine maps 
 !         yxf(ik,iyxf) to xxf(it,ixxf) data type 
 !         where it is kx (or x) index, ik is ky (or y) index, 
 !         ixxf is (y,ig,isgn,"les") and iyxf is (x,ig,isgn,"les") 
@@ -645,7 +645,7 @@ contains
 !    In this situation the data at (r%from(iproc)%k(i),r%from(iproc)%l(i)) 
 !    should come from (r%to(iproc)%k(i), r%to(iproc)%l(i)). 
 !
-! This do loop, in GS2 standard FFT situation, corresponds to:
+! This do loop, in stella standard FFT situation, corresponds to:
 !    to_here(it,ixxf)=from_here(ik,iyxf)
 !
        to_here(r%from(iproc)%k(i), &
@@ -760,7 +760,7 @@ contains
     integer :: i
 
 !CMR 
-! In the GS2 standard FFT situation this routine maps 
+! In the stella standard FFT situation this routine maps 
 !         g(ig, isgn, iglo) to xxf(it,ixxf) data type 
 !         where it is kx (or x) index, ixxf is (y,ig,isgn,"les") 
 !         and iglo is ("xyles") 
@@ -771,7 +771,7 @@ contains
 !    In this situation the data at (r%to(iproc)%k(i),r%to(iproc)%l(i)) 
 !    should come from (r%from(iproc)%k(i),r%from(iproc)%l(i),r%from(iproc)%m(i)). 
 !
-! This do loop, in GS2 standard FFT situation, corresponds to:
+! This do loop, in stella standard FFT situation, corresponds to:
 !    to_here(it,ixxf)=from_here(ig,isgn,iglo)
 !
        to_here(r%to(iproc)%k(i),&
@@ -886,7 +886,7 @@ contains
     integer :: i
 
 !CMR 
-! In the GS2 standard FFT situation this routine maps 
+! In the stella standard FFT situation this routine maps 
 !         xxf(it,ixxf) to g(ig, isgn, iglo) data type 
 !         where it is kx (or x) index, ixxf is (y,ig,isgn,"les") 
 !         and iglo is ("xyles") 
@@ -898,7 +898,7 @@ contains
 !    In this situation the data at (r%from(iproc)%k(i),r%from(iproc)%l(i),r%from(iproc)%m(i)) 
 !    should come from (r%to(iproc)%k(i),r%to(iproc)%l(i)). 
 !
-! This do loop, in GS2 standard FFT situation, corresponds to:
+! This do loop, in stella standard FFT situation, corresponds to:
 !    to_here(ig,isgn,iglo)=from_here(it,ixxf)
 !
        to_here(r%from(iproc)%k(i), &

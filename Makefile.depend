@@ -54,14 +54,14 @@ stella_mod = \
 	 text_options.o \
 	 time_advance.o \
 	 vmec_geo.o \
-	 vmec_to_gs2_geometry_interface.o \
+	 vmec_to_stella_geometry_interface.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 
-test_vmec_to_gs2_geometry_interface_mod = \
+test_vmec_to_stella_geometry_interface_mod = \
 	 fzero.o \
-	 test_vmec_to_gs2_geometry_interface.o \
-	 vmec_to_gs2_geometry_interface.o 
+	 test_vmec_to_stella_geometry_interface.o \
+	 vmec_to_stella_geometry_interface.o 
 
 command_line.o: 
 common_types.o: 
@@ -408,8 +408,8 @@ stella_time.o:
 stella_transforms.o: \
 	 fft_work.o \
 	 stella_layouts.o 
-test_vmec_to_gs2_geometry_interface.o: \
-	 vmec_to_gs2_geometry_interface.o 
+test_vmec_to_stella_geometry_interface.o: \
+	 vmec_to_stella_geometry_interface.o 
 text_options.o: 
 time_advance.o: \
 	 constants.o \
@@ -447,9 +447,9 @@ vmec_geo.o: \
 	 file_utils.o \
 	 mp.o \
 	 spl.o \
-	 vmec_to_gs2_geometry_interface.o \
+	 vmec_to_stella_geometry_interface.o \
 	 zgrid.o 
-vmec_to_gs2_geometry_interface.o: \
+vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
 vpamu_grids.o: \
 	 constants.o \

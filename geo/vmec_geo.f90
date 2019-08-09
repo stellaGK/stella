@@ -94,8 +94,8 @@ contains
     use constants, only: pi
     use common_types, only: flux_surface_type
     use splines, only: geo_spline
-    use vmec_to_gs2_geometry_interface_mod, only: vmec_to_gs2_geometry_interface
-    use vmec_to_gs2_geometry_interface_mod, only: read_vmec_equilibrium
+    use vmec_to_stella_geometry_interface_mod, only: vmec_to_stella_geometry_interface
+    use vmec_to_stella_geometry_interface_mod, only: read_vmec_equilibrium
     use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
     use zgrid, only: zed
 
@@ -163,7 +163,7 @@ contains
     allocate (cvdrift0_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (arc_length(nalpha,-nzgrid_vmec:nzgrid_vmec))
 
-    call vmec_to_gs2_geometry_interface (nalpha, alpha0, &
+    call vmec_to_stella_geometry_interface (nalpha, alpha0, &
          nzgrid_vmec, zeta_center, nfield_periods*zgrid_scalefac, torflux, &
          surface_option, verbose, &
          surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
@@ -272,7 +272,7 @@ contains
     deallocate (cvdrift_vmec, cvdrift0_vmec)
     deallocate (arc_length)
     
-    ! vmec_to_gs2_geometry_interface returns psitor/psitor_lcfs as rhoc
+    ! vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc
     ! stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor
     surf%rhoc = sqrt(surf%rhoc)
     surf%rhotor = surf%rhoc
@@ -317,7 +317,7 @@ contains
   subroutine get_modified_vmec_zeta_grid (nzgrid_modified, dzeta_modified)
 
     use zgrid, only: nzgrid
-    use vmec_to_gs2_geometry_interface_mod, only: get_nominal_vmec_zeta_grid
+    use vmec_to_stella_geometry_interface_mod, only: get_nominal_vmec_zeta_grid
 
     implicit none
 

@@ -1,16 +1,15 @@
-! vmec_to_gs2_geometry_interface.f90
-! Written by Matt Landreman, University of Maryland
-! Initial code written August 2017.
+! vmec_to_stella_geometry_interface.f90
+! Initial code written by Matt Landreman, University of Maryland in August 2017.
 ! Skip down ~25 lines for detailed description of the input and output parameters.
-! Modified by Michael Barnes
+! Modified 2018-2019 by Michael Barnes
 
-module vmec_to_gs2_geometry_interface_mod
+module vmec_to_stella_geometry_interface_mod
 
   implicit none
 
   private
 
-  public :: vmec_to_gs2_geometry_interface
+  public :: vmec_to_stella_geometry_interface
   public :: get_nominal_vmec_zeta_grid
   public :: read_vmec_equilibrium
 
@@ -78,7 +77,7 @@ contains
 
   end subroutine get_nominal_vmec_zeta_grid
 
-  subroutine vmec_to_gs2_geometry_interface(nalpha, alpha0, nzgrid, &
+  subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, &
        zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
@@ -143,10 +142,10 @@ contains
     ! and Aminor_p is the minor radius calculated by VMEC.
     real, intent(out) :: shat
 
-    ! L_reference is the reference length used for gs2's normalization, in meters.
+    ! L_reference is the reference length used for stella normalization, in meters.
     real, intent(out) :: L_reference
 
-    ! B_reference is the reference magnetic field strength used for gs2's normalization, in Tesla.
+    ! B_reference is the reference magnetic field strength used for stella normalization, in Tesla.
     real, intent(out) :: B_reference
 
     ! nfp is the number of field periods given by VMEC
@@ -233,7 +232,7 @@ contains
     ! Beginning of executable statements.
     !*********************************************************************
 
-    if (verbose) print *,"Entering subroutine vmec_to_gs2_geometry_interface."
+    if (verbose) print *,"Entering subroutine vmec_to_stella_geometry_interface."
 
     !*********************************************************************
     ! Do some validation.
@@ -1365,7 +1364,7 @@ contains
     deallocate(normalized_toroidal_flux_half_grid)
 !    deallocate(theta_vmec)
 
-    if (verbose) print *,"Leaving vmec_to_gs2_geometry_interface."
+    if (verbose) print *,"Leaving vmec_to_stella_geometry_interface."
 
 
   contains
@@ -1417,7 +1416,7 @@ contains
 
     end subroutine test_arrays
 
-  end subroutine vmec_to_gs2_geometry_interface
+  end subroutine vmec_to_stella_geometry_interface
 
 
 
@@ -1454,4 +1453,4 @@ contains
 
   end function fzero_residual
 
-end module vmec_to_gs2_geometry_interface_mod
+end module vmec_to_stella_geometry_interface_mod

@@ -79,7 +79,7 @@ contains
        read (in_unit,*) rhotor(ir), rmin(ir), rmaj_in(ir), qinp(ir), kappa(ir)
     end do
 
-    ! aref is gs2 reference length (device minor radius)
+    ! aref is stella reference length (device minor radius)
     aref = rmin(n_exp)
 
     rhoc = rmin/aref
@@ -247,7 +247,7 @@ contains
        read (in_unit,*) rhotor(ir), rmin(ir), line
     end do
 
-    ! aref is gs2 reference length (device minor radius)
+    ! aref is stella reference length (device minor radius)
     aref = rmin(n_exp)
 
     rhoc = rmin/aref

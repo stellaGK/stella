@@ -976,51 +976,6 @@ contains
 
   end subroutine theta_integrate_indef
 
-!   subroutine leqcoefs (dgpdr, dgpbdr, dcvd0dr, dgbd0dr, dcvdr, dgbdr, dg2dr, dg21dr, dg22dr, dbdr, &
-!        gs2, gs21, gs22, gpar, gbd0, cvd0, gbd, cvd, drdpsi, gr, b, bpol, dkxfacdr)
-
-!     implicit none
-
-!     real, dimension (-nz:), intent (out) :: dgpdr, dgpbdr, dcvd0dr, dgbd0dr, dcvdr, dgbdr
-!     real, dimension (-nz:), intent (out) :: dg2dr, dg21dr, dg22dr, dbdr
-!     real, dimension (-nz:), intent (out) :: gs2, gs21, gs22, gpar, gbd0, cvd0, gbd, cvd
-!     real, dimension (-nz:), intent (out) :: gr, b, bpol
-!     real, intent (out) :: drdpsi, dkxfacdr
-
-!     integer :: i
-
-!     drdpsi = 1./dpsidrho
-!     gr = grho
-!     b = bmag
-!     bpol = gpsi/Rr(2,:)
-!     gs2 = gds2
-!     gs21 = gds21
-!     gs22 = gds22
-!     gpar = gradpar
-!     gbd0 = gbdrift0
-!     cvd0 = cvdrift0
-!     gbd = gbdrift
-!     cvd = cvdrift
-!     dgpdr = dgradpardrho
-!     dgpbdr = dgradparbdrho
-!     dcvd0dr = dcvdrift0drho
-!     dgbd0dr = dgbdrift0drho
-!     dcvdr = dcvdriftdrho
-!     dgbdr = dgbdriftdrho
-!     dg2dr = dgds2dr
-!     dg21dr = dgds21dr
-!     dg22dr = dgds22dr
-!     dbdr = dBdrho
-!     ! factor multiplying kx in dkx/dr
-!     if (dqdr > epsilon(0.)) then 
-!        dkxfacdr = local%d2qdr2/dqdr - local%d2psidr2/dpsidrho
-!     else
-!        write (*,*) 'WARNING (if running with profile_variation=T): dq/dr=0 case currently excludes nonlinear piece in dg/dr equation'
-!        dkxfacdr = 0.
-!     end if
-
-!   end subroutine leqcoefs
-
   function Rpos (r, theta, j)
    
     use constants, only: pi
