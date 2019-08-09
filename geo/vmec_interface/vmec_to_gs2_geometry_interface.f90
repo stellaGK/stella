@@ -2,6 +2,7 @@
 ! Written by Matt Landreman, University of Maryland
 ! Initial code written August 2017.
 ! Skip down ~25 lines for detailed description of the input and output parameters.
+! Modified by Michael Barnes
 
 module vmec_to_gs2_geometry_interface_mod
 
@@ -10,6 +11,8 @@ module vmec_to_gs2_geometry_interface_mod
   private
 
   public :: vmec_to_gs2_geometry_interface
+  public :: get_nominal_vmec_zeta_grid
+  public :: read_vmec_equilibrium
 
   real :: theta_pest_target, zeta0
   real, dimension(2) :: vmec_radial_weight_full, vmec_radial_weight_half
@@ -17,7 +20,65 @@ module vmec_to_gs2_geometry_interface_mod
 
 contains
 
-  subroutine vmec_to_gs2_geometry_interface(vmec_filename, nalpha, alpha0, nzgrid, &
+  subroutine read_vmec_equilibrium (vmec_filename)
+
+    use read_wout_mod, only: read_wout_file
+    use read_wout_mod, only: nfp, lasym
+
+    implicit none
+
+    ! vmec_filename is the vmec wout_* file that will be read.
+    character (*), intent (in) :: vmec_filename
+
+    integer :: ierr, iopen
+
+    !*********************************************************************
+    ! Read in everything from the vmec wout file using libstell.
+    !*********************************************************************
+
+    write (*,*) "About to read VMEC wout file ",trim(vmec_filename)
+    call read_wout_file(vmec_filename, ierr, iopen)
+    if (iopen .ne. 0) stop 'error opening wout file'
+    if (ierr .ne. 0) stop 'error reading wout file'
+    write (*,*) "  Successfully read VMEC data from ",trim(vmec_filename)
+
+    write (*,*) "  Number of field periods (nfp):",nfp
+    write (*,*) "  Stellarator-asymmetric? (lasym):",lasym
+
+  end subroutine read_vmec_equilibrium
+
+  subroutine get_nominal_vmec_zeta_grid (nzgrid, zeta_center, number_of_field_periods_stella, &
+       number_of_field_periods_device, zeta)
+
+    use read_wout_mod, only: nfp
+
+    implicit none
+
+    ! 2*nzgrid+1 is the number of zeta grid points for the nominal zeta grid
+    integer, intent (in) :: nzgrid
+    ! The zeta domain is centered at zeta_center. Setting zeta_center = 2*pi*N/nfp for any integer N should
+    ! yield identical results to setting zeta_center = 0, where nfp is the number of field periods (as in VMEC).
+    real, intent (in) :: zeta_center
+    ! number_of_field_periods_device is the number of field periods sampled by stella
+    real, intent (in out) :: number_of_field_periods_stella
+    ! number_of_field_periods_device is the number of field periods for the device
+    real, intent (out) :: number_of_field_periods_device
+    ! On exit, zeta holds the nominal grid points in the toroidal angle zeta
+    real, dimension (-nzgrid:), intent (out) :: zeta
+
+    real, parameter :: pi = 3.1415926535897932d+0
+    integer :: j
+
+    number_of_field_periods_device = nfp
+
+    if (number_of_field_periods_stella < 0.0) &
+         number_of_field_periods_stella = number_of_field_periods_device
+
+    zeta = [( zeta_center + (pi*j*number_of_field_periods_stella)/(nfp*nzgrid), j=-nzgrid, nzgrid )]
+
+  end subroutine get_nominal_vmec_zeta_grid
+
+  subroutine vmec_to_gs2_geometry_interface(nalpha, alpha0, nzgrid, &
        zeta_center, number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
@@ -34,9 +95,6 @@ contains
     !*********************************************************************
     ! Input parameters
     !*********************************************************************
-
-    ! vmec_filename is the vmec wout_* file that will be read.
-    character(*), intent(in) :: vmec_filename
 
     ! nalpha is the number of grid points in the alpha coordinate:
     integer, intent(in) :: nalpha
@@ -122,7 +180,7 @@ contains
     integer :: j, index, izeta, ialpha, isurf, m, n, imn, imn_nyq
     real :: angle, sin_angle, cos_angle, temp, edge_toroidal_flux_over_2pi
 !    real, dimension(:,:), allocatable :: theta_vmec
-    integer :: ierr, iopen, fzero_flag
+    integer :: fzero_flag
     real :: number_of_field_periods_to_include_final
     real :: dphi, iota, min_dr2, ds, d_pressure_d_s, d_iota_d_s, scale_factor
     real :: theta_vmec_min, theta_vmec_max, sqrt_s
@@ -200,19 +258,6 @@ contains
        print *,"Error! desired_normalized_toroidal_flux must be <= 1. Instead it is",desired_normalized_toroidal_flux
        stop
     end if
-
-    !*********************************************************************
-    ! Read in everything from the vmec wout file using libstell.
-    !*********************************************************************
-
-    if (verbose) print *,"  About to read VMEC wout file ",trim(vmec_filename)
-    call read_wout_file(vmec_filename, ierr, iopen)
-    if (iopen .ne. 0) stop 'error opening wout file'
-    if (ierr .ne. 0) stop 'error reading wout file'
-    if (verbose) print *,"  Successfully read VMEC data from ",trim(vmec_filename)
-
-    if (verbose) print *,"  Number of field periods (nfp):",nfp
-    if (verbose) print *,"  Stellarator-asymmetric? (lasym):",lasym
 
     nfp_out = nfp
 
@@ -505,6 +550,8 @@ contains
        if (verbose) print *,"  Since number_of_field_periods_to_include was <= 0, it is being reset to nfp =",nfp
     end if
 
+    write (*,*) 'zeta_center', zeta_center, 'nfp', nfp, 'nzgrid', nzgrid, 'size(zeta)', size(zeta)
+
     zeta = [( zeta_center + (pi*j*number_of_field_periods_to_include_final)/(nfp*nzgrid), j=-nzgrid, nzgrid )]
 
     !*********************************************************************
@@ -537,12 +584,12 @@ contains
           end if
        end do
     end do
-    if (verbose) then
-       print *,"  Done with root solves. Here comes theta_vmec:"
-       do j = 1, nalpha
-          print *,theta_vmec(j,:)
-       end do
-    end if
+!    if (verbose) then
+!       print *,"  Done with root solves. Here comes theta_vmec:"
+!       do j = 1, nalpha
+!          print *,theta_vmec(j,:)
+!       end do
+!    end if
 
     !*********************************************************************
     ! Initialize geometry arrays

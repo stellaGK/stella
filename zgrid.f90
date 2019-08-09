@@ -8,6 +8,8 @@ module zgrid
   public :: zed
   public :: delzed
   public :: zed_equal_arc
+  public :: get_total_arc_length
+  public :: get_arc_length_grid
   public :: shat_zero
   public :: boundary_option_switch
   public :: boundary_option_zero
@@ -142,5 +144,65 @@ contains
     zgridinit = .false.
 
   end subroutine finish_zgrid
+
+  subroutine get_total_arc_length (nz, gp, dz, length)
+
+    implicit none
+
+    integer, intent (in) :: nz
+    real, dimension (-nz:), intent (in) :: gp
+    real, intent (in) :: dz
+    real, intent (out) :: length
+
+    call integrate_zed (nz, dz, 1./gp, length)
+
+  end subroutine get_total_arc_length
+
+  subroutine get_arc_length_grid (nz_max, nzext_max, zboundary, gp, dz, zarc)
+
+    implicit none
+
+    integer, intent (in) :: nz_max, nzext_max
+    real, intent (in) :: zboundary
+    real, dimension (-nzext_max:), intent (in) :: gp
+    real, intent (in) :: dz
+    real, dimension (-nzext_max:), intent (out) :: zarc
+
+    integer :: iz
+
+    zarc(-nz_max) = zboundary
+    if (nz_max /= nzext_max) then
+       do iz = -nzext_max, -nz_max-1
+          call integrate_zed (nzext_max, dz, 1./gp(iz:-nz_max), zarc(iz))
+          zarc(iz) = zarc(-nz_max) - zarc(iz)
+       end do
+    end if
+    do iz = -nz_max+1, nzext_max
+       call integrate_zed (nz_max, dz, 1./gp(-nz_max:iz), zarc(iz))
+       zarc(iz) = zarc(-nz_max) + zarc(iz)
+    end do
+    
+  end subroutine get_arc_length_grid
+
+  ! trapezoidal rule to integrate in zed
+  subroutine integrate_zed (nz, dz, f, intf)
+    
+    implicit none
+    
+    integer, intent (in) :: nz
+    real, intent (in) :: dz
+    real, dimension (-nz:), intent (in) :: f
+    real, intent (out) :: intf
+    
+    integer :: iz, iz_max
+    
+    iz_max = -nz + size(f) - 1
+    intf = 0.
+    do iz = -nz+1, iz_max
+       intf = intf + dz*(f(iz-1)+f(iz))
+    end do
+    intf = 0.5*intf
+    
+  end subroutine integrate_zed
 
 end module zgrid

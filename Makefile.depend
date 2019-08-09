@@ -443,8 +443,10 @@ time_advance.o: \
 	 zgrid.o 
 vmec_geo.o: \
 	 common_types.o \
+	 constants.o \
 	 file_utils.o \
 	 mp.o \
+	 spl.o \
 	 vmec_to_gs2_geometry_interface.o \
 	 zgrid.o 
 vmec_to_gs2_geometry_interface.o: \

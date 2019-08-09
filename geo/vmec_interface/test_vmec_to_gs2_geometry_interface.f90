@@ -42,7 +42,9 @@ program test_vmec_to_gs2_geometry_interface
   ! Beginning of executable statements
   !*********************************************************************
 
-  call vmec_to_gs2_geometry_interface(vmec_filename, nalpha, alpha0, nzgrid, zeta_center, &
+  call read_vmec_equilibrium (vmec_filename)
+
+  call vmec_to_gs2_geometry_interface(nalpha, alpha0, nzgrid, zeta_center, &
        number_of_field_periods_to_include, &
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
