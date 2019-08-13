@@ -27,7 +27,7 @@ module dist_fn_arrays
 
   real, dimension (:,:,:), allocatable :: wdriftx_g, wdrifty_g
   real, dimension (:,:,:), allocatable :: wdriftx_phi, wdrifty_phi
-  ! (ny_ffs, -nzgrid:nzgrid, -vmu-layout-)
+  ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:,:), allocatable :: kperp2
   ! (naky, nakx, nalpha, -nzgrid:nzgrid)

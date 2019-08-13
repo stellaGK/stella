@@ -18,7 +18,7 @@ module stella_geometry
   public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
   public :: Rmajor
-  public :: nalpha, alpha
+  public :: alpha
   public :: theta_vmec
   public :: zed_scalefac
   public :: dxdpsi, dydalpha
@@ -55,10 +55,6 @@ module stella_geometry
   integer, parameter :: geo_option_inputprof = 2
   integer, parameter :: geo_option_vmec = 3
 
-  ! number of field line labels to include
-  ! default is one (only > 1 for alpha_global = .true.)
-  integer :: nalpha = 1
-
   logical :: geoinit = .false.
 
 contains
@@ -74,6 +70,7 @@ contains
     use zgrid, only: zed, delzed
     use zgrid, only: shat_zero
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -159,7 +156,7 @@ contains
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
-          call read_vmec_parameters (nalpha)
+          call read_vmec_parameters
           ! allocate geometry arrays
           call allocate_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec

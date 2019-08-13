@@ -195,11 +195,11 @@ job_manage.o: \
 	 file_utils.o \
 	 mp.o 
 kt_grids.o: \
-	 constants.o \
+	 common_types.o \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o \
-	 stella_geometry.o \
+	 physics_parameters.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
@@ -234,10 +234,10 @@ mt19937.o:
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
+	 kt_grids.o \
 	 mp.o \
 	 sfincs_interface.o \
 	 species.o \
-	 stella_geometry.o \
 	 stella_layouts.o \
 	 text_options.o \
 	 vpamu_grids.o \
@@ -370,6 +370,7 @@ stella_geometry.o: \
 	 constants.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
+	 kt_grids.o \
 	 millerlocal.o \
 	 mp.o \
 	 text_options.o \
@@ -445,6 +446,7 @@ vmec_geo.o: \
 	 common_types.o \
 	 constants.o \
 	 file_utils.o \
+	 kt_grids.o \
 	 mp.o \
 	 spl.o \
 	 vmec_to_stella_geometry_interface.o \
@@ -455,6 +457,7 @@ vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \
 	 gauss_quad.o \
+	 kt_grids.o \
 	 mp.o \
 	 species.o \
 	 stella_geometry.o \

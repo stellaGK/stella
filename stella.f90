@@ -63,6 +63,7 @@ contains
     use species, only: init_species
     use zgrid, only: init_zgrid
     use stella_geometry, only: init_geometry
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
     use stella_layouts, only: init_stella_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
@@ -75,7 +76,7 @@ contains
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
-    use kt_grids, only: init_kt_grids
+    use kt_grids, only: init_kt_grids, read_kt_grids_parameters
     use vpamu_grids, only: init_vpamu_grids
 
     implicit none
@@ -107,6 +108,8 @@ contains
 
     if (debug) write(6,*) "stella::init_stella::init_zgrid"
     call init_zgrid
+    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
+    call read_kt_grids_parameters
     if (debug) write(6,*) "stella::init_stella::init_geometry"
     call init_geometry
     if (debug) write(6,*) "stella::init_stella::init_physics_parameters"
@@ -122,7 +125,7 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
-    call init_kt_grids
+    call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"

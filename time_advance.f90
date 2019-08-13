@@ -176,11 +176,11 @@ contains
     use stella_time, only: code_dt
     use species, only: spec
     use zgrid, only: nzgrid
+    use kt_grids, only: nalpha
     use stella_geometry, only: cvdrift, gbdrift
     use stella_geometry, only: cvdrift0, gbdrift0
     use stella_geometry, only: gds23, gds24
     use stella_geometry, only: geo_surf
-    use stella_geometry, only: nalpha
     use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
     use vpamu_grids, only: vpa, vperp2, ztmax, maxwell_mu
     use neoclassical_terms, only: include_neoclassical_terms
@@ -281,7 +281,7 @@ contains
     use stella_time, only: code_dt
     use species, only: spec
     use zgrid, only: nzgrid
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
     use stella_geometry, only: dydalpha, drhodpsi
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: vperp2, vpa

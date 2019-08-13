@@ -29,8 +29,8 @@ contains
     use vpamu_grids, only: nmu
     use vpamu_grids, only: mu
     use zgrid, only: nzgrid, nztot
-    use kt_grids, only: ny_ffs
-    use stella_geometry, only: dbdzed, gradpar, nalpha
+    use kt_grids, only: nalpha
+    use stella_geometry, only: dbdzed, gradpar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange
@@ -44,8 +44,8 @@ contains
     if (mirror_initialized) return
     mirror_initialized = .true.
     
-    if (.not.allocated(mirror)) allocate (mirror(ny_ffs,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
-    if (.not.allocated(mirror_sign)) allocate (mirror_sign(ny_ffs,-nzgrid:nzgrid)) ; mirror_sign = 0
+    if (.not.allocated(mirror)) allocate (mirror(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
+    if (.not.allocated(mirror_sign)) allocate (mirror_sign(nalpha,-nzgrid:nzgrid)) ; mirror_sign = 0
     
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
     if (include_neoclassical_terms) then
@@ -70,7 +70,7 @@ contains
 
     deallocate (neoclassical_term)
 
-    do iy = 1, ny_ffs
+    do iy = 1, nalpha
        ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
        ! NB: mirror_sign = -1 corresponds to positive advection velocity
        do iz = -nzgrid, nzgrid
@@ -91,9 +91,9 @@ contains
   subroutine init_mirror_semi_lagrange
 
     use zgrid, only: nzgrid
-    use stella_geometry, only: nalpha
     use vpamu_grids, only: nmu, dvpa
     use species, only: nspec
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -121,7 +121,8 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use physics_flags, only: full_flux_surface
     use species, only: spec, nspec
-    use stella_geometry, only: dbdzed, nalpha
+    use kt_grids, only: nalpha
+    use stella_geometry, only: dbdzed
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: vpa_upwind, time_upwind

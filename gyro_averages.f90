@@ -28,10 +28,10 @@ contains
 
     use dist_fn_arrays, only: kperp2
     use species, only: spec, nspec
-    use stella_geometry, only: bmag, nalpha
+    use stella_geometry, only: bmag
     use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, nmu
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, nalpha
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
     use spfunc, only: j0, j1

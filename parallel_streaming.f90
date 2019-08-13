@@ -39,7 +39,8 @@ contains
     use vpamu_grids, only: nvpa, nvpa
     use vpamu_grids, only: vpa
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: gradpar, nalpha
+    use stella_geometry, only: gradpar
+    use kt_grids, only: nalpha
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use run_parameters, only: stream_cell
     use physics_flags, only: include_parallel_streaming
@@ -406,11 +407,11 @@ contains
     use species, only: spec
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, nalpha
     use kt_grids, only: zonal_mode
     use gyro_averages, only: gyro_average
     use vpamu_grids, only: vpa, ztmax, maxwell_mu
-    use stella_geometry, only: gradpar, nalpha
+    use stella_geometry, only: gradpar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
     use run_parameters, only: stream_cell, time_upwind

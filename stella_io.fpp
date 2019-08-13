@@ -104,9 +104,8 @@ contains
   subroutine define_dims
 
     use file_utils, only: num_input_lines
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, nalpha
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: nalpha
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
 # ifdef NETCDF
@@ -903,11 +902,10 @@ contains
          cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
          drhodpsi
     use stella_geometry, only: geo_surf
-    use stella_geometry, only: nalpha
     use zgrid, only: nzgrid
     use physics_parameters, only: beta
     use dist_fn_arrays, only: kperp2
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, nalpha
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 

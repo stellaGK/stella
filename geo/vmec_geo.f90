@@ -5,7 +5,6 @@ module vmec_geo
   public :: read_vmec_parameters
   public :: get_vmec_geo
 
-  integer :: nalpha
   real :: alpha0
   integer :: zgrid_refinement_factor
   real :: zgrid_scalefac
@@ -17,7 +16,7 @@ module vmec_geo
   
 contains
 
-  subroutine read_vmec_parameters (nalpha_out)
+  subroutine read_vmec_parameters
 
     use file_utils, only: input_unit_exist
     use mp, only: mp_abort
@@ -25,12 +24,10 @@ contains
 
     implicit none
 
-    integer, intent (out) :: nalpha_out
-
     integer :: in_file
     logical :: exist
 
-    namelist /vmec_parameters/ nalpha, alpha0, zeta_center, nfield_periods, &
+    namelist /vmec_parameters/ alpha0, zeta_center, nfield_periods, &
          torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, verbose, vmec_filename
 
     call init_vmec_defaults
@@ -53,8 +50,6 @@ contains
        end if
     end if
 
-    nalpha_out = nalpha
-
   end subroutine read_vmec_parameters
 
   subroutine init_vmec_defaults
@@ -64,7 +59,6 @@ contains
     implicit none
 
     vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
-    nalpha = 1
     alpha0 = 0.0
     zeta_center = 0.0
     nfield_periods = -1.0
@@ -98,6 +92,7 @@ contains
     use vmec_to_stella_geometry_interface_mod, only: read_vmec_equilibrium
     use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
     use zgrid, only: zed
+    use kt_grids, only: nalpha
 
     implicit none
 

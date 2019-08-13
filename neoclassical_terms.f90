@@ -28,7 +28,7 @@ contains
   subroutine init_neoclassical_terms
 
     use zgrid, only: nzgrid
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
@@ -171,7 +171,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa
     use species, only: nspec
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -216,7 +216,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -261,7 +261,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -309,7 +309,7 @@ contains
 
     use finite_differences, only: fd5pt
     use zgrid, only: nztot, nzgrid, delzed
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -336,7 +336,7 @@ contains
 
     use finite_differences, only: fd3pt, fd5pt
     use zgrid, only: nzgrid
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
 
     implicit none
 
@@ -376,7 +376,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_layouts, only: idx_local, proc_id
-    use stella_geometry, only: nalpha
+    use kt_grids, only: nalpha
 
     implicit none
 

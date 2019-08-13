@@ -40,7 +40,7 @@ contains
     use zgrid, only: boundary_option_linked
     use zgrid, only: nperiod, nzgrid, nzed, ntubes
     use kt_grids, only: nakx, naky
-    use kt_grids, only: jtwist_out, ikx_twist_shift
+    use kt_grids, only: jtwist, ikx_twist_shift
     use kt_grids, only: aky, ikx_max
     use species, only: nspec
 
@@ -74,7 +74,7 @@ contains
           do iky = 2, naky
              ! must link different kx values at theta = +/- pi
              ! neigen is the number of independent eigenfunctions along the field line
-             neigen(iky) = min((iky-1)*jtwist_out,nakx)
+             neigen(iky) = min((iky-1)*jtwist,nakx)
           end do
        end if
 

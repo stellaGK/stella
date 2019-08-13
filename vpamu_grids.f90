@@ -461,7 +461,8 @@ contains
     use constants, only: pi
     use gauss_quad, only: get_laguerre_grids
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: bmag, nalpha
+    use kt_grids, only: nalpha
+    use stella_geometry, only: bmag
     
     implicit none
 
