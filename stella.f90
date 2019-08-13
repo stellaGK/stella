@@ -86,10 +86,13 @@ contains
 
     ! initialize mpi message passing
     call init_mp
+
     debug = debug .and. proc0
+
     if (debug) write (*,*) 'stella::init_stella::check_time'
     ! initialize timer
     call checktime(avail_cpu_time,exit)
+
     if (proc0) then
        if (debug) write (*,*) 'stella::init_stella::write_start_message'
        ! write message to screen with useful info

@@ -338,12 +338,12 @@ contains
 
     if (.not. allocated(par_nl_fac)) allocate (par_nl_fac(-nzgrid:nzgrid,nspec))
     ! this is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
-    par_nl_fac = 0.5*rhostar*spread(spec%stm*spec%zt,1,nztot)*spread(gradpar(1,:),2,nspec)
+    par_nl_fac = 0.5*rhostar*spread(spec%stm*spec%zt,1,nztot)*spread(gradpar,2,nspec)
 
     if (.not. allocated(par_nl_curv)) allocate (par_nl_curv(-nzgrid:nzgrid,nspec))
     ! ydriftknob is here because this term comes from bhat x curvature . grad B
     par_nl_curv = -ydriftknob*rhostar*geo_surf%rgeo*geo_surf%betaprim*drhodpsi &
-         *spread(dbdzed(1,:)*gradpar(1,:)/bmag(1,:),2,nspec)/spread(spec%zt,1,nztot)
+         *spread(dbdzed(1,:)*gradpar/bmag(1,:),2,nspec)/spread(spec%zt,1,nztot)
 
     if (.not. allocated(par_nl_drifty)) allocate (par_nl_drifty(naky,-nzgrid:nzgrid))
     par_nl_drifty = 0.25*rhostar*spread(aky,2,nztot)*spread(cvdrift(1,:),1,naky)

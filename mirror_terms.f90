@@ -59,7 +59,7 @@ contains
        do imu = 1, nmu
           do iy = 1, nalpha
              do iz = -nzgrid, nzgrid
-                mirror(iy,iz,imu,:) = code_dt*spec%stm*gradpar(iy,iz) &
+                mirror(iy,iz,imu,:) = code_dt*spec%stm*gradpar(iz) &
                      *(mu(imu)*dbdzed(iy,iz)+neoclassical_term(iz,:))
              end do
           end do

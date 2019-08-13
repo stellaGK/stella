@@ -25,7 +25,7 @@ module parallel_streaming
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
   real, dimension (:,:), allocatable :: stream_tri_b1, stream_tri_b2
   real, dimension (:,:), allocatable :: stream_tri_c1, stream_tri_c2
-  real, dimension (:,:,:), allocatable :: gradpar_c
+  real, dimension (:,:), allocatable :: gradpar_c
 
   real, dimension (2) :: time_parallel_streaming
 
@@ -40,7 +40,6 @@ contains
     use vpamu_grids, only: vpa
     use zgrid, only: nzgrid, nztot
     use stella_geometry, only: gradpar
-    use kt_grids, only: nalpha
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use run_parameters, only: stream_cell
     use physics_flags, only: include_parallel_streaming
@@ -59,7 +58,7 @@ contains
     ! i.e., this is the factor multiplying dg/dz on RHS of equation
     if (include_parallel_streaming) then
        stream = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
-            * spread(spread(vpa,1,nztot)*spread(gradpar(1,:),2,nvpa),3,nspec)
+            * spread(spread(vpa,1,nztot)*spread(gradpar,2,nvpa),3,nspec)
     else
        stream = 0.0
     end if
@@ -81,12 +80,12 @@ contains
              call center_zed (iv, stream_c(:,iv,is))
           end do
        end do
-       if (.not.allocated(gradpar_c)) allocate (gradpar_c(nalpha,-nzgrid:nzgrid,-1:1))
-       gradpar_c = spread(gradpar,3,3)
+       if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
+       gradpar_c = spread(gradpar,2,3)
        ! get gradpar centred in zed for negative vpa (affects upwinding)
-       call center_zed(1,gradpar_c(1,:,-1))
+       call center_zed(1,gradpar_c(:,-1))
        ! get gradpar centred in zed for positive vpa (affects upwinding)
-       call center_zed(nvpa,gradpar_c(1,:,1))
+       call center_zed(nvpa,gradpar_c(:,1))
        if (stream_cell) then
           stream = stream_c
        end if
@@ -407,7 +406,7 @@ contains
     use species, only: spec
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, nakx, nalpha
+    use kt_grids, only: naky, nakx
     use kt_grids, only: zonal_mode
     use gyro_averages, only: gyro_average
     use vpamu_grids, only: vpa, ztmax, maxwell_mu
@@ -428,14 +427,14 @@ contains
     integer :: iv, imu, is, iz, it, ikx
     real :: tupwnd1, tupwnd2, fac
     real, dimension (:), allocatable :: vpadf0dE_fac, vpadf0dE_fac_zf
-    real, dimension (:,:), allocatable :: gp, gpz
+    real, dimension (:), allocatable :: gp, gpz
     complex, dimension (:,:,:,:), allocatable :: dgdz, dphidz
     complex, dimension (:,:,:,:), allocatable :: field
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (vpadf0dE_fac_zf(-nzgrid:nzgrid))
-    allocate (gp(nalpha,-nzgrid:nzgrid))
-    allocate (gpz(nalpha,-nzgrid:nzgrid))
+    allocate (gp(-nzgrid:nzgrid))
+    allocate (gpz(-nzgrid:nzgrid))
     allocate (dgdz(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid,ntubes))
 
@@ -502,9 +501,9 @@ contains
        call center_zed (iv,vpadf0dE_fac)
 !       if (iv < 0) then
        if (stream_sign(iv) > 0) then
-          gp = gradpar_c(:,:,-1)
+          gp = gradpar_c(:,-1)
        else
-          gp = gradpar_c(:,:,1)
+          gp = gradpar_c(:,1)
        end if
        gpz = gp
        vpadf0dE_fac_zf = vpadf0dE_fac
@@ -521,9 +520,9 @@ contains
           call center_zed (iv,vpadf0dE_fac_zf)
 !          if (iv < 0) then
           if (stream_sign(iv) > 0) then
-             gpz = gradpar_c(:,:,-1)
+             gpz = gradpar_c(:,-1)
           else
-             gpz = gradpar_c(:,:,1)
+             gpz = gradpar_c(:,1)
           end if
        end if
     end if
@@ -531,14 +530,14 @@ contains
     ! construct RHS of GK eqn
     if (zonal_mode(1)) then
        do iz = -nzgrid, nzgrid
-          g(1,:,iz,:) = g(1,:,iz,:) - fac*gpz(1,iz) &
+          g(1,:,iz,:) = g(1,:,iz,:) - fac*gpz(iz) &
                * (tupwnd1*vpa(iv)*dgdz(1,:,iz,:) + vpadf0dE_fac_zf(iz)*dphidz(1,:,iz,:))
-          g(2:,:,iz,:) = g(2:,:,iz,:) - fac*gp(1,iz) &
+          g(2:,:,iz,:) = g(2:,:,iz,:) - fac*gp(iz) &
                * (tupwnd1*vpa(iv)*dgdz(2:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(2:,:,iz,:))
        end do
     else
        do iz = -nzgrid, nzgrid
-          g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(1,iz) &
+          g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(iz) &
                * (tupwnd1*vpa(iv)*dgdz(:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(:,:,iz,:))
        end do
     end if

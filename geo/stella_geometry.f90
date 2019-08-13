@@ -38,7 +38,7 @@ module stella_geometry
   real :: zed_scalefac
   real :: twist_and_shift_geo_fac
   real, dimension (:), allocatable :: zed_eqarc
-  real, dimension (:,:), allocatable :: gradpar
+  real, dimension (:), allocatable :: gradpar
   real, dimension (:,:), allocatable :: bmag, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
@@ -104,7 +104,7 @@ contains
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
-               gds23(1,:), gds24(1,:), gradpar(1,:), &
+               gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
@@ -135,7 +135,7 @@ contains
           call get_local_geo (nzed, nzgrid, zed, &
                dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
-               gds23(1,:), gds24(1,:), gradpar(1,:), &
+               gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, &
                rmajor)
@@ -196,7 +196,7 @@ contains
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
 
     ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION
-    jacob(1,:) = 1.0/abs(drhodpsi*gradpar(1,:)*bmag(1,:))
+    jacob(1,:) = 1.0/abs(drhodpsi*gradpar*bmag(1,:))
     
     dl_over_b = delzed*jacob(1,:)
     dl_over_b = dl_over_b / sum(dl_over_b)
@@ -218,13 +218,8 @@ contains
     ! --> 2*pi = b . grad theta_eqarc * int_0^{2pi} dtheta 1/(b.grad theta)
     ! this gives b . grad theta_eqarc, from which we get
     ! theta_eqarc = theta_min + int_{0}^{theta} dtheta' b . grad theta_eqarc / b . grad theta'
-    call get_gradpar_eqarc (gradpar(1,:), zed, delzed, gradpar_eqarc)
-    call get_zed_eqarc (gradpar(1,:), delzed, zed, gradpar_eqarc, zed_eqarc)
-
-!    do iz = -nzgrid, nzgrid
-!       write (*,*) 'equal_arc', zed(iz), zed_eqarc(iz), gradpar(1,iz), gradpar_eqarc
-!    end do
-!    stop
+    call get_gradpar_eqarc (gradpar, zed, delzed, gradpar_eqarc)
+    call get_zed_eqarc (gradpar, delzed, zed, gradpar_eqarc, zed_eqarc)
 
   end subroutine init_geometry
 
@@ -251,8 +246,7 @@ contains
     if (.not.allocated(jacob)) allocate (jacob(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(grho)) allocate (grho(nalpha,-nzgrid:nzgrid))
 
-    ! FLAG - NEED TO SORT OUT 1D VS 2D FOR GRADPAR
-    if (.not.allocated(gradpar)) allocate (gradpar(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
     if (.not.allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
     if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
     if (.not.allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))

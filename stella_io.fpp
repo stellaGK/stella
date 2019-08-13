@@ -519,7 +519,7 @@ contains
     status = nf90_put_att (ncid, bmag_id, 'units', 'B_0')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='units')
 
-    status = nf90_def_var (ncid, 'gradpar', netcdf_real, flux_surface_dim, gradpar_id)
+    status = nf90_def_var (ncid, 'gradpar', netcdf_real, nttot_dim, gradpar_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gradpar')
     status = nf90_def_var (ncid, 'gbdrift', netcdf_real, flux_surface_dim, gbdrift_id) 
     if (status /= nf90_noerr) call netcdf_error (status, var='gbdrift')
@@ -927,7 +927,7 @@ contains
 
     status = nf90_put_var (ncid, bmag_id, bmag, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id)
-    status = nf90_put_var (ncid, gradpar_id, gradpar, start=start, count=count)
+    status = nf90_put_var (ncid, gradpar_id, gradpar)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gradpar_id)
     status = nf90_put_var (ncid, gbdrift_id, gbdrift, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gbdrift_id)

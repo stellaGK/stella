@@ -735,7 +735,7 @@ contains
     q_local = geo_surf%qinp*(1.0+delrho*geo_surf%shat/geo_surf%rhoc)
     B_local = bmag(1,-nzpi:nzpi) + delrho*dBdrho(-nzpi:nzpi)
     dBdz_local = dbdzed(1,-nzpi:nzpi) + delrho*d2Bdrdth(-nzpi:nzpi)
-    gradpar_local = gradpar(1,-nzpi:nzpi) + delrho*dgradpardrho(-nzpi:nzpi)
+    gradpar_local = gradpar(-nzpi:nzpi) + delrho*dgradpardrho(-nzpi:nzpi)
 
     zed_stella = zed(-nzpi:nzpi)+pi
     theta_sfincs = export_f_theta(:ntheta)

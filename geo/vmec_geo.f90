@@ -98,7 +98,8 @@ contains
 
     integer, intent (in) :: nzgrid
     type (flux_surface_type), intent (out) :: surf
-    real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, gradpar, gds2, gds21, gds22, &
+    real, dimension (-nzgrid:), intent (out) :: gradpar
+    real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, gds2, gds21, gds22, &
          gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
@@ -110,7 +111,7 @@ contains
     real :: nfp
 
     real, dimension (:), allocatable :: zeta_vmec
-    real, dimension (:,:), allocatable :: bmag_vmec, gradpar_vmec
+    real, dimension (:,:), allocatable :: bmag_vmec, gradpar_vmec, gradpar_zeta
     real, dimension (:,:), allocatable :: gds2_vmec, gds21_vmec, gds22_vmec
     real, dimension (:,:), allocatable :: gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec
     real, dimension (:,:), allocatable :: gbdrift_vmec, gbdrift0_vmec
@@ -145,6 +146,7 @@ contains
     allocate (zeta_vmec(-nzgrid_vmec:nzgrid_vmec))
     allocate (bmag_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gradpar_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gradpar_zeta(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds2_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds21_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds22_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
@@ -204,7 +206,7 @@ contains
           ! now that we have z(alpha,zeta), interpolate from regular zeta grid (which is irregular in z)
           ! to regular zed grid (irregular in zeta)
           call geo_spline (arc_length(ia,:), zeta_vmec, zed, zeta(ia,:))
-          call geo_spline (arc_length(ia,:), gradpar_vmec(ia,:), zed, gradpar(ia,:))
+          call geo_spline (arc_length(ia,:), gradpar_vmec(ia,:), zed, gradpar_zeta(ia,:))
           call geo_spline (arc_length(ia,:), bmag_vmec(ia,:), zed, bmag(ia,:))
           call geo_spline (arc_length(ia,:), gds2_vmec(ia,:), zed, gds2(ia,:))
           call geo_spline (arc_length(ia,:), gds21_vmec(ia,:), zed, gds21(ia,:))
@@ -225,14 +227,14 @@ contains
           ! gds23 and gds24 involve grad z factors
           ! but currently calculated in terms of grad zeta
           ! so convert via multiplication with dz/dzeta
-          gds23(ia,:) = gds23(ia,:)/gradpar(ia,:)
-          gds24(ia,:) = gds24(ia,:)/gradpar(ia,:)
-          gradpar(ia,:) = 1.0
+          gds23(ia,:) = gds23(ia,:)/gradpar_zeta(ia,:)
+          gds24(ia,:) = gds24(ia,:)/gradpar_zeta(ia,:)
        end do
+       gradpar = 1.0
     else
        zeta = spread(zeta_vmec,1,nalpha)
        bmag = bmag_vmec
-       gradpar = gradpar_vmec
+       gradpar = gradpar_vmec(1,:)
        gds2 = gds2_vmec
        gds21 = gds21_vmec
        gds22 = gds22_vmec
@@ -261,6 +263,7 @@ contains
     deallocate (zed_domain_size)
     deallocate (zeta_vmec)
     deallocate (bmag_vmec, gradpar_vmec)
+    deallocate (gradpar_zeta)
     deallocate (gds2_vmec, gds21_vmec, gds22_vmec)
     deallocate (gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec)
     deallocate (gbdrift_vmec, gbdrift0_vmec)
@@ -300,7 +303,7 @@ contains
          'cvdrift0', 'theta_vmec'
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
-          write (2001,'(14e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(i,j), &
+          write (2001,'(14e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(j), &
                gds2(i,j), gds21(i,j), gds22(i,j), gds23(i,j), gds24(i,j), &
                gbdrift(i,j), gbdrift0(i,j), cvdrift(i,j), cvdrift0(i,j), theta_vmec(i,j)
        end do
