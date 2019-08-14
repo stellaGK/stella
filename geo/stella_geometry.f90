@@ -45,7 +45,7 @@ module stella_geometry
   real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, grho
-  real, dimension (:), allocatable :: dl_over_b
+  real, dimension (:,:), allocatable :: dl_over_b
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
   real, dimension (:), allocatable :: alpha
@@ -180,8 +180,6 @@ contains
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
           twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
-!          drhodpsi = -1.0/geo_surf%rhotor
-!          twist_and_shift_geo_fac = 1./(zed_scalefac*geo_surf%qinp)
        end select
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
        exb_nonlin_fac = 0.5*dxdpsi*dydalpha
@@ -195,12 +193,16 @@ contains
     ! but not in non-axisymmetric case
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
 
-    ! FLAG -- THIS SHOULD BE GENERALIZED TO ACCOUNT FOR ALPHA VARIATION
-    jacob(1,:) = 1.0/abs(drhodpsi*gradpar*bmag(1,:))
+    jacob = 1.0/abs(drhodpsi*gradpar*bmag)
     
-    dl_over_b = delzed*jacob(1,:)
-    dl_over_b = dl_over_b / sum(dl_over_b)
+    ! this is dl/B
+    dl_over_b = spread(delzed,1,nalpha)*jacob
+    ! normalize dl/B by int dl/B
+    dl_over_b = dl_over_b / sum(dl_over_b,dim=2)
 
+    ! would probably be better to compute this in the various
+    ! geometry subroutine (Miller, vmec, etc.), as there
+    ! B is likely calculated on a finer z-grid
     do iy = 1, nalpha
        call get_dzed (nzgrid, delzed, bmag(iy,:), dbdzed(iy,:))
     end do

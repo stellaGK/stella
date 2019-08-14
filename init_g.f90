@@ -34,14 +34,18 @@ module init_g
 contains
 
   subroutine init_init_g
+
     use stella_save, only: init_save, read_many
     use stella_layouts, only: init_stella_layouts
     use mp, only: proc0, broadcast
+
     implicit none
+
     integer :: ind_slash
 
     if (initialized) return
     initialized = .true.
+
     call init_stella_layouts
 
     if (proc0) call read_parameters
@@ -196,7 +200,7 @@ contains
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
     logical :: right
     integer :: ikxkyz
-    integer :: iz, iky, ikx, is
+    integer :: iz, iky, ikx, is, ia
 
     right = .not. left
 
@@ -211,13 +215,15 @@ contains
 
     if (reality .and. zonal_mode(1)) phi(1,:,:) = 0.0
 
+    ia = 1
+
     gvmu = 0.
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz) &
+       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(ia,iz)),1,nvpa)*phi(iky,ikx,iz) &
             *phiinit*spread(exp(-vpa**2),2,nmu)/abs(spec(is)%z)
     end do
 
