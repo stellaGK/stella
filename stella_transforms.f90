@@ -1,5 +1,3 @@
-# include "define.inc"
-
 module stella_transforms
 
   use fft_work, only: fft_type
@@ -56,26 +54,15 @@ contains
     implicit none
 
     logical :: initialized = .false.
-# if FFT == _FFTW3_
-    integer :: nb_ffts
-# endif
     
     if (initialized) return
     initialized = .true.
 
     if (.not.allocated(fft_y_in)) allocate (fft_y_in(vmu_lo%ny))
     if (.not.allocated(fft_y_out)) allocate (fft_y_out(vmu_lo%ny))
-# if FFT == _FFTW_
-    call init_ccfftw (yf_fft,  1, vmu_lo%ny)
-    call init_ccfftw (yb_fft, -1, vmu_lo%ny)
-# elif FFT == _FFTW3_
-    ! number of ffts to be calculated
-    ! equal to number of elements off-processor * number of non-y elements on processor
-    nb_ffts = (vmu_lo%ulim_alloc - vmu_lo%llim_proc + 1)*(vmu_lo%nakx/2+1)*vmu_lo%nzed
 
-    call init_ccfftw (yf_fft,  1, vmu_lo%ny, nb_ffts, fft_y_in, fft_y_out)
-    call init_ccfftw (yb_fft, -1, vmu_lo%ny, nb_ffts, fft_y_in, fft_y_out)
-# endif
+    call init_ccfftw (yf_fft,  1, vmu_lo%ny, fft_y_in, fft_y_out)
+    call init_ccfftw (yb_fft, -1, vmu_lo%ny, fft_y_in, fft_y_out)
 
   end subroutine init_y_fft
 
@@ -87,26 +74,15 @@ contains
     implicit none
 
     logical :: initialized = .false.
-# if FFT == _FFTW3_
-    integer :: nb_ffts
-# endif
     
     if (initialized) return
     initialized = .true.
 
     if (.not.allocated(fft_x_k)) allocate (fft_x_k(vmu_lo%nx/2+1))
     if (.not.allocated(fft_x_x)) allocate (fft_x_x(vmu_lo%nx))
-# if FFT == _FFTW_
-    call init_crfftw (xf_fft,  1, vmu_lo%nx)
-    call init_rcfftw (xb_fft, -1, vmu_lo%nx)
-# elif FFT == _FFTW3_
-    ! number of ffts to be calculated
-    ! equal to number of elements off-processor * number of non-xy elements on processor
-    nb_ffts = (vmu_lo%ulim_alloc - vmu_lo%llim_proc + 1)*vmu_lo%nzed
 
-    call init_crfftw (xf_fft,  1, vmu_lo%nx, nb_ffts, fft_x_k, fft_x_x)
-    call init_rcfftw (xb_fft, -1, vmu_lo%nx, nb_ffts, fft_x_x, fft_x_k)
-# endif
+    call init_crfftw (xf_fft,  1, vmu_lo%nx, fft_x_k, fft_x_x)
+    call init_rcfftw (xb_fft, -1, vmu_lo%nx, fft_x_x, fft_x_k)
 
   end subroutine init_x_fft
 
@@ -125,7 +101,6 @@ contains
     ! first need to pad input array with zeros
     iky_max = vmu_lo%naky
     ipad_up = iky_max+vmu_lo%ny-(2*vmu_lo%naky-1)
-!    fft_y_in(iky_max+1:ipad_up) = 0.
 
     ! now fill in non-zero elements of array
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
