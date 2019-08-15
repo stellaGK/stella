@@ -142,11 +142,12 @@ contains
        nzgrid_vmec = nzgrid
     end if
 
+    allocate (gradpar_zeta(nalpha,-nzgrid:nzgrid))
+
     ! allocate arrays of size 2*nzgrid_vmec+1
     allocate (zeta_vmec(-nzgrid_vmec:nzgrid_vmec))
     allocate (bmag_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gradpar_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
-    allocate (gradpar_zeta(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds2_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds21_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds22_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))

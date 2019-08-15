@@ -435,11 +435,13 @@ contains
     complex, dimension (:), intent (out) :: phi
     integer, intent (in) :: iky, ie
     
-    integer :: idx, iseg, ikx, iz
+    integer :: idx, iseg, ikx, iz, ia
     integer :: izl_offset
     real, dimension (nspec) :: wgt
     complex, dimension (:), allocatable :: g0
     complex :: tmp
+
+    ia = 1
 
     allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -474,7 +476,7 @@ contains
        if (zonal_mode(iky)) then
           ! no connections for ky = 0
           iseg = 1 
-          tmp = sum(dl_over_b*phi)
+          tmp = sum(dl_over_b(ia,:)*phi)
           phi = phi + tmp*gamtot3(ikxmod(1,ie,iky),:)
        end if
     end if
