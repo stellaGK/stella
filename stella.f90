@@ -109,16 +109,16 @@ contains
     call broadcast (cbuff)
     if (.not. proc0) run_name => cbuff
 
+    if (debug) write(6,*) "stella::init_stella::init_physics_flags"
+    call init_physics_flags
+    if (debug) write(6,*) "stella::init_stella::init_physics_parameters"
+    call init_physics_parameters
     if (debug) write(6,*) "stella::init_stella::init_zgrid"
     call init_zgrid
     if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_kt_grids_parameters
     if (debug) write(6,*) "stella::init_stella::init_geometry"
     call init_geometry
-    if (debug) write(6,*) "stella::init_stella::init_physics_parameters"
-    call init_physics_parameters
-    if (debug) write(6,*) "stella::init_stella::init_physics_flags"
-    call init_physics_flags
     if (debug) write (6,*) 'stella::init_stella::init_species'
     call init_species
     if (debug) write(6,*) "stella::init_stella::init_init_g"

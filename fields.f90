@@ -51,6 +51,8 @@ contains
     real :: tmp, wgt
     real, dimension (:,:), allocatable :: g0
 
+    ia = 1
+
     ! do not see why this is before fields_initialized check below
     call allocate_arrays
 
@@ -109,7 +111,7 @@ contains
                    ! avoid divide by zero for kx=ky=0 mode,
                    ! which we do not need anyway
                    if (abs(akx(ikx)) < epsilon(0.)) cycle
-                   tmp = nine/tite-sum(dl_over_b/gamtot(1,ikx,:))
+                   tmp = nine/tite-sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
                    gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
                 end do
              end if
@@ -121,7 +123,6 @@ contains
     end if
 
     if (fapar > epsilon(0.)) then
-       ia = 1
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           it = it_idx(kxkyz_lo,ikxkyz)
@@ -266,6 +267,8 @@ contains
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
     complex :: tmp
 
+    ia = 1
+
     phi = 0.
     if (fphi > epsilon(0.0)) then
        allocate (g0(nvpa,nmu))
@@ -299,14 +302,14 @@ contains
              if (dist == 'h') then
                 do ikx = 1, nakx
                    do it = 1, ntubes
-                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
                       phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
                    end do
                 end do
              else if (dist == 'gbar') then
                 do ikx = 1, nakx
                    do it = 1, ntubes
-                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
                       phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:)
                    end do
                 end do
@@ -327,7 +330,6 @@ contains
 
     apar = 0.
     if (fapar > epsilon(0.0)) then
-       ia = 1
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -378,9 +380,11 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
-    integer :: ikx, iky, ivmu, iz, it
+    integer :: ikx, iky, ivmu, iz, it, ia
     complex :: tmp
     complex, dimension (:,:,:), allocatable :: gyro_g
+
+    ia = 1
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
@@ -417,14 +421,14 @@ contains
              if (dist == 'h') then
                 do it = 1, ntubes
                    do ikx = 1, nakx
-                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
                       phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
                    end do
                 end do
              else if (dist == 'gbar') then
                 do it = 1, ntubes
                    do ikx = 1, nakx
-                      tmp = sum(dl_over_b*phi(1,ikx,:,it))
+                      tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
                       phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:)
                    end do
                 end do
@@ -497,8 +501,10 @@ contains
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
-    integer :: ikxkyz, iz, it, ikx, iky, is
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia
     complex, dimension (nspec) :: tmp
+
+    ia = 1
 
     fld = 0.
     if (fphi > epsilon(0.0)) then
@@ -524,7 +530,7 @@ contains
              do ikx = 1, nakx
                 do it = 1, ntubes
                    do is = 1, nspec
-                      tmp(is) = sum(dl_over_b*fld(1,ikx,:,it,is))
+                      tmp(is) = sum(dl_over_b(ia,:)*fld(1,ikx,:,it,is))
                       fld(1,ikx,:,it,is) = fld(1,ikx,:,it,is) + tmp(is)*gamtot3_h
                    end do
                 end do

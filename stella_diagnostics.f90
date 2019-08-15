@@ -28,7 +28,6 @@ module stella_diagnostics
 
   ! arrays needed for averaging in x,y,z
   real, dimension (:), allocatable :: fac
-!  real, dimension (:), allocatable :: dl_over_b
 
   real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
   real, dimension (:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
@@ -367,11 +366,13 @@ contains
     real, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
     real, dimension (:,:), intent (out) :: avg
 
-    integer :: it
+    integer :: it, ia
+
+    ia = 1
 
     avg = 0.0
     do it = 1, ntubes
-       avg = avg + sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
+       avg = avg + sum(spread(spread(dl_over_b(ia,:),1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
     end do
     avg = avg/real(ntubes)
     
@@ -388,11 +389,13 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
     complex, dimension (:,:), intent (out) :: avg
 
-    integer :: it
+    integer :: it, ia
+
+    ia = 1
 
     avg = 0.0
     do it = 1, ntubes
-       avg = avg + sum(spread(spread(dl_over_b,1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
+       avg = avg + sum(spread(spread(dl_over_b(ia,:),1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
     end do
     avg = avg/real(ntubes)
 
@@ -409,14 +412,16 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
     real, intent (out) :: avg
 
-    integer :: iky, ikx, iz, it
+    integer :: iky, ikx, iz, it, ia
+
+    ia = 1
 
     avg = 0.
     do it = 1, ntubes
        do iz = -nzgrid, nzgrid
           do ikx = 1, nakx
              do iky = 1, naky
-                avg = avg + real(unavg(iky,ikx,iz,it)*conjg(unavg(iky,ikx,iz,it)))*fac(iky)*dl_over_b(iz)
+                avg = avg + real(unavg(iky,ikx,iz,it)*conjg(unavg(iky,ikx,iz,it)))*fac(iky)*dl_over_b(ia,iz)
              end do
           end do
        end do
@@ -677,7 +682,9 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:,:), intent (out) :: gv
 
-    integer :: ikxkyz, iv, is, imu, iz, iky!, ivp
+    integer :: ikxkyz, iv, is, imu, iz, iky, ia!, ivp
+
+    ia = 1
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2
@@ -690,7 +697,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = 1, nvpa
-             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(iz)
+             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(ia,iz)
           end do
        end do
     end do
@@ -853,7 +860,6 @@ contains
 
     implicit none
 
-!    if (allocated(dl_over_b)) deallocate (dl_over_b)
     if (allocated(fac)) deallocate (fac)
 
   end subroutine finish_averages

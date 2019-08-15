@@ -193,12 +193,12 @@ contains
     ! but not in non-axisymmetric case
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
 
-    jacob = 1.0/abs(drhodpsi*gradpar*bmag)
+    jacob = 1.0/abs(drhodpsi*spread(gradpar,1,nalpha)*bmag)
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
     ! normalize dl/B by int dl/B
-    dl_over_b = dl_over_b / sum(dl_over_b,dim=2)
+    dl_over_b = dl_over_b / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
 
     ! would probably be better to compute this in the various
     ! geometry subroutine (Miller, vmec, etc.), as there
@@ -247,12 +247,12 @@ contains
     if (.not.allocated(theta_vmec)) allocate (theta_vmec(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(jacob)) allocate (jacob(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(grho)) allocate (grho(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dl_over_b)) allocate (dl_over_b(nalpha,-nzgrid:nzgrid))
 
     if (.not.allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
     if (.not.allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
     if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
     if (.not.allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
-    if (.not.allocated(dl_over_b)) allocate (dl_over_b(-nzgrid:nzgrid))
     if (.not.allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
     if (.not.allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
     if (.not.allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
