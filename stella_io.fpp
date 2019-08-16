@@ -538,9 +538,9 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, var='gds21')
     status = nf90_def_var (ncid, 'gds22', netcdf_real, flux_surface_dim, gds22_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='gds22')
-    status = nf90_def_var (ncid, 'grho', netcdf_real, nttot_dim, grho_id)
+    status = nf90_def_var (ncid, 'grho', netcdf_real, flux_surface_dim, grho_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='grho')
-    status = nf90_def_var (ncid, 'jacob', netcdf_real, nttot_dim, jacob_id)
+    status = nf90_def_var (ncid, 'jacob', netcdf_real, flux_surface_dim, jacob_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='jacob')
 
     status = nf90_def_var (ncid, 'q', netcdf_real, q_id)
@@ -945,9 +945,9 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds21_id)
     status = nf90_put_var (ncid, gds22_id, gds22, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gds22_id)
-    status = nf90_put_var (ncid, grho_id, grho)
+    status = nf90_put_var (ncid, grho_id, grho, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, grho_id)
-    status = nf90_put_var (ncid, jacob_id, jacob)
+    status = nf90_put_var (ncid, jacob_id, jacob, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, jacob_id)
 
     status = nf90_put_var (ncid, beta_id, beta)

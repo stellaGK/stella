@@ -153,16 +153,16 @@ contains
 ! Distribution function layouts
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
+  subroutine init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
     implicit none
 
-    integer, intent (in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx
+    integer, intent (in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha
 
     call init_kxkyz_layout (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
     call init_kxyz_layout (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
     call init_xyz_layout (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
-    call init_vmu_layout (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
+    call init_vmu_layout (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
   end subroutine init_dist_fn_layouts
 
@@ -743,13 +743,13 @@ contains
   end function iz_local_xyz
 
   subroutine init_vmu_layout &
-       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
+       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
     
     use mp, only: iproc, nproc
 
     implicit none
 
-    integer, intent (in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx
+    integer, intent (in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha
     logical, save :: initialized = .false.
 
     if (initialized) return
@@ -761,6 +761,7 @@ contains
     vmu_lo%nzgrid = nzgrid
     vmu_lo%ntubes = ntubes
     vmu_lo%ny = ny
+    vmu_lo%nalpha = nalpha
     vmu_lo%naky = naky
     vmu_lo%nx = nx
     vmu_lo%nakx = nakx

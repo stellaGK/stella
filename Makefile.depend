@@ -94,10 +94,12 @@ dist_fn.o: \
 	 gyro_averages.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 redistribute.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -161,10 +163,12 @@ gauss_quad.o: \
 gyro_averages.o: \
 	 dist_fn_arrays.o \
 	 kt_grids.o \
+	 physics_flags.o \
 	 species.o \
 	 spfunc.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 init_g.o: \
@@ -408,6 +412,7 @@ stella_save.o: \
 stella_time.o: 
 stella_transforms.o: \
 	 fft_work.o \
+	 physics_flags.o \
 	 stella_layouts.o 
 test_vmec_to_stella_geometry_interface.o: \
 	 vmec_to_stella_geometry_interface.o 

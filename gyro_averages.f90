@@ -20,27 +20,39 @@ module gyro_averages
   real, dimension (:,:), allocatable :: aj0v, aj1v
   ! (nmu, -kxkyz-layout-)
 
+  integer, dimension (:,:,:,:), allocatable :: ia_max_aj0a
+  complex, dimension (:,:,:,:,:), allocatable :: aj0a
+
   logical :: bessinit = .false.
 
 contains
 
   subroutine init_bessel
 
+    use mp, only: sum_allreduce, proc0
     use dist_fn_arrays, only: kperp2
+    use physics_flags, only: full_flux_surface
     use species, only: spec, nspec
     use stella_geometry, only: bmag
-    use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp2, nmu
+    use zgrid, only: nzgrid, nztot
+    use vpamu_grids, only: vperp2, nmu, nvpa
     use kt_grids, only: naky, nakx, nalpha
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
     use spfunc, only: j0, j1
+    use stella_transforms, only: transform_alpha2kalpha
+!    use stella_transforms, only: transform_kalpha2alpha
 
     implicit none
 
     integer :: iz, iky, ikx, imu, is, ia
     integer :: ikxkyz, ivmu
     real :: arg
+    integer :: ia_max_aj0a_count
+    real :: ia_max_aj0a_reduction_factor
+
+    real, dimension (:), allocatable :: aj0_alpha
+    complex, dimension (:), allocatable :: aj0_kalpha
 
     if (bessinit) return
     bessinit = .true.
@@ -72,11 +84,49 @@ contains
        end do
     end do
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       is = is_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       do iz = -nzgrid, nzgrid
-          do ia = 1, nalpha
+    if (full_flux_surface) then
+       allocate (aj0_alpha(nalpha))
+       allocate (aj0_kalpha(nalpha/2+1))
+       if (.not.allocated(ia_max_aj0a)) allocate(ia_max_aj0a(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       if (.not.allocated(aj0a)) then
+          allocate(aj0a(nalpha/2+1,naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          aj0a = 0.
+       end if
+          
+       ia_max_aj0a_count = 0
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          do iz = -nzgrid, nzgrid
+             do ikx = 1, nakx
+                do iky = 1, naky
+                   do ia = 1, nalpha
+                      arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
+                      aj0x(iky,ikx,iz,ivmu) = j0(arg)
+                      aj0_alpha(ia) = aj0x(iky,ikx,iz,ivmu)
+                   end do
+                   call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
+                   call find_max_required_kalpha_index (aj0_kalpha, imu, iz, ia_max_aj0a(iky,ikx,iz,ivmu))
+                   ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
+                   aj0a(:ia_max_aj0a(iky,ikx,iz,ivmu),iky,ikx,iz,ivmu) = aj0_kalpha(:ia_max_aj0a(iky,ikx,iz,ivmu))
+!                   call transform_kalpha2alpha (aj0_kalpha, aj0_alpha)
+                end do
+             end do
+          end do
+       end do
+       ! calculate the reduction factor of Fourier modes
+       ! used to represent J0
+       call sum_allreduce (ia_max_aj0a_count)
+       ia_max_aj0a_reduction_factor = real(ia_max_aj0a_count)/real(naky*nakx*nztot*nmu*nvpa*nspec*(nalpha/2+1))
+
+       if (proc0) write (*,*) 'ia_max_aj0_reduction_factor', ia_max_aj0a_reduction_factor
+       deallocate (aj0_kalpha, aj0_alpha)
+    else
+       ia = 1
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          do iz = -nzgrid, nzgrid
              do ikx = 1, nakx
                 do iky = 1, naky
                    arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
@@ -85,9 +135,48 @@ contains
              end do
           end do
        end do
-    end do
+    end if
 
   end subroutine init_bessel
+
+  subroutine find_max_required_kalpha_index (ft, imu, iz, idx)
+
+    use vpamu_grids, only: maxwell_mu
+
+    implicit none
+
+    complex, dimension (:), intent (in) :: ft
+    integer, intent (in) :: imu, iz
+    integer, intent (out) :: idx
+
+    real, parameter :: tol_floor = 0.01
+    integer :: i, n
+    real :: subtotal, total
+    real :: tol
+    real, dimension (:), allocatable :: ftmod2
+
+    n = size(ft)
+
+    ! use conservative estimate
+    ! when deciding number of modes to retain
+    tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu)))
+!    write (*,*) 'tol', tol_floor, tol, minval(maxwell_mu(:,iz,imu))
+
+    allocate (ftmod2(n))
+    ftmod2 = real(ft*conjg(ft))
+    total = sum(ftmod2)
+    subtotal = 0.
+
+    i = 1
+    do while (subtotal < total*(1.0-tol))
+       idx = i
+       subtotal = sum(ftmod2(:i))
+       i = i + 1
+    end do
+    
+    deallocate (ftmod2)
+
+  end subroutine find_max_required_kalpha_index
 
   subroutine finish_bessel
 
@@ -95,6 +184,8 @@ contains
 
     if (allocated(aj0v)) deallocate (aj0v)
     if (allocated(aj0x)) deallocate (aj0x)
+    if (allocated(aj0a)) deallocate (aj0a)
+    if (allocated(ia_max_aj0a)) deallocate (ia_max_aj0a)
 
     bessinit = .false.
 

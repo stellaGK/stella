@@ -7,7 +7,7 @@ module kt_grids
   public :: read_kt_grids_parameters
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
-  public :: jtwist, ikx_twist_shift
+  public :: jtwist, ikx_twist_shift, y0
   public :: nalpha
   public :: ikx_max
   public :: zonal_mode
@@ -217,7 +217,11 @@ contains
           ! if simulating a flux annulus, then
           ! y0 determined by the physical
           ! extent of the device
-          y0 = 1./(rhostar*geo_surf%rhotor)
+          if (rhostar > 0.) then
+             y0 = 1./(rhostar*geo_surf%rhotor)
+          else
+             call mp_abort ('must set rhostar if simulating a full flux surface. aborting.')
+          end if
        else
           ! if simulating a flux tube
           ! makes no sense to have y0 < 0.0

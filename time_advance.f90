@@ -105,10 +105,10 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
-       if (debug) write (6,*) 'time_advance::init_time_advance::init_transforms'
-       call init_transforms
-    end if
+!    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
+!       if (debug) write (6,*) 'time_advance::init_time_advance::init_transforms'
+!       call init_transforms
+!    end if
 
   end subroutine init_time_advance
 

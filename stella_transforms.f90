@@ -7,6 +7,7 @@ module stella_transforms
   public :: init_transforms, finish_transforms
   public :: transform_ky2y, transform_y2ky
   public :: transform_kx2x, transform_x2kx
+  public :: transform_kalpha2alpha, transform_alpha2kalpha
 
   interface transform_ky2y
      module procedure transform_ky2y_5d
@@ -22,17 +23,22 @@ module stella_transforms
 
   type (fft_type) :: yf_fft, yb_fft
   type (fft_type) :: xf_fft, xb_fft
+  type (fft_type) :: alpha_f_fft, alpha_b_fft
 
   logical :: transforms_initialized = .false.
 
   complex, dimension (:), allocatable :: fft_y_in, fft_y_out
   complex, dimension (:), allocatable :: fft_x_k
   real, dimension (:), allocatable :: fft_x_x
+  ! arrays for transforming from alpha-space to k-alpha space
+  real, dimension (:), allocatable :: fft_alpha_alpha
+  complex, dimension (:), allocatable :: fft_alpha_kalpha
 
 contains
 
   subroutine init_transforms
 
+    use physics_flags, only: full_flux_surface
     use stella_layouts, only: init_stella_layouts
 
     implicit none
@@ -43,6 +49,7 @@ contains
     call init_stella_layouts
     call init_y_fft
     call init_x_fft
+    if (full_flux_surface) call init_alpha_fft
 
   end subroutine init_transforms
 
@@ -85,6 +92,26 @@ contains
     call init_rcfftw (xb_fft, -1, vmu_lo%nx, fft_x_x, fft_x_k)
 
   end subroutine init_x_fft
+
+  subroutine init_alpha_fft
+
+    use fft_work, only: init_rcfftw, init_crfftw
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    logical :: initialized = .false.
+    
+    if (initialized) return
+    initialized = .true.
+
+    if (.not.allocated(fft_alpha_kalpha)) allocate (fft_alpha_kalpha(vmu_lo%nalpha/2+1))
+    if (.not.allocated(fft_alpha_alpha)) allocate (fft_alpha_alpha(vmu_lo%nalpha))
+
+    call init_crfftw (alpha_f_fft,  1, vmu_lo%nalpha, fft_alpha_kalpha, fft_alpha_alpha)
+    call init_rcfftw (alpha_b_fft, -1, vmu_lo%nalpha, fft_alpha_alpha, fft_alpha_kalpha)
+
+  end subroutine init_alpha_fft
 
   subroutine transform_ky2y_5d (gky_unpad, gy)
 
@@ -248,7 +275,50 @@ contains
 
   end subroutine transform_x2kx
 
+  subroutine transform_kalpha2alpha (gkalph, galph)
+
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    complex, dimension (:), intent (in) :: gkalph
+    real, dimension (:), intent (out) :: galph
+
+    integer :: ia
+
+    ! no padding done here
+    do ia = 1, vmu_lo%nalpha
+       fft_alpha_kalpha = gkalph
+       call dfftw_execute_dft_c2r(alpha_f_fft%plan, fft_alpha_kalpha, fft_alpha_alpha)
+       fft_alpha_alpha = fft_alpha_alpha*alpha_f_fft%scale
+       galph = fft_alpha_alpha
+    end do
+
+  end subroutine transform_kalpha2alpha
+
+  subroutine transform_alpha2kalpha (galph, gkalph)
+
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    real, dimension (:), intent (in) :: galph
+    complex, dimension (:), intent (out) :: gkalph
+
+    integer :: ia
+
+    do ia = 1, vmu_lo%nalpha
+       fft_alpha_alpha = galph
+       call dfftw_execute_dft_r2c(alpha_b_fft%plan, fft_alpha_alpha, fft_alpha_kalpha)
+       fft_alpha_kalpha = fft_alpha_kalpha*alpha_b_fft%scale
+       gkalph = fft_alpha_kalpha
+    end do
+
+  end subroutine transform_alpha2kalpha
+
   subroutine finish_transforms
+
+    use physics_flags, only: full_flux_surface
 
     implicit none
 
@@ -256,10 +326,16 @@ contains
     call dfftw_destroy_plan (yb_fft%plan)
     call dfftw_destroy_plan (xf_fft%plan)
     call dfftw_destroy_plan (xb_fft%plan)
+    if (full_flux_surface) then
+       call dfftw_destroy_plan (alpha_f_fft%plan)
+       call dfftw_destroy_plan (alpha_b_fft%plan)
+    end if
     if (allocated(fft_y_in)) deallocate (fft_y_in)
     if (allocated(fft_y_out)) deallocate (fft_y_out)
     if (allocated(fft_x_k)) deallocate (fft_x_k)
     if (allocated(fft_x_x)) deallocate (fft_x_x)
+    if (allocated(fft_alpha_alpha)) deallocate (fft_alpha_alpha)
+    if (allocated(fft_alpha_kalpha)) deallocate (fft_alpha_kalpha)
     transforms_initialized = .false.
 
   end subroutine finish_transforms
