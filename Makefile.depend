@@ -79,6 +79,7 @@ dissipation.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -163,6 +164,7 @@ gauss_quad.o: \
 gyro_averages.o: \
 	 dist_fn_arrays.o \
 	 kt_grids.o \
+	 mp.o \
 	 physics_flags.o \
 	 species.o \
 	 spfunc.o \

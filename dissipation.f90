@@ -1385,9 +1385,12 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use zgrid, only: nzgrid, ntubes
+    use physics_flags, only: full_flux_surface
+    use zgrid, only: nzgrid, ntubes, nztot
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: aky, akx
 
     implicit none
 
@@ -1397,13 +1400,22 @@ contains
     integer :: ivmu
     real :: k2max
 
-    k2max = maxval(kperp2)
-
-    ia = 1
-    ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt*(spread(kperp2(:,:,ia,:),4,ntubes)/k2max)**2*D_hyper)
-    end do
+    if (full_flux_surface) then
+       ! avoid alpha-dependent kperp
+       k2max = aky(nakx)**2 + aky(naky)**2
+       ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt &
+               *(spread(spread(spread(akx**2,1,naky)+spread(aky**2,2,nakx),3,nztot),4,ntubes)/k2max)**2*D_hyper)
+       end do
+    else
+       k2max = maxval(kperp2)
+       ia = 1
+       ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt*(spread(kperp2(:,:,ia,:),4,ntubes)/k2max)**2*D_hyper)
+       end do
+    end if
 
   end subroutine advance_hyper_dissipation
 

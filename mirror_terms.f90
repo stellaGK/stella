@@ -459,6 +459,14 @@ contains
     ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
     ! to invert and obtain h^{n+1}
     if (full_flux_surface) then
+       ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
+       if (.not.collisions_implicit) then
+          ! get g^{*} with v-space on processor
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+          call scatter (kxkyz2vmu, g, gvmu)
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       end if
+
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! for upwinding, need to evaluate dg^{*}/dvpa in y-space

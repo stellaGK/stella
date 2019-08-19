@@ -36,6 +36,12 @@ module time_advance
   logical :: parnlinit = .false.
   logical :: readinit = .false.
 
+  ! if .true., dist fn is represented on alpha grid
+  ! if .false., dist fn is given on k-alpha grid
+  ! default is .false.; will only ever be set to
+  ! .true. during full_flux_surface simulations
+!  logical :: alpha_space = .false.
+
   integer :: explicit_option_switch
   integer, parameter :: explicit_option_rk3 = 1, &
        explicit_option_rk2 = 2, &
@@ -1685,6 +1691,26 @@ contains
     integer, intent (in) :: istep
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
+!    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
+
+!    complex, dimension (:,:,:,:,:), pointer :: gk, gy
+!    complex, dimension (:,:,:,:,:), allocatable, target :: g_dual
+
+!    ! the 'g' that enters this subroutine may be in alpha-space or kalpha-space
+!    ! figure out which it is
+!    if (size(g,1) == naky) then
+!       alpha_space = .false.
+!       gk => g
+!       if (full_flux_surface) then
+!          allocate (g_dual(nalpha,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!          gy => g_dual
+!       end if
+!    else
+!       alpha_space = .true.
+!       allocate (g_dual(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!       gy => g
+!       gk => g_dual
+!    end if
 
     ! start the timer for the implicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
@@ -1699,6 +1725,8 @@ contains
     if (mod(istep,2)==1 .or. .not.flip_flop) then
 
        if (hyper_dissipation) then
+!          ! for hyper-dissipation, need to be in k-alpha space
+!          if (alpha_space) call transform_y2ky (gy, gk)
           call advance_hyper_dissipation (g)
           fields_updated = .false.
        end if
@@ -1710,6 +1738,12 @@ contains
        end if
 
        if (mirror_implicit .and. include_mirror) then
+!          if (full_flux_surface) then
+!             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!             if (.not.alpha_space) call transform_ky2y (g, gy)
+!          else
+!             g_mirror => g
+!          end if
           call advance_mirror_implicit (collisions_implicit, g)
           fields_updated = .false.
        end if
