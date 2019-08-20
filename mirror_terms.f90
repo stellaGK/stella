@@ -317,13 +317,17 @@ contains
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
     use vpamu_grids, only: nvpa, nmu, dvpa
+    use vpamu_grids, only: maxwellian_norm
 
     implicit none
 
     complex, dimension (:,:,kxyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxyz, imu, iz, iy, is
+    logical :: zero_bc = .true.
     complex, dimension (:), allocatable :: tmp
+
+    if (maxwellian_norm) zero_bc = .false.
 
     allocate (tmp(nvpa))
     do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -332,7 +336,7 @@ contains
        is = is_idx(kxyz_lo,ikxyz)
        do imu = 1, nmu
           ! tmp is dh/dvpa
-          call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
+          call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),zero_bc,tmp)
           g(:,imu,ikxyz) = tmp
        end do
     end do
@@ -345,21 +349,24 @@ contains
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
     use vpamu_grids, only: nvpa, nmu, dvpa
+    use vpamu_grids, only: maxwellian_norm
 
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxkyz, imu, iz, is
+    logical :: zero_bc
     complex, dimension (:), allocatable :: tmp
 
-    allocate (tmp(nvpa))
+    if (maxwellian_norm) zero_bc = .false.
 
+    allocate (tmp(nvpa))
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          call third_order_upwind (1,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
+          call third_order_upwind (1,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),zero_bc,tmp)
           g(:,imu,ikxkyz) = tmp
        end do
     end do
@@ -566,6 +573,7 @@ contains
   subroutine vpa_interpolation (grid, interp)
 
     use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: maxwellian_norm
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, is_idx
     use run_parameters, only: mirror_linear_interp
@@ -600,13 +608,24 @@ contains
                 interp(iv,imu,ikxkyz) = grid(iv+shift,imu,ikxkyz)*fac1 &
                      + grid(iv+shift+sgn,imu,ikxkyz)*fac2
              end do
-             ! at boundary cell, use zero incoming BC for point just beyond boundary
-             interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)*fac1
-             ! use zero incoming BC for cells beyond +/- nvgrid
-             if (shift > 0) then
-                interp(nvpa-shift+1:,imu,ikxkyz) = 0.
-             else if (shift < 0) then
-                interp(:-shift,imu,ikxkyz) = 0.
+             if (maxwellian_norm) then
+                ! at boundary cell, use zero derivative BC for point just beyond boundary
+                interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)
+                ! use zero derivative BC for cells beyond +/- nvgrid
+                if (shift > 0) then
+                   interp(nvpa-shift+1:,imu,ikxkyz) = grid(nvpa,imu,ikxkyz)
+                else if (shift < 0) then
+                   interp(:-shift,imu,ikxkyz) = grid(1,imu,ikxkyz)
+                end if
+             else
+                ! at boundary cell, use zero incoming BC for point just beyond boundary
+                interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)*fac1
+                ! use zero incoming BC for cells beyond +/- nvgrid
+                if (shift > 0) then
+                   interp(nvpa-shift+1:,imu,ikxkyz) = 0.
+                else if (shift < 0) then
+                   interp(:-shift,imu,ikxkyz) = 0.
+                end if
              end if
           end do
        end do
@@ -669,17 +688,32 @@ contains
                         + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6.
                 end do
 
-                ! at boundary cell, use zero incoming BC for point just beyond boundary
-                interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
-                     + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
-                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac2)/6.
-                interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
-                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac1)/6.
-                ! use zero incoming BC for cells beyond +/- nvgrid
-                if (shift > 0) then
-                   interp(nvpa-shift+1:,imu,ikxkyz) = 0.
-                else if (shift < 0) then
-                   interp(:-shift,imu,ikxkyz) = 0.
+                if (maxwellian_norm) then
+                   ! at boundary cell, use zero derivative BC for point just beyond boundary
+                   interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
+                        + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
+                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*(fac2+fac3))/6.
+                   interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
+                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*(fac1+fac2+fac3))/6.
+                   ! use zero derivative BC for cells beyond +/- nvgrid
+                   if (shift > 0) then
+                      interp(nvpa-shift+1:,imu,ikxkyz) = grid(nvpa,imu,ikxkyz)
+                   else if (shift < 0) then
+                      interp(:-shift,imu,ikxkyz) = grid(1,imu,ikxkyz)
+                   end if
+                else
+                   ! at boundary cell, use zero incoming BC for point just beyond boundary
+                   interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
+                        + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
+                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac2)/6.
+                   interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
+                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac1)/6.
+                   ! use zero incoming BC for cells beyond +/- nvgrid
+                   if (shift > 0) then
+                      interp(nvpa-shift+1:,imu,ikxkyz) = 0.
+                   else if (shift < 0) then
+                      interp(:-shift,imu,ikxkyz) = 0.
+                   end if
                 end if
              end if
           end do

@@ -111,7 +111,7 @@ contains
 
   end subroutine first_order_upwind_complex
   
-  subroutine third_order_upwind_complex (llim, f, del, sgn, df)
+  subroutine third_order_upwind_complex (llim, f, del, sgn, zero_bc, df)
     
     implicit none
     
@@ -119,6 +119,7 @@ contains
     complex, dimension (llim:), intent (in) :: f
     real, intent (in) :: del
     integer, intent (in) :: sgn
+    logical, intent (in) :: zero_bc
     complex, dimension (llim:), intent (out) :: df
     
     integer :: i, n, istart, iend
@@ -132,11 +133,18 @@ contains
        iend = llim
     end if
 
-    ! zero BC, 1st order accurate upwind
-    df(istart) = -f(istart)*sgn/del
-    ! zero BC, 3rd order accurate upwind
     i = istart-sgn
-    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    if (zero_bc) then
+       ! zero BC, 1st order accurate upwind
+       df(istart) = -f(istart)*sgn/del
+       ! zero BC, 3rd order accurate upwind
+       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    else
+       ! zero derivative BC
+       df(istart) = 0.0
+       ! zero derivative BC, 3rd order accurate upwind
+       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-5.*f(i+sgn))/(6.*del)
+    end if
     ! 1st order accurate upwind
     df(iend) = sgn*(f(iend+sgn)-f(iend))/del
 
@@ -144,24 +152,10 @@ contains
     do i = istart-2*sgn, iend+sgn, -sgn
        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
     end do
-!     ! zero BC, 1st order accurate upwind
-!     i = -llim*sgn
-!     df(i) = -f(i)*sgn/del
-!     ! zero BC, 3rd order accurate upwind
-!     i = -(llim+1)*sgn
-!     df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
-!     ! 1st order accurate upwind
-!     i = llim*sgn
-!     df(i) = sgn*(f(i+sgn)-f(i))/del
-
-!     ! 3rd order accurate upwind
-!     do i = -(llim+2)*sgn, (llim+1)*sgn, -sgn
-!        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
-!     end do
 
   end subroutine third_order_upwind_complex
 
-  subroutine third_order_upwind_real (llim, f, del, sgn, df)
+  subroutine third_order_upwind_real (llim, f, del, sgn, zero_bc, df)
     
     implicit none
     
@@ -169,6 +163,7 @@ contains
     real, dimension (llim:), intent (in) :: f
     real, intent (in) :: del
     integer, intent (in) :: sgn
+    logical, intent (in) :: zero_bc
     real, dimension (llim:), intent (out) :: df
     
     integer :: i, n, istart, iend
@@ -182,11 +177,18 @@ contains
        iend = llim
     end if
 
-    ! zero BC, 1st order accurate upwind
-    df(istart) = -f(istart)*sgn/del
-    ! zero BC, 3rd order accurate upwind
     i = istart-sgn
-    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    if (zero_bc) then
+       ! zero BC, 1st order accurate upwind
+       df(istart) = -f(istart)*sgn/del
+       ! zero BC, 3rd order accurate upwind
+       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    else
+       ! zero derivative BC
+       df(istart) = 0.0
+       ! zero derivative BC, 3rd order accurate upwind
+       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-5.*f(i+sgn))/(6.*del)
+    end if
     ! 1st order accurate upwind
     df(iend) = sgn*(f(iend+sgn)-f(iend))/del
 
@@ -194,21 +196,6 @@ contains
     do i = istart-2*sgn, iend+sgn, -sgn
        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
     end do
-
-!     ! zero BC, 1st order accurate upwind
-!     i = -llim*sgn
-!     df(i) = -f(i)*sgn/del
-!     ! zero BC, 3rd order accurate upwind
-!     i = -(llim+1)*sgn
-!     df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
-!     ! 1st order accurate upwind
-!     i = llim*sgn
-!     df(i) = sgn*(f(i+sgn)-f(i))/del
-
-!     ! 3rd order accurate upwind
-!     do i = -(llim+2)*sgn, (llim+1)*sgn, -sgn
-!        df(i) = -sgn*(2.*f(i-sgn)+3*f(i)-6.*f(i+sgn)+f(i+2*sgn))/(6.*del)
-!     end do
 
   end subroutine third_order_upwind_real
 

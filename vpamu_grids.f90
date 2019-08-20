@@ -11,16 +11,18 @@ module vpamu_grids
   public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
+  public :: maxwellian_norm
   
   integer :: nvgrid, nvpa
   integer :: nmu
   real :: vpa_max, vperp_max
+  logical :: maxwellian_norm
 
   ! arrays that are filled in vpamu_grids
-  real, dimension (:), allocatable :: mu, wgts_mu
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
   real, dimension (:), allocatable :: maxwell_vpa
-  real, dimension (:,:,:), allocatable :: maxwell_mu
+  real, dimension (:), allocatable :: mu, wgts_mu_tmp
+  real, dimension (:,:,:), allocatable :: wgts_mu, maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
   real, dimension (:), allocatable :: dmu
@@ -74,7 +76,7 @@ contains
     implicit none
 
     namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
-         equally_spaced_mu_grid
+         equally_spaced_mu_grid, maxwellian_norm
 
     integer :: in_file
     logical :: exist
@@ -86,6 +88,7 @@ contains
        nmu = 12
        vperp_max = 3.0
        equally_spaced_mu_grid = .false.
+       maxwellian_norm = .false.
 
        in_file = input_unit_exist("vpamu_grids_parameters", exist)
        if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
@@ -97,6 +100,7 @@ contains
     call broadcast (nmu)
     call broadcast (vperp_max)
     call broadcast (equally_spaced_mu_grid)
+    call broadcast (maxwellian_norm)
 
     nvpa = 2*nvgrid
 
@@ -184,6 +188,8 @@ contains
     ! divide by 2 to account for double-counting
     wgts_vpa = 0.5*wgts_vpa
 
+    if (maxwellian_norm) wgts_vpa = wgts_vpa*maxwell_vpa
+
     wgts_vpa_default = wgts_vpa
 
   end subroutine init_vpa_grid
@@ -196,6 +202,7 @@ contains
 
     if (conservative) then
        wgts_vpa = dvpa
+       if (maxwellian_norm) wgts_vpa = wgts_vpa*maxwell_vpa
     else
        wgts_vpa = wgts_vpa_default
     end if
@@ -205,7 +212,6 @@ contains
   subroutine integrate_mu_local (iz, g, total)
 
     use species, only: nspec
-    use stella_geometry, only: bmag
 
     implicit none
 
@@ -213,14 +219,15 @@ contains
     real, dimension (:,:), intent (in) :: g
     real, dimension (:), intent (out) :: total
 
-    integer :: is, imu
+    integer :: is, imu, ia
 
     total = 0.
 
+    ia = 1
     do is = 1, nspec
        ! sum over mu
        do imu = 1, nmu
-          total(is) = total(is) + wgts_mu(imu)*bmag(1,iz)*g(imu,is)
+          total(is) = total(is) + wgts_mu(ia,iz,imu)*g(imu,is)
        end do
     end do
 
@@ -231,7 +238,6 @@ contains
     use mp, only: nproc, sum_reduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: is_idx, imu_idx, iv_idx
-    use stella_geometry, only: bmag
 
     implicit none
 
@@ -239,15 +245,16 @@ contains
     real, dimension (vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:,:), intent (out) :: total
 
-    integer :: is, imu, iv, ivmu
+    integer :: is, imu, iv, ivmu, ia
 
     total = 0.
     
+    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       total(iv,is) = total(iv,is) + wgts_mu(imu)*bmag(1,iz)*g(ivmu)
+       total(iv,is) = total(iv,is) + wgts_mu(ia,iz,imu)*g(ivmu)
     end do
 
     if (nproc > 1) call sum_reduce (total,0)
@@ -256,21 +263,20 @@ contains
 
   subroutine integrate_vmu_local_real (g, iz, total)
 
-    use stella_geometry, only: bmag
-
     implicit none
 
     real, dimension (:,:), intent (in) :: g
     integer, intent (in) :: iz
     real, intent (out) :: total
 
-    integer :: iv, imu
+    integer :: iv, imu, ia
 
     total = 0.
     
+    ia = 1
     do imu = 1, nmu
        do iv = 1, nvpa
-          total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
+          total = total + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iv,imu)
        end do
     end do
 
@@ -278,21 +284,20 @@ contains
 
   subroutine integrate_vmu_local_complex (g, iz, total)
 
-    use stella_geometry, only: bmag
-
     implicit none
 
     complex, dimension (:,:), intent (in) :: g
     integer, intent (in) :: iz
     complex, intent (out) :: total
 
-    integer :: iv, imu
+    integer :: iv, imu, ia
 
     total = 0.
     
+    ia = 1
     do imu = 1, nmu
        do iv = 1, nvpa
-          total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu)
+          total = total + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iv,imu)
        end do
     end do
 
@@ -304,11 +309,10 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use zgrid, only: nzgrid
-    use stella_geometry, only: bmag
 
     implicit none
 
-    integer :: ivmu, iv, iz, is, imu
+    integer :: ivmu, iv, iz, is, imu, ia
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (in) :: weights
@@ -316,13 +320,14 @@ contains
 
     total = 0.
 
+    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        do iz = -nzgrid, nzgrid
           total(:,:,iz,:,is) = total(:,:,iz,:,is) + &
-               wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(:,:,iz,:,ivmu)*weights(is)
+               wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,iz,:,ivmu)*weights(is)
        end do
     end do
 
@@ -419,11 +424,10 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use stella_geometry, only: bmag
 
     implicit none
 
-    integer :: ivmu, iv, is, imu
+    integer :: ivmu, iv, is, imu, ia
 
     complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
@@ -432,12 +436,13 @@ contains
 
     total = 0.
 
+    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        total = total + &
-            wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(ivmu)*weights(is)
+            wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
     end do
 
     call sum_allreduce (total)
@@ -472,10 +477,12 @@ contains
     ! allocate arrays and initialize to zero
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
-       allocate (wgts_mu(nmu)) ; wgts_mu = 0.0
+       allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
        allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu)) ; maxwell_mu = 0.0
        allocate (dmu(nmu-1))
     end if
+
+    allocate (wgts_mu_tmp(nmu)) ; wgts_mu_tmp = 0.0
 
     ! dvpe * vpe = d(2*mu*B0) * B/2B0
     if (equally_spaced_mu_grid) then
@@ -491,12 +498,12 @@ contains
           mu(imu) = mu(1)+(imu-1)*dmu(1)
        end do
        ! do simplest thing to start
-       wgts_mu = dmu(1)
+       wgts_mu_tmp = dmu(1)
     else
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
-       call get_laguerre_grids (mu, wgts_mu)
-       wgts_mu = wgts_mu*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+       call get_laguerre_grids (mu, wgts_mu_tmp)
+       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
        mu = mu/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
@@ -505,16 +512,17 @@ contains
        ! leave dmu(nmu) uninitialized. should never be used, so want 
        ! valgrind or similar to return error if it is
     end if
+
+    ! this is the mu part of the v-space Maxwellian
+    maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
     ! of velocity space Jacobian
-    ! note that a factor of bmag is missing and will have to be
-    ! applied when doing integrals
-    wgts_mu = wgts_mu*2./sqrt(pi)
+    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
+    if (maxwellian_norm) wgts_mu = wgts_mu*maxwell_mu
 
-    ! this is the mu part of the v-space Maxwellian
-    maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
+    deallocate (wgts_mu_tmp)
 
   end subroutine init_mu_grid
 

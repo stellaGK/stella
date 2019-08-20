@@ -183,7 +183,6 @@ init_g.o: \
 	 ran.o \
 	 run_parameters.o \
 	 species.o \
-	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_save.o \
 	 text_options.o \

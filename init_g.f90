@@ -187,11 +187,11 @@ contains
 
     use species, only: spec
     use zgrid, only: nzgrid, zed
-    use stella_geometry, only: bmag
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0
     use kt_grids, only: reality, zonal_mode
-    use vpamu_grids, only: nvpa, vpa, mu, nmu
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
 
@@ -223,8 +223,9 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(ia,iz)),1,nvpa)*phi(iky,ikx,iz) &
-            *phiinit*spread(exp(-vpa**2),2,nmu)/abs(spec(is)%z)
+       gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z)
+       if (.not.maxwellian_norm) gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+            * spread(maxwell_mu(ia,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
     end do
 
   end subroutine ginit_default
@@ -341,13 +342,12 @@ contains
     use mp, only: proc0, broadcast
     use dist_fn_arrays, only: kperp2
     use species, only: spec
-    use stella_geometry, only: bmag
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: ikxmod, nsegments, neigen
     use extended_zgrid, only: it_right
     use kt_grids, only: naky, nakx, reality, zonal_mode
-    use vpamu_grids, only: nmu, nvpa
-    use vpamu_grids, only: vpa, mu
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -449,8 +449,9 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spread(exp(-2.0*mu*bmag(1,iz)),1,nvpa)*phi(iky,ikx,iz,it) &
-            *spec(is)%z*phiinit*spread(exp(-vpa**2),2,nmu)
+       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi(iky,ikx,iz,it)
+       if (.not.maxwellian_norm) gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
     end do
 
   end subroutine ginit_noise
@@ -461,7 +462,8 @@ contains
     use zgrid, only: nzgrid, zed
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa, vperp2, maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx
     use constants, only: zi
@@ -471,17 +473,17 @@ contains
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi, odd
     real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ikxkyz
-    integer :: ig, iky, ikx, imu, iv
+    integer :: iz, iky, ikx, imu, iv, ia
     
     phi = 0.
     odd = 0.
     if (width0 > 0.) then
-       do ig = -nzgrid, nzgrid
-          phi(:,:,ig) = exp(-((zed(ig)-theta0)/width0)**2)*cmplx(refac, imfac)
+       do iz = -nzgrid, nzgrid
+          phi(:,:,iz) = exp(-((zed(iz)-theta0)/width0)**2)*cmplx(refac, imfac)
        end do
     else
-       do ig = -nzgrid, nzgrid
-          phi(:,:,ig) = cmplx(refac, imfac)
+       do iz = -nzgrid, nzgrid
+          phi(:,:,iz) = cmplx(refac, imfac)
        end do
     end if
     if (chop_side) then
@@ -499,21 +501,43 @@ contains
     tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed) 
     tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed) 
     
-    ! charge dependence keeps initial Phi from being too small
-    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       iky = iky_idx(kxkyz_lo,ikxkyz)
-       ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       ig = iz_idx(kxkyz_lo,ikxkyz)
-       do imu = 1, nmu
-          do iv = 1, nvpa
-             gvmu(iv,imu,ikxkyz) = phiinit*maxwell_vpa(iv)*maxwell_mu(1,ig,imu) &
-                  * ( dfac(ig)*phi(iky,ikx,ig) &
-                  + 2.0*vpa(iv)*ufac(ig)*odd(iky,ikx,ig) &
-                  + (vpa(iv)**2-0.5)*tparfac(ig)*phi(iky,ikx,ig) &
-                  + tperpfac(ig)*(vperp2(1,ig,imu)-1.)*phi(iky,ikx,ig) )
+    ia = 1
+    if (maxwellian_norm) then
+       ! charge dependence keeps initial Phi from being too small
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             do iv = 1, nvpa
+                gvmu(iv,imu,ikxkyz) = phiinit &
+                     * ( dfac(iz)*phi(iky,ikx,iz) &
+                     + 2.0*vpa(iv)*ufac(iz)*odd(iky,ikx,iz) &
+                     + (vpa(iv)**2-0.5)*tparfac(iz)*phi(iky,ikx,iz) &
+                     + tperpfac(iz)*(vperp2(ia,iz,imu)-1.)*phi(iky,ikx,iz) )
+             end do
           end do
        end do
-    end do
+    else
+       ! charge dependence keeps initial Phi from being too small
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          do imu = 1, nmu
+             do iv = 1, nvpa
+                gvmu(iv,imu,ikxkyz) = phiinit &
+                     * ( dfac(iz)*phi(iky,ikx,iz) &
+                     + 2.0*vpa(iv)*ufac(iz)*odd(iky,ikx,iz) &
+                     + (vpa(iv)**2-0.5)*tparfac(iz)*phi(iky,ikx,iz) &
+                     + tperpfac(iz)*(vperp2(ia,iz,imu)-1.)*phi(iky,ikx,iz) )
+             end do
+          end do
+          gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+               * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       end do
+
+    end if
 ! FLAG -- should be uncommented, which means I need to fix flae
 !    if (has_electron_species(spec)) then
 !       call flae (gold, gnew)
@@ -526,11 +550,11 @@ contains
   subroutine ginit_rh
     
     use species, only: spec
-    use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use dist_fn_arrays, only: gvmu, kperp2
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: nvpa, nmu
 
     implicit none
     
@@ -541,15 +565,26 @@ contains
     gvmu = 0.
     
     ia = 1
-    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
-       ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       iz = iz_idx(kxkyz_lo,ikxkyz)
-       is = is_idx(kxkyz_lo,ikxkyz)
-
-       gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
-            *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
-    end do
+    if (maxwellian_norm) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          
+          gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz)
+       end do
+    else
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          
+          gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
+               * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       end do
+    end if
 
   end subroutine ginit_rh
 

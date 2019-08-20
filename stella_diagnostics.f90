@@ -615,7 +615,8 @@ contains
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use vpamu_grids, only: integrate_vmu
-    use vpamu_grids, only: ztmax, maxwell_mu, vpa, vperp2
+    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: maxwellian_norm, maxwell_mu, ztmax
     use kt_grids, only: naky, nakx
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -628,19 +629,26 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp
 
-    integer :: ivmu, iv, imu, is
+    integer :: ivmu, iv, imu, is, ia
 
     ! f = h - Ze*phi/T * F0
     ! g = h - Ze*<phi>/T * F0
     ! f = g + Ze*(<phi>-phi)/T * F0
+    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
        ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-       g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
-            + spread(spread(spread(maxwell_mu(1,:,imu),1,naky),2,nakx)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
+       if (maxwellian_norm) then
+          g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + spec(is)%zt &
+               * spread((aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
+       else
+          g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
+               * spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx) &
+               * (aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
+       end if
     end do
     call integrate_vmu (g2, spec%dens, dens)
 

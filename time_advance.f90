@@ -188,14 +188,15 @@ contains
     use stella_geometry, only: gds23, gds24
     use stella_geometry, only: geo_surf
     use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
-    use vpamu_grids, only: vpa, vperp2, ztmax, maxwell_mu
+    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
     use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
 
     implicit none
 
-    integer :: ivmu, iv, imu, is
+    integer :: ivmu, iv, imu, is, ia
     real :: fac
     real, dimension (:,:), allocatable :: wcvdrifty, wgbdrifty
     real, dimension (:,:), allocatable :: wcvdriftx, wgbdriftx
@@ -217,6 +218,7 @@ contains
     allocate (wcvdriftx(nalpha,-nzgrid:nzgrid))
     allocate (wgbdriftx(nalpha,-nzgrid:nzgrid))
 
+    ia = 1
     ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -238,8 +240,9 @@ contains
                + drhodpsi*dydalpha*dphineo_drho)
        end if
 
-       wdrifty_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
-            * (wgbdrifty + wcvdrifty*vpa(iv))
+       wdrifty_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv))
+       if (.not.maxwellian_norm) wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
+            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
@@ -263,8 +266,9 @@ contains
           wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)+code_dt*0.5*(gds24*dphineo_dzed &
                - dxdpsi*dphineo_dalpha)
        end if
-       wdriftx_phi(:,:,ivmu) = ztmax(iv,is)*maxwell_mu(:,:,imu) &
-            * (wgbdriftx + wcvdriftx*vpa(iv))
+       wdriftx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv))
+       if (.not.maxwellian_norm) wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
+            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
        ! if including neoclassical corrections to equilibrium,
        ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
@@ -289,8 +293,8 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nalpha
     use stella_geometry, only: dydalpha, drhodpsi
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: vperp2, vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use dist_fn_arrays, only: wstar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_drho
@@ -313,15 +317,26 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
        energy = vpa(iv)**2 + vperp2(:,:,imu)
-       if (include_neoclassical_terms) then
-          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-               * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
-               * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-                - dfneo_drho(:,:,ivmu))
+       if (maxwellian_norm) then
+          if (include_neoclassical_terms) then
+             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+                  * ((spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
+                  - dfneo_drho(:,:,ivmu))
+          else
+             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+                  * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
+          end if
        else
-          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-               * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
-               * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
+          if (include_neoclassical_terms) then
+             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+                  * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+                  * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
+                  - dfneo_drho(:,:,ivmu))
+          else
+             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+                  * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+                  * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
+          end if
        end if
     end do
 
@@ -1144,7 +1159,7 @@ contains
   subroutine advance_parallel_nonlinearity (g, gout, restart_time_step)
 
     use constants, only: zi
-    use mp, only: proc0, min_allreduce
+    use mp, only: proc0, min_allreduce, mp_abort
     use stella_layouts, only: vmu_lo, xyz_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
@@ -1165,6 +1180,7 @@ contains
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, vpa, mu
+    use vpamu_grids, only: maxwellian_norm
     use gyro_averages, only: gyro_average
     use parallel_streaming, only: stream_sign
     use dist_redistribute, only: xyz2vmu
@@ -1297,6 +1313,11 @@ contains
     
     allocate (dgdv(nvpa))
 
+    if (maxwellian_norm) then
+       if (proc0) write (*,*) 'maxwellian_norm not yet implemented for parallel nonlinearity. aborting.'
+       call mp_abort ('maxwellian_norm not yet implemented for parallel nonlinearity. aborting.')
+    end if
+
     ! we now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
     do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
        do imu = 1, nmu
@@ -1304,7 +1325,7 @@ contains
           ! advection velocity
           ! NB: advect_sign = -1 corresponds to positive advection velocity
           advect_sign = int(sign(1.0,advect_speed(imu,ixyz)))
-          call third_order_upwind (1,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,dgdv)
+          call third_order_upwind (1,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,.true.,dgdv)
           gxy_vmulocal(:,imu,ixyz) = dgdv*advect_speed(imu,ixyz)
           cfl_dt = min(cfl_dt,dvpa/abs(advect_speed(imu,ixyz)))
        end do

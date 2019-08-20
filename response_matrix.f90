@@ -136,7 +136,8 @@ contains
     use kt_grids, only: zonal_mode
     use species, only: spec
     use stella_geometry, only: gradpar
-    use vpamu_grids, only: ztmax, vpa, maxwell_mu
+    use vpamu_grids, only: vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use fields_arrays, only: response_matrix
     use gyro_averages, only: aj0x
     use run_parameters, only: stream_cell
@@ -151,8 +152,14 @@ contains
     complex, dimension (:), intent (in out) :: phiext
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
-    integer :: ivmu, iv, imu, is
+    integer :: ivmu, iv, imu, is, ia
     real :: fac, fac0, fac1, gyro_fac
+    real, dimension (:), allocatable :: gradpar_fac
+
+    ia = 1
+
+    if (.not.allocated(gradpar_fac)) allocate (gradpar_fac(-nzgrid:nzgrid))
+    gradpar_fac = gradpar
 
     ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -174,8 +181,15 @@ contains
        else
           gyro_fac = aj0x(iky,ikx,iz,ivmu)
        end if
+
        fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-            *gyro_fac*ztmax(iv,is)/delzed(0)
+            *gyro_fac*spec(is)%zt/delzed(0)
+
+       if (.not.maxwellian_norm) then
+          fac = fac*maxwell_vpa(iv)
+          gradpar_fac = gradpar*maxwell_mu(ia,:,imu)
+       end if
+
        if (stream_cell) then
           fac = 0.5*fac
           ! stream_sign < 0 corresponds to positive advection speed
@@ -183,28 +197,28 @@ contains
              if (iz > -nzgrid) then
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(iz-1)*maxwell_mu(1,iz-1,imu))
+                fac0 = fac*((1.+zed_upwind)*gradpar_fac(iz) &
+                     + (1.-zed_upwind)*gradpar_fac(iz-1))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the right of
                 ! this one
                 if (iz < nzgrid) then
-                   fac1 = fac*((1.+zed_upwind)*gradpar(iz+1)*maxwell_mu(1,iz+1,imu) &
-                        + (1.-zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu))
+                   fac1 = fac*((1.+zed_upwind)*gradpar_fac(iz+1) &
+                        + (1.-zed_upwind)*gradpar_fac(iz))
                 else
-                   fac1 = fac*((1.+zed_upwind)*gradpar(-nzgrid+1)*maxwell_mu(1,-nzgrid+1,imu) &
-                        + (1.-zed_upwind)*gradpar(nzgrid)*maxwell_mu(1,nzgrid,imu))
+                   fac1 = fac*((1.+zed_upwind)*gradpar_fac(-nzgrid+1) &
+                        + (1.-zed_upwind)*gradpar_fac(nzgrid))
                 end if
              else
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(nzgrid-1)*maxwell_mu(1,nzgrid-1,imu))
+                fac0 = fac*((1.+zed_upwind)*gradpar_fac(iz) &
+                     + (1.-zed_upwind)*gradpar_fac(nzgrid-1))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the right of
                 ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(iz+1)*maxwell_mu(1,iz+1,imu) &
-                     + (1.-zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu))
+                fac1 = fac*((1.+zed_upwind)*gradpar_fac(iz+1) &
+                     + (1.-zed_upwind)*gradpar_fac(iz))
              end if
              gext(idx,ivmu) = fac0
              if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
@@ -215,37 +229,34 @@ contains
                    gext(nz_ext,ivmu) = fac0
                 else if (idx == nz_ext-1) then
                    gext(1,ivmu) = -fac1
-!                else if (idx == nz_ext) then
-!                   gext(1,ivmu) = fac0
-!                   gext(2,ivmu) = -fac1
                 end if
              end if
           else
              if (iz < nzgrid) then
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(iz+1)*maxwell_mu(1,iz+1,imu))
+                fac0 = fac*((1.+zed_upwind)*gradpar_fac(iz) &
+                     + (1.-zed_upwind)*gradpar_fac(iz+1))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the left of
                 ! this one
                 if (iz > -nzgrid) then
-                   fac1 = fac*((1.+zed_upwind)*gradpar(iz-1)*maxwell_mu(1,iz-1,imu) &
-                        + (1.-zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu))
+                   fac1 = fac*((1.+zed_upwind)*gradpar_fac(iz-1) &
+                        + (1.-zed_upwind)*gradpar_fac(iz))
                 else
-                   fac1 = fac*((1.+zed_upwind)*gradpar(nzgrid-1)*maxwell_mu(1,nzgrid-1,imu) &
-                        + (1.-zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu))
+                   fac1 = fac*((1.+zed_upwind)*gradpar_fac(nzgrid-1) &
+                        + (1.-zed_upwind)*gradpar_fac(iz))
                 end if
              else
                 ! fac0 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu) &
-                     + (1.-zed_upwind)*gradpar(-nzgrid+1)*maxwell_mu(1,-nzgrid+1,imu))
+                fac0 = fac*((1.+zed_upwind)*gradpar_fac(iz) &
+                     + (1.-zed_upwind)*gradpar_fac(-nzgrid+1))
                 ! fac1 is the factor multiplying delphi on the RHS
                 ! of the homogeneous GKE at the zed index to the left of
                 ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(iz-1)*maxwell_mu(1,iz-1,imu) &
-                     + (1.-zed_upwind)*gradpar(iz)*maxwell_mu(1,iz,imu))
+                fac1 = fac*((1.+zed_upwind)*gradpar_fac(iz-1) &
+                     + (1.-zed_upwind)*gradpar_fac(iz))
              end if
              gext(idx,ivmu) = -fac0
              if (idx > 1) gext(idx-1,ivmu) = fac1
@@ -257,13 +268,11 @@ contains
                    gext(nz_ext-1,ivmu) = fac1
                 else if (idx == 2) then
                    gext(nz_ext,ivmu) = fac1
-!                else if (idx == nz_ext) then
-!                   gext(1,ivmu) = -fac0
                 end if
              end if
           end if
        else
-          fac = fac*gradpar(iz)*maxwell_mu(1,iz,imu)
+          fac = fac*gradpar_fac(iz)
           ! e.g., if centered differences, get RHS(i) = fac*(phi(i+1)-phi(i-1))*0.5
           ! so RHS(i-1) = fac*(phi(i)-phi(i-2))*0.5
           ! since only gave phi(i)=1 and all other phi=0,
@@ -287,10 +296,6 @@ contains
                    gext(1,ivmu) = 0.5*(1.+zed_upwind)*fac
                    gext(nz_ext,ivmu) = gext(1,ivmu)
                    gext(3,ivmu) = -0.5*(1.-zed_upwind)*fac
-!                else if (idx==nz_ext) then
-!                   gext(1,ivmu) = gext(idx,ivmu)
-!                   gext(nz_ext-1,ivmu) = 0.5*(1.+zed_upwind)*fac
-!                   gext(2,ivmu) = -0.5*(1.-zed_upwind)*fac
                 else if (idx==nz_ext-1) then
                    gext(nz_ext-2,ivmu) = 0.5*(1.+zed_upwind)*fac
                    gext(nz_ext,ivmu) = -0.5*(1.-zed_upwind)*fac
@@ -324,10 +329,6 @@ contains
                    gext(1,ivmu) = 0.5*(1.-zed_upwind)*fac
                    gext(nz_ext,ivmu) = gext(1,ivmu)
                    gext(3,ivmu) = -0.5*(1.+zed_upwind)*fac
-!                else if (idx==nz_ext) then
-!                   gext(1,ivmu) = gext(idx,ivmu)
-!                   gext(nz_ext-1,ivmu) = 0.5*(1.-zed_upwind)*fac
-!                   gext(2,ivmu) = -0.5*(1.+zed_upwind)*fac
                 else if (idx==nz_ext-1) then
                    gext(nz_ext-2,ivmu) = 0.5*(1.-zed_upwind)*fac
                    gext(nz_ext,ivmu) = -0.5*(1.+zed_upwind)*fac
@@ -359,6 +360,8 @@ contains
           ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
           call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
        end if
+
+
     end do
 
     ! we now have g on the extended zed domain at this ky and set of connected kx values
@@ -371,6 +374,8 @@ contains
     ! add in contribution from identity matrix
     phiext(idx) = phiext(idx)-1.0
     response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext(:nresponse)
+
+    if (allocated(gradpar_fac)) deallocate (gradpar_fac)
 
   end subroutine get_response_matrix_column
 
