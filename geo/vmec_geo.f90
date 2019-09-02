@@ -105,12 +105,13 @@ contains
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
 
-    integer :: i, j, ia
+    integer :: i, j, ia, iz
     integer :: nzgrid_vmec
     integer :: zetamax_idx
     real :: nfp
 
     real, dimension (:), allocatable :: zeta_vmec
+    real, dimension (:,:), allocatable :: thetamod_vmec
     real, dimension (:,:), allocatable :: bmag_vmec, gradpar_vmec, gradpar_zeta
     real, dimension (:,:), allocatable :: gds2_vmec, gds21_vmec, gds22_vmec
     real, dimension (:,:), allocatable :: gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec
@@ -146,6 +147,7 @@ contains
 
     ! allocate arrays of size 2*nzgrid_vmec+1
     allocate (zeta_vmec(-nzgrid_vmec:nzgrid_vmec))
+    allocate (thetamod_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (bmag_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gradpar_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds2_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
@@ -169,8 +171,8 @@ contains
          bmag_vmec, gradpar_vmec, gds2_vmec, gds21_vmec, &
          gds22_vmec, gds23_vmec, gds24_vmec, &
          gds25_vmec, gds26_vmec, gbdrift_vmec, gbdrift0_vmec, cvdrift_vmec, &
-         cvdrift0_vmec, theta_vmec)
-
+         cvdrift0_vmec, thetamod_vmec)
+    
     allocate (zed_domain_size(nalpha))
 
     if (nzgrid_vmec /= nzgrid) then
@@ -186,7 +188,7 @@ contains
           ! this is z(zeta_max) - z(zeta_min) for nominal zeta domain
           call get_total_arc_length (zetamax_idx, gradpar_vmec(ia,-zetamax_idx:zetamax_idx), &
                dzeta_vmec, zed_domain_size(ia))
-          ! now get z(zeta) = 
+          ! now get z(zeta) =
           zmin = -zed_domain_size(ia)*0.5
           call get_arc_length_grid (zetamax_idx, nzgrid_vmec, zmin, &
                gradpar_vmec(ia,:), dzeta_vmec, arc_length(ia,:))
@@ -220,6 +222,7 @@ contains
           call geo_spline (arc_length(ia,:), gbdrift0_vmec(ia,:), zed, gbdrift0(ia,:))
           call geo_spline (arc_length(ia,:), cvdrift_vmec(ia,:), zed, cvdrift(ia,:))
           call geo_spline (arc_length(ia,:), cvdrift0_vmec(ia,:), zed, cvdrift0(ia,:))
+          call geo_spline (arc_length(ia,:), thetamod_vmec(ia,:), zed, theta_vmec(ia,:))
 
           ! gradpar at this point is b . grad zeta
           ! but want it to be b . grad z = b . grad zeta * dz/dzeta
@@ -232,6 +235,43 @@ contains
           gds24(ia,:) = gds24(ia,:)/gradpar_zeta(ia,:)
        end do
        gradpar = 1.0
+
+!        do iz = -nzgrid, nzgrid
+!           do ia = 1, nalpha
+!              write (*,*) 'pre-filter', alpha(ia), zed(iz), bmag(ia,iz), gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gbdrift(ia,iz)
+!           end do
+!           write (*,*)
+!        end do
+!        write (*,*)
+!        write (*,*)
+
+       ! we now have geometric coefficients on alpha-grid
+       ! as we will be multiplying this with functions of g and phi
+       ! we must take care to avoid aliasing
+       ! this is accomplished by filtering out the highest third of 
+       ! the wavenumber spectra
+       do iz = -nzgrid, nzgrid
+          call filter_geo_coef (bmag(:,iz))
+          call filter_geo_coef (gds2(:,iz))
+          call filter_geo_coef (gds21(:,iz))
+          call filter_geo_coef (gds22(:,iz))
+          call filter_geo_coef (gds23(:,iz))
+          call filter_geo_coef (gds24(:,iz))
+          call filter_geo_coef (gds25(:,iz))
+          call filter_geo_coef (gds26(:,iz))
+          call filter_geo_coef (gbdrift(:,iz))
+          call filter_geo_coef (gbdrift0(:,iz))
+          call filter_geo_coef (cvdrift(:,iz))
+          call filter_geo_coef (cvdrift0(:,iz))
+       end do
+!        do iz = -nzgrid, nzgrid
+!           do ia = 1, nalpha
+!              write (*,*) 'post-filter', alpha(ia), zed(iz), bmag(ia,iz), gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gbdrift(ia,iz)
+!           end do
+!           write (*,*)
+!        end do
+!        stop
+       
     else
        zeta = spread(zeta_vmec,1,nalpha)
        bmag = bmag_vmec
@@ -247,6 +287,7 @@ contains
        gbdrift0 = gbdrift0_vmec
        cvdrift = cvdrift_vmec
        cvdrift0 = cvdrift0_vmec
+       theta_vmec = thetamod_vmec
 
        ! scale zed so that it is zeta compressed (or expanded)
        ! to the range [-pi,pi]
@@ -263,6 +304,7 @@ contains
     ! arrays over extended zeta-grid no longer needed, so deallocate
     deallocate (zed_domain_size)
     deallocate (zeta_vmec)
+    deallocate (thetamod_vmec)
     deallocate (bmag_vmec, gradpar_vmec)
     deallocate (gradpar_zeta)
     deallocate (gds2_vmec, gds21_vmec, gds22_vmec)
@@ -312,6 +354,28 @@ contains
     close (2001)
 
   end subroutine get_vmec_geo
+
+  subroutine filter_geo_coef (geocoef)
+
+    use kt_grids, only: naky
+    use stella_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
+
+    implicit none
+    
+    real, dimension (:), intent (in out) :: geocoef
+
+    complex, dimension (:), allocatable :: fourier
+
+    allocate (fourier(naky))
+
+    ! filtering and padding are built-in to the 
+    ! Fourier transform routines below
+    call transform_alpha2kalpha (geocoef, fourier)
+    call transform_kalpha2alpha (fourier, geocoef)
+
+    deallocate (fourier)
+    
+  end subroutine filter_geo_coef
 
   subroutine get_modified_vmec_zeta_grid (nzgrid_modified, dzeta_modified)
 

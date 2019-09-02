@@ -48,14 +48,11 @@ contains
     use mp, only: proc0
     use stella_layouts, only: init_dist_fn_layouts
     use species, only: nspec
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx, ny, nx, nalpha
-    use vpamu_grids, only: nvgrid, nmu
+    use zgrid, only: ntubes
     use gyro_averages, only: init_bessel
     use physics_flags, only: full_flux_surface
     use physics_flags, only: nonlinear
     use physics_flags, only: include_parallel_nonlinearity
-    use stella_transforms, only: init_transforms
 
     implicit none
 
@@ -66,18 +63,12 @@ contains
     
     if (debug) write (*,*) 'dist_fn::init_dist_fn::read_parameters'
     call read_parameters
-    if (debug) write (*,*) 'dist_fn::init_dist_fn::init_dist_fn_layouts'
-    call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
     if (debug) write (*,*) 'dist_fn::init_dist_fn::allocate_arrays'
     call allocate_arrays
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kperp2'
     call init_kperp2
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_vperp2'
     call init_vperp2
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
-       if (debug) write (*,*) 'dist_fn::init_dist_fn::init_transforms'
-       call init_transforms
-    end if
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_bessel'
     call init_bessel
 

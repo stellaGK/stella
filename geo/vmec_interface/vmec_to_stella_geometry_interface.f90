@@ -17,12 +17,68 @@ module vmec_to_stella_geometry_interface_mod
   real, dimension(2) :: vmec_radial_weight_full, vmec_radial_weight_half
   integer, dimension(2) :: vmec_radial_index_full, vmec_radial_index_half
 
+  logical :: lasym
+  integer :: nfp, isigng
+  integer :: ns, mnmax, mnmax_nyq
+  integer :: mpol, ntor
+  real :: Aminor
+  real, dimension (:), allocatable :: xm, xn
+  real, dimension (:), allocatable :: xm_nyq, xn_nyq
+  real, dimension (:,:), allocatable :: rmnc, rmns
+  real, dimension (:,:), allocatable :: lmnc, lmns
+  real, dimension (:,:), allocatable :: zmnc, zmns
+  real, dimension (:,:), allocatable :: bmnc, bmns
+  real, dimension (:,:), allocatable :: gmnc, gmns
+  real, dimension (:,:), allocatable :: bsupumnc, bsupumns
+  real, dimension (:,:), allocatable :: bsupvmnc, bsupvmns
+  real, dimension (:,:), allocatable :: bsubumnc, bsubumns
+  real, dimension (:,:), allocatable :: bsubvmnc, bsubvmns
+  real, dimension (:,:), allocatable :: bsubsmnc, bsubsmns
+  real, dimension (:), allocatable :: phi, phip, iotas, iotaf, presf
+
 contains
 
   subroutine read_vmec_equilibrium (vmec_filename)
 
-    use read_wout_mod, only: read_wout_file
-    use read_wout_mod, only: nfp, lasym
+    use read_wout_mod, only: read_wout_file, read_wout_deallocate
+    use read_wout_mod, only: nfp_vmec => nfp
+    use read_wout_mod, only: lasym_vmec => lasym
+    use read_wout_mod, only: isigng_vmec => isigng
+    use read_wout_mod, only: Aminor_vmec => Aminor
+    use read_wout_mod, only: ns_vmec => ns
+    use read_wout_mod, only: mnmax_nyq_vmec => mnmax_nyq
+    use read_wout_mod, only: mnmax_vmec => mnmax
+    use read_wout_mod, only: mpol_vmec => mpol
+    use read_wout_mod, only: ntor_vmec => ntor
+    use read_wout_mod, only: xm_vmec => xm
+    use read_wout_mod, only: xn_vmec => xn
+    use read_wout_mod, only: xm_nyq_vmec => xm_nyq
+    use read_wout_mod, only: xn_nyq_vmec => xn_nyq
+    use read_wout_mod, only: phi_vmec => phi
+    use read_wout_mod, only: phip_vmec => phip
+    use read_wout_mod, only: lmnc_vmec => lmnc
+    use read_wout_mod, only: lmns_vmec => lmns
+    use read_wout_mod, only: rmnc_vmec => rmnc
+    use read_wout_mod, only: rmns_vmec => rmns
+    use read_wout_mod, only: zmnc_vmec => zmnc
+    use read_wout_mod, only: zmns_vmec => zmns
+    use read_wout_mod, only: bmnc_vmec => bmnc
+    use read_wout_mod, only: bmns_vmec => bmns
+    use read_wout_mod, only: gmnc_vmec => gmnc
+    use read_wout_mod, only: gmns_vmec => gmns
+    use read_wout_mod, only: bsupumnc_vmec => bsupumnc
+    use read_wout_mod, only: bsupvmnc_vmec => bsupvmnc
+    use read_wout_mod, only: bsupumns_vmec => bsupumns
+    use read_wout_mod, only: bsupvmns_vmec => bsupvmns
+    use read_wout_mod, only: bsubumnc_vmec => bsubumnc
+    use read_wout_mod, only: bsubvmnc_vmec => bsubvmnc
+    use read_wout_mod, only: bsubumns_vmec => bsubumns
+    use read_wout_mod, only: bsubvmns_vmec => bsubvmns
+    use read_wout_mod, only: bsubsmnc_vmec => bsubsmnc
+    use read_wout_mod, only: bsubsmns_vmec => bsubsmns
+    use read_wout_mod, only: iotas_vmec => iotas
+    use read_wout_mod, only: iotaf_vmec => iotaf
+    use read_wout_mod, only: presf_vmec => presf
 
     implicit none
 
@@ -41,15 +97,60 @@ contains
     if (ierr .ne. 0) stop 'error reading wout file'
     write (*,*) "  Successfully read VMEC data from ",trim(vmec_filename)
 
+    nfp = nfp_vmec
+    lasym = lasym_vmec
+    isigng = isigng_vmec
+    aminor = aminor_vmec
+    ns = ns_vmec
+    mnmax = mnmax_vmec
+    mnmax_nyq = mnmax_nyq_vmec
+    mpol = mpol_vmec
+    ntor = ntor_vmec
+
     write (*,*) "  Number of field periods (nfp):",nfp
     write (*,*) "  Stellarator-asymmetric? (lasym):",lasym
 
+    if (.not.allocated(rmnc)) then
+       allocate (xm(mnmax)) ; xm = xm_vmec
+       allocate (xn(mnmax)) ; xn = xn_vmec
+       allocate (xm_nyq(mnmax_nyq)) ; xm_nyq = xm_nyq_vmec
+       allocate (xn_nyq(mnmax_nyq)) ; xn_nyq = xn_nyq_vmec
+       allocate (rmnc(mnmax,ns)) ; rmnc = rmnc_vmec
+       allocate (lmns(mnmax,ns)) ; lmns = lmns_vmec
+       allocate (zmns(mnmax,ns)) ; zmns = zmns_vmec
+       allocate (bmnc(mnmax_nyq,ns)) ; bmnc = bmnc_vmec
+       allocate (gmnc(mnmax_nyq,ns)) ; gmnc = gmnc_vmec
+       allocate (bsupumnc(mnmax_nyq,ns)) ; bsupumnc = bsupumnc_vmec
+       allocate (bsupvmnc(mnmax_nyq,ns)) ; bsupvmnc = bsupvmnc_vmec
+       allocate (bsubumnc(mnmax_nyq,ns)) ; bsubumnc = bsubumnc_vmec
+       allocate (bsubvmnc(mnmax_nyq,ns)) ; bsubvmnc = bsubvmnc_vmec
+       allocate (bsubsmns(mnmax_nyq,ns)) ; bsubsmns = bsubsmns_vmec
+       allocate (phi(ns)) ; phi = phi_vmec
+       allocate (phip(ns)) ; phip = phip_vmec
+       allocate (iotas(ns)) ; iotas = iotas_vmec
+       allocate (iotaf(ns)) ; iotaf = iotaf_vmec
+       allocate (presf(ns)) ; presf = presf_vmec
+       if (lasym) then
+          allocate (rmns(mnmax,ns)) ; rmns = rmns_vmec
+          allocate (lmnc(mnmax,ns)) ; lmnc = lmnc_vmec
+          allocate (zmnc(mnmax,ns)) ; zmnc = zmnc_vmec
+          allocate (bmns(mnmax_nyq,ns)) ; bmns = bmns_vmec
+          allocate (gmns(mnmax_nyq,ns)) ; gmns = gmns_vmec
+          allocate (bsupumns(mnmax_nyq,ns)) ; bsupumns = bsupumns_vmec
+          allocate (bsupvmns(mnmax_nyq,ns)) ; bsupvmns = bsupvmns_vmec
+          allocate (bsubumns(mnmax_nyq,ns)) ; bsubumns = bsubumns_vmec
+          allocate (bsubvmns(mnmax_nyq,ns)) ; bsubvmns = bsubvmns_vmec
+          allocate (bsubsmnc(mnmax_nyq,ns)) ; bsubsmnc = bsubsmnc_vmec
+       end if
+    end if
+
+    ! deallocate all arrays opened externally in read_wout_mod
+    call read_wout_deallocate
+    
   end subroutine read_vmec_equilibrium
 
   subroutine get_nominal_vmec_zeta_grid (nzgrid, zeta_center, number_of_field_periods_stella, &
        number_of_field_periods_device, zeta)
-
-    use read_wout_mod, only: nfp
 
     implicit none
 
@@ -87,7 +188,6 @@ contains
        theta_vmec)
 
     use fzero_mod, only: fzero
-    use read_wout_mod, nzgrid_vmec => nzgrid  ! VMEC has a variable nzgrid which conflicts with our nzgrid, so rename vmec's version.
 
     implicit none
 
@@ -154,18 +254,16 @@ contains
     integer, intent (out) :: sign_toroidal_flux
 
     ! On exit, alpha holds the grid points in alpha = theta_p - iota * zeta, where theta_p is the PEST toroidal angle
-    real, dimension(nalpha), intent(out) :: alpha
+    real, dimension (:), intent(out) :: alpha
 
     ! On exit, zeta holds the grid points in the toroidal angle zeta
-    real, dimension(-nzgrid:nzgrid), intent(out) :: zeta
+    real, dimension (-nzgrid:), intent(out) :: zeta
 
+    real, dimension (:,-nzgrid:), intent(out) :: theta_vmec
 
-
-    real, dimension(nalpha, -nzgrid:nzgrid), intent(out) :: theta_vmec
-
-    real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: bmag, gradpar, gds2, gds21, gds22
-    real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: gds23, gds24, gds25, gds26
-    real, dimension (nalpha, -nzgrid:nzgrid), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
+    real, dimension (:,-nzgrid:), intent (out) :: bmag, gradpar, gds2, gds21, gds22
+    real, dimension (:,-nzgrid:), intent (out) :: gds23, gds24, gds25, gds26
+    real, dimension (:,-nzgrid:), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
 
     !*********************************************************************
     ! Variables used internally by this subroutine
@@ -178,14 +276,13 @@ contains
 
     integer :: j, index, izeta, ialpha, isurf, m, n, imn, imn_nyq
     real :: angle, sin_angle, cos_angle, temp, edge_toroidal_flux_over_2pi
-!    real, dimension(:,:), allocatable :: theta_vmec
-    integer :: fzero_flag
+!    integer :: fzero_flag
     real :: number_of_field_periods_to_include_final
     real :: dphi, iota, min_dr2, ds, d_pressure_d_s, d_iota_d_s, scale_factor
     real :: theta_vmec_min, theta_vmec_max, sqrt_s
     real, dimension(:), allocatable :: dr2, normalized_toroidal_flux_full_grid, normalized_toroidal_flux_half_grid
     real, dimension(:), allocatable :: d_pressure_d_s_on_half_grid, d_iota_d_s_on_half_grid
-    real :: root_solve_absolute_tolerance, root_solve_relative_tolerance
+!    real :: root_solve_absolute_tolerance, root_solve_relative_tolerance
     logical :: non_Nyquist_mode_available, found_imn
     real, dimension(:,:), allocatable :: B, sqrt_g, R, B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D
     real, dimension(:,:), allocatable :: d_B_d_theta_vmec, d_B_d_zeta, d_B_d_s
@@ -213,6 +310,8 @@ contains
     real, dimension (:,:), allocatable :: gradzeta_grady, gradzeta_gradx
     real, dimension (:,:), allocatable :: gradtheta_grady, gradtheta_gradx
 
+    logical :: theta_converged
+
     !*********************************************************************
     ! VMEC variables of interest:
     ! ns = number of flux surfaces used by VMEC
@@ -232,7 +331,7 @@ contains
     ! Beginning of executable statements.
     !*********************************************************************
 
-    if (verbose) print *,"Entering subroutine vmec_to_stella_geometry_interface."
+!    if (verbose) print *,"Entering subroutine vmec_to_stella_geometry_interface."
 
     !*********************************************************************
     ! Do some validation.
@@ -278,7 +377,7 @@ contains
     ! this gives the sign of the edge toroidal flux
     sign_toroidal_flux = int(sign(1.1,edge_toroidal_flux_over_2pi))
 
-    write (*,*) 'sign_toroidal_flux', sign_toroidal_flux
+    if (verbose) print *, "  Sign of the toroidal flux from VMEC:", sign_toroidal_flux
 
     ! Set reference length and magnetic field for stella's normalization, 
     ! using the choices made by Pavlos Xanthopoulos in GIST:
@@ -482,20 +581,22 @@ contains
     end if
     vmec_radial_weight_half(2) = one-vmec_radial_weight_half(1)
 
-    if (verbose) then
-       if (abs(vmec_radial_weight_half(1)) < 1e-14) then
-          print "(a,i4,a,i4,a)","   Using radial index ",vmec_radial_index_half(2)," of ",ns," from vmec's half mesh."
-       elseif (abs(vmec_radial_weight_half(2)) < 1e-14) then
-          print "(a,i4,a,i4,a)","   Using radial index ",vmec_radial_index_half(1)," of ",ns," from vmec's half mesh."
-       else
-          print "(a,i4,a,i4,a,i4,a)", "   Interpolating using radial indices ",vmec_radial_index_half(1)," and ",vmec_radial_index_half(2),&
-               " of ",ns," from vmec's half mesh."
-          print "(a,f17.14,a,f17.14)", "   Weights for half mesh = ",vmec_radial_weight_half(1)," and ",vmec_radial_weight_half(2)
-          print "(a,i4,a,i4,a,i4,a)", "   Interpolating using radial indices ",vmec_radial_index_full(1)," and ",vmec_radial_index_full(2),&
-               " of ",ns," from vmec's full mesh."
-          print "(a,f17.14,a,f17.14)", "   Weights for full mesh = ",vmec_radial_weight_full(1)," and ",vmec_radial_weight_full(2)
-       end if
-    end if
+!     if (verbose) then
+!        if (abs(vmec_radial_weight_half(1)) < 1e-14) then
+!           print "(a,i4,a,i4,a)","   Using radial index ",vmec_radial_index_half(2)," of ",ns," from vmec's half mesh."
+!        elseif (abs(vmec_radial_weight_half(2)) < 1e-14) then
+!           print "(a,i4,a,i4,a)","   Using radial index ",vmec_radial_index_half(1)," of ",ns," from vmec's half mesh."
+!        else
+!           print "(a,i4,a,i4,a,i4,a)", "   Interpolating using radial indices ",vmec_radial_index_half(1)," and ",vmec_radial_index_half(2),&
+!                " of ",ns," from vmec's half mesh."
+!           print "(a,f17.14,a,f17.14)", "   Weights for half mesh = ",vmec_radial_weight_half(1)," and ",vmec_radial_weight_half(2)
+!           print "(a,i4,a,i4,a,i4,a)", "   Interpolating using radial indices ",vmec_radial_index_full(1)," and ",vmec_radial_index_full(2),&
+!                " of ",ns," from vmec's full mesh."
+!           print "(a,f17.14,a,f17.14)", "   Weights for full mesh = ",vmec_radial_weight_full(1)," and ",vmec_radial_weight_full(2)
+!        end if
+!     end if
+
+
 
     !*********************************************************************
     ! Evaluate several radial-profile functions at the flux surface
@@ -549,8 +650,6 @@ contains
        if (verbose) print *,"  Since number_of_field_periods_to_include was <= 0, it is being reset to nfp =",nfp
     end if
 
-    write (*,*) 'zeta_center', zeta_center, 'nfp', nfp, 'nzgrid', nzgrid, 'size(zeta)', size(zeta)
-
     zeta = [( zeta_center + (pi*j*number_of_field_periods_to_include_final)/(nfp*nzgrid), j=-nzgrid, nzgrid )]
 
     !*********************************************************************
@@ -558,11 +657,7 @@ contains
     ! theta_vmec = theta_pest - Lambda.
     !*********************************************************************
 
-!    allocate(theta_vmec(nalpha, -nzgrid:nzgrid))
-
     if (verbose) print *,"  Beginning root solves to determine theta_vmec."
-    root_solve_absolute_tolerance = 1.0d-10
-    root_solve_relative_tolerance = 1.0d-10
     do izeta = -nzgrid, nzgrid
        zeta0 = zeta(izeta)
        do ialpha = 1,nalpha
@@ -570,23 +665,31 @@ contains
           ! Guess that theta_vmec will be within 0.3 radians of theta_pest:
           theta_vmec_min = theta_pest_target - 0.3
           theta_vmec_max = theta_pest_target + 0.3
-
+          
+          call get_root (theta_vmec_min, theta_vmec_max, theta_vmec(ialpha,izeta), theta_converged, zeta(-nzgrid))
           ! In the 4th argument, we are telling the root-finder (fzero) to use theta_pest as the initial guess for theta_vmec.
-          call fzero(fzero_residual, theta_vmec_min, theta_vmec_max, theta_pest_target, &
-               root_solve_relative_tolerance, root_solve_absolute_tolerance, fzero_flag)
+!          call fzero(fzero_residual, theta_vmec_min, theta_vmec_max, theta_pest_target, &
+!               root_solve_relative_tolerance, root_solve_absolute_tolerance, fzero_flag)
           ! Note: fzero returns its answer in theta_vmec_min.
-          theta_vmec(ialpha,izeta) = theta_vmec_min
-          if (fzero_flag == 4) then
-             stop "ERROR: fzero returned error 4: no sign change in residual"
-          else if (fzero_flag > 2) then
-             print *,"WARNING: fzero returned an error code:",fzero_flag
+!          theta_vmec(ialpha,izeta) = theta_vmec_min
+!          if (fzero_flag == 4) then
+!             stop "ERROR: fzero returned error 4: no sign change in residual"
+!          else if (fzero_flag > 2) then
+!             print *,"WARNING: fzero returned an error code:",fzero_flag
+!          end if
+          if (.not.theta_converged) then
+             write (*,*) "ERROR: could not find root needed to compute theta_vmec. aborting"
+             stop
           end if
        end do
     end do
+
 !    if (verbose) then
-!       print *,"  Done with root solves. Here comes theta_vmec:"
-!       do j = 1, nalpha
-!          print *,theta_vmec(j,:)
+!       do izeta = -nzgrid, nzgrid
+!          do ialpha = 1, nalpha
+!             write (*,*) 'theta_vmec', alpha(ialpha), zeta(izeta), theta_vmec(ialpha,izeta)
+!          end do
+!          write (*,*) 
 !       end do
 !    end if
 
@@ -708,6 +811,7 @@ contains
     !*********************************************************************
 
     do imn_nyq = 1, mnmax_nyq ! All the quantities we need except R, Z, and Lambda use the _nyq mode numbers.
+
        m = int(xm_nyq(imn_nyq))
        n = int(xn_nyq(imn_nyq)/nfp)
 
@@ -1071,6 +1175,7 @@ contains
     do izeta = -nzgrid,nzgrid
        temp2D(:,izeta) = -sin(zeta(izeta)) / R(:,izeta)
     end do
+    
     call test_arrays(grad_zeta_X, temp2D, .false., 1.0e-2, 'grad_zeta_X')
     grad_zeta_X = temp2D ! We might as well use the exact value, which is in temp2D.
 
@@ -1362,10 +1467,23 @@ contains
 
     deallocate(normalized_toroidal_flux_full_grid)
     deallocate(normalized_toroidal_flux_half_grid)
-!    deallocate(theta_vmec)
 
-    if (verbose) print *,"Leaving vmec_to_stella_geometry_interface."
+    if (verbose) then
+       write (*,*) "Leaving vmec_to_stella_geometry_interface."
+       write (*,*)
+    end if
 
+    if (allocated(rmnc)) then
+       deallocate (xm, xn)
+       deallocate (xm_nyq, xn_nyq)
+       deallocate (rmnc, lmns, zmns, bmnc, gmnc)
+       deallocate (bsupumnc, bsupvmnc, bsubumnc, bsubvmnc, bsubsmns)
+       deallocate (phi, phip, iotas, iotaf, presf)
+    end if
+    if (allocated(rmns)) then
+       deallocate (rmns, lmnc, zmnc, bmns, gmns)
+       deallocate (bsupumns, bsupvmns, bsubumns, bsubvmns, bsubsmnc)
+    end if
 
   contains
 
@@ -1386,7 +1504,7 @@ contains
 
       if (should_be_0) then
          max_value = maxval(abs(array1))
-         if (verbose) print *,"  maxval(abs(",trim(name),")):",max_value,"(should be << 1.)"
+!         if (verbose) print *,"  maxval(abs(",trim(name),")):",max_value,"(should be << 1.)"
          if (max_value > tolerance) then
             print *,"Error! ",trim(name)," should be 0, but instead it is:"
             do ialpha = 1,nalpha
@@ -1396,7 +1514,7 @@ contains
          end if
       else
          max_difference = maxval(abs(array1 - array2)) / maxval(abs(array1) + abs(array2))
-         if (verbose) print *,"  Relative difference between two methods for computing ",trim(name),":",max_difference,"(should be << 1.)"
+!         if (verbose) print *,"  Relative difference between two methods for computing ",trim(name),":",max_difference,"(should be << 1.)"
          if (max_difference > tolerance) then
             print *,"Error! Two methods for computing ",trim(name)," disagree. Here comes method 1:"
             do ialpha = 1,nalpha
@@ -1418,15 +1536,99 @@ contains
 
   end subroutine vmec_to_stella_geometry_interface
 
+  subroutine get_root (a0, b0, root, converged, zet)
 
+    implicit none
+    
+    real, intent (in) :: a0, b0
+    real, intent (out) :: root
+    logical, intent (out) :: converged
+    real, intent (in) :: zet
 
-  ! --------------------------------------------------------------------------
+    integer, parameter :: itmax_bracket = 10
+    integer, parameter :: itmax_root = 10
+    real, parameter :: tol = 1.0e-10
+    integer :: it
+    real :: a,b,c,d,e,fa,fb,fc,p,q,r,s,tol1,xm,eps
+    
+    a = a0
+    b = b0
+    fa = fzero_residual(a)
+    fb = fzero_residual(b)
+    do it = 1, itmax_bracket
+       eps = epsilon(a)
+       if ((fa > 0.0 .and. fb > 0.0) .or. (fa < 0.0 .and. fb < 0.0)) then
+          write (*,*)
+          write (*,*) 'in vmec_to_stella_geometry_interface, theta_min=', a, ' and theta_max=', b, ' do not bracket root.'
+          write (*,*) 'f(theta_min)=', fa, 'and f(theta_max)=', fb, '.'
+          a = a-0.3
+          b = b+0.3
+          write (*,*) 'Trying again with values ', a, ' and ', b, ' .'
+          fa = fzero_residual(a)
+          fb = fzero_residual(b)
+       else
+          exit
+       end if
+    end do
 
+    c=b
+    fc=fb
+    do it = 1, itmax_root
+       if ((fb > 0.0 .and. fc > 0.0) .or. (fb < 0.0 .and. fc < 0.0)) then
+          c=a
+          fc=fa
+          d=b-a
+          e=d
+       end if
+       if (abs(fc) < abs(fb)) then
+          a=b
+          b=c
+          c=a
+          fa=fb
+          fb=fc
+          fc=fa
+       end if
+       tol1=2.0*eps*abs(b)+0.5*tol
+       xm=0.5*(c-b)
+       if (abs(xm) <= tol1 .or. fb == 0.0) then
+          root = b
+          converged = .true.
+          exit
+       end if
+       if (abs(e) >= tol1 .and. abs(fa) > abs(fb)) then
+          s=fb/fa
+          if (a==c) then
+             p=2.0*xm*s
+             q=1.0-s
+          else
+             q=fa/fc
+             r=fb/fc
+             p=s*(2.0*xm*q*(q-r)-(b-a)*(r-1.0))
+             q=(q-1.0)*(r-1.0)*(s-1.0)
+          end if
+          if (p > 0.0) q=-q
+          p=abs(p)
+          if (2.0*p < min(3.0*xm*q-abs(tol1*q),abs(e*q))) then
+             e=d
+             d=p/q
+          else
+             d=xm
+             e=d
+          end if
+       else
+          d=xm
+          e=d
+       end if
+       a=b
+       fa=fb
+       b=b+merge(d,sign(tol1,xm), abs(d) > tol1)
+       fb = fzero_residual(b)
+    end do
 
+  end subroutine get_root
 
   function fzero_residual(theta_vmec_try)
 
-    use read_wout_mod, only: xm, xn, mnmax, lmns, lmnc, lasym
     ! Note that lmns and lmnc use the non-Nyquist xm, xn, and mnmax.
     ! Also note that lmns and lmnc are on the HALF grid.
 

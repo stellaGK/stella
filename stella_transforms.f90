@@ -245,7 +245,7 @@ contains
 
     ! now fill in non-zero elements of array
     do iy = 1, vmu_lo%ny
-    ! first need to pad input array with zeros
+       ! first need to pad input array with zeros
        fft_x_k(vmu_lo%nakx/2+2:) = 0.
        fft_x_k(:vmu_lo%nakx/2+1) = gkx(iy,:)
        call dfftw_execute_dft_c2r(xf_fft%plan, fft_x_k, fft_x_x)
@@ -284,15 +284,13 @@ contains
     complex, dimension (:), intent (in) :: gkalph
     real, dimension (:), intent (out) :: galph
 
-    integer :: ia
-
-    ! no padding done here
-    do ia = 1, vmu_lo%nalpha
-       fft_alpha_kalpha = gkalph
-       call dfftw_execute_dft_c2r(alpha_f_fft%plan, fft_alpha_kalpha, fft_alpha_alpha)
-       fft_alpha_alpha = fft_alpha_alpha*alpha_f_fft%scale
-       galph = fft_alpha_alpha
-    end do
+    ! first need to pad input array with zeros
+    fft_alpha_kalpha(vmu_lo%naky+1:) = 0.
+    ! then fill in non-zero elements of array
+    fft_alpha_kalpha(:vmu_lo%naky) = gkalph
+    call dfftw_execute_dft_c2r(alpha_f_fft%plan, fft_alpha_kalpha, fft_alpha_alpha)
+    fft_alpha_alpha = fft_alpha_alpha*alpha_f_fft%scale
+    galph = fft_alpha_alpha
 
   end subroutine transform_kalpha2alpha
 
@@ -305,14 +303,11 @@ contains
     real, dimension (:), intent (in) :: galph
     complex, dimension (:), intent (out) :: gkalph
 
-    integer :: ia
-
-    do ia = 1, vmu_lo%nalpha
-       fft_alpha_alpha = galph
-       call dfftw_execute_dft_r2c(alpha_b_fft%plan, fft_alpha_alpha, fft_alpha_kalpha)
-       fft_alpha_kalpha = fft_alpha_kalpha*alpha_b_fft%scale
-       gkalph = fft_alpha_kalpha
-    end do
+    fft_alpha_alpha = galph
+    call dfftw_execute_dft_r2c(alpha_b_fft%plan, fft_alpha_alpha, fft_alpha_kalpha)
+    fft_alpha_kalpha = fft_alpha_kalpha*alpha_b_fft%scale
+    ! filter out highest k-alpha modes to avoid aliasing
+    gkalph = fft_alpha_kalpha(:vmu_lo%naky)
 
   end subroutine transform_alpha2kalpha
 

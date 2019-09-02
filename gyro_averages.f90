@@ -86,10 +86,10 @@ contains
 
     if (full_flux_surface) then
        allocate (aj0_alpha(nalpha))
-       allocate (aj0_kalpha(nalpha/2+1))
+       allocate (aj0_kalpha(naky))
        if (.not.allocated(ia_max_aj0a)) allocate(ia_max_aj0a(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        if (.not.allocated(aj0a)) then
-          allocate(aj0a(nalpha/2+1,naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          allocate(aj0a(naky,naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
           aj0a = 0.
        end if
           
@@ -105,11 +105,13 @@ contains
                       aj0x(iky,ikx,iz,ivmu) = j0(arg)
                       aj0_alpha(ia) = aj0x(iky,ikx,iz,ivmu)
                    end do
+                   ! fourier transform aj0_alpha
+                   ! note that fourier coefficients aj0_kalpha have
+                   ! been filter to avoid aliasing
                    call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
                    call find_max_required_kalpha_index (aj0_kalpha, imu, iz, ia_max_aj0a(iky,ikx,iz,ivmu))
                    ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
                    aj0a(:ia_max_aj0a(iky,ikx,iz,ivmu),iky,ikx,iz,ivmu) = aj0_kalpha(:ia_max_aj0a(iky,ikx,iz,ivmu))
-!                   call transform_kalpha2alpha (aj0_kalpha, aj0_alpha)
                 end do
              end do
           end do
@@ -117,9 +119,13 @@ contains
        ! calculate the reduction factor of Fourier modes
        ! used to represent J0
        call sum_allreduce (ia_max_aj0a_count)
-       ia_max_aj0a_reduction_factor = real(ia_max_aj0a_count)/real(naky*nakx*nztot*nmu*nvpa*nspec*(nalpha/2+1))
+       ia_max_aj0a_reduction_factor = real(ia_max_aj0a_count)/real(naky*nakx*nztot*nmu*nvpa*nspec*naky)
 
-       if (proc0) write (*,*) 'ia_max_aj0_reduction_factor', ia_max_aj0a_reduction_factor
+       if (proc0) then
+          write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_aj0a_reduction_factor*naky, 'out of ', naky
+          write (*,*)
+       end if
+
        deallocate (aj0_kalpha, aj0_alpha)
     else
        ia = 1
@@ -160,13 +166,17 @@ contains
     ! use conservative estimate
     ! when deciding number of modes to retain
     tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu)))
-!    write (*,*) 'tol', tol_floor, tol, minval(maxwell_mu(:,iz,imu))
 
     allocate (ftmod2(n))
+    ! get spectral energy associated with each mode
     ftmod2 = real(ft*conjg(ft))
+    ! get total spectral energy
     total = sum(ftmod2)
     subtotal = 0.
 
+    ! find minimum spectral index for which
+    ! desired percentage of spectral energy contained
+    ! in modes with indices at or below it
     i = 1
     do while (subtotal < total*(1.0-tol))
        idx = i

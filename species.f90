@@ -5,6 +5,7 @@ module species
   implicit none
 
   public :: init_species, finish_species
+  public :: read_species_knobs
 !  public :: reinit_species, init_trin_species
   public :: nspec, spec
   public :: ion_species, electron_species, slowing_down_species, tracer_species
@@ -51,8 +52,6 @@ contains
     if (initialized) return
     initialized = .true.
 
-    if (proc0) call read_species_knobs
-    call broadcast (nspec)
     allocate (spec(nspec))
     if (proc0) then
        select case (species_option_switch)
@@ -97,6 +96,7 @@ contains
 
   subroutine read_species_knobs
 
+    use mp, only: proc0, broadcast
     use file_utils, only: error_unit, input_unit_exist
     use text_options, only: text_option, get_option_value
 
@@ -112,23 +112,26 @@ contains
          text_option('stella', species_option_stella), &
          text_option('input.profiles', species_option_inputprofs), &
          text_option('euterpe', species_option_euterpe) /)
-
-    nspec = 2
-    species_option = 'stella'
     
-    in_file = input_unit_exist("species_knobs", exist)
-    if (exist) read (unit=in_file, nml=species_knobs)
-
-    ierr = error_unit()
-    call get_option_value (species_option, specopts, species_option_switch, &
-         ierr, "species_option in species_knobs")
-
-    if (nspec < 1) then
+    if (proc0) then
+       nspec = 2
+       species_option = 'stella'
+       
+       in_file = input_unit_exist("species_knobs", exist)
+       if (exist) read (unit=in_file, nml=species_knobs)
+       
        ierr = error_unit()
-       write (unit=ierr, &
-            fmt="('Invalid nspec in species_knobs: ', i5)") nspec
-       stop
+       call get_option_value (species_option, specopts, species_option_switch, &
+            ierr, "species_option in species_knobs")
+       
+       if (nspec < 1) then
+          ierr = error_unit()
+          write (unit=ierr, &
+               fmt="('Invalid nspec in species_knobs: ', i5)") nspec
+          stop
+       end if
     end if
+    call broadcast (nspec)
 
   end subroutine read_species_knobs
 

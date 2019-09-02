@@ -100,7 +100,6 @@ dist_fn.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
-	 stella_transforms.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -345,6 +344,7 @@ stella.o: \
 	 stella_layouts.o \
 	 stella_save.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 time_advance.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -455,6 +455,7 @@ vmec_geo.o: \
 	 kt_grids.o \
 	 mp.o \
 	 spl.o \
+	 stella_transforms.o \
 	 vmec_to_stella_geometry_interface.o \
 	 zgrid.o 
 vmec_to_stella_geometry_interface.o: \

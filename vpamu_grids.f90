@@ -3,6 +3,7 @@ module vpamu_grids
   implicit none
 
   public :: init_vpamu_grids, finish_vpamu_grids
+  public :: read_vpamu_grids_parameters
   public :: integrate_vmu, integrate_species
   public :: integrate_mu
   public :: vpa, nvgrid, nvpa
@@ -52,23 +53,7 @@ module vpamu_grids
 
 contains
 
-  subroutine init_vpamu_grids
-
-    implicit none
-
-    logical, save :: initialized = .false.
-
-    if (initialized) return
-    initialized = .true.
-
-    call read_parameters
-
-    call init_vpa_grid
-    call init_mu_grid
-
-  end subroutine init_vpamu_grids
-
-  subroutine read_parameters
+  subroutine read_vpamu_grids_parameters
 
     use file_utils, only: input_unit_exist
     use mp, only: proc0, broadcast
@@ -104,7 +89,21 @@ contains
 
     nvpa = 2*nvgrid
 
-  end subroutine read_parameters
+  end subroutine read_vpamu_grids_parameters
+
+  subroutine init_vpamu_grids
+
+    implicit none
+
+    logical, save :: initialized = .false.
+
+    if (initialized) return
+    initialized = .true.
+
+    call init_vpa_grid
+    call init_mu_grid
+
+  end subroutine init_vpamu_grids
 
   subroutine init_vpa_grid
 

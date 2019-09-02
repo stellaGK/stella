@@ -57,14 +57,17 @@ contains
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
     use physics_flags, only: init_physics_flags
+    use physics_flags, only: nonlinear, full_flux_surface, include_parallel_nonlinearity
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep
     use run_parameters, only: stream_implicit, driftkinetic_implicit
-    use species, only: init_species
+    use species, only: init_species, read_species_knobs
+    use species, only: nspec
     use zgrid, only: init_zgrid
+    use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: init_geometry
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
-    use stella_layouts, only: init_stella_layouts
+    use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
     use fields, only: init_fields, advance_fields
@@ -77,7 +80,10 @@ contains
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
     use kt_grids, only: init_kt_grids, read_kt_grids_parameters
-    use vpamu_grids, only: init_vpamu_grids
+    use kt_grids, only: naky, nakx, ny, nx, nalpha
+    use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
+    use vpamu_grids, only: nvgrid, nmu
+    use stella_transforms, only: init_transforms
 
     implicit none
 
@@ -115,8 +121,18 @@ contains
     call init_physics_parameters
     if (debug) write(6,*) "stella::init_stella::init_zgrid"
     call init_zgrid
+    if (debug) write (6,*) "stella::init_stella::read_species_knobs"
+    call read_species_knobs
     if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_kt_grids_parameters
+    if (debug) write (6,*) "stella::init_stella::read_vpamu_grids_parameters"
+    call read_vpamu_grids_parameters
+    if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
+    call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
+    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
+       if (debug) write (*,*) "stella::init_stella::init_transforms"
+       call init_transforms
+    end if
     if (debug) write(6,*) "stella::init_stella::init_geometry"
     call init_geometry
     if (debug) write (6,*) 'stella::init_stella::init_species'
