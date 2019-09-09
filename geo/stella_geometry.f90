@@ -74,6 +74,8 @@ contains
 
     implicit none
 
+    logical, parameter :: debug = .false.
+
     real :: dpsidrho
     integer :: iy
     integer :: sign_torflux
@@ -156,10 +158,13 @@ contains
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
+          if (debug) write (*,*) 'init_geometry::read_vmec_parameters'
           call read_vmec_parameters
           ! allocate geometry arrays
+          if (debug) write (*,*) 'init_geometry::allocate_arrays'
           call allocate_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
+          if (debug) write (*,*) 'init_geometry::get_vmec_geo'
           call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
                gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
                theta_vmec, zed_scalefac, aref, bref, alpha)
@@ -187,6 +192,7 @@ contains
 
     if (.not.proc0) call allocate_arrays (nalpha, nzgrid)
 
+    if (debug .and. proc0) write (*,*) 'init_geometry::broadcast_arrays'
     call broadcast_arrays
 
     ! should reduce to 2*pi*shat in axisymmetric case
