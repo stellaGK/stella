@@ -454,6 +454,7 @@ vmec_geo.o: \
 	 file_utils.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 spl.o \
 	 stella_transforms.o \
 	 vmec_to_stella_geometry_interface.o \
