@@ -9,17 +9,23 @@ module kt_grids
   public :: naky, nakx, nx, ny, reality
   public :: jtwist, ikx_twist_shift, y0
   public :: nalpha
-  public :: ikx_max
+  public :: ikx_max, naky_all
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
+  public :: swap_kxky_ordered, swap_kxky_back_ordered
 
   private
+
+  interface swap_kxky
+     module procedure swap_kxky_real
+     module procedure swap_kxky_complex
+  end interface
 
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
-  integer :: ikx_max
+  integer :: ikx_max, naky_all
   logical :: reality = .false.
   character(20) :: grid_option
   logical, dimension (:), allocatable :: zonal_mode
@@ -248,6 +254,9 @@ contains
     ! get the ikx index corresponding to kx_max
     ikx_max = nakx/2+1
 
+    ! get the total number of ky values, including negative ky
+    naky_all = 2*naky-1
+
     ! kx goes from zero to kx_max down to zero...
     do ikx = 1, ikx_max
        akx(ikx) = real(ikx-1)*dkx
@@ -358,6 +367,7 @@ contains
     endif
 
     ikx_max = nakx
+    naky_all = naky
 
   end subroutine init_kt_grids_range
 
@@ -395,10 +405,10 @@ contains
 
   end subroutine allocate_arrays
 
-  ! take an array with ky >= 0 and all kx
+  ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
   ! and uses reality condition to return array
-  ! with kx >= 0 and all ky
-  subroutine swap_kxky (gin, gout)
+  ! with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+  subroutine swap_kxky_complex (gin, gout)
 
     implicit none
 
@@ -413,25 +423,93 @@ contains
     ! next fill in ky < 0, kx >= 0 elements of array using reality
     ikx = 1
     ikxneg = ikx
-    do iky = naky+1, 2*naky-1
+    do iky = naky+1, naky_all
        ! this is the ky index corresponding to +ky in original array
-       ikyneg = 2*naky-iky+1
+       ikyneg = naky_all-iky+2
        gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
     end do
     do ikx = 2, ikx_max
        ikxneg = nakx-ikx+2
-       do iky = naky+1, 2*naky-1
+       do iky = naky+1, naky_all
           ! this is the ky index corresponding to +ky in original array
-          ikyneg = 2*naky-iky+1
+          ikyneg = naky_all-iky+2
           gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
        end do
     end do
 
-  end subroutine swap_kxky
+  end subroutine swap_kxky_complex
 
-  ! take an array with ky >= 0 and all kx
+  ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
   ! and uses reality condition to return array
-  ! with kx >= 0 and all ky
+  ! with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+  subroutine swap_kxky_real (gin, gout)
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: gin
+    real, dimension (:,:), intent (out) :: gout
+
+    integer :: ikx, ikxneg
+    integer :: iky, ikyneg
+
+    ! first set arrays equal for ky >= 0 and kx >= 0
+    gout(:naky,:) = gin(:,:ikx_max)
+    ! next fill in ky < 0, kx >= 0 elements of array using reality
+    ikx = 1
+    ikxneg = ikx
+    do iky = naky+1, naky_all
+       ! this is the ky index corresponding to +ky in original array
+       ikyneg = naky_all-iky+2
+       gout(iky,ikx) = gin(ikyneg,ikxneg)
+    end do
+    do ikx = 2, ikx_max
+       ikxneg = nakx-ikx+2
+       do iky = naky+1, naky_all
+          ! this is the ky index corresponding to +ky in original array
+          ikyneg = naky_all-iky+2
+          gout(iky,ikx) = gin(ikyneg,ikxneg)
+       end do
+    end do
+
+  end subroutine swap_kxky_real
+
+  ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+  ! and uses reality condition to return array
+  ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+  subroutine swap_kxky_ordered (gin, gout)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gin
+    complex, dimension (:,:), intent (out) :: gout
+
+    integer :: ikx, ikxneg
+    integer :: iky, ikyneg
+
+    ! first set arrays equal for ky >= 0 and kx >= 0
+    gout(naky:,:) = gin(:,:ikx_max)
+    ! next fill in ky < 0, kx >= 0 elements of array using reality
+    ikx = 1
+    ikxneg = ikx
+    do iky = 1, naky-1
+       ! this is the ky index corresponding to +ky in original array
+       ikyneg = naky-iky+1
+       gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+    end do
+    do ikx = 2, ikx_max
+       ikxneg = nakx-ikx+2
+       do iky = 1, naky-1
+          ! this is the ky index corresponding to +ky in original array
+          ikyneg = naky-iky+1
+          gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+       end do
+    end do
+
+  end subroutine swap_kxky_ordered
+
+  ! take an array with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+  ! and uses reality condition to return array
+  ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
   subroutine swap_kxky_back (gin, gout)
 
     implicit none
@@ -451,12 +529,38 @@ contains
        ikyneg = iky
        gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
        do iky = 2, naky
-          ikyneg = 2*naky-iky+1
+          ikyneg = naky_all-iky+2
           gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
        end do
     end do
 
   end subroutine swap_kxky_back
+
+  ! take an array with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+  ! and uses reality condition to return array
+  ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+  subroutine swap_kxky_back_ordered (gin, gout)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gin
+    complex, dimension (:,:), intent (out) :: gout
+
+    integer :: ikx, ikxneg
+    integer :: iky, ikyneg
+
+    ! first set arrays equal for ky >= 0 and kx >= 0
+    gout(:,:ikx_max) = gin(naky:,:)
+    ! next fill in kx < 0, ky >= 0 elements of array using reality
+    do ikx = ikx_max+1, nakx
+       ikxneg = nakx-ikx+2
+       do iky = 1, naky
+          ikyneg = naky-iky+1
+          gout(iky,ikx) = conjg(gin(ikyneg,ikxneg))
+       end do
+    end do
+
+  end subroutine swap_kxky_back_ordered
 
   subroutine finish_kt_grids
 
