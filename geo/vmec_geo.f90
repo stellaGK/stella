@@ -88,6 +88,7 @@ contains
     use constants, only: pi
     use common_types, only: flux_surface_type
     use splines, only: geo_spline
+    use physics_flags, only: full_flux_surface
     use vmec_to_stella_geometry_interface_mod, only: vmec_to_stella_geometry_interface
     use vmec_to_stella_geometry_interface_mod, only: read_vmec_equilibrium
     use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
@@ -104,6 +105,8 @@ contains
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
+
+    logical, parameter :: debug = .false.
 
     integer :: i, j, ia, iz
     integer :: nzgrid_vmec
@@ -129,6 +132,7 @@ contains
     ! first read in equilibrium information from vmec file
     ! this is stored as a set of global variables in read_wout_mod
     ! in mini_libstell.  it will be accessible
+    if (debug) write (*,*) 'get_vmec_geo::read_vmec_equilibrium'
     call read_vmec_equilibrium (vmec_filename)
 
     ! nzgrid_vmec is the number of positive/negative zeta locations
@@ -138,6 +142,7 @@ contains
     ! and thus a larger than usual range of zeta_max/min
     ! values are needed to avoid extrapolation
     if (zed_equal_arc) then
+       if (debug) write (*,*) 'get_vmec_geo::get_modified_vmec_zeta_grid'
        call get_modified_vmec_zeta_grid (nzgrid_vmec, dzeta_vmec)
     else
        nzgrid_vmec = nzgrid
@@ -163,6 +168,7 @@ contains
     allocate (cvdrift0_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (arc_length(nalpha,-nzgrid_vmec:nzgrid_vmec))
 
+    if (debug) write (*,*) 'get_vmec_geo::vmec_to_stella_geometry_interface'
     call vmec_to_stella_geometry_interface (nalpha, alpha0, &
          nzgrid_vmec, zeta_center, nfield_periods*zgrid_scalefac, torflux, &
          surface_option, verbose, &
@@ -184,6 +190,7 @@ contains
        ! note that nzgrid*zgrid_refinement_factor gives index
        ! for the max zeta of the nominal zeta grid
        zetamax_idx = nzgrid*zgrid_refinement_factor
+       if (debug) write (*,*) 'get_vmec_geo::get_total_arc_length'
        do ia = 1, nalpha
           ! this is z(zeta_max) - z(zeta_min) for nominal zeta domain
           call get_total_arc_length (zetamax_idx, gradpar_vmec(ia,-zetamax_idx:zetamax_idx), &
@@ -205,6 +212,7 @@ contains
        zed_scalefac = pi/zmax
        arc_length = arc_length*zed_scalefac
 
+       if (debug) write (*,*) 'get_vmec_geo::geo_spline'
        do ia = 1, nalpha
           ! now that we have z(alpha,zeta), interpolate from regular zeta grid (which is irregular in z)
           ! to regular zed grid (irregular in zeta)
@@ -236,41 +244,28 @@ contains
        end do
        gradpar = 1.0
 
-!        do iz = -nzgrid, nzgrid
-!           do ia = 1, nalpha
-!              write (*,*) 'pre-filter', alpha(ia), zed(iz), bmag(ia,iz), gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gbdrift(ia,iz)
-!           end do
-!           write (*,*)
-!        end do
-!        write (*,*)
-!        write (*,*)
-
        ! we now have geometric coefficients on alpha-grid
        ! as we will be multiplying this with functions of g and phi
        ! we must take care to avoid aliasing
        ! this is accomplished by filtering out the highest third of 
        ! the wavenumber spectra
-       do iz = -nzgrid, nzgrid
-          call filter_geo_coef (bmag(:,iz))
-          call filter_geo_coef (gds2(:,iz))
-          call filter_geo_coef (gds21(:,iz))
-          call filter_geo_coef (gds22(:,iz))
-          call filter_geo_coef (gds23(:,iz))
-          call filter_geo_coef (gds24(:,iz))
-          call filter_geo_coef (gds25(:,iz))
-          call filter_geo_coef (gds26(:,iz))
-          call filter_geo_coef (gbdrift(:,iz))
-          call filter_geo_coef (gbdrift0(:,iz))
-          call filter_geo_coef (cvdrift(:,iz))
-          call filter_geo_coef (cvdrift0(:,iz))
-       end do
-!        do iz = -nzgrid, nzgrid
-!           do ia = 1, nalpha
-!              write (*,*) 'post-filter', alpha(ia), zed(iz), bmag(ia,iz), gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gbdrift(ia,iz)
-!           end do
-!           write (*,*)
-!        end do
-!        stop
+       if (full_flux_surface) then
+          if (debug) write (*,*) 'get_vmec_geo::geo_spline'
+          do iz = -nzgrid, nzgrid
+             call filter_geo_coef (bmag(:,iz))
+             call filter_geo_coef (gds2(:,iz))
+             call filter_geo_coef (gds21(:,iz))
+             call filter_geo_coef (gds22(:,iz))
+             call filter_geo_coef (gds23(:,iz))
+             call filter_geo_coef (gds24(:,iz))
+             call filter_geo_coef (gds25(:,iz))
+             call filter_geo_coef (gds26(:,iz))
+             call filter_geo_coef (gbdrift(:,iz))
+             call filter_geo_coef (gbdrift0(:,iz))
+             call filter_geo_coef (cvdrift(:,iz))
+             call filter_geo_coef (cvdrift0(:,iz))
+          end do
+       end if
        
     else
        zeta = spread(zeta_vmec,1,nalpha)
