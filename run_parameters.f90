@@ -60,7 +60,7 @@ contains
     use mp, only: proc0, broadcast
     use stella_save, only: init_dt
     use text_options, only: text_option, get_option_value
-    use physics_flags, only: include_mirror
+    use physics_flags, only: include_mirror, full_flux_surface
 
     implicit none
 
@@ -143,12 +143,26 @@ contains
        if (istatus == 0) delt  = delt_saved
     endif
 
-    if (driftkinetic_implicit) stream_implicit = .false.
+    if (driftkinetic_implicit) then
+       stream_implicit = .false.
+    else if (stream_implicit .and. full_flux_surface) then
+       stream_implicit = .false.
+    end if
 
     if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit) then
        fully_explicit = .false.
     else
        fully_explicit = .true.
+    end if
+
+    if (fields_kxkyz .and. full_flux_surface) then
+       write (*,*)
+       write (*,*) 'WARNING!!!'
+       write (*,*) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
+       write (*,*) 'Forcing fields_kxkyz=F.'
+       write (*,*) 'WARNING!!!'
+       write (*,*)
+       fields_kxkyz = .false.
     end if
 
   end subroutine read_parameters
