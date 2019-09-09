@@ -189,18 +189,12 @@ contains
     use zgrid, only: nzgrid
     use dist_redistribute, only: kxkyz2vmu
     use run_parameters, only: fields_kxkyz
-    ! TMP FOR TESTING
-!    use zgrid, only: ntubes
-!    use kt_grids, only: naky, nakx
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
-
-    ! TMP FOR TESTING
-!    integer :: iky, ikx, iz, it
 
     if (fields_updated) return
 
@@ -219,19 +213,6 @@ contains
     else
        call get_fields_vmulo (g, phi, apar, dist)
     end if
-
-!     if (proc0) then
-!        do it = 1, ntubes
-!           do iz = -nzgrid, nzgrid
-!              do ikx = 1, nakx
-!                 do iky = 1, naky
-!                    write (*,*) 'get_phi (iky, ikx, iz, it):', iky, ikx, iz, it, real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it))
-!                 end do
-!              end do
-!           end do
-!        end do
-!        write (*,*)
-!     end if
 
     ! set a flag to indicate that the fields have been updated
     ! this helps avoid unnecessary field solves
