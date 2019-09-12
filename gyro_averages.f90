@@ -1,6 +1,6 @@
 module gyro_averages
 
-  public :: aj0x, aj0v, aj1v, aj0a
+  public :: aj0x, aj0v, aj1v
   public :: init_bessel, finish_bessel
   public :: gyro_average
   public :: gyro_average_j1
@@ -83,7 +83,6 @@ contains
     end do
 
     if (full_flux_surface) then
-       allocate (aj0_alpha(nalpha))
        allocate (aj0_kalpha(naky))
        allocate (kperp2_swap(naky_all,ikx_max,nalpha))
        if (.not.allocated(ia_max_aj0a)) allocate(ia_max_aj0a(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -93,13 +92,19 @@ contains
        end if
           
        ia_max_aj0a_count = 0
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          is = is_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          do iz = -nzgrid, nzgrid
-             do ia = 1, nalpha
-                call swap_kxky (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
-             end do
+       do iz = -nzgrid, nzgrid
+          do ia = 1, nalpha
+             call swap_kxky (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
+!             if (iz==0) then
+!                write (*,*) 'kperp2', kperp2(2,2,ia,iz)
+!                write (*,*) 'kperp2_swap', kperp2_swap(2,2,ia)
+!             end if
+          end do
+          allocate (aj0_alpha(nalpha))
+
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             is = is_idx(vmu_lo,ivmu)
+             imu = imu_idx(vmu_lo,ivmu)
              do ikx = 1, ikx_max
                 do iky = 1, naky_all
                    do ia = 1, nalpha
@@ -116,6 +121,7 @@ contains
                 end do
              end do
           end do
+          deallocate (aj0_alpha)
        end do
        ! calculate the reduction factor of Fourier modes
        ! used to represent J0
@@ -127,7 +133,7 @@ contains
           write (*,*)
        end if
 
-       deallocate (aj0_kalpha, aj0_alpha)
+       deallocate (aj0_kalpha)
        deallocate (kperp2_swap)
     else
        if (.not.allocated(aj0x)) then
