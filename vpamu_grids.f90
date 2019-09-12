@@ -44,6 +44,7 @@ module vpamu_grids
      module procedure integrate_vmu_local_real
      module procedure integrate_vmu_local_complex
      module procedure integrate_vmu_vmulo_complex
+     module procedure integrate_vmu_vmulo_ivmu_only_real
   end interface
 
   interface integrate_mu
@@ -333,6 +334,34 @@ contains
     call sum_allreduce (total)
 
   end subroutine integrate_vmu_vmulo_complex
+
+  ! integrave over v-space in vmu_lo
+  subroutine integrate_vmu_vmulo_ivmu_only_real (g, ia, iz, total)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+    implicit none
+
+    integer :: ivmu, iv, is, imu
+
+    real, dimension (vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in) :: ia, iz
+    real, dimension (:), intent (out) :: total
+
+    total = 0.
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       total(is) = total(is) + &
+               wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)
+    end do
+
+    call sum_allreduce (total)
+
+  end subroutine integrate_vmu_vmulo_ivmu_only_real
 
 !   subroutine integrate_species_local_real (g, weights, iz, total)
 
