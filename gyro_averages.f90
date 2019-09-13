@@ -23,6 +23,9 @@ module gyro_averages
   integer, dimension (:,:,:,:), allocatable :: ia_max_aj0a
   complex, dimension (:,:,:,:,:), allocatable :: aj0a
 
+  integer, dimension (:,:,:,:), allocatable :: ia_max_gam0a
+  complex, dimension (:,:,:,:,:), allocatable :: gam0a
+
   logical :: bessinit = .false.
 
 contains
@@ -36,24 +39,27 @@ contains
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid, nztot
     use vpamu_grids, only: vperp2, nmu, nvpa
+    use vpamu_grids, only: maxwellian_norm, maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: integrate_vmu
     use kt_grids, only: naky, nakx, nalpha
     use kt_grids, only: naky_all, ikx_max
     use kt_grids, only: swap_kxky
     use stella_layouts, only: kxkyz_lo, vmu_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx, iv_idx
     use spfunc, only: j0, j1
     use stella_transforms, only: transform_alpha2kalpha
 
     implicit none
 
-    integer :: iz, iky, ikx, imu, is, ia
+    integer :: iz, iky, ikx, imu, is, ia, iv
     integer :: ikxkyz, ivmu
     real :: arg
-    integer :: ia_max_aj0a_count
-    real :: ia_max_aj0a_reduction_factor
+    integer :: ia_max_aj0a_count, ia_max_gam0a_count
+    real :: ia_max_aj0a_reduction_factor, ia_max_gam0a_reduction_factor
 
     real, dimension (:), allocatable :: aj0_alpha
-    complex, dimension (:), allocatable :: aj0_kalpha
+    complex, dimension (:), allocatable :: aj0_kalpha, gam0_kalpha
+    real, dimension (:,:), allocatable :: gam0_alpha
     real, dimension (:,:,:), allocatable :: kperp2_swap
 
     if (bessinit) return
@@ -84,21 +90,23 @@ contains
 
     if (full_flux_surface) then
        allocate (aj0_kalpha(naky))
+       allocate (gam0_kalpha(naky))
        allocate (kperp2_swap(naky_all,ikx_max,nalpha))
        if (.not.allocated(ia_max_aj0a)) allocate(ia_max_aj0a(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       if (.not.allocated(ia_max_gam0a)) allocate(ia_max_gam0a(naky_all,ikx_max,-nzgrid:nzgrid,nspec))
        if (.not.allocated(aj0a)) then
           allocate(aj0a(naky,naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
           aj0a = 0.
        end if
-          
-       ia_max_aj0a_count = 0
+       if (.not.allocated(gam0a)) then
+          allocate(gam0a(naky,naky_all,ikx_max,-nzgrid:nzgrid,nspec))
+          gam0a = 0.
+       end if
+       
+       ia_max_aj0a_count = 0 ; ia_max_gam0a_count = 0
        do iz = -nzgrid, nzgrid
           do ia = 1, nalpha
              call swap_kxky (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
-!             if (iz==0) then
-!                write (*,*) 'kperp2', kperp2(2,2,ia,iz)
-!                write (*,*) 'kperp2_swap', kperp2_swap(2,2,ia)
-!             end if
           end do
           allocate (aj0_alpha(nalpha))
 
@@ -115,25 +123,61 @@ contains
                    ! note that fourier coefficients aj0_kalpha have
                    ! been filter to avoid aliasing
                    call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
-                   call find_max_required_kalpha_index (aj0_kalpha, imu, iz, ia_max_aj0a(iky,ikx,iz,ivmu))
+                   call find_max_required_kalpha_index (aj0_kalpha, ia_max_aj0a(iky,ikx,iz,ivmu), imu, iz)
                    ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
                    aj0a(:ia_max_aj0a(iky,ikx,iz,ivmu),iky,ikx,iz,ivmu) = aj0_kalpha(:ia_max_aj0a(iky,ikx,iz,ivmu))
                 end do
              end do
           end do
           deallocate (aj0_alpha)
+
+          allocate (aj0_alpha(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          allocate (gam0_alpha(nalpha,nspec))
+          do ikx = 1, ikx_max
+             do iky = 1, naky_all
+                do ia = 1, nalpha
+                   ! get J0 for all vpar, mu, spec values
+                   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                      is = is_idx(vmu_lo,ivmu)
+                      imu = imu_idx(vmu_lo,ivmu)
+                      iv = iv_idx(vmu_lo,ivmu)
+                      arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
+                      aj0_alpha(ivmu) = j0(arg)
+                      ! form coefficient needed to calculate Gamma_0
+                      aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2)*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
+                      ! weight with Maxwellian if not already accounted for by normalisation
+                      if (.not.maxwellian_norm) aj0_alpha(ivmu) = aj0_alpha(ivmu)*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+                   end do
+                   ! calculate gamma0 = int d3v (1-J0^2)*F_{Maxwellian}
+                   call integrate_vmu (aj0_alpha, ia, iz, gam0_alpha(ia,:))
+                end do
+                do is = 1, nspec
+                   ! fourier transform Gamma_0(alpha)
+                   call transform_alpha2kalpha (gam0_alpha(:,is), gam0_kalpha)
+                   call find_max_required_kalpha_index (gam0_kalpha, ia_max_gam0a(iky,ikx,iz,is))
+!                   write (*,*) 'ia_max_gam0a', iky, ikx, iz, is, ia_max_gam0a(iky,ikx,iz,is)
+                   ia_max_gam0a_count = ia_max_gam0a_count + ia_max_gam0a(iky,ikx,iz,is)
+                   gam0a(:ia_max_gam0a(iky,ikx,iz,is),iky,ikx,iz,is) = gam0_kalpha(:ia_max_gam0a(iky,ikx,iz,is))
+                end do
+             end do
+          end do
+          deallocate (aj0_alpha, gam0_alpha)
        end do
+
        ! calculate the reduction factor of Fourier modes
        ! used to represent J0
        call sum_allreduce (ia_max_aj0a_count)
        ia_max_aj0a_reduction_factor = real(ia_max_aj0a_count)/real(naky*nakx*nztot*nmu*nvpa*nspec*naky)
+       call sum_allreduce (ia_max_gam0a_count)
+       ia_max_gam0a_reduction_factor = real(ia_max_gam0a_count)/real(naky*nakx*nztot*nspec*naky)
 
        if (proc0) then
           write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_aj0a_reduction_factor*naky, 'out of ', naky
+          write (*,*) 'average number of k-alphas needed to represent Gamma0(kperp(alpha))=', ia_max_gam0a_reduction_factor*naky, 'out of ', naky
           write (*,*)
        end if
 
-       deallocate (aj0_kalpha)
+       deallocate (aj0_kalpha, gam0_kalpha)
        deallocate (kperp2_swap)
     else
        if (.not.allocated(aj0x)) then
@@ -158,15 +202,15 @@ contains
 
   end subroutine init_bessel
 
-  subroutine find_max_required_kalpha_index (ft, imu, iz, idx)
+  subroutine find_max_required_kalpha_index (ft, idx, imu, iz)
 
     use vpamu_grids, only: maxwell_mu
 
     implicit none
 
     complex, dimension (:), intent (in) :: ft
-    integer, intent (in) :: imu, iz
     integer, intent (out) :: idx
+    integer, intent (in), optional :: imu, iz
 
     real, parameter :: tol_floor = 0.01
     integer :: i, n
@@ -178,7 +222,11 @@ contains
 
     ! use conservative estimate
     ! when deciding number of modes to retain
-    tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu)))
+    if (present(imu) .and. present(iz)) then
+       tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu)))
+    else
+       tol = tol_floor
+    end if
 
     allocate (ftmod2(n))
     ! get spectral energy associated with each mode
@@ -190,13 +238,17 @@ contains
     ! find minimum spectral index for which
     ! desired percentage of spectral energy contained
     ! in modes with indices at or below it
-    i = 1
-    do while (subtotal < total*(1.0-tol))
-       idx = i
-       subtotal = sum(ftmod2(:i))
-       i = i + 1
-    end do
-    
+    if (total > 0.) then
+       i = 1
+       do while (subtotal < total*(1.0-tol))
+          idx = i
+          subtotal = sum(ftmod2(:i))
+          i = i + 1
+       end do
+    else
+       idx = 1
+    end if
+
     deallocate (ftmod2)
 
   end subroutine find_max_required_kalpha_index
@@ -209,7 +261,9 @@ contains
     if (allocated(aj1v)) deallocate (aj1v)
     if (allocated(aj0x)) deallocate (aj0x)
     if (allocated(aj0a)) deallocate (aj0a)
+    if (allocated(gam0a)) deallocate (gam0a)
     if (allocated(ia_max_aj0a)) deallocate (ia_max_aj0a)
+    if (allocated(ia_max_gam0a)) deallocate (ia_max_gam0a)
 
     bessinit = .false.
 
