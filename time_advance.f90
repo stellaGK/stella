@@ -536,7 +536,6 @@ contains
     ! this is needed to ensure 2nd order accuracy in time
     if (mod(istep,2)==1 .or. .not.flip_flop) then
        ! advance the explicit parts of the GKE
-!    call advance_explicit (phi, apar, gnew)
        call advance_explicit (gnew)
 
        ! enforce periodicity for zonal mode
@@ -549,15 +548,6 @@ contains
        if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
        call advance_explicit (gnew)
     end if
-
-!    else
-!       ! use operator splitting to separately evolve
-!       ! all terms treated implicitly
-!       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
-!
-!       ! advance the explicit parts of the GKE
-!       if (.not.fully_implicit) call advance_explicit (phi, apar, gnew)
-!    end if
 
     ! next line is likely unnecessary
     gold = gnew
@@ -1768,7 +1758,7 @@ contains
           call advance_mirror_implicit (collisions_implicit, g)
           fields_updated = .false.
        end if
-       
+
        ! get updated fields corresponding to advanced g
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update

@@ -1,5 +1,7 @@
 module gyro_averages
 
+  use common_types, only: coupled_alpha_type
+
   public :: aj0x, aj0v, aj1v
   public :: init_bessel, finish_bessel
   public :: gyro_average
@@ -20,11 +22,14 @@ module gyro_averages
   real, dimension (:,:), allocatable :: aj0v, aj1v
   ! (nmu, -kxkyz-layout-)
 
-  integer, dimension (:,:,:,:), allocatable :: ia_max_aj0a
-  complex, dimension (:,:,:,:,:), allocatable :: aj0a
+!  integer, dimension (:,:,:,:), allocatable :: ia_max_aj0a
+!  complex, dimension (:,:,:,:,:), allocatable :: aj0a
 
-  integer, dimension (:,:,:,:), allocatable :: ia_max_gam0a
-  complex, dimension (:,:,:,:,:), allocatable :: gam0a
+  type (coupled_alpha_type), dimension (:,:,:,:), allocatable :: aj0a
+
+  integer, dimension (:,:,:), allocatable :: ia_max_gam0a
+  complex, dimension (:,:,:,:), allocatable :: gam0a, lu_gam0a
+  integer, dimension (:), allocatable :: lu_gam0a_idx
 
   logical :: bessinit = .false.
 
@@ -40,10 +45,13 @@ contains
     use zgrid, only: nzgrid, nztot
     use vpamu_grids, only: vperp2, nmu, nvpa
     use vpamu_grids, only: maxwellian_norm, maxwell_vpa, maxwell_mu
-    use vpamu_grids, only: integrate_vmu
+!    use vpamu_grids, only: integrate_vmu
+    use vpamu_grids, only: integrate_species
+    use vpamu_grids, only: mu
     use kt_grids, only: naky, nakx, nalpha
     use kt_grids, only: naky_all, ikx_max
     use kt_grids, only: swap_kxky
+    use kt_grids, only: aky, akx
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx, iv_idx
     use spfunc, only: j0, j1
@@ -53,13 +61,14 @@ contains
 
     integer :: iz, iky, ikx, imu, is, ia, iv
     integer :: ikxkyz, ivmu
-    real :: arg
+    real :: arg, dum
     integer :: ia_max_aj0a_count, ia_max_gam0a_count
     real :: ia_max_aj0a_reduction_factor, ia_max_gam0a_reduction_factor
 
+    real, dimension (:), allocatable :: wgts
     real, dimension (:), allocatable :: aj0_alpha
     complex, dimension (:), allocatable :: aj0_kalpha, gam0_kalpha
-    real, dimension (:,:), allocatable :: gam0_alpha
+    real, dimension (:), allocatable :: gam0_alpha
     real, dimension (:,:,:), allocatable :: kperp2_swap
 
     if (bessinit) return
@@ -89,18 +98,24 @@ contains
     end do
 
     if (full_flux_surface) then
+       ! wgts are species-dependent factors apperaing in Gamma0 factor
+       allocate (wgts(nspec))
+       wgts = spec%dens*spec%z**2/spec%temp
+
        allocate (aj0_kalpha(naky))
        allocate (gam0_kalpha(naky))
        allocate (kperp2_swap(naky_all,ikx_max,nalpha))
-       if (.not.allocated(ia_max_aj0a)) allocate(ia_max_aj0a(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       if (.not.allocated(ia_max_gam0a)) allocate(ia_max_gam0a(naky_all,ikx_max,-nzgrid:nzgrid,nspec))
+!       if (.not.allocated(ia_max_aj0a)) allocate(ia_max_aj0a(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       if (.not.allocated(ia_max_gam0a)) allocate(ia_max_gam0a(naky_all,ikx_max,-nzgrid:nzgrid))
        if (.not.allocated(aj0a)) then
-          allocate(aj0a(naky,naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-          aj0a = 0.
+!          allocate(aj0a(naky,naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          allocate(aj0a(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!          aj0a = 0.
        end if
        if (.not.allocated(gam0a)) then
-          allocate(gam0a(naky,naky_all,ikx_max,-nzgrid:nzgrid,nspec))
-          gam0a = 0.
+          allocate(gam0a(naky,naky_all,ikx_max,-nzgrid:nzgrid)) ; gam0a = 0.
+          allocate(lu_gam0a(naky,naky_all,ikx_max,-nzgrid:nzgrid)) ; lu_gam0a = 0.
+!          allocate(lu_gam0a_idx(naky,naky_all,ikx_max,-nzgrid:nzgrid)) ; lu_gam0a_idx = 0.
        end if
        
        ia_max_aj0a_count = 0 ; ia_max_gam0a_count = 0
@@ -119,20 +134,33 @@ contains
                       arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ia) = j0(arg)
                    end do
+                   if (iz == 0 .and. ikx == 1 .and. iky == naky_all/2 .and. imu == nmu/2 .and. is == 1 .and. iv_idx(vmu_lo,ivmu)==1) then
+                      write (*,*)
+                      do ia = 1, nalpha
+                         write (*,*) 'j0_alpha', ia, aky(iky), mu(imu), kperp2_swap(iky,ikx,ia), aj0_alpha(ia)
+                      end do
+                      write (*,*)
+                   end if
+
                    ! fourier transform aj0_alpha
                    ! note that fourier coefficients aj0_kalpha have
                    ! been filter to avoid aliasing
                    call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
-                   call find_max_required_kalpha_index (aj0_kalpha, ia_max_aj0a(iky,ikx,iz,ivmu), imu, iz)
-                   ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
-                   aj0a(:ia_max_aj0a(iky,ikx,iz,ivmu),iky,ikx,iz,ivmu) = aj0_kalpha(:ia_max_aj0a(iky,ikx,iz,ivmu))
+!                   call find_max_required_kalpha_index (aj0_kalpha, ia_max_aj0a(iky,ikx,iz,ivmu), imu, iz)
+!                   ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
+                   call find_max_required_kalpha_index (aj0_kalpha, aj0a(iky,ikx,iz,ivmu)%max_idx, imu, iz)
+                   ia_max_aj0a_count = ia_max_aj0a_count + aj0a(iky,ikx,iz,ivmu)%max_idx
+                   if (.not.associated(aj0a(iky,ikx,iz,ivmu)%fourier)) &
+                        allocate (aj0a(iky,ikx,iz,ivmu)%fourier(aj0a(iky,ikx,iz,ivmu)%max_idx))
+!                   aj0a(:ia_max_aj0a(iky,ikx,iz,ivmu),iky,ikx,iz,ivmu) = aj0_kalpha(:ia_max_aj0a(iky,ikx,iz,ivmu))
+                   aj0a(iky,ikx,iz,ivmu)%fourier = aj0_kalpha(:aj0a(iky,ikx,iz,ivmu)%max_idx)
                 end do
              end do
           end do
           deallocate (aj0_alpha)
 
           allocate (aj0_alpha(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-          allocate (gam0_alpha(nalpha,nspec))
+          allocate (gam0_alpha(nalpha))
           do ikx = 1, ikx_max
              do iky = 1, naky_all
                 do ia = 1, nalpha
@@ -143,33 +171,42 @@ contains
                       iv = iv_idx(vmu_lo,ivmu)
                       arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ivmu) = j0(arg)
-                      ! form coefficient needed to calculate Gamma_0
-                      aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2)*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
+                      ! form coefficient needed to calculate 1-Gamma_0
+                      aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2)!*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
                       ! weight with Maxwellian if not already accounted for by normalisation
                       if (.not.maxwellian_norm) aj0_alpha(ivmu) = aj0_alpha(ivmu)*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
                    end do
+
                    ! calculate gamma0 = int d3v (1-J0^2)*F_{Maxwellian}
-                   call integrate_vmu (aj0_alpha, ia, iz, gam0_alpha(ia,:))
+!                   call integrate_vmu (aj0_alpha, ia, iz, gam0_alpha(ia,:))
+                   call integrate_species (aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
                 end do
-                do is = 1, nspec
-                   ! fourier transform Gamma_0(alpha)
-                   call transform_alpha2kalpha (gam0_alpha(:,is), gam0_kalpha)
-                   call find_max_required_kalpha_index (gam0_kalpha, ia_max_gam0a(iky,ikx,iz,is))
-!                   write (*,*) 'ia_max_gam0a', iky, ikx, iz, is, ia_max_gam0a(iky,ikx,iz,is)
-                   ia_max_gam0a_count = ia_max_gam0a_count + ia_max_gam0a(iky,ikx,iz,is)
-                   gam0a(:ia_max_gam0a(iky,ikx,iz,is),iky,ikx,iz,is) = gam0_kalpha(:ia_max_gam0a(iky,ikx,iz,is))
-                end do
+                if (iz == 0 .and. ikx == 1 .and. iky == naky_all/2) then
+                   write (*,*)
+                   do ia = 1, nalpha
+                      write (*,*) 'gam0_alpha', ia, aky(iky), kperp2_swap(iky,ikx,ia), gam0_alpha(ia)
+                   end do
+                   write (*,*)
+                end if
+                ! fourier transform Gamma_0(alpha)
+                call transform_alpha2kalpha (gam0_alpha, gam0_kalpha)
+                call find_max_required_kalpha_index (gam0_kalpha, ia_max_gam0a(iky,ikx,iz))
+                ia_max_gam0a_count = ia_max_gam0a_count + ia_max_gam0a(iky,ikx,iz)
+                gam0a(:ia_max_gam0a(iky,ikx,iz),iky,ikx,iz) = gam0_kalpha(:ia_max_gam0a(iky,ikx,iz))
              end do
           end do
           deallocate (aj0_alpha, gam0_alpha)
        end do
+
+!       lu_gam0a = gam0a
+!       call lu_decomposition (lu_gam0a, lu_gam0a_idx, dum)
 
        ! calculate the reduction factor of Fourier modes
        ! used to represent J0
        call sum_allreduce (ia_max_aj0a_count)
        ia_max_aj0a_reduction_factor = real(ia_max_aj0a_count)/real(naky*nakx*nztot*nmu*nvpa*nspec*naky)
        call sum_allreduce (ia_max_gam0a_count)
-       ia_max_gam0a_reduction_factor = real(ia_max_gam0a_count)/real(naky*nakx*nztot*nspec*naky)
+       ia_max_gam0a_reduction_factor = real(ia_max_gam0a_count)/real(naky*nakx*nztot*naky)
 
        if (proc0) then
           write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_aj0a_reduction_factor*naky, 'out of ', naky
@@ -177,6 +214,7 @@ contains
           write (*,*)
        end if
 
+       deallocate (wgts)
        deallocate (aj0_kalpha, gam0_kalpha)
        deallocate (kperp2_swap)
     else
@@ -262,7 +300,8 @@ contains
     if (allocated(aj0x)) deallocate (aj0x)
     if (allocated(aj0a)) deallocate (aj0a)
     if (allocated(gam0a)) deallocate (gam0a)
-    if (allocated(ia_max_aj0a)) deallocate (ia_max_aj0a)
+    if (allocated(lu_gam0a)) deallocate (lu_gam0a)
+!    if (allocated(ia_max_aj0a)) deallocate (ia_max_aj0a)
     if (allocated(ia_max_gam0a)) deallocate (ia_max_gam0a)
 
     bessinit = .false.
@@ -288,33 +327,33 @@ contains
     complex, dimension (:,:), allocatable :: field_kyall, gyro_field_kyall
 
     if (full_flux_surface) then
-       naky_all = 2*naky-1
-       ! need to switch from ky>=0 and all kx
-       ! to kx>=0 and all ky (using reality condition)
-       allocate (field_kyall(naky_all,ikx_max))
-       allocate (gyro_field_kyall(naky_all,ikx_max)) ; gyro_field_kyall = 0.
-       call swap_kxky_ordered (field, field_kyall)
-       ! NB: J0(kx,ky) = J0(-kx,-ky)
-       do ikx = 1, ikx_max
-          do iky = 1, naky_all
-             ! account for contributions from less positive ky values (and zero)
-             do ia = 1, min(ia_max_aj0a(iky,ikx,iz,ivmu),iky)
-                idx = iky-ia+1
-                gyro_field_kyall(iky,ikx) = gyro_field_kyall(iky,ikx) &
-                     + aj0a(ia,idx,ikx,iz,ivmu)*field_kyall(idx,ikx)
-             end do
-             ! account for contributions from more positive ky values
-             if (ia_max_aj0a(iky,ikx,iz,ivmu) > 1 .and. iky /= naky_all) then
-                do ia = 2, min(ia_max_aj0a(iky,ikx,iz,ivmu),naky_all-iky+1)
-                   idx = iky+ia-1
-                   gyro_field_kyall(iky,ikx) = gyro_field_kyall(iky,ikx) &
-                        + aj0a(ia,idx,ikx,iz,ivmu)*field_kyall(idx,ikx)
-                end do
-             end if
-          end do
-       end do
-       call swap_kxky_back_ordered (gyro_field_kyall, gyro_field)
-       deallocate (field_kyall, gyro_field_kyall)
+!        naky_all = 2*naky-1
+!        ! need to switch from ky>=0 and all kx
+!        ! to kx>=0 and all ky (using reality condition)
+!        allocate (field_kyall(naky_all,ikx_max))
+!        allocate (gyro_field_kyall(naky_all,ikx_max)) ; gyro_field_kyall = 0.
+!        call swap_kxky_ordered (field, field_kyall)
+!        ! NB: J0(kx,ky) = J0(-kx,-ky)
+!        do ikx = 1, ikx_max
+!           do iky = 1, naky_all
+!              ! account for contributions from less positive ky values (and zero)
+!              do ia = 1, min(aj0a(iky,ikx,iz,ivmu)%max_idx,iky)
+!                 idx = iky-ia+1
+!                 gyro_field_kyall(iky,ikx) = gyro_field_kyall(iky,ikx) &
+!                      + aj0a(idx,ikx,iz,ivmu)%fourier(ia)*field_kyall(idx,ikx)
+!              end do
+!              ! account for contributions from more positive ky values
+!              if (aj0a(iky,ikx,iz,ivmu)%max_idx > 1 .and. iky /= naky_all) then
+!                 do ia = 2, min(aj0a(iky,ikx,iz,ivmu)%max_idx,naky_all-iky+1)
+!                    idx = iky+ia-1
+!                    gyro_field_kyall(iky,ikx) = gyro_field_kyall(iky,ikx) &
+!                         + aj0a(idx,ikx,iz,ivmu)%fourier(ia)*field_kyall(idx,ikx)
+!                 end do
+!              end if
+!           end do
+!        end do
+!        call swap_kxky_back_ordered (gyro_field_kyall, gyro_field)
+!        deallocate (field_kyall, gyro_field_kyall)
     else
        gyro_field = aj0x(:,:,iz,ivmu)*field
        ! not sure if below necessary, but wanting to avoid

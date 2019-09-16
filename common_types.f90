@@ -80,4 +80,9 @@ module common_types
      type (eigen_type), dimension (:), pointer :: eigen => null()
   end type response_matrix_type
 
+  type coupled_alpha_type
+     integer :: max_idx
+     complex, dimension (:), pointer :: fourier => null()
+  end type coupled_alpha_type
+
 end module common_types

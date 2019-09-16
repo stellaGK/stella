@@ -213,7 +213,7 @@ contains
     integer :: ikx, iky
 
     ! set jtwist and y0 for cases where they have not been specified
-    ! and for which it makes to set them automatically
+    ! and for which it makes sense to set them automatically
     if (jtwist < 1) jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
     ! signed version of jtwist, with sign determined by, e.g., magnetic shear
     ikx_twist_shift = -jtwist*int(sign(1.0,twist_and_shift_geo_fac))

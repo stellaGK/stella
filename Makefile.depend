@@ -135,6 +135,7 @@ fields.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -161,6 +162,7 @@ gauss_quad.o: \
 	 file_utils.o \
 	 mp.o 
 gyro_averages.o: \
+	 common_types.o \
 	 dist_fn_arrays.o \
 	 kt_grids.o \
 	 mp.o \

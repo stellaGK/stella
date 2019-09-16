@@ -394,7 +394,8 @@ contains
        if (dist == 'h') then
           phi = phi/gamtot_h
        else if (dist == 'gbar') then
-          phi = phi/spread(gamtot,4,ntubes)
+          call get_phi (phi)
+!          phi = phi/spread(gamtot,4,ntubes)
 !       else if (dist == 'gstar') then
 !          phi = phi/gamtot_wstar
        else
@@ -463,6 +464,45 @@ contains
     end if
     
   end subroutine get_fields_vmulo
+
+  subroutine get_phi (phi)
+
+    use physics_flags, only: full_flux_surface
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky_all, ikx_max
+    use kt_grids, only: swap_kxky_ordered
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
+
+    integer :: it, iz
+    complex, dimension (:,:), allocatable :: phi_swap
+
+    if (full_flux_surface) then
+!        ! need to invert 1-gamma0 operator
+!        allocate (phi_swap(naky_all,ikx_max))
+!        do it = 1, ntubes
+!           do iz = -nzgrid, nzgrid
+!              call swap_kxky_ordered (phi, phi_swap)
+!              do ikx = 1, ikx_max
+!                 ! if ky values uncoupled, then obtain phi by simple divide
+!                 if (maxval(ia_max_gam0a(:,ikx,iz)) == 1) then
+!                    phi_swap(:,ikx) = phi_swap(:,ikx)/gam0a(1,:,ikx,iz)
+!                 else
+!                    ! for ky values that require info from other ky values
+!                    ! must solve linear system
+!                    call 
+!                 end if
+!              end do
+!           end do
+!        end do
+!        deallocate (phi_swap)
+    else
+       phi = phi/spread(gamtot,4,ntubes)
+    end if
+
+  end subroutine get_phi
 
   subroutine get_fields_by_spec (g, fld)
 

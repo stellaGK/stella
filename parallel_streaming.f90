@@ -362,7 +362,7 @@ contains
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
        ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
        call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='inhomogeneous')
-       
+
        if (stream_matrix_inversion) then
           ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
           ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
@@ -417,7 +417,7 @@ contains
     use kt_grids, only: naky, nakx
     use kt_grids, only: zonal_mode
     use gyro_averages, only: gyro_average
-    use vpamu_grids, only: vpa, ztmax, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwellian_norm
     use stella_geometry, only: gradpar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
@@ -497,7 +497,7 @@ contains
     ! NB: could do this once at beginning of simulation to speed things up
     ! this is vpa*Z/T*exp(-vpa^2)
     vpadf0dE_fac = vpa(iv)*spec(is)%zt
-    if (.not.maxwellian_norm) vpadf0dE_fac = vpadf0dE_fac*ztmax(iv,is)*maxwell_mu(ia,:,imu)
+    if (.not.maxwellian_norm) vpadf0dE_fac = vpadf0dE_fac*maxwell_vpa(iv)*maxwell_mu(ia,:,imu)
     ! if including neoclassical correction to equilibrium distribution function
     ! then must also account for -vpa*dF_neo/dvpa*Z/T
     if (include_neoclassical_terms) then

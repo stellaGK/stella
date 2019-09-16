@@ -22,7 +22,7 @@ module vpamu_grids
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
   real, dimension (:), allocatable :: maxwell_vpa
-  real, dimension (:), allocatable :: mu, wgts_mu_tmp
+  real, dimension (:), allocatable :: mu
   real, dimension (:,:,:), allocatable :: wgts_mu, maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
@@ -36,6 +36,7 @@ module vpamu_grids
   interface integrate_species
 !     module procedure integrate_species_vmu
      module procedure integrate_species_vmu_single
+     module procedure integrate_species_vmu_single_real
 !     module procedure integrate_species_local_complex
 !     module procedure integrate_species_local_real
   end interface
@@ -448,7 +449,7 @@ contains
 !   end subroutine integrate_species_vmu
 
   ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single (g, iz, weights, total)
+  subroutine integrate_species_vmu_single (g, iz, weights, total, ia_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -461,10 +462,16 @@ contains
     integer, intent (in) :: iz
     real, dimension (:), intent (in) :: weights
     complex, intent (out) :: total
+    integer, intent (in), optional :: ia_in
 
     total = 0.
+    
+    if (present(ia_in)) then
+       ia = ia_in
+    else
+       ia = 1
+    end if
 
-    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
@@ -476,6 +483,42 @@ contains
     call sum_allreduce (total)
 
   end subroutine integrate_species_vmu_single
+
+  ! integrave over v-space and sum over species for given (ky,kx,z) point
+  subroutine integrate_species_vmu_single_real (g, iz, weights, total, ia_in)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+    implicit none
+
+    integer :: ivmu, iv, is, imu, ia
+
+    real, dimension (vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in) :: iz
+    real, dimension (:), intent (in) :: weights
+    real, intent (out) :: total
+    integer, intent (in), optional :: ia_in
+
+    total = 0.
+    
+    if (present(ia_in)) then
+       ia = ia_in
+    else
+       ia = 1
+    end if
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       total = total + &
+            wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
+    end do
+
+    call sum_allreduce (total)
+
+  end subroutine integrate_species_vmu_single_real
 
   subroutine finish_vpa_grid
 
@@ -501,6 +544,7 @@ contains
 
     integer :: imu
     real :: mu_max
+    real, dimension (:), allocatable :: wgts_mu_tmp
 
     ! allocate arrays and initialize to zero
     if (.not. allocated(mu)) then
