@@ -185,12 +185,14 @@ contains
 
   subroutine ginit_default
 
+    use constants, only: zi
     use species, only: spec
     use zgrid, only: nzgrid, zed
     use kt_grids, only: naky, nakx
     use kt_grids, only: theta0
     use kt_grids, only: reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: vpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
@@ -223,7 +225,8 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z)
+       gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z) &
+            * (den0 + 2.0*zi*spread(vpa,2,nmu)*upar0)
        if (.not.maxwellian_norm) gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
             * spread(maxwell_mu(ia,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
     end do
