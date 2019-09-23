@@ -111,10 +111,6 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
-!    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
-!       if (debug) write (6,*) 'time_advance::init_time_advance::init_transforms'
-!       call init_transforms
-!    end if
 
   end subroutine init_time_advance
 
@@ -432,18 +428,18 @@ contains
     ! compare these max values across processors to get global max
     if (nproc > 1) call max_allreduce (wdriftx_max)
     ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
-    cfl_dt_wdriftx = code_dt/max(maxval(abs(akx))*wdriftx_max,zero)
+    cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
     cfl_dt = cfl_dt_wdriftx
 
     if (.not.stream_implicit) then
        ! NB: stream has code_dt built-in, which accounts for code_dt factor here
-       cfl_dt_stream = code_dt*delzed(0)/max(maxval(abs(stream)),zero)
+       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream)),zero)
        cfl_dt = min(cfl_dt,cfl_dt_stream)
     end if
 
     if (.not.mirror_implicit) then
        ! NB: mirror has code_dt built-in, which accounts for code_dt factor here
-       cfl_dt_mirror = code_dt*dvpa/max(maxval(abs(mirror)),zero)
+       cfl_dt_mirror = abs(code_dt)*dvpa/max(maxval(abs(mirror)),zero)
        cfl_dt = min(cfl_dt,cfl_dt_mirror)
     end if
 
@@ -452,7 +448,7 @@ contains
     ! compare these max values across processors to get global max
     if (nproc > 1) call max_allreduce (wdrifty_max)
     ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
-    cfl_dt_wdrifty = code_dt/max(maxval(abs(aky))*wdrifty_max,zero)
+    cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
     cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
     
     if (proc0) then
@@ -465,12 +461,12 @@ contains
        write (*,*)
     end if
 
-    if (code_dt > cfl_dt*cfl_cushion) then
+    if (abs(code_dt) > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,'(a21,e12.4,a35)') 'user-specified delt =', code_dt, 'is larger than cfl_dt*cfl_cushion.'
+          write (*,'(a21,e12.4,a35)') 'user-specified delt =', abs(code_dt), 'is larger than cfl_dt*cfl_cushion.'
           write (*,'(a41,e12.4)') 'changing code_dt to cfl_dt*cfl_cushion =', cfl_dt*cfl_cushion
        end if
-       code_dt = cfl_dt*cfl_cushion
+       code_dt = sign(1.0,code_dt)*cfl_dt*cfl_cushion
        call reset_dt
     else if (proc0) then
        call write_dt
