@@ -41,7 +41,6 @@ contains
     use zgrid, only: nzgrid, nztot
     use stella_geometry, only: gradpar
     use run_parameters, only: stream_implicit, driftkinetic_implicit
-    use run_parameters, only: stream_cell
     use physics_flags, only: include_parallel_streaming
 
     implicit none
@@ -86,9 +85,7 @@ contains
        call center_zed(1,gradpar_c(:,-1))
        ! get gradpar centred in zed for positive vpa (affects upwinding)
        call center_zed(nvpa,gradpar_c(:,1))
-       if (stream_cell) then
-          stream = stream_c
-       end if
+       stream = stream_c
     end if
 
   end subroutine init_parallel_streaming
@@ -99,7 +96,6 @@ contains
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: nsegments
     use run_parameters, only: zed_upwind, time_upwind
-    use run_parameters, only: stream_cell
 
     implicit none
 
@@ -117,39 +113,19 @@ contains
        allocate (stream_tri_c2(nz*nseg_max+1,-1:1)) ; stream_tri_c2 = 0.
     end if
 
-    if (stream_cell) then
-       ! corresponds to sign of stream term positive on RHS of equation
-       ! i.e., negative parallel advection speed
-       ! NB: assumes equal spacing in zed
-       stream_tri_b1(:,1) = 0.5*(1.0+zed_upwind)
-       stream_tri_b2(:,1) = -1.0/delzed(0)
-       stream_tri_c1(:nz*nseg_max,1) = 0.5*(1.0-zed_upwind)
-       stream_tri_c2(:nz*nseg_max,1) = 1.0/delzed(0)
-       ! corresponds to sign of stream term negative on RHS of equation
-       ! NB: assumes equal spacing in zed
-       stream_tri_b1(:,-1) = 0.5*(1.0+zed_upwind)
-       stream_tri_b2(:,-1) = 1.0/delzed(0)
-       stream_tri_a1(2:,-1) = 0.5*(1.0-zed_upwind)
-       stream_tri_a2(2:,-1) = -1.0/delzed(0)
-    else
-       ! corresponds to sign of stream term positive on RHS of equation
-       ! i.e., negative parallel advection speed
-       ! NB: assumes equal spacing in zed
-       stream_tri_a2(2:,1) = -0.5*(1.0-zed_upwind)/delzed(0)
-       stream_tri_b2(2:,1) = -zed_upwind/delzed(0)
-       stream_tri_c2(2:,1) = (1.0+zed_upwind)*0.5/delzed(0)
-       ! must treat boundary carefully
-       stream_tri_b2(1,1) = -1.0/delzed(0)
-       stream_tri_c2(1,1) = 1.0/delzed(0)
-       ! corresponds to sign of stream term negative on RHS of equation
-       ! NB: assumes equal spacing in zed
-       stream_tri_a2(:nz*nseg_max,-1) = -0.5*(1.0+zed_upwind)/delzed(0)
-       stream_tri_b2(:nz*nseg_max,-1) = zed_upwind/delzed(0)
-       stream_tri_c2(:nz*nseg_max,-1) = 0.5*(1.0-zed_upwind)/delzed(0)
-       ! must treat boundary carefully
-       stream_tri_a2(nz*nseg_max+1,-1) = -1.0/delzed(0)
-       stream_tri_b2(nz*nseg_max+1,-1) = 1.0/delzed(0)
-    end if
+    ! corresponds to sign of stream term positive on RHS of equation
+    ! i.e., negative parallel advection speed
+    ! NB: assumes equal spacing in zed
+    stream_tri_b1(:,1) = 0.5*(1.0+zed_upwind)
+    stream_tri_b2(:,1) = -1.0/delzed(0)
+    stream_tri_c1(:nz*nseg_max,1) = 0.5*(1.0-zed_upwind)
+    stream_tri_c2(:nz*nseg_max,1) = 1.0/delzed(0)
+    ! corresponds to sign of stream term negative on RHS of equation
+    ! NB: assumes equal spacing in zed
+    stream_tri_b1(:,-1) = 0.5*(1.0+zed_upwind)
+    stream_tri_b2(:,-1) = 1.0/delzed(0)
+    stream_tri_a1(2:,-1) = 0.5*(1.0-zed_upwind)
+    stream_tri_a2(2:,-1) = -1.0/delzed(0)
 
     stream_tri_a2 = 0.5*(1.0+time_upwind)*stream_tri_a2
     stream_tri_b2 = 0.5*(1.0+time_upwind)*stream_tri_b2
@@ -421,7 +397,7 @@ contains
     use stella_geometry, only: gradpar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
-    use run_parameters, only: stream_cell, time_upwind
+    use run_parameters, only: time_upwind
     use run_parameters, only: driftkinetic_implicit
 
     implicit none
@@ -467,11 +443,7 @@ contains
     ! obtain dg^{n}/dz and store in dgdz
     ! NB: could eliminate this calculation at the expense of memory
     ! as this was calculated previously
-    if (stream_cell) then
-       call get_dzed_cell (iv,gold,dgdz)
-    else
-       call get_dzed (iv,gold,dgdz)
-    end if
+    call get_dzed_cell (iv,gold,dgdz)
 
     allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
     ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
@@ -486,11 +458,7 @@ contains
     deallocate (field)
 
     ! obtain d<phi>/dz and store in dphidz
-    if (stream_cell) then
-       call get_dzed_cell (iv,g,dphidz)
-    else
-       call get_dzed (iv,g,dphidz)
-    end if
+    call get_dzed_cell (iv,g,dphidz)
 
     fac = code_dt*spec(is)%stm
 
@@ -507,36 +475,17 @@ contains
     end if
 
     g = gold
-    if (stream_cell) then
-       call center_zed (iv,g)
-       call center_zed (iv,vpadf0dE_fac)
-!       if (iv < 0) then
-       if (stream_sign(iv) > 0) then
-          gp = gradpar_c(:,-1)
-       else
-          gp = gradpar_c(:,1)
-       end if
-       gpz = gp
-       vpadf0dE_fac_zf = vpadf0dE_fac
+
+    call center_zed (iv,g)
+    call center_zed (iv,vpadf0dE_fac)
+
+    if (stream_sign(iv) > 0) then
+       gp = gradpar_c(:,-1)
     else
-       gp = gradpar
-       ! treat zonal flow specially
-       if (zonal_mode(1)) then
-          do it = 1, ntubes
-             do ikx = 1, nakx
-                call center_zed (iv,g(1,ikx,:,it))
-             end do
-          end do
-          vpadf0dE_fac_zf = vpadf0dE_fac
-          call center_zed (iv,vpadf0dE_fac_zf)
-!          if (iv < 0) then
-          if (stream_sign(iv) > 0) then
-             gpz = gradpar_c(:,-1)
-          else
-             gpz = gradpar_c(:,1)
-          end if
-       end if
+       gp = gradpar_c(:,1)
     end if
+    gpz = gp
+    vpadf0dE_fac_zf = vpadf0dE_fac
 
     ! construct RHS of GK eqn
     if (zonal_mode(1)) then
