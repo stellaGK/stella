@@ -570,7 +570,7 @@ contains
 
   end subroutine fd_variable_upwinding_zed
 
-  subroutine fd_variable_upwinding_vpa (llim, f, del, sgn, upwnd, df)
+  subroutine fd_variable_upwinding_vpa (llim, f, del, sgn, upwnd, zero_bc, df)
 
     implicit none
 
@@ -578,33 +578,39 @@ contains
     complex, dimension (llim:), intent (in) :: f
     real, intent (in) :: del, upwnd
     integer, intent (in) :: sgn
+    logical, intent (in) :: zero_bc
     complex, dimension (llim:), intent (out) :: df
 
     integer :: i, istart, iend, ulim
 
-    ! if upwnd is zero or if vpa=0, then use centered differences
+    ! if upwnd is zero or if z=0, then use centered differences
     if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
        call second_order_centered_vpa (llim, f, del, df)
     else
        ulim = size(f)+llim-1
-       
+
        ! if sgn > 0, then stream speed is negative
        ! so sweep from more positive to more negative zed
        if (sgn > 0) then
-          i = ulim
-          df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i))/del
-          i = llim
-          df(i) = (0.5*(1.+upwnd)*f(i+1)-upwnd*f(i))/del
           istart = ulim
           iend = llim
        else
-          i = llim
-          df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i))/del
-          i = ulim
-          df(i) = (upwnd*f(i)-0.5*(1.+upwnd)*f(i-1))/del
           istart = llim
           iend = ulim
        end if
+
+       ! zero_bc assumes that g -> zero beyond grid
+       ! boundaries in vpa
+       ! zero_bc = .false. assumes that dg/dvpa -> zero at 
+       ! grid boundary in vpa from which info is being taken
+       if (zero_bc) then
+          df(istart) = sgn*(0.5*(upwnd-1.0)*f(istart-sgn)-upwnd*f(istart))/del
+       else
+          df(istart) = 0.0
+       end if
+       ! as do not have info beyond grid boundary at end of sweep
+       ! use pure upwinding
+       df(iend) = sgn*(f(iend+sgn)-f(iend))/del
 
        ! mixed centered and 1st order upwind scheme
        do i = istart-sgn, iend+sgn, -sgn
