@@ -13,6 +13,8 @@ module vpamu_grids
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
   public :: maxwellian_norm, vpa_zero_bc
+
+  logical :: vpamu_initialized = .false.
   
   integer :: nvgrid, nvpa
   integer :: nmu
@@ -103,10 +105,8 @@ contains
 
     implicit none
 
-    logical, save :: initialized = .false.
-
-    if (initialized) return
-    initialized = .true.
+    if (vpamu_initialized) return
+    vpamu_initialized = .true.
 
     call init_vpa_grid
     call init_mu_grid
@@ -621,6 +621,8 @@ contains
     
     call finish_vpa_grid
     call finish_mu_grid
+
+    vpamu_initialized = .false.
 
   end subroutine finish_vpamu_grids
 
