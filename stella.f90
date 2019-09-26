@@ -14,6 +14,7 @@ program stella
 
   logical :: debug = .false.
   logical :: stop_stella = .false.
+  logical :: mpi_initialized = .false.
 
   integer :: istep
   integer :: istatus
@@ -44,7 +45,8 @@ program stella
   end do
 
   if (debug) write (*,*) 'stella::finish_stella'
-  call finish_stella
+
+  call finish_stella (last_call=.true.)
 
 contains
 
@@ -91,7 +93,8 @@ contains
     character (500), target :: cbuff
 
     ! initialize mpi message passing
-    call init_mp
+    if (.not.mpi_initialized) call init_mp
+    mpi_initialized = .true.
 
     debug = debug .and. proc0
 
@@ -194,7 +197,7 @@ contains
 
   end subroutine write_start_message
 
-  subroutine finish_stella
+  subroutine finish_stella (last_call)
 
     use mp, only: finish_mp
     use mp, only: proc0
@@ -221,6 +224,8 @@ contains
     use kt_grids, only: finish_kt_grids
 
     implicit none
+
+    logical, intent (in), optional :: last_call
 
     if (debug) write (*,*) 'stella::finish_stella::finish_stella_diagnostics'
     call finish_stella_diagnostics
@@ -279,7 +284,10 @@ contains
 
     if (debug) write (*,*) 'stella::finish_stella::finish_mp'
     ! finish (clean up) mpi message passing
-    call finish_mp
+    if (present(last_call)) then
+       call finish_mp
+       mpi_initialized = .false.
+    end if
 
   end subroutine finish_stella
 
