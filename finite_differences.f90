@@ -111,7 +111,7 @@ contains
 
   end subroutine first_order_upwind_complex
   
-  subroutine third_order_upwind_complex (llim, f, del, sgn, zero_bc, df)
+  subroutine third_order_upwind_complex (llim, f, del, sgn, df)
     
     implicit none
     
@@ -119,7 +119,6 @@ contains
     complex, dimension (llim:), intent (in) :: f
     real, intent (in) :: del
     integer, intent (in) :: sgn
-    logical, intent (in) :: zero_bc
     complex, dimension (llim:), intent (out) :: df
     
     integer :: i, n, istart, iend
@@ -134,17 +133,12 @@ contains
     end if
 
     i = istart-sgn
-    if (zero_bc) then
-       ! zero BC, 1st order accurate upwind
-       df(istart) = -f(istart)*sgn/del
-       ! zero BC, 3rd order accurate upwind
-       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
-    else
-       ! zero derivative BC
-       df(istart) = 0.0
-       ! zero derivative BC, 3rd order accurate upwind
-       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-5.*f(i+sgn))/(6.*del)
-    end if
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+
+    ! zero BC, 3rd order accurate upwind
+    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+
     ! 1st order accurate upwind
     df(iend) = sgn*(f(iend+sgn)-f(iend))/del
 
@@ -155,7 +149,7 @@ contains
 
   end subroutine third_order_upwind_complex
 
-  subroutine third_order_upwind_real (llim, f, del, sgn, zero_bc, df)
+  subroutine third_order_upwind_real (llim, f, del, sgn, df)
     
     implicit none
     
@@ -163,7 +157,6 @@ contains
     real, dimension (llim:), intent (in) :: f
     real, intent (in) :: del
     integer, intent (in) :: sgn
-    logical, intent (in) :: zero_bc
     real, dimension (llim:), intent (out) :: df
     
     integer :: i, n, istart, iend
@@ -178,17 +171,11 @@ contains
     end if
 
     i = istart-sgn
-    if (zero_bc) then
-       ! zero BC, 1st order accurate upwind
-       df(istart) = -f(istart)*sgn/del
-       ! zero BC, 3rd order accurate upwind
-       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
-    else
-       ! zero derivative BC
-       df(istart) = 0.0
-       ! zero derivative BC, 3rd order accurate upwind
-       df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-5.*f(i+sgn))/(6.*del)
-    end if
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+    ! zero BC, 3rd order accurate upwind
+    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+
     ! 1st order accurate upwind
     df(iend) = sgn*(f(iend+sgn)-f(iend))/del
 
@@ -570,7 +557,7 @@ contains
 
   end subroutine fd_variable_upwinding_zed
 
-  subroutine fd_variable_upwinding_vpa (llim, f, del, sgn, upwnd, zero_bc, df)
+  subroutine fd_variable_upwinding_vpa (llim, f, del, sgn, upwnd, df)
 
     implicit none
 
@@ -578,7 +565,6 @@ contains
     complex, dimension (llim:), intent (in) :: f
     real, intent (in) :: del, upwnd
     integer, intent (in) :: sgn
-    logical, intent (in) :: zero_bc
     complex, dimension (llim:), intent (out) :: df
 
     integer :: i, istart, iend, ulim
@@ -601,13 +587,8 @@ contains
 
        ! zero_bc assumes that g -> zero beyond grid
        ! boundaries in vpa
-       ! zero_bc = .false. assumes that dg/dvpa -> zero at 
-       ! grid boundary in vpa from which info is being taken
-       if (zero_bc) then
-          df(istart) = sgn*(0.5*(upwnd-1.0)*f(istart-sgn)-upwnd*f(istart))/del
-       else
-          df(istart) = 0.0
-       end if
+       df(istart) = sgn*(0.5*(upwnd-1.0)*f(istart-sgn)-upwnd*f(istart))/del
+
        ! as do not have info beyond grid boundary at end of sweep
        ! use pure upwinding
        df(iend) = sgn*(f(iend+sgn)-f(iend))/del

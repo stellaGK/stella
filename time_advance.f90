@@ -1292,7 +1292,7 @@ contains
           ! advection velocity
           ! NB: advect_sign = -1 corresponds to positive advection velocity
           advect_sign = int(sign(1.0,advect_speed(imu,ixyz)))
-          call third_order_upwind (1,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,.true.,dgdv)
+          call third_order_upwind (1,gxy_vmulocal(:,imu,ixyz),dvpa,advect_sign,dgdv)
           gxy_vmulocal(:,imu,ixyz) = dgdv*advect_speed(imu,ixyz)
           cfl_dt = min(cfl_dt,dvpa/abs(advect_speed(imu,ixyz)))
        end do

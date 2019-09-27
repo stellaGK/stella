@@ -12,14 +12,12 @@ module vpamu_grids
   public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
-  public :: vpa_zero_bc
 
   logical :: vpamu_initialized = .false.
   
   integer :: nvgrid, nvpa
   integer :: nmu
   real :: vpa_max, vperp_max
-  logical :: vpa_zero_bc
 
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
@@ -65,7 +63,7 @@ contains
     implicit none
 
     namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
-         equally_spaced_mu_grid, vpa_zero_bc
+         equally_spaced_mu_grid
 
     integer :: in_file
     logical :: exist
@@ -77,7 +75,6 @@ contains
        nmu = 12
        vperp_max = 3.0
        equally_spaced_mu_grid = .false.
-       vpa_zero_bc = .true.
 
        in_file = input_unit_exist("vpamu_grids_parameters", exist)
        if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
@@ -89,7 +86,6 @@ contains
     call broadcast (nmu)
     call broadcast (vperp_max)
     call broadcast (equally_spaced_mu_grid)
-    call broadcast (vpa_zero_bc)
 
     nvpa = 2*nvgrid
 

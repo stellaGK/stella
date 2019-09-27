@@ -119,7 +119,6 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: dvpa, vpa, mu
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa_zero_bc
     use physics_flags, only: full_flux_surface
     use species, only: spec, nspec
     use kt_grids, only: nalpha
@@ -187,18 +186,12 @@ contains
     b(2:,1) = -vpa_upwind/dvpa
     c(2:nvpa-1,1) = 0.5*(1.0+vpa_upwind)/dvpa
     ! must treat boundary carefully
-    ! treatment of boundary for vpa_zero_bc seems inconsistent
+    ! treatment of boundary seems inconsistent
     ! implicit piece below is pure upwind, while
     ! explicit piece in fd_variable_upwind_vpa is mixed
     ! with assumed zero BC at extremes in both +/- vpa
     b(1,1) = -1.0/dvpa
     c(1,1) = 1.0/dvpa
-    ! vpa_zero_bc assumes g=0 at points just beyond vpa grid
-    ! if vpa_zero_bc = F, then assume dg/dvpa=0 at boundaries
-    if (.not.vpa_zero_bc) then
-       a(nvpa,1) = 0.0
-       b(nvpa,1) = 0.0
-    end if
        
     ! corresponds to sign of mirror term negative on RHS of equation
     a(2:nvpa-1,-1) = -0.5*(1.0+vpa_upwind)/dvpa
@@ -207,12 +200,6 @@ contains
     ! must treat boundary carefully
     a(nvpa,-1) = -1.0/dvpa
     b(nvpa,-1) = 1./dvpa
-    ! vpa_zero_bc assumes g=0 at points just beyond vpa grid
-    ! if vpa_zero_bc = F, then assume dg/dvpa=0 at boundaries
-    if (.not.vpa_zero_bc) then
-       b(1,-1) = 0.0
-       c(1,-1) = 0.0
-    end if
 
     tupwndfac = 0.5*(1.0+time_upwind)
     a = a*tupwndfac
@@ -341,7 +328,6 @@ contains
     complex, dimension (:,:,kxyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxyz, imu, iz, iy, is
-    logical :: zero_bc = .true.
     complex, dimension (:), allocatable :: tmp
 
     allocate (tmp(nvpa))
@@ -351,7 +337,7 @@ contains
        is = is_idx(kxyz_lo,ikxyz)
        do imu = 1, nmu
           ! tmp is dh/dvpa
-          call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),zero_bc,tmp)
+          call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
           g(:,imu,ikxyz) = tmp
        end do
     end do
@@ -370,7 +356,6 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxkyz, imu, iz, is
-    logical :: zero_bc
     complex, dimension (:), allocatable :: tmp
 
     allocate (tmp(nvpa))
@@ -378,7 +363,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          call third_order_upwind (1,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),zero_bc,tmp)
+          call third_order_upwind (1,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
           g(:,imu,ikxkyz) = tmp
        end do
     end do
@@ -448,7 +433,6 @@ contains
     use kt_grids, only: ny, nakx
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, maxwell_vpa
-    use vpamu_grids, only: vpa_zero_bc
     use neoclassical_terms, only: include_neoclassical_terms
     use run_parameters, only: vpa_upwind, time_upwind
     use run_parameters, only: mirror_semi_lagrange
@@ -558,7 +542,7 @@ contains
              do imu = 1, nmu
                 ! calculate dg/dvpa
                 call fd_variable_upwinding_vpa (1, gvmu(:,imu,ikxkyz), dvpa, &
-                     mirror_sign(1,iz), vpa_upwind, vpa_zero_bc, g0v(:,imu,ikxkyz))
+                     mirror_sign(1,iz), vpa_upwind, g0v(:,imu,ikxkyz))
                 ! construct RHS of GK equation for mirror advance;
                 ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
                 ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
@@ -586,7 +570,6 @@ contains
   subroutine vpa_interpolation (grid, interp)
 
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa_zero_bc
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, is_idx
     use run_parameters, only: mirror_linear_interp
@@ -623,34 +606,23 @@ contains
              end do
              ! either assume BC for g is zero beyond grid extrema
              ! or dg/dvpa is zero beyond grid extrema
-             if (.not.vpa_zero_bc) then
-                ! at boundary cell, use zero derivative BC for point just beyond boundary
-                interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)
-                ! use zero derivative BC for cells beyond +/- nvgrid
-                if (shift > 0) then
-                   interp(nvpa-shift+1:,imu,ikxkyz) = grid(nvpa,imu,ikxkyz)
-                else if (shift < 0) then
-                   interp(:-shift,imu,ikxkyz) = grid(1,imu,ikxkyz)
-                end if
-             else
-                ! at boundary cell, use zero incoming BC for point just beyond boundary
-                interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)*fac1
+             ! at boundary cell, use zero incoming BC for point just beyond boundary
+             interp(ulim+sgn,imu,ikxkyz) = grid(ulim+shift+sgn,imu,ikxkyz)*fac1
                 ! use zero incoming BC for cells beyond +/- nvgrid
-                if (shift > 0) then
+             if (shift > 0) then
 !                   interp(nvpa-shift+1:,imu,ikxkyz) = 0.
 
-                   do iv = nvpa-shift, nvpa
-                      interp(iv,imu,ikxkyz) = grid(nvpa,imu,ikxkyz)*real(nvpa-iv)/real(shift+1)
-                   end do
+                do iv = nvpa-shift, nvpa
+                   interp(iv,imu,ikxkyz) = grid(nvpa,imu,ikxkyz)*real(nvpa-iv)/real(shift+1)
+                end do
 
-                else if (shift < 0) then
+             else if (shift < 0) then
 !                   interp(:-shift,imu,ikxkyz) = 0.
 
-                   do iv = 1, -shift
-                      interp(iv,imu,ikxkyz) = grid(1,imu,ikxkyz)*real(iv-1)/real(-shift)
-                   end do
-                   
-                end if
+                do iv = 1, -shift
+                   interp(iv,imu,ikxkyz) = grid(1,imu,ikxkyz)*real(iv-1)/real(-shift)
+                end do
+                
              end if
           end do
        end do
@@ -713,32 +685,17 @@ contains
                         + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6.
                 end do
 
-                if (.not.vpa_zero_bc) then
-                   ! at boundary cell, use zero derivative BC for point just beyond boundary
-                   interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
-                        + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
-                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*(fac2+fac3))/6.
-                   interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
-                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*(fac1+fac2+fac3))/6.
-                   ! use zero derivative BC for cells beyond +/- nvgrid
-                   if (shift > 0) then
-                      interp(nvpa-shift+1:,imu,ikxkyz) = grid(nvpa,imu,ikxkyz)
-                   else if (shift < 0) then
-                      interp(:-shift,imu,ikxkyz) = grid(1,imu,ikxkyz)
-                   end if
-                else
-                   ! at boundary cell, use zero incoming BC for point just beyond boundary
-                   interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
-                        + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
-                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac2)/6.
-                   interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
-                        + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac1)/6.
-                   ! use zero incoming BC for cells beyond +/- nvgrid
-                   if (shift > 0) then
-                      interp(nvpa-shift+1:,imu,ikxkyz) = 0.
-                   else if (shift < 0) then
-                      interp(:-shift,imu,ikxkyz) = 0.
-                   end if
+                ! at boundary cell, use zero incoming BC for point just beyond boundary
+                interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &
+                     + grid(ulim+shift+sgn,imu,ikxkyz)*fac1 &
+                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac2)/6.
+                interp(ulim+2*sgn,imu,ikxkyz) = (grid(ulim+shift+sgn,imu,ikxkyz)*fac0 &
+                     + grid(ulim+shift+2*sgn,imu,ikxkyz)*fac1)/6.
+                ! use zero incoming BC for cells beyond +/- nvgrid
+                if (shift > 0) then
+                   interp(nvpa-shift+1:,imu,ikxkyz) = 0.
+                else if (shift < 0) then
+                   interp(:-shift,imu,ikxkyz) = 0.
                 end if
              end if
           end do
