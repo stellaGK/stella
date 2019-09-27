@@ -13,6 +13,7 @@ module run_parameters
   public :: stream_implicit, mirror_implicit
   public :: driftkinetic_implicit
   public :: fully_explicit
+  public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp
   public :: zed_upwind, vpa_upwind, time_upwind
@@ -27,6 +28,7 @@ module run_parameters
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
   logical :: fully_explicit
+  logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
   logical :: fields_kxkyz
@@ -77,7 +79,7 @@ contains
          delt_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
-         stream_matrix_inversion, &
+         stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz
@@ -90,6 +92,7 @@ contains
        stream_implicit = .true.
        mirror_implicit = .true.
        driftkinetic_implicit = .false.
+       maxwellian_inside_zed_derivative = .false.
        mirror_semi_lagrange = .true.
        mirror_linear_interp = .false.
        stream_matrix_inversion = .false.
@@ -122,6 +125,7 @@ contains
     call broadcast (stream_implicit)
     call broadcast (mirror_implicit)
     call broadcast (driftkinetic_implicit)
+    call broadcast (maxwellian_inside_zed_derivative)
     call broadcast (mirror_semi_lagrange)
     call broadcast (mirror_linear_interp)
     call broadcast (stream_matrix_inversion)

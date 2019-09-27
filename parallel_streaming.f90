@@ -160,12 +160,13 @@ contains
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
-    ! get dg/dz, with z the parallel coordinate and store in g0
+    ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        call gyro_average (phi, ivmu, g0(:,:,:,:,ivmu))
        if (driftkinetic_implicit) g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) - phi
     end do
 
+    ! get d<phi>/dz, with z the parallel coordinate and store in g1
     call get_dgdz (g0, g1)
 !    call get_dgdz_centered (g0, g1)
     ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
@@ -352,7 +353,7 @@ contains
     call invert_parstream_response (phi)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu) !; if (iv==0) cycle
+       iv = iv_idx(vmu_lo,ivmu)
     
        ! now have phi^{n+1} for non-negative kx
        ! obtain RHS of GK eqn; 
@@ -384,14 +385,15 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
-    use kt_grids, only: zonal_mode
     use gyro_averages, only: gyro_average
-    use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu
-    use stella_geometry, only: gradpar
+    use vpamu_grids, only: vpa, mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use stella_geometry, only: dbdzed
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
     use run_parameters, only: time_upwind
     use run_parameters, only: driftkinetic_implicit
+    use run_parameters, only: maxwellian_inside_zed_derivative
 
     implicit none
 
@@ -401,17 +403,15 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
     character (*), intent (in) :: eqn
 
-    integer :: iv, imu, is, iz, it, ikx, ia
+    integer :: iv, imu, is, iz, ia
     real :: tupwnd1, tupwnd2, fac
-    real, dimension (:), allocatable :: vpadf0dE_fac, vpadf0dE_fac_zf
-    real, dimension (:), allocatable :: gp, gpz
+    real, dimension (:), allocatable :: vpadf0dE_fac
+    real, dimension (:), allocatable :: gp
     complex, dimension (:,:,:,:), allocatable :: dgdz, dphidz
     complex, dimension (:,:,:,:), allocatable :: field
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
-    allocate (vpadf0dE_fac_zf(-nzgrid:nzgrid))
     allocate (gp(-nzgrid:nzgrid))
-    allocate (gpz(-nzgrid:nzgrid))
     allocate (dgdz(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (dphidz(naky,nakx,-nzgrid:nzgrid,ntubes))
 
@@ -450,51 +450,52 @@ contains
     end if
     deallocate (field)
 
-    ! obtain d<phi>/dz and store in dphidz
-    call get_dzed_cell (iv,g,dphidz)
-
-    fac = code_dt*spec(is)%stm
+    if (maxwellian_inside_zed_derivative) then
+       ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
+       g = g*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+       call get_dzed_cell (iv,g,dphidz)
+       ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
+       g = g*spread(spread(spread(dbdzed(ia,:),1,naky),2,nakx),4,ntubes)
+       call center_zed (iv,g)
+       ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
+       ! = d<phi>/dz * exp(-mu*B/T)
+       dphidz = dphidz + 2.0*mu(imu)*g
+    else
+       ! obtain d<phi>/dz and store in dphidz
+       call get_dzed_cell (iv,g,dphidz)
+       ! multiply by Maxwellian factor
+       dphidz = dphidz*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+    end if
 
     ! NB: could do this once at beginning of simulation to speed things up
     ! this is vpa*Z/T*exp(-vpa^2)
-    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu)
+    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv)
     ! if including neoclassical correction to equilibrium distribution function
     ! then must also account for -vpa*dF_neo/dvpa*Z/T
     if (include_neoclassical_terms) then
        do iz = -nzgrid, nzgrid
           vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(1,iz,ivmu)*spec(is)%zt
        end do
+       call center_zed (iv,vpadf0dE_fac)
     end if
 
     g = gold
-
     call center_zed (iv,g)
-    call center_zed (iv,vpadf0dE_fac)
 
     if (stream_sign(iv) > 0) then
        gp = gradpar_c(:,-1)
     else
        gp = gradpar_c(:,1)
     end if
-    gpz = gp
-    vpadf0dE_fac_zf = vpadf0dE_fac
 
     ! construct RHS of GK eqn
-    if (zonal_mode(1)) then
-       do iz = -nzgrid, nzgrid
-          g(1,:,iz,:) = g(1,:,iz,:) - fac*gpz(iz) &
-               * (tupwnd1*vpa(iv)*dgdz(1,:,iz,:) + vpadf0dE_fac_zf(iz)*dphidz(1,:,iz,:))
-          g(2:,:,iz,:) = g(2:,:,iz,:) - fac*gp(iz) &
-               * (tupwnd1*vpa(iv)*dgdz(2:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(2:,:,iz,:))
-       end do
-    else
-       do iz = -nzgrid, nzgrid
-          g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(iz) &
-               * (tupwnd1*vpa(iv)*dgdz(:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(:,:,iz,:))
-       end do
-    end if
+    fac = code_dt*spec(is)%stm
+    do iz = -nzgrid, nzgrid
+       g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(iz) &
+            * (tupwnd1*vpa(iv)*dgdz(:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(:,:,iz,:))
+    end do
 
-    deallocate (vpadf0dE_fac, vpadf0dE_fac_zf, gp, gpz)
+    deallocate (vpadf0dE_fac, gp)
     deallocate (dgdz, dphidz)
 
   end subroutine get_gke_rhs
