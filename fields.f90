@@ -463,15 +463,15 @@ contains
 
     use physics_flags, only: full_flux_surface
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky_all, ikx_max
+!    use kt_grids, only: naky_all, ikx_max
     use kt_grids, only: swap_kxky_ordered
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
 
-    integer :: it, iz
-    complex, dimension (:,:), allocatable :: phi_swap
+!    integer :: it, iz
+!    complex, dimension (:,:), allocatable :: phi_swap
 
     if (full_flux_surface) then
 !        ! need to invert 1-gamma0 operator

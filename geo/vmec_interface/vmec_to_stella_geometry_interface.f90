@@ -666,7 +666,7 @@ contains
           theta_vmec_min = theta_pest_target - 0.3
           theta_vmec_max = theta_pest_target + 0.3
           
-          call get_root (theta_vmec_min, theta_vmec_max, theta_vmec(ialpha,izeta), theta_converged, zeta(-nzgrid))
+          call get_root (theta_vmec_min, theta_vmec_max, theta_vmec(ialpha,izeta), theta_converged)
           ! In the 4th argument, we are telling the root-finder (fzero) to use theta_pest as the initial guess for theta_vmec.
 !          call fzero(fzero_residual, theta_vmec_min, theta_vmec_max, theta_pest_target, &
 !               root_solve_relative_tolerance, root_solve_absolute_tolerance, fzero_flag)
@@ -1536,14 +1536,13 @@ contains
 
   end subroutine vmec_to_stella_geometry_interface
 
-  subroutine get_root (a0, b0, root, converged, zet)
+  subroutine get_root (a0, b0, root, converged)
 
     implicit none
     
     real, intent (in) :: a0, b0
     real, intent (out) :: root
     logical, intent (out) :: converged
-    real, intent (in) :: zet
 
     integer, parameter :: itmax_bracket = 10
     integer, parameter :: itmax_root = 10

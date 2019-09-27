@@ -14,7 +14,6 @@ module parallel_streaming
 
   interface center_zed
      module procedure center_zed_segment_real
-     module procedure center_zed_segment_complex
      module procedure center_zed_extended
   end interface
 
@@ -436,7 +435,7 @@ contains
     ! obtain dg^{n}/dz and store in dgdz
     ! NB: could eliminate this calculation at the expense of memory
     ! as this was calculated previously
-    call get_dzed_cell (iv,gold,dgdz)
+    call get_dzed (iv,gold,dgdz)
 
     allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
     ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
@@ -453,7 +452,7 @@ contains
     if (maxwellian_inside_zed_derivative) then
        ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
        g = g*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
-       call get_dzed_cell (iv,g,dphidz)
+       call get_dzed (iv,g,dphidz)
        ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
        g = g*spread(spread(spread(dbdzed(ia,:),1,naky),2,nakx),4,ntubes)
        call center_zed (iv,g)
@@ -462,7 +461,7 @@ contains
        dphidz = dphidz + 2.0*mu(imu)*g
     else
        ! obtain d<phi>/dz and store in dphidz
-       call get_dzed_cell (iv,g,dphidz)
+       call get_dzed (iv,g,dphidz)
        ! multiply by Maxwellian factor
        dphidz = dphidz*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
     end if
@@ -767,58 +766,6 @@ contains
 
   subroutine get_dzed (iv, g, dgdz)
 
-    use finite_differences, only: fd_variable_upwinding_zed, fd_cell_centres_zed
-    use kt_grids, only: naky
-    use kt_grids, only: zonal_mode
-    use zgrid, only: nzgrid, delzed, ntubes
-    use extended_zgrid, only: neigen, nsegments
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: ikxmod
-    use extended_zgrid, only: fill_zed_ghost_zones
-    use run_parameters, only: zed_upwind
-
-    implicit none
-
-    integer, intent (in) :: iv
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
-
-    integer :: iky, ie, iseg, it
-    complex, dimension (2) :: gleft, gright
-
-    do iky = 1, naky
-       do it = 1, ntubes
-          do ie = 1, neigen(iky)
-             do iseg = 1, nsegments(ie,iky)
-                ! first fill in ghost zones at boundaries in g(z)
-                call fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
-                ! treat zonal flow specially
-                if (zonal_mode(iky)) then
-                   ! get finite difference approximation for dg/dz at cell centres
-                   ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-                   call fd_cell_centres_zed (iz_low(iseg), &
-                        g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                        delzed(0), stream_sign(iv), gleft(2), gright(1), &
-                        dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-                else
-                   ! get finite difference approximation for dg/dz
-                   ! with mixture of centered and upwinded scheme
-                   ! mixture controlled by zed_upwind (0 = centered, 1 = upwind)
-                   ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-                   call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                        g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                        delzed(0), stream_sign(iv), zed_upwind, gleft, gright, zonal_mode(iky), &
-                        dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-                end if
-             end do
-          end do
-       end do
-    end do
-
-  end subroutine get_dzed
-
-  subroutine get_dzed_cell (iv, g, dgdz)
-
     use finite_differences, only: fd_cell_centres_zed
     use kt_grids, only: naky
     use zgrid, only: nzgrid, delzed, ntubes
@@ -853,7 +800,7 @@ contains
        end do
     end do
 
-  end subroutine get_dzed_cell
+  end subroutine get_dzed
 
   subroutine center_zed_extended (iv, g)
 
@@ -916,24 +863,6 @@ contains
 
   end subroutine center_zed_segment_real
 
-  subroutine center_zed_segment_complex (iv, g)
-
-    use zgrid, only: nzgrid
-    use run_parameters, only: zed_upwind
-
-    integer, intent (in) :: iv
-    complex, dimension (-nzgrid:), intent (in out) :: g
-
-    if (stream_sign(iv) > 0) then
-       g(:nzgrid-1) = 0.5*((1.+zed_upwind)*g(:nzgrid-1) + (1.-zed_upwind)*g(-nzgrid+1:))
-       g(nzgrid) = g(-nzgrid)
-    else
-       g(-nzgrid+1:) = 0.5*((1.-zed_upwind)*g(:nzgrid-1) + (1.+zed_upwind)*g(-nzgrid+1:))
-       g(-nzgrid) = g(nzgrid)
-    end if
-
-  end subroutine center_zed_segment_complex
-  
   subroutine finish_parallel_streaming
 
     use run_parameters, only: stream_implicit, driftkinetic_implicit
