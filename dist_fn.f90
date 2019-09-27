@@ -217,12 +217,13 @@ contains
 
   subroutine deallocate_arrays
 
-    use dist_fn_arrays, only: gnew, gold
+    use dist_fn_arrays, only: gnew, gold, gvmu
 
     implicit none
 
     if (allocated(gnew)) deallocate (gnew)
     if (allocated(gold)) deallocate (gold)
+    if (allocated(gvmu)) deallocate (gvmu)
 
   end subroutine deallocate_arrays
 
