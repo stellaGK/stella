@@ -335,7 +335,6 @@ contains
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
     use vpamu_grids, only: nvpa, nmu, dvpa
-    use vpamu_grids, only: maxwellian_norm
 
     implicit none
 
@@ -344,8 +343,6 @@ contains
     integer :: ikxyz, imu, iz, iy, is
     logical :: zero_bc = .true.
     complex, dimension (:), allocatable :: tmp
-
-    if (maxwellian_norm) zero_bc = .false.
 
     allocate (tmp(nvpa))
     do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -367,7 +364,6 @@ contains
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
     use vpamu_grids, only: nvpa, nmu, dvpa
-    use vpamu_grids, only: maxwellian_norm
 
     implicit none
 
@@ -376,8 +372,6 @@ contains
     integer :: ikxkyz, imu, iz, is
     logical :: zero_bc
     complex, dimension (:), allocatable :: tmp
-
-    if (maxwellian_norm) zero_bc = .false.
 
     allocate (tmp(nvpa))
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -592,7 +586,6 @@ contains
   subroutine vpa_interpolation (grid, interp)
 
     use vpamu_grids, only: nvpa, nmu
-!    use vpamu_grids, only: maxwellian_norm
     use vpamu_grids, only: vpa_zero_bc
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, is_idx
@@ -628,7 +621,6 @@ contains
                 interp(iv,imu,ikxkyz) = grid(iv+shift,imu,ikxkyz)*fac1 &
                      + grid(iv+shift+sgn,imu,ikxkyz)*fac2
              end do
-!             if (maxwellian_norm .and. vpa_bc_zero_derivative) then
              ! either assume BC for g is zero beyond grid extrema
              ! or dg/dvpa is zero beyond grid extrema
              if (.not.vpa_zero_bc) then
@@ -721,7 +713,6 @@ contains
                         + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6.
                 end do
 
-!                if (maxwellian_norm .and. vpa_bc_zero_derivative) then
                 if (.not.vpa_zero_bc) then
                    ! at boundary cell, use zero derivative BC for point just beyond boundary
                    interp(ulim+sgn,imu,ikxkyz) = (grid(ulim+shift,imu,ikxkyz)*fac0 &

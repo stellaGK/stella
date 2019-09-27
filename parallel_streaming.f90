@@ -141,7 +141,7 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwellian_norm, maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use species, only: spec
     use gyro_averages, only: gyro_average
     use fields_arrays, only: phi
@@ -176,20 +176,13 @@ contains
     end if
 
     ia = 1
-    if (maxwellian_norm) then
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          is = is_idx(vmu_lo,ivmu)
-          g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) + g1(:,:,:,:,ivmu)*spec(is)%zt
-       end do
-    else
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          iv = iv_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          is = is_idx(vmu_lo,ivmu)
-          g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) + g1(:,:,:,:,ivmu)*spec(is)%zt &
-               *maxwell_vpa(iv)*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
-       end do
-    end if
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) + g1(:,:,:,:,ivmu)*spec(is)%zt &
+            *maxwell_vpa(iv)*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+    end do
 
     ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
     call add_stream_term (g0, gout)
@@ -393,7 +386,7 @@ contains
     use kt_grids, only: naky, nakx
     use kt_grids, only: zonal_mode
     use gyro_averages, only: gyro_average
-    use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu
     use stella_geometry, only: gradpar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
@@ -464,8 +457,7 @@ contains
 
     ! NB: could do this once at beginning of simulation to speed things up
     ! this is vpa*Z/T*exp(-vpa^2)
-    vpadf0dE_fac = vpa(iv)*spec(is)%zt
-    if (.not.maxwellian_norm) vpadf0dE_fac = vpadf0dE_fac*maxwell_vpa(iv)*maxwell_mu(ia,:,imu)
+    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu)
     ! if including neoclassical correction to equilibrium distribution function
     ! then must also account for -vpa*dF_neo/dvpa*Z/T
     if (include_neoclassical_terms) then

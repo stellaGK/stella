@@ -12,14 +12,14 @@ module vpamu_grids
   public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
-  public :: maxwellian_norm, vpa_zero_bc
+  public :: vpa_zero_bc
 
   logical :: vpamu_initialized = .false.
   
   integer :: nvgrid, nvpa
   integer :: nmu
   real :: vpa_max, vperp_max
-  logical :: maxwellian_norm, vpa_zero_bc
+  logical :: vpa_zero_bc
 
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
@@ -65,7 +65,7 @@ contains
     implicit none
 
     namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
-         equally_spaced_mu_grid, maxwellian_norm, vpa_zero_bc
+         equally_spaced_mu_grid, vpa_zero_bc
 
     integer :: in_file
     logical :: exist
@@ -77,16 +77,11 @@ contains
        nmu = 12
        vperp_max = 3.0
        equally_spaced_mu_grid = .false.
-       maxwellian_norm = .false.
        vpa_zero_bc = .true.
 
        in_file = input_unit_exist("vpamu_grids_parameters", exist)
        if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
 
-       if (maxwellian_norm .and. vpa_zero_bc) then
-          write (*,*) 'WARNING: Assuming unphysical BC of g/FM -> 0 beyond ends of vpa domain.'
-          write (*,*) 'WARNING: Recommend setting vpa_zero_bc = .false. or maxwellian_norm = .true.'
-       end if
     end if
 
     call broadcast (nvgrid)
@@ -94,7 +89,6 @@ contains
     call broadcast (nmu)
     call broadcast (vperp_max)
     call broadcast (equally_spaced_mu_grid)
-    call broadcast (maxwellian_norm)
     call broadcast (vpa_zero_bc)
 
     nvpa = 2*nvgrid
@@ -195,8 +189,6 @@ contains
     ! divide by 2 to account for double-counting
     wgts_vpa = 0.5*wgts_vpa
 
-    if (maxwellian_norm) wgts_vpa = wgts_vpa*maxwell_vpa
-
     wgts_vpa_default = wgts_vpa
 
   end subroutine init_vpa_grid
@@ -209,7 +201,6 @@ contains
 
     if (conservative) then
        wgts_vpa = dvpa
-       if (maxwellian_norm) wgts_vpa = wgts_vpa*maxwell_vpa
     else
        wgts_vpa = wgts_vpa_default
     end if
@@ -598,7 +589,6 @@ contains
     ! integration over gyro-angle and 1/pi^(3/2) normalization
     ! of velocity space Jacobian
     wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
-    if (maxwellian_norm) wgts_mu = wgts_mu*maxwell_mu
 
     deallocate (wgts_mu_tmp)
 

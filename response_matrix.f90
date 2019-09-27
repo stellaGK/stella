@@ -137,7 +137,7 @@ contains
     use species, only: spec
     use stella_geometry, only: gradpar
     use vpamu_grids, only: vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use fields_arrays, only: response_matrix
     use gyro_averages, only: aj0x
     use run_parameters, only: driftkinetic_implicit
@@ -180,15 +180,11 @@ contains
           gyro_fac = aj0x(iky,ikx,iz,ivmu)
        end if
 
-       fac = -0.5*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-            *gyro_fac*spec(is)%zt/delzed(0)
+       fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
+            *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv)
 
-       if (.not.maxwellian_norm) then
-          fac = fac*maxwell_vpa(iv)
-          gradpar_fac = gradpar*maxwell_mu(ia,:,imu)
-       end if
+       gradpar_fac = gradpar*maxwell_mu(ia,:,imu)
 
-       fac = 0.5*fac
        ! stream_sign < 0 corresponds to positive advection speed
        if (stream_sign(iv)<0) then
           if (iz > -nzgrid) then

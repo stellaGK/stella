@@ -616,7 +616,7 @@ contains
     use species, only: spec
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwellian_norm, maxwell_mu, ztmax
+    use vpamu_grids, only: maxwell_mu, ztmax
     use kt_grids, only: naky, nakx
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -641,14 +641,9 @@ contains
        is = is_idx(vmu_lo,ivmu)
        call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
        ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-       if (maxwellian_norm) then
-          g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + spec(is)%zt &
-               * spread((aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
-       else
-          g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
-               * spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx) &
-               * (aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
-       end if
+       g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
+            * spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx) &
+            * (aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
     end do
     call integrate_vmu (g2, spec%dens, dens)
 

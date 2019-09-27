@@ -1254,7 +1254,7 @@ contains
     use species, only: spec
     use vpamu_grids, only: nvpa, nvgrid, nmu
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwellian_norm, maxwell_mu, maxwell_vpa
+    use vpamu_grids, only: maxwell_mu, maxwell_vpa
     use globalVariables, only: nxi_sfincs => nxi
     use globalVariables, only: nx_sfincs => nx
     use globalVariables, only: x_sfincs => x
@@ -1328,8 +1328,6 @@ contains
        ! at the central sfincs simulation; i.e., it does not vary with radius
        ! to be consistent with stella distribution functions,
        ! want H_nc / (n_s / vt_s^3 * pi^(3/2)) / exp(-v^2/vts^2)
-       ! division by maxwellian depends on norm choice made in stella
-       ! note flag to this effect below (maxwellian_norm)
        f_neoclassical(:,imu) = f_neoclassical(:,imu) &
             * pi**1.5 * spec(is)%stm**3/spec(is)%dens
        
@@ -1338,8 +1336,6 @@ contains
        f_neoclassical(:,imu) = f_neoclassical(:,imu) &
             - phi_neoclassical*spec(is)%zt*maxwell_vpa*maxwell_mu(ialpha,iz,imu)
     end do
-    if (maxwellian_norm) f_neoclassical = f_neoclassical &
-         / (spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ialpha,iz,:),1,nvpa))
 
     deallocate (xi_stella, hstella, legpoly)
     deallocate (xsfincs_to_xstella)

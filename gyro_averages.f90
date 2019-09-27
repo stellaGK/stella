@@ -44,7 +44,7 @@ contains
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid, nztot
     use vpamu_grids, only: vperp2, nmu, nvpa
-    use vpamu_grids, only: maxwellian_norm, maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
 !    use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: integrate_species
     use vpamu_grids, only: mu
@@ -172,13 +172,11 @@ contains
                       arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ivmu) = j0(arg)
                       ! form coefficient needed to calculate 1-Gamma_0
-                      aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2)!*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
-                      ! weight with Maxwellian if not already accounted for by normalisation
-                      if (.not.maxwellian_norm) aj0_alpha(ivmu) = aj0_alpha(ivmu)*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+                      aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2) &
+                           * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
                    end do
 
                    ! calculate gamma0 = int d3v (1-J0^2)*F_{Maxwellian}
-!                   call integrate_vmu (aj0_alpha, ia, iz, gam0_alpha(ia,:))
                    call integrate_species (aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
                 end do
                 if (iz == 0 .and. ikx == 1 .and. iky == naky_all/2) then

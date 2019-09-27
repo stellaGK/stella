@@ -170,7 +170,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use gyro_averages, only: gyro_average
 
     implicit none
@@ -185,35 +185,20 @@ contains
     allocate (field(naky,nakx))
     allocate (adjust(naky,nakx))
 
-    if (maxwellian_norm) then
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          iv = iv_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          is = is_idx(vmu_lo,ivmu)
-          do it = 1, ntubes
-             do iz = -nzgrid, nzgrid
-                field = spec(is)%zt*facphi*phi(:,:,iz,it)
-                call gyro_average (field, iz, ivmu, adjust)
-                g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
-             end do
+    ia = 1
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+             field = spec(is)%zt*facphi*phi(:,:,iz,it) &
+                  *maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+             call gyro_average (field, iz, ivmu, adjust)
+             g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
           end do
        end do
-    else
-       ia = 1
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          iv = iv_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          is = is_idx(vmu_lo,ivmu)
-          do it = 1, ntubes
-             do iz = -nzgrid, nzgrid
-                field = spec(is)%zt*facphi*phi(:,:,iz,it) &
-                     *maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
-                call gyro_average (field, iz, ivmu, adjust)
-                g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
-             end do
-          end do
-       end do
-    end if
+    end do
 
     deallocate (field, adjust)
 
@@ -274,7 +259,7 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use gyro_averages, only: gyro_average
@@ -290,31 +275,18 @@ contains
     allocate (field(nvpa,nmu))
     allocate (adjust(nvpa,nmu))
 
-    if (maxwellian_norm) then
-       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          iz = iz_idx(kxkyz_lo,ikxkyz)
-          it = it_idx(kxkyz_lo,ikxkyz)
-          ikx = ikx_idx(kxkyz_lo,ikxkyz)
-          iky = iky_idx(kxkyz_lo,ikxkyz)
-          is = is_idx(kxkyz_lo,ikxkyz)
-          field = facphi*phi(iky,ikx,iz,it)*spec(is)%zt
-          call gyro_average (field, ikxkyz, adjust)
-          g(:,:,ikxkyz) = g(:,:,ikxkyz) + adjust
-       end do
-    else
-       ia = 1
-       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          iz = iz_idx(kxkyz_lo,ikxkyz)
-          it = it_idx(kxkyz_lo,ikxkyz)
-          ikx = ikx_idx(kxkyz_lo,ikxkyz)
-          iky = iky_idx(kxkyz_lo,ikxkyz)
-          is = is_idx(kxkyz_lo,ikxkyz)
-          field = facphi*phi(iky,ikx,iz,it)*spec(is)%zt &
-               *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
-          call gyro_average (field, ikxkyz, adjust)
-          g(:,:,ikxkyz) = g(:,:,ikxkyz) + adjust
-       end do
-    end if
+    ia = 1
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       field = facphi*phi(iky,ikx,iz,it)*spec(is)%zt &
+            *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       call gyro_average (field, ikxkyz, adjust)
+       g(:,:,ikxkyz) = g(:,:,ikxkyz) + adjust
+    end do
 
     deallocate (field, adjust)
 

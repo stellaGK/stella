@@ -37,7 +37,7 @@ contains
     use zgrid, only: nzgrid
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
     use kt_grids, only: naky, nakx, akx
@@ -88,9 +88,8 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa)
-          if (.not.maxwellian_norm) &
-               g0 = g0*spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+          g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
+               * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
           wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
           call integrate_vmu (g0, iz, tmp)
           gamtot(iky,ikx,iz) = gamtot(iky,ikx,iz) + tmp*wgt
@@ -134,13 +133,8 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          if (maxwellian_norm) then
-             g0 = spread(vpa**2,2,nmu) &
-                  * spread(aj0v(:,ikxkyz)**2,1,nvpa)
-          else
-             g0 = spread(maxwell_vpa*vpa**2,2,nmu) &
-                  * spread(maxwell_mu(ia,iz,:)*aj0v(:,ikxkyz)**2,1,nvpa)
-          end if
+          g0 = spread(maxwell_vpa*vpa**2,2,nmu) &
+               * spread(maxwell_mu(ia,iz,:)*aj0v(:,ikxkyz)**2,1,nvpa)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
           call integrate_vmu (g0, iz, tmp)
           apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt

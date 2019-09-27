@@ -185,7 +185,7 @@ contains
     use stella_geometry, only: geo_surf
     use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
     use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
@@ -236,8 +236,7 @@ contains
                + drhodpsi*dydalpha*dphineo_drho)
        end if
 
-       wdrifty_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv))
-       if (.not.maxwellian_norm) wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
+       wdrifty_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
             * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
@@ -262,8 +261,7 @@ contains
           wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)+code_dt*0.5*(gds24*dphineo_dzed &
                - dxdpsi*dphineo_dalpha)
        end if
-       wdriftx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv))
-       if (.not.maxwellian_norm) wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
+       wdriftx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
             * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
        ! if including neoclassical corrections to equilibrium,
        ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
@@ -290,7 +288,7 @@ contains
     use kt_grids, only: nalpha
     use stella_geometry, only: dydalpha, drhodpsi
     use vpamu_grids, only: vperp2, vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwellian_norm
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use dist_fn_arrays, only: wstar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_drho
@@ -313,26 +311,15 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
        energy = vpa(iv)**2 + vperp2(:,:,imu)
-       if (maxwellian_norm) then
-          if (include_neoclassical_terms) then
-             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-                  * ((spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-                  - dfneo_drho(:,:,ivmu))
-          else
-             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-                  * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
-          end if
+       if (include_neoclassical_terms) then
+          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+               * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+               * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
+               - dfneo_drho(:,:,ivmu))
        else
-          if (include_neoclassical_terms) then
-             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-                  * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
-                  * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-                  - dfneo_drho(:,:,ivmu))
-          else
-             wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-                  * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
-                  * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
-          end if
+          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+               * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+               * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
 
@@ -1166,7 +1153,6 @@ contains
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, vpa, mu
-    use vpamu_grids, only: maxwellian_norm
     use gyro_averages, only: gyro_average
     use parallel_streaming, only: stream_sign
     use dist_redistribute, only: xyz2vmu
@@ -1298,11 +1284,6 @@ contains
     if (proc0) call time_message(.false.,time_parallel_nl(:,2),' parallel nonlinearity redist')
     
     allocate (dgdv(nvpa))
-
-    if (maxwellian_norm) then
-       if (proc0) write (*,*) 'maxwellian_norm not yet implemented for parallel nonlinearity. aborting.'
-       call mp_abort ('maxwellian_norm not yet implemented for parallel nonlinearity. aborting.')
-    end if
 
     ! we now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
     do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
