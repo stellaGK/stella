@@ -1,0 +1,6 @@
+*.o
+*.a
+*.mod
+*.swp
+stella
+geo/vmec_interface/test_vmec_to_stella_geometry_interface
