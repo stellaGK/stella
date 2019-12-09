@@ -505,14 +505,18 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit
+    use multibox, only: multibox_communicate
 
     implicit none
 
     integer, intent (in) :: istep
 
+    call multibox_communicate
+
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
     phi_old = phi
+
 
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting

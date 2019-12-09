@@ -1,7 +1,7 @@
 program stella
 
   use redistribute, only: scatter
-  use job_manage, only: time_message, checkstop
+  use job_manage, only: time_message, checkstop, job_fork
   use run_parameters, only: nstep, fphi, fapar
   use stella_time, only: update_time, code_time, code_dt
   use dist_redistribute, only: kxkyz2vmu
@@ -55,7 +55,7 @@ contains
     use mp, only: init_mp, broadcast
     use mp, only: proc0
     use file_utils, only: init_file_utils
-    use file_utils, only: run_name
+    use file_utils, only: run_name, init_job_name
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
     use physics_flags, only: init_physics_flags
@@ -86,6 +86,7 @@ contains
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
+    use multibox, only: init_multibox
 
     implicit none
 
@@ -112,11 +113,14 @@ contains
        call init_file_utils (list)
        call time_message(.false.,time_total,' Total')
        call time_message(.false.,time_init,' Initialization')
-       cbuff = trim(run_name)
     end if
 
+    call broadcast (list)
+    if(list) call job_fork
+
+    if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)
-    if (.not. proc0) run_name => cbuff
+    if (.not. proc0) call init_job_name(cbuff)
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"
     call init_physics_flags
@@ -158,6 +162,8 @@ contains
     call init_fields
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
+    if (debug) write (6,*) 'stella::init_stella::init_multibox'
+    call init_multibox
     if (debug) write(6,*) "stella::init_stella::ginit"
     call ginit (restarted)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"

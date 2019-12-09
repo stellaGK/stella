@@ -4,6 +4,7 @@ module fields
 
   public :: init_fields, finish_fields
   public :: advance_fields, get_fields
+  public :: enforce_reality_field
   public :: get_fields_by_spec
   public :: gamtot, gamtot3
   public :: time_field_solve
@@ -172,6 +173,31 @@ contains
     end if
 
   end subroutine allocate_arrays
+
+  subroutine enforce_reality_field(fin)
+
+!DSO> while most of the mods in the box have reality built in (as we 
+!     throw out half the kx-ky plane, modes with ky=0 do not have
+!     this enforcement built in. In theory this shouldn't be a problem
+!     as these modes should be stable, but I made this function (and 
+!     its relative in the dist file) just in case
+
+    use kt_grids, only: naky, nakx
+    use zgrid, only: nzgrid
+    
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (inout) :: fin
+
+    integer ikx
+
+    fin(1,1,:,:) = real(fin(1,1,:,:))
+    do ikx = 2, nakx/2+1
+      fin(1,ikx,:,:) = 0.5*(fin(1,ikx,:,:) + conjg(fin(1,nakx-ikx+2,:,:)))
+      fin(1,nakx-ikx+2,:,:) = conjg(fin(1,ikx,:,:))
+    enddo
+
+  end subroutine enforce_reality_field
 
   subroutine advance_fields (g, phi, apar, dist)
 

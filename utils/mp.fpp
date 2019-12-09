@@ -36,7 +36,7 @@ module mp
   public :: waitany
   public :: mp_abort
 ! MAB> needed by Trinity
-  public :: scope, allprocs, subprocs
+  public :: scope, allprocs, subprocs, crossdomprocs
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB
@@ -51,17 +51,17 @@ module mp
   include 'mpif.h'
 #endif
   integer, pointer :: nproc
-  integer, target :: ntot_proc, ngroup_proc
+  integer, target :: ntot_proc, ngroup_proc, ndomain_proc
 
   integer, pointer :: iproc
-  integer, target :: aproc, gproc
+  integer, target :: aproc, gproc, cproc
 
   logical, pointer :: proc0
   logical, target :: aproc0, gproc0
 
   integer :: mpi_comm_world_private
   integer, pointer :: mp_comm
-  integer, target :: comm_all, comm_group
+  integer, target :: comm_all, comm_group, comm_cross
 
   integer, parameter :: mp_info = MPI_INFO_NULL
 
@@ -74,7 +74,7 @@ module mp
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
 # endif
-  integer, parameter :: allprocs = 0, subprocs = 1
+  integer, parameter :: allprocs = 0, subprocs = 1, crossdomprocs = 2
 
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
@@ -309,11 +309,17 @@ contains
        nproc => ntot_proc
        iproc => aproc
        proc0 => aproc0
-    else
+    else if(focus == subprocs) then
        mp_comm => comm_group
        nproc => ngroup_proc
        iproc => gproc
        proc0 => gproc0
+    else if(focus == crossdomprocs) then
+       mp_comm => comm_cross
+       nproc => ndomain_proc
+       iproc => cproc
+!DSO - 'proc0' in this subgroup is meaningless... be careful
+       proc0 => null()
     end if
 # endif
 
@@ -1955,6 +1961,9 @@ contains
 ! create 1d subgrids from 2d processor grid, variable belongs denotes
 ! whether processor grid is split by column or row
 
+! this group denotes processors on a single flux tube in a multi-tube
+! simulation (e.g. for Trinity)
+
     belongs(1) = .true.    ! this dimension belongs to subgrid
     belongs(0) = .false.  
 
@@ -1962,6 +1971,19 @@ contains
     call mpi_comm_rank(comm_group, gproc, ierr)     
     call mpi_cart_coords(comm_group, gproc, 1, coords1d, ierr)
     gproc0 = (gproc == 0)
+
+! this group denotes processor with different domains at shared
+! vpa_mu_s coordinates, with the intended purpose to couple separate
+! flux tubes radially
+
+    belongs(1) = .false.    ! this dimension belongs to subgrid
+    belongs(0) = .true.  
+
+    call mpi_cart_sub(comm2d, belongs, comm_cross, ierr)
+    call mpi_comm_rank(comm_cross, cproc, ierr)     
+    !call mpi_cart_coords(comm_cross, cproc, 1, crosscoords1d, ierr)
+
+    if (job /= cproc) call mp_abort("topology coordinates")
     
 ! find root process of each 1d subgrid and place in array group0 indexed 
 ! from 0 to subgrids-1

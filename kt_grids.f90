@@ -7,7 +7,7 @@ module kt_grids
   public :: read_kt_grids_parameters
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
-  public :: jtwist, ikx_twist_shift, y0
+  public :: jtwist, ikx_twist_shift, x0, y0
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -39,7 +39,7 @@ module kt_grids
   real :: aky_min, aky_max
   real :: akx_min, akx_max
   real :: theta0_min, theta0_max
-  real :: y0
+  real :: x0, y0
   logical :: read_kt_grids_initialized = .false.
   logical :: init_kt_grids_initialized = .false.
 
@@ -245,6 +245,8 @@ contains
     else
        dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
     end if
+
+    x0 = 1./dkx
 
     ! ky goes from zero to ky_max
     do iky = 1, naky

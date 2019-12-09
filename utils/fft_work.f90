@@ -8,8 +8,12 @@ module fft_work
 
   public :: fft_type, delete_fft
   public :: init_ccfftw, init_crfftw, init_rcfftw
+  public :: FFT_BACKWARD, FFT_FORWARD
 
   private
+
+  integer, parameter :: FFT_BACKWARD = FFTW_BACKWARD
+  integer, parameter :: FFT_FORWARD  = FFTW_FORWARD
 
   type :: fft_type
      integer :: n, is, type

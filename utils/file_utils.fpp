@@ -3,6 +3,8 @@
 module file_utils
 
   implicit none
+
+  
   private
 
   public :: init_file_utils
@@ -87,12 +89,27 @@ module file_utils
 
 !  public :: num_input_lines
 
+
   public :: stdout_unit
+
+  public :: runtype_option_switch
+  public :: runtype_option_standalone
+  public :: runtype_option_trinity
+  public :: runtype_option_list
+  public :: runtype_option_multibox
+
+
 
   character (500), pointer :: run_name
   character (500), target :: arun_name, job_name
   character (500) :: list_name
   integer, parameter :: stdout_unit=6
+  integer :: runtype_option_switch
+  integer, parameter :: runtype_option_standalone = 0, &
+                        runtype_option_list       = 1, &
+                        runtype_option_trinity    = 2, &
+                        runtype_option_multibox   = 3
+     
   integer, save :: input_unit_no, error_unit_no=stdout_unit
 ! TT>
   integer, save, public :: num_input_lines

@@ -20,7 +20,7 @@ module dist_fn_arrays
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
-  ! (nvpa, nmu, nspec, -kxkyz-layout-)
+  ! (nvpa, nmu, -kxkyz-layout-)
 
   real, dimension (:,:,:), allocatable :: wstar
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
