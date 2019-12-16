@@ -13,11 +13,13 @@ module stella_io
 
   public :: init_stella_io, finish_stella_io
   public :: write_time_nc
+  public :: write_phi2_nc
   public :: write_phi_nc
   public :: write_gvmus_nc
   public :: write_gzvs_nc
   public :: write_kspectra_nc
   public :: write_moments_nc
+  public :: sync_nc
 
 # ifdef NETCDF
   integer (kind_nf) :: ncid
@@ -682,6 +684,26 @@ contains
 
   end subroutine write_time_nc
 
+  subroutine write_phi2_nc (nout, phi2)
+
+# ifdef NETCDF
+    use netcdf, only: nf90_put_var
+# endif
+
+    implicit none
+
+    integer, intent (in) :: nout
+    real, intent (in) :: phi2
+
+# ifdef NETCDF
+    integer :: status
+
+    status = nf90_put_var (ncid, phi2_id, phi2, start=(/ nout /))
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, phi2_id)
+# endif
+
+  end subroutine write_phi2_nc
+
   subroutine write_phi_nc (nout, phi)
 
     use convert, only: c2r
@@ -960,5 +982,19 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, drhodpsi_id)
 # endif
   end subroutine nc_geo
+
+  subroutine sync_nc
+
+# ifdef NETCDF
+    use netcdf, only: nf90_sync
+
+    implicit none 
+    integer :: status
+
+    status = nf90_sync (ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid)
+
+# endif
+  end subroutine sync_nc
 
 end module stella_io

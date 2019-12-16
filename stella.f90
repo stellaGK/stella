@@ -53,8 +53,8 @@ contains
   subroutine init_stella
 
     use mp, only: init_mp, broadcast
-    use mp, only: proc0
-    use file_utils, only: init_file_utils
+    use mp, only: proc0,job
+    use file_utils, only: init_file_utils, runtype_option_switch
     use file_utils, only: run_name, init_job_name
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
@@ -87,11 +87,14 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
     use multibox, only: init_multibox
+    use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
 
     logical :: exit, list, restarted
     character (500), target :: cbuff
+    integer, dimension (:), allocatable  :: seed
+    integer :: seed_length
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
@@ -116,11 +119,18 @@ contains
     end if
 
     call broadcast (list)
+    call broadcast (runtype_option_switch)
     if(list) call job_fork
 
     if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)
     if (.not. proc0) call init_job_name(cbuff)
+
+    
+    if (debug) write(6,*) "stella::init_stella::init_ranf"
+    allocate(seed(get_rnd_seed_length()))
+    seed(1) = job
+    call init_ranf(.false.,seed)
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"
     call init_physics_flags
@@ -183,6 +193,8 @@ contains
     call init_tstart (tstart)
 
     if (proc0) call time_message(.false.,time_init,' Initialization')
+
+    deallocate(seed)
 
   end subroutine init_stella
 

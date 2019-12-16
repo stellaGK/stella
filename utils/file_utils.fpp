@@ -93,10 +93,10 @@ module file_utils
   public :: stdout_unit
 
   public :: runtype_option_switch
-  public :: runtype_option_standalone
-  public :: runtype_option_trinity
-  public :: runtype_option_list
-  public :: runtype_option_multibox
+  public :: runtype_standalone
+  public :: runtype_trinity
+  public :: runtype_list
+  public :: runtype_multibox
 
 
 
@@ -105,10 +105,10 @@ module file_utils
   character (500) :: list_name
   integer, parameter :: stdout_unit=6
   integer :: runtype_option_switch
-  integer, parameter :: runtype_option_standalone = 0, &
-                        runtype_option_list       = 1, &
-                        runtype_option_trinity    = 2, &
-                        runtype_option_multibox   = 3
+  integer, parameter :: runtype_standalone = 0, &
+                        runtype_list       = 1, &
+                        runtype_trinity    = 2, &
+                        runtype_multibox   = 3
      
   integer, save :: input_unit_no, error_unit_no=stdout_unit
 ! TT>
@@ -154,7 +154,8 @@ contains
        ! get runname from command line and
        ! set list=T if input ends in ".list"
        call run_type (list)
-    else
+    else if(present(trin_run)) then
+      if(trin_run) runtype_option_switch=runtype_trinity
        list = .false.
     end if
 ! <TT
@@ -188,6 +189,7 @@ contains
     logical, intent (out) :: list
     integer :: l, ierr
 
+    list = .false.
     ! get argument from command line and put in arun_name
     if (cl_iargc() /= 0) then
        call cl_getarg (1, arun_name, l, ierr)
@@ -196,16 +198,15 @@ contains
        end if
     end if
 
-!!$# if FCOMPILER == _XL_
-!    if arun_name ends in .list, set list = T
-    list = (l > 5 .and. arun_name(l-4:l) == ".list")
-!!$# else
-!!$    if (l>5) then
-!!$       list = arun_name(l-4:l) == ".list"
-!!$    else
-!!$       list = .false.
-!!$    end if
-!!$# endif
+    if(l > 5 .and. arun_name(l-4:l) == ".list") then
+      list= .true.
+      runtype_option_switch = runtype_list
+    endif
+
+    if(l > 6 .and. arun_name(l-5:l) == ".multi") then
+      list= .true.
+      runtype_option_switch = runtype_multibox
+    endif
 
   end subroutine run_type
 

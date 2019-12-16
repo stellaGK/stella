@@ -1008,6 +1008,7 @@ contains
   subroutine advance_ExB_nonlinearity (g, gout, restart_time_step)
 
     use mp, only: proc0, min_allreduce
+    use mp, only: scope, allprocs, subprocs
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
@@ -1022,6 +1023,7 @@ contains
     use physics_flags, only: full_flux_surface
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
+    use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
 
@@ -1106,7 +1108,13 @@ contains
     end do
     deallocate (g0k, g0k_swap, g0kxy, g0xy, g1xy, bracket)
 
+
+    if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+
     call min_allreduce (cfl_dt)
+
+    if(runtype_option_switch == runtype_multibox) call scope(subprocs)
+
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
@@ -1137,6 +1145,7 @@ contains
 
     use constants, only: zi
     use mp, only: proc0, min_allreduce, mp_abort
+    use mp, only: scope, allprocs,subprocs
     use stella_layouts, only: vmu_lo, xyz_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
@@ -1160,6 +1169,7 @@ contains
     use gyro_averages, only: gyro_average
     use parallel_streaming, only: stream_sign
     use dist_redistribute, only: xyz2vmu
+    use file_utils, only: runtype_option_switch, runtype_multibox
     use extended_zgrid, only: fill_zed_ghost_zones
 
     implicit none
@@ -1334,7 +1344,11 @@ contains
     end do
     deallocate (g0k, g0kxy, g0xy)
 
+    if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+
     call min_allreduce (cfl_dt)
+
+    if(runtype_option_switch == runtype_multibox) call scope(subprocs)
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then

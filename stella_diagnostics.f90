@@ -215,7 +215,7 @@ contains
 
   subroutine diagnose_stella (istep)
 
-    use mp, only: proc0
+    use mp, only: proc0,job
     use constants, only: zi
     use redistribute, only: scatter
     use fields_arrays, only: phi, apar
@@ -223,11 +223,13 @@ contains
     use dist_fn_arrays, only: gvmu, gnew
 !    use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
+    use stella_io, only: write_phi2_nc
     use stella_io, only: write_phi_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
     use stella_io, only: write_moments_nc
+    use stella_io, only: sync_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
@@ -291,8 +293,8 @@ contains
     if (proc0) then
        call volume_average (phi, phi2)
        call volume_average (apar, apar2)
-       write (*,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
-            'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
+       write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
+            'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, "job=", job
        call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
             omega_vs_time(mod(istep,navg)+1,:,:), omega_avg)
     end if
@@ -303,6 +305,7 @@ contains
     if (proc0) then
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
        call write_time_nc (nout, code_time)
+       call write_phi2_nc (nout, phi2)
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi)
@@ -348,6 +351,8 @@ contains
 !        call get_fluxes_vs_zvpa (gnew, pflx_zvpa, vflx_zvpa, qflx_zvpa)
 !        deallocate (pflx_zvpa, vflx_zvpa, qflx_zvpa)
 !     end if
+
+    call sync_nc
 
     deallocate (part_flux, mom_flux, heat_flux)
 
@@ -806,9 +811,14 @@ contains
     write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
          'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
 
+    call flush(stdout_unit)
+
     write (nspec_str,'(i3)') 3*nspec+1
     str = trim('('//trim(nspec_str)//'e12.4)')
     write (fluxes_unit,str) code_time, pflx, vflx, qflx
+
+    call flush(stdout_unit)
+    call flush(fluxes_unit)
 
     if (write_omega .and. istep > 0) then
        do iky = 1, naky
@@ -820,6 +830,7 @@ contains
           if (nakx > 1) write (omega_unit,*)
        end do
        if (naky > 1) write (omega_unit,*)
+       call flush(omega_unit)
     end if
 
   end subroutine write_loop_ascii_files

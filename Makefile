@@ -336,6 +336,8 @@ cleanlib:
 
 distclean: unlink clean cleanlib
 
+%.o: %.mod
+
 tar:
 	@[ ! -d $(TARDIR) ] || echo "ERROR: directory $(TARDIR) exists. Stop."
 	@[ -d $(TARDIR) ] || $(MAKE) tar_exec
