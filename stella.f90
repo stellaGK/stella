@@ -95,6 +95,7 @@ contains
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
     integer :: seed_length
+    integer, dimension(8) :: values
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
@@ -129,7 +130,9 @@ contains
     
     if (debug) write(6,*) "stella::init_stella::init_ranf"
     allocate(seed(get_rnd_seed_length()))
-    seed(1) = job
+    call date_and_time(VALUES=values)
+    seed(1) = (job+2)*values(8)
+    write(*,*) job, seed(1)
     call init_ranf(.false.,seed)
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"

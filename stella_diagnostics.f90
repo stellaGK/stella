@@ -352,7 +352,7 @@ contains
 !        deallocate (pflx_zvpa, vflx_zvpa, qflx_zvpa)
 !     end if
 
-    call sync_nc
+    if (proc0) call sync_nc
 
     deallocate (part_flux, mom_flux, heat_flux)
 

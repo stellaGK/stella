@@ -83,6 +83,9 @@ contains
   end subroutine get_rnd_seed
 !-------------------------------------------------------------------
   subroutine init_ranf(randomize,init_seed)
+# if RANDOM == _RANMT_
+    use mt19937, only: sgrnd, grnd
+# endif
     ! <doc>
     !  init_ranf seeds the choosen random number generator.
     !  if randomize=T, a random seed based on the date and time is used.
@@ -92,6 +95,7 @@ contains
     implicit none
     logical, intent(in) :: randomize
     integer, intent(inout), dimension(:) :: init_seed
+    integer :: lseed
 # if RANDOM == _RANMT_
     real :: rnd
     
@@ -99,16 +103,17 @@ contains
        !Use intrinsic function with randomized seed to generate seed for MT
        call random_seed()
        call random_number(rnd)
-       init_seed=int(rnd*2.**31)
-       call sgrnd(init_seed)
+       lseed=int(rnd*2.**31)
+       call sgrnd(lseed)
     else
-       call sgrnd(init_seed)
+       call sgrnd(init_seed(1))
     endif
 # else
     if (randomize) then
        call random_seed()
        call random_seed(get=init_seed)
     else
+       write(*,*) 'hello'
        call random_seed(put=init_seed)
     endif
 # endif
