@@ -7,6 +7,8 @@ module multibox
   public :: init_multibox
   public :: finish_multibox
   public :: multibox_communicate
+  public :: boundary_size
+  public :: shear_rate
 
   private
 
@@ -40,6 +42,7 @@ module multibox
   real, dimension (:), allocatable :: fft_x_x
 
   real :: conv_d
+  real :: shear_rate
 
   integer :: g_buff_size
   integer :: phi_buff_size
@@ -84,13 +87,14 @@ contains
     type (fft_type) :: conv_fft
 
 
-    namelist /multibox_parameters/ bbits, b_offset, boundary_size
+    namelist /multibox_parameters/ bbits, b_offset, boundary_size, shear_rate
 
     if(runtype_option_switch /= runtype_multibox) return
 
     bbits = 1 ! just the 0th derivative as default
     b_offset = 0 
     boundary_size = 4
+    shear_rate = 0
 
 
     if (proc0) then
@@ -250,7 +254,7 @@ contains
     if(runtype_option_switch /= runtype_multibox) return
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
-    if(mod(temp_ind,5)==0) then
+    if(mod(temp_ind,50)==0) then
       call swap_kxky(phi(:,:,0,1),fft_swap)
       call transform_ky2y_2d(fft_swap,fft_kxy)
       call transform_kx2x(fft_kxy,fft_xy)  

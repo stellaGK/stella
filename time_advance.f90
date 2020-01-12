@@ -1008,7 +1008,7 @@ contains
   subroutine advance_ExB_nonlinearity (g, gout, restart_time_step)
 
     use mp, only: proc0, min_allreduce
-    use mp, only: scope, allprocs, subprocs
+    use mp, only: scope, allprocs, subprocs, job
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
@@ -1024,6 +1024,7 @@ contains
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use multibox, only: boundary_size, shear_rate
 
     implicit none
 
@@ -1031,11 +1032,13 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
     logical, intent (out) :: restart_time_step
     
-    integer :: ivmu, iz, it
+    integer :: ivmu, iz, it,i
 
     complex, dimension (:,:), allocatable :: g0k, g0k_swap
     complex, dimension (:,:), allocatable :: g0kxy
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
+    real, dimension (:), allocatable :: shear
+    integer ccount
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
@@ -1048,6 +1051,25 @@ contains
     allocate (g0xy(ny,nx))
     allocate (g1xy(ny,nx))
     allocate (bracket(ny,nx))
+    allocate (shear(nx))
+
+    shear=0.0
+
+    if(runtype_option_switch == runtype_multibox)  then
+      ccount = nx - 2*boundary_size
+      select case (job)
+      case (0)
+        shear=-shear_rate
+      case (1)
+        shear(1:boundary_size)         = -shear_rate
+        shear((nx-boundary_size+1):nx) =  shear_rate
+        do i=1,ccount
+          shear(i+boundary_size) = 2*shear_rate*(i- ccount/2)/(1.0*ccount+1);
+        enddo
+      case (2)
+        shear= shear_rate
+      end select
+    endif
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1074,7 +1096,7 @@ contains
              call swap_kxky (g0k, g0k_swap)
              call transform_ky2y (g0k_swap, g0kxy)
              call transform_kx2x (g0kxy, g1xy)
-             g1xy = g1xy*exb_nonlin_fac
+             g1xy = g1xy*exb_nonlin_fac - spread(shear,1,ny)
              bracket = g0xy*g1xy
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
