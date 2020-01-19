@@ -1025,6 +1025,7 @@ contains
     use constants, only: pi
     use file_utils, only: runtype_option_switch, runtype_multibox
     use multibox, only: boundary_size, shear_rate
+    use smooth_step
 
     implicit none
 
@@ -1038,6 +1039,7 @@ contains
     complex, dimension (:,:), allocatable :: g0kxy
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
     real, dimension (:), allocatable :: shear
+    real :: r0
     integer ccount
 
     ! alpha-component of magnetic drift (requires ky -> y)
@@ -1064,7 +1066,8 @@ contains
         shear(1:boundary_size)         = -shear_rate
         shear((nx-boundary_size+1):nx) =  shear_rate
         do i=1,ccount
-          shear(i+boundary_size) = 2*shear_rate*(i- ccount/2)/(1.0*ccount+1);
+          r0 = (1.0*i)/(1.0*ccount+1)
+          shear(i+boundary_size) = smoothstep(r0,2,-shear_rate,shear_rate)
         enddo
       case (2)
         shear= shear_rate
