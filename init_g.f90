@@ -353,7 +353,9 @@ contains
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-    use mp, only: proc0, broadcast
+    use mp, only: proc0, broadcast, min_allreduce
+    use mp, only: scope, allprocs, subprocs
+    use file_utils, only: runtype_option_switch, runtype_multibox
     use ran
 
     implicit none
@@ -378,6 +380,11 @@ contains
        if (naky > 1 .and. nakx > 1) then
           kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
           phi(1,1,:,:) = 0.0
+          if(runtype_option_switch == runtype_multibox) then
+           call scope(allprocs)
+           call min_allreduce (kmin)
+           call scope(subprocs)
+         end if
        end if
 
        !Fill phi with random (complex) numbers between -0.5 and 0.5
