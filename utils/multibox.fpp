@@ -262,7 +262,7 @@ contains
       open (unit=fout, file=filename, status="replace",action="write")
       do ii=1,naky_f
         do jj=1,nakx
-          write (fout,*) ii,jj,fft_xy(jj,ii)
+          write (fout,*) jj,ii,fft_xy(ii,jj)
         enddo
           write (fout,*) ""
       enddo

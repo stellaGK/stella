@@ -354,7 +354,7 @@ contains
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use mp, only: proc0, broadcast, min_allreduce
-    use mp, only: scope, allprocs, subprocs
+    use mp, only: scope, crossdomprocs, subprocs
     use file_utils, only: runtype_option_switch, runtype_multibox
     use ran
 
@@ -381,7 +381,7 @@ contains
           kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
           phi(1,1,:,:) = 0.0
           if(runtype_option_switch == runtype_multibox) then
-           call scope(allprocs)
+           call scope(crossdomprocs)
            call min_allreduce (kmin)
            call scope(subprocs)
          end if

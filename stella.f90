@@ -132,7 +132,6 @@ contains
     allocate(seed(get_rnd_seed_length()))
     call date_and_time(VALUES=values)
     seed(1) = (job+2)*values(8)
-    write(*,*) job, seed(1)
     call init_ranf(.false.,seed)
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"
