@@ -48,8 +48,8 @@ USE_HDF5=
 #unfortunately some clash with values we use
 ifdef USE_NETCDF
   NETCDF_DIR=$(NETCDFF_HOME)
-  NETCDF_INC= -I $(NETCDF_DIR)/include/ -I$(NETCDF_INCLUDE)
-  NETCDF_LIB= -L $(NETCDF_DIR)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
+  NETCDF_INC= -I$(NETCDF_DIR)/include/ -I$(NETCDF_INCLUDE)
+  NETCDF_LIB= -L$(NETCDF_DIR)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 endif
 
 ifdef USE_SFINCS
@@ -61,4 +61,9 @@ ifdef USE_SFINCS
 
       HDF5_INC = -I$(HDF5_HOME)/include
       HDF5_LIB = -L$(HDF5_HOME)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5 -lhdf5_hl
+else
+      PETSC_INC = 
+      PETSC_LIB = 
+      HDF5_INC = 
+      HDF5_LIB = 
 endif
