@@ -94,7 +94,6 @@ contains
     logical :: exit, list, restarted
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
-    integer :: seed_length
     integer, dimension(8) :: values
 
     ! initialize mpi message passing

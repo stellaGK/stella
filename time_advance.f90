@@ -1058,11 +1058,11 @@ contains
     shear=0.0
 
     if(runtype_option_switch == runtype_multibox)  then
-      ccount = nx - 2*boundary_size
       select case (job)
       case (0)
         shear=-shear_rate
       case (1)
+        ccount = nx - 2*boundary_size
         shear(1:boundary_size)         = -shear_rate
         shear((nx-boundary_size+1):nx) =  shear_rate
         do i=1,ccount
@@ -1131,7 +1131,7 @@ contains
        gout(1,:,-nzgrid,:,ivmu) = 0.5*(gout(1,:,nzgrid,:,ivmu)+gout(1,:,-nzgrid,:,ivmu))
        gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
     end do
-    deallocate (g0k, g0k_swap, g0kxy, g0xy, g1xy, bracket)
+    deallocate (g0k, g0k_swap, g0kxy, g0xy, g1xy, bracket,shear)
 
 
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
