@@ -38,7 +38,7 @@ module stella_diagnostics
   integer :: nout = 1
   logical :: diagnostics_initialized = .false.
 
-  logical :: debug = .false.
+  logical :: debug = .true.
 
 contains
 
@@ -255,6 +255,9 @@ contains
 
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
 
+    ! only write data to file every nwrite time steps
+    if (mod(istep,nwrite) /= 0) return
+
     ! calculation of omega requires computation of omega more
     ! frequently than every nwrite time steps
     if (write_omega .and. proc0) then
@@ -277,8 +280,6 @@ contains
        allocate (omega_avg(1,1))
     end if
 
-    ! only write data to file every nwrite time steps
-    if (mod(istep,nwrite) /= 0) return
 
     allocate (part_flux(nspec))
     allocate (mom_flux(nspec))

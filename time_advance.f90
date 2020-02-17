@@ -65,7 +65,7 @@ module time_advance
   real, dimension (2,9) :: time_gke = 0.
   real, dimension (2,2) :: time_parallel_nl = 0.
 
-  logical :: debug = .false.
+  logical :: debug = .true.
 
 contains
 
@@ -511,6 +511,7 @@ contains
 
     integer, intent (in) :: istep
 
+    if (debug) write (*,*) 'time_advance::multibox'
     call multibox_communicate
 
     ! save value of phi
@@ -1045,6 +1046,8 @@ contains
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
+    if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+
     restart_time_step = .false.
 
     allocate (g0k(naky,nakx))
@@ -1074,7 +1077,6 @@ contains
       end select
     endif
 
-    if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid

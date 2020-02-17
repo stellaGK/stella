@@ -46,7 +46,7 @@ contains
   subroutine init_multibox
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky
+    use kt_grids, only: naky
     use file_utils, only: input_unit_exist
     use file_utils, only: runtype_option_switch, runtype_multibox
     use mp, only: broadcast, proc0
@@ -114,7 +114,7 @@ contains
     use stella_layouts, only: vmu_lo
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, &
-                  send, receive
+                  send, receive, proc0
 
     implicit none
 
@@ -130,8 +130,9 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 
-    if(mod(temp_ind,50)==0) then
-      call get_unused_unit(temp_unit)
+    if(mod(temp_ind,50)==0 .and. proc0) then
+     ! call get_unused_unit(temp_unit)
+      temp_unit=3023+job
       call transform_kx2x(phi(:,:,0,1),fft_xky)  
       call transform_ky2y(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
@@ -140,7 +141,7 @@ contains
         do jj=1,nakx
           write (temp_unit,*) jj,ii,fft_xy(ii,jj)
         enddo
-          write (temp_unit,*) ""
+        write (temp_unit,*) ""
       enddo
       close (unit=temp_unit)
     endif
@@ -223,7 +224,6 @@ contains
 
   subroutine init_mb_transforms
 
-    use physics_flags, only: full_flux_surface
     use stella_layouts, only: init_stella_layouts
     use kt_grids, only: nakx, naky, naky_all
 
@@ -353,8 +353,6 @@ contains
 
 
   subroutine finish_mb_transforms
-
-    use physics_flags, only: full_flux_surface
 
     implicit none
 
