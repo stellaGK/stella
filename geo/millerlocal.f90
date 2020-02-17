@@ -208,7 +208,7 @@ contains
        end do
     end do
 
-    allocate (delthet(-nz:nz-1))
+    if (.not.allocated(delthet)) allocate (delthet(-nz:nz-1))
     ! get delta theta as a function of theta
     delthet = theta(-nz+1:)-theta(:nz-1)
 
@@ -525,6 +525,7 @@ contains
     deallocate (cross)
     deallocate (dcrossdr)
     deallocate (d2R, d2Z)
+    if (allocated(delthet)) deallocate (delthet)
 
   end subroutine deallocate_arrays
 
