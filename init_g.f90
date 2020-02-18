@@ -196,10 +196,12 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+    use ran, only: ranf
 
     implicit none
 
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi
+    real :: a, b
     logical :: right
     integer :: ikxkyz
     integer :: iz, iky, ikx, is, ia
@@ -209,6 +211,18 @@ contains
     do iz = -nzgrid, nzgrid
        phi(:,:,iz) = exp(-((zed(iz)-theta0)/width0)**2)*cmplx(1.0,1.0)
     end do
+
+    if (sum(cabs(phi)) < epsilon(0.)) then
+       a = ranf()-0.5
+       b = ranf()-0.5
+       do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+             do iky = 1, naky
+                phi(iky,ikx,iz) = cmplx(a,b)
+             end do
+          end do
+       end do
+    end if
 
     if (chop_side) then
        if (left) phi(:,:,:-1) = 0.0
