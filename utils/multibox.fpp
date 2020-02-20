@@ -343,7 +343,7 @@ contains
 
     do ikx = 1, nakx
        fft_y_k = gy(:,ikx)
-       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_k, fft_y_y)
+       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_y, fft_y_k)
        gky(:,ikx) = fft_y_y*yb_fft%scale
     end do
 
