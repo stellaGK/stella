@@ -1060,7 +1060,8 @@ contains
 
     shear=0.0
 
-    if(runtype_option_switch == runtype_multibox)  then
+    if(runtype_option_switch == runtype_multibox .and. &
+                        shear_rate*shear_rate > epsilon(0.0))  then
       select case (job)
       case (0)
         shear=-shear_rate
@@ -1133,8 +1134,8 @@ contains
        gout(1,:,-nzgrid,:,ivmu) = 0.5*(gout(1,:,nzgrid,:,ivmu)+gout(1,:,-nzgrid,:,ivmu))
        gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
     end do
-    deallocate (g0k, g0k_swap, g0kxy, g0xy, g1xy, bracket,shear)
 
+    deallocate (g0k, g0k_swap, g0kxy, g0xy, g1xy, bracket,shear)
 
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 

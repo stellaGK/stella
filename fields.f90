@@ -176,13 +176,13 @@ contains
 
   subroutine enforce_reality_field(fin)
 
-!DSO> while most of the mods in the box have reality built in (as we 
+!DSO> while most of the modes in the box have reality built in (as we 
 !     throw out half the kx-ky plane, modes with ky=0 do not have
 !     this enforcement built in. In theory this shouldn't be a problem
 !     as these modes should be stable, but I made this function (and 
 !     its relative in the dist file) just in case
 
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: nakx
     use zgrid, only: nzgrid
     
     implicit none
@@ -387,7 +387,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
-    integer :: ikx, iky, ivmu, iz, it, ia
+    integer :: ikx, ivmu, iz, it, ia
     complex :: tmp
     complex, dimension (:,:,:), allocatable :: gyro_g
 
@@ -395,21 +395,20 @@ contains
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
-
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_proc))
        do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
-             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
-             end do
-             do ikx = 1, nakx
-                do iky = 1, naky
-                   call integrate_species (gyro_g(iky,ikx,:), iz, spec%z*spec%dens, phi(iky,ikx,iz,it))
-                end do
-             end do
-          end do
+         do iz = -nzgrid, nzgrid
+           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+           end do
+           call integrate_species (gyro_g, iz, spec%z*spec%dens, phi(:,:,iz,it))
+         end do
        end do
        deallocate (gyro_g)
+       !do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       !   call gyro_average (g(:,:,:,:,ivmu), ivmu, ggyro(:,:,:,:,ivmu))
+       !end do
+       !call integrate_species (ggyro, spec%z*spec%dens, phi)
 
        if (dist == 'h') then
           phi = phi/gamtot_h

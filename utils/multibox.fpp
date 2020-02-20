@@ -26,20 +26,15 @@ module multibox
   complex, dimension (:), allocatable :: fft_y_k
   real, dimension (:), allocatable :: fft_y_y
 
-  real :: shear_rate
-
-  integer :: g_buff_size
-  integer :: phi_buff_size
   logical :: mb_transforms_initialized = .false.
-  logical :: smooth_ZFs
-
-
   integer :: temp_ind = 0
 
 !>DSO 
 ! the multibox simulation has one parameter: boundary_size
 ! 
   integer :: boundary_size
+  real :: shear_rate
+  logical :: smooth_ZFs
 
 contains
 
@@ -50,8 +45,6 @@ contains
     use file_utils, only: input_unit_exist
     use file_utils, only: runtype_option_switch, runtype_multibox
     use mp, only: broadcast, proc0
-    use fft_work, only: init_ccfftw, delete_fft,FFT_FORWARD, fft_type
-    use linear_solve, only: lu_decomposition
 
     implicit none
 
@@ -61,6 +54,9 @@ contains
 
     integer :: in_file
     logical exist
+    
+    integer :: g_buff_size
+    integer :: phi_buff_size
 
     namelist /multibox_parameters/ boundary_size, shear_rate, smooth_ZFs
 
@@ -76,6 +72,8 @@ contains
     endif
 
     call broadcast(boundary_size)
+    call broadcast(shear_rate)
+    call broadcast(smooth_ZFs)
 
     phi_buff_size = boundary_size*naky*ntubes*(2*nzgrid+1)
     g_buff_size   = phi_buff_size*(vmu_lo%ulim_alloc-vmu_lo%llim_proc+1)
@@ -110,10 +108,9 @@ contains
     use fields_arrays, only: phi, apar
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
-    use linear_solve, only: lu_back_substitution
     use stella_layouts, only: vmu_lo
     use mp, only: job, scope, mp_abort,  &
-                  crossdomprocs, subprocs, &
+                  crossdomprocs, subprocs, allprocs, &
                   send, receive, proc0
 
     implicit none
@@ -121,7 +118,7 @@ contains
     integer :: num,ix,iy,iz,it,iv,offset
     integer :: ii,jj, temp_unit
     complex :: dzm,dzp
-    character(len=1024) :: filename
+    character(len=512) :: filename
 
 #ifndef MPI
     return
@@ -141,7 +138,7 @@ contains
         do jj=1,nakx
           write (temp_unit,*) jj,ii,fft_xy(ii,jj)
         enddo
-        write (temp_unit,*) ""
+          write (temp_unit,*) ""
       enddo
       close (unit=temp_unit)
     endif
@@ -207,6 +204,7 @@ contains
 
 ! DSO - change communicator
     call scope(subprocs)
+
     if(job==1) then
       fields_updated = .false.
       call advance_fields(gnew,phi,apar, dist='gbar')
