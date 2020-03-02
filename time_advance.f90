@@ -388,6 +388,7 @@ contains
   subroutine init_cfl
     
     use mp, only: proc0, nproc, max_allreduce
+    use mp, only: scope, allprocs, subprocs
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
@@ -397,6 +398,7 @@ contains
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: stream
     use mirror_terms, only: mirror
+    use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
     
@@ -413,7 +415,11 @@ contains
     ! get the local max value of wdriftx on each processor
     wdriftx_max = maxval(abs(wdriftx_g))
     ! compare these max values across processors to get global max
-    if (nproc > 1) call max_allreduce (wdriftx_max)
+    if (nproc > 1) then 
+      if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+      call max_allreduce (wdriftx_max)
+      if(runtype_option_switch == runtype_multibox) call scope(subprocs)
+    endif
     ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
     cfl_dt = cfl_dt_wdriftx
@@ -433,7 +439,11 @@ contains
     ! get the local max value of wdrifty on each processor
     wdrifty_max = maxval(abs(wdrifty_g))
     ! compare these max values across processors to get global max
-    if (nproc > 1) call max_allreduce (wdrifty_max)
+    if (nproc > 1) then
+      if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+      call max_allreduce (wdrifty_max)
+      if(runtype_option_switch == runtype_multibox) call scope(subprocs)
+    endif
     ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
     cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
@@ -1071,7 +1081,7 @@ contains
         shear((nx-boundary_size+1):nx) =  shear_rate
         do i=1,ccount
           r0 = (1.0*i)/(1.0*ccount+1)
-          shear(i+boundary_size) = smoothstep(r0,2,-shear_rate,shear_rate)
+          shear(i+boundary_size) = smoothstep(r0,0,-shear_rate,shear_rate)
         enddo
       case (2)
         shear= shear_rate
