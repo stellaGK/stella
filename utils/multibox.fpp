@@ -149,6 +149,7 @@ contains
     integer :: num,ix,iy,iz,it,iv,offset
     integer :: ii,jj, temp_unit
     complex :: dzm,dzp
+    real (kind=4) :: sing
     character(len=512) :: filename
 
 #ifndef MPI
@@ -164,12 +165,17 @@ contains
       call transform_kx2x(phi(:,:,0,1),fft_xky)  
       call transform_ky2y(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
-      open (unit=temp_unit, file=filename, status="replace",action="write")
+      open (unit=temp_unit, file=filename, status="replace",& 
+            action="write",form="unformatted",access="stream")
+      write (temp_unit) real(nakx,4)
+      do ii=1,nakx
+        write(temp_unit) real(ii,4)
+      enddo
       do ii=1,naky_all
+        write (temp_unit) real(ii,4)
         do jj=1,nakx
-          write (temp_unit,*) jj,ii,fft_xy(ii,jj)
+          write (temp_unit) real(fft_xy(ii,jj),4)
         enddo
-          write (temp_unit,*) ""
       enddo
       close (unit=temp_unit)
     endif
