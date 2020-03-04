@@ -7,7 +7,7 @@ module kt_grids
   public :: read_kt_grids_parameters
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
-  public :: jtwist, ikx_twist_shift, x0, y0
+  public :: jtwist, ikx_twist_shift, x0, y0, x
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -23,6 +23,7 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
+  real, dimension (:), allocatable :: x
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
@@ -200,6 +201,7 @@ contains
 
     use mp, only: mp_abort
     use common_types, only: flux_surface_type
+    use constants, only: pi
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface
     use zgrid, only: shat_zero
@@ -209,7 +211,7 @@ contains
     type (flux_surface_type), intent (in) :: geo_surf
     real, intent (in) :: twist_and_shift_geo_fac
 
-    real :: dkx, dky
+    real :: dkx, dky, dx
     integer :: ikx, iky
 
     ! set jtwist and y0 for cases where they have not been specified
@@ -248,6 +250,7 @@ contains
 
     x0 = 1./dkx
 
+
     ! ky goes from zero to ky_max
     do iky = 1, naky
        aky(iky) = real(iky-1)*dky
@@ -281,6 +284,14 @@ contains
           theta0(2:,ikx) = - akx(ikx)/aky(2:)
        end do
     end if
+
+    ! for multibox simulations
+    if(.not.allocated(x)) allocate (x(nx))
+
+    dx = (2*pi*x0)/nx
+    do ikx = 1, nx
+      x(ikx) = (ikx-0.5)*dx - pi*x0
+    enddo
     
   end subroutine init_kt_grids_box
 
@@ -571,6 +582,8 @@ contains
     if (allocated(aky)) deallocate (aky)
     if (allocated(akx)) deallocate (akx)
     if (allocated(theta0)) deallocate (theta0)
+
+    if (allocated(x)) deallocate (x)
 
     reality = .false.
     read_kt_grids_initialized = .false.

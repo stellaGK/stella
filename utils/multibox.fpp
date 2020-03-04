@@ -8,7 +8,9 @@ module multibox
   public :: finish_multibox
   public :: multibox_communicate
   public :: boundary_size
-  public :: shear_rate
+  public :: bs_fullgrid
+  public :: g_exb
+  public :: xL, xR
 
   private
 
@@ -28,23 +30,30 @@ module multibox
 
   logical :: mb_transforms_initialized = .false.
   integer :: temp_ind = 0
+  integer :: bs_fullgrid
+
+  real :: xL = 0., xR = 0.
 
 !>DSO 
 ! the multibox simulation has one parameter: boundary_size
 ! 
   integer :: boundary_size
-  real :: shear_rate
+  real :: g_exb
   logical :: smooth_ZFs
 
 contains
 
   subroutine init_multibox
     use stella_layouts, only: vmu_lo
+    use stella_geometry, only: geo_surf
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky
+    use kt_grids, only: naky,nx,x
     use file_utils, only: input_unit_exist
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use mp, only: broadcast, proc0
+    use job_manage, only: njobs
+    use mp, only: broadcast, proc0, job
+    use mp, only: scope, crossdomprocs, subprocs, &
+                  send, receive
 
     implicit none
 
@@ -58,12 +67,12 @@ contains
     integer :: g_buff_size
     integer :: phi_buff_size
 
-    namelist /multibox_parameters/ boundary_size, shear_rate, smooth_ZFs
+    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
-    shear_rate = 0
+    g_exb = 0.
     smooth_ZFs = .true.
 
     if (proc0) then
@@ -72,14 +81,36 @@ contains
     endif
 
     call broadcast(boundary_size)
-    call broadcast(shear_rate)
+    call broadcast(g_exb)
     call broadcast(smooth_ZFs)
+
+    bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
     phi_buff_size = boundary_size*naky*ntubes*(2*nzgrid+1)
     g_buff_size   = phi_buff_size*(vmu_lo%ulim_alloc-vmu_lo%llim_proc+1)
 
     if (.not.allocated(g_buffer0)) allocate(g_buffer0(g_buff_size))
     if (.not.allocated(g_buffer1)) allocate(g_buffer1(g_buff_size))
+
+    !gets the correct normalization in code units. Works for Miller. 
+    !Not sure if its correct for stellarators/VMEC
+    g_exb = g_exb / geo_surf%rmaj
+
+
+    call scope(crossdomprocs)
+
+    if(job==1) then
+      xL = x(bs_fullgrid)
+      xR = x(nx-bs_fullgrid+1)
+      call send(xL,0)
+      call send(xR,njobs-1)
+    else if(job==0) then
+      call receive(xL,1)
+    elseif(job==njobs-1) then
+      call receive(xR,1)
+    endif
+
+    call scope(subprocs)
 
     call init_mb_transforms
 
@@ -148,7 +179,8 @@ contains
 
     if(job==0 .or. job==(njobs-1)) then
       offset=0;
-      if(job==0) offset=nakx-boundary_size
+      ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
+      if(job==njobs-1) offset=nakx-boundary_size
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
@@ -156,7 +188,7 @@ contains
             call transform_kx2x(gnew(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iy=1,naky
-                !if in the future the grids can have different naky, one will
+                !DSO if in the future the grids can have different naky, one will
                 !have to divide by naky here, and multiply on the receiving end
                 g_buffer0(num) = fft_xky(iy,ix + offset)
                 num=num+1

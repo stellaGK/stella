@@ -1946,6 +1946,7 @@ contains
        return
     endif
     ngroup_proc = nrows
+    ndomain_proc = ncolumns
     
     ! create 2d cartesian topology for processes
     
@@ -1984,6 +1985,7 @@ contains
     !call mpi_cart_coords(comm_cross, cproc, 1, crosscoords1d, ierr)
 
     if (job /= cproc) call mp_abort("topology coordinates")
+
     
 ! find root process of each 1d subgrid and place in array group0 indexed 
 ! from 0 to subgrids-1

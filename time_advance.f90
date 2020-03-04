@@ -65,7 +65,7 @@ module time_advance
   real, dimension (2,9) :: time_gke = 0.
   real, dimension (2,2) :: time_parallel_nl = 0.
 
-  logical :: debug = .true.
+  logical :: debug = .false.
 
 contains
 
@@ -1020,12 +1020,12 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky
+    use kt_grids, only: akx, aky, x
     use physics_flags, only: full_flux_surface
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: boundary_size, shear_rate
+    use multibox, only: bs_fullgrid, g_exb, xL, xR
     use smooth_step
 
     implicit none
@@ -1040,7 +1040,6 @@ contains
     complex, dimension (:,:), allocatable :: g0kxy
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
     real, dimension (:), allocatable :: shear
-    real :: r0
     integer ccount
 
     ! alpha-component of magnetic drift (requires ky -> y)
@@ -1061,20 +1060,21 @@ contains
     shear=0.0
 
     if(runtype_option_switch == runtype_multibox .and. &
-                        shear_rate*shear_rate > epsilon(0.0))  then
+                        g_exb*g_exb > epsilon(0.0))  then
       select case (job)
       case (0)
-        shear=-shear_rate
+        shear=-g_exb*xL
       case (1)
-        ccount = nx - 2*boundary_size
-        shear(1:boundary_size)         = -shear_rate
-        shear((nx-boundary_size+1):nx) =  shear_rate
+        ccount = nx - 2*bs_fullgrid
+        shear(1:bs_fullgrid)         = g_exb*xL
+        shear((nx-bs_fullgrid+1):nx) = g_exb*xR
         do i=1,ccount
-          r0 = (1.0*i)/(1.0*ccount+1)
-          shear(i+boundary_size) = smoothstep(r0,2,-shear_rate,shear_rate)
+          shear(i+bs_fullgrid) = g_exb*x(i+bs_fullgrid)
+          !r0 = (1.0*i)/(1.0*ccount+1)
+          !shear(i+bs_fullgrid) = smoothstep(r0,2,-g_exb,g_exb)
         enddo
       case (2)
-        shear= shear_rate
+        shear= g_exb*xR
       end select
     endif
 
