@@ -532,13 +532,9 @@ contains
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:), intent (out) :: pout
 
-    complex, dimension (:), allocatable :: buffer
     integer :: ikx,iky
 
-
-    allocate(buffer(naky*nakx))
-
-    buffer = 0.
+    pout =0.
 
     if (present(ia_in)) then
        ia = ia_in
@@ -553,24 +549,14 @@ contains
        num=1
        do ikx = 1, nakx
          do iky = 1, naky
-            buffer(num) = buffer(num) + &
+            pout(iky,ikx) = pout(iky,ikx) + &
               wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iky,ikx,ivmu)*weights(is)
             num=num+1
          end do
        end do
     end do
 
-    call sum_allreduce (buffer)
-
-    num=1
-    do ikx = 1, nakx
-      do iky = 1, naky
-        pout(iky,ikx) = buffer(num)
-        num=num+1
-      end do
-    end do
-
-    deallocate(buffer)
+    call sum_allreduce (pout)
 
   end subroutine integrate_species_vmu_block
 
