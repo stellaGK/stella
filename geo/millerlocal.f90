@@ -145,7 +145,9 @@ contains
        gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
        gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
        dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
-       btor_out, rmajor_out)
+       btor_out, rmajor_out, &
+       dcvdrift0drho_out, dcvdriftdrho_out, &
+       dgbdrift0drho_out, dgbdriftdrho_out)
     
     use constants, only: pi
     use splines, only: geo_spline
@@ -160,7 +162,9 @@ contains
          gradpar_out, gbdrift0_out, &
          gbdrift_out, cvdrift0_out, cvdrift_out, &
          dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
-         btor_out, rmajor_out
+         btor_out, rmajor_out, &
+         dcvdrift0drho_out, dcvdriftdrho_out, &
+         dgbdrift0drho_out, dgbdriftdrho_out
 
     integer :: nr, np
     integer :: i, j
@@ -371,7 +375,7 @@ contains
          + dpsidrho*(dcrossdr*dBdth+cross*(d2Bdrdth-2.*dBdth*dBdrho/bmag))/bmag**2)
     ! dcvdriftdrho is d/drho (bhat/B x [bhat . grad bhat] . grad alpha) * 2 * dpsiN/drho
     ! shoudl check gbdrift term below
-!    dcvdriftdrho = (dgbdriftdrho - gbdrift*dBdrho/bmag)/bmag &
+!   dcvdriftdrho = (dgbdriftdrho - gbdrift*dBdrho/bmag)/bmag &
     dcvdriftdrho = (dgbdriftdrho - gbdrift*dBdrho)/bmag &
          + 2.0*local%betadbprim/bmag**2 - 4.0*local%betaprim*dBdrho/bmag**3 &
          - 2.0*local%betaprim*local%d2psidr2/dpsidrho
@@ -393,6 +397,10 @@ contains
     call geo_spline (theta, d2Bdrdth, zed_in, d2Bdrdth_out)
     call geo_spline (theta, dgradpardrho, zed_in, dgradpardrho_out)
     call geo_spline (theta, Rr(2,:), zed_in, rmajor_out)
+    call geo_spline (theta, dcvdriftdrho,  zed_in, dcvdriftdrho_out)
+    call geo_spline (theta, dgbdriftdrho,  zed_in, dgbdriftdrho_out)
+    call geo_spline (theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
+    call geo_spline (theta, dgbdrift0drho, zed_in, dgbdrift0drho_out)
 
     ! get the toroidal component of the magnetic field
     ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R

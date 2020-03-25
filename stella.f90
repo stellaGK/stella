@@ -163,6 +163,8 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+    if (debug) write (6,*) 'stella::init_stella::init_multibox'
+    call init_multibox
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"
@@ -173,8 +175,6 @@ contains
     call init_fields
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
-    if (debug) write (6,*) 'stella::init_stella::init_multibox'
-    call init_multibox
     if (debug) write(6,*) "stella::init_stella::ginit"
     call ginit (restarted)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"

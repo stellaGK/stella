@@ -32,9 +32,10 @@ module time_advance
   logical :: time_advance_initialized = .false.
 
   logical :: wdriftinit = .false.
-  logical :: wstarinit = .false.
-  logical :: parnlinit = .false.
-  logical :: readinit = .false.
+  logical :: wstarinit  = .false.
+  logical :: parnlinit  = .false.
+  logical :: readinit   = .false.
+  logical :: globalinit = .false.
 
   ! if .true., dist fn is represented on alpha grid
   ! if .false., dist fn is given on k-alpha grid
@@ -105,6 +106,8 @@ contains
     call init_wstar
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_global_variation'
+    call init_global_variation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
     call init_dissipation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_redistribute'
@@ -358,6 +361,72 @@ contains
 
   end subroutine init_parallel_nonlinearity
 
+  subroutine init_global_variation
+    use physics_parameters, only: rhostar
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_time, only: code_dt
+    use species, only: spec
+    use zgrid, only: nzgrid
+    use kt_grids, only: nalpha
+    use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
+    use vpamu_grids, only: vperp2, vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use dist_fn_arrays, only: wstarp
+    use neoclassical_terms, only: include_neoclassical_terms
+
+    implicit none
+
+    integer :: is, imu, iv, ivmu
+    real :: dpsidx
+    real, dimension (:,:), allocatable :: energy
+
+    dpsidx=1.0/dxdpsi
+
+!wstar
+
+    if (globalinit) return
+    globalinit = .true.
+
+    if (.not.allocated(wstarp)) &
+         allocate (wstarp(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstarp = 0.0
+
+    allocate (energy(nalpha,-nzgrid:nzgrid))
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       is = is_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu)
+       energy = vpa(iv)**2 + vperp2(:,:,imu)
+       !FLAG DSO - THIS NEEDS TO BE ADDED SOMEDAY!
+       !if (include_neoclassical_terms) then 
+       !   wstarp(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
+       !        * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+       !        * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
+       !        - dfneo_drho(:,:,ivmu))
+       !else 
+       !the expansion is done at constant energy (i.e. don't worry about B mu term)
+
+       !FLAG DSO - ADD d2psi/dr2 and dB/dr from mu_s
+       wstarp(:,:,ivmu) = rhostar*wstarknob*0.5*code_dt &
+          * dydalpha*(drhodpsi**2)*dpsidx &
+          * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+          * ( spec(is)%d2ndr2-(spec(is)%fprim)**2-(spec(is)%tprim)**2*energy &
+           + (spec(is)%d2Tdr2-(spec(is)%tprim)**2)*(energy-1.5) &
+           + (spec(is)%fprim+spec(is)%tprim*(energy-1.5))**2)
+       !end if
+    end do
+
+    deallocate (energy)
+
+
+    !wdrift
+
+    !gradpar
+
+  end subroutine init_global_variation
+
+
   subroutine allocate_arrays
 
     use stella_layouts, only: vmu_lo
@@ -488,12 +557,14 @@ contains
     ! to account for updated code_dt
     wdriftinit = .false.
     wstarinit = .false.
+    globalinit = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
+    call init_global_variation
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
     if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then
@@ -764,6 +835,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
     use physics_flags, only: full_flux_surface
+    use physics_parameters, only: rhostar
     use run_parameters, only: stream_implicit, mirror_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use parallel_streaming, only: advance_parallel_streaming_explicit
@@ -805,6 +877,8 @@ contains
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
 
+
+
     if (.not.restart_time_step) then
 
        ! calculate and add mirror term to RHS of GK eqn
@@ -831,6 +905,8 @@ contains
        ! calculate and add parallel streaming term to RHS of GK eqn
        if (include_parallel_streaming.and.(.not.stream_implicit)) &
             call advance_parallel_streaming_explicit (gin, rhs_ky)
+
+       if (rhostar > epsilon(0.)) call advance_global_variation(gin,rhs)
 
        ! calculate and add omega_* term to RHS of GK eqn
 !       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
@@ -1410,6 +1486,62 @@ contains
     if (proc0) call time_message(.false.,time_parallel_nl(:,1),' parallel nonlinearity advance')
 
   end subroutine advance_parallel_nonlinearity
+
+  subroutine advance_global_variation (g, gout)
+
+    use stella_layouts, only: vmu_lo
+    use mp, only: mp_abort
+    use job_manage, only: time_message
+    use fields_arrays, only: phi, apar
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, naky, nx, x
+    use physics_flags, only: full_flux_surface
+    use dist_fn_arrays, only: wstarp
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+    
+    integer :: ivmu, iz, it
+
+    complex, dimension (:,:), allocatable :: g0k, g0x, g1x
+
+    ! alpha-component of magnetic drift (requires ky -> y)
+    !if (proc0) call time_message(.false.,time_gke(:,7),' global variation advance')
+
+    !if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+
+    allocate (g0k(naky,nakx))
+    allocate (g0x(naky,nx))
+    allocate (g1x(naky,nx))
+
+    if (full_flux_surface) then
+       ! FLAG -- ADD SOMETHING HERE
+       call mp_abort ('wstarp term not yet setup for full_flux_surface = .true. aborting.')
+    endif
+    
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+             call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+             call transform_kx2x_solo (g0k, g0x)
+
+             g1x = spread(x,1,naky)*wstarp(1,iz,ivmu)*g0x
+
+             call transform_x2kx_solo (g1x, g0k)
+          
+             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+
+          end do
+       end do
+    end do
+
+    deallocate (g0k, g0x, g1x)
+
+  end subroutine advance_global_variation
+
 
   subroutine get_dgdy_2d (g, dgdy)
 

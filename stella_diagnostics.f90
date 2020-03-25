@@ -38,7 +38,7 @@ module stella_diagnostics
   integer :: nout = 1
   logical :: diagnostics_initialized = .false.
 
-  logical :: debug = .true.
+  logical :: debug = .false.
 
 contains
 

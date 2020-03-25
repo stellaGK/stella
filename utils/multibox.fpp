@@ -113,7 +113,7 @@ contains
     call scope(subprocs)
 
     call init_mb_transforms
-
+    call adjust_boundaries
   
 #endif
   end subroutine init_multibox
@@ -128,6 +128,91 @@ contains
     call finish_mb_transforms
 
   end subroutine finish_multibox
+
+  subroutine adjust_boundaries
+
+    use physics_parameters, only: rhostar
+    use species, only: reinit_species, nspec, spec
+    use job_manage, only: njobs
+    use mp, only: job, scope, mp_abort,  &
+                  crossdomprocs, subprocs,  &
+                  send, receive
+
+    implicit none
+
+    real, dimension (:), allocatable :: ldens, ltemp, lfprim, ltprim
+    real, dimension (:), allocatable :: rdens, rtemp, rfprim, rtprim
+
+    integer :: i
+
+    allocate(ldens(nspec))
+    allocate(ltemp(nspec))
+    allocate(lfprim(nspec))
+    allocate(ltprim(nspec))
+    allocate(rdens(nspec))
+    allocate(rtemp(nspec))
+    allocate(rfprim(nspec))
+    allocate(rtprim(nspec))
+
+    call scope(crossdomprocs)
+
+    if(job == 1) then
+      do i=1,nspec
+        ! recall that fprim and tprim are the negative gradients
+        ldens(i)  = spec(i)%dens  - rhostar*xL*spec(i)%fprim
+        ltemp(i)  = spec(i)%temp  - rhostar*xL*spec(i)%tprim
+        lfprim(i) = spec(i)%fprim + rhostar*xL*spec(i)%d2ndr2
+        ltprim(i) = spec(i)%tprim + rhostar*xL*spec(i)%d2Tdr2
+
+        rdens(i)  = spec(i)%dens  - rhostar*xR*spec(i)%fprim
+        rtemp(i)  = spec(i)%temp  - rhostar*xR*spec(i)%tprim
+        rfprim(i) = spec(i)%fprim + rhostar*xR*spec(i)%d2ndr2
+        rtprim(i) = spec(i)%tprim + rhostar*xR*spec(i)%d2Tdr2
+
+        if(ldens(i) < 0 .or. ltemp(i) < 0 .or. &
+           rdens(i) < 0 .or. rtemp(i) < 0) then
+          call mp_abort('Negative n/T encountered. Try reducing rhostar.')
+        endif
+      enddo
+
+      call send(ldens ,0,120)
+      call send(ltemp ,0,121)
+      call send(lfprim,0,122)
+      call send(ltprim,0,123)
+      call send(rdens ,njobs-1,130)
+      call send(rtemp ,njobs-1,131)
+      call send(rfprim,njobs-1,132)
+      call send(rtprim,njobs-1,133)
+    elseif(job == 0) then
+      call receive(ldens, 1,120)
+      call receive(ltemp, 1,121)
+      call receive(lfprim,1,122)
+      call receive(ltprim,1,123)
+    elseif(job== njobs-1) then
+      call receive(rdens, 1,130)
+      call receive(rtemp, 1,131)
+      call receive(rfprim,1,132)
+      call receive(rtprim,1,133)
+    endif
+
+    call scope(subprocs)
+
+    if(job==0) then
+      call reinit_species(nspec,ldens,ltemp,lfprim,ltprim)
+    elseif(job==njobs-1) then
+      call reinit_species(nspec,rdens,rtemp,rfprim,rtprim)
+    endif
+
+    deallocate(ldens)
+    deallocate(ltemp)
+    deallocate(lfprim)
+    deallocate(ltprim)
+    deallocate(rdens)
+    deallocate(rtemp)
+    deallocate(rfprim)
+    deallocate(rtprim)
+
+  end subroutine adjust_boundaries
 
 
   subroutine multibox_communicate
@@ -252,6 +337,7 @@ contains
 
 #endif
   end subroutine multibox_communicate
+
 
 
 !!>DSO - The following subroutines are the _unpadded_ analogues of the ones found in

@@ -10,6 +10,8 @@ module stella_geometry
   public :: gradpar, gradpar_eqarc, zed_eqarc
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
+  public :: dcvdriftdrho, dcvdrift0drho
+  public :: dgbdriftdrho, dgbdrift0drho
   public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   public :: exb_nonlin_fac
   public :: jacob
@@ -42,6 +44,8 @@ module stella_geometry
   real, dimension (:,:), allocatable :: bmag, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
+  real, dimension (:,:), allocatable :: dcvdriftdrho, dcvdrift0drho
+  real, dimension (:,:), allocatable :: dgbdriftdrho, dgbdrift0drho
   real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, grho
@@ -108,8 +112,9 @@ contains
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
-               dBdrho, d2Bdrdth, dgradpardrho, btor, &
-               rmajor)
+               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+               dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
+               dgbdrift0drho(1,:), dgbdriftdrho(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
@@ -139,8 +144,9 @@ contains
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
-               dBdrho, d2Bdrdth, dgradpardrho, btor, &
-               rmajor)
+               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+               dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
+               dgbdrift0drho(1,:), dgbdriftdrho(1,:))
           ! psi here is enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
@@ -229,6 +235,7 @@ contains
     call get_gradpar_eqarc (gradpar, zed, delzed, gradpar_eqarc)
     call get_zed_eqarc (gradpar, delzed, zed, gradpar_eqarc, zed_eqarc)
 
+
   end subroutine init_geometry
 
   subroutine allocate_arrays (nalpha, nzgrid)
@@ -249,6 +256,10 @@ contains
     if (.not.allocated(gbdrift0)) allocate (gbdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift0)) allocate (cvdrift0(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dbdzed)) allocate (dbdzed(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(theta_vmec)) allocate (theta_vmec(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(jacob)) allocate (jacob(nalpha,-nzgrid:nzgrid))
@@ -326,6 +337,10 @@ contains
     call broadcast (gbdrift)
     call broadcast (cvdrift0)
     call broadcast (cvdrift)
+    call broadcast (dgbdrift0drho)
+    call broadcast (dgbdriftdrho)
+    call broadcast (dcvdrift0drho)
+    call broadcast (dcvdriftdrho)
     call broadcast (dBdrho)
     call broadcast (d2Bdrdth)
     call broadcast (dgradpardrho)
@@ -466,6 +481,10 @@ contains
     if (allocated(gbdrift0)) deallocate (gbdrift0)
     if (allocated(cvdrift)) deallocate (cvdrift)
     if (allocated(cvdrift0)) deallocate (cvdrift0)
+    if (allocated(dgbdriftdrho)) deallocate (dgbdriftdrho)
+    if (allocated(dcvdriftdrho)) deallocate (dcvdriftdrho)
+    if (allocated(dgbdrift0drho)) deallocate (dgbdrift0drho)
+    if (allocated(dcvdrift0drho)) deallocate (dcvdrift0drho)
     if (allocated(dBdrho)) deallocate (dBdrho)
     if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
     if (allocated(dgradpardrho)) deallocate (dgradpardrho)

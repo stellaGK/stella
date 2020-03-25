@@ -8,7 +8,7 @@ module dist_fn_arrays
   public :: g1, g2, g3
   public :: gvmu
   public :: kperp2
-  public :: wstar
+  public :: wstar, wstarp
   public :: wdriftx_g, wdrifty_g
   public :: wdriftx_phi, wdrifty_phi
 
@@ -22,7 +22,7 @@ module dist_fn_arrays
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (nvpa, nmu, -kxkyz-layout-)
 
-  real, dimension (:,:,:), allocatable :: wstar
+  real, dimension (:,:,:), allocatable :: wstar, wstarp
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:), allocatable :: wdriftx_g, wdrifty_g
