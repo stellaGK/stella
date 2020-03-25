@@ -462,8 +462,12 @@ contains
     else
        ! obtain d<phi>/dz and store in dphidz
        call get_dzed (iv,g,dphidz)
+       ! center Maxwellian factor in mu
+       ! and store in dummy variable gp
+       gp = maxwell_mu(ia,:,imu)
+       call center_zed (iv,gp)
        ! multiply by Maxwellian factor
-       dphidz = dphidz*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+       dphidz = dphidz*spread(spread(spread(gp,1,naky),2,nakx),4,ntubes)
     end if
 
     ! NB: could do this once at beginning of simulation to speed things up
@@ -471,6 +475,7 @@ contains
     vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv)
     ! if including neoclassical correction to equilibrium distribution function
     ! then must also account for -vpa*dF_neo/dvpa*Z/T
+    ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
     if (include_neoclassical_terms) then
        do iz = -nzgrid, nzgrid
           vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(1,iz,ivmu)*spec(is)%zt
