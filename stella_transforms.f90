@@ -7,6 +7,7 @@ module stella_transforms
   public :: init_transforms, finish_transforms
   public :: transform_ky2y, transform_y2ky
   public :: transform_kx2x, transform_x2kx
+  public :: transform_kx2x_solo, transform_x2kx_solo
   public :: transform_kalpha2alpha, transform_alpha2kalpha
 
   interface transform_ky2y
@@ -23,11 +24,13 @@ module stella_transforms
 
   type (fft_type) :: yf_fft, yb_fft
   type (fft_type) :: xf_fft, xb_fft
+  type (fft_type) :: xsf_fft, xsb_fft
   type (fft_type) :: alpha_f_fft, alpha_b_fft
 
   logical :: transforms_initialized = .false.
 
   complex, dimension (:), allocatable :: fft_y_in, fft_y_out
+  complex, dimension (:), allocatable :: fft_xs_k, fft_xs_x
   complex, dimension (:), allocatable :: fft_x_k
   real, dimension (:), allocatable :: fft_x_x
   ! arrays for transforming from alpha-space to k-alpha space
@@ -49,6 +52,7 @@ contains
     call init_stella_layouts
     call init_y_fft
     call init_x_fft
+    call init_x_solo_fft
     if (full_flux_surface) call init_alpha_fft
 
   end subroutine init_transforms
@@ -92,6 +96,26 @@ contains
     call init_rcfftw (xb_fft, -1, vmu_lo%nx, fft_x_x, fft_x_k)
 
   end subroutine init_x_fft
+
+  subroutine init_x_solo_fft
+
+    use stella_layouts, only: vmu_lo
+    use fft_work, only: init_ccfftw, init_ccfftw
+
+    implicit none
+
+    logical :: initialized = .false.
+    
+    if (initialized) return
+    initialized = .true.
+
+    if (.not.allocated(fft_xs_k)) allocate (fft_xs_k(vmu_lo%nx))
+    if (.not.allocated(fft_xs_x)) allocate (fft_xs_x(vmu_lo%nx))
+
+    call init_ccfftw (xsf_fft,  1, vmu_lo%nx, fft_xs_k, fft_xs_x)
+    call init_ccfftw (xsb_fft, -1, vmu_lo%nx, fft_xs_x, fft_xs_k)
+
+  end subroutine init_x_solo_fft
 
   subroutine init_alpha_fft
 
@@ -275,6 +299,57 @@ contains
 
   end subroutine transform_x2kx
 
+  subroutine transform_kx2x_solo (gkx, gx)
+
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gkx
+    complex, dimension (:,:), intent (out) :: gx
+
+    integer :: iky, ikx_max, ipad_up
+
+    ikx_max = vmu_lo%nakx/2+1
+    ipad_up = ikx_max+vmu_lo%nx - vmu_lo%nakx
+
+    ! now fill in non-zero elements of array
+    do iky = 1, vmu_lo%naky
+       ! first need to pad input array with zeros
+       fft_xs_k(ikx_max+1:ipad_up) = 0.
+       fft_xs_k(:ikx_max) = gkx(iky,:ikx_max)
+       fft_xs_k(ipad_up+1:) = gkx(iky,ikx_max+1:)
+       call dfftw_execute_dft(xsf_fft%plan, fft_xs_k, fft_xs_x)
+       fft_xs_x = fft_xs_x*xsf_fft%scale
+       gx(iky,:) = fft_xs_x
+    end do
+
+  end subroutine transform_kx2x_solo
+
+  subroutine transform_x2kx_solo (gx, gkx)
+
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gx
+    complex, dimension (:,:), intent (out) :: gkx
+
+    integer :: iky, ikx_max, ipad_up
+
+    ikx_max = vmu_lo%nakx/2+1
+    ipad_up = ikx_max+vmu_lo%nx - vmu_lo%nakx
+
+    do iky = 1, vmu_lo%naky
+       fft_xs_x = gx(iky,:)
+       call dfftw_execute_dft(xsb_fft%plan, fft_xs_x, fft_xs_k)
+       fft_xs_k = fft_xs_k*xsb_fft%scale
+       gkx(iky,:ikx_max) = fft_xs_k(:ikx_max)
+       gkx(iky,ikx_max+1:) = fft_xs_k(ipad_up+1)
+    end do
+
+  end subroutine transform_x2kx_solo
+
   subroutine transform_kalpha2alpha (gkalph, galph)
 
     use stella_layouts, only: vmu_lo
@@ -321,6 +396,8 @@ contains
     call dfftw_destroy_plan (yb_fft%plan)
     call dfftw_destroy_plan (xf_fft%plan)
     call dfftw_destroy_plan (xb_fft%plan)
+    call dfftw_destroy_plan (xsf_fft%plan)
+    call dfftw_destroy_plan (xsb_fft%plan)
     if (full_flux_surface) then
        call dfftw_destroy_plan (alpha_f_fft%plan)
        call dfftw_destroy_plan (alpha_b_fft%plan)
@@ -329,6 +406,8 @@ contains
     if (allocated(fft_y_out)) deallocate (fft_y_out)
     if (allocated(fft_x_k)) deallocate (fft_x_k)
     if (allocated(fft_x_x)) deallocate (fft_x_x)
+    if (allocated(fft_xs_k)) deallocate (fft_xs_k)
+    if (allocated(fft_xs_x)) deallocate (fft_xs_x)
     if (allocated(fft_alpha_alpha)) deallocate (fft_alpha_alpha)
     if (allocated(fft_alpha_kalpha)) deallocate (fft_alpha_kalpha)
     transforms_initialized = .false.

@@ -347,12 +347,13 @@ contains
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: ikxmod, nsegments, neigen
     use extended_zgrid, only: it_right
-    use kt_grids, only: naky, nakx, reality, zonal_mode
+    use kt_grids, only: aky, naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+    use stella_geometry, only: dl_over_b
     use mp, only: proc0, broadcast, min_allreduce
     use mp, only: scope, crossdomprocs, subprocs
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -361,7 +362,7 @@ contains
     implicit none
 
     complex, dimension (naky,nakx,-nzgrid:nzgrid,ntubes) :: phi
-    real :: a, b, kmin
+    real :: a, b, kmin,phi2
     integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
     integer :: itmod
 
@@ -451,6 +452,25 @@ contains
     
     call broadcast (phi)
 
+    phi2 = 0.0
+    do it = 1,ntubes
+      do iz = -nzgrid,nzgrid
+        do ikx = 1, nakx
+          do iky= 1, naky
+            if(iky.eq.1 .and. aky(1)<epsilon(0.)) then
+              phi2 = phi2 + &
+                    real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
+            else
+              phi2 = phi2 + &
+                2.0*real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
+    phi2 = phi2/real(ntubes)
+    phi2 = 1.0/sqrt(phi2)
+
     !Now set g using data in phi
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -458,8 +478,8 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi(iky,ikx,iz,it) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi2*phi(iky,ikx,iz,it) &
+            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa) 
     end do
 
   end subroutine ginit_noise
