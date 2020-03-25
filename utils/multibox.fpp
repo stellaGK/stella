@@ -73,7 +73,7 @@ contains
 
     boundary_size = 4
     g_exb = 0.
-    smooth_ZFs = .true.
+    smooth_ZFs = .false.
 
     if (proc0) then
       in_file = input_unit_exist("multibox_parameters", exist)
