@@ -234,7 +234,6 @@ contains
     integer :: num,ix,iy,iz,it,iv,offset
     integer :: ii,jj, temp_unit
     complex :: dzm,dzp
-    real (kind=4) :: sing
     character(len=512) :: filename
 
 #ifndef MPI

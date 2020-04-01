@@ -5,6 +5,7 @@ module parallel_streaming
   public :: init_parallel_streaming, finish_parallel_streaming
   public :: advance_parallel_streaming_explicit
   public :: advance_parallel_streaming_implicit
+  public :: advance_parallel_streaming_radial_variation
   public :: stream_tridiagonal_solve
   public :: parallel_streaming_initialized
   public :: stream, stream_c, stream_sign
@@ -21,6 +22,9 @@ module parallel_streaming
 
   integer, dimension (:), allocatable :: stream_sign
   real, dimension (:,:,:), allocatable :: stream, stream_c
+  real, dimension (:,:,:), allocatable :: stream_glob_var1
+  real, dimension (:,:,:), allocatable :: stream_glob_var2
+  real, dimension (:,:,:), allocatable :: stream_glob_var3
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
   real, dimension (:,:), allocatable :: stream_tri_b1, stream_tri_b2
   real, dimension (:,:), allocatable :: stream_tri_c1, stream_tri_c2
@@ -34,17 +38,24 @@ contains
 
     use finite_differences, only: fd3pt
     use stella_time, only: code_dt
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_geometry, only: bmag
     use species, only: spec, nspec
     use vpamu_grids, only: nvpa, nvpa
-    use vpamu_grids, only: vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: vperp2, vperp, vpa, mu
+    use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: gradpar
+    use stella_geometry, only: gradpar,dgradpardrho,dBdrho
     use run_parameters, only: stream_implicit, driftkinetic_implicit
-    use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: include_parallel_streaming, radial_variation
 
     implicit none
 
-    integer :: iv, is
+    integer :: iv, imu, is, ivmu, ia
+    
+    real, dimension (:), allocatable :: energy
 
     if (parallel_streaming_initialized) return
     parallel_streaming_initialized = .true.
@@ -60,6 +71,40 @@ contains
     else
        stream = 0.0
     end if
+
+    if(radial_variation) then
+
+      allocate (energy(-nzgrid:nzgrid))
+
+      if(.not.allocated(stream_glob_var1)) then 
+        allocate(stream_glob_var1(-nzgrid:nzgrid,nvpa,nspec))
+      endif
+      if(.not.allocated(stream_glob_var2)) then 
+        allocate(stream_glob_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      endif
+      if(.not.allocated(stream_glob_var3)) then 
+        allocate(stream_glob_var3(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      endif
+      ia=1
+      stream_glob_var1 = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
+            * spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        is  = is_idx(vmu_lo,ivmu)
+        imu = imu_idx(vmu_lo,ivmu)
+        iv  = iv_idx(vmu_lo,ivmu)
+        energy = vpa(iv)**2 + vperp2(ia,:,imu)
+        stream_glob_var2(ia,:,ivmu) = &
+                -code_dt*spec(is)%stm*vpa(iv)*gradpar &
+                *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) & 
+                *(spec(is)%fprim + spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
+        !positive (one from RHS, one from J_0' = -J_1)
+        stream_glob_var3(ia,:,ivmu) = &
+                 code_dt*spec(is)%stm*vpa(iv)*gradpar &
+                *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) &
+                *vperp(ia,:,imu)/bmag(ia,:)
+      enddo
+      deallocate (energy)
+    endif
 
     ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     ! NB: stream_sign = -1 corresponds to positive advection velocity
@@ -190,6 +235,101 @@ contains
     deallocate (g0, g1)
 
   end subroutine advance_parallel_streaming_explicit
+
+  subroutine advance_parallel_streaming_radial_variation (g, iz, it, ivmu, gout)
+
+    use mp, only: proc0
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_geometry, only: bmag, dBdrho
+    use stella_geometry, only: dxdpsi, drhodpsi
+    use job_manage, only: time_message
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx, nx, x
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use species, only: spec
+    use dist_fn_arrays, only: kperp, kperp2, dkperp2dr
+    use gyro_averages, only: gyro_average, gyro_average_j1
+    use fields_arrays, only: phi
+    use run_parameters, only: driftkinetic_implicit
+    use physics_parameters, only: rhostar
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    integer :: ivmu, iv, imu, is, it, ia, iz
+
+    real dpsidx
+
+    complex, dimension (:,:,:,:,:), allocatable :: g0, g1, g2
+    complex, dimension (:,:), allocatable :: g0x, g0k
+
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g2(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    allocate (g0x(naky,nx))
+    allocate (g0k(naky,nakx))
+
+    dpsidx = 1./dxdpsi
+
+    ! parallel streaming stays in ky,kx,z space with ky,kx,z local
+    if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
+
+
+    ! obtain <phi>
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       call gyro_average (phi, ivmu, g0(:,:,:,:,ivmu))
+    end do
+    ! get d<phi>/dz, with z the parallel coordinate and store in g1
+    call get_dgdz (g0, g1)
+
+    ! get variation in gyroaveraging
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       call gyro_average_j1 (phi, ivmu, g0(:,:,:,:,ivmu))
+    end do
+    call get_dgdz (g0, g2)
+
+    call get_dgdz (g,  g0)
+
+    ia = 1
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do it = 1, ntubes
+         do iz = -nzgrid,nzgrid
+
+    !!#1 - variation in gradpar
+           g0(:,:,iz,it,ivmu) = g0(:,:,it,iz,ivmu) + & 
+                                g1(:,:,it,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+
+           g0(:,:,iz,it,ivmu) = g0(:,:,iz,it,ivmu)*stream_glob_var1(iz,iv,is)
+
+    !!#2 - variation in F_s/T_s
+           g0(:,:,iz,it,ivmu) = g0(:,:,iz,it,ivmu) + g1(:,:,iz,it,ivmu)*stream_glob_var2(ia,iz,ivmu)
+
+    !!#3 - variation in the gyroaveraging of phi
+            g0(:,:,iz,it,ivmu) = g0(:,:,iz,it,ivmu) &
+                               + g2(:,:,iz,it,ivmu)*stream_glob_var3(ia,iz,ivmu)*kperp(:,:,ia,iz) &
+                               * (0.5*dkperp2dr(:,:,ia,iz)/kperp2(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+
+           call transform_kx2x_solo(g0(:,:,iz,it,ivmu),g0x)
+           g0x = rhostar*dpsidx*drhodpsi*spread(x,1,naky)*g0x
+           call transform_x2kx_solo(g0x,g0k)
+           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+         enddo
+       enddo
+    end do
+
+    if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
+    deallocate (g0, g1, g2)
+    deallocate (g0k,g0x)
+
+  end subroutine advance_parallel_streaming_radial_variation
 
   subroutine get_dgdz (g, dgdz)
 
@@ -873,6 +1013,9 @@ contains
     if (allocated(stream_c)) deallocate (stream_c)
     if (allocated(stream_sign)) deallocate (stream_sign)
     if (allocated(gradpar_c)) deallocate (gradpar_c)
+    if (allocated(stream_glob_var1)) deallocate (stream_glob_var1)
+    if (allocated(stream_glob_var2)) deallocate (stream_glob_var2)
+    if (allocated(stream_glob_var3)) deallocate (stream_glob_var3)
 
     if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 

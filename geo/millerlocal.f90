@@ -40,7 +40,8 @@ module millerlocal
   real, dimension (:), allocatable :: gradthet2, gradalph_gradthet, gradrho_gradalph, gradalph2
   real, dimension (:), allocatable :: d2Bdr2, d2Rdr2, d2Zdr2, drz, drzdth
   real, dimension (:), allocatable :: d2Rdr2dth, d2Zdr2dth, d2gpsidr2, dcrossdr
-  real, dimension (:), allocatable :: dcvdriftdrho, dgbdriftdrho, dgds2dr, dgds21dr, dgds22dr
+  real, dimension (:), allocatable :: dcvdriftdrho, dgbdriftdrho
+  real, dimension (:), allocatable :: dgds2dr, dgds21dr, dgds22dr, dgds22bdr
   real, dimension (:), allocatable :: dgr2dr, dgpsi2dr
   real, dimension (:), allocatable :: dgrgt, dgt2, dgagr, dgagt, dga2
   real, dimension (:,:), allocatable :: Rr, Zr
@@ -147,7 +148,9 @@ contains
        dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
        btor_out, rmajor_out, &
        dcvdrift0drho_out, dcvdriftdrho_out, &
-       dgbdrift0drho_out, dgbdriftdrho_out)
+       dgbdrift0drho_out, dgbdriftdrho_out, &
+       dgds2dr_out, dgds21dr_out, &
+       dgds22dr_out, dgds22bdr_out)
     
     use constants, only: pi
     use splines, only: geo_spline
@@ -164,7 +167,9 @@ contains
          dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
          btor_out, rmajor_out, &
          dcvdrift0drho_out, dcvdriftdrho_out, &
-         dgbdrift0drho_out, dgbdriftdrho_out
+         dgbdrift0drho_out, dgbdriftdrho_out, &
+         dgds2dr_out, dgds21dr_out, &
+         dgds22dr_out, dgds22bdr_out
 
     integer :: nr, np
     integer :: i, j
@@ -401,6 +406,10 @@ contains
     call geo_spline (theta, dgbdriftdrho,  zed_in, dgbdriftdrho_out)
     call geo_spline (theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
     call geo_spline (theta, dgbdrift0drho, zed_in, dgbdrift0drho_out)
+    call geo_spline (theta, dgds2dr,  zed_in, dgds2dr_out)
+    call geo_spline (theta, dgds21dr, zed_in, dgds21dr_out)
+    call geo_spline (theta, dgds22dr, zed_in, dgds22dr_out)
+    call geo_spline (theta, dgds22bdr, zed_in, dgds22bdr_out)
 
     ! get the toroidal component of the magnetic field
     ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
@@ -421,7 +430,6 @@ contains
     write (1002,'(3a16)') '16.d2psidr2', '17.betadbprim', '18.psitor_lcfs'
     write (1002,'(3e16.8)') local%d2psidr2, local%betadbprim, local%psitor_lcfs
     close (1002)
-
     open (1001,file='millerlocal.output',status='unknown')
     write (1001,'(a9,e12.4,a11,e12.4,a11,e12.4)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
     write (1001,'(57a13)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
@@ -484,9 +492,9 @@ contains
     allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz))
     allocate (d2gpsidr2(-nz:nz))
 !    allocate (dgds22dr(-nz:nz), gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz))
-    allocate (dgds22dr(-nz:nz))
     allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
     allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz))
+    allocate (dgds22dr(-nz:nz), dgds22bdr(-nz:nz))
     allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz))
     allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz))
     allocate (cross(-nz:nz))
@@ -525,9 +533,9 @@ contains
     deallocate (drz, drzdth, d2Rdr2dth, d2Zdr2dth)
     deallocate (d2Rdth2, d2Zdth2)
     deallocate (d2gpsidr2)
-    deallocate (dgds22dr)
     deallocate (gradalph_gradthet, gradalph2, gradrho_gradalph)
     deallocate (dgds2dr, dgds21dr)
+    deallocate (dgds22dr,dgds22bdr)
     deallocate (dcvdriftdrho, dgbdriftdrho)
     deallocate (varthet, dvarthdr, d2varthdr2)
     deallocate (cross)
@@ -949,6 +957,9 @@ contains
     dgds22dr = (dqdr**2*dgr2dr + 2.*grho**2*dqdr*local%d2qdr2)*dpsidrho**2
 
     ! note that dkperp2/dr = (n0/a)^2*(drho/dpsiN)^2*(dgds2dr + 2*theta0*dgds21dr + theta0^2*dgds22dr)
+    
+    ! for the zonal component of dkperp2dr 
+    dgds22bdr = (local%qinp/local%rhoc)**2*dgpsi2dr
 
   end subroutine get_dcrossdr
 

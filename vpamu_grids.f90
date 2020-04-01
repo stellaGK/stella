@@ -9,7 +9,8 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu, dmu
-  public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
+  public :: maxwell_vpa, maxwell_mu, ztmax
+  public :: vperp, vperp2
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
 
@@ -32,7 +33,7 @@ module vpamu_grids
 
   ! vpa-mu related arrays that are declared here
   ! but allocated and filled elsewhere because they depend on z, etc.
-  real, dimension (:,:,:), allocatable :: vperp2
+  real, dimension (:,:,:), allocatable :: vperp, vperp2
 
   interface integrate_species
 !     module procedure integrate_species_vmu

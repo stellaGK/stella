@@ -13,6 +13,7 @@ module stella_geometry
   public :: dcvdriftdrho, dcvdrift0drho
   public :: dgbdriftdrho, dgbdrift0drho
   public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
+  public :: dgds2dr, dgds21dr, dgds22dr, dgds22bdr
   public :: exb_nonlin_fac
   public :: jacob
   public :: drhodpsi
@@ -47,6 +48,8 @@ module stella_geometry
   real, dimension (:,:), allocatable :: dcvdriftdrho, dcvdrift0drho
   real, dimension (:,:), allocatable :: dgbdriftdrho, dgbdrift0drho
   real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
+  real, dimension (:,:), allocatable :: dgds2dr, dgds21dr
+  real, dimension (:,:), allocatable :: dgds22dr, dgds22bdr
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, grho
   real, dimension (:,:), allocatable :: dl_over_b
@@ -114,7 +117,9 @@ contains
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
-               dgbdrift0drho(1,:), dgbdriftdrho(1,:))
+               dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
+               dgds2dr(1,:),dgds21dr(1,:), & 
+               dgds22dr(1,:), dgds22bdr(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
@@ -146,7 +151,9 @@ contains
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
-               dgbdrift0drho(1,:), dgbdriftdrho(1,:))
+               dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
+               dgds2dr(1,:),dgds21dr(1,:), &
+               dgds22dr(1,:),dgds22bdr(1,:))
           ! psi here is enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
@@ -252,6 +259,10 @@ contains
     if (.not.allocated(gds24)) allocate (gds24(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds25)) allocate (gds25(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds26)) allocate (gds26(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dgds2dr))  allocate (dgds2dr(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dgds21dr)) allocate (dgds21dr(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dgds22dr)) allocate (dgds22dr(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(dgds22bdr)) allocate (dgds22bdr(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift)) allocate (gbdrift(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift0)) allocate (gbdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
@@ -333,6 +344,10 @@ contains
     call broadcast (gds24)
     call broadcast (gds25)
     call broadcast (gds26)
+    call broadcast (dgds2dr)
+    call broadcast (dgds21dr)
+    call broadcast (dgds22dr)
+    call broadcast (dgds22bdr)
     call broadcast (gbdrift0)
     call broadcast (gbdrift)
     call broadcast (cvdrift0)
@@ -477,6 +492,10 @@ contains
     if (allocated(gds24)) deallocate (gds24)
     if (allocated(gds25)) deallocate (gds25)
     if (allocated(gds26)) deallocate (gds26)
+    if (allocated(dgds2dr))  deallocate (dgds2dr)
+    if (allocated(dgds21dr)) deallocate (dgds21dr)
+    if (allocated(dgds22dr)) deallocate (dgds22dr)
+    if (allocated(dgds22bdr)) deallocate (dgds22bdr)
     if (allocated(gbdrift)) deallocate (gbdrift)
     if (allocated(gbdrift0)) deallocate (gbdrift0)
     if (allocated(cvdrift)) deallocate (cvdrift)
