@@ -144,7 +144,8 @@ contains
        if (zonal_mode(iky)) then
           do ikx = 1, nakx
              kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
-             dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22bdr
+             dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22bdr/kperp2(iky,ikx,:,:)
+             if(any(kperp2(iky,ikx,:,:) .lt. epsilon(0.))) dkperp2dr(iky,ikx,:,:) = 0.
           end do
        else
           do ikx = 1, nakx
@@ -154,6 +155,8 @@ contains
              dkperp2dr(iky,ikx,:,:) = aky(iky)*aky(iky) &
                   *(dgds2dr + 2.0*theta0(iky,ikx)*dgds21dr &
                   + theta0(iky,ikx)*theta0(iky,ikx)*dgds22dr)
+             dkperp2dr(iky,ikx,:,:)=dkperp2dr(iky,ikx,:,:)/kperp2(iky,ikx,:,:)
+             if(any(kperp2(iky,ikx,:,:) .lt. epsilon(0.))) dkperp2dr(iky,ikx,:,:) = 0.
           end do
        end if
     end do

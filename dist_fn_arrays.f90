@@ -36,5 +36,6 @@ module dist_fn_arrays
 
   real, dimension (:,:,:,:), allocatable :: kperp, kperp2, dkperp2dr
   ! (naky, nakx, nalpha, -nzgrid:nzgrid)
+  ! note: dkperp2dr is divided by kperp2
 
 end module dist_fn_arrays

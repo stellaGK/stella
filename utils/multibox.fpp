@@ -456,24 +456,24 @@ contains
 
   end subroutine transform_ky2y
 
-  subroutine transform_y2ky (gy, gky)
-
-    use kt_grids, only: nakx
-
-    implicit none
-
-    real, dimension (:,:), intent (in out) :: gy
-    complex, dimension (:,:), intent (out) :: gky
-
-    integer :: ikx
-
-    do ikx = 1, nakx
-       fft_y_k = gy(:,ikx)
-       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_y, fft_y_k)
-       gky(:,ikx) = fft_y_y*yb_fft%scale
-    end do
-
-  end subroutine transform_y2ky
+!   subroutine transform_y2ky (gy, gky)
+!
+!    use kt_grids, only: nakx
+!
+!    implicit none
+!
+!    real, dimension (:,:), intent (in out) :: gy
+!    complex, dimension (:,:), intent (out) :: gky
+!
+!    integer :: ikx
+!
+!    do ikx = 1, nakx
+!       fft_y_k = gy(:,ikx)
+!       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_y, fft_y_k)
+!       gky(:,ikx) = fft_y_y*yb_fft%scale
+!    end do
+!
+!  end subroutine transform_y2ky
 
 
   subroutine finish_mb_transforms

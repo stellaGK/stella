@@ -1153,9 +1153,10 @@ contains
 
     use mp, only: proc0, min_allreduce
     use mp, only: scope, allprocs, subprocs, job
-    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: vmu_lo, imu_idx
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
+    use dist_fn_arrays, only: kperp, dkperp2dr
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
     use stella_time, only: cfl_dt, code_dt, code_dt_max
@@ -1164,8 +1165,10 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac
     use stella_geometry, only: dxdpsi, drhodpsi
+    use stella_geometry, only: bmag, dBdrho
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky, x
+    use vpamu_grids, only: vperp
     use physics_flags, only: full_flux_surface, radial_variation
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
@@ -1187,7 +1190,7 @@ contains
 
     real :: dpsidx
     integer ccount
-    integer :: ivmu, iz, it,i
+    integer :: ivmu, iz, it,i, ia, imu
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
@@ -1226,9 +1229,11 @@ contains
       end select
     endif
 
+    ia=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
+
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
              call swap_kxky (g0k, g0k_swap)
 
@@ -1254,7 +1259,10 @@ contains
              bracket = g0xy*g1xy
 
              if(radial_variation) then
+               imu = imu_idx(vmu_lo,ivmu)
                call get_dchidx_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+               g0k = g0k*(kperp(:,:,ia,iz)*vperp(ia,iz,imu)/bmag(ia,iz)) &
+                        *(0.5*dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
                call swap_kxky (g0k, g0k_swap)
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
@@ -1277,6 +1285,8 @@ contains
 
              if(radial_variation) then
                call get_dchidy_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+               g0k = g0k*(kperp(:,:,ia,iz)*vperp(ia,iz,imu)/bmag(ia,iz)) &
+                        *(0.5*dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
                call swap_kxky (g0k, g0k_swap)
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
@@ -1584,7 +1594,7 @@ contains
     use kt_grids, only: nalpha, nakx, naky, nx, x
     use gyro_averages, only: gyro_average, gyro_average_j1
     use physics_flags, only: full_flux_surface
-    use dist_fn_arrays, only: kperp, kperp2, dkperp2dr
+    use dist_fn_arrays, only: kperp, dkperp2dr
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
@@ -1643,7 +1653,7 @@ contains
             call get_dchidy_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0a)
             g0k = g0k &
                 - g0a*wstar(ia,iz,ivmu)*(kperp(:,:,ia,iz)*vperp(ia,iz,imu)/bmag(ia,iz)) &
-                * (0.5*dkperp2dr(:,:,ia,iz)/kperp2(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+                * (0.5*dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
             !gyroaverage variation in ExB nonlinearity is handled in 
             !advance_ExB_nonlinearity
@@ -1667,7 +1677,7 @@ contains
             call gyro_average_j1 (g1k,iz,ivmu,g0a) 
             g0k = g0k &
                 + g0a*wdriftx_phi(ia,iz,ivmu)*(kperp(:,:,ia,iz)*vperp(ia,iz,imu)/bmag(ia,iz)) &
-                * (0.5*dkperp2dr(:,:,ia,iz)/kperp2(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+                * (0.5*dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
             call get_dgdy(phi(:,:,iz,it),g1k)
             call gyro_average (g1k,iz,ivmu,g0a) 
@@ -1676,10 +1686,10 @@ contains
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
                         -2*mu(imu)*dBdrho(iz))
 
-            call gyro_average_j1 (g1k,iz,ivmu,g0a) 
+            !call gyro_average_j1 (g1k,iz,ivmu,g0a) 
             g0k = g0k &
                 + g0a*wdrifty_phi(ia,iz,ivmu)*(kperp(:,:,ia,iz)*vperp(ia,iz,imu)/bmag(ia,iz)) &
-                * (0.5*dkperp2dr(:,:,ia,iz)/kperp2(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+                * (0.5*dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
 
             !inverse and forward transforms

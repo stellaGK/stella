@@ -373,8 +373,8 @@ contains
     dpsidx=1.0/dxdpsi
 
 
-    allocate(g1k(nakx,nakx))
-    allocate(g1x(nakx,nx))
+    allocate(g1k(naky,nakx))
+    allocate(g1x(naky,nx))
     allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
