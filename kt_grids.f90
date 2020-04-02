@@ -7,6 +7,7 @@ module kt_grids
   public :: read_kt_grids_parameters
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
+  public :: dx,dy,dkx, dky
   public :: jtwist, ikx_twist_shift, x0, y0, x
   public :: nalpha
   public :: ikx_max, naky_all
@@ -24,6 +25,7 @@ module kt_grids
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x
+  real :: dx, dy, dkx, dky
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
@@ -211,7 +213,6 @@ contains
     type (flux_surface_type), intent (in) :: geo_surf
     real, intent (in) :: twist_and_shift_geo_fac
 
-    real :: dkx, dky, dx
     integer :: ikx, iky
 
     ! set jtwist and y0 for cases where they have not been specified
@@ -289,6 +290,7 @@ contains
     if(.not.allocated(x)) allocate (x(nx))
 
     dx = (2*pi*x0)/nx
+    dy = (2*pi*y0)/ny
     do ikx = 1, nx
       x(ikx) = (ikx-0.5)*dx - pi*x0
     enddo
