@@ -236,7 +236,7 @@ contains
 
   end subroutine advance_parallel_streaming_explicit
 
-  subroutine advance_parallel_streaming_radial_variation (g, iz, it, ivmu, gout)
+  subroutine advance_parallel_streaming_radial_variation (g, gout)
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
