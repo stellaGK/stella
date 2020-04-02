@@ -218,7 +218,7 @@ contains
   subroutine multibox_communicate
 
     use dist_fn_arrays, only: gnew
-    use kt_grids, only: nakx,naky,naky_all
+    use kt_grids, only: nakx,naky,naky_all,dx,dy
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
     use fields_arrays, only: phi, apar
@@ -244,7 +244,7 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 
-    if(mod(temp_ind,50)==0 .and. proc0) then
+    if(mod(temp_ind,200)==0 .and. proc0) then
      ! call get_unused_unit(temp_unit)
       temp_unit=3023+job
       call transform_kx2x(phi(:,:,0,1),fft_xky)  
@@ -254,10 +254,10 @@ contains
             action="write",form="unformatted",access="stream")
       write (temp_unit) real(nakx,4)
       do ii=1,nakx
-        write(temp_unit) real(ii,4)
+        write(temp_unit) real(dx*(ii-1),4)
       enddo
       do ii=1,naky_all
-        write (temp_unit) real(ii,4)
+        write (temp_unit) real(dy*(ii-1),4)
         do jj=1,nakx
           write (temp_unit) real(fft_xy(ii,jj),4)
         enddo
