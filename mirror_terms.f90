@@ -6,6 +6,7 @@ module mirror_terms
   public :: init_mirror, finish_mirror
   public :: mirror
   public :: advance_mirror_explicit, advance_mirror_implicit
+  public :: advance_mirror_radial_variation
   public :: time_mirror
 
   private
@@ -15,6 +16,7 @@ module mirror_terms
 
   integer, dimension (:,:), allocatable :: mirror_sign
   real, dimension (:,:,:,:), allocatable :: mirror
+  real, dimension (:,:,:,:), allocatable :: mirror_glob_var
   real, dimension (:,:,:), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
   real, dimension (:,:,:), allocatable :: mirror_int_fac
   real, dimension (:,:,:,:), allocatable :: mirror_interp_loc
@@ -31,10 +33,11 @@ contains
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
     use stella_geometry, only: dbdzed, gradpar
+    use stella_geometry, only: d2Bdrdth, dgradpardrho
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange
-    use physics_flags, only: include_mirror
+    use physics_flags, only: include_mirror, radial_variation
 
     implicit none
 
@@ -54,6 +57,7 @@ contains
        neoclassical_term = 0.
     end if
 
+
     ! mirror has sign consistent with being on RHS of GKE
     if (include_mirror) then
        do imu = 1, nmu
@@ -69,6 +73,24 @@ contains
     end if
 
     deallocate (neoclassical_term)
+
+    if(radial_variation) then
+
+      if(.not.allocated(mirror_glob_var)) then
+        allocate (mirror_glob_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
+        mirror_glob_var = 0.
+      endif
+      !FLAG should include neoclassical corrections here?
+      do imu = 1, nmu
+        do iy = 1, nalpha
+          do iz = -nzgrid, nzgrid
+            mirror_glob_var(iy,iz,imu,:) = code_dt*spec%stm*mu(imu) &
+                                          *(dgradpardrho(iz)*dbdzed(iy,iz) &
+                                          +  gradpar(iz)*d2Bdrdth(iz))
+          end do
+        end do
+      end do
+    endif
 
     do iy = 1, nalpha
        ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
@@ -316,6 +338,92 @@ contains
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
   end subroutine advance_mirror_explicit
+
+  subroutine advance_mirror_radial_variation (g, gout)
+
+    use mp, only: proc0
+    use redistribute, only: gather, scatter
+    use dist_fn_arrays, only: gvmu
+    use job_manage, only: time_message
+    use stella_layouts, only: kxkyz_lo, vmu_lo
+    use stella_layouts, only: is_idx,imu_idx
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_geometry, only: drhodpsi, dxdpsi
+    use zgrid, only: nzgrid, ntubes
+    use physics_flags, only: full_flux_surface
+    use kt_grids, only: nakx, naky, nx, x
+    use vpamu_grids, only: nvpa, nmu
+    use run_parameters, only: fields_kxkyz
+    use dist_redistribute, only: kxkyz2vmu
+    use physics_parameters, only: rhostar
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    complex, dimension (:,:,:), allocatable :: g0v
+    complex, dimension (:,:,:,:,:), allocatable :: g0x
+    complex, dimension (:,:), allocatable :: g1k
+    complex, dimension (:,:), allocatable :: g1x
+
+    integer :: iz,it,imu,is,ivmu
+    real :: dpsidx
+    
+    dpsidx=1.0/dxdpsi
+
+
+    allocate(g1k(nakx,nakx))
+    allocate(g1x(nakx,nx))
+    allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+    allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+
+    ! the mirror term is most complicated of all when doing full flux surface
+    if (full_flux_surface) then
+      ! FLAG DSO - Someday one should be able to do full global 
+    else
+       if (.not.fields_kxkyz) then
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+          call scatter (kxkyz2vmu, g, gvmu)
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       end if
+       ! get dg/dvpa and store in g0v
+       g0v = gvmu
+       call get_dgdvpa_explicit (g0v)
+       ! swap layouts so that (z,kx,ky) are local
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       call gather (kxkyz2vmu, g0v, g0x)
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       ! get mirror term and add to source
+      
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo,ivmu)
+         imu = imu_idx(vmu_lo,ivmu)
+         do it = 1, ntubes
+           do iz = -nzgrid,nzgrid
+
+            call transform_kx2x_solo(g0x(:,:,iz,it,ivmu),g1x)
+
+            g1x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)& 
+                  *mirror_glob_var(1,iz,imu,is)*g1x
+
+            call transform_x2kx_solo(g1x,g1k)
+
+            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g1k
+
+          enddo
+        enddo
+       enddo
+    end if
+
+    deallocate (g0x, g0v, g1k, g1x)
+
+    !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+  end subroutine advance_mirror_radial_variation
 
   subroutine get_dgdvpa_global (g)
 
@@ -725,6 +833,7 @@ contains
 
     if (allocated(mirror)) deallocate (mirror)
     if (allocated(mirror_sign)) deallocate (mirror_sign)
+    if (allocated(mirror_glob_var)) deallocate (mirror_glob_var)
 
     if (mirror_implicit) then
        if (mirror_semi_lagrange) then

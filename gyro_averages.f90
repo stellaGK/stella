@@ -2,7 +2,7 @@ module gyro_averages
 
   use common_types, only: coupled_alpha_type
 
-  public :: aj0x, aj0v, aj1v
+  public :: aj0x, aj0v, aj1x, aj1v
   public :: init_bessel, finish_bessel
   public :: gyro_average
   public :: gyro_average_j1
@@ -16,7 +16,13 @@ module gyro_averages
      module procedure gyro_average_vmus_nonlocal
   end interface
 
-  real, dimension (:,:,:,:), allocatable :: aj0x
+  interface gyro_average_j1
+     module procedure gyro_average_j1_kxky_local
+     module procedure gyro_average_j1_kxkyz_local
+     module procedure gyro_average_j1_vmu_local
+  end interface
+
+  real, dimension (:,:,:,:), allocatable :: aj0x, aj1x
   ! (naky, nakx, nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:), allocatable :: aj0v, aj1v
@@ -221,6 +227,11 @@ contains
           aj0x = 0.
        end if
 
+       if (.not.allocated(aj1x)) then
+          allocate (aj1x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          aj1x = 0.
+       end if
+
        ia = 1
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           is = is_idx(vmu_lo,ivmu)
@@ -230,6 +241,7 @@ contains
                 do iky = 1, naky
                    arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
                    aj0x(iky,ikx,iz,ivmu) = j0(arg)
+                   aj1x(iky,ikx,iz,ivmu) = j1(arg)
                 end do
              end do
           end do
@@ -296,6 +308,7 @@ contains
     if (allocated(aj0v)) deallocate (aj0v)
     if (allocated(aj1v)) deallocate (aj1v)
     if (allocated(aj0x)) deallocate (aj0x)
+    if (allocated(aj1x)) deallocate (aj1x)
     if (allocated(aj0a)) deallocate (aj0a)
     if (allocated(gam0a)) deallocate (gam0a)
     if (allocated(lu_gam0a)) deallocate (lu_gam0a)
@@ -397,20 +410,6 @@ contains
 
   end subroutine gyro_average_vmu_local
 
-  subroutine gyro_average_j1 (distfn, ikxkyz, gyro_distfn)
-
-    use vpamu_grids, only: nvpa
-
-    implicit none
-
-    complex, dimension (:,:), intent (in) :: distfn
-    integer, intent (in) :: ikxkyz
-    complex, dimension (:,:), intent (out) :: gyro_distfn
-
-    gyro_distfn = spread(aj1v(:,ikxkyz),1,nvpa)*distfn
-
-  end subroutine gyro_average_j1
-
   subroutine gyro_average_vmus_nonlocal (field, iky, ikx, iz, gyro_field)
 
     use stella_layouts, only: vmu_lo
@@ -424,5 +423,56 @@ contains
     gyro_field = aj0x(iky,ikx,iz,:)*field
 
   end subroutine gyro_average_vmus_nonlocal
+
+  subroutine gyro_average_j1_kxky_local (field, iz, ivmu, gyro_field)
+
+    use physics_flags, only: full_flux_surface
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: ikx_max
+    use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: field
+    integer, intent (in) :: iz, ivmu
+    complex, dimension (:,:), intent (out) :: gyro_field
+
+    gyro_field = aj1x(:,:,iz,ivmu)*field
+
+  end subroutine gyro_average_j1_kxky_local
+
+  subroutine gyro_average_j1_kxkyz_local (field, ivmu, gyro_field)
+
+    use zgrid, only: nzgrid, ntubes
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: field
+    integer, intent (in) :: ivmu
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_field
+
+    integer :: iz, it
+
+    do it = 1, ntubes
+       do iz = -nzgrid, nzgrid
+          call gyro_average_j1 (field(:,:,iz,it), iz, ivmu, gyro_field(:,:,iz,it))
+       end do
+    end do
+
+  end subroutine gyro_average_j1_kxkyz_local
+
+  subroutine gyro_average_j1_vmu_local (distfn, ikxkyz, gyro_distfn)
+
+    use vpamu_grids, only: nvpa
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: distfn
+    integer, intent (in) :: ikxkyz
+    complex, dimension (:,:), intent (out) :: gyro_distfn
+
+    gyro_distfn = spread(aj1v(:,ikxkyz),1,nvpa)*distfn
+
+  end subroutine gyro_average_j1_vmu_local
 
 end module gyro_averages

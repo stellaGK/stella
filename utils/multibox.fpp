@@ -215,16 +215,16 @@ contains
   end subroutine adjust_boundaries
 
 
-  subroutine multibox_communicate
+  subroutine multibox_communicate (gin)
 
-    use dist_fn_arrays, only: gnew
     use kt_grids, only: nakx,naky,naky_all,dx,dy
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
     use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
                   send, receive, proc0
@@ -234,8 +234,9 @@ contains
     integer :: num,ix,iy,iz,it,iv,offset
     integer :: ii,jj, temp_unit
     complex :: dzm,dzp
-    real (kind=4) :: sing
     character(len=512) :: filename
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: gin
 
 #ifndef MPI
     return
@@ -276,7 +277,7 @@ contains
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
-            call transform_kx2x(gnew(:,:,iz,it,iv),fft_xky)  
+            call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iy=1,naky
                 !DSO if in the future the grids can have different naky, one will
@@ -303,7 +304,7 @@ contains
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
-            call transform_kx2x(gnew(:,:,iz,it,iv),fft_xky)  
+            call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iy=1,naky
                 fft_xky(iy,ix)        = g_buffer0(num)
@@ -319,7 +320,7 @@ contains
                 fft_xky(1,ix+offset)=fft_xky(1,ix+offset) - dzp
               enddo
             endif
-            call transform_x2kx(fft_xky,gnew(:,:,iz,it,iv))  
+            call transform_x2kx(fft_xky,gin(:,:,iz,it,iv))  
           enddo
         enddo
       enddo
@@ -328,10 +329,11 @@ contains
 ! DSO - change communicator
     call scope(subprocs)
 
-    if(job==1) then
-      fields_updated = .false.
-      call advance_fields(gnew,phi,apar, dist='gbar')
-    endif
+    if(job==1) fields_updated = .false.
+    !if(job==1) then
+     ! fields_updated = .false.
+      !call advance_fields(gnew,phi,apar, dist='gbar')
+    !endif
 
     temp_ind=temp_ind+1
 
