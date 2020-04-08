@@ -183,7 +183,8 @@ contains
        desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
        normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, &
        sign_toroidal_flux, &
-       alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
+       alpha, zeta, bmag, gradpar_zeta, &
+       gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
        gbdrift, gbdrift0, cvdrift, cvdrift0, &
        theta_vmec)
 
@@ -261,7 +262,11 @@ contains
 
     real, dimension (:,-nzgrid:), intent(out) :: theta_vmec
 
-    real, dimension (:,-nzgrid:), intent (out) :: bmag, gradpar, gds2, gds21, gds22
+    real, dimension (:,-nzgrid:), intent (out) :: bmag
+    ! gradpar_zeta = b . grad zeta, with zeta the physical toroidal angle
+    ! taken to increase in the counter-clockwise direction
+    real, dimension (:,-nzgrid:), intent (out) :: gradpar_zeta
+    real, dimension (:,-nzgrid:), intent (out) :: gds2, gds21, gds22
     real, dimension (:,-nzgrid:), intent (out) :: gds23, gds24, gds25, gds26
     real, dimension (:,-nzgrid:), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
 
@@ -698,7 +703,7 @@ contains
     !*********************************************************************
 
     bmag = 0
-    gradpar = 0
+    gradpar_zeta = 0
     gds2 = 0
     gds21 = 0
     gds22 = 0
@@ -1316,7 +1321,7 @@ contains
 
     bmag = B / B_reference
 
-    gradpar = L_reference * B_sup_zeta / B
+    gradpar_zeta = L_reference * B_sup_zeta / B
 
     ! gds2 = |grad y|^2 = (dy/dalpha)^2 * |grad alpha|^2 = Lref^2*rhotor^2*|grad alpha|^2
 
