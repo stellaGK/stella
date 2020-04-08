@@ -81,9 +81,9 @@ contains
        if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
        gradpar_c = spread(gradpar,2,3)
        ! get gradpar centred in zed for negative vpa (affects upwinding)
-       call center_zed(1,gradpar_c(:,-1))
+       call center_zed(1,gradpar_c(:,-stream_sign(1)))
        ! get gradpar centred in zed for positive vpa (affects upwinding)
-       call center_zed(nvpa,gradpar_c(:,1))
+       call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
        stream = stream_c
     end if
 
