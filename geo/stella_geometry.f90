@@ -229,6 +229,8 @@ contains
     call get_gradpar_eqarc (gradpar, zed, delzed, gradpar_eqarc)
     call get_zed_eqarc (gradpar, delzed, zed, gradpar_eqarc, zed_eqarc)
 
+    if (proc0) call write_geometric_coefficients
+
   end subroutine init_geometry
 
   subroutine allocate_arrays (nalpha, nzgrid)
@@ -441,6 +443,37 @@ contains
     intf = 0.5*intf
 
   end subroutine integrate_zed
+
+  subroutine write_geometric_coefficients
+
+    use file_utils, only: open_output_file, close_output_file
+    use zgrid, only: nzgrid, zed
+    use kt_grids, only: nalpha
+
+    implicit none
+
+    integer :: geometry_unit
+    integer :: ia, iz
+
+    call open_output_file (geometry_unit,'.geometry')
+
+    write (geometry_unit,'(a1,8a12)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdpsi', 'dydalpha'
+    write (geometry_unit,'(a1,8e12.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha
+    write (geometry_unit,*)
+
+    write (geometry_unit,'(12a12)') '# alpha', 'zed', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0'
+    do ia = 1, nalpha
+       do iz = -nzgrid, nzgrid
+          write (geometry_unit,'(12e12.4)') alpha(ia), zed(iz), bmag(ia,iz), gradpar(iz), &
+               gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gds23(ia,iz), &
+               gds24(ia,iz), gbdrift(ia,iz), cvdrift(ia,iz), gbdrift0(ia,iz)
+       end do
+       write (geometry_unit,*)
+    end do
+
+    call close_output_file (geometry_unit)
+
+  end subroutine write_geometric_coefficients
 
   subroutine finish_geometry
 
