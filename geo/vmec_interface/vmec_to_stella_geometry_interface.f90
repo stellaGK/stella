@@ -185,7 +185,7 @@ contains
        sign_toroidal_flux, &
        alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, &
        grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
-       gbdrift, gbdrift0, cvdrift, cvdrift0, &
+       gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
        theta_vmec)
 
     use fzero_mod, only: fzero
@@ -272,9 +272,14 @@ contains
     real, dimension (:,-nzgrid:), intent (out) :: grad_alpha_grad_psi
     ! grad psi_t . grad psi_t in units of (a*B_ref)^2, with alpha = theta_pest - iota * zeta
     real, dimension (:,-nzgrid:), intent (out) :: grad_psi_grad_psi
+    ! 2 * bhat/B x (grad B / B) . grad alpha * B_ref * L_ref^2
+    real, dimension (:,-nzgrid:), intent (out) :: gbdrift_alpha
+    ! 2 * bhat/B x (bhat . grad bhat) . grad alpha * B_ref * L_ref^2
+    real, dimension (:,-nzgrid:), intent (out) :: cvdrift_alpha
 
     real, dimension (:,-nzgrid:), intent (out) :: gds23, gds24, gds25, gds26
-    real, dimension (:,-nzgrid:), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
+!    real, dimension (:,-nzgrid:), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
+    real, dimension (:,-nzgrid:), intent (out) :: gbdrift0_psi, cvdrift0_psi
 
     !*********************************************************************
     ! Variables used internally by this subroutine
@@ -717,10 +722,10 @@ contains
     gds24 = 0.0
     gds25 = 0.0
     gds26 = 0.0
-    gbdrift = 0
-    gbdrift0 = 0
-    cvdrift = 0
-    cvdrift0 = 0
+    gbdrift_alpha = 0
+    gbdrift0_psi = 0
+    cvdrift_alpha = 0
+    cvdrift0_psi = 0
 
     allocate(B(nalpha,-nzgrid:nzgrid))
     allocate(temp2D(nalpha,-nzgrid:nzgrid))
@@ -1397,19 +1402,25 @@ contains
          - gradtheta_gradx * sign_toroidal_flux * grad_alpha_grad_psi)
 !    gds26 = 0.5*(gradtheta_grady * gds22/shat**2 - gradtheta_gradx * gds21/shat)
 
-    gbdrift = 2 * B_reference * L_reference * L_reference * sqrt_s * B_cross_grad_B_dot_grad_alpha &
+    gbdrift_alpha = 2 * B_reference * L_reference * L_reference * B_cross_grad_B_dot_grad_alpha &
          / (B * B * B)
+!    gbdrift = 2 * B_reference * L_reference * L_reference * sqrt_s * B_cross_grad_B_dot_grad_alpha &
 
-!    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
-    gbdrift0 = abs(edge_toroidal_flux_over_2pi) &
+    gbdrift0_psi = -edge_toroidal_flux_over_2pi &
          * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g &
-         * 2 * shat / (B * B * B * sqrt_s)
+         * 2 * shat / (B * B * B)
+!    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
+!    gbdrift0 = abs(edge_toroidal_flux_over_2pi) &
+!         * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g &
+!         * 2 * shat / (B * B * B * sqrt_s)
     ! In the above 2-line expression for gbdrift0, the first line is \vec{B} \times \nabla B \cdot \nabla \psi.
 
-    cvdrift = gbdrift + 2 * B_reference * L_reference * L_reference * sqrt_s * mu_0 * d_pressure_d_s &
+    cvdrift_alpha = gbdrift_alpha + 2 * B_reference * L_reference * L_reference * mu_0 * d_pressure_d_s &
          * B_cross_grad_s_dot_grad_alpha / (B * B * B * B)
+!    cvdrift = gbdrift + 2 * B_reference * L_reference * L_reference * sqrt_s * mu_0 * d_pressure_d_s &
+!         * B_cross_grad_s_dot_grad_alpha / (B * B * B * B)
 
-    cvdrift0 = gbdrift0
+    cvdrift0_psi = gbdrift0_psi
 
     !*********************************************************************
     ! Free all arrays that were allocated.

@@ -83,6 +83,8 @@ contains
     real, dimension (:,:), allocatable :: grad_alpha_grad_alpha
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi
     real, dimension (:,:), allocatable :: grad_psi_grad_psi
+    real, dimension (:,:), allocatable :: gbdrift_alpha, cvdrift_alpha
+    real, dimension (:,:), allocatable :: gbdrift0_psi, cvdrift0_psi
 
     if (geoinit) return
     geoinit = .true.
@@ -172,7 +174,8 @@ contains
           if (debug) write (*,*) 'init_geometry::get_vmec_geo'
           call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
                grad_alpha_grad_psi, grad_psi_grad_psi, &
-               gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
+               gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
+               cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                theta_vmec, zed_scalefac, aref, bref, alpha)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
@@ -200,6 +203,20 @@ contains
           gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdpsi * dydalpha
           ! gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
           gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdpsi**2
+
+          ! gbdrift_alpha and cvdrift_alpha contain
+          ! the grad-B and curvature drifts projected onto
+          ! the grad alpha direction
+          ! need the projections on grad y
+          gbdrift = gbdrift_alpha * dydalpha
+          cvdrift = cvdrift_alpha * dydalpha
+
+          ! gbdrift0_psi and cvdrift0_psi contain
+          ! the grad-B and curvature drifts projected onto
+          ! the grad psi direction
+          ! need the projections on grad x
+          gbdrift0 = gbdrift0_psi * dxdpsi
+          cvdrift0 = cvdrift0_psi * dxdpsi
 
           call deallocate_temporary_arrays
        end select
@@ -259,6 +276,10 @@ contains
       allocate (grad_alpha_grad_alpha(nalpha, -nzgrid:nzgrid))
       allocate (grad_alpha_grad_psi(nalpha, -nzgrid:nzgrid))
       allocate (grad_psi_grad_psi(nalpha, -nzgrid:nzgrid))
+      allocate (gbdrift_alpha(nalpha, -nzgrid:nzgrid))
+      allocate (cvdrift_alpha(nalpha, -nzgrid:nzgrid))
+      allocate (gbdrift0_psi(nalpha, -nzgrid:nzgrid))
+      allocate (cvdrift0_psi(nalpha, -nzgrid:nzgrid))
 
     end subroutine allocate_temporary_arrays
 
@@ -269,6 +290,10 @@ contains
       deallocate (grad_alpha_grad_alpha)
       deallocate (grad_alpha_grad_psi)
       deallocate (grad_psi_grad_psi)
+      deallocate (gbdrift_alpha)
+      deallocate (cvdrift_alpha)
+      deallocate (gbdrift0_psi)
+      deallocate (cvdrift0_psi)
 
     end subroutine deallocate_temporary_arrays
 

@@ -83,7 +83,8 @@ contains
 
   subroutine get_vmec_geo (nzgrid, surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
        grad_alpha_grad_psi, grad_psi_grad_psi, &
-       gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
+       gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
+       cvdrift0_psi, sign_torflux, &
        theta_vmec, zed_scalefac, L_reference, B_reference, alpha)
 
     use constants, only: pi
@@ -103,7 +104,8 @@ contains
     real, dimension (-nzgrid:), intent (out) :: gradpar
     real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, grad_alpha_grad_alpha, &
          grad_alpha_grad_psi, grad_psi_grad_psi, &
-         gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, theta_vmec
+         gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
+         cvdrift_alpha, cvdrift0_psi, theta_vmec
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
@@ -122,8 +124,8 @@ contains
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi_vmec
     real, dimension (:,:), allocatable :: grad_psi_grad_psi_vmec
     real, dimension (:,:), allocatable :: gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec
-    real, dimension (:,:), allocatable :: gbdrift_vmec, gbdrift0_vmec
-    real, dimension (:,:), allocatable :: cvdrift_vmec, cvdrift0_vmec
+    real, dimension (:,:), allocatable :: gbdrift_alpha_vmec, gbdrift0_psi_vmec
+    real, dimension (:,:), allocatable :: cvdrift_alpha_vmec, cvdrift0_psi_vmec
 
     real, dimension (:), allocatable :: zed_domain_size
     real, dimension (:,:), allocatable :: arc_length
@@ -166,10 +168,10 @@ contains
     allocate (gds24_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds25_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gds26_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
-    allocate (gbdrift_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
-    allocate (gbdrift0_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
-    allocate (cvdrift_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
-    allocate (cvdrift0_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gbdrift_alpha_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (gbdrift0_psi_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (cvdrift_alpha_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (cvdrift0_psi_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (arc_length(nalpha,-nzgrid_vmec:nzgrid_vmec))
 
     if (debug) write (*,*) 'get_vmec_geo::vmec_to_stella_geometry_interface'
@@ -181,8 +183,9 @@ contains
          bmag_vmec, gradpar_vmec, grad_alpha_grad_alpha_vmec, &
          grad_alpha_grad_psi_vmec, grad_psi_grad_psi_vmec, &
          gds23_vmec, gds24_vmec, &
-         gds25_vmec, gds26_vmec, gbdrift_vmec, gbdrift0_vmec, cvdrift_vmec, &
-         cvdrift0_vmec, thetamod_vmec)
+         gds25_vmec, gds26_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, &
+         cvdrift_alpha_vmec, &
+         cvdrift0_psi_vmec, thetamod_vmec)
     
     allocate (zed_domain_size(nalpha))
 
@@ -231,10 +234,10 @@ contains
           call geo_spline (arc_length(ia,:), gds24_vmec(ia,:), zed, gds24(ia,:))
           call geo_spline (arc_length(ia,:), gds25_vmec(ia,:), zed, gds25(ia,:))
           call geo_spline (arc_length(ia,:), gds26_vmec(ia,:), zed, gds26(ia,:))
-          call geo_spline (arc_length(ia,:), gbdrift_vmec(ia,:), zed, gbdrift(ia,:))
-          call geo_spline (arc_length(ia,:), gbdrift0_vmec(ia,:), zed, gbdrift0(ia,:))
-          call geo_spline (arc_length(ia,:), cvdrift_vmec(ia,:), zed, cvdrift(ia,:))
-          call geo_spline (arc_length(ia,:), cvdrift0_vmec(ia,:), zed, cvdrift0(ia,:))
+          call geo_spline (arc_length(ia,:), gbdrift_alpha_vmec(ia,:), zed, gbdrift_alpha(ia,:))
+          call geo_spline (arc_length(ia,:), gbdrift0_psi_vmec(ia,:), zed, gbdrift0_psi(ia,:))
+          call geo_spline (arc_length(ia,:), cvdrift_alpha_vmec(ia,:), zed, cvdrift_alpha(ia,:))
+          call geo_spline (arc_length(ia,:), cvdrift0_psi_vmec(ia,:), zed, cvdrift0_psi(ia,:))
           call geo_spline (arc_length(ia,:), thetamod_vmec(ia,:), zed, theta_vmec(ia,:))
 
           ! gradpar at this point is b . grad zeta
@@ -265,10 +268,10 @@ contains
              call filter_geo_coef (gds24(:,iz))
              call filter_geo_coef (gds25(:,iz))
              call filter_geo_coef (gds26(:,iz))
-             call filter_geo_coef (gbdrift(:,iz))
-             call filter_geo_coef (gbdrift0(:,iz))
-             call filter_geo_coef (cvdrift(:,iz))
-             call filter_geo_coef (cvdrift0(:,iz))
+             call filter_geo_coef (gbdrift_alpha(:,iz))
+             call filter_geo_coef (gbdrift0_psi(:,iz))
+             call filter_geo_coef (cvdrift_alpha(:,iz))
+             call filter_geo_coef (cvdrift0_psi(:,iz))
           end do
        end if
        
@@ -283,10 +286,10 @@ contains
        gds24 = gds24_vmec
        gds25 = gds25_vmec
        gds26 = gds26_vmec
-       gbdrift = gbdrift_vmec
-       gbdrift0 = gbdrift0_vmec
-       cvdrift = cvdrift_vmec
-       cvdrift0 = cvdrift0_vmec
+       gbdrift_alpha = gbdrift_alpha_vmec
+       gbdrift0_psi = gbdrift0_psi_vmec
+       cvdrift_alpha = cvdrift_alpha_vmec
+       cvdrift0_psi = cvdrift0_psi_vmec
        theta_vmec = thetamod_vmec
 
        ! scale zed so that it is zeta compressed (or expanded)
@@ -309,8 +312,8 @@ contains
     deallocate (gradpar_zeta)
     deallocate (grad_alpha_grad_alpha_vmec, grad_alpha_grad_psi_vmec, grad_psi_grad_psi_vmec)
     deallocate (gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec)
-    deallocate (gbdrift_vmec, gbdrift0_vmec)
-    deallocate (cvdrift_vmec, cvdrift0_vmec)
+    deallocate (gbdrift_alpha_vmec, gbdrift0_psi_vmec)
+    deallocate (cvdrift_alpha_vmec, cvdrift0_psi_vmec)
     deallocate (arc_length)
     
     ! vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc
@@ -352,14 +355,14 @@ contains
     write (2001,'(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, zed_scalefac
     write (2001,*)
     write (2001,'(14a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'grad_alpha2',&
-         'gd_alph_psi', 'grad_psi2', 'gds23', 'gds24','gbdrift', 'gbdrift0', 'cvdrift',&
-         'cvdrift0', 'theta_vmec'
+         'gd_alph_psi', 'grad_psi2', 'gds23', 'gds24','gbdriftalph', 'gbdrift0psi', 'cvdriftalph',&
+         'cvdrift0psi', 'theta_vmec'
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
           write (2001,'(14e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(j), &
                grad_alpha_grad_alpha(i,j), grad_alpha_grad_psi(i,j), grad_psi_grad_psi(i,j), &
                gds23(i,j), gds24(i,j), &
-               gbdrift(i,j), gbdrift0(i,j), cvdrift(i,j), cvdrift0(i,j), theta_vmec(i,j)
+               gbdrift_alpha(i,j), gbdrift0_psi(i,j), cvdrift_alpha(i,j), cvdrift0_psi(i,j), theta_vmec(i,j)
        end do
     end do
     close (2001)
