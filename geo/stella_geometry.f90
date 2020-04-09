@@ -80,6 +80,9 @@ contains
     integer :: iy
     integer :: sign_torflux
     integer :: dxdpsi_sign, dydalpha_sign
+    real, dimension (:,:), allocatable :: grad_alpha_grad_alpha
+    real, dimension (:,:), allocatable :: grad_alpha_grad_psi
+    real, dimension (:,:), allocatable :: grad_psi_grad_psi
 
     if (geoinit) return
     geoinit = .true.
@@ -163,9 +166,12 @@ contains
           ! allocate geometry arrays
           if (debug) write (*,*) 'init_geometry::allocate_arrays'
           call allocate_arrays (nalpha, nzgrid)
+          if (debug) write (*,*) 'init_geometry::allocate_temporary_arrays'
+          call allocate_temporary_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
           if (debug) write (*,*) 'init_geometry::get_vmec_geo'
-          call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, gds2, gds21, gds22, &
+          call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
+               grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift, gbdrift0, cvdrift, cvdrift0, sign_torflux, &
                theta_vmec, zed_scalefac, aref, bref, alpha)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
@@ -185,6 +191,17 @@ contains
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
           twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
+
+          ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
+          ! note that rhotor = sqrt(psi/psi_LCFS)
+          gds2 = grad_alpha_grad_alpha * dydalpha**2
+          ! gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
+          ! NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
+          gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdpsi * dydalpha
+          ! gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
+          gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdpsi**2
+
+          call deallocate_temporary_arrays
        end select
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
        exb_nonlin_fac = 0.5*dxdpsi*dydalpha
@@ -230,6 +247,30 @@ contains
     call get_zed_eqarc (gradpar, delzed, zed, gradpar_eqarc, zed_eqarc)
 
     if (proc0) call write_geometric_coefficients
+
+  contains
+
+    subroutine allocate_temporary_arrays (nalpha, nzgrid)
+
+      implicit none
+
+      integer, intent (in) :: nalpha, nzgrid
+
+      allocate (grad_alpha_grad_alpha(nalpha, -nzgrid:nzgrid))
+      allocate (grad_alpha_grad_psi(nalpha, -nzgrid:nzgrid))
+      allocate (grad_psi_grad_psi(nalpha, -nzgrid:nzgrid))
+
+    end subroutine allocate_temporary_arrays
+
+    subroutine deallocate_temporary_arrays
+
+      implicit none
+
+      deallocate (grad_alpha_grad_alpha)
+      deallocate (grad_alpha_grad_psi)
+      deallocate (grad_psi_grad_psi)
+
+    end subroutine deallocate_temporary_arrays
 
   end subroutine init_geometry
 
@@ -461,10 +502,10 @@ contains
     write (geometry_unit,'(a1,8e12.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha
     write (geometry_unit,*)
 
-    write (geometry_unit,'(12a12)') '# alpha', 'zed', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0'
+    write (geometry_unit,'(13a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0'
     do ia = 1, nalpha
        do iz = -nzgrid, nzgrid
-          write (geometry_unit,'(12e12.4)') alpha(ia), zed(iz), bmag(ia,iz), gradpar(iz), &
+          write (geometry_unit,'(13e12.4)') alpha(ia), zed(iz), zed(iz)/zed_scalefac, bmag(ia,iz), gradpar(iz), &
                gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gds23(ia,iz), &
                gds24(ia,iz), gbdrift(ia,iz), cvdrift(ia,iz), gbdrift0(ia,iz)
        end do
