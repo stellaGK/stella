@@ -150,7 +150,8 @@ contains
        dcvdrift0drho_out, dcvdriftdrho_out, &
        dgbdrift0drho_out, dgbdriftdrho_out, &
        dgds2dr_out, dgds21dr_out, &
-       dgds22dr_out, dgds22bdr_out)
+       dgds22dr_out, dgds22bdr_out, &
+       djacdrho_out)
     
     use constants, only: pi
     use splines, only: geo_spline
@@ -169,7 +170,8 @@ contains
          dcvdrift0drho_out, dcvdriftdrho_out, &
          dgbdrift0drho_out, dgbdriftdrho_out, &
          dgds2dr_out, dgds21dr_out, &
-         dgds22dr_out, dgds22bdr_out
+         dgds22dr_out, dgds22bdr_out, &
+         djacdrho_out
 
     integer :: nr, np
     integer :: i, j
@@ -410,6 +412,7 @@ contains
     call geo_spline (theta, dgds21dr, zed_in, dgds21dr_out)
     call geo_spline (theta, dgds22dr, zed_in, dgds22dr_out)
     call geo_spline (theta, dgds22bdr, zed_in, dgds22bdr_out)
+    call geo_spline (theta, djacdrho/dpsidrho, zed_in, djacdrho_out)
 
     ! get the toroidal component of the magnetic field
     ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R

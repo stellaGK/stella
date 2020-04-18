@@ -7,7 +7,7 @@ module dist_fn_arrays
   public :: gnew, gold
   public :: g1, g2, g3
   public :: gvmu
-  public :: kperp, kperp2, dkperp2dr
+  public :: kperp2, dkperp2dr
   public :: wstar, wstarp
   public :: wdriftx_g, wdrifty_g
   public :: wdriftx_phi, wdrifty_phi
@@ -34,7 +34,7 @@ module dist_fn_arrays
   real, dimension (:,:,:), allocatable :: wdriftpx_phi, wdriftpy_phi
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
-  real, dimension (:,:,:,:), allocatable :: kperp, kperp2, dkperp2dr
+  real, dimension (:,:,:,:), allocatable :: kperp2, dkperp2dr
   ! (naky, nakx, nalpha, -nzgrid:nzgrid)
   ! note: dkperp2dr is divided by kperp2
 

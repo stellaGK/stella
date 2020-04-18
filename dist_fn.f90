@@ -119,7 +119,7 @@ contains
 
   subroutine init_kperp2
 
-    use dist_fn_arrays, only: kperp, kperp2, dkperp2dr
+    use dist_fn_arrays, only: kperp2, dkperp2dr
     use stella_geometry, only: gds2, gds21, gds22
     use stella_geometry, only: dgds2dr, dgds21dr
     use stella_geometry, only: dgds22dr, dgds22bdr
@@ -137,7 +137,6 @@ contains
     if (kp2init) return
     kp2init = .true.
 
-    allocate (kperp(naky,nakx,nalpha,-nzgrid:nzgrid))
     allocate (kperp2(naky,nakx,nalpha,-nzgrid:nzgrid))
     allocate (dkperp2dr(naky,nakx,nalpha,-nzgrid:nzgrid))
     do iky = 1, naky
@@ -161,8 +160,6 @@ contains
        end if
     end do
     
-    kperp = sqrt(kperp2)
-
   end subroutine init_kperp2
 
   subroutine allocate_arrays
@@ -192,7 +189,7 @@ contains
 
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp, vperp2
+    use vpamu_grids, only: vperp2
     use vpamu_grids, only: nmu, mu
     use kt_grids, only: nalpha
 
@@ -204,13 +201,10 @@ contains
     vp2init = .true.
 
     if (.not.allocated(vperp2)) allocate (vperp2(nalpha,-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
-    if (.not.allocated(vperp)) allocate (vperp(nalpha,-nzgrid:nzgrid,nmu)) ; vperp = 0.
     
     do imu = 1, nmu
        vperp2(:,:,imu) = 2.0*mu(imu)*bmag
     end do
-
-    vperp = sqrt(vperp2)
 
   end subroutine init_vperp2
 
@@ -245,11 +239,10 @@ contains
 
   subroutine finish_kperp2
 
-    use dist_fn_arrays, only: kperp, kperp2, dkperp2dr
+    use dist_fn_arrays, only: kperp2, dkperp2dr
 
     implicit none
 
-    if (allocated(kperp)) deallocate (kperp)
     if (allocated(kperp2)) deallocate (kperp2)
     if (allocated(dkperp2dr)) deallocate (dkperp2dr)
 
@@ -259,12 +252,11 @@ contains
 
   subroutine finish_vperp2
 
-    use vpamu_grids, only: vperp, vperp2
+    use vpamu_grids, only: vperp2
 
     implicit none
 
     if (allocated(vperp2)) deallocate (vperp2)
-    if (allocated(vperp)) deallocate (vperp)
 
     vp2init = .false.
     

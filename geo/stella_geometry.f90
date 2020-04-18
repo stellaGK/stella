@@ -15,9 +15,9 @@ module stella_geometry
   public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   public :: dgds2dr, dgds21dr, dgds22dr, dgds22bdr
   public :: exb_nonlin_fac
-  public :: jacob
+  public :: jacob, djacdrho
   public :: drhodpsi
-  public :: dl_over_b
+  public :: dl_over_b, d_dl_over_b_drho
   public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
   public :: Rmajor
@@ -51,8 +51,8 @@ module stella_geometry
   real, dimension (:,:), allocatable :: dgds2dr, dgds21dr
   real, dimension (:,:), allocatable :: dgds22dr, dgds22bdr
   real, dimension (:,:), allocatable :: theta_vmec
-  real, dimension (:,:), allocatable :: jacob, grho
-  real, dimension (:,:), allocatable :: dl_over_b
+  real, dimension (:,:), allocatable :: jacob, djacdrho, grho
+  real, dimension (:,:), allocatable :: dl_over_b, d_dl_over_b_drho
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
   real, dimension (:), allocatable :: alpha
@@ -119,7 +119,8 @@ contains
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), & 
-               dgds22dr(1,:), dgds22bdr(1,:))
+               dgds22dr(1,:), dgds22bdr(1,:), &
+               djacdrho(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
@@ -153,7 +154,8 @@ contains
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), &
-               dgds22dr(1,:),dgds22bdr(1,:))
+               dgds22dr(1,:),dgds22bdr(1,:), &
+               djacdrho(1,:))
           ! psi here is enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
@@ -216,8 +218,16 @@ contains
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
+
+    ! this is the correction to flux-surface-averaging for adiabatic electrons
+    d_dl_over_b_drho = spread(delzed,1,nalpha)*djacdrho
+    d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b & 
+                     * spread(sum(d_dl_over_b_drho,dim=2)/sum(dl_over_b,dim=2),2,2*nzgrid+1) 
+    d_dl_over_b_drho = d_dl_over_b_drho / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
+
     ! normalize dl/B by int dl/B
     dl_over_b = dl_over_b / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
+
 
     ! would probably be better to compute this in the various
     ! geometry subroutine (Miller, vmec, etc.), as there
@@ -274,8 +284,10 @@ contains
     if (.not.allocated(dbdzed)) allocate (dbdzed(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(theta_vmec)) allocate (theta_vmec(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(jacob)) allocate (jacob(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(djacdrho)) allocate (djacdrho(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(grho)) allocate (grho(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dl_over_b)) allocate (dl_over_b(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha,-nzgrid:nzgrid))
 
     if (.not.allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
     if (.not.allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
@@ -483,8 +495,10 @@ contains
     if (allocated(rmajor)) deallocate (rmajor)
     if (allocated(dbdzed)) deallocate (dbdzed)
     if (allocated(jacob)) deallocate (jacob)
+    if (allocated(djacdrho)) deallocate (djacdrho)
     if (allocated(gradpar)) deallocate (gradpar)
     if (allocated(dl_over_b)) deallocate (dl_over_b)
+    if (allocated(d_dl_over_b_drho)) deallocate (d_dl_over_b_drho)
     if (allocated(gds2)) deallocate (gds2)
     if (allocated(gds21)) deallocate (gds21)
     if (allocated(gds22)) deallocate (gds22)

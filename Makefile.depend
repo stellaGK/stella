@@ -30,6 +30,7 @@ stella_mod = \
 	 mirror_terms.o \
 	 mp.o \
 	 mt19937.o \
+	 multibox.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
@@ -40,6 +41,7 @@ stella_mod = \
 	 response_matrix.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
+	 smooth_step.o \
 	 species.o \
 	 spfunc.o \
 	 spl.o \
@@ -237,6 +239,20 @@ mp.o: \
 	 constants.o \
 	 file_utils.o 
 mt19937.o: 
+multibox.o: \
+	 constants.o \
+	 dist_fn_arrays.o \
+	 fft_work.o \
+	 fields.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 linear_solve.o \
+	 mp.o \
+	 physics_flags.o \
+	 stella_layouts.o \
+	 zgrid.o 
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
@@ -308,6 +324,7 @@ run_parameters.o: \
 sfincs_interface.o: \
 	 mp.o \
 	 zgrid.o 
+smooth_step.o: 
 species.o: \
 	 common_types.o \
 	 euterpe_interface.o \
@@ -334,9 +351,11 @@ stella.o: \
 	 kt_grids.o \
 	 mirror_terms.o \
 	 mp.o \
+	 multibox.o \
 	 parallel_streaming.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
@@ -435,6 +454,7 @@ time_advance.o: \
 	 kt_grids.o \
 	 mirror_terms.o \
 	 mp.o \
+	 multibox.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
 	 physics_flags.o \
@@ -442,6 +462,7 @@ time_advance.o: \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
+	 smooth_step.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \

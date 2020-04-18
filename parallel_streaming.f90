@@ -44,7 +44,7 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nvpa, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
-    use vpamu_grids, only: vperp2, vperp, vpa, mu
+    use vpamu_grids, only: vperp2, vpa, mu
     use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
     use stella_geometry, only: gradpar,dgradpardrho,dBdrho
@@ -101,7 +101,7 @@ contains
         stream_glob_var3(ia,:,ivmu) = &
                  code_dt*spec(is)%stm*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) &
-                *vperp(ia,:,imu)/bmag(ia,:)
+                *(spec(is)%smz)**2*vperp2(ia,:,imu)/bmag(ia,:)**2
       enddo
       deallocate (energy)
     endif
@@ -249,7 +249,7 @@ contains
     use kt_grids, only: naky, nakx, nx, x
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use species, only: spec
-    use dist_fn_arrays, only: kperp, dkperp2dr
+    use dist_fn_arrays, only: kperp2, dkperp2dr
     use gyro_averages, only: gyro_average, gyro_average_j1
     use fields_arrays, only: phi
     use run_parameters, only: driftkinetic_implicit
@@ -314,8 +314,8 @@ contains
 
     !!#3 - variation in the gyroaveraging of phi
             g0(:,:,iz,it,ivmu) = g0(:,:,iz,it,ivmu) &
-                               + g2(:,:,iz,it,ivmu)*stream_glob_var3(ia,iz,ivmu)*kperp(:,:,ia,iz) &
-                               * (0.5*dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+                               + g2(:,:,iz,it,ivmu)*stream_glob_var3(ia,iz,ivmu)*kperp2(:,:,ia,iz) &
+                               * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
            call transform_kx2x_solo(g0(:,:,iz,it,ivmu),g0x)
            g0x = rhostar*dpsidx*drhodpsi*spread(x,1,naky)*g0x

@@ -4,9 +4,11 @@ module fields
 
   public :: init_fields, finish_fields
   public :: advance_fields, get_fields
+  public :: get_radial_correction
   public :: enforce_reality_field
   public :: get_fields_by_spec
   public :: gamtot, gamtot3
+  public :: dgamtotdr, dgamtot3dr
   public :: time_field_solve
   public :: fields_updated
 
@@ -15,6 +17,11 @@ module fields
   real, dimension (:,:,:), allocatable :: gamtot, apar_denom
   real, dimension (:,:), allocatable :: gamtot3
   real :: gamtot_h, gamtot3_h
+
+  real, dimension (:,:,:), allocatable :: dgamtotdr
+  real, dimension (:,:), allocatable :: dgamtot3dr
+
+  complex, dimension (:,:), allocatable :: save1, save2
 
   real, dimension (2,2) :: time_field_solve
 
@@ -29,15 +36,16 @@ contains
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-    use dist_fn_arrays, only: kperp2
-    use gyro_averages, only: aj0v
+    use dist_fn_arrays, only: kperp2, dkperp2dr
+    use gyro_averages, only: aj0v, aj1v
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: tite, nine, beta
+    use physics_flags, only: radial_variation
     use species, only: spec, has_electron_species
-    use stella_geometry, only: dl_over_b
-    use zgrid, only: nzgrid
+    use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa
+    use vpamu_grids, only: vpa, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
@@ -49,8 +57,9 @@ contains
     implicit none
 
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
-    real :: tmp, wgt
+    real :: tmp, tmp2, wgt
     real, dimension (:,:), allocatable :: g0
+    real, dimension (:), allocatable :: g1
 
     ia = 1
 
@@ -78,6 +87,20 @@ contains
        end if
     end if
 
+    if (radial_variation) then
+      if (.not.allocated(dgamtotdr)) allocate(dgamtotdr(naky,nakx,-nzgrid:nzgrid)) ; dgamtotdr=0.
+      if (.not.allocated(dgamtot3dr)) then
+        if (.not.has_electron_species(spec) &
+            .and. adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+          allocate (dgamtot3dr(nakx,-nzgrid:nzgrid)) ; dgamtot3dr = 0.
+          allocate (save1(nakx,ntubes)) ; save1 = 0.
+          allocate (save2(nakx,ntubes)) ; save2 = 0.
+        else
+          allocate (dgamtot3dr(1,1)) ; dgamtot3dr = 0.
+        endif
+      endif
+    endif
+
     if (fphi > epsilon(0.0)) then
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -102,6 +125,40 @@ contains
 
        gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
 
+       if (radial_variation) then
+         allocate (g1(nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+           it = it_idx(kxkyz_lo,ikxkyz)
+           ! gamtot does not depend on flux tube index,
+           ! so only compute for one flux tube index
+           if (it /= 1) cycle
+           iky = iky_idx(kxkyz_lo,ikxkyz)
+           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+           iz = iz_idx(kxkyz_lo,ikxkyz)
+           is = is_idx(kxkyz_lo,ikxkyz)
+           g1 = aj0v(:,ikxkyz)*aj1v(:,ikxkyz)*(spec(is)%smz)**2 &
+              * (kperp2(iky,ikx,ia,iz)*vperp2(ia,iz,:)/bmag(ia,iz)**2) &
+              * (dkperp2dr(iky,ikx,ia,iz) - dBdrho(iz)/bmag(ia,iz)**2) &
+              / (1.0 - aj0v(:,ikxkyz)**2)
+
+           g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
+              * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa) &
+              * (spec(is)%tprim - spec(is)%fprim + spread(g1,1,nvpa))
+           wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
+           call integrate_vmu (g0, iz, tmp)
+           dgamtotdr(iky,ikx,iz) = dgamtotdr(iky,ikx,iz) + tmp*wgt
+         end do
+         call sum_allreduce (dgamtotdr)
+         ! avoid divide by zero when kx=ky=0
+         ! do not evolve this mode, so value is irrelevant
+         if (zonal_mode(1).and.akx(1)<epsilon(0.).and.has_electron_species(spec)) then 
+           dgamtotdr(1,1,:) = 1.0
+         endif
+
+         deallocate (g1)
+
+       endif
+
        if (.not.has_electron_species(spec)) then
           gamtot = gamtot + tite/nine
           gamtot_h = gamtot_h + tite/nine
@@ -114,6 +171,13 @@ contains
                    if (abs(akx(ikx)) < epsilon(0.)) cycle
                    tmp = nine/tite-sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
                    gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
+                   if (radial_variation) then
+                     tmp2 = sum(d_dl_over_b_drho(ia,:)/gamtot(1,ikx,:)) &
+                          - sum(dl_over_b(ia,:)*dgamtotdr(1,ikx,:) &
+                                / gamtot(1,ikx,:)**2)
+                     dgamtot3dr(ikx,:)  = gamtot3(ikx,:) & 
+                                 *(-dgamtotdr(1,ikx,:)/gamtot(1,ikx,:) + tmp2/tmp)
+                   endif
                 end do
              end if
           end if
@@ -372,7 +436,8 @@ contains
     use stella_layouts, only: vmu_lo
     use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
-    use stella_geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+    use physics_flags, only: radial_variation
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species
     use kt_grids, only: nakx, naky
@@ -405,6 +470,16 @@ contains
          end do
        end do
        deallocate (gyro_g)
+
+       if(radial_variation) then
+         do it = 1, ntubes
+           do ikx = 1, nakx
+             ! save for later... should be OK? 
+             save1 = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+             save2 = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+           enddo
+         enddo
+       endif
        !do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        !   call gyro_average (g(:,:,:,:,ivmu), ivmu, ggyro(:,:,:,:,ivmu))
        !end do
@@ -589,6 +664,98 @@ contains
 
   end subroutine get_fields_by_spec
 
+
+  subroutine get_radial_correction (g, phi, dist)
+
+    use mp, only: proc0, mp_abort
+    use stella_layouts, only: vmu_lo
+    use gyro_averages, only: gyro_average
+    use gyro_averages, only: aj0x, aj1x
+    use run_parameters, only: fphi, fapar
+    use stella_geometry, only: dl_over_b, bmag, dBdrho
+    use stella_layouts, only: imu_idx, is_idx
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: integrate_species, vperp2
+    use kt_grids, only: nakx, naky
+    use kt_grids, only: zonal_mode
+    use species, only: spec, has_electron_species
+    use dist_fn_arrays, only: kperp2, dkperp2dr
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+
+    implicit none
+    
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi
+    character (*), intent (in) :: dist
+
+    integer :: ikx, ivmu, iz, it, ia, is, imu
+    complex :: tmp
+    complex, dimension (:,:,:), allocatable :: gyro_g
+    complex, dimension (:,:), allocatable :: g0k
+
+    ia = 1
+
+    phi = 0.
+    if (fphi > epsilon(0.0)) then
+       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+       allocate (g0k(naky,nakx))
+       do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             is = is_idx(vmu_lo,ivmu)
+             imu = imu_idx(vmu_lo,ivmu)
+
+             g0k = g(:,:,iz,it,ivmu) &
+                 * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu) & 
+                    * (spec(is)%smz)**2 & 
+                    * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                    * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                 + dBdrho(iz)/bmag(ia,iz) - dgamtotdr(:,:,iz)/gamtot(:,:,iz))
+
+             call gyro_average (g0k, iz, ivmu, gyro_g(:,:,ivmu))
+           end do
+           call integrate_species (gyro_g, iz, spec%z*spec%dens, phi(:,:,iz,it))
+         end do
+       end do
+
+
+       if (dist == 'gbar') then
+          call get_phi (phi)
+       else if (dist == 'h') then
+          if (proc0) write (*,*) 'dist option "h" not implemented in radial_correction. aborting'
+          call mp_abort ('dist option "h" in radial_correction. aborting')
+       else
+          if (proc0) write (*,*) 'unknown dist option in radial_correction. aborting'
+          call mp_abort ('unknown dist option in radial_correction. aborting')
+       end if
+
+       if (.not.has_electron_species(spec) .and. &
+            adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if (zonal_mode(1)) then
+             if (dist == 'gbar') then
+                do it = 1, ntubes
+                   do ikx = 1, nakx
+                      tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                      phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:) &
+                                      + dgamtot3dr(ikx,:)*save1(ikx,it) &
+                                      + gamtot3(ikx,:)*save2(ikx,it) 
+                   end do
+                end do
+             else
+                if (proc0) write (*,*) 'unknown dist option in radial_correction. aborting'
+                call mp_abort ('unknown dist option in radial_correction. aborting')
+             end if
+          end if
+       end if
+
+       deallocate (g0k)
+       deallocate (gyro_g)
+
+    end if
+    
+  end subroutine get_radial_correction
+
   subroutine finish_fields
 
     use fields_arrays, only: phi, phi_old
@@ -601,7 +768,11 @@ contains
     if (allocated(apar)) deallocate (apar)
     if (allocated(gamtot)) deallocate (gamtot)
     if (allocated(gamtot3)) deallocate (gamtot3)
+    if (allocated(dgamtotdr)) deallocate (dgamtotdr)
+    if (allocated(dgamtot3dr)) deallocate (dgamtot3dr)
     if (allocated(apar_denom)) deallocate (apar_denom)
+    if (allocated(save1)) deallocate(save1)
+    if (allocated(save2)) deallocate(save2)
 
     fields_initialized = .false.
 
