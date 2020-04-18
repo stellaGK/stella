@@ -217,8 +217,9 @@ contains
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old
+    use fields_arrays, only: phi_old, phi_corr
     use zgrid, only: nzgrid, ntubes
+    use physics_flags, only: radial_variation
     use kt_grids, only: naky, nakx
 
     implicit none
@@ -234,6 +235,10 @@ contains
     if (.not.allocated(phi_old)) then
        allocate (phi_old(naky,nakx,-nzgrid:nzgrid,ntubes))
        phi_old = 0.
+    end if
+    if (.not.allocated(phi_corr) .and. radial_variation) then
+       allocate (phi_corr(naky,nakx,-nzgrid:nzgrid,ntubes))
+       phi_corr = 0.
     end if
 
   end subroutine allocate_arrays
@@ -474,7 +479,9 @@ contains
        if(radial_variation) then
          do it = 1, ntubes
            do ikx = 1, nakx
-             ! save for later... should be OK? 
+             ! DSO - this is sort of hack in order to avoid extra communications
+             !       However, get_radial_correction should be called immediately 
+             !       after advance_fields, so it should be ok...
              save1 = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
              save2 = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
            enddo
@@ -758,13 +765,14 @@ contains
 
   subroutine finish_fields
 
-    use fields_arrays, only: phi, phi_old
+    use fields_arrays, only: phi, phi_old, phi_corr
     use fields_arrays, only: apar
 
     implicit none
 
     if (allocated(phi)) deallocate (phi)
     if (allocated(phi_old)) deallocate (phi_old)
+    if (allocated(phi_corr)) deallocate (phi_corr)
     if (allocated(apar)) deallocate (apar)
     if (allocated(gamtot)) deallocate (gamtot)
     if (allocated(gamtot3)) deallocate (gamtot3)
