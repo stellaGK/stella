@@ -44,7 +44,7 @@ contains
     use species, only: spec, has_electron_species
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
     use zgrid, only: nzgrid, ntubes
-    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: nvpa, nmu, mu
     use vpamu_grids, only: vpa, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use vpamu_grids, only: integrate_vmu
@@ -138,12 +138,14 @@ contains
            is = is_idx(kxkyz_lo,ikxkyz)
            g1 = aj0v(:,ikxkyz)*aj1v(:,ikxkyz)*(spec(is)%smz)**2 &
               * (kperp2(iky,ikx,ia,iz)*vperp2(ia,iz,:)/bmag(ia,iz)**2) &
-              * (dkperp2dr(iky,ikx,ia,iz) - dBdrho(iz)/bmag(ia,iz)**2) &
+              * (dkperp2dr(iky,ikx,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
               / (1.0 - aj0v(:,ikxkyz)**2)
 
            g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
               * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa) &
-              * (spec(is)%tprim - spec(is)%fprim + spread(g1,1,nvpa))
+              * (-spec(is)%tprim*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:)**2,1,nvpa)-2.5) &
+                 -spec(is)%fprim &
+              +  (dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*spread(mu,1,nvpa)*bmag(ia,iz)) + spread(g1,1,nvpa))
            wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
            call integrate_vmu (g0, iz, tmp)
            dgamtotdr(iky,ikx,iz) = dgamtotdr(iky,ikx,iz) + tmp*wgt
