@@ -85,7 +85,7 @@ contains
        grad_alpha_grad_psi, grad_psi_grad_psi, &
        gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
        cvdrift0_psi, sign_torflux, &
-       theta_vmec, zed_scalefac, L_reference, B_reference, alpha)
+       theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta)
 
     use constants, only: pi
     use common_types, only: flux_surface_type
@@ -105,7 +105,7 @@ contains
     real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, grad_alpha_grad_alpha, &
          grad_alpha_grad_psi, grad_psi_grad_psi, &
          gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
-         cvdrift_alpha, cvdrift0_psi, theta_vmec
+         cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
@@ -132,7 +132,7 @@ contains
 
 !    real, dimension (nalpha) :: alpha
     real :: dzeta_vmec, zmin, zmax
-    real, dimension (nalpha,-nzgrid:nzgrid) :: zeta
+!    real, dimension (nalpha,-nzgrid:nzgrid) :: zeta
     real, dimension (nalpha,-nzgrid:nzgrid) :: theta
 
     ! first read in equilibrium information from vmec file
@@ -274,7 +274,6 @@ contains
              call filter_geo_coef (cvdrift0_psi(:,iz))
           end do
        end if
-       
     else
        zeta = spread(zeta_vmec,1,nalpha)
        bmag = bmag_vmec

@@ -150,8 +150,7 @@ contains
              do ikx = ikx_max+1, nakx
                 ! if theta0 is sufficiently negative, it has no
                 ! more negative theta0 with which it can connect
-                ! FLAG DSO - is the below correct, or should it be >=ikx_max+1 ?
-                if (ikx-neigen(iky) >= ikx_max) then
+                if (ikx-neigen(iky) > ikx_max) then
                    ikx_shift(ikx,iky) = -neigen(iky)
                 end if
                 ! theta0 is positive
@@ -173,9 +172,6 @@ contains
                    ikx_shift(ikx,iky) = neigen(iky)
                 ! if 0 < kx+kx_shift <= kx_max, then more complicated shift
                 ! to positive set of kx values
-
-
-                   ! HERE IA AM AND THIS IS WRONG !
                 else if (ikx-ikx_max+neigen(iky) <= nakx) then
                    ikx_shift(ikx,iky) = neigen(iky) - nakx
                 end if
