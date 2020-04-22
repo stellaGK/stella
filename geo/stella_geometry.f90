@@ -49,11 +49,19 @@ module stella_geometry
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
   real, dimension (:), allocatable :: alpha
+  real, dimension (:,:), allocatable :: zeta
 
   integer :: geo_option_switch
   integer, parameter :: geo_option_local = 1
   integer, parameter :: geo_option_inputprof = 2
   integer, parameter :: geo_option_vmec = 3
+
+  logical :: overwrite_geometry
+  logical :: overwrite_bmag, overwrite_gradpar
+  logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
+  logical :: overwrite_gds23, overwrite_gds24
+  logical :: overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
+  character (100) :: geo_file
 
   logical :: geoinit = .false.
 
@@ -71,6 +79,7 @@ contains
     use zgrid, only: shat_zero
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
     use kt_grids, only: nalpha
+    use file_utils, only: get_unused_unit
 
     implicit none
 
@@ -129,6 +138,7 @@ contains
           twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
+          zeta(1,:) = zed*geo_surf%qinp
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
@@ -160,6 +170,8 @@ contains
           twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
           ! aref and bref should not be needed so set to 1
           aref = 1.0 ; bref = 1.0
+
+          zeta(1,:) = zed*geo_surf%qinp
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
@@ -176,7 +188,7 @@ contains
                grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
-               theta_vmec, zed_scalefac, aref, bref, alpha)
+               theta_vmec, zed_scalefac, aref, bref, alpha, zeta)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
@@ -220,6 +232,9 @@ contains
 
           call deallocate_temporary_arrays
        end select
+
+       if (overwrite_geometry) call overwrite_selected_geometric_coefficients
+
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
        exb_nonlin_fac = 0.5*dxdpsi*dydalpha
     end if
@@ -297,6 +312,55 @@ contains
 
     end subroutine deallocate_temporary_arrays
 
+    subroutine overwrite_selected_geometric_coefficients
+      
+      use file_utils, only: get_unused_unit
+      use zgrid, only: nzgrid
+      use kt_grids, only: nalpha
+
+      implicit none
+
+      integer :: geofile_unit
+      character (100) :: dum_char
+      real :: dum_real
+
+      integer :: ia, iz
+      real :: bmag_file, gradpar_file
+      real :: gds2_file, gds21_file, gds22_file, gds23_file, gds24_file
+      real :: gbdrift_file, cvdrift_file, gbdrift0_file
+
+      call get_unused_unit (geofile_unit)
+      open (geofile_unit,file=trim(geo_file),status='old',action='read')
+      
+      read (geofile_unit,fmt=*) dum_char
+      read (geofile_unit,fmt=*) dum_char
+      read (geofile_unit,fmt=*) dum_char
+
+      ! overwrite bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gbdrift, cvdrift, gbdrift0, and cvdrift0
+      ! with values from file
+      do ia = 1, nalpha
+         do iz = -nzgrid, nzgrid
+            read (geofile_unit,fmt='(13e12.4)') dum_real, dum_real, dum_real, bmag_file, gradpar_file, &
+                 gds2_file, gds21_file, gds22_file, gds23_file, &
+                 gds24_file, gbdrift_file, cvdrift_file, gbdrift0_file
+            if (overwrite_bmag) bmag(ia,iz) = bmag_file
+            if (overwrite_gradpar) gradpar(iz) = gradpar_file
+            if (overwrite_gds2) gds2(ia,iz) = gds2_file
+            if (overwrite_gds21) gds21(ia,iz) = gds21_file
+            if (overwrite_gds22) gds22(ia,iz) = gds22_file
+            if (overwrite_gds23) gds23(ia,iz) = gds23_file
+            if (overwrite_gds24) gds24(ia,iz) = gds24_file
+            if (overwrite_gbdrift) gbdrift(ia,iz) = gbdrift_file
+            if (overwrite_cvdrift) cvdrift(ia,iz) = cvdrift_file
+            if (overwrite_gbdrift0) gbdrift0(ia,iz) = gbdrift0_file
+         end do
+      end do
+      cvdrift0 = gbdrift0
+
+      close (geofile_unit)
+      
+    end subroutine overwrite_selected_geometric_coefficients
+
   end subroutine init_geometry
 
   subroutine allocate_arrays (nalpha, nzgrid)
@@ -332,6 +396,7 @@ contains
     if (.not.allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
 
     if (.not.allocated(alpha)) allocate (alpha(nalpha)) ; alpha = 0.
+    if (.not.allocated(zeta)) allocate (zeta(nalpha,-nzgrid:nzgrid)) ; zeta = 0.
 
   end subroutine allocate_arrays
 
@@ -353,9 +418,22 @@ contains
          text_option('input.profiles', geo_option_inputprof), &
          text_option('vmec', geo_option_vmec) /)
 
-    namelist /geo_knobs/ geo_option
+    namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_gradpar, &
+         overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
+         overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
 
     geo_option = 'local'
+    overwrite_bmag = .false.
+    overwrite_gradpar = .false.
+    overwrite_gds2 = .false.
+    overwrite_gds21 = .false.
+    overwrite_gds22 = .false.
+    overwrite_gds23 = .false.
+    overwrite_gds24 = .false.
+    overwrite_gbdrift = .false.
+    overwrite_cvdrift = .false.
+    overwrite_gbdrift0 = .false.
+    geo_file = 'input.geometry'
 
     in_file = input_unit_exist("geo_knobs", exist)
     if (exist) read (unit=in_file, nml=geo_knobs)
@@ -365,6 +443,11 @@ contains
          (geo_option, geoopts, geo_option_switch, &
          ierr, "geo_option in geo_knobs")
     
+    overwrite_geometry = overwrite_bmag .or. overwrite_gradpar &
+         .or. overwrite_gds2 .or. overwrite_gds21 .or. overwrite_gds22 &
+         .or. overwrite_gds23 .or. overwrite_gds24 &
+         .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_gbdrift0
+
   end subroutine read_parameters
 
   subroutine broadcast_arrays
@@ -420,6 +503,7 @@ contains
 
     call broadcast (zed_scalefac)
     call broadcast (alpha)
+    call broadcast (zeta)
     call broadcast (dxdpsi)
     call broadcast (dydalpha)
     call broadcast (twist_and_shift_geo_fac)
@@ -530,7 +614,7 @@ contains
     write (geometry_unit,'(13a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0'
     do ia = 1, nalpha
        do iz = -nzgrid, nzgrid
-          write (geometry_unit,'(13e12.4)') alpha(ia), zed(iz), zed(iz)/zed_scalefac, bmag(ia,iz), gradpar(iz), &
+          write (geometry_unit,'(13e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
                gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gds23(ia,iz), &
                gds24(ia,iz), gbdrift(ia,iz), cvdrift(ia,iz), gbdrift0(ia,iz)
        end do
@@ -571,6 +655,7 @@ contains
     if (allocated(theta_vmec)) deallocate (theta_vmec)
 
     if (allocated(alpha)) deallocate (alpha)
+    if (allocated(zeta)) deallocate (zeta)
 
     geoinit = .false.
 
