@@ -16,6 +16,7 @@ module multibox
 
   complex, dimension (:), allocatable :: g_buffer0
   complex, dimension (:), allocatable :: g_buffer1
+  complex, dimension (:), allocatable :: fsa_x
   
   complex, dimension (:,:), allocatable :: fft_xky
   real, dimension (:,:), allocatable :: fft_xy
@@ -40,6 +41,10 @@ module multibox
   integer :: boundary_size
   real :: g_exb
   logical :: smooth_ZFs
+  integer:: mb_zf_option_switch
+  integer, parameter :: mb_zf_option_default = 0, &
+                        mb_zf_option_no_ky0  = 1, &
+                        mb_zf_option_no_fsa  = 2
 
 contains
 
@@ -47,10 +52,12 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: geo_surf
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky,nx,x
-    use file_utils, only: input_unit_exist
+    use kt_grids, only: nakx,naky,nx,x
+    use file_utils, only: input_unit_exist, error_unit
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use text_options, only: text_option, get_option_value
     use job_manage, only: njobs
+    use physics_flags, only: radial_variation
     use mp, only: broadcast, proc0, job
     use mp, only: scope, crossdomprocs, subprocs, &
                   send, receive
@@ -61,28 +68,41 @@ contains
     return
 #else
 
-    integer :: in_file
+    integer :: in_file, ierr
     logical exist
     
     integer :: g_buff_size
     integer :: phi_buff_size
 
-    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs
+    type (text_option), dimension (3), parameter :: mb_zf_opts = &
+      (/ text_option('default', mb_zf_option_default), &
+         text_option('no_ky0',  mb_zf_option_no_ky0) , &
+         text_option('no_fsa',  mb_zf_option_no_fsa)/)
+    character(30) :: zf_option
+
+    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs, zf_option
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
     g_exb = 0.
     smooth_ZFs = .false.
-
+    zf_option = 'default'
+    
     if (proc0) then
       in_file = input_unit_exist("multibox_parameters", exist)
       if (exist) read (in_file, nml=multibox_parameters)
+
+      ierr = error_unit()
+      call get_option_value & 
+        (zf_option, mb_zf_opts, mb_zf_option_switch, & 
+         ierr, "zf_option in multibox_parameters")
     endif
 
     call broadcast(boundary_size)
     call broadcast(g_exb)
     call broadcast(smooth_ZFs)
+    call broadcast(mb_zf_option_switch)
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
@@ -91,6 +111,9 @@ contains
 
     if (.not.allocated(g_buffer0)) allocate(g_buffer0(g_buff_size))
     if (.not.allocated(g_buffer1)) allocate(g_buffer1(g_buff_size))
+    if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
+      allocate(fsa_x(nakx))
+    endif
 
     !gets the correct normalization in code units. Works for Miller. 
     !Not sure if its correct for stellarators/VMEC
@@ -113,7 +136,7 @@ contains
     call scope(subprocs)
 
     call init_mb_transforms
-    call adjust_boundaries
+    if(radial_variation) call adjust_boundaries
   
 #endif
   end subroutine init_multibox
@@ -124,6 +147,7 @@ contains
 
     if (allocated(g_buffer0))   deallocate (g_buffer0)
     if (allocated(g_buffer1))   deallocate (g_buffer1)
+    if (allocated(fsa_x))       deallocate (fsa_x)
 
     call finish_mb_transforms
 
@@ -154,7 +178,6 @@ contains
     allocate(rfprim(nspec))
     allocate(rtprim(nspec))
 
-    call scope(crossdomprocs)
 
     if(job == 1) then
       do i=1,nspec
@@ -171,10 +194,14 @@ contains
 
         if(ldens(i) < 0 .or. ltemp(i) < 0 .or. &
            rdens(i) < 0 .or. rtemp(i) < 0) then
-          call mp_abort('Negative n/T encountered. Try reducing rhostar.')
+           call mp_abort('Negative n/T encountered. Try reducing rhostar.')
         endif
       enddo
+    endif
 
+    call scope(crossdomprocs)
+
+    if(job==1) then
       call send(ldens ,0,120)
       call send(ltemp ,0,121)
       call send(lfprim,0,122)
@@ -217,13 +244,14 @@ contains
 
   subroutine multibox_communicate (gin)
 
-    use kt_grids, only: nakx,naky,naky_all,dx,dy
+    use kt_grids, only: nakx,naky,naky_all,dx,dy, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
     use fields_arrays, only: phi
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
     use stella_layouts, only: vmu_lo
+    use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
@@ -231,7 +259,7 @@ contains
 
     implicit none
 
-    integer :: num,ix,iy,iz,it,iv,offset
+    integer :: num,ia, ix,iky,iz,it,iv,offset
     integer :: ii,jj, temp_unit
     complex :: dzm,dzp
     character(len=512) :: filename
@@ -269,6 +297,8 @@ contains
 ! DSO - change communicator
     call scope(crossdomprocs)
 
+    ia=1
+
     if(job==0 .or. job==(njobs-1)) then
       offset=0;
       ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
@@ -276,13 +306,30 @@ contains
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
+
+          !this is where the FSA goes
+          if(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+            do ix= 1,nakx
+              fft_x_k(ix) = sum(dl_over_b(ia,:)*gin(1,ix,:,it,iv))
+            enddo
+            call dfftw_execute_dft(xf_fft%plan, fft_x_k, fft_x_x)
+            fsa_x = fft_x_x*xf_fft%scale
+          endif
+
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
             call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
-              do iy=1,naky
+              do iky=1,naky
                 !DSO if in the future the grids can have different naky, one will
                 !have to divide by naky here, and multiply on the receiving end
-                g_buffer0(num) = fft_xky(iy,ix + offset)
+                g_buffer0(num) = fft_xky(iky,ix + offset)
+                if((iky.eq. 0) .and. (zonal_mode(iky))) then
+                  if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
+                    g_buffer0(num) = 0
+                  elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+                    g_buffer0(num) = fft_xky(iky,ix + offset) - fsa_x(ix + offset)
+                  endif
+                endif
                 num=num+1
               enddo
             enddo
@@ -306,9 +353,9 @@ contains
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
             call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
-              do iy=1,naky
-                fft_xky(iy,ix)        = g_buffer0(num)
-                fft_xky(iy,ix+offset) = g_buffer1(num)
+              do iky=1,naky
+                fft_xky(iky,ix)        = g_buffer0(num)
+                fft_xky(iky,ix+offset) = g_buffer1(num)
                 num=num+1
               enddo
             enddo

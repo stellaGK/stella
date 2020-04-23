@@ -1236,6 +1236,8 @@ contains
 
     ia=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
 
@@ -1264,8 +1266,6 @@ contains
              bracket = g0xy*g1xy
 
              if(radial_variation) then
-               imu = imu_idx(vmu_lo,ivmu)
-               is = is_idx(vmu_lo,ivmu)
                call get_dchidx_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
                g0k = g0k*(spec(is)%smz)**2 & 
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
