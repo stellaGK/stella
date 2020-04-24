@@ -323,7 +323,7 @@ contains
                 !DSO if in the future the grids can have different naky, one will
                 !have to divide by naky here, and multiply on the receiving end
                 g_buffer0(num) = fft_xky(iky,ix + offset)
-                if((iky.eq. 0) .and. (zonal_mode(iky))) then
+                if((iky.eq. 1) .and. (zonal_mode(iky))) then
                   if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
                     g_buffer0(num) = 0
                   elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
