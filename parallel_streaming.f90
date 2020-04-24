@@ -96,7 +96,7 @@ contains
         stream_glob_var2(ia,:,ivmu) = &
                 -code_dt*spec(is)%stm*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) & 
-                *(spec(is)%fprim + spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
+                *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
         !positive (one from RHS, one from J_0' = -J_1)
         stream_glob_var3(ia,:,ivmu) = &
                  code_dt*spec(is)%stm*vpa(iv)*gradpar &

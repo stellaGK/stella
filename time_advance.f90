@@ -423,17 +423,17 @@ contains
        !        * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
        !        - dfneo_drho(:,:,ivmu))
        !else 
-       !the expansion is done at constant energy (i.e. don't worry about B mu term)
-
-       wstarp(:,:,ivmu) = wstarknob*0.5*code_dt &
+       !recall that fprim = -dn/dr and trpim = -dt/dr
+       
+       wstarp(:,:,ivmu) = -wstarknob*0.5*code_dt &
           * dydalpha*drhodpsi*maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
           * ( spec(is)%d2ndr2-(spec(is)%fprim)**2-(spec(is)%tprim)**2*energy &
            + (spec(is)%d2Tdr2-(spec(is)%tprim)**2)*(energy-1.5) &
-           + 2*spec(is)%tprim*mu(imu)*spread(dBdrho,1,nalpha) &
+           - 2*spec(is)%tprim*mu(imu)*spread(dBdrho,1,nalpha) &
            + (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
            * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)  &
-              - 2*mu(imu)*spread(dBdrho,1,nalpha) & 
-              - drhodpsi*geo_surf%d2psidr2))
+              + 2*mu(imu)*spread(dBdrho,1,nalpha) & 
+              + drhodpsi*geo_surf%d2psidr2))
        !end if
        
        !wdrift
@@ -1689,9 +1689,9 @@ contains
             !wdrift variation
             call gyro_average (g1k,iz,ivmu,g0a ) 
             g0k = g0k + g0a*wdriftpx_phi(ia,iz,ivmu) &
-                      + g0a*wdriftx_phi(ia,iz,ivmu) &
+                      - g0a*wdriftx_phi(ia,iz,ivmu) &
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
-                        -2*mu(imu)*dBdrho(iz))
+                        +2*mu(imu)*dBdrho(iz))
 
             !gyroaverage variation
             call gyro_average_j1 (g1k,iz,ivmu,g0a) 
@@ -1710,9 +1710,9 @@ contains
             !wdrift variation
             call gyro_average (g1k,iz,ivmu,g0a) 
             g0k = g0k + g0a*wdriftpy_phi(ia,iz,ivmu) &
-                      + g0a*wdrifty_phi(ia,iz,ivmu) &
+                      - g0a*wdrifty_phi(ia,iz,ivmu) &
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
-                        -2*mu(imu)*dBdrho(iz))
+                        +2*mu(imu)*dBdrho(iz))
 
             !gyroaverage variation
             call gyro_average_j1 (g1k,iz,ivmu,g0a) 
