@@ -61,7 +61,7 @@ contains
     use physics_flags, only: init_physics_flags
     use physics_flags, only: nonlinear, full_flux_surface, include_parallel_nonlinearity
     use run_parameters, only: init_run_parameters
-    use run_parameters, only: avail_cpu_time, nstep
+    use run_parameters, only: avail_cpu_time, nstep, rng_seed
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use species, only: init_species, read_species_knobs
     use species, only: nspec
@@ -94,7 +94,7 @@ contains
     logical :: exit, list, restarted
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
-    integer, dimension(8) :: values
+    integer :: i, n
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
@@ -127,11 +127,6 @@ contains
     if (.not. proc0) call init_job_name(cbuff)
 
     
-    if (debug) write(6,*) "stella::init_stella::init_ranf"
-    allocate(seed(get_rnd_seed_length()))
-    call date_and_time(VALUES=values)
-    seed(1) = (job+2)*values(8)
-    call init_ranf(.false.,seed)
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"
     call init_physics_flags
@@ -159,6 +154,18 @@ contains
     call init_init_g
     if (debug) write(6,*) "stella::init_stella::init_run_parameters"
     call init_run_parameters
+
+    if (debug) write(6,*) "stella::init_stella::init_ranf"
+    n=get_rnd_seed_length()
+    allocate(seed(n))
+    if(rng_seed .lt. 0) then
+      call init_ranf(.true.,seed,job+2)
+    else
+      seed = rng_seed + 37 * (/ ( i - 1, i = 1, n) /)
+      call init_ranf(.false.,seed,job+2)
+    endif
+    deallocate(seed)
+
     if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
@@ -195,7 +202,6 @@ contains
 
     if (proc0) call time_message(.false.,time_init,' Initialization')
 
-    deallocate(seed)
 
   end subroutine init_stella
 

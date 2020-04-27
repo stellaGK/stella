@@ -82,7 +82,7 @@ contains
     
   end subroutine get_rnd_seed
 !-------------------------------------------------------------------
-  subroutine init_ranf(randomize,init_seed)
+  subroutine init_ranf(randomize,init_seed,mult)
 # if RANDOM == _RANMT_
     use mt19937, only: sgrnd, grnd
 # endif
@@ -95,26 +95,36 @@ contains
     implicit none
     logical, intent(in) :: randomize
     integer, intent(inout), dimension(:) :: init_seed
-    integer :: lseed
+    integer, optional, intent(in) :: mult
+    integer :: lmult = 1, clock
 # if RANDOM == _RANMT_
-    real :: rnd
+    if(present(mult)) then
+      lmult = mult
+    endif
     
     if (randomize) then
-       !Use intrinsic function with randomized seed to generate seed for MT
-       call random_seed()
-       call random_number(rnd)
-       lseed=int(rnd*2.**31)
-       call sgrnd(lseed)
-    else
+       call system_clock(COUNT=clock)
+       init_seed(1) = clock*lmult
        call sgrnd(init_seed(1))
+    else
+       call sgrnd(init_seed(1)*lmult)
     endif
 # else
+    integer :: i, n
+
+    if(present(mult)) then
+      lmult = mult
+    endif
+
     if (randomize) then
-       call random_seed()
-       call random_seed(get=init_seed)
-    else
-       write(*,*) 'hello'
+       call random_seed(size = n)
+       call system_clock(count=clock)
+
+       init_seed = clock + 37*lmult*(/ (i - 1, i = 1, n) /)
        call random_seed(put=init_seed)
+    else
+      write(*,*) init_seed, lmult
+       call random_seed(put=init_seed*lmult)
     endif
 # endif
 
