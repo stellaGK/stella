@@ -521,6 +521,7 @@ contains
     call broadcast (dBdrho)
     call broadcast (d2Bdrdth)
     call broadcast (dgradpardrho)
+    call broadcast (djacdrho)
 
     call broadcast (geo_surf%rmaj)
     call broadcast (geo_surf%rgeo)

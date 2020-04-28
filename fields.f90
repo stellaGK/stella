@@ -722,6 +722,8 @@ contains
                     * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                  + dBdrho(iz)/bmag(ia,iz) - dgamtotdr(:,:,iz)/gamtot(:,:,iz))
 
+             g0k(1,1) = 0.
+
              call gyro_average (g0k, iz, ivmu, gyro_g(:,:,ivmu))
            end do
            call integrate_species (gyro_g, iz, spec%z*spec%dens, phi(:,:,iz,it))

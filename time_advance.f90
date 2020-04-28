@@ -434,6 +434,7 @@ contains
            * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)  &
               + 2*mu(imu)*spread(dBdrho,1,nalpha) & 
               + drhodpsi*geo_surf%d2psidr2))
+
        !end if
        
        !wdrift
@@ -1158,7 +1159,6 @@ contains
     use stella_layouts, only: vmu_lo, imu_idx, is_idx
     use species, only: spec
     use job_manage, only: time_message
-    use fields, only: get_radial_correction
     use fields_arrays, only: phi, phi_corr, apar
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use stella_transforms, only: transform_ky2y, transform_y2ky
@@ -1614,7 +1614,6 @@ contains
     use vpamu_grids, only: mu, vpa, vperp2
     use mirror_terms, only: advance_mirror_radial_variation
     use parallel_streaming, only: advance_parallel_streaming_radial_variation
-    use fields, only: get_radial_correction
     use physics_parameters, only: rhostar
 
     implicit none
@@ -1673,8 +1672,7 @@ contains
             call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar(:,:,iz,it), g0a)
             g0k = g0k + g0a*wstar(ia,iz,ivmu)
 
-            !gyroaverage variation in ExB nonlinearity is handled in 
-            !advance_ExB_nonlinearity
+            !radial variation in ExB nonlinearity is handled in advance_ExB_nonlinearity
 
             !wdrift - g
 
