@@ -286,7 +286,7 @@ contains
        end do
     end if
 
-    ! for multibox simulations
+    ! for radial variation
     if(.not.allocated(x)) allocate (x(nx))
 
     dx = (2*pi*x0)/nx

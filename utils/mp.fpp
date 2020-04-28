@@ -40,7 +40,7 @@ module mp
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB
-  public :: init_jobs
+  public :: init_job_topology
   public :: mp_comm
   public :: mp_info
   public :: mp_gather
@@ -1907,7 +1907,7 @@ contains
 
   end subroutine waitany
 
-  subroutine init_jobs (ncolumns, group0, ierr)
+  subroutine init_job_topology (ncolumns, group0, ierr)
 
     implicit none  
 # ifdef MPI
@@ -2023,7 +2023,7 @@ contains
 ! <TT
 
 # endif
-  end subroutine init_jobs
+  end subroutine init_job_topology
 
   subroutine all_to_group_real (all, group, njobs)
     

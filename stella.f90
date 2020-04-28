@@ -59,7 +59,8 @@ contains
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
     use physics_flags, only: init_physics_flags
-    use physics_flags, only: nonlinear, full_flux_surface, include_parallel_nonlinearity
+    use physics_flags, only: nonlinear, include_parallel_nonlinearity
+    use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep, rng_seed
     use run_parameters, only: stream_implicit, driftkinetic_implicit
@@ -126,7 +127,6 @@ contains
     call broadcast (cbuff)
     if (.not. proc0) call init_job_name(cbuff)
 
-    
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"
     call init_physics_flags
@@ -142,7 +142,7 @@ contains
     call read_vpamu_grids_parameters
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
+    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity .or. radial_variation) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
        call init_transforms
     end if

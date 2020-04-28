@@ -123,7 +123,6 @@ contains
        init_seed = clock + 37*lmult*(/ (i - 1, i = 1, n) /)
        call random_seed(put=init_seed)
     else
-      write(*,*) init_seed, lmult
        call random_seed(put=init_seed*lmult)
     endif
 # endif

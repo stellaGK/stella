@@ -302,6 +302,7 @@ contains
     if(job==0 .or. job==(njobs-1)) then
       offset=0;
       ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
+      ! FLAG DSO - might do something weird with shear
       if(job==njobs-1) offset=nakx-boundary_size
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
