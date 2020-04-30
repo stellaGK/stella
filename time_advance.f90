@@ -450,9 +450,6 @@ contains
        wdriftpy_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
             * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
 
-       wdriftpy_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
-            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
-
 
        fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
        ! this is the curvature drift piece of wdriftx with missing factor of vpa
@@ -1693,7 +1690,7 @@ contains
 
             !gyroaverage variation
             call gyro_average_j1 (g1k,iz,ivmu,g0a) 
-            g0k = g0k + g0a*wdriftx_phi(ia,iz,ivmu)*(spec(is)%smz)**2 &
+            g0k = g0k - g0a*wdriftx_phi(ia,iz,ivmu)*(spec(is)%smz)**2 &
                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                 * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
@@ -1714,7 +1711,7 @@ contains
 
             !gyroaverage variation
             call gyro_average_j1 (g1k,iz,ivmu,g0a) 
-            g0k = g0k + g0a*wdrifty_phi(ia,iz,ivmu)*(spec(is)%smz)**2 & 
+            g0k = g0k - g0a*wdrifty_phi(ia,iz,ivmu)*(spec(is)%smz)**2 & 
                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                 * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 

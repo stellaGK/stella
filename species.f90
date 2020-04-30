@@ -26,6 +26,8 @@ module species
   integer, parameter :: species_option_euterpe = 3
 
   integer :: nspec
+  logical :: read_profile_variation, write_profile_variation
+
   type (spec_type), dimension (:), allocatable :: spec
 
   integer :: ions, electrons, impurity
@@ -109,7 +111,9 @@ contains
     integer :: ierr, in_file
     logical :: exist
 
-    namelist /species_knobs/ nspec, species_option
+    namelist /species_knobs/ nspec, species_option, &
+                             read_profile_variation, &
+                             write_profile_variation
 
     type (text_option), dimension (4), parameter :: specopts = (/ &
          text_option('default', species_option_stella), &
@@ -119,6 +123,8 @@ contains
     
     if (proc0) then
        nspec = 2
+       read_profile_variation  = .false.
+       write_profile_variation = .false.
        species_option = 'stella'
        
        in_file = input_unit_exist("species_knobs", exist)
@@ -136,6 +142,8 @@ contains
        end if
     end if
     call broadcast (nspec)
+    call broadcast (read_profile_variation)
+    call broadcast (write_profile_variation)
 
   end subroutine read_species_knobs
 
@@ -143,11 +151,13 @@ contains
 
     use file_utils, only: error_unit, get_indexed_namelist_unit
     use text_options, only: text_option, get_option_value
+    use stella_geometry, only: geo_surf
 
     implicit none
 
-    real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2
+    real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr
     integer :: ierr, unit, is
+    character(len=128) :: filename
 
     namelist /species_parameters/ z, mass, dens, temp, &
          tprim, fprim, d2ndr2, d2Tdr2, type
@@ -189,8 +199,31 @@ contains
        ! this is (1/T_s)*d^2 T_s / drho^2
        spec(is)%d2Tdr2 = d2Tdr2
 
+       if(write_profile_variation) then
+         write (filename,"(A,I1)") "specprof_", is
+         open  (1002, file=filename,status='unknown')
+         write (1002,'(6e13.5)') dens, temp, fprim, tprim, d2ndr2, d2Tdr2
+         close (1002)
+       endif
+       if(read_profile_variation) then
+         write (filename,"(A,I1)") "specprof_", is
+         open  (1002, file=filename,status='unknown')
+         read  (1002,'(6e13.5)') dens, temp, fprim, tprim, d2ndr2, d2Tdr2
+         close (1002)
+
+         dr = geo_surf%rhoc - 0.5
+         spec(is)%dens = dens*(1.0 - dr*fprim + 0.5*dr**2*d2ndr2)
+         spec(is)%temp = temp*(1.0 - dr*tprim + 0.5*dr**2*d2Tdr2)
+         spec(is)%fprim = (fprim - dr*d2ndr2)*(dens/spec(is)%dens)
+         spec(is)%tprim = (tprim - dr*d2Tdr2)*(temp/spec(is)%temp)
+         !spec(is)%dens = 1.0
+         !spec(is)%temp = 1.0
+       endif
+
        ierr = error_unit()
        call get_option_value (type, typeopts, spec(is)%type, ierr, "type in species_parameters_x")
+
+
     end do
 
   end subroutine read_species_stella

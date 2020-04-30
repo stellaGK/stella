@@ -265,7 +265,6 @@ contains
     complex, dimension (:,:,:,:), allocatable :: g0, g1, g2, g3
     complex, dimension (:,:), allocatable :: g0x, g0k
 
-    !FLAG DSO - very memory intensive. Is there a better way to do this?
     allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g2(naky,nakx,-nzgrid:nzgrid,ntubes))

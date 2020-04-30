@@ -345,7 +345,7 @@ contains
        call dfftw_execute_dft(xsb_fft%plan, fft_xs_x, fft_xs_k)
        fft_xs_k = fft_xs_k*xsb_fft%scale
        gkx(iky,:ikx_max) = fft_xs_k(:ikx_max)
-       gkx(iky,ikx_max+1:) = fft_xs_k(ipad_up+1)
+       gkx(iky,ikx_max+1:) = fft_xs_k(ipad_up+1:)
     end do
 
   end subroutine transform_x2kx_solo

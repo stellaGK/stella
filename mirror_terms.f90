@@ -16,7 +16,7 @@ module mirror_terms
 
   integer, dimension (:,:), allocatable :: mirror_sign
   real, dimension (:,:,:,:), allocatable :: mirror
-  real, dimension (:,:,:,:), allocatable :: mirror_glob_var
+  real, dimension (:,:,:,:), allocatable :: mirror_rad_var
   real, dimension (:,:,:), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
   real, dimension (:,:,:), allocatable :: mirror_int_fac
   real, dimension (:,:,:,:), allocatable :: mirror_interp_loc
@@ -76,15 +76,15 @@ contains
 
     if(radial_variation) then
 
-      if(.not.allocated(mirror_glob_var)) then
-        allocate (mirror_glob_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
-        mirror_glob_var = 0.
+      if(.not.allocated(mirror_rad_var)) then
+        allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
+        mirror_rad_var = 0.
       endif
       !FLAG should include neoclassical corrections here?
       do imu = 1, nmu
         do iy = 1, nalpha
           do iz = -nzgrid, nzgrid
-            mirror_glob_var(iy,iz,imu,:) = code_dt*spec%stm*mu(imu) &
+            mirror_rad_var(iy,iz,imu,:) = code_dt*spec%stm*mu(imu) &
                                           *(dgradpardrho(iz)*dbdzed(iy,iz) &
                                           +  gradpar(iz)*d2Bdrdth(iz))
           end do
@@ -408,7 +408,7 @@ contains
             call transform_kx2x_solo(g0x(:,:,iz,it,ivmu),g1x)
 
             g1x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)& 
-                  *mirror_glob_var(1,iz,imu,is)*g1x
+                  *mirror_rad_var(1,iz,imu,is)*g1x
 
             call transform_x2kx_solo(g1x,g1k)
 
@@ -833,7 +833,7 @@ contains
 
     if (allocated(mirror)) deallocate (mirror)
     if (allocated(mirror_sign)) deallocate (mirror_sign)
-    if (allocated(mirror_glob_var)) deallocate (mirror_glob_var)
+    if (allocated(mirror_rad_var)) deallocate (mirror_rad_var)
 
     if (mirror_implicit) then
        if (mirror_semi_lagrange) then
