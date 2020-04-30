@@ -49,7 +49,7 @@ module stella_io
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
   integer :: kperp2_id
-  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id
+  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, jtwist_id
   integer :: beta_id
   integer :: code_id
 
@@ -555,6 +555,10 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, var='shat')
     status = nf90_put_att (ncid, shat_id, 'long_name', '(rho/q) dq/drho')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id, att='long_name')
+    status = nf90_def_var (ncid, 'jtwist', netcdf_real, jtwist_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='jtwist')
+    status = nf90_put_att (ncid, jtwist_id, 'long_name', '2*pi*shat*dky/dkx')
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, jtwist_id, att='long_name')
     
     status = nf90_def_var (ncid, 'drhodpsi', netcdf_real, drhodpsi_id)
     if (status /= nf90_noerr) call netcdf_error (status, var='drhodpsi')
@@ -905,7 +909,7 @@ contains
     use zgrid, only: nzgrid
     use physics_parameters, only: beta
     use dist_fn_arrays, only: kperp2
-    use kt_grids, only: naky, nakx, nalpha
+    use kt_grids, only: naky, nakx, nalpha, jtwist
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 
@@ -958,6 +962,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id)
     status = nf90_put_var (ncid, drhodpsi_id, drhodpsi)   
     if (status /= nf90_noerr) call netcdf_error (status, ncid, drhodpsi_id)
+    status = nf90_put_var (ncid, jtwist_id, jtwist)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, jtwist_id)
 # endif
   end subroutine nc_geo
 
