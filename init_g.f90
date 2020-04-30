@@ -379,16 +379,18 @@ contains
        end if
        call ginit_default
        return
+    else
+       ! zero out ky=kx=0 mode
+       phi(1,1,:,:) = 0.0
     end if
 
     ia = 1
     if (proc0) then
-       ! keep old (ikx, iky) loop order to get old results exactly: 
-       if (naky > 1 .and. nakx > 1) then
-          kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
-          phi(1,1,:,:) = 0.0
-       end if
+       kmin = 1.e6
+       if (naky > 1) kmin = minval(kperp2(2,1,ia,:))
+       if (nakx > 1) kmin = min(kmin,minval(kperp2(1,2,ia,:)))
 
+       ! keep old (ikx, iky) loop order to get old results exactly: 
        !Fill phi with random (complex) numbers between -0.5 and 0.5
        do ikx = 1, nakx
           do iky = 1, naky
