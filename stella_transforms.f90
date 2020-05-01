@@ -41,7 +41,7 @@ contains
 
   subroutine init_transforms
 
-    use physics_flags, only: full_flux_surface
+    use physics_flags, only: full_flux_surface, radial_variation
     use stella_layouts, only: init_stella_layouts
 
     implicit none
@@ -52,7 +52,7 @@ contains
     call init_stella_layouts
     call init_y_fft
     call init_x_fft
-    call init_x_solo_fft
+    if (radial_variation) call init_x_solo_fft
     if (full_flux_surface) call init_alpha_fft
 
   end subroutine init_transforms
@@ -388,7 +388,7 @@ contains
 
   subroutine finish_transforms
 
-    use physics_flags, only: full_flux_surface
+    use physics_flags, only: full_flux_surface, radial_variation
 
     implicit none
 
@@ -396,8 +396,10 @@ contains
     call dfftw_destroy_plan (yb_fft%plan)
     call dfftw_destroy_plan (xf_fft%plan)
     call dfftw_destroy_plan (xb_fft%plan)
-    call dfftw_destroy_plan (xsf_fft%plan)
-    call dfftw_destroy_plan (xsb_fft%plan)
+    if (radial_variation) then
+       call dfftw_destroy_plan (xsf_fft%plan)
+       call dfftw_destroy_plan (xsb_fft%plan)
+    end if
     if (full_flux_surface) then
        call dfftw_destroy_plan (alpha_f_fft%plan)
        call dfftw_destroy_plan (alpha_b_fft%plan)

@@ -143,7 +143,7 @@ contains
 
            g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
               * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa) &
-              * (-spec(is)%tprim*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:)**2,1,nvpa)-2.5) &
+              * (-spec(is)%tprim*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa)-2.5) &
                  -spec(is)%fprim &
               +  (dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*spread(mu,1,nvpa)*bmag(ia,iz)) + spread(g1,1,nvpa))
            wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
@@ -484,8 +484,8 @@ contains
              ! DSO - this is sort of hack in order to avoid extra communications
              !       However, get_radial_correction should be called immediately 
              !       after advance_fields, so it should be ok...
-             save1 = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-             save2 = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+             save1(nakx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+             save2(nakx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
            enddo
          enddo
        endif

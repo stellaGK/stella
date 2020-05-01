@@ -273,6 +273,9 @@ contains
     allocate (g0x(naky,nx))
     allocate (g0k(naky,nakx))
 
+
+    ! FLAG DSO - TODO: the following can be treated implicitly as well
+
     dpsidx = 1./dxdpsi
 
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
@@ -317,8 +320,8 @@ contains
 
     !!#4 - variation in quasineutralityy
            g0(:,:,iz,it) = g0(:,:,iz,it) &
-                         + g3(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv) &
-                         * maxwell_mu(ia,iz,imu) &
+                         + g3(:,:,iz,it)*spec(is)%zt &
+                         * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu) &
                          * stream(iz,iv,is)
           
 
