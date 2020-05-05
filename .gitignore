@@ -5,3 +5,16 @@
 stella
 .DS_Store
 geo/vmec_interface/test_vmec_to_stella_geometry_interface
+
+command_line.f90
+constants.f90
+file_utils.f90
+job_manage.f90
+mp.f90
+multibox.f90
+netcdf_utils.f90
+ran.f90
+sfincs_interface.f90
+spfunc.f90
+stella_io.f90
+stella_save.f90

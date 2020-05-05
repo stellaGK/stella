@@ -502,11 +502,16 @@ contains
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
+    use physics_flags, only: radial_variation
+    use physics_parameters, only: rhostar
+    use stella_geometry, only: dxdpsi, drhodpsi
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
-    use kt_grids, only: akx, aky
+    use kt_grids, only: akx, aky, nx, x
+    use dist_fn_arrays, only: kperp2, dkperp2dr
     use run_parameters, only: stream_implicit, mirror_implicit
-    use parallel_streaming, only: stream
+    use parallel_streaming, only: stream, stream_rad_var1
+    use parallel_streaming, only: stream_rad_var2, stream_rad_var3
     use mirror_terms, only: mirror
     use file_utils, only: runtype_option_switch, runtype_multibox
 
@@ -514,7 +519,7 @@ contains
     
     real :: cfl_dt_mirror, cfl_dt_stream
     real :: cfl_dt_wdriftx, cfl_dt_wdrifty
-    real :: zero
+    real :: zero, val1, val2
     real :: wdriftx_max, wdrifty_max
 
     ! avoid divide by zero in cfl_dt terms below
@@ -544,6 +549,25 @@ contains
        ! NB: mirror has code_dt built-in, which accounts for code_dt factor here
        cfl_dt_mirror = abs(code_dt)*dvpa/max(maxval(abs(mirror)),zero)
        cfl_dt = min(cfl_dt,cfl_dt_mirror)
+    end if
+
+    if (radial_variation) then
+      !while other quantities should go here, parallel streaming with electrons
+      !is what will limit us
+      cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var1)),zero)
+      cfl_dt_stream = cfl_dt_stream/((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt = min(cfl_dt,cfl_dt_stream)
+
+      cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var2)),zero)
+      cfl_dt_stream = cfl_dt_stream/((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt = min(cfl_dt,cfl_dt_stream)
+
+      val1 = max(maxval(abs(stream_rad_var3)),zero)
+      val2 = max(maxval(abs(kperp2*dkperp2dr)),zero)
+
+      cfl_dt_stream = abs(code_dt)*delzed(0)/max(val1*val2,zero)
+      cfl_dt_stream = cfl_dt_stream/((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt = min(cfl_dt,cfl_dt_stream)
     end if
 
     ! get the local max value of wdrifty on each processor
@@ -1603,6 +1627,7 @@ contains
     use kt_grids, only: nalpha, nakx, naky, nx, x
     use gyro_averages, only: gyro_average, gyro_average_j1
     use physics_flags, only: full_flux_surface
+    use physics_flags, only: include_parallel_streaming, include_mirror
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
@@ -1686,10 +1711,10 @@ contains
             g0k = g0k + g0a*wdriftpx_phi(ia,iz,ivmu) &
                       - g0a*wdriftx_phi(ia,iz,ivmu) &
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
-                        +2*mu(imu)*dBdrho(iz))
+                        +2.*mu(imu)*dBdrho(iz))
 
             !gyroaverage variation
-            call gyro_average_j1 (g1k,iz,ivmu,g0a) 
+            !call gyro_average_j1 (g1k,iz,ivmu,g0a) 
             g0k = g0k - g0a*wdriftx_phi(ia,iz,ivmu)*(spec(is)%smz)**2 &
                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                 * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
@@ -1707,7 +1732,7 @@ contains
             g0k = g0k + g0a*wdriftpy_phi(ia,iz,ivmu) &
                       - g0a*wdrifty_phi(ia,iz,ivmu) &
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
-                        +2*mu(imu)*dBdrho(iz))
+                        +2.*mu(imu)*dBdrho(iz))
 
             !gyroaverage variation
             call gyro_average_j1 (g1k,iz,ivmu,g0a) 
@@ -1736,10 +1761,10 @@ contains
 
 
     !parallel streaming
-    call advance_parallel_streaming_radial_variation(g,gout)
+    if(include_parallel_streaming) call advance_parallel_streaming_radial_variation(g,gout)
 
     !mirror term
-    call advance_mirror_radial_variation(g,gout)
+    if(include_mirror) call advance_mirror_radial_variation(g,gout)
 
     deallocate (g0k, g1k, g0a, g0x, g1x)
     deallocate (energy)

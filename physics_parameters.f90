@@ -5,10 +5,11 @@ module physics_parameters
   public :: init_physics_parameters
   public :: finish_physics_parameters
   public :: beta, zeff, tite, nine, rhostar, vnew_ref
+  public :: feprim, teprim
 
   private
 
-  real :: beta, zeff, tite, nine, rhostar, vnew_ref
+  real :: beta, zeff, tite, nine, rhostar, vnew_ref, feprim, teprim
   logical :: initialized = .false.
 
 contains
@@ -34,7 +35,7 @@ contains
     integer :: in_file
     logical :: rpexist
     
-    namelist /parameters/ beta, zeff, tite, nine, rhostar, vnew_ref
+    namelist /parameters/ beta, zeff, tite, nine, feprim, teprim, rhostar, vnew_ref
 
     if (proc0) then
        beta = 0.0
@@ -43,6 +44,12 @@ contains
        zeff = 1.0
        tite = 1.0
        nine = 1.0
+
+       !the following are for runs with radial variation and adiabatic electron response
+       ! N.B.: feprim = -(dne/drho)/ne
+       !       teprim = -(dTe/drho)/Te
+       feprim = 0.0
+       teprim = 0.0
 
        in_file = input_unit_exist("parameters", rpexist)
        if (rpexist) read (unit=in_file,nml=parameters)
@@ -54,6 +61,8 @@ contains
     call broadcast (rhostar)
     call broadcast (tite)
     call broadcast (nine)
+    call broadcast (feprim)
+    call broadcast (teprim)
 
   end subroutine read_parameters
 

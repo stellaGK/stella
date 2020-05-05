@@ -39,9 +39,9 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use gyro_averages, only: aj0v, aj1v
     use run_parameters, only: fphi, fapar
-    use physics_parameters, only: tite, nine, beta
+    use physics_parameters, only: tite, nine, feprim, teprim, beta
     use physics_flags, only: radial_variation
-    use species, only: spec, has_electron_species
+    use species, only: spec, has_electron_species, ion_species
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu, mu
@@ -57,7 +57,7 @@ contains
     implicit none
 
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
-    real :: tmp, tmp2, wgt
+    real :: efac, tmp, tmp2, wgt
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
 
@@ -162,8 +162,10 @@ contains
        endif
 
        if (.not.has_electron_species(spec)) then
-          gamtot = gamtot + tite/nine
-          gamtot_h = gamtot_h + tite/nine
+          efac = tite/nine * (spec(ion_species)%dens/spec(ion_species)%temp) 
+          gamtot   = gamtot   + efac
+          gamtot_h = gamtot_h + efac
+          if(radial_variation) dgamtotdr = dgamtotdr - efac*(feprim - teprim)
           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
              if (zonal_mode(1)) then
                 gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
@@ -171,14 +173,15 @@ contains
                    ! avoid divide by zero for kx=ky=0 mode,
                    ! which we do not need anyway
                    if (abs(akx(ikx)) < epsilon(0.)) cycle
-                   tmp = nine/tite-sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
+                   tmp = efac - sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
                    gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
                    if (radial_variation) then
-                     tmp2 = sum(d_dl_over_b_drho(ia,:)/gamtot(1,ikx,:)) &
-                          - sum(dl_over_b(ia,:)*dgamtotdr(1,ikx,:) &
+                     tmp2 = (teprim - feprim)/efac &
+                            + sum(d_dl_over_b_drho(ia,:)/gamtot(1,ikx,:)) &
+                            - sum(dl_over_b(ia,:)*dgamtotdr(1,ikx,:) &
                                 / gamtot(1,ikx,:)**2)
                      dgamtot3dr(ikx,:)  = gamtot3(ikx,:) & 
-                                 *(-dgamtotdr(1,ikx,:)/gamtot(1,ikx,:) + tmp2/tmp)
+                                        * (-dgamtotdr(1,ikx,:)/gamtot(1,ikx,:) + tmp2/tmp)
                    endif
                 end do
              end if
@@ -477,18 +480,6 @@ contains
          end do
        end do
        deallocate (gyro_g)
-
-       if(radial_variation) then
-         do it = 1, ntubes
-           do ikx = 1, nakx
-             ! DSO - this is sort of hack in order to avoid extra communications
-             !       However, get_radial_correction should be called immediately 
-             !       after advance_fields, so it should be ok...
-             save1(nakx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-             save2(nakx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
-           enddo
-         enddo
-       endif
        !do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        !   call gyro_average (g(:,:,:,:,ivmu), ivmu, ggyro(:,:,:,:,ivmu))
        !end do
@@ -506,8 +497,20 @@ contains
           call mp_abort ('unknown dist option in get_fields. aborting')
        end if
 
-       if (.not.has_electron_species(spec) .and. &
-            adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+
+         if (.not.has_electron_species(spec) .and. &
+             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if(radial_variation) then
+            do it = 1, ntubes
+              do ikx = 1, nakx
+               ! DSO - this is sort of hack in order to avoid extra communications
+               !       However, get_radial_correction should be called immediately 
+               !       after advance_fields, so it should be ok...
+                save1(nakx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                save2(nakx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+              enddo
+            enddo
+          endif
           if (zonal_mode(1)) then
              if (dist == 'h') then
                 do it = 1, ntubes
@@ -748,7 +751,8 @@ contains
                 do it = 1, ntubes
                    do ikx = 1, nakx
                       tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-                      phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:) &
+                      phi(1,ikx,:,it) = phi(1,ikx,:,it) &
+                                      + tmp*gamtot3(ikx,:) &
                                       + dgamtot3dr(ikx,:)*save1(ikx,it) &
                                       + gamtot3(ikx,:)*save2(ikx,it) 
                    end do

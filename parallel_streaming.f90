@@ -10,6 +10,9 @@ module parallel_streaming
   public :: parallel_streaming_initialized
   public :: stream, stream_c, stream_sign
   public :: time_parallel_streaming
+  public :: stream_rad_var1
+  public :: stream_rad_var2
+  public :: stream_rad_var3
 
   private
 
@@ -22,9 +25,9 @@ module parallel_streaming
 
   integer, dimension (:), allocatable :: stream_sign
   real, dimension (:,:,:), allocatable :: stream, stream_c
-  real, dimension (:,:,:), allocatable :: stream_glob_var1
-  real, dimension (:,:,:), allocatable :: stream_glob_var2
-  real, dimension (:,:,:), allocatable :: stream_glob_var3
+  real, dimension (:,:,:), allocatable :: stream_rad_var1
+  real, dimension (:,:,:), allocatable :: stream_rad_var2
+  real, dimension (:,:,:), allocatable :: stream_rad_var3
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
   real, dimension (:,:), allocatable :: stream_tri_b1, stream_tri_b2
   real, dimension (:,:), allocatable :: stream_tri_c1, stream_tri_c2
@@ -76,29 +79,29 @@ contains
 
       allocate (energy(-nzgrid:nzgrid))
 
-      if(.not.allocated(stream_glob_var1)) then 
-        allocate(stream_glob_var1(-nzgrid:nzgrid,nvpa,nspec))
+      if(.not.allocated(stream_rad_var1)) then 
+        allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
       endif
-      if(.not.allocated(stream_glob_var2)) then 
-        allocate(stream_glob_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if(.not.allocated(stream_rad_var2)) then 
+        allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       endif
-      if(.not.allocated(stream_glob_var3)) then 
-        allocate(stream_glob_var3(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if(.not.allocated(stream_rad_var3)) then 
+        allocate(stream_rad_var3(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       endif
       ia=1
-      stream_glob_var1 = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
+      stream_rad_var1 = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
             * spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo,ivmu)
         imu = imu_idx(vmu_lo,ivmu)
         iv  = iv_idx(vmu_lo,ivmu)
         energy = vpa(iv)**2 + vperp2(ia,:,imu)
-        stream_glob_var2(ia,:,ivmu) = &
+        stream_rad_var2(ia,:,ivmu) = &
                 -code_dt*spec(is)%stm*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) & 
                 *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
         !positive (one from RHS, one from J_0' = -J_1)
-        stream_glob_var3(ia,:,ivmu) = &
+        stream_rad_var3(ia,:,ivmu) = &
                  code_dt*spec(is)%stm*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) &
                 *(spec(is)%smz)**2*vperp2(ia,:,imu)/bmag(ia,:)**2
@@ -305,24 +308,21 @@ contains
          do iz = -nzgrid,nzgrid
 
     !!#1 - variation in gradpar
-           g0(:,:,iz,it) = g0(:,:,iz,it) & 
-                         + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+           g0k = g0(:,:,iz,it) & 
+               + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
 
-           g0(:,:,iz,it) = g0(:,:,iz,it)*stream_glob_var1(iz,iv,is)
+           g0k = g0k*stream_rad_var1(iz,iv,is)
 
     !!#2 - variation in F_s/T_s
-           g0(:,:,iz,it) = g0(:,:,iz,it) + g1(:,:,iz,it)*stream_glob_var2(ia,iz,ivmu)
+           g0k = g0k + g1(:,:,iz,it)*stream_rad_var2(ia,iz,ivmu)
 
     !!#3 - variation in the gyroaveraging of phi
-           g0(:,:,iz,it) = g0(:,:,iz,it) &
-                         + g2(:,:,iz,it)*stream_glob_var3(ia,iz,ivmu)*kperp2(:,:,ia,iz) &
-                         * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+           g0k = g0k + g2(:,:,iz,it)*stream_rad_var3(ia,iz,ivmu)*kperp2(:,:,ia,iz) &
+               * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
     !!#4 - variation in quasineutralityy
-           g0(:,:,iz,it) = g0(:,:,iz,it) &
-                         + g3(:,:,iz,it)*spec(is)%zt &
-                         * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu) &
-                         * stream(iz,iv,is)
+           g0k = g0k + g3(:,:,iz,it)*spec(is)%zt &
+               * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)*stream(iz,iv,is)
           
 
            call transform_kx2x_solo(g0(:,:,iz,it),g0x)
@@ -1024,9 +1024,9 @@ contains
     if (allocated(stream_c)) deallocate (stream_c)
     if (allocated(stream_sign)) deallocate (stream_sign)
     if (allocated(gradpar_c)) deallocate (gradpar_c)
-    if (allocated(stream_glob_var1)) deallocate (stream_glob_var1)
-    if (allocated(stream_glob_var2)) deallocate (stream_glob_var2)
-    if (allocated(stream_glob_var3)) deallocate (stream_glob_var3)
+    if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
+    if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
+    if (allocated(stream_rad_var3)) deallocate (stream_rad_var3)
 
     if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 

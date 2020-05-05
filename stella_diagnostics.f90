@@ -219,7 +219,7 @@ contains
     use constants, only: zi
     use redistribute, only: scatter
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old
+    use fields_arrays, only: phi_old, phi_corr
     use dist_fn_arrays, only: gvmu, gnew
 !    use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
@@ -230,21 +230,25 @@ contains
     use stella_io, only: write_kspectra_nc
     use stella_io, only: write_moments_nc
     use stella_io, only: sync_nc
+    use stella_geometry, only: dxdpsi, drhodpsi
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
-    use zgrid, only: nztot, ntubes
+    use physics_parameters, only: rhostar
+    use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, nx, x
     use dist_redistribute, only: kxkyz2vmu
+    use physics_flags, only: radial_variation
 
     implicit none
 
     integer, intent (in) :: istep
     
     real :: phi2, apar2
-    real :: zero
+    real :: zero, dpsidx
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:,:), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
@@ -254,6 +258,10 @@ contains
     complex, dimension (:,:), allocatable :: omega_avg
 
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
+    complex, dimension (:,:), allocatable :: g0k, g0x
+    complex, dimension (:,:,:,:), allocatable :: phi_out
+
+    integer :: iz,it
 
     ! only write data to file every nwrite time steps
     if (mod(istep,nwrite) /= 0) return
@@ -309,7 +317,28 @@ contains
        call write_phi2_nc (nout, phi2)
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
-          call write_phi_nc (nout, phi)
+          allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
+          phi_out = phi
+          if(radial_variation) then
+            allocate (g0k(naky,nakx))
+            allocate (g0x(naky,nx))
+            dpsidx = 1.0/dxdpsi
+            do it = 1, ntubes
+              do iz = -nzgrid, nzgrid
+
+                g0k = phi_corr(:,:,iz,it)
+
+                call transform_kx2x_solo (g0k,g0x)
+                g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+                call transform_x2kx_solo (g0x,g0k)
+
+               ! phi_out(:,:,iz,it) = phi_out(:,:,iz,it) + g0k
+              enddo
+            enddo
+            deallocate(g0x,g0k)
+          endif
+          call write_phi_nc (nout, phi_out)
+          deallocate(phi_out)
        end if
        if (write_kspectra) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
