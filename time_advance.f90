@@ -1761,7 +1761,9 @@ contains
             g0k = g0k + g0a*wdrifty_phi(ia,iz,ivmu) 
 
             !mirror term and/or parallel streaming
-            if(include_mirror) g0k = g0k + g_corr(:,:,iz,it,ivmu)
+            if(include_mirror.or.include_parllel_streaming) then
+              g0k = g0k + g_corr(:,:,iz,it,ivmu)
+            endif
 
             !inverse and forward transforms
             call transform_kx2x_solo (g0k, g0x)
