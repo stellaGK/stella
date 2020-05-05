@@ -6,7 +6,7 @@ module mirror_terms
   public :: init_mirror, finish_mirror
   public :: mirror
   public :: advance_mirror_explicit, advance_mirror_implicit
-  public :: advance_mirror_radial_variation
+  public :: add_mirror_radial_variation
   public :: time_mirror
 
   private
@@ -339,7 +339,7 @@ contains
 
   end subroutine advance_mirror_explicit
 
-  subroutine advance_mirror_radial_variation (g, gout)
+  subroutine add_mirror_radial_variation (g, gout)
 
     use mp, only: proc0
     use redistribute, only: gather, scatter
@@ -347,11 +347,8 @@ contains
     use job_manage, only: time_message
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: is_idx,imu_idx
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
-    use stella_geometry, only: drhodpsi, dxdpsi
     use zgrid, only: nzgrid, ntubes
     use physics_flags, only: full_flux_surface
-    use kt_grids, only: nakx, naky, nx, x
     use vpamu_grids, only: nvpa, nmu
     use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu
@@ -363,23 +360,15 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:), allocatable :: g0v
-    complex, dimension (:,:,:,:,:), allocatable :: g0x
-    complex, dimension (:,:), allocatable :: g1k
-    complex, dimension (:,:), allocatable :: g1x
 
-    integer :: iz,it,imu,is,ivmu
-    real :: dpsidx
-    
-    dpsidx=1.0/dxdpsi
+    integer :: iz,it,imu,is,ivmu,ia
 
 
-    allocate(g1k(naky,nakx))
-    allocate(g1x(naky,nx))
     allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-    allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
 
+    ia = 1
 
     ! the mirror term is most complicated of all when doing full flux surface
     if (full_flux_surface) then
@@ -395,35 +384,27 @@ contains
        call get_dgdvpa_explicit (g0v)
        ! swap layouts so that (z,kx,ky) are local
        if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
-       call gather (kxkyz2vmu, g0v, g0x)
+       call gather (kxkyz2vmu, g0v, gout)
        if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+
        ! get mirror term and add to source
-      
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo,ivmu)
          imu = imu_idx(vmu_lo,ivmu)
          do it = 1, ntubes
            do iz = -nzgrid,nzgrid
-
-            call transform_kx2x_solo(g0x(:,:,iz,it,ivmu),g1x)
-
-            g1x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)& 
-                  *mirror_rad_var(1,iz,imu,is)*g1x
-
-            call transform_x2kx_solo(g1x,g1k)
-
-            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g1k
-
+             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) &
+                                  * mirror_rad_var(ia,iz,imu,is)
           enddo
         enddo
        enddo
     end if
 
-    deallocate (g0x, g0v, g1k, g1x)
+    deallocate (g0v)
 
     !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
 
-  end subroutine advance_mirror_radial_variation
+  end subroutine add_mirror_radial_variation
 
   subroutine get_dgdvpa_global (g)
 

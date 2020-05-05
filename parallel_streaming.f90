@@ -5,7 +5,7 @@ module parallel_streaming
   public :: init_parallel_streaming, finish_parallel_streaming
   public :: advance_parallel_streaming_explicit
   public :: advance_parallel_streaming_implicit
-  public :: advance_parallel_streaming_radial_variation
+  public :: add_parallel_streaming_radial_variation
   public :: stream_tridiagonal_solve
   public :: parallel_streaming_initialized
   public :: stream, stream_c, stream_sign
@@ -237,17 +237,15 @@ contains
 
   end subroutine advance_parallel_streaming_explicit
 
-  subroutine advance_parallel_streaming_radial_variation (g, gout)
+  subroutine add_parallel_streaming_radial_variation (g, gout)
 
-    use mp, only: proc0
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_geometry, only: bmag, dBdrho
-    use stella_geometry, only: dxdpsi, drhodpsi
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx, nx, x
+    use kt_grids, only: naky, nakx
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use species, only: spec
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -263,29 +261,18 @@ contains
 
     integer :: ivmu, iv, imu, is, it, ia, iz
 
-    real dpsidx
-
     complex, dimension (:,:,:,:), allocatable :: g0, g1, g2, g3
-    complex, dimension (:,:), allocatable :: g0x, g0k
+    complex, dimension (:,:), allocatable :: g0k
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g2(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g3(naky,nakx,-nzgrid:nzgrid,ntubes))
-
-    allocate (g0x(naky,nx))
     allocate (g0k(naky,nakx))
 
-
-    ! FLAG DSO - TODO: the following can be treated implicitly as well
-
-    dpsidx = 1./dxdpsi
-
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
-    if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
     ia = 1
-
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
     ! obtain <phi>
        call gyro_average (phi, ivmu, g0)
@@ -324,20 +311,13 @@ contains
            g0k = g0k + g3(:,:,iz,it)*spec(is)%zt &
                * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)*stream(iz,iv,is)
           
-
-           call transform_kx2x_solo(g0k,g0x)
-           g0x = rhostar*dpsidx*drhodpsi*spread(x,1,naky)*g0x
-           call transform_x2kx_solo(g0x,g0k)
            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
          enddo
        enddo
     end do
+    deallocate (g0, g1, g2, g3, g0k)
 
-    if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
-    deallocate (g0, g1, g2, g3)
-    deallocate (g0k,g0x)
-
-  end subroutine advance_parallel_streaming_radial_variation
+  end subroutine add_parallel_streaming_radial_variation
 
   subroutine get_dgdz (g, ivmu, dgdz)
 

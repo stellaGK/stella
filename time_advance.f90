@@ -1634,8 +1634,8 @@ contains
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
     use dist_fn_arrays, only: wstar, wstarp
     use vpamu_grids, only: mu, vpa, vperp2
-    use mirror_terms, only: advance_mirror_radial_variation
-    use parallel_streaming, only: advance_parallel_streaming_radial_variation
+    use mirror_terms, only: add_mirror_radial_variation
+    use parallel_streaming, only: add_parallel_streaming_radial_variation
     use physics_parameters, only: rhostar
 
     implicit none
@@ -1649,11 +1649,14 @@ contains
     real, dimension (:,:), allocatable :: energy
 
     complex, dimension (:,:), allocatable :: g0k, g1k, g0a, g0x, g1x
+    complex, dimension (:,:,:,:,:), allocatable :: g_corr
 
     ! alpha-component of magnetic drift (requires ky -> y)
     !if (proc0) call time_message(.false.,time_gke(:,7),' global variation advance')
 
     !if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+
+    allocate (energy(nalpha,-nzgrid:nzgrid))
 
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
@@ -1661,7 +1664,19 @@ contains
     allocate (g0x(naky,nx))
     allocate (g1x(naky,nx))
 
-    allocate (energy(nalpha,-nzgrid:nzgrid))
+    if(include_mirror .or. include_parallel_streaming) then
+      allocate (g_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_corr = 0.
+    endif
+
+    !grab the mirror and parallel streaming corrections here to save on FFTs
+    if (include_mirror) then
+      call add_mirror_radial_variation(g,g_corr)
+    endif
+    if (include_parallel_streaming) then
+      call add_parallel_streaming_radial_variation(g,g_corr)
+    endif
+
 
     if (full_flux_surface) then
        ! FLAG -- ADD SOMETHING HERE
@@ -1745,6 +1760,8 @@ contains
             call gyro_average (g1k,iz,ivmu,g0a ) 
             g0k = g0k + g0a*wdrifty_phi(ia,iz,ivmu) 
 
+            !mirror term and/or parallel streaming
+            if(include_mirror) g0k = g0k + g_corr(:,:,iz,it,ivmu)
 
             !inverse and forward transforms
             call transform_kx2x_solo (g0k, g0x)
@@ -1759,15 +1776,9 @@ contains
        end do
     end do
 
-
-    !parallel streaming
-    if(include_parallel_streaming) call advance_parallel_streaming_radial_variation(g,gout)
-
-    !mirror term
-    if(include_mirror) call advance_mirror_radial_variation(g,gout)
-
     deallocate (g0k, g1k, g0a, g0x, g1x)
     deallocate (energy)
+    if(allocated(g_corr)) deallocate(g_corr)
 
   end subroutine advance_radial_variation
 
