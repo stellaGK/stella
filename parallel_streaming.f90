@@ -325,7 +325,7 @@ contains
                * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)*stream(iz,iv,is)
           
 
-           call transform_kx2x_solo(g0(:,:,iz,it),g0x)
+           call transform_kx2x_solo(g0k,g0x)
            g0x = rhostar*dpsidx*drhodpsi*spread(x,1,naky)*g0x
            call transform_x2kx_solo(g0x,g0k)
            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k

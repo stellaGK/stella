@@ -1714,7 +1714,7 @@ contains
                         +2.*mu(imu)*dBdrho(iz))
 
             !gyroaverage variation
-            !call gyro_average_j1 (g1k,iz,ivmu,g0a) 
+            call gyro_average_j1 (g1k,iz,ivmu,g0a) 
             g0k = g0k - g0a*wdriftx_phi(ia,iz,ivmu)*(spec(is)%smz)**2 &
                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                 * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
