@@ -302,8 +302,14 @@ contains
     ! number of grid points used for radial derivatives
     nr = 3
 
+    ! first get nperiod corresponding to input number of grid points
     nz2pi = nzed/2
     np = (nzgrid-nz2pi)/nzed + 1
+
+    ! now switch to using (possible higher resolution) local grid
+    nz2pi = nzed_local/2
+    ! this is the equivalent of nzgrid on the local grid
+    nz = nz2pi + nzed_local*(np-1)
 
     dqdr = local%shat*local%qinp/local%rhoc
     call allocate_arrays (nr, nz)
