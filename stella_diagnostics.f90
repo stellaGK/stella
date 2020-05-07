@@ -831,7 +831,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
-    use kt_grids, only: aky, akx, theta0
+    use kt_grids, only: aky, akx, zed0
     use stella_geometry, only: zed_eqarc
 
     implicit none
@@ -847,9 +847,9 @@ contains
        do ikx = 1, nakx
           do it = 1, ntubes
              do iz = -nzgrid, nzgrid
-                write (tmpunit,'(9es15.4e3,i3)') zed(iz), zed(iz)-theta0(iky,ikx), aky(iky), akx(ikx), &
+                write (tmpunit,'(9es15.4e3,i3)') zed(iz), zed(iz)-zed0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it)), &
-                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-theta0(iky,ikx), it
+                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-zed0(iky,ikx), it
              end do
              write (tmpunit,*)
           end do

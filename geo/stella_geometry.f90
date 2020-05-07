@@ -20,6 +20,7 @@ module stella_geometry
   public :: Rmajor
   public :: alpha
   public :: theta_vmec
+  public :: zeta
   public :: zed_scalefac
   public :: dxdpsi, dydalpha
   public :: aref, bref
@@ -89,6 +90,7 @@ contains
     integer :: iy
     integer :: sign_torflux
     integer :: dxdpsi_sign, dydalpha_sign
+    real :: field_period_ratio
     real, dimension (:,:), allocatable :: grad_alpha_grad_alpha
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi
     real, dimension (:,:), allocatable :: grad_psi_grad_psi
@@ -139,6 +141,7 @@ contains
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
           zeta(1,:) = zed*geo_surf%qinp
+
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
@@ -172,6 +175,7 @@ contains
           aref = 1.0 ; bref = 1.0
 
           zeta(1,:) = zed*geo_surf%qinp
+
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
@@ -188,7 +192,8 @@ contains
                grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
-               theta_vmec, zed_scalefac, aref, bref, alpha, zeta)
+               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
+               field_period_ratio)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
@@ -202,10 +207,13 @@ contains
           ! psiN = -psitor/(aref**2*Bref)
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
           drhodpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
+
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
-          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
+!          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
+          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*drhodpsi*dydalpha/(geo_surf%qinp*dxdpsi*geo_surf%rhotor) &
+               * field_period_ratio
 
           ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
           ! note that rhotor = sqrt(psi/psi_LCFS)
@@ -364,6 +372,8 @@ contains
   end subroutine init_geometry
 
   subroutine allocate_arrays (nalpha, nzgrid)
+
+    use kt_grids, only: naky, nakx
 
     implicit none
 

@@ -127,6 +127,7 @@ contains
     local%betadbprim = betadbprim
     local%d2qdr2 = d2qdr2
     local%d2psidr2 = d2psidr2
+    local%zed0_fac = 1.0
 
     ! following two variables are not inputs
     local%dr = 1.e-3

@@ -52,6 +52,7 @@ module common_types
      real :: rhotor
      real :: drhotordrho
      real :: psitor_lcfs
+     real :: zed0_fac
   end type flux_surface_type
   
   type spec_type

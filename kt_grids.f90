@@ -5,7 +5,7 @@ module kt_grids
 
   public :: init_kt_grids, finish_kt_grids
   public :: read_kt_grids_parameters
-  public :: aky, theta0, akx
+  public :: aky, theta0, akx, zed0
   public :: naky, nakx, nx, ny, reality
   public :: jtwist, ikx_twist_shift, y0
   public :: nalpha
@@ -21,7 +21,7 @@ module kt_grids
      module procedure swap_kxky_complex
   end interface
 
-  real, dimension (:,:), allocatable :: theta0
+  real, dimension (:,:), allocatable :: theta0, zed0
   real, dimension (:), allocatable :: aky, akx
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
@@ -280,6 +280,8 @@ contains
        end do
     end if
     
+    zed0 = theta0*geo_surf%zed0_fac
+
   end subroutine init_kt_grids_box
 
   subroutine init_kt_grids_range (geo_surf)
@@ -402,6 +404,7 @@ contains
     allocate (akx(nakx))
     allocate (aky(naky))
     allocate (theta0(naky,nakx))
+    allocate (zed0(naky,nakx))
 
   end subroutine allocate_arrays
 
@@ -569,6 +572,7 @@ contains
     if (allocated(aky)) deallocate (aky)
     if (allocated(akx)) deallocate (akx)
     if (allocated(theta0)) deallocate (theta0)
+    if (allocated(zed0)) deallocate (zed0)
 
     reality = .false.
     read_kt_grids_initialized = .false.
