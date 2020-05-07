@@ -1,6 +1,7 @@
 module multibox
 
   use fft_work, only: fft_type
+  use common_types, only: flux_surface_type
 
   implicit none
 
@@ -11,6 +12,7 @@ module multibox
   public :: bs_fullgrid
   public :: g_exb
   public :: xL, xR
+  public :: RK_step
 
   private
 
@@ -30,8 +32,10 @@ module multibox
   real, dimension (:), allocatable :: fft_y_y
 
   logical :: mb_transforms_initialized = .false.
+  logical :: RK_step
   integer :: temp_ind = 0
   integer :: bs_fullgrid
+  
 
   real :: xL = 0., xR = 0.
 
@@ -48,9 +52,8 @@ module multibox
 
 contains
 
-  subroutine init_multibox
+  subroutine init_multibox (geo_surf)
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: geo_surf
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx,naky,nx,x
     use file_utils, only: input_unit_exist, error_unit
@@ -68,6 +71,8 @@ contains
     return
 #else
 
+    type (flux_surface_type) :: geo_surf
+
     integer :: in_file, ierr
     logical exist
     
@@ -80,13 +85,14 @@ contains
          text_option('no_fsa',  mb_zf_option_no_fsa)/)
     character(30) :: zf_option
 
-    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs, zf_option
+    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs, zf_option, RK_step
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
     g_exb = 0.
     smooth_ZFs = .false.
+    RK_step = .false.
     zf_option = 'default'
     
     if (proc0) then
@@ -103,6 +109,7 @@ contains
     call broadcast(g_exb)
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
+    call broadcast(RK_step)
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
@@ -117,6 +124,7 @@ contains
 
     !gets the correct normalization in code units. Works for Miller. 
     !Not sure if its correct for stellarators/VMEC
+    ! FLAG DSO - this should be moved to physics parameters
     g_exb = g_exb / geo_surf%rmaj
 
 
@@ -136,7 +144,6 @@ contains
     call scope(subprocs)
 
     call init_mb_transforms
-    if(radial_variation) call adjust_boundaries
   
 #endif
   end subroutine init_multibox
@@ -152,95 +159,6 @@ contains
     call finish_mb_transforms
 
   end subroutine finish_multibox
-
-  subroutine adjust_boundaries
-
-    use physics_parameters, only: rhostar
-    use species, only: reinit_species, nspec, spec
-    use job_manage, only: njobs
-    use mp, only: job, scope, mp_abort,  &
-                  crossdomprocs, subprocs,  &
-                  send, receive
-
-    implicit none
-
-    real, dimension (:), allocatable :: ldens, ltemp, lfprim, ltprim
-    real, dimension (:), allocatable :: rdens, rtemp, rfprim, rtprim
-
-    integer :: i
-
-    allocate(ldens(nspec))
-    allocate(ltemp(nspec))
-    allocate(lfprim(nspec))
-    allocate(ltprim(nspec))
-    allocate(rdens(nspec))
-    allocate(rtemp(nspec))
-    allocate(rfprim(nspec))
-    allocate(rtprim(nspec))
-
-
-    if(job == 1) then
-      do i=1,nspec
-        ! recall that fprim and tprim are the negative gradients
-        ldens(i)  = spec(i)%dens  - rhostar*xL*spec(i)%fprim
-        ltemp(i)  = spec(i)%temp  - rhostar*xL*spec(i)%tprim
-        lfprim(i) = spec(i)%fprim + rhostar*xL*spec(i)%d2ndr2
-        ltprim(i) = spec(i)%tprim + rhostar*xL*spec(i)%d2Tdr2
-
-        rdens(i)  = spec(i)%dens  - rhostar*xR*spec(i)%fprim
-        rtemp(i)  = spec(i)%temp  - rhostar*xR*spec(i)%tprim
-        rfprim(i) = spec(i)%fprim + rhostar*xR*spec(i)%d2ndr2
-        rtprim(i) = spec(i)%tprim + rhostar*xR*spec(i)%d2Tdr2
-
-        if(ldens(i) < 0 .or. ltemp(i) < 0 .or. &
-           rdens(i) < 0 .or. rtemp(i) < 0) then
-           call mp_abort('Negative n/T encountered. Try reducing rhostar.')
-        endif
-      enddo
-    endif
-
-    call scope(crossdomprocs)
-
-    if(job==1) then
-      call send(ldens ,0,120)
-      call send(ltemp ,0,121)
-      call send(lfprim,0,122)
-      call send(ltprim,0,123)
-      call send(rdens ,njobs-1,130)
-      call send(rtemp ,njobs-1,131)
-      call send(rfprim,njobs-1,132)
-      call send(rtprim,njobs-1,133)
-    elseif(job == 0) then
-      call receive(ldens, 1,120)
-      call receive(ltemp, 1,121)
-      call receive(lfprim,1,122)
-      call receive(ltprim,1,123)
-    elseif(job== njobs-1) then
-      call receive(rdens, 1,130)
-      call receive(rtemp, 1,131)
-      call receive(rfprim,1,132)
-      call receive(rtprim,1,133)
-    endif
-
-    call scope(subprocs)
-
-    if(job==0) then
-      call reinit_species(nspec,ldens,ltemp,lfprim,ltprim)
-    elseif(job==njobs-1) then
-      call reinit_species(nspec,rdens,rtemp,rfprim,rtprim)
-    endif
-
-    deallocate(ldens)
-    deallocate(ltemp)
-    deallocate(lfprim)
-    deallocate(ltprim)
-    deallocate(rdens)
-    deallocate(rtemp)
-    deallocate(rfprim)
-    deallocate(rtprim)
-
-  end subroutine adjust_boundaries
-
 
   subroutine multibox_communicate (gin)
 

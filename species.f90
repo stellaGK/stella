@@ -7,6 +7,7 @@ module species
   public :: init_species, finish_species
   public :: read_species_knobs
   public :: reinit_species
+  public :: communicate_species_multibox
   !public :: init_trin_species
   public :: nspec, spec
   public :: ion_species, electron_species, slowing_down_species, tracer_species
@@ -24,6 +25,7 @@ module species
   integer, parameter :: species_option_stella = 1
   integer, parameter :: species_option_inputprofs = 2
   integer, parameter :: species_option_euterpe = 3
+  integer, parameter :: species_option_multibox = 4
 
   integer :: nspec
   logical :: read_profile_variation, write_profile_variation
@@ -44,7 +46,6 @@ contains
 
 !    use mp, only: trin_flag
     use mp, only: proc0, broadcast
-    use file_utils, only : run_name
     use physics_parameters, only: vnew_ref, zeff
     use inputprofiles_interface, only: read_inputprof_spec
     use euterpe_interface, only: read_species_euterpe
@@ -52,7 +53,6 @@ contains
     implicit none
 
     integer :: is
-    character (300) :: filename
 
     if (initialized) return
     initialized = .true.
@@ -68,6 +68,11 @@ contains
        case (species_option_euterpe)
           call read_species_stella
           call read_species_euterpe (nspec, spec)
+       case (species_option_multibox)
+          call read_species_stella
+          !this will be called by the central box in stella.f90 after
+          !ktgrids is set up as we need to know the radial box size
+          call communicate_species_multibox
        end select
 
        do is = 1, nspec
@@ -82,16 +87,8 @@ contains
           end if
        end do
 
-       filename = trim(trim(run_name)//'.species.input')
-       open (1003,file=filename,status='unknown')
-       write (1003,'(7a12,a9)') '#1.z', '2.mass', '3.dens', &
-            '4.temp', '5.tprim','6.fprim', '7.vnewss', '8.type'
-       do is = 1, nspec
-          write (1003,'(7e12.4,i9)') spec(is)%z, spec(is)%mass, &
-               spec(is)%dens, spec(is)%temp, spec(is)%tprim, &
-               spec(is)%fprim, spec(is)%vnew(is), spec(is)%type
-       end do
-       close (1003)
+       call dump_species_input
+
     end if
 
     call broadcast_parameters
@@ -102,8 +99,10 @@ contains
 
   subroutine read_species_knobs
 
-    use mp, only: proc0, broadcast
+    use mp, only: proc0, job, broadcast
     use file_utils, only: error_unit, input_unit_exist
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use physics_flags, only: radial_variation
     use text_options, only: text_option, get_option_value
 
     implicit none
@@ -133,6 +132,11 @@ contains
        ierr = error_unit()
        call get_option_value (species_option, specopts, species_option_switch, &
             ierr, "species_option in species_knobs")
+
+       if (runtype_option_switch.eq.runtype_multibox.and.(job.ne.1).and.radial_variation) then
+         !will need to readjust the species parameters in the left/right boxes
+         species_option_switch = species_option_multibox
+       endif
        
        if (nspec < 1) then
           ierr = error_unit()
@@ -286,7 +290,6 @@ contains
   subroutine reinit_species (ntspec, dens, temp, fprim, tprim)
 
    use mp, only: broadcast, proc0
-   use file_utils, only: run_name
 
      implicit none
 
@@ -296,7 +299,6 @@ contains
 
      integer :: is
      logical, save :: first = .true.
-     character (300) :: filename
 
      if (first) then
         if (nspec == 1) then
@@ -366,16 +368,7 @@ contains
   !               spec(is)%tprim, spec(is)%vnewk, real(is)
          end do
          
-         filename = trim(trim(run_name)//'.species.input')
-         open (1003,file=filename,status='unknown')
-         write (1003,'(7a12,a9)') '#1.z', '2.mass', '3.dens', &
-            '4.temp', '5.tprim','6.fprim', '7.vnewss', '8.type'
-         do is = 1, nspec
-           write (1003,'(7e12.4,i9)') spec(is)%z, spec(is)%mass, &
-               spec(is)%dens, spec(is)%temp, spec(is)%tprim, &
-               spec(is)%fprim, spec(is)%vnew(is), spec(is)%type
-         end do
-         close (1003)
+         call dump_species_input
 
       end if
 
@@ -396,6 +389,126 @@ contains
       end do
 
     end subroutine reinit_species
+
+
+    subroutine communicate_species_multibox(x_edge)
+      use physics_parameters, only: rhostar
+      use stella_geometry, only: drhodpsi, dxdpsi
+      use job_manage, only: njobs
+      use mp, only: job, scope, mp_abort,  &
+                  crossdomprocs, subprocs,  &
+                  send, receive
+
+      implicit none
+
+      real, optional, intent (in) :: x_edge
+
+      real, dimension (:), allocatable :: ldens, ltemp, lfprim, ltprim
+      real, dimension (:), allocatable :: rdens, rtemp, rfprim, rtprim
+
+      real drho_m,drho_p
+
+      integer :: i
+
+      allocate(ldens(nspec))
+      allocate(ltemp(nspec))
+      allocate(lfprim(nspec))
+      allocate(ltprim(nspec))
+      allocate(rdens(nspec))
+      allocate(rtemp(nspec))
+      allocate(rfprim(nspec))
+      allocate(rtprim(nspec))
+
+
+      if(job == 1) then
+
+        drho_m=- rhostar*x_edge*drhodpsi/dxdpsi
+        drho_p=  rhostar*x_edge*drhodpsi/dxdpsi
+
+        do i=1,nspec
+          ! recall that fprim and tprim are the negative gradients
+          ldens(i)  = spec(i)%dens  - drho_m*spec(i)%fprim
+          ltemp(i)  = spec(i)%temp  - drho_m*spec(i)%tprim
+          lfprim(i) = spec(i)%fprim + drho_m*spec(i)%d2ndr2
+          ltprim(i) = spec(i)%tprim + drho_m*spec(i)%d2Tdr2
+
+          rdens(i)  = spec(i)%dens  - drho_p*spec(i)%fprim
+          rtemp(i)  = spec(i)%temp  - drho_p*spec(i)%tprim
+          rfprim(i) = spec(i)%fprim + drho_p*spec(i)%d2ndr2
+          rtprim(i) = spec(i)%tprim + drho_p*spec(i)%d2Tdr2
+
+          if(ldens(i) < 0 .or. ltemp(i) < 0 .or. &
+            rdens(i) < 0 .or. rtemp(i) < 0) then
+            call mp_abort('Negative n/T encountered. Try reducing rhostar.')
+          endif
+        enddo
+      endif
+
+      call scope(crossdomprocs)
+
+      if(job==1) then
+        call send(ldens ,0,120)
+        call send(ltemp ,0,121)
+        call send(lfprim,0,122)
+        call send(ltprim,0,123)
+        call send(rdens ,njobs-1,130)
+        call send(rtemp ,njobs-1,131)
+        call send(rfprim,njobs-1,132)
+        call send(rtprim,njobs-1,133)
+      elseif(job == 0) then
+        call receive(ldens, 1,120)
+        call receive(ltemp, 1,121)
+        call receive(lfprim,1,122)
+        call receive(ltprim,1,123)
+      elseif(job== njobs-1) then
+        call receive(rdens, 1,130)
+        call receive(rtemp, 1,131)
+        call receive(rfprim,1,132)
+        call receive(rtprim,1,133)
+      endif
+
+      call scope(subprocs)
+
+      if(job==0) then
+        call reinit_species(nspec,ldens,ltemp,lfprim,ltprim)
+      elseif(job==njobs-1) then
+        call reinit_species(nspec,rdens,rtemp,rfprim,rtprim)
+      endif
+
+      deallocate(ldens)
+      deallocate(ltemp)
+      deallocate(lfprim)
+      deallocate(ltprim)
+      deallocate(rdens)
+      deallocate(rtemp)
+      deallocate(rfprim)
+      deallocate(rtprim)
+
+    end subroutine communicate_species_multibox
+
+    subroutine dump_species_input
+
+      use file_utils, only: run_name
+
+      implicit none
+
+      integer :: is
+      character (300) :: filename
+
+      write (*,*) 'aloha'
+
+      filename = trim(trim(run_name)//'.species.input')
+      open (1003,file=filename,status='unknown')
+      write (1003,'(7a12,a9)') '#1.z', '2.mass', '3.dens', &
+            '4.temp', '5.tprim','6.fprim', '7.vnewss', '8.type'
+      do is = 1, nspec
+        write (1003,'(7e12.4,i9)') spec(is)%z, spec(is)%mass, &
+               spec(is)%dens, spec(is)%temp, spec(is)%tprim, &
+               spec(is)%fprim, spec(is)%vnew(is), spec(is)%type
+      end do
+      close (1003)
+
+    end subroutine dump_species_input
 
 !   subroutine init_trin_species (ntspec_in, dens_in, temp_in, fprim_in, tprim_in, nu_in)
 

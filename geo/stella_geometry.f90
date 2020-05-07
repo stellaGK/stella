@@ -5,6 +5,7 @@ module stella_geometry
   implicit none
 
   public :: init_geometry, finish_geometry
+  public :: communicate_geo_multibox
   public :: grho
   public :: bmag, dbdzed, btor
   public :: gradpar, gradpar_eqarc, zed_eqarc
@@ -62,6 +63,7 @@ module stella_geometry
   integer, parameter :: geo_option_local = 1
   integer, parameter :: geo_option_inputprof = 2
   integer, parameter :: geo_option_vmec = 3
+  integer, parameter :: geo_option_multibox = 4
 
   logical :: overwrite_geometry
   logical :: overwrite_bmag, overwrite_gradpar
@@ -79,6 +81,7 @@ contains
     use constants, only: pi
     use mp, only: proc0
     use millerlocal, only: read_local_parameters, get_local_geo
+    use millerlocal, only: communicate_parameters_multibox
     use vmec_geo, only: read_vmec_parameters, get_vmec_geo
     use inputprofiles_interface, only: read_inputprof_geo
     use zgrid, only: nzed, nzgrid
@@ -119,7 +122,7 @@ contains
        select case (geo_option_switch)
        case (geo_option_local)
           ! read in Miller local parameters
-          call read_local_parameters (geo_surf)
+          call read_local_parameters (nzed,nzgrid,geo_surf)
           ! allocate geometry arrays
           call allocate_arrays (nalpha, nzgrid)
           ! use Miller local parameters to get 
@@ -150,10 +153,45 @@ contains
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
           zeta(1,:) = zed*geo_surf%qinp
+       case (geo_option_multibox)
+          ! read in Miller local parameters
+          call read_local_parameters (nzed,nzgrid,geo_surf)
+          call communicate_parameters_multibox
+          ! allocate geometry arrays
+          call allocate_arrays (nalpha, nzgrid)
+          ! use Miller local parameters to get 
+          ! geometric coefficients needed by stella
+          call get_local_geo (nzed, nzgrid, zed, &
+               dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
+               gds2(1,:), gds21(1,:), gds22(1,:), &
+               gds23(1,:), gds24(1,:), gradpar, &
+               gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
+               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+               dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
+               dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
+               dgds2dr(1,:),dgds21dr(1,:), & 
+               dgds22dr(1,:), dgds22bdr(1,:), &
+               djacdrho(1,:))
+          ! note that psi here is the enclosed poloidal flux divided by 2pi
+          drhodpsi = 1./dpsidrho
+          ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+          dxdpsi_sign = 1
+          dxdpsi = dxdpsi_sign*geo_surf%qinp/geo_surf%rhoc
+          ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+          dydalpha_sign = 1
+          dydalpha = dydalpha_sign*dpsidrho
+          ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+          ! minus its sign gives the direction of the shift in kx
+          ! to be used for twist-and-shift BC
+          twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
+          ! aref and bref should not be needed, so set to 1
+          aref = 1.0 ; bref = 1.0
+          zeta(1,:) = zed*geo_surf%qinp
+
        case (geo_option_inputprof)
           ! first read in some local parameters
           ! only thing needed really is rhoc
-          call read_local_parameters (geo_surf)
+          call read_local_parameters (nzed,nzgrid,geo_surf)
           ! allocate geometry arrays
           call allocate_arrays (nalpha, nzgrid)
           ! now overwrite local parameters
@@ -437,6 +475,9 @@ contains
 
     use text_options
     use file_utils, only: error_unit, input_unit_exist
+    use file_utils, only: runtype_option_Switch, runtype_multibox
+    use mp, only: job
+    use physics_flags, only: radial_variation
 
     implicit none
 
@@ -475,6 +516,10 @@ contains
     call get_option_value &
          (geo_option, geoopts, geo_option_switch, &
          ierr, "geo_option in geo_knobs")
+
+    if(radial_variation.and.runtype_option_switch.eq.runtype_multibox.and.job.ne.1) then
+      geo_option_switch = geo_option_multibox
+    endif
     
     overwrite_geometry = overwrite_bmag .or. overwrite_gradpar &
          .or. overwrite_gds2 .or. overwrite_gds21 .or. overwrite_gds22 &
@@ -554,6 +599,24 @@ contains
     call broadcast (bref)
 
   end subroutine broadcast_arrays
+
+  subroutine communicate_geo_multibox(x_edge)
+  
+    use millerlocal, only: communicate_parameters_multibox
+    use physics_parameters, only: rhostar
+
+    implicit none
+
+    real, intent (in) :: x_edge
+    real :: dr
+    dr = rhostar*abs(x_edge*drhodpsi/dxdpsi)
+
+    !everything in the following function should go here, but d2R, d2Z and dI 
+    !will have to move as well
+
+    call communicate_parameters_multibox(dr)
+
+  end subroutine communicate_geo_multibox
 
   ! given function f(z:-pi->pi), calculate z derivative
   ! second order accurate, with equal grid spacing assumed

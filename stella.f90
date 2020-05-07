@@ -54,7 +54,8 @@ contains
 
     use mp, only: init_mp, broadcast
     use mp, only: proc0,job
-    use file_utils, only: init_file_utils, runtype_option_switch
+    use file_utils, only: init_file_utils
+    use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: run_name, init_job_name
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
@@ -65,10 +66,10 @@ contains
     use run_parameters, only: avail_cpu_time, nstep, rng_seed
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use species, only: init_species, read_species_knobs
-    use species, only: nspec
+    use species, only: nspec, communicate_species_multibox
     use zgrid, only: init_zgrid
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: init_geometry
+    use stella_geometry, only: init_geometry, communicate_geo_multibox
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix
@@ -87,7 +88,7 @@ contains
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
-    use multibox, only: init_multibox
+    use multibox, only: init_multibox, xR
     use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
@@ -171,7 +172,11 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
     if (debug) write (6,*) 'stella::init_stella::init_multibox'
-    call init_multibox
+    call init_multibox(geo_surf)
+    if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1).and.radial_variation) then
+      call communicate_geo_multibox(xR)
+      call communicate_species_multibox(xR)
+    endif
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"

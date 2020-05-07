@@ -652,13 +652,16 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit
+    use multibox, only: RK_step, multibox_communicate
 
     implicit none
 
     integer, intent (in) :: istep
 
-    !if (debug) write (*,*) 'time_advance::multibox'
-    !call multibox_communicate
+    if(.not.RK_step) then
+      if (debug) write (*,*) 'time_advance::multibox'
+      call multibox_communicate(gnew)
+    endif
 
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
@@ -741,7 +744,7 @@ contains
     use dist_fn_arrays, only: g1, gold
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: multibox_communicate
+    use multibox, only: RK_step,multibox_communicate
 
     implicit none
 
@@ -755,7 +758,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    call multibox_communicate (g)
+    if(RK_step) call multibox_communicate (g)
 
     gold = g
 
@@ -770,7 +773,7 @@ contains
           call solve_gke (gold, g1, restart_time_step)
        case (2)
           g1 = gold + g1
-          call multibox_communicate (g1)
+          if(RK_step) call multibox_communicate (g1)
           call solve_gke (g1, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -791,7 +794,7 @@ contains
     use dist_fn_arrays, only: g1, g2, gold
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: multibox_communicate
+    use multibox, only: RK_step, multibox_communicate
 
     implicit none
 
@@ -805,7 +808,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    call multibox_communicate (g)
+    if(RK_step) call multibox_communicate (g)
 
     gold = g
 
@@ -819,11 +822,11 @@ contains
           call solve_gke (gold, g1, restart_time_step)
        case (2)
           g1 = gold + g1
-          call multibox_communicate (g1)
+          if(RK_step) call multibox_communicate (g1)
           call solve_gke (g1, g2, restart_time_step)
        case (3)
           g2 = g1 + g2
-          call multibox_communicate (g2)
+          if(RK_step) call multibox_communicate (g2)
           call solve_gke (g2, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -843,7 +846,7 @@ contains
     use dist_fn_arrays, only: g1, g2, g3, gold
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: multibox_communicate
+    use multibox, only: RK_step, multibox_communicate
 
     implicit none
 
@@ -857,7 +860,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    call multibox_communicate(g)
+    if(RK_step) call multibox_communicate(g)
 
     gold = g
 
@@ -872,19 +875,19 @@ contains
        case (2)
           ! g1 is h*k1
           g3 = gold + 0.5*g1
-          call multibox_communicate(g3)
+          if(RK_step) call multibox_communicate(g3)
           call solve_gke (g3, g2, restart_time_step)
           g1 = g1 + 2.*g2
        case (3)
           ! g2 is h*k2
           g2 = gold+0.5*g2
-          call multibox_communicate(g2)
+          if(RK_step) call multibox_communicate(g2)
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
        case (4)
           ! g3 is h*k3
           g3 = gold+g3
-          call multibox_communicate(g3)
+          if(RK_step) call multibox_communicate(g3)
           call solve_gke (g3, g, restart_time_step)
           g1 = g1 + g
        end select
@@ -1761,7 +1764,7 @@ contains
             g0k = g0k + g0a*wdrifty_phi(ia,iz,ivmu) 
 
             !mirror term and/or parallel streaming
-            if(include_mirror.or.include_parllel_streaming) then
+            if(include_mirror.or.include_parallel_streaming) then
               g0k = g0k + g_corr(:,:,iz,it,ivmu)
             endif
 
@@ -2167,7 +2170,7 @@ contains
     use dissipation, only: collisions_implicit, include_collisions
     use dissipation, only: advance_collisions_implicit
     use run_parameters, only: driftkinetic_implicit
-    use multibox, only: multibox_communicate
+    use multibox, only: RK_step, multibox_communicate
 
     implicit none
 
@@ -2205,7 +2208,7 @@ contains
        ! g^{*} (coming from explicit solve) is input
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
 
-    call multibox_communicate (g)
+    if(RK_step) call multibox_communicate (g)
 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
 

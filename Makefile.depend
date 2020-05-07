@@ -186,6 +186,7 @@ init_g.o: \
 	 ran.o \
 	 run_parameters.o \
 	 species.o \
+	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_save.o \
 	 text_options.o \
@@ -204,6 +205,7 @@ job_manage.o: \
 	 mp.o 
 kt_grids.o: \
 	 common_types.o \
+	 constants.o \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o \
@@ -215,6 +217,8 @@ millerlocal.o: \
 	 common_types.o \
 	 constants.o \
 	 file_utils.o \
+	 job_manage.o \
+	 mp.o \
 	 spl.o 
 mirror_terms.o: \
 	 constants.o \
@@ -226,6 +230,7 @@ mirror_terms.o: \
 	 mp.o \
 	 neoclassical_terms.o \
 	 physics_flags.o \
+	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -240,18 +245,18 @@ mp.o: \
 	 file_utils.o 
 mt19937.o: 
 multibox.o: \
-	 constants.o \
-	 dist_fn_arrays.o \
+	 common_types.o \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 job_manage.o \
 	 kt_grids.o \
-	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
+	 stella_geometry.o \
 	 stella_layouts.o \
+	 text_options.o \
 	 zgrid.o 
 neoclassical_terms.o: \
 	 file_utils.o \
@@ -280,11 +285,13 @@ parallel_streaming.o: \
 	 mp.o \
 	 neoclassical_terms.o \
 	 physics_flags.o \
+	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 physics_flags.o: \
@@ -330,8 +337,11 @@ species.o: \
 	 euterpe_interface.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
+	 job_manage.o \
 	 mp.o \
+	 physics_flags.o \
 	 physics_parameters.o \
+	 stella_geometry.o \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
@@ -380,6 +390,7 @@ stella_diagnostics.o: \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -389,6 +400,7 @@ stella_diagnostics.o: \
 	 stella_layouts.o \
 	 stella_save.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_geometry.o: \
@@ -399,6 +411,8 @@ stella_geometry.o: \
 	 kt_grids.o \
 	 millerlocal.o \
 	 mp.o \
+	 physics_flags.o \
+	 physics_parameters.o \
 	 text_options.o \
 	 vmec_geo.o \
 	 zgrid.o 
