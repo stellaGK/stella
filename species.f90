@@ -428,13 +428,13 @@ contains
         ! recall that fprim and tprim are the negative gradients
         ldens  =  spec%dens*(1.0 - dr_m*spec%fprim + 0.5*dr_m**2*spec%d2ndr2)
         ltemp  =  spec%temp*(1.0 - dr_m*spec%tprim + 0.5*dr_m**2*spec%d2Tdr2)
-        lfprim = (spec%fprim - dr_m*spec%d2ndr2)*(ldens/spec%dens)
-        ltprim = (spec%tprim - dr_m*spec%d2Tdr2)*(ltemp/spec%temp)
+        lfprim = (spec%fprim - dr_m*spec%d2ndr2)*(spec%dens/ldens)
+        ltprim = (spec%tprim - dr_m*spec%d2Tdr2)*(spec%temp/ltemp)
 
         rdens  =  spec%dens*(1.0 - dr_p*spec%fprim + 0.5*dr_p**2*spec%d2ndr2)
         rtemp  =  spec%temp*(1.0 - dr_p*spec%tprim + 0.5*dr_p**2*spec%d2Tdr2)
-        rfprim = (spec%fprim + dr_p*spec%d2ndr2)*(rdens/spec%dens)
-        rtprim = (spec%tprim + dr_p*spec%d2Tdr2)*(rtemp/spec%temp)
+        rfprim = (spec%fprim - dr_p*spec%d2ndr2)*(spec%dens/rdens)
+        rtprim = (spec%tprim - dr_p*spec%d2Tdr2)*(spec%temp/rtemp)
 
         do i=1,nspec
           if(ldens(i) < 0 .or. ltemp(i) < 0 .or. &
@@ -460,20 +460,22 @@ contains
         call receive(ltemp, 1,121)
         call receive(lfprim,1,122)
         call receive(ltprim,1,123)
+        spec%dens  = ldens
+        spec%temp  = ltemp
+        spec%fprim = lfprim
+        spec%tprim = ltprim
       elseif(job== njobs-1) then
         call receive(rdens, 1,130)
         call receive(rtemp, 1,131)
         call receive(rfprim,1,132)
         call receive(rtprim,1,133)
+        spec%dens  = rdens
+        spec%temp  = rtemp
+        spec%fprim = rfprim
+        spec%tprim = rtprim
       endif
 
       call scope(subprocs)
-
-      if(job==0) then
-        call reinit_species(nspec,ldens,ltemp,lfprim,ltprim)
-      elseif(job==njobs-1) then
-        call reinit_species(nspec,rdens,rtemp,rfprim,rtprim)
-      endif
 
       deallocate(ldens)
       deallocate(ltemp)
