@@ -406,7 +406,7 @@ contains
       real, dimension (:), allocatable :: ldens, ltemp, lfprim, ltprim
       real, dimension (:), allocatable :: rdens, rtemp, rfprim, rtprim
 
-      real drho_m,drho_p
+      real dr_m,dr_p
 
       integer :: i
 
@@ -422,21 +422,21 @@ contains
 
       if(job == 1) then
 
-        drho_m=- rhostar*x_edge*drhodpsi/dxdpsi
-        drho_p=  rhostar*x_edge*drhodpsi/dxdpsi
+        dr_m=- rhostar*x_edge*drhodpsi/dxdpsi
+        dr_p=  rhostar*x_edge*drhodpsi/dxdpsi
+
+        ! recall that fprim and tprim are the negative gradients
+        ldens  =  spec%dens*(1.0 - dr_m*spec%fprim + 0.5*dr_m**2*spec%d2ndr2)
+        ltemp  =  spec%temp*(1.0 - dr_m*spec%tprim + 0.5*dr_m**2*spec%d2Tdr2)
+        lfprim = (spec%fprim - dr_m*spec%d2ndr2)*(ldens/spec%dens)
+        ltprim = (spec%tprim - dr_m*spec%d2Tdr2)*(ltemp/spec%temp)
+
+        rdens  =  spec%dens*(1.0 - dr_p*spec%fprim + 0.5*dr_p**2*spec%d2ndr2)
+        rtemp  =  spec%temp*(1.0 - dr_p*spec%tprim + 0.5*dr_p**2*spec%d2Tdr2)
+        rfprim = (spec%fprim + dr_p*spec%d2ndr2)*(rdens/spec%dens)
+        rtprim = (spec%tprim + dr_p*spec%d2Tdr2)*(rtemp/spec%temp)
 
         do i=1,nspec
-          ! recall that fprim and tprim are the negative gradients
-          ldens(i)  = spec(i)%dens  - drho_m*spec(i)%fprim
-          ltemp(i)  = spec(i)%temp  - drho_m*spec(i)%tprim
-          lfprim(i) = spec(i)%fprim + drho_m*spec(i)%d2ndr2
-          ltprim(i) = spec(i)%tprim + drho_m*spec(i)%d2Tdr2
-
-          rdens(i)  = spec(i)%dens  - drho_p*spec(i)%fprim
-          rtemp(i)  = spec(i)%temp  - drho_p*spec(i)%tprim
-          rfprim(i) = spec(i)%fprim + drho_p*spec(i)%d2ndr2
-          rtprim(i) = spec(i)%tprim + drho_p*spec(i)%d2Tdr2
-
           if(ldens(i) < 0 .or. ltemp(i) < 0 .or. &
             rdens(i) < 0 .or. rtemp(i) < 0) then
             call mp_abort('Negative n/T encountered. Try reducing rhostar.')
@@ -494,8 +494,6 @@ contains
 
       integer :: is
       character (300) :: filename
-
-      write (*,*) 'aloha'
 
       filename = trim(trim(run_name)//'.species.input')
       open (1003,file=filename,status='unknown')

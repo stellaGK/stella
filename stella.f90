@@ -12,7 +12,7 @@ program stella
 
   implicit none
 
-  logical :: debug = .false.
+  logical :: debug = .true.
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
@@ -102,7 +102,6 @@ contains
     if (.not.mpi_initialized) call init_mp
     mpi_initialized = .true.
 
-    debug = debug .and. proc0
 
     if (debug) write (*,*) 'stella::init_stella::check_time'
     ! initialize timer
@@ -123,6 +122,8 @@ contains
     call broadcast (list)
     call broadcast (runtype_option_switch)
     if(list) call job_fork
+
+    debug = debug .and. proc0
 
     if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)
@@ -173,7 +174,8 @@ contains
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
     if (debug) write (6,*) 'stella::init_stella::init_multibox'
     call init_multibox(geo_surf)
-    if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1).and.radial_variation) then
+    if (proc0.and.runtype_option_switch.eq.runtype_multibox &
+             .and.(job.eq.1).and.radial_variation) then
       call communicate_geo_multibox(xR)
       call communicate_species_multibox(xR)
     endif

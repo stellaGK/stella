@@ -604,6 +604,7 @@ contains
   
     use millerlocal, only: communicate_parameters_multibox
     use physics_parameters, only: rhostar
+    use mp, only: proc0
 
     implicit none
 
@@ -614,7 +615,7 @@ contains
     !everything in the following function should go here, but d2R, d2Z and dI 
     !will have to move as well
 
-    call communicate_parameters_multibox(dr)
+    if(proc0) call communicate_parameters_multibox(dr)
 
   end subroutine communicate_geo_multibox
 
