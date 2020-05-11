@@ -162,7 +162,7 @@ contains
 
   subroutine multibox_communicate (gin)
 
-    use kt_grids, only: nakx,naky,naky_all,dx,dy, zonal_mode
+    use kt_grids, only: nakx,naky,naky_all,nx,ny,dx,dy, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
     use fields_arrays, only: phi
@@ -179,6 +179,7 @@ contains
 
     integer :: num,ia, ix,iky,iz,it,iv,offset
     integer :: ii,jj, temp_unit
+    real :: afacx, afacy
     complex :: dzm,dzp
     character(len=512) :: filename
 
@@ -191,9 +192,11 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 
-    if(mod(temp_ind,200)==0 .and. proc0) then
+    if(mod(temp_ind,1000)==0 .and. proc0) then
      ! call get_unused_unit(temp_unit)
       temp_unit=3023+job
+      afacx = real(nx)/real(nakx)
+      afacy = real(ny)/real(naky)
       call transform_kx2x(phi(:,:,0,1),fft_xky)  
       call transform_ky2y(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
@@ -201,10 +204,10 @@ contains
             action="write",form="unformatted",access="stream")
       write (temp_unit) real(nakx,4)
       do ii=1,nakx
-        write(temp_unit) real(dx*(ii-1),4)
+        write(temp_unit) real(afacx*dx*(ii-1),4)
       enddo
       do ii=1,naky_all
-        write (temp_unit) real(dy*(ii-1),4)
+        write (temp_unit) real(afacy*dy*(ii-1),4)
         do jj=1,nakx
           write (temp_unit) real(fft_xy(ii,jj),4)
         enddo
