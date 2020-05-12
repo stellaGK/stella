@@ -1,15 +1,19 @@
 module response_matrix
 
+  use netcdf
+
   implicit none
 
   public :: init_response_matrix, finish_response_matrix
+  PUBLIC :: read_response_matrix
   public :: response_matrix_initialized
 
   private
 
   logical :: response_matrix_initialized = .false.
-
+  INTEGER, PARAMETER :: MAT_UNIT=70    
 contains
+
 
   subroutine init_response_matrix
     
@@ -23,6 +27,9 @@ contains
     use extended_zgrid, only: neigen, ikxmod
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
+    USE job_manage, only: time_message
+    USE mp, ONLY: proc0, iproc
+    USE run_parameters, only: mat_gen
 
     implicit none
 
@@ -34,8 +41,31 @@ contains
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: gext
+    logical :: debug = .false.
+    CHARACTER(100) :: message_lu
+    REAL, DIMENSION (2) :: time_response_matrix_lu
 
-    if (response_matrix_initialized) return
+    ! Related to the saving of the the matrices in netcdf format
+    CHARACTER(len=15) :: fmt, proc_str 
+    CHARACTER(len=100) :: file_name
+    INTEGER :: istatus
+    istatus = 0
+
+!   All matrices handled by processor i_proc are stored
+!   on a single file named: responst_mat.iproc
+    fmt = '(I5.5)'
+    IF (mat_gen) THEN
+       CALL check_directories
+
+       WRITE (proc_str, fmt) iproc
+       file_name = './mat/response_mat.'//TRIM(proc_str)
+
+       OPEN(UNIT=MAT_UNIT, STATUS='replace', FILE=file_name, &
+            POSITION='rewind', ACTION='write', FORM='unformatted')
+       WRITE(UNIT=MAT_UNIT) naky
+    ENDIF
+
+    IF (response_matrix_initialized) RETURN
     response_matrix_initialized = .true.
     
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
@@ -43,8 +73,13 @@ contains
     ! for a given ky and set of connected kx values
     ! give a unit impulse to phi at each zed location
     ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
+
     
-    do iky = 1, naky
+    DO iky = 1, naky
+       
+       IF (mat_gen) THEN
+          WRITE(UNIT=MAT_UNIT) iky, neigen(iky)
+       ENDIF
        
        ! the response matrix for each ky has neigen(ky)
        ! independent sets of connected kx values
@@ -64,6 +99,10 @@ contains
           else
              nresponse = nz_ext
           end if
+          
+          IF (mat_gen) THEN
+             WRITE(unit=MAT_UNIT) ie, nresponse
+          ENDIF
 
           ! for each ky and set of connected kx values,
           ! must have a response matrix that is N x N
@@ -121,11 +160,89 @@ contains
           ! get the LU decomposition so we are ready to solve the linear system
           call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
 
-          deallocate (gext, phiext)
+          
+          IF(proc0.AND.debug) THEN
+             CALL time_message(.FALSE., time_response_matrix_lu, message_lu)
+          ENDIF
+          
+          IF (mat_gen) THEN
+             WRITE(unit=MAT_UNIT) response_matrix(iky)%eigen(ie)%idx
+             WRITE(unit=MAT_UNIT) response_matrix(iky)%eigen(ie)%zloc
+          ENDIF
+          
+          DEALLOCATE (gext, phiext)
        end do
-    end do
-
+    END DO
+    IF (mat_gen) THEN
+       CLOSE(unit=MAT_UNIT)
+    ENDIF
   end subroutine init_response_matrix
+
+
+  SUBROUTINE read_response_matrix
+    
+    USE fields_arrays, ONLY: response_matrix
+    USE common_types, ONLY: response_matrix_type
+    use extended_zgrid, only: neigen
+    USE mp, ONLY: proc0, iproc
+
+    implicit none
+
+    INTEGER :: iky, ie
+    INTEGER :: iky_dump, neigen_dump, naky_dump
+    INTEGER :: nresponse, idx
+    CHARACTER(len=15) :: fmt, proc_str 
+    CHARACTER(len=100) :: file_name
+    INTEGER :: istatus, ie_dump, istat
+    LOGICAL, PARAMETER :: debug=.false.
+    istatus = 0
+
+!   All matrices handled by the processor i_proc are read
+!   from a single file named: responst_mat.iproc
+    fmt = '(I5.5)'
+    WRITE (proc_str, fmt) iproc
+    file_name = './mat/response_mat.'//TRIM(proc_str)
+
+    OPEN(UNIT=MAT_UNIT, STATUS='old', FILE=file_name, &
+         ACTION='read', FORM='unformatted', IOSTAT=istat)
+    IF (istat /= 0) THEN
+       PRINT *, 'Error opening response_matrix by processor', proc_str
+    END IF
+!
+    READ(UNIT=MAT_UNIT) naky_dump
+!   
+    if (response_matrix_initialized) return
+    response_matrix_initialized = .true.
+    
+    IF (.NOT.ALLOCATED(response_matrix)) ALLOCATE (response_matrix(naky_dump))
+    
+    DO iky = 1, naky_dump
+       READ(UNIT=MAT_UNIT) iky_dump, neigen_dump
+       
+       IF (.NOT.ASSOCIATED(response_matrix(iky)%eigen)) &
+            ALLOCATE (response_matrix(iky)%eigen(neigen_dump))
+       
+       DO ie = 1, neigen_dump
+          READ(UNIT=MAT_UNIT) ie_dump, nresponse
+          
+          IF (.NOT.ASSOCIATED(response_matrix(iky)%eigen(ie)%zloc)) &
+               ALLOCATE (response_matrix(iky)%eigen(ie)%zloc(nresponse,nresponse))
+          
+          IF (.NOT.ASSOCIATED(response_matrix(iky)%eigen(ie)%idx)) &
+               ALLOCATE (response_matrix(iky)%eigen(ie)%idx(nresponse))
+          
+          READ(unit=MAT_UNIT) response_matrix(iky)%eigen(ie)%idx
+          READ(unit=MAT_UNIT) response_matrix(iky)%eigen(ie)%zloc
+       END DO
+    ENDDO
+    CLOSE(MAT_UNIT)
+    
+    IF (debug) THEN
+       PRINT *, 'File', file_name, ' successfully read by proc: ', proc_str
+    ENDIF
+
+  END SUBROUTINE read_response_matrix
+
 
   subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
 
@@ -535,5 +652,26 @@ contains
     response_matrix_initialized = .false.
 
   end subroutine finish_response_matrix
+
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!!!!! CHECK_DIRECTORIES !!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>if directories mat does not exist it is generated.
+  SUBROUTINE check_directories
+     
+#if defined (__INTEL_COMPILER)
+!   for system call with intel compiler
+     USE ifport, ONLY : SYSTEM
+#endif
+     
+     INTEGER :: ierr
+     LOGICAL :: mat_exists
+!   ----------------------------------------------------------------------
+     INQUIRE(directory='mat', EXIST=mat_exists)
+!     INQUIRE(file="mat/.", EXIST=mat_exists)
+     IF (.NOT. mat_exists) THEN
+        ierr=system('mkdir -p mat')
+     END IF
+  END SUBROUTINE check_directories
 
 end module response_matrix
