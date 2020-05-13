@@ -173,7 +173,7 @@ contains
                    ! avoid divide by zero for kx=ky=0 mode,
                    ! which we do not need anyway
                    if (abs(akx(ikx)) < epsilon(0.)) cycle
-                   tmp = efac - sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
+                   tmp = 1./efac - sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
                    gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
                    if (radial_variation) then
                      tmp2 = (teprim - feprim)/efac &
