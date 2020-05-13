@@ -67,6 +67,7 @@ contains
 
     nzed_local = 128
     rhoc = 0.5
+    rhoc0= 0.5
     rmaj = 3.0
     rgeo = 3.0
     qinp = 1.4
@@ -302,6 +303,7 @@ contains
     ! number of grid points used for radial derivatives
     nr = 3
 
+
     ! first get nperiod corresponding to input number of grid points
     nz2pi = nzed/2
     np = (nzgrid-nz2pi)/nzed + 1
@@ -311,22 +313,29 @@ contains
     ! this is the equivalent of nzgrid on the local grid
     nz = nz2pi + nzed_local*(np-1)
 
-    dqdr = local%shat*local%qinp/local%rhoc
     call allocate_arrays (nr, nz)
+
+    if (read_profile_variation) then
+       open (1002,file='RZ.in',status='old')
+       read (1002,'(10e13.5)') rhoc0, dI, qinp, shat, kappa, kapprim, tri, triprim, &
+                              betaprim, betadbprim
+       do j=-nz,nz
+          read (1002,'(3e13.5)') theta(j), d2R(j), d2Z(j)       
+       end do
+       close (1002)
+       local%qinp     = qinp  + shat*qinp/rhoc0*(local%rhoc-rhoc0)
+       local%kappa    = kappa + kapprim*(local%rhoc-rhoc0)
+       local%tri      = tri   + triprim*(local%rhoc-rhoc0)
+       local%betaprim = betaprim +betadbprim*(local%rhoc-rhoc0)
+
+    end if
+    dqdr = local%shat*local%qinp/local%rhoc
 
     dr(1) = -local%dr
     dr(2) = 0.
     dr(3) = local%dr
 
     
-    if (read_profile_variation) then
-       open (1002,file='RZ.in',status='old')
-       read (1002,'(3e13.5)') rhoc0
-       do j=-nz,nz
-          read (1002,'(3e13.5)') theta(j), d2R(j), d2Z(j)       
-       end do
-       close (1002)
-    end if
     
     do j=-nz,nz
        theta(j) = j*(2*np-1)*pi/real(nz)
@@ -385,7 +394,7 @@ contains
 
        ! I=Btor*R is a flux function
        ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
-       bi = local%rgeo + dI
+       bi = local%rgeo + dI*(rhoc-rhoc0)
        dpsidrho = dpsidrho*bi/local%qinp
     end if
 
@@ -414,7 +423,9 @@ contains
     
     if (write_profile_variation) then
        open (1002,file='RZ.out',status='unknown')
-       write (1002,'(1e13.5)') local%rhoc
+       write (1002,'(10e13.5)') local%rhoc, dIdrho, local%qinp, local%shat, local%kappa, &
+                                local%kapprim, local%tri, local%triprim, &
+                                local%betaprim, local%betadbprim
        do j=-nz,nz
           write (1002,'(3e13.5)') theta(j), d2Rdr2(j), d2Zdr2(j)
        end do
