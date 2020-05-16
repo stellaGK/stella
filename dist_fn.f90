@@ -149,8 +149,40 @@ contains
           end do
        end if
     end do
+    
+    call enforce_single_valued_kperp2
 
   end subroutine init_kperp2
+
+  subroutine enforce_single_valued_kperp2
+
+    use dist_fn_arrays, only: kperp2
+    use kt_grids, only: naky, nalpha
+    use zgrid, only: nzgrid
+    use extended_zgrid, only: neigen, nsegments, ikxmod
+
+    implicit none
+
+    integer :: iky, ie, iseg
+    real, dimension (:), allocatable :: tmp
+
+    allocate (tmp(nalpha)) ; tmp = 0.0
+
+    do iky = 1, naky
+       do ie = 1, neigen(iky)
+          if (nsegments(ie,iky) > 1) then
+             do iseg = 2, nsegments(ie,iky)
+                tmp = 0.5*(kperp2(iky,ikxmod(iseg-1,ie,iky),:,nzgrid) + kperp2(iky,ikxmod(iseg,ie,iky),:,-nzgrid))
+                kperp2(iky,ikxmod(iseg,ie,iky),:,-nzgrid) = tmp
+                kperp2(iky,ikxmod(iseg-1,ie,iky),:,nzgrid) = tmp
+             end do
+          end if
+       end do
+    end do
+
+    deallocate (tmp)
+
+  end subroutine enforce_single_valued_kperp2
 
   subroutine allocate_arrays
 

@@ -150,10 +150,10 @@ contains
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
-    if (debug) write(6,*) "stella::init_stella::init_dist_fn"
-    call init_dist_fn
     if (debug) write (6,*) 'stella::init_stella::init_extended_zgrid'
     call init_extended_zgrid
+    if (debug) write(6,*) "stella::init_stella::init_dist_fn"
+    call init_dist_fn
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
