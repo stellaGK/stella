@@ -26,7 +26,7 @@ def woutfile(equil=None, ext='nc'):
     return equildir + '/' + woutfile
 
 
-def iota(equil=None, svalue=None, plot=None):
+def iota_stella(equil=None, svalue=None, plot=None):
     
     iotaf = read_vmec_var(equil, 'iotaf')
     iotas = read_vmec_var(equil, 'iotaf')

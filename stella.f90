@@ -63,6 +63,7 @@ contains
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep
     use run_parameters, only: stream_implicit, driftkinetic_implicit
+    USE run_parameters, ONLY: mat_gen, mat_read
     use species, only: init_species, read_species_knobs
     use species, only: nspec
     use zgrid, only: init_zgrid
@@ -70,7 +71,7 @@ contains
     use stella_geometry, only: init_geometry
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
-    use response_matrix, only: init_response_matrix
+    USE response_matrix, ONLY: init_response_matrix, read_response_matrix
     use init_g, only: ginit, init_init_g
     use fields, only: init_fields, advance_fields
     use stella_time, only: init_tstart
@@ -162,9 +163,17 @@ contains
     call ginit (restarted)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz
-    if (debug) write(6,*) "stella::init_stella::init_response_matrix"
-    if (stream_implicit .or. driftkinetic_implicit) call init_response_matrix
-
+    !
+    IF (stream_implicit .OR. driftkinetic_implicit) THEN
+       IF (mat_read) THEN
+          IF (debug) WRITE(6,*) "stella::init_stella::read_response_matrix"
+          CALL read_response_matrix
+       ELSE
+          IF (debug) WRITE(6,*) "stella::init_stella::init_response_matrix"
+          CALL init_response_matrix
+       ENDIF
+    ENDIF
+    !
     if (.not.restarted) then
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
