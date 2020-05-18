@@ -600,7 +600,7 @@ contains
 
   end subroutine broadcast_arrays
 
-  subroutine communicate_geo_multibox(x_edge)
+  subroutine communicate_geo_multibox(l_edge, r_edge)
   
     use millerlocal, only: communicate_parameters_multibox
     use physics_parameters, only: rhostar
@@ -608,14 +608,15 @@ contains
 
     implicit none
 
-    real, intent (in) :: x_edge
-    real :: dr
-    dr = rhostar*abs(x_edge*drhodpsi/dxdpsi)
+    real, intent (in) :: l_edge, r_edge
+    real :: drl, drr
+    drl = rhostar*l_edge*drhodpsi/dxdpsi
+    drr = rhostar*r_edge*drhodpsi/dxdpsi
 
     !everything in the following function should go here, but d2R, d2Z and dI 
     !will have to move as well
 
-    if(proc0) call communicate_parameters_multibox(dr)
+    if(proc0) call communicate_parameters_multibox(drl, drr)
 
   end subroutine communicate_geo_multibox
 

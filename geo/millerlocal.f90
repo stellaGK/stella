@@ -161,7 +161,7 @@ contains
 
   end subroutine read_local_parameters
 
-  subroutine communicate_parameters_multibox (dr)
+  subroutine communicate_parameters_multibox (drl,drr)
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs,  &
                   send, receive
@@ -169,7 +169,7 @@ contains
 
     implicit none
 
-    real, optional, intent (in) :: dr
+    real, optional, intent (in) :: drl,drr
 
     real :: lrhoc, lqinp, lshat, lkappa, ltri, lbetaprim
     real :: rrhoc, rqinp, rshat, rkappa, rtri, rbetaprim
@@ -179,19 +179,19 @@ contains
     if(job == 1) then
       dqdr = local%shat*local%qinp/local%rhoc
 
-      lrhoc  = local%rhoc - dr
-      lqinp  = local%qinp - dr*dqdr + 0.5*dr**2*local%d2qdr2
-      lshat  = (local%rhoc/lqinp)*(dqdr - dr*local%d2qdr2)
-      lkappa = kappa - dr*kapprim
-      ltri   = tri   - dr*triprim
-      lbetaprim = betaprim - dr*betadbprim
+      lrhoc  = local%rhoc + drl
+      lqinp  = local%qinp + drl*dqdr + 0.5*drl**2*local%d2qdr2
+      lshat  = (local%rhoc/lqinp)*(dqdr + drl*local%d2qdr2)
+      lkappa = kappa + drl*kapprim
+      ltri   = tri   + drl*triprim
+      lbetaprim = betaprim + drl*betadbprim
 
-      rrhoc  = local%rhoc + dr
-      rqinp  = local%qinp + dr*dqdr + 0.5*dr**2*local%d2qdr2
-      rshat  = (local%rhoc/lqinp)*(dqdr + dr*local%d2qdr2)
-      rkappa = kappa + dr*kapprim
-      rtri   = tri   + dr*triprim
-      rbetaprim = betaprim + dr*betadbprim
+      rrhoc  = local%rhoc + drr
+      rqinp  = local%qinp + drr*dqdr + 0.5*drr**2*local%d2qdr2
+      rshat  = (local%rhoc/lqinp)*(dqdr + drr*local%d2qdr2)
+      rkappa = kappa + drr*kapprim
+      rtri   = tri   + drr*triprim
+      rbetaprim = betaprim + drr*betadbprim
     endif
 
     call scope(crossdomprocs)

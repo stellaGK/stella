@@ -555,18 +555,18 @@ contains
       !while other quantities should go here, parallel streaming with electrons
       !is what will limit us
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var1)),zero)
-      cfl_dt_stream = cfl_dt_stream/((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var2)),zero)
-      cfl_dt_stream = cfl_dt_stream/((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
       val1 = max(maxval(abs(stream_rad_var3)),zero)
       val2 = max(maxval(abs(kperp2*dkperp2dr)),zero)
 
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(val1*val2,zero)
-      cfl_dt_stream = cfl_dt_stream/((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
       cfl_dt = min(cfl_dt,cfl_dt_stream)
     end if
 

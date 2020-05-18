@@ -88,7 +88,7 @@ contains
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
-    use multibox, only: init_multibox, xR
+    use multibox, only: init_multibox, xL, xR
     use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
@@ -176,8 +176,8 @@ contains
     call init_multibox(geo_surf)
     if (proc0.and.runtype_option_switch.eq.runtype_multibox &
              .and.(job.eq.1).and.radial_variation) then
-      call communicate_geo_multibox(xR)
-      call communicate_species_multibox(xR)
+      call communicate_geo_multibox(xL,xR)
+      call communicate_species_multibox(xL,xR)
     endif
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids

@@ -391,7 +391,7 @@ contains
     end subroutine reinit_species
 
 
-    subroutine communicate_species_multibox(x_edge)
+    subroutine communicate_species_multibox(l_edge,r_edge)
       use physics_parameters, only: rhostar
       use stella_geometry, only: drhodpsi, dxdpsi
       use job_manage, only: njobs
@@ -401,7 +401,7 @@ contains
 
       implicit none
 
-      real, optional, intent (in) :: x_edge
+      real, optional, intent (in) :: l_edge, r_edge
 
       real, dimension (:), allocatable :: ldens, ltemp, lfprim, ltprim
       real, dimension (:), allocatable :: rdens, rtemp, rfprim, rtprim
@@ -422,8 +422,8 @@ contains
 
       if(job == 1) then
 
-        dr_m=- rhostar*x_edge*drhodpsi/dxdpsi
-        dr_p=  rhostar*x_edge*drhodpsi/dxdpsi
+        dr_m=  rhostar*l_edge*drhodpsi/dxdpsi
+        dr_p=  rhostar*r_edge*drhodpsi/dxdpsi
 
         ! recall that fprim and tprim are the negative gradients
         ldens  =  spec%dens*(1.0 - dr_m*spec%fprim + 0.5*dr_m**2*spec%d2ndr2)
