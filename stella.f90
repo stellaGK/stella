@@ -192,7 +192,7 @@ contains
     if (debug) write(6,*) "stella::init_stella::ginit"
     call ginit (restarted)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
-    call init_gxyz
+    call init_gxyz (restarted)
     if (debug) write(6,*) "stella::init_stella::init_response_matrix"
     if (stream_implicit .or. driftkinetic_implicit) call init_response_matrix
 

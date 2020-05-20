@@ -26,20 +26,73 @@ module dist_fn
 
 contains
 
-  subroutine init_gxyz
+  subroutine init_gxyz (restarted)
 
     use dist_fn_arrays, only: gvmu, gold, gnew
-    use redistribute, only: gather
+    use redistribute, only: gather, scatter
     use dist_redistribute, only: kxkyz2vmu
+    use physics_flags, only: radial_variation
+    use physics_parameters, only: rhostar
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use kt_grids, only: nalpha, nakx, naky, nx, x
+    use vpamu_grids, only: mu, vpa, vperp2
+    use zgrid, only: nzgrid, ntubes
+    use species, only: spec
+    use stella_geometry, only: dBdrho, dxdpsi, drhodpsi
+
 
     implicit none
+
+    real :: dpsidx, corr
+    integer :: ivmu, is, imu, iv, it, iz, ia
+    real, dimension (:,:), allocatable :: energy
+    complex, dimension (:,:), allocatable :: g0k, g0x
+    logical, intent(in) :: restarted
+
 
     if (gxyz_initialized) return
     gxyz_initialized = .false.
 
+
     ! get version of g that has ky,kx,z local
     call gather (kxkyz2vmu, gvmu, gnew)
+
+    if(radial_variation.and..not.restarted) then
+      !init_g uses maxwellians, so account for variation in temperature, density, and B
+      ia = 1
+      dpsidx = 1./dxdpsi
+
+      allocate (energy(nalpha,-nzgrid:nzgrid))
+      allocate (g0k(naky,nakx))
+      allocate (g0x(naky,nx))
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        is  = is_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        iv  = iv_idx(vmu_lo, ivmu)
+        energy = vpa(iv)**2 + vperp2(:,:,imu)
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+
+            corr = -(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-1.5) + 2*mu(imu)*dBdrho(iz))
+            g0k = gnew(:,:,iz,it,ivmu)
+
+            call transform_kx2x_solo(g0k,g0x)
+            g0x = g0x*(1.0 + rhostar*drhodpsi*dpsidx*corr*spread(x,1,naky))
+            call transform_x2kx_solo(g0x,g0k)
+
+            gnew(:,:,iz,it,ivmu) = g0k
+          enddo
+        enddo
+      enddo
+      deallocate(energy, g0k, g0x)
+      call scatter(kxkyz2vmu,gnew,gvmu)
+    endif
+
     gold = gnew
+
+    
 
   end subroutine init_gxyz
 

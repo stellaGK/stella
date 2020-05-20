@@ -98,10 +98,12 @@ dist_fn.o: \
 	 kt_grids.o \
 	 mp.o \
 	 physics_flags.o \
+	 physics_parameters.o \
 	 redistribute.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
