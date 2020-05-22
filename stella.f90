@@ -74,11 +74,11 @@ contains
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
-    use fields, only: init_fields, advance_fields
+    use fields, only: init_fields, advance_fields, get_radial_correction
     use stella_time, only: init_tstart
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, phi_corr
     use dist_fn_arrays, only: gnew
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
@@ -200,6 +200,8 @@ contains
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
        call advance_fields (gnew, phi, apar, dist='gbar')
+       if(radial_variation) &
+         call get_radial_correction(gnew,phi_corr,dist='gbar')
     end if
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'

@@ -265,6 +265,28 @@ contains
 
     ! only write data to file every nwrite time steps
     if (mod(istep,nwrite) /= 0) return
+    if (proc0) then
+      allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
+      phi_out = phi
+      if(radial_variation) then
+        allocate (g0k(naky,nakx))
+        allocate (g0x(naky,nx))
+        dpsidx = 1.0/dxdpsi
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+
+            g0k = phi_corr(:,:,iz,it)
+
+            call transform_kx2x_solo (g0k,g0x)
+            g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+            call transform_x2kx_solo (g0x,g0k)
+
+            phi_out(:,:,iz,it) = phi_out(:,:,iz,it) + g0k
+          enddo
+        enddo
+        deallocate(g0x,g0k)
+      endif
+    endif
 
     ! calculation of omega requires computation of omega more
     ! frequently than every nwrite time steps
@@ -300,7 +322,7 @@ contains
 !    call g_to_h (gvmu, phi, -fphi)
 
     if (proc0) then
-       call volume_average (phi, phi2)
+       call volume_average (phi_out, phi2)
        call volume_average (apar, apar2)
        write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
             'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, "job=", job
@@ -317,33 +339,12 @@ contains
        call write_phi2_nc (nout, phi2)
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
-          allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
-          phi_out = phi
-          if(radial_variation) then
-            allocate (g0k(naky,nakx))
-            allocate (g0x(naky,nx))
-            dpsidx = 1.0/dxdpsi
-            do it = 1, ntubes
-              do iz = -nzgrid, nzgrid
-
-                g0k = phi_corr(:,:,iz,it)
-
-                call transform_kx2x_solo (g0k,g0x)
-                g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
-                call transform_x2kx_solo (g0x,g0k)
-
-               ! phi_out(:,:,iz,it) = phi_out(:,:,iz,it) + g0k
-              enddo
-            enddo
-            deallocate(g0x,g0k)
-          endif
           call write_phi_nc (nout, phi_out)
-          deallocate(phi_out)
        end if
        if (write_kspectra) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
           allocate (phi2_vs_kxky(naky,nakx))
-          call fieldline_average (real(phi*conjg(phi)),phi2_vs_kxky)
+          call fieldline_average (real(phi_out*conjg(phi_out)),phi2_vs_kxky)
           call write_kspectra_nc (nout, phi2_vs_kxky)
           deallocate (phi2_vs_kxky)
        end if
@@ -385,6 +386,7 @@ contains
     if (proc0) call sync_nc
 
     deallocate (part_flux, mom_flux, heat_flux)
+    if(allocated(phi_out)) deallocate(phi_out)
 
     nout = nout + 1
 
