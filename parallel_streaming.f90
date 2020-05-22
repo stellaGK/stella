@@ -275,16 +275,17 @@ contains
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
     ! obtain <phi>
-       call gyro_average (phi, ivmu, g0)
     ! get d<phi>/dz, with z the parallel coordinate and store in g1
+       call gyro_average (phi, ivmu, g0)
        call get_dgdz (g0, ivmu, g1)
 
-    ! get variation in gyroaveraging
+    ! get variation in gyroaveraging and store in g2
        call gyro_average_j1 (phi, ivmu, g0)
-
        call get_dgdz (g0, ivmu, g2)
 
-       call gyro_average (phi_corr, ivmu, g3)
+    ! get variation in quasineutrality and store in g3
+       call gyro_average (phi_corr, ivmu, g0)
+       call get_dgdz (g0,  ivmu, g3)
 
        call get_dgdz (g(:,:,:,:,ivmu),  ivmu, g0)
 
