@@ -19,6 +19,7 @@ module multibox
   complex, dimension (:), allocatable :: g_buffer0
   complex, dimension (:), allocatable :: g_buffer1
   complex, dimension (:), allocatable :: fsa_x
+  real,    dimension (:), allocatable :: blending_mask
   
   complex, dimension (:,:), allocatable :: fft_xky
   real, dimension (:,:), allocatable :: fft_xy
@@ -32,7 +33,6 @@ module multibox
   real, dimension (:), allocatable :: fft_y_y
 
   logical :: mb_transforms_initialized = .false.
-  logical :: RK_step
   integer :: temp_ind = 0
   integer :: bs_fullgrid
   
@@ -45,6 +45,12 @@ module multibox
   integer :: boundary_size
   real :: g_exb
   logical :: smooth_ZFs
+  logical :: RK_step
+  integer :: blend_option_switch
+  integer, parameter:: blend_option_default = 0, &
+                       blend_option_linear  = 1, &
+                       blend_option_expin   = 2, &
+                       blend_option_expout  = 3 
   integer:: mb_zf_option_switch
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
@@ -79,13 +85,18 @@ contains
     integer :: g_buff_size
     integer :: phi_buff_size
 
+    type (text_option), dimension (3), parameter :: blend_opts = &
+      (/ text_option('default', blend_default), &
+         text_option('linear',  blend_linear) , &
+         text_option('exp_in',  blend_expin) , &
+         text_option('exp_out',  blend_expout)/)
     type (text_option), dimension (3), parameter :: mb_zf_opts = &
       (/ text_option('default', mb_zf_option_default), &
          text_option('no_ky0',  mb_zf_option_no_ky0) , &
          text_option('no_fsa',  mb_zf_option_no_fsa)/)
-    character(30) :: zf_option
+    character(30) :: zf_option, blend_option
 
-    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs, zf_option, RK_step
+    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs, zf_option, blend_option, RK_step
 
     if(runtype_option_switch /= runtype_multibox) return
 
@@ -94,12 +105,16 @@ contains
     smooth_ZFs = .false.
     RK_step = .false.
     zf_option = 'default'
+    blend_option = 'default'
     
     if (proc0) then
       in_file = input_unit_exist("multibox_parameters", exist)
       if (exist) read (in_file, nml=multibox_parameters)
 
       ierr = error_unit()
+      call get_option_value & 
+        (blend_option, blend_opts, blend_option_switch, & 
+         ierr, "blend_option in multibox_parameters")
       call get_option_value & 
         (zf_option, mb_zf_opts, mb_zf_option_switch, & 
          ierr, "zf_option in multibox_parameters")
@@ -109,6 +124,7 @@ contains
     call broadcast(g_exb)
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
+    call broadcast(blend_option_switch)
     call broadcast(RK_step)
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
@@ -121,11 +137,14 @@ contains
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
       allocate(fsa_x(nakx))
     endif
+    if (.not.allocated(blending_mask) allocate(blending_mask(boundary_size)))
 
     !gets the correct normalization in code units. Works for Miller. 
     !Not sure if its correct for stellarators/VMEC
     ! FLAG DSO - this should be moved to physics parameters
     g_exb = g_exb / geo_surf%rmaj
+
+    blending_mask = 0
 
 
     call scope(crossdomprocs)
