@@ -1291,7 +1291,7 @@ contains
 
              if(radial_variation) then
                call get_dchidx_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-               g0k = g0k*(spec(is)%smz)**2 & 
+               g0k =-g0k*(spec(is)%smz)**2 & 
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
                call get_dchidx(iz, ivmu, phi_corr(:,:,iz,it), apar(:,:,iz,it), g0a)
@@ -1300,7 +1300,7 @@ contains
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
                g1xy = g1xy*exb_nonlin_fac
-               bracket = bracket - rhostar*dpsidx*drhodpsi* &
+               bracket = bracket + rhostar*dpsidx*drhodpsi* &
                                    g0xy*g1xy*spread(x,1,ny)
              endif
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
@@ -1318,7 +1318,7 @@ contains
 
              if(radial_variation) then
                call get_dchidy_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-               g0k = g0k*(spec(is)%smz)**2 &
+               g0k =-g0k*(spec(is)%smz)**2 &
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
                call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar(:,:,iz,it), g0a)
@@ -1327,7 +1327,7 @@ contains
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
                g1xy = g1xy*exb_nonlin_fac
-               bracket = bracket + rhostar*dpsidx*drhodpsi* &
+               bracket = bracket - rhostar*dpsidx*drhodpsi* &
                                    g0xy*g1xy*spread(x,1,ny)
              endif
 
