@@ -57,6 +57,7 @@ contains
     use file_utils, only: init_file_utils
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: run_name, init_job_name
+    use file_utils, only: flush_output_file, error_unit
     use job_manage, only: checktime, time_message
     use physics_parameters, only: init_physics_parameters
     use physics_flags, only: init_physics_flags
@@ -96,7 +97,7 @@ contains
     logical :: exit, list, restarted
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
-    integer :: i, n
+    integer :: i, n, ierr
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
@@ -208,6 +209,9 @@ contains
     call init_stella_diagnostics (nstep)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
+
+    ierr = error_unit()
+    if (proc0) call flush_output_file (ierr)
 
     if (proc0) call time_message(.false.,time_init,' Initialization')
 

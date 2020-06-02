@@ -84,12 +84,15 @@ contains
     
     integer :: g_buff_size
     integer :: phi_buff_size
+    integer :: i
 
-    type (text_option), dimension (3), parameter :: blend_opts = &
-      (/ text_option('default', blend_default), &
-         text_option('linear',  blend_linear) , &
-         text_option('exp_in',  blend_expin) , &
-         text_option('exp_out',  blend_expout)/)
+    real :: db
+
+    type (text_option), dimension (4), parameter :: blend_opts = &
+      (/ text_option('default', blend_option_default), &
+         text_option('linear',  blend_option_linear) , &
+         text_option('exp_in',  blend_option_expin) , &
+         text_option('exp_out', blend_option_expout)/)
     type (text_option), dimension (3), parameter :: mb_zf_opts = &
       (/ text_option('default', mb_zf_option_default), &
          text_option('no_ky0',  mb_zf_option_no_ky0) , &
@@ -137,14 +140,32 @@ contains
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
       allocate(fsa_x(nakx))
     endif
-    if (.not.allocated(blending_mask) allocate(blending_mask(boundary_size)))
+    if (.not.allocated(blending_mask)) allocate(blending_mask(boundary_size)); blending_mask=0.
 
     !gets the correct normalization in code units. Works for Miller. 
     !Not sure if its correct for stellarators/VMEC
     ! FLAG DSO - this should be moved to physics parameters
     g_exb = g_exb / geo_surf%rmaj
 
-    blending_mask = 0
+    select case (blend_option_switch)
+    case (blend_option_default)
+      ! do nothing
+    case (blend_option_linear)
+      db = 1.0/boundary_size
+      do i = 1, boundary_size
+        blending_mask(i) = 1.0-i*db
+      enddo
+    case (blend_option_expin)
+      db = 3.0/boundary_size
+      do i = 1, boundary_size
+        blending_mask(i) = (1.0-exp(-(boundary_size-i)*db))/(1.0-exp(-3.0))
+      enddo
+    case (blend_option_expout)
+      db = 3.0/boundary_size
+      do i = 1, boundary_size
+        blending_mask(i) = 1.0-(1.0-exp(-i*db))/(1.0-exp(-3.0))
+      enddo
+    end select
 
 
     call scope(crossdomprocs)
@@ -211,7 +232,7 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 
-    if(mod(temp_ind,1000)==0 .and. proc0) then
+    if(mod(temp_ind,1)==0 .and. proc0) then
      ! call get_unused_unit(temp_unit)
       temp_unit=3023+job
       afacx = real(nx)/real(nakx)
@@ -295,8 +316,10 @@ contains
             call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iky=1,naky
-                fft_xky(iky,ix)        = g_buffer0(num)
-                fft_xky(iky,ix+offset) = g_buffer1(num)
+                fft_xky(iky,ix) = fft_xky(iky,ix)*blending_mask(boundary_size-ix+1) &  
+                                  + (1.0-blending_mask(boundary_size-ix+1))*g_buffer0(num)
+                fft_xky(iky,ix+offset) = fft_xky(iky,ix+offset)*blending_mask(ix) &
+                                  + (1.0-blending_mask(ix))*g_buffer1(num)
                 num=num+1
               enddo
             enddo
