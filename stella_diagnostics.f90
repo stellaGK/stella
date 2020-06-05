@@ -468,7 +468,7 @@ contains
 
     flx_norm = jacob(1,:)*delzed
 
-    IF (flux_norm == .TRUE.) THEN
+    IF (flux_norm) THEN
        ! Flux definition with an extra factor 1/<\nabla\rho> in front.
        flx_norm = flx_norm/SUM(flx_norm*grho(1,:))
     ELSE

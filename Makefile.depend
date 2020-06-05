@@ -91,6 +91,7 @@ dissipation.o: \
 dist_fn.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 extended_zgrid.o \
 	 file_utils.o \
 	 gyro_averages.o \
 	 kt_grids.o \
@@ -283,13 +284,16 @@ redistribute.o: \
 	 job_manage.o \
 	 mp.o 
 response_matrix.o: \
+	 common_types.o \
 	 dist_fn.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
+	 job_manage.o \
 	 kt_grids.o \
 	 linear_solve.o \
+	 mp.o \
 	 parallel_streaming.o \
 	 run_parameters.o \
 	 species.o \
