@@ -379,6 +379,17 @@ contains
 
        if (.not.has_electron_species(spec) .and. &
             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if(radial_variation) then
+            do it = 1, ntubes
+              do ikx = 1, nakx
+               ! DSO - this is sort of hack in order to avoid extra communications
+               !       However, get_radial_correction should be called immediately 
+               !       after advance_fields, so it should be ok...
+                save1(nakx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                save2(nakx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+              enddo
+            enddo
+          endif
           if (zonal_mode(1)) then
              if (dist == 'h') then
                 do ikx = 1, nakx
@@ -498,7 +509,7 @@ contains
        end if
 
 
-         if (.not.has_electron_species(spec) .and. &
+       if (.not.has_electron_species(spec) .and. &
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
           if(radial_variation) then
             do it = 1, ntubes
