@@ -188,6 +188,8 @@ contains
           end if
        end if
 
+
+
        deallocate (g0)
 
     end if
@@ -386,8 +388,8 @@ contains
                ! DSO - this is sort of hack in order to avoid extra communications
                !       However, get_radial_correction should be called immediately 
                !       after advance_fields, so it should be ok...
-                save1(nakx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-                save2(nakx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+                save1(ikx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                save2(ikx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
               enddo
             enddo
           endif
@@ -518,8 +520,8 @@ contains
                ! DSO - this is sort of hack in order to avoid extra communications
                !       However, get_radial_correction should be called immediately 
                !       after advance_fields, so it should be ok...
-                save1(nakx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-                save2(nakx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+                save1(ikx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                save2(ikx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
               enddo
             enddo
           endif
@@ -766,7 +768,7 @@ contains
                       phi(1,ikx,:,it) = phi(1,ikx,:,it) &
                                       + tmp*gamtot3(ikx,:) &
                                       + dgamtot3dr(ikx,:)*save1(ikx,it) &
-                                      + gamtot3(ikx,:)*save2(ikx,it) 
+                                      + gamtot3(ikx,:)*save2(ikx,it)
                    end do
                 end do
              else
