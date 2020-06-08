@@ -326,7 +326,8 @@ contains
     use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: beta
-    use stella_geometry, only: dl_over_b
+    use physics_flags, only: radial_variation
+    use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
@@ -392,8 +393,8 @@ contains
           endif
           if (zonal_mode(1)) then
              if (dist == 'h') then
-                do ikx = 1, nakx
-                   do it = 1, ntubes
+                do it = 1, ntubes
+                  do ikx = 1, nakx
                       tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
                       phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
                    end do
