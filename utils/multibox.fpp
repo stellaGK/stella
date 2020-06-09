@@ -232,7 +232,7 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 
-    if(mod(temp_ind,1)==0 .and. proc0) then
+    if(mod(temp_ind,1000)==0 .and. proc0) then
      ! call get_unused_unit(temp_unit)
       temp_unit=3023+job
       afacx = real(nx)/real(nakx)
