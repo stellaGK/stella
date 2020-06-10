@@ -68,6 +68,7 @@ common_types.o:
 constants.o: 
 convert.o: 
 dissipation.o: \
+	 constants.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
@@ -83,6 +84,7 @@ dissipation.o: \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
+	 spfunc.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
