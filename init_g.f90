@@ -363,7 +363,7 @@ contains
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use stella_geometry, only: dl_over_b
-    use mp, only: proc0, broadcast, min_allreduce
+    use mp, only: proc0, broadcast, max_allreduce
     use mp, only: scope, crossdomprocs, subprocs
     use file_utils, only: runtype_option_switch, runtype_multibox
     use ran
@@ -392,7 +392,7 @@ contains
           phi(1,1,:,:) = 0.0
           if(runtype_option_switch == runtype_multibox) then
            call scope(crossdomprocs)
-           call min_allreduce (kmin)
+           call max_allreduce (kmin)
            call scope(subprocs)
          end if
        end if
@@ -405,7 +405,7 @@ contains
                    a = ranf()-0.5
                    b = ranf()-0.5
                    ! do not populate high k modes with large amplitudes
-                   if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz,it) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,ia,iz)
+                   if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky,ikx,ia,iz) .ge. kmin)) phi(iky,ikx,iz,it) =cmplx(a,b)*kmin/kperp2(iky,ikx,ia,iz)
                 end do
                 if (chop_side) then
                    if (left) then

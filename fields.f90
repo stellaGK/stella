@@ -224,7 +224,7 @@ contains
   subroutine allocate_arrays
 
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old, phi_corr
+    use fields_arrays, only: phi_old, phi_corr, apar_corr
     use zgrid, only: nzgrid, ntubes
     use physics_flags, only: radial_variation
     use kt_grids, only: naky, nakx
@@ -246,6 +246,10 @@ contains
     if (.not.allocated(phi_corr) .and. radial_variation) then
        allocate (phi_corr(naky,nakx,-nzgrid:nzgrid,ntubes))
        phi_corr = 0.
+    end if
+    if (.not.allocated(apar_corr) .and. radial_variation) then
+       allocate (apar_corr(naky,nakx,-nzgrid:nzgrid,ntubes))
+       apar_corr = 0.
     end if
 
   end subroutine allocate_arrays
@@ -788,7 +792,7 @@ contains
   subroutine finish_fields
 
     use fields_arrays, only: phi, phi_old, phi_corr
-    use fields_arrays, only: apar
+    use fields_arrays, only: apar, apar_corr
 
     implicit none
 
@@ -796,6 +800,7 @@ contains
     if (allocated(phi_old)) deallocate (phi_old)
     if (allocated(phi_corr)) deallocate (phi_corr)
     if (allocated(apar)) deallocate (apar)
+    if (allocated(apar_corr)) deallocate (apar_corr)
     if (allocated(gamtot)) deallocate (gamtot)
     if (allocated(gamtot3)) deallocate (gamtot3)
     if (allocated(dgamtotdr)) deallocate (dgamtotdr)

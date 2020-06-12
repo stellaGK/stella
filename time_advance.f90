@@ -1183,7 +1183,7 @@ contains
     use stella_layouts, only: vmu_lo, imu_idx, is_idx
     use species, only: spec
     use job_manage, only: time_message
-    use fields_arrays, only: phi, phi_corr, apar
+    use fields_arrays, only: phi, phi_corr, apar, apar_corr
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
@@ -1294,7 +1294,7 @@ contains
                g0k =-g0k*(spec(is)%smz)**2 & 
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-               call get_dchidx(iz, ivmu, phi_corr(:,:,iz,it), apar(:,:,iz,it), g0a)
+               call get_dchidx(iz, ivmu, phi_corr(:,:,iz,it), apar_corr(:,:,iz,it), g0a)
                g0k = g0k + g0a
                call swap_kxky (g0k, g0k_swap)
                call transform_ky2y (g0k_swap, g0kxy)
@@ -1321,7 +1321,7 @@ contains
                g0k =-g0k*(spec(is)%smz)**2 &
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-               call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar(:,:,iz,it), g0a)
+               call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar_corr(:,:,iz,it), g0a)
                g0k = g0k + g0a
                call swap_kxky (g0k, g0k_swap)
                call transform_ky2y (g0k_swap, g0kxy)
@@ -1620,7 +1620,7 @@ contains
 
     use mp, only: mp_abort
     use job_manage, only: time_message
-    use fields_arrays, only: phi, phi_corr, apar
+    use fields_arrays, only: phi, phi_corr, apar, apar_corr
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
@@ -1709,7 +1709,7 @@ contains
                 * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
             !wstar/quasineutrality variation
-            call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar(:,:,iz,it), g0a)
+            call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar_corr(:,:,iz,it), g0a)
             g0k = g0k + g0a*wstar(ia,iz,ivmu)
 
             !radial variation in ExB nonlinearity is handled in advance_ExB_nonlinearity
