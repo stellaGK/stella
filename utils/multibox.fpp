@@ -236,7 +236,7 @@ contains
      ! call get_unused_unit(temp_unit)
       temp_unit=3023+job
       afacx = real(nx)/real(nakx)
-      afacy = real(ny)/real(naky)
+      afacy = real(ny)/real(2*naky-1)
       call transform_kx2x(phi(:,:,0,1),fft_xky)  
       call transform_ky2y(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
