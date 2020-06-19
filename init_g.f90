@@ -405,7 +405,11 @@ contains
                    a = ranf()-0.5
                    b = ranf()-0.5
                    ! do not populate high k modes with large amplitudes
-                   if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky,ikx,ia,iz) .ge. kmin)) phi(iky,ikx,iz,it) =cmplx(a,b)*kmin/kperp2(iky,ikx,ia,iz)
+                   if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky,ikx,ia,iz) .ge. kmin))  then
+                     phi(iky,ikx,iz,it) =cmplx(a,b)*kmin/kperp2(iky,ikx,ia,iz)
+                   else
+                     phi(iky,ikx,iz,it) = 0.0
+                   endif
                 end do
                 if (chop_side) then
                    if (left) then
