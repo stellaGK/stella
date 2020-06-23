@@ -201,7 +201,7 @@ contains
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: fill_zed_ghost_zones
-    use kt_grids, only: naky
+    use kt_grids, only: naky, zonal_mode
 
     implicit none
 
@@ -223,7 +223,7 @@ contains
                    ! now get dg/dz
                    call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                         g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it,ivmu), &
-                        delzed(0), stream_sign(iv), gleft, gright, &
+                        delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
                         dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it,ivmu))
                 end do
              end do
@@ -243,7 +243,7 @@ contains
 !     use extended_zgrid, only: iz_low, iz_up
 !     use extended_zgrid, only: ikxmod
 !     use extended_zgrid, only: fill_zed_ghost_zones
-!     use kt_grids, only: naky
+!     use kt_grids, only: naky, zonal_mode
 
 !     implicit none
 
@@ -264,7 +264,7 @@ contains
 !                 ! now get dg/dz
 !                 call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
 !                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
-!                      delzed(0), stream_sign(iv), gleft, gright, .false., &
+!                      delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
 !                      dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
 !              end do
 !           end do

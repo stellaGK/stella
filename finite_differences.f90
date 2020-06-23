@@ -186,7 +186,7 @@ contains
 
   end subroutine third_order_upwind_real
 
-  subroutine third_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+  subroutine third_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
     implicit none
     
@@ -194,6 +194,7 @@ contains
     complex, dimension (llim:), intent (in) :: f
     real, intent (in) :: del
     integer, intent (in) :: sgn
+    logical, intent (in) :: periodic
     complex, dimension (:), intent (in) :: fl, fr
     complex, dimension (llim:), intent (out) :: df
 
@@ -203,7 +204,7 @@ contains
     ! if sgn > 0, then stream speed is negative
     ! so sweep from more positive to more negative zed
     if (sgn > 0) then
-       if (iseg == nseg) then
+       if (iseg == nseg .and..not.periodic) then
           i = ulim
           df(i) = -f(i)/del
           i = ulim-1
@@ -214,7 +215,7 @@ contains
           i = ulim-1
           df(i) = -(2.*f(i-1)+3.*f(i)-6.*f(i+1)+fr(1))/(6.*del)
        end if
-       if (iseg == 1) then
+       if (iseg == 1.and..not.periodic) then
           i = llim
           df(i) = (f(i+1)-f(i))/del
        else
@@ -224,7 +225,7 @@ contains
        istart = ulim
        iend = llim
     else
-       if (iseg == 1) then
+       if (iseg == 1.and..not.periodic) then
           i = llim
           df(i) = f(i)/del
           i = llim+1
@@ -235,7 +236,7 @@ contains
           i = llim+1
           df(i) = (2.*f(i+1)+3*f(i)-6.*f(i-1)+fl(2))/(6.*del)
        end if
-       if (iseg == nseg) then
+       if (iseg == nseg.and..not.periodic) then
           i = ulim
           df(i) = (f(i)-f(i-1))/del
        else
@@ -253,7 +254,7 @@ contains
 
   end subroutine third_order_upwind_zed
 
-  subroutine first_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, df)
+  subroutine first_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
     implicit none
     
@@ -261,6 +262,7 @@ contains
     complex, dimension (llim:), intent (in) :: f
     real, intent (in) :: del
     integer, intent (in) :: sgn
+    logical, intent (in) :: periodic
     complex, dimension (:), intent (in) :: fl, fr
     complex, dimension (llim:), intent (out) :: df
 
@@ -270,7 +272,7 @@ contains
     ! if sgn > 0, then stream speed is negative
     ! so sweep from more positive to more negative zed
     if (sgn > 0) then
-       if (iseg == nseg) then
+       if (iseg == nseg.and..not.periodic) then
           i = ulim
           df(i) = -f(i)/del
           i = ulim-1
@@ -286,7 +288,7 @@ contains
        istart = ulim
        iend = llim
     else
-       if (iseg == 1) then
+       if (iseg == 1.and..not.periodic) then
           i = llim
           df(i) = f(i)/del
           i = llim+1
@@ -511,14 +513,14 @@ contains
        ! if sgn > 0, then stream speed is negative
        ! so sweep from more positive to more negative zed
        if (sgn > 0) then
-          if (iseg == nseg) then
+          if (iseg == nseg.and..not.periodic) then
              i = ulim
              df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i))/del
           else
              i = ulim
              df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i)+0.5*(1.+upwnd)*fr(1))/del
           end if
-          if (iseg == 1) then
+          if (iseg == 1.and..not.periodic) then
              i = llim
              ! at left boundary, must upwind fully as no info for f(i-1)
              df(i) = (f(i+1)-f(i))/del
@@ -529,14 +531,14 @@ contains
           istart = ulim
           iend = llim
        else
-          if (iseg == 1) then
+          if (iseg == 1.and..not.periodic) then
              i = llim
              df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i))/del
           else
              i = llim
              df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i)-0.5*(1.+upwnd)*fl(2))/del
           end if
-          if (iseg == nseg) then
+          if (iseg == nseg.and..not.periodic) then
              i = ulim
              ! if at rightmost zed, have no info for f(i+1) so must fully upwind
              df(i) = (f(i)-f(i-1))/del
