@@ -376,11 +376,7 @@ contains
              do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                 call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
              end do
-             do ikx = 1, nakx
-                do iky = 1, naky
-                   call integrate_species (gyro_g(iky,ikx,:), iz, spec%z*spec%dens, phi(iky,ikx,iz,it))
-                end do
-             end do
+             call integrate_species (gyro_g, iz, spec%z*spec%dens, phi(:,:,iz,it))
           end do
        end do
        deallocate (gyro_g)
