@@ -219,7 +219,7 @@ contains
     use constants, only: zi
     use redistribute, only: scatter
     use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old, phi_corr
+    use fields_arrays, only: phi_old, phi_corr_QN
     use dist_fn_arrays, only: gvmu, gnew
 !    use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
@@ -258,7 +258,6 @@ contains
     complex, dimension (:,:), allocatable :: omega_avg
 
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
-    complex, dimension (:,:), allocatable :: g0k, g0x
     complex, dimension (:,:,:,:), allocatable :: phi_out
 
     integer :: iz,it
@@ -269,22 +268,7 @@ contains
       allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
       phi_out = phi
       if(radial_variation) then
-        allocate (g0k(naky,nakx))
-        allocate (g0x(naky,nx))
-        dpsidx = 1.0/dxdpsi
-        do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
-
-            g0k = phi_corr(:,:,iz,it)
-
-            call transform_kx2x_solo (g0k,g0x)
-            g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
-            call transform_x2kx_solo (g0x,g0k)
-
-            phi_out(:,:,iz,it) = phi_out(:,:,iz,it) + g0k
-          enddo
-        enddo
-        deallocate(g0x,g0k)
+        phi_out = phi_out + phi_corr_QN
       endif
     endif
 

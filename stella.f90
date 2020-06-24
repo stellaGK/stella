@@ -79,7 +79,7 @@ contains
     use stella_time, only: init_tstart
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
-    use fields_arrays, only: phi, apar, phi_corr
+    use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gnew
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
@@ -202,7 +202,7 @@ contains
        ! get initial field from initial distribution function
        call advance_fields (gnew, phi, apar, dist='gbar')
        if(radial_variation) &
-         call get_radial_correction(gnew,phi_corr,dist='gbar')
+         call get_radial_correction(gnew,phi,dist='gbar')
     end if
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'

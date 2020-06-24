@@ -906,7 +906,7 @@ contains
   subroutine solve_gke (gin, rhs_ky, restart_time_step)
 
     use job_manage, only: time_message
-    use fields_arrays, only: phi, apar, phi_corr
+    use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
     use stella_transforms, only: transform_y2ky
     use redistribute, only: gather, scatter
@@ -936,7 +936,7 @@ contains
     rhs_ky = 0.
 
     if (full_flux_surface) then
-       allocate (rhs_y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+       allocate (rhs_y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        rhs_y = 0.
        rhs => rhs_y
     else
@@ -947,7 +947,7 @@ contains
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
 
-    if(radial_variation) call get_radial_correction(gin, phi_corr, dist='gbar')
+    if(radial_variation) call get_radial_correction(gin, phi, dist='gbar')
 
     ! default is to continue with same time step size
     ! if estimated CFL condition for nonlinear terms is violated
@@ -1183,12 +1183,15 @@ contains
     use stella_layouts, only: vmu_lo, imu_idx, is_idx
     use species, only: spec
     use job_manage, only: time_message
-    use fields_arrays, only: phi, phi_corr, apar, apar_corr
+    use gyro_averages, only: gyro_average
+    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi_corr_QN,   phi_corr_GA
+    use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
     use stella_time, only: cfl_dt, code_dt, code_dt_max
-    use run_parameters, only: cfl_cushion, delt_adjust
+    use run_parameters, only: cfl_cushion, delt_adjust, fphi
     use physics_parameters, only: rhostar
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac
@@ -1264,6 +1267,9 @@ contains
        is = is_idx(vmu_lo,ivmu)
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
+            !
+            !quasineutrality/gyroaveraging 
+            !
 
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
              call swap_kxky (g0k, g0k_swap)
@@ -1290,12 +1296,9 @@ contains
              bracket = g0xy*g1xy
 
              if(radial_variation) then
-               call get_dchidx_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-               g0k =-g0k*(spec(is)%smz)**2 & 
-                     * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                     * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-               call get_dchidx(iz, ivmu, phi_corr(:,:,iz,it), apar_corr(:,:,iz,it), g0a)
-               g0k = g0k + g0a
+               call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
+               g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
+               call get_dgdx(g0a,g0k)
                call swap_kxky (g0k, g0k_swap)
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
@@ -1317,12 +1320,9 @@ contains
              bracket = bracket - g0xy*g1xy
 
              if(radial_variation) then
-               call get_dchidy_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-               g0k =-g0k*(spec(is)%smz)**2 &
-                     * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                     * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-               call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar_corr(:,:,iz,it), g0a)
-               g0k = g0k + g0a
+               call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
+               g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
+               call get_dgdy(g0a,g0k)
                call swap_kxky (g0k, g0k_swap)
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
@@ -1620,7 +1620,9 @@ contains
 
     use mp, only: mp_abort
     use job_manage, only: time_message
-    use fields_arrays, only: phi, phi_corr, apar, apar_corr
+    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi_corr_QN,  phi_corr_GA
+    use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
@@ -1629,6 +1631,7 @@ contains
     use species, only: spec
     use kt_grids, only: nalpha, nakx, naky, nx, x
     use gyro_averages, only: gyro_average, gyro_average_j1
+    use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
     use physics_flags, only: include_parallel_streaming, include_mirror
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -1677,7 +1680,7 @@ contains
       call add_mirror_radial_variation(g,g_corr)
     endif
     if (include_parallel_streaming) then
-      call add_parallel_streaming_radial_variation(g,g_corr)
+      call add_parallel_streaming_radial_variation(g,g_corr,gout)
     endif
 
 
@@ -1702,19 +1705,9 @@ contains
             call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0a)
             g0k = g0k + g0a*wstarp(ia,iz,ivmu)
 
-            !wstar/gyroaverage variation
-            call get_dchidy_j1 (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0a)
-            g0k = g0k - g0a*wstar(ia,iz,ivmu)*(spec(is)%smz)**2 &
-                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-
-            !wstar/quasineutrality variation
-            call get_dchidy (iz, ivmu, phi_corr(:,:,iz,it), apar_corr(:,:,iz,it), g0a)
-            g0k = g0k + g0a*wstar(ia,iz,ivmu)
-
             !radial variation in ExB nonlinearity is handled in advance_ExB_nonlinearity
 
-            !wdrift - g
+            !wdrift(x/y) - g
 
             call get_dgdx(g(:,:,iz,it,ivmu),g0a)
             g0k = g0k + g0a*wdriftpx_g(ia,iz,ivmu)
@@ -1724,44 +1717,21 @@ contains
 
             !wdrift - phi
             call get_dgdx(phi(:,:,iz,it),g1k)
-            !wdrift variation
+            !wdriftx variation
             call gyro_average (g1k,iz,ivmu,g0a ) 
             g0k = g0k + g0a*wdriftpx_phi(ia,iz,ivmu) &
                       - g0a*wdriftx_phi(ia,iz,ivmu) &
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
                         +2.*mu(imu)*dBdrho(iz))
 
-            !gyroaverage variation
-            call gyro_average_j1 (g1k,iz,ivmu,g0a) 
-            g0k = g0k - g0a*wdriftx_phi(ia,iz,ivmu)*(spec(is)%smz)**2 &
-                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-
-            !quasineutrality variation
-            call get_dgdx(phi_corr(:,:,iz,it),g1k)
-            call gyro_average (g1k,iz,ivmu,g0a ) 
-            g0k = g0k + g0a*wdriftx_phi(ia,iz,ivmu) 
-
-
 
             call get_dgdy(phi(:,:,iz,it),g1k)
-            !wdrift variation
+            !wdrifty variation
             call gyro_average (g1k,iz,ivmu,g0a) 
             g0k = g0k + g0a*wdriftpy_phi(ia,iz,ivmu) &
                       - g0a*wdrifty_phi(ia,iz,ivmu) &
                       *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
                         +2.*mu(imu)*dBdrho(iz))
-
-            !gyroaverage variation
-            call gyro_average_j1 (g1k,iz,ivmu,g0a) 
-            g0k = g0k - g0a*wdrifty_phi(ia,iz,ivmu)*(spec(is)%smz)**2 & 
-                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-
-            !quasineutrality variation
-            call get_dgdy(phi_corr(:,:,iz,it),g1k)
-            call gyro_average (g1k,iz,ivmu,g0a ) 
-            g0k = g0k + g0a*wdrifty_phi(ia,iz,ivmu) 
 
             !mirror term and/or parallel streaming
             if(include_mirror.or.include_parallel_streaming) then
@@ -1770,13 +1740,28 @@ contains
 
             !inverse and forward transforms
             call transform_kx2x_solo (g0k, g0x)
-
             g1x =rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
-
             call transform_x2kx_solo (g1x, g0k)
+
+
+            !
+            !quasineutrality/gyroaveraging 
+            !
+            call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
+            g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
+
+            !wstar - gyroaverage/quasineutrality variation
+            call get_dgdy(g0a,g1k)
+            g0k = g0k + g1k*wstar(ia,iz,ivmu)
+
+            !wdrifty gyroaverage/quasineutrality variation
+            g0k = g0k + g1k*wdrifty_phi(ia,iz,ivmu)
+
+            !wdriftx gyroaverage/quasineutrality variation
+            call get_dgdx(g0a,g1k)
+            g0k = g0k + g1k*wdrifty_phi(ia,iz,ivmu)
           
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
-
           end do
        end do
     end do

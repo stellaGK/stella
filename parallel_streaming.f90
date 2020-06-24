@@ -102,7 +102,7 @@ contains
                 *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
         !positive (one from RHS, one from J_0' = -J_1)
         stream_rad_var3(ia,:,ivmu) = &
-                 code_dt*spec(is)%stm*vpa(iv)*gradpar &
+                -code_dt*spec(is)%stm*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) &
                 *(spec(is)%smz)**2*vperp2(ia,:,imu)/bmag(ia,:)**2
       enddo
@@ -238,7 +238,7 @@ contains
 
   end subroutine advance_parallel_streaming_explicit
 
-  subroutine add_parallel_streaming_radial_variation (g, gout)
+  subroutine add_parallel_streaming_radial_variation (g, gout, rhs)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -251,7 +251,7 @@ contains
     use species, only: spec
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use gyro_averages, only: gyro_average, gyro_average_j1
-    use fields_arrays, only: phi, phi_corr
+    use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
     use run_parameters, only: driftkinetic_implicit
     use physics_parameters, only: rhostar
 
@@ -259,6 +259,10 @@ contains
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    !the next input/output is for quasineutrality and gyroaveraging corrections 
+    !that go directly in the RHS (since they don't require further FFTs)
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: rhs
 
     integer :: ivmu, iv, imu, is, it, ia, iz
 
@@ -281,11 +285,10 @@ contains
        call get_dgdz_variable (g0, ivmu, g1)
 
     ! get variation in gyroaveraging and store in g2
-       call gyro_average_j1 (phi, ivmu, g0)
-       call get_dgdz_variable (g0, ivmu, g2)
+       call get_dgdz_variable (phi_corr_GA(:,:,:,:,ivmu), ivmu, g2)
 
     ! get variation in quasineutrality and store in g3
-       call gyro_average (phi_corr, ivmu, g0)
+       call gyro_average (phi_corr_QN, ivmu, g0)
        call get_dgdz_variable (g0,  ivmu, g3)
 
        call get_dgdz_variable (g(:,:,:,:,ivmu),  ivmu, g0)
@@ -305,15 +308,16 @@ contains
     !!#2 - variation in F_s/T_s
            g0k = g0k + g1(:,:,iz,it)*stream_rad_var2(ia,iz,ivmu)
 
-    !!#3 - variation in the gyroaveraging of phi
-           g0k = g0k + g2(:,:,iz,it)*stream_rad_var3(ia,iz,ivmu)*kperp2(:,:,ia,iz) &
-               * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
-
-    !!#4 - variation in quasineutralityy
-           g0k = g0k + g3(:,:,iz,it)*spec(is)%zt &
-               * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)*stream(iz,iv,is)
-          
            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+
+
+
+    !!#3 - variation in the gyroaveraging and quasineutrality of phi
+           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu) &
+                 *(g2(:,:,iz,it) + g3(:,:,iz,it))
+
+           rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
+
          enddo
        enddo
     end do

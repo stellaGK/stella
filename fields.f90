@@ -223,9 +223,11 @@ contains
 
   subroutine allocate_arrays
 
-    use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_old, phi_corr, apar_corr
+    use fields_arrays, only: phi, apar, phi_old
+    use fields_arrays, only: phi_corr_QN, phi_corr_GA
+    use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use zgrid, only: nzgrid, ntubes
+    use stella_layouts, only: vmu_lo
     use physics_flags, only: radial_variation
     use kt_grids, only: naky, nakx
 
@@ -243,13 +245,23 @@ contains
        allocate (phi_old(naky,nakx,-nzgrid:nzgrid,ntubes))
        phi_old = 0.
     end if
-    if (.not.allocated(phi_corr) .and. radial_variation) then
-       allocate (phi_corr(naky,nakx,-nzgrid:nzgrid,ntubes))
-       phi_corr = 0.
+    if (.not.allocated(phi_corr_QN) .and. radial_variation) then
+       allocate (phi_corr_QN(naky,nakx,-nzgrid:nzgrid,ntubes))
+       phi_corr_QN = 0.
     end if
-    if (.not.allocated(apar_corr) .and. radial_variation) then
-       allocate (apar_corr(naky,nakx,-nzgrid:nzgrid,ntubes))
-       apar_corr = 0.
+    if (.not.allocated(phi_corr_GA) .and. radial_variation) then
+       allocate (phi_corr_GA(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       phi_corr_GA = 0.
+    end if
+    if (.not.allocated(apar_corr_QN) .and. radial_variation) then
+       !allocate (apar_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (apar_corr_QN(1,1,1,1))
+       apar_corr_QN = 0.
+    end if
+    if (.not.allocated(apar_corr_GA) .and. radial_variation) then
+       !allocate (apar_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (apar_corr_GA(1,1,1,1,1))
+       apar_corr_GA = 0.
     end if
 
   end subroutine allocate_arrays
@@ -488,7 +500,7 @@ contains
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
-       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        do it = 1, ntubes
          do iz = -nzgrid, nzgrid
            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -695,41 +707,52 @@ contains
   end subroutine get_fields_by_spec
 
 
-  subroutine get_radial_correction (g, phi, dist)
+  ! the following routine gets the correction in phi both from gyroaveraging and quasineutrality
+  ! the output, phi, 
+  subroutine get_radial_correction (g, phi_in, dist)
 
     use mp, only: proc0, mp_abort
     use stella_layouts, only: vmu_lo
-    use gyro_averages, only: gyro_average
+    use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: fphi, fapar
-    use stella_geometry, only: dl_over_b, bmag, dBdrho
+    use physics_parameters, only: rhostar
+    use stella_geometry, only: dl_over_b, bmag, dBdrho, dxdpsi,drhodpsi
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
-    use kt_grids, only: nakx, naky
+    use kt_grids, only: nakx, nx, naky, x
     use kt_grids, only: zonal_mode
     use species, only: spec, has_electron_species
+    use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
 
     implicit none
     
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi_in
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi
     character (*), intent (in) :: dist
 
     integer :: ikx, ivmu, iz, it, ia, is, imu
     complex :: tmp
+    complex, dimension (:,:,:,:), allocatable :: phi
     complex, dimension (:,:,:), allocatable :: gyro_g
-    complex, dimension (:,:), allocatable :: g0k
+    complex, dimension (:,:), allocatable :: g0k, g0x
+
+    real dpsidx
 
     ia = 1
+    dpsidx = 1.0/dxdpsi
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
-       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        allocate (g0k(naky,nakx))
+       allocate (g0x(naky,nx))
+       allocate (phi(naky,nakx,-nzgrid:nzgrid,ntubes))
        do it = 1, ntubes
          do iz = -nzgrid, nzgrid
            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -782,7 +805,35 @@ contains
           end if
        end if
 
-       deallocate (g0k)
+       !collect quasineutrality corrections in wavenumber space
+       do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+           g0k = phi(:,:,iz,it)
+           call transform_kx2x_solo (g0k,g0x)
+           g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+           call transform_x2kx_solo (g0x,phi_corr_QN(:,:,iz,it))
+         enddo
+       enddo
+
+       deallocate(phi)
+
+       !collect gyroaveraging corrections in wavenumber space
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         do it = 1, ntubes
+           do iz = -nzgrid, nzgrid
+             call gyro_average_j1 (phi_in(:,:,iz,it), iz, ivmu, g0k)
+             g0k = -g0k*(spec(is)%smz)**2 & 
+                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                 * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+
+             call transform_kx2x_solo (g0k,g0x)
+             g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+             call transform_x2kx_solo (g0x,phi_corr_GA(:,:,iz,it,ivmu))
+           enddo
+         enddo
+       enddo
+
+       deallocate(g0x,g0k)
        deallocate (gyro_g)
 
     end if
@@ -791,16 +842,19 @@ contains
 
   subroutine finish_fields
 
-    use fields_arrays, only: phi, phi_old, phi_corr
-    use fields_arrays, only: apar, apar_corr
+    use fields_arrays, only: phi, phi_old
+    use fields_arrays, only: phi_corr_QN, phi_corr_GA
+    use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
 
     implicit none
 
     if (allocated(phi)) deallocate (phi)
     if (allocated(phi_old)) deallocate (phi_old)
-    if (allocated(phi_corr)) deallocate (phi_corr)
+    if (allocated(phi_corr_QN)) deallocate (phi_corr_QN)
+    if (allocated(phi_corr_GA)) deallocate (phi_corr_GA)
     if (allocated(apar)) deallocate (apar)
-    if (allocated(apar_corr)) deallocate (apar_corr)
+    if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
+    if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
     if (allocated(gamtot)) deallocate (gamtot)
     if (allocated(gamtot3)) deallocate (gamtot3)
     if (allocated(dgamtotdr)) deallocate (dgamtotdr)
