@@ -511,7 +511,7 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: stream, stream_rad_var1
-    use parallel_streaming, only: stream_rad_var2, stream_rad_var3
+    use parallel_streaming, only: stream_rad_var2
     use mirror_terms, only: mirror
     use file_utils, only: runtype_option_switch, runtype_multibox
 
@@ -562,12 +562,6 @@ contains
       cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
-      val1 = max(maxval(abs(stream_rad_var3)),zero)
-      val2 = max(maxval(abs(kperp2*dkperp2dr)),zero)
-
-      cfl_dt_stream = abs(code_dt)*delzed(0)/max(val1*val2,zero)
-      cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
-      cfl_dt = min(cfl_dt,cfl_dt_stream)
     end if
 
     ! get the local max value of wdrifty on each processor
@@ -1759,7 +1753,7 @@ contains
 
             !wdriftx gyroaverage/quasineutrality variation
             call get_dgdx(g0a,g1k)
-            g0k = g0k + g1k*wdrifty_phi(ia,iz,ivmu)
+            g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
           
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
           end do

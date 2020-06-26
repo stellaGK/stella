@@ -12,7 +12,6 @@ module parallel_streaming
   public :: time_parallel_streaming
   public :: stream_rad_var1
   public :: stream_rad_var2
-  public :: stream_rad_var3
 
   private
 
@@ -27,7 +26,6 @@ module parallel_streaming
   real, dimension (:,:,:), allocatable :: stream, stream_c
   real, dimension (:,:,:), allocatable :: stream_rad_var1
   real, dimension (:,:,:), allocatable :: stream_rad_var2
-  real, dimension (:,:,:), allocatable :: stream_rad_var3
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
   real, dimension (:,:), allocatable :: stream_tri_b1, stream_tri_b2
   real, dimension (:,:), allocatable :: stream_tri_c1, stream_tri_c2
@@ -85,9 +83,6 @@ contains
       if(.not.allocated(stream_rad_var2)) then 
         allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       endif
-      if(.not.allocated(stream_rad_var3)) then 
-        allocate(stream_rad_var3(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      endif
       ia=1
       stream_rad_var1 = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
             * spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
@@ -100,11 +95,6 @@ contains
                 -code_dt*spec(is)%stm*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) & 
                 *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
-        !positive (one from RHS, one from J_0' = -J_1)
-        stream_rad_var3(ia,:,ivmu) = &
-                -code_dt*spec(is)%stm*vpa(iv)*gradpar &
-                *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) &
-                *(spec(is)%smz)**2*vperp2(ia,:,imu)/bmag(ia,:)**2
       enddo
       deallocate (energy)
     endif
@@ -1051,7 +1041,6 @@ contains
     if (allocated(gradpar_c)) deallocate (gradpar_c)
     if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
     if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
-    if (allocated(stream_rad_var3)) deallocate (stream_rad_var3)
 
     if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 

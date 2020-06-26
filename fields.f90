@@ -747,12 +747,12 @@ contains
     ia = 1
     dpsidx = 1.0/dxdpsi
 
-    phi = 0.
     if (fphi > epsilon(0.0)) then
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        allocate (g0k(naky,nakx))
        allocate (g0x(naky,nx))
        allocate (phi(naky,nakx,-nzgrid:nzgrid,ntubes))
+       phi = 0.
        do it = 1, ntubes
          do iz = -nzgrid, nzgrid
            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
