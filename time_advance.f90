@@ -913,6 +913,7 @@ contains
     use kt_grids, only: nakx, ny
     use run_parameters, only: stream_implicit, mirror_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
+    use dissipation, only: include_krook_operator, add_krook_operator
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
@@ -984,6 +985,8 @@ contains
             call advance_parallel_streaming_explicit (gin, rhs_ky)
 
        if (radial_variation) call advance_radial_variation(gin,rhs)
+
+       if (include_krook_operator) call add_krook_operator(gin,rhs)
 
        ! calculate and add omega_* term to RHS of GK eqn
 !       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)

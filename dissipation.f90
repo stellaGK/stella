@@ -4,19 +4,21 @@ module dissipation
 
   public :: init_dissipation, finish_dissipation
   public :: include_collisions
+  public :: include_krook_operator
   public :: advance_collisions_explicit, advance_collisions_implicit
   public :: time_collisions
   public :: hyper_dissipation
   public :: advance_hyper_dissipation
+  public :: add_krook_operator
   public :: collisions_implicit
 
   private
 
   logical :: include_collisions, vpa_operator, mu_operator
-  logical :: collisions_implicit
+  logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation
-  real :: D_hyper
+  real :: D_hyper, nu_krook
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
 
@@ -52,13 +54,15 @@ contains
     namelist /dissipation/ hyper_dissipation, D_hyper, &
          include_collisions, collisions_implicit, &
          momentum_conservation, energy_conservation, &
-         vpa_operator, mu_operator
+         vpa_operator, mu_operator, include_krook_operator, &
+         nu_krook
 
     integer :: in_file
     logical :: dexist
 
     if (proc0) then
        include_collisions = .false.
+       include_krook_operator = .false.
        collisions_implicit = .true.
        momentum_conservation = .true.
        energy_conservation = .true.
@@ -66,12 +70,14 @@ contains
        mu_operator = .true.
        hyper_dissipation = .false.
        D_hyper = 0.05
+       nu_krook = 0.05
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
     end if
 
     call broadcast (include_collisions)
+    call broadcast (include_krook_operator)
     call broadcast (collisions_implicit)
     call broadcast (momentum_conservation)
     call broadcast (energy_conservation)
@@ -79,6 +85,7 @@ contains
     call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
     call broadcast (D_hyper)
+    call broadcast (nu_krook)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -834,6 +841,23 @@ contains
     if (allocated(mudiff_idx)) deallocate (mudiff_idx)
 
   end subroutine finish_mudiff_response
+
+  subroutine add_krook_operator (g, gke_rhs, f0)
+
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+
+    !TODO: add number and momentum conservation, flux-surface-averaging
+    gke_rhs = -nu_krook*g
+
+  end subroutine add_krook_operator 
+
 
   subroutine advance_collisions_explicit (g, phi, gke_rhs)
 
