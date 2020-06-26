@@ -508,7 +508,6 @@ contains
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky, nx, x
-    use dist_fn_arrays, only: kperp2, dkperp2dr
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: stream, stream_rad_var1
     use parallel_streaming, only: stream_rad_var2
@@ -519,7 +518,7 @@ contains
     
     real :: cfl_dt_mirror, cfl_dt_stream
     real :: cfl_dt_wdriftx, cfl_dt_wdrifty
-    real :: zero, val1, val2
+    real :: zero
     real :: wdriftx_max, wdrifty_max
 
     ! avoid divide by zero in cfl_dt terms below
@@ -1175,25 +1174,19 @@ contains
     use mp, only: proc0, min_allreduce
     use mp, only: scope, allprocs, subprocs, job
     use stella_layouts, only: vmu_lo, imu_idx, is_idx
-    use species, only: spec
     use job_manage, only: time_message
     use gyro_averages, only: gyro_average
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_corr_QN,   phi_corr_GA
-    use fields_arrays, only: apar_corr_QN, apar_corr_GA
-    use dist_fn_arrays, only: kperp2, dkperp2dr
+!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_transforms, only: transform_ky2y, transform_y2ky
     use stella_transforms, only: transform_kx2x, transform_x2kx
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
-    use physics_parameters, only: rhostar
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac
-    use stella_geometry, only: dxdpsi, drhodpsi
-    use stella_geometry, only: bmag, dBdrho
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky, x
-    use vpamu_grids, only: vperp2
     use physics_flags, only: full_flux_surface, radial_variation
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
@@ -1213,7 +1206,6 @@ contains
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
     real, dimension (:), allocatable :: shear
 
-    real :: dpsidx
     integer ccount
     integer :: ivmu, iz, it, i, ia, imu, is
 
@@ -1234,7 +1226,6 @@ contains
     allocate (shear(nx))
 
     shear=0.0
-    dpsidx = 1.0/dxdpsi
 
     if(runtype_option_switch == runtype_multibox .and. &
                         g_exb*g_exb > epsilon(0.0))  then
@@ -1297,8 +1288,7 @@ contains
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
                g1xy = g1xy*exb_nonlin_fac
-               bracket = bracket + rhostar*dpsidx*drhodpsi* &
-                                   g0xy*g1xy*spread(x,1,ny)
+               bracket = bracket + g0xy*g1xy
              endif
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
@@ -1321,8 +1311,7 @@ contains
                call transform_ky2y (g0k_swap, g0kxy)
                call transform_kx2x (g0kxy, g1xy)
                g1xy = g1xy*exb_nonlin_fac
-               bracket = bracket - rhostar*dpsidx*drhodpsi* &
-                                   g0xy*g1xy*spread(x,1,ny)
+               bracket = bracket - g0xy*g1xy
              endif
 
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
@@ -1616,11 +1605,11 @@ contains
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_corr_QN,  phi_corr_GA
-    use fields_arrays, only: apar_corr_QN, apar_corr_GA
+!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
-    use stella_geometry, only: bmag, dBdrho, dxdpsi,drhodpsi
+    use stella_geometry, only: dBdrho, dxdpsi,drhodpsi
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use kt_grids, only: nalpha, nakx, naky, nx, x
@@ -1628,7 +1617,6 @@ contains
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
     use physics_flags, only: include_parallel_streaming, include_mirror
-    use dist_fn_arrays, only: kperp2, dkperp2dr
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
@@ -2014,38 +2002,6 @@ contains
 
   end subroutine get_dchidy_2d
 
-  subroutine get_dchidy_j1 (iz, ivmu, phi, apar, dchidy)
-
-    use constants, only: zi
-    use gyro_averages, only: gyro_average_j1
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use vpamu_grids, only: vpa
-    use kt_grids, only: nakx, aky, naky
-
-    implicit none
-
-    integer, intent (in) :: ivmu, iz
-    complex, dimension (:,:), intent (in) :: phi, apar
-    complex, dimension (:,:), intent (out) :: dchidy
-
-    integer :: iv, is
-    complex, dimension (:,:), allocatable :: field
-
-    allocate (field(naky,nakx))
-
-    is = is_idx(vmu_lo,ivmu)
-    iv = iv_idx(vmu_lo,ivmu)
-    field = zi*spread(aky,2,nakx) &
-         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-    call gyro_average_j1 (field, iz, ivmu, dchidy)
-    
-    deallocate (field)
-
-  end subroutine get_dchidy_j1
-
   subroutine get_dchidx (iz, ivmu, phi, apar, dchidx)
 
     use constants, only: zi
@@ -2077,38 +2033,6 @@ contains
     deallocate (field)
 
   end subroutine get_dchidx
-
-  subroutine get_dchidx_j1 (iz, ivmu, phi, apar, dchidx)
-
-    use constants, only: zi
-    use gyro_averages, only: gyro_average_j1
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use vpamu_grids, only: vpa
-    use kt_grids, only: akx, naky, nakx
-
-    implicit none
-
-    integer, intent (in) :: ivmu, iz
-    complex, dimension (:,:), intent (in) :: phi, apar
-    complex, dimension (:,:), intent (out) :: dchidx
-
-    integer :: iv, is
-    complex, dimension (:,:), allocatable :: field
-
-    allocate (field(naky,nakx))
-
-    is = is_idx(vmu_lo,ivmu)
-    iv = iv_idx(vmu_lo,ivmu)
-    field = zi*spread(akx,1,naky) &
-         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-    call gyro_average_j1 (field, iz, ivmu, dchidx)
-    
-    deallocate (field)
-
-  end subroutine get_dchidx_j1
 
   subroutine add_wstar_term (g, src)
 

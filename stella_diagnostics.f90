@@ -230,7 +230,6 @@ contains
     use stella_io, only: write_kspectra_nc
     use stella_io, only: write_moments_nc
     use stella_io, only: sync_nc
-    use stella_geometry, only: dxdpsi, drhodpsi
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
@@ -239,7 +238,7 @@ contains
     use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
-    use kt_grids, only: naky, nakx, nx, x
+    use kt_grids, only: naky, nakx, nx
     use dist_redistribute, only: kxkyz2vmu
     use physics_flags, only: radial_variation
 
@@ -248,7 +247,7 @@ contains
     integer, intent (in) :: istep
     
     real :: phi2, apar2
-    real :: zero, dpsidx
+    real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:,:), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
@@ -259,8 +258,6 @@ contains
 
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
     complex, dimension (:,:,:,:), allocatable :: phi_out
-
-    integer :: iz,it
 
     ! only write data to file every nwrite time steps
     if (mod(istep,nwrite) /= 0) return

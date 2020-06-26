@@ -41,7 +41,6 @@ contains
     use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_geometry, only: bmag
     use species, only: spec, nspec
     use vpamu_grids, only: nvpa, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
@@ -233,13 +232,11 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
-    use stella_geometry, only: bmag, dBdrho
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use species, only: spec
-    use dist_fn_arrays, only: kperp2, dkperp2dr
     use gyro_averages, only: gyro_average, gyro_average_j1
     use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
     use run_parameters, only: driftkinetic_implicit

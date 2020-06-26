@@ -819,6 +819,8 @@ contains
 
        !collect gyroaveraging corrections in wavenumber space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo,ivmu)
+         imu = imu_idx(vmu_lo,ivmu)
          do it = 1, ntubes
            do iz = -nzgrid, nzgrid
              call gyro_average_j1 (phi_in(:,:,iz,it), iz, ivmu, g0k)

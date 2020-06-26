@@ -36,17 +36,18 @@ contains
 # endif
     integer, intent(in), optional :: seed
     real :: ranf
-    integer :: l
-    integer, allocatable :: seed_in(:)
 # if RANDOM == _RANMT_    
     if (present(seed)) call sgrnd(seed)
     ranf = grnd()
 # else
+    integer :: l
+    integer, allocatable :: seed_in(:)
     if (present(seed)) then
        call random_seed(size=l)
        allocate(seed_in(l))
        seed_in(:)=seed
        call random_seed(put=seed_in)
+       deallocate(seed_in)
     endif
     call random_number(ranf)
 # endif
