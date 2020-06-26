@@ -370,12 +370,9 @@ contains
     if (.not.allocated(g1)) &
          allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     g1 = 0.
-    if (.not.allocated(g2) .and. explicit_option_switch/=explicit_option_rk2) then
-       allocate (g2(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       g2 = 0.
-    else
-       allocate (g2(1,1,1,1,1))
-    end if
+    if (.not.allocated(g2)) &
+         allocate (g2(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    g2 = 0.
     if (.not.allocated(g3) .and. explicit_option_switch==explicit_option_rk4) then
        allocate (g3(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        g3 = 0.
