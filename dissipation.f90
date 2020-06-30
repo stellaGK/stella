@@ -846,6 +846,7 @@ contains
 
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
 
     implicit none
 
@@ -854,7 +855,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
     !TODO: add number and momentum conservation, flux-surface-averaging
-    gke_rhs = -nu_krook*g
+    gke_rhs = gke_rhs - code_dt*nu_krook*g
 
   end subroutine add_krook_operator 
 
