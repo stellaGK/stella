@@ -861,6 +861,8 @@ contains
 
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
+    use dist_fn_arrays, only: g_krook
 
     implicit none
 
@@ -872,20 +874,25 @@ contains
 
     !TODO: add number and momentum conservation, flux-surface-averaging
     if(delay_krook.le.epsilon(0.)) then
-      gke_rhs = -nu_krook*g
+      gke_rhs = gke_rhs - code_dt*nu_krook*g
     else
-      gke_rhs = -nu_krook*(g)
+      exp_fac = exp(-code_dt/delay_krook)
+      gke_rhs = gke_rhs - code_dt*nu_krook &
+                *(code_dt*g + exp_fac*int_krook*g_krook)/int_krook
     endif
-
-
 
   end subroutine add_krook_operator 
 
   subroutine update_delay_krook (g)
 
     use stella_time, only: code_dt
+    use dist_fn_arrays, only: g_krook
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
 
     implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
 
     real :: int_krook_old, exp_fac
 
