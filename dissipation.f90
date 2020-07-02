@@ -100,7 +100,7 @@ contains
     use stella_geometry, only: bmag
     use dist_fn_arrays, only: g_krook
     use kt_grids, only: naky, nakx
-    use  zgrid, only: nzgrid, ntubes
+    use  zgrid, only: ntubes
     use stella_layouts
 
     implicit none
@@ -131,7 +131,7 @@ contains
     end if
 
     if(include_krook_operator.and..not.allocated(g_krook)) then
-      allocate (g_krook(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_krook = 0.
     endif
 
@@ -857,50 +857,84 @@ contains
 
   end subroutine finish_mudiff_response
 
-  subroutine add_krook_operator (g, gke_rhs, f0)
+  subroutine add_krook_operator (g, gke_rhs)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
+    use stella_geometry, only: dl_over_b
 
     implicit none
 
     real :: exp_fac
+    complex :: tmp
+    integer :: ikx, it, ia, ivmu
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
+    !complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+
+    ia = 1
 
     !TODO: add number and momentum conservation, flux-surface-averaging
     if(delay_krook.le.epsilon(0.)) then
       gke_rhs = gke_rhs - code_dt*nu_krook*g
     else
+      if(.not.zonal_mode(1)) return
       exp_fac = exp(-code_dt/delay_krook)
-      gke_rhs = gke_rhs - code_dt*nu_krook &
-                *(code_dt*g + exp_fac*int_krook*g_krook)/int_krook
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do ikx = 1, nakx
+            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
+                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
+                                     / int_krook
+          enddo
+        enddo
+      enddo
     endif
 
   end subroutine add_krook_operator 
 
   subroutine update_delay_krook (g)
 
-    use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, zonal_mode
     use stella_layouts, only: vmu_lo
+    use stella_geometry, only: dl_over_b
+    use stella_time, only: code_dt
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
 
+    integer :: ivmu, it, ikx, ia
     real :: int_krook_old, exp_fac
+    complex :: tmp
+
+    if(.not.zonal_mode(1)) return
+
+    exp_fac = exp(-code_dt/delay_krook)
+    
+    ia = 1
 
     int_krook_old = int_krook
-    exp_fac = exp(-code_dt/delay_krook)
+    int_krook =  code_dt + exp_fac*int_krook_old
 
-    int_krook =  code_dt   + exp_fac*int_krook_old
-    g_krook   = (code_dt*g + exp_fac*int_krook_old*g_krook)/int_krook
+    ! FLAG DSO - these should probably be saved for restarts in stella_save
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do ikx = 1, nakx
+          tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+          g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
+        enddo
+      enddo
+    enddo
+
+    !g_krook   = (code_dt*g + exp_fac*int_krook_old*g_krook)/int_krook
 
   end subroutine update_delay_krook
 
