@@ -646,6 +646,7 @@ contains
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step, multibox_communicate
+    use dissipation, only: include_krook_operator, update_delay_krook
 
     implicit none
 
@@ -679,6 +680,9 @@ contains
        call advance_explicit (gnew)
     end if
 
+    !update the delay parameters for the Krook operator
+    if(include_krook_operator) call update_delay_krook(gnew)
+
     ! next line is likely unnecessary
     gold = gnew
 
@@ -689,7 +693,6 @@ contains
 
     use mp, only: proc0
     use job_manage, only: time_message
-    use dissipation, only: include_krook_operator, update_delay_krook
     use zgrid, only: nzgrid
     use kt_grids, only: zonal_mode
     use stella_layouts, only: vmu_lo, iv_idx
@@ -717,10 +720,6 @@ contains
        call advance_explicit_rk4 (g)
     end select
 
-    !update the delay parameters for the Krook operator
-    if(include_krook_operator) call update_delay_krook(g)
-    
-    
     ! enforce periodicity for zonal modes
     if (zonal_mode(1)) then
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
