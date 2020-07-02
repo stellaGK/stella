@@ -20,6 +20,7 @@ module dissipation
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation
   real :: D_hyper, nu_krook, delay_krook, int_krook
+  integer:: ikxmax_krook
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
 
@@ -49,6 +50,7 @@ contains
 
     use file_utils, only: input_unit_exist
     use mp, only: proc0, broadcast
+    use kt_grids, only: ikx_max
 
     implicit none
 
@@ -73,10 +75,13 @@ contains
        D_hyper = 0.05
        nu_krook = 0.05
        delay_krook =0.02
+       ikxmax_krook = 2 ! kx=0 and kx=1
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
     end if
+
+    ikxmax_krook = min(ikxmax_krook,ikx_max)
 
     call broadcast (include_collisions)
     call broadcast (include_krook_operator)
@@ -88,6 +93,8 @@ contains
     call broadcast (hyper_dissipation)
     call broadcast (D_hyper)
     call broadcast (nu_krook)
+    call broadcast (delay_krook)
+    call broadcast (ikxmax_krook)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -134,6 +141,7 @@ contains
       allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_krook = 0.
     endif
+    int_krook = 0.
 
   end subroutine init_collisions
   
@@ -860,7 +868,7 @@ contains
   subroutine add_krook_operator (g, gke_rhs)
 
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, zonal_mode
+    use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
@@ -887,10 +895,11 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do ikx = 1, nakx
+            if(abs(akx(ikx)).gt.akx(ikxmax_krook)) cycle
             tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
             gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
                                      * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
-                                     / int_krook
+                                     / (code_dt     + exp_fac*int_krook)
           enddo
         enddo
       enddo
