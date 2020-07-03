@@ -6,6 +6,7 @@ module dist_fn_arrays
 
   public :: gnew, gold
   public :: g1, g2, g3
+  public :: g_krook
   public :: gvmu
   public :: kperp2, dkperp2dr
   public :: wstar, wstarp
@@ -20,6 +21,10 @@ module dist_fn_arrays
 
   complex, dimension (:,:,:,:,:), allocatable :: g1, g2, g3
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+
+  ! needed to implement time-delayed source when using Krook operator
+  complex, dimension (:,:,:), allocatable :: g_krook
+  ! (nakx, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (nvpa, nmu, -kxkyz-layout-)

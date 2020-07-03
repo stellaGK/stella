@@ -37,6 +37,7 @@ contains
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use kt_grids, only: nalpha, nakx, naky, nx, x
     use vpamu_grids, only: mu, vpa, vperp2
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use stella_geometry, only: dBdrho, dxdpsi, drhodpsi
@@ -47,7 +48,7 @@ contains
     real :: dpsidx, corr
     integer :: ivmu, is, imu, iv, it, iz, ia
     real, dimension (:,:), allocatable :: energy
-    complex, dimension (:,:), allocatable :: g0k, g0x
+    complex, dimension (:,:), allocatable :: f0k, g0k, g0x
     logical, intent(in) :: restarted
 
 
@@ -58,14 +59,21 @@ contains
     ! get version of g that has ky,kx,z local
     call gather (kxkyz2vmu, gvmu, gnew)
 
-    if(radial_variation.and..not.restarted) then
+    ia = 1
+    dpsidx = 1./dxdpsi
+
+    !calculate radial corrections to F0 for use in Krook operator, as well as g1 from initialization
+    if(radial_variation) then
       !init_g uses maxwellians, so account for variation in temperature, density, and B
-      ia = 1
-      dpsidx = 1./dxdpsi
 
       allocate (energy(nalpha,-nzgrid:nzgrid))
+      allocate (f0k(naky,nakx))
       allocate (g0k(naky,nakx))
       allocate (g0x(naky,nx))
+
+      g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)
+      call transform_x2kx_solo(g0x,f0k)
+
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo, ivmu)
@@ -76,23 +84,26 @@ contains
           do iz = -nzgrid, nzgrid
 
             corr = -(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-1.5) + 2*mu(imu)*dBdrho(iz))
-            g0k = gnew(:,:,iz,it,ivmu)
+         
+            if(.not.restarted) then
+              g0k = gnew(:,:,iz,it,ivmu)
 
-            call transform_kx2x_solo(g0k,g0x)
-            g0x = g0x*(1.0 + rhostar*drhodpsi*dpsidx*corr*spread(x,1,naky))
-            call transform_x2kx_solo(g0x,g0k)
+              call transform_kx2x_solo(g0k,g0x)
+              g0x = g0x*(1.0 + rhostar*drhodpsi*dpsidx*corr*spread(x,1,naky))
+              call transform_x2kx_solo(g0x,g0k)
 
-            gnew(:,:,iz,it,ivmu) = g0k
+              gnew(:,:,iz,it,ivmu) = g0k
+            endif
           enddo
         enddo
       enddo
-      deallocate(energy, g0k, g0x)
-      call scatter(kxkyz2vmu,gnew,gvmu)
+      deallocate(energy, f0k, g0k, g0x)
+
+      if(.not.restarted) call scatter(kxkyz2vmu,gnew,gvmu)
     endif
 
     gold = gnew
 
-    
 
   end subroutine init_gxyz
 
@@ -223,6 +234,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use dist_fn_arrays, only: gnew, gold
     use dist_fn_arrays, only: gvmu
+    use physics_flags, only: radial_variation
 
     implicit none
 
@@ -235,6 +247,7 @@ contains
     if (.not.allocated(gvmu)) &
          allocate (gvmu(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     gvmu = 0.
+
 
   end subroutine allocate_arrays
 

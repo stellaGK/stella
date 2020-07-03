@@ -646,6 +646,7 @@ contains
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step, multibox_communicate
+    use dissipation, only: include_krook_operator, update_delay_krook
 
     implicit none
 
@@ -678,6 +679,9 @@ contains
        if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
        call advance_explicit (gnew)
     end if
+
+    !update the delay parameters for the Krook operator
+    if(include_krook_operator) call update_delay_krook(gnew)
 
     ! next line is likely unnecessary
     gold = gnew
@@ -715,7 +719,7 @@ contains
        ! RK4
        call advance_explicit_rk4 (g)
     end select
-    
+
     ! enforce periodicity for zonal modes
     if (zonal_mode(1)) then
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

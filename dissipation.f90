@@ -4,7 +4,8 @@ module dissipation
 
   public :: init_dissipation, finish_dissipation
   public :: include_collisions
-  public :: include_krook_operator
+  public :: include_krook_operator, update_delay_krook
+  public :: delay_krook, int_krook
   public :: advance_collisions_explicit, advance_collisions_implicit
   public :: time_collisions
   public :: hyper_dissipation
@@ -18,7 +19,8 @@ module dissipation
   logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation
-  real :: D_hyper, nu_krook
+  real :: D_hyper, nu_krook, delay_krook, int_krook
+  integer:: ikxmax_krook
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
 
@@ -48,6 +50,7 @@ contains
 
     use file_utils, only: input_unit_exist
     use mp, only: proc0, broadcast
+    use kt_grids, only: ikx_max
 
     implicit none
 
@@ -55,7 +58,7 @@ contains
          include_collisions, collisions_implicit, &
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
-         nu_krook
+         nu_krook, delay_krook
 
     integer :: in_file
     logical :: dexist
@@ -71,10 +74,14 @@ contains
        hyper_dissipation = .false.
        D_hyper = 0.05
        nu_krook = 0.05
+       delay_krook =0.02
+       ikxmax_krook = 2 ! kx=0 and kx=1
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
     end if
+
+    ikxmax_krook = min(ikxmax_krook,ikx_max)
 
     call broadcast (include_collisions)
     call broadcast (include_krook_operator)
@@ -86,6 +93,8 @@ contains
     call broadcast (hyper_dissipation)
     call broadcast (D_hyper)
     call broadcast (nu_krook)
+    call broadcast (delay_krook)
+    call broadcast (ikxmax_krook)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -96,6 +105,10 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: dvpa, dmu, mu, nmu
     use stella_geometry, only: bmag
+    use dist_fn_arrays, only: g_krook
+    use kt_grids, only: naky, nakx
+    use  zgrid, only: ntubes
+    use stella_layouts
 
     implicit none
 
@@ -123,6 +136,12 @@ contains
        cfl_dt_vpadiff = 2.0*dvpa**2/vnew_max
        cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
     end if
+
+    if(include_krook_operator.and..not.allocated(g_krook)) then
+      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_krook = 0.
+    endif
+    int_krook = 0.
 
   end subroutine init_collisions
   
@@ -791,6 +810,8 @@ contains
 
   subroutine finish_collisions
 
+    use dist_fn_arrays, only: g_krook
+
     implicit none
 
     if (collisions_implicit) then
@@ -799,6 +820,8 @@ contains
        call finish_vpadiff_response
        call finish_mudiff_response
     end if
+
+    if(allocated(g_krook)) deallocate(g_krook)
 
     collisions_initialized = .false.
 
@@ -842,22 +865,87 @@ contains
 
   end subroutine finish_mudiff_response
 
-  subroutine add_krook_operator (g, gke_rhs, f0)
+  subroutine add_krook_operator (g, gke_rhs)
 
-    use zgrid, only: nzgrid
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
+    use dist_fn_arrays, only: g_krook
+    use stella_geometry, only: dl_over_b
+
+    implicit none
+
+    real :: exp_fac
+    complex :: tmp
+    integer :: ikx, it, ia, ivmu
+
+    !complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+
+    ia = 1
+
+    !TODO: add number and momentum conservation, flux-surface-averaging
+    if(delay_krook.le.epsilon(0.)) then
+      gke_rhs = gke_rhs - code_dt*nu_krook*g
+    else
+      if(.not.zonal_mode(1)) return
+      exp_fac = exp(-code_dt/delay_krook)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do ikx = 1, nakx
+            if(abs(akx(ikx)).gt.akx(ikxmax_krook)) cycle
+            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
+                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
+                                     / (code_dt     + exp_fac*int_krook)
+          enddo
+        enddo
+      enddo
+    endif
+
+  end subroutine add_krook_operator 
+
+  subroutine update_delay_krook (g)
+
+    use dist_fn_arrays, only: g_krook
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, zonal_mode
+    use stella_layouts, only: vmu_lo
+    use stella_geometry, only: dl_over_b
     use stella_time, only: code_dt
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
-    !TODO: add number and momentum conservation, flux-surface-averaging
-    gke_rhs = gke_rhs - code_dt*nu_krook*g
+    integer :: ivmu, it, ikx, ia
+    real :: int_krook_old, exp_fac
+    complex :: tmp
 
-  end subroutine add_krook_operator 
+    if(.not.zonal_mode(1)) return
+
+    exp_fac = exp(-code_dt/delay_krook)
+    
+    ia = 1
+
+    int_krook_old = int_krook
+    int_krook =  code_dt + exp_fac*int_krook_old
+
+    ! FLAG DSO - these should probably be saved for restarts in stella_save
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do ikx = 1, nakx
+          tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+          g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
+        enddo
+      enddo
+    enddo
+
+    !g_krook   = (code_dt*g + exp_fac*int_krook_old*g_krook)/int_krook
+
+  end subroutine update_delay_krook
 
 
   subroutine advance_collisions_explicit (g, phi, gke_rhs)
