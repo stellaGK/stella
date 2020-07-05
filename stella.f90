@@ -251,6 +251,7 @@ contains
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
     use dissipation, only: time_collisions
+    use init_g, only: finish_init_g
     use dist_fn, only: finish_dist_fn
     use fields, only: finish_fields
     use fields, only: time_field_solve
@@ -277,6 +278,8 @@ contains
     call finish_extended_zgrid
     if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'
     call finish_dist_fn
+    if (debug) write (*,*) 'stella::finish_stella::finish_init_g'
+    call finish_init_g
     if (debug) write (*,*) 'stella::finish_stella::finish_vpamu_grids'
     call finish_vpamu_grids
     if (debug) write (*,*) 'stella::finish_stella::finish_kt_grids'

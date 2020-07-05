@@ -473,10 +473,13 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
-    use dist_fn_arrays, only: g1, g2, g3
+    use dist_fn_arrays, only: g0, g1, g2, g3
 
     implicit none
 
+    if (.not.allocated(g0)) &
+         allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    g0 = 0.
     if (.not.allocated(g1)) &
          allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     g1 = 0.
@@ -647,10 +650,14 @@ contains
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step, multibox_communicate
     use dissipation, only: include_krook_operator, update_delay_krook
+    use dissipation, only: remove_zero_projection, project_out_zero
+    use zgrid, only: nzgrid, ntubes
+    use stella_layouts, only: vmu_lo
 
     implicit none
 
     integer, intent (in) :: istep
+    complex, allocatable, dimension (:,:,:) :: g1
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -680,10 +687,17 @@ contains
        call advance_explicit (gnew)
     end if
 
+    if(remove_zero_projection) then
+      allocate (g1(-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g1 = gnew(1,1,:,:,:) - gold(1,1,:,:,:)
+      call project_out_zero(g1)
+      gnew(1,1,:,:,:) = gnew(1,1,:,:,:) - g1
+      deallocate (g1)
+    end if
+
     !update the delay parameters for the Krook operator
     if(include_krook_operator) call update_delay_krook(gnew)
 
-    ! next line is likely unnecessary
     gold = gnew
 
   end subroutine advance_stella
@@ -738,7 +752,7 @@ contains
   ! strong stability-preserving RK2
   subroutine advance_explicit_rk2 (g)
 
-    use dist_fn_arrays, only: g1, gold
+    use dist_fn_arrays, only: g0, g1
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
     use multibox, only: RK_step,multibox_communicate
@@ -757,7 +771,7 @@ contains
 
     if(RK_step) call multibox_communicate (g)
 
-    gold = g
+    g0 = g
 
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
@@ -767,9 +781,9 @@ contains
 
        select case (icnt)
        case (1)
-          call solve_gke (gold, g1, restart_time_step)
+          call solve_gke (g0, g1, restart_time_step)
        case (2)
-          g1 = gold + g1
+          g1 = g0 + g1
           if(RK_step) call multibox_communicate (g1)
           call solve_gke (g1, g, restart_time_step)
        end select
@@ -781,14 +795,14 @@ contains
     end do
 
     ! this is gbar at intermediate time level
-    g = 0.5*gold + 0.5*(g1 + g)
+    g = 0.5*g0 + 0.5*(g1 + g)
 
   end subroutine advance_explicit_rk2
 
   ! strong stability-preserving RK3
   subroutine advance_explicit_rk3 (g)
 
-    use dist_fn_arrays, only: g1, g2, gold
+    use dist_fn_arrays, only: g0, g1, g2
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
     use multibox, only: RK_step, multibox_communicate
@@ -807,7 +821,7 @@ contains
 
     if(RK_step) call multibox_communicate (g)
 
-    gold = g
+    g0 = g
 
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
@@ -816,9 +830,9 @@ contains
     do while (icnt <= 3)
        select case (icnt)
        case (1)
-          call solve_gke (gold, g1, restart_time_step)
+          call solve_gke (g0, g1, restart_time_step)
        case (2)
-          g1 = gold + g1
+          g1 = g0 + g1
           if(RK_step) call multibox_communicate (g1)
           call solve_gke (g1, g2, restart_time_step)
        case (3)
@@ -834,13 +848,13 @@ contains
     end do
 
     ! this is gbar at intermediate time level
-    g = gold/3. + 0.5*g1 + (g2 + g)/6.
+    g = g0/3. + 0.5*g1 + (g2 + g)/6.
 
   end subroutine advance_explicit_rk3
 
   subroutine advance_explicit_rk4 (g)
 
-    use dist_fn_arrays, only: g1, g2, g3, gold
+    use dist_fn_arrays, only: g0, g1, g2, g3
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
     use multibox, only: RK_step, multibox_communicate
@@ -859,7 +873,7 @@ contains
 
     if(RK_step) call multibox_communicate(g)
 
-    gold = g
+    g0 = g
 
     icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
@@ -868,22 +882,22 @@ contains
     do while (icnt <= 4)
        select case (icnt)
        case (1)
-          call solve_gke (gold, g1, restart_time_step)
+          call solve_gke (g0, g1, restart_time_step)
        case (2)
           ! g1 is h*k1
-          g3 = gold + 0.5*g1
+          g3 = g0 + 0.5*g1
           if(RK_step) call multibox_communicate(g3)
           call solve_gke (g3, g2, restart_time_step)
           g1 = g1 + 2.*g2
        case (3)
           ! g2 is h*k2
-          g2 = gold+0.5*g2
+          g2 = g0+0.5*g2
           if(RK_step) call multibox_communicate(g2)
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
        case (4)
           ! g3 is h*k3
-          g3 = gold+g3
+          g3 = g0+g3
           if(RK_step) call multibox_communicate(g3)
           call solve_gke (g3, g, restart_time_step)
           g1 = g1 + g
@@ -896,7 +910,7 @@ contains
     end do
 
     ! this is gbar at intermediate time level
-    g = gold + g1/6.
+    g = g0 + g1/6.
 
   end subroutine advance_explicit_rk4
 
@@ -2529,10 +2543,11 @@ contains
 
   subroutine deallocate_arrays
 
-    use dist_fn_arrays, only: g1, g2, g3
+    use dist_fn_arrays, only: g0, g1, g2, g3
 
     implicit none
 
+    if (allocated(g0)) deallocate (g0)
     if (allocated(g1)) deallocate (g1)
     if (allocated(g2)) deallocate (g2)
     if (allocated(g3)) deallocate (g3)

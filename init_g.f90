@@ -659,9 +659,13 @@ contains
 
   subroutine finish_init_g
 
+    use stella_save, only: finish_save
+
     implicit none
 
     initialized = .false.
+
+    call finish_save
 
   end subroutine finish_init_g
 

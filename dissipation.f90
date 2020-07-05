@@ -5,6 +5,7 @@ module dissipation
   public :: init_dissipation, finish_dissipation
   public :: include_collisions
   public :: include_krook_operator, update_delay_krook
+  public :: remove_zero_projection, project_out_zero
   public :: delay_krook, int_krook
   public :: advance_collisions_explicit, advance_collisions_implicit
   public :: time_collisions
@@ -18,8 +19,8 @@ module dissipation
   logical :: include_collisions, vpa_operator, mu_operator
   logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
-  logical :: hyper_dissipation
-  real :: D_hyper, nu_krook, delay_krook, int_krook
+  logical :: hyper_dissipation, remove_zero_projection
+  real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
   integer:: ikxmax_krook
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
@@ -58,7 +59,7 @@ contains
          include_collisions, collisions_implicit, &
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
-         nu_krook, delay_krook
+         nu_krook, delay_krook, remove_zero_projection
 
     integer :: in_file
     logical :: dexist
@@ -72,6 +73,7 @@ contains
        vpa_operator = .true.
        mu_operator = .true.
        hyper_dissipation = .false.
+       remove_zero_projection = .false.
        D_hyper = 0.05
        nu_krook = 0.05
        delay_krook =0.02
@@ -95,6 +97,7 @@ contains
     call broadcast (nu_krook)
     call broadcast (delay_krook)
     call broadcast (ikxmax_krook)
+    call broadcast (remove_zero_projection)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -105,7 +108,7 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: dvpa, dmu, mu, nmu
     use stella_geometry, only: bmag
-    use dist_fn_arrays, only: g_krook
+    use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
     use  zgrid, only: ntubes
     use stella_layouts
@@ -141,7 +144,13 @@ contains
       allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_krook = 0.
     endif
+    
+    if(remove_zero_projection.and..not.allocated(g_proj)) then
+      allocate (g_proj(ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_proj = 0.
+    endif
     int_krook = 0.
+    int_proj  = 0.
 
   end subroutine init_collisions
   
@@ -810,7 +819,7 @@ contains
 
   subroutine finish_collisions
 
-    use dist_fn_arrays, only: g_krook
+    use dist_fn_arrays, only: g_krook, g_proj
 
     implicit none
 
@@ -822,6 +831,7 @@ contains
     end if
 
     if(allocated(g_krook)) deallocate(g_krook)
+    if(allocated(g_proj))  deallocate(g_proj)
 
     collisions_initialized = .false.
 
@@ -947,6 +957,44 @@ contains
 
   end subroutine update_delay_krook
 
+  subroutine project_out_zero (g)
+
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: zonal_mode
+    use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
+    use dist_fn_arrays, only: g_proj
+    use stella_geometry, only: dl_over_b
+
+    implicit none
+
+    real :: exp_fac
+    complex :: tmp
+    integer :: it, ia, ivmu
+
+    complex, dimension (-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
+
+    ia = 1
+    if(.not.zonal_mode(1)) return
+
+    exp_fac = exp(-code_dt/delay_krook)
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        tmp = sum(dl_over_b(ia,:)*g(:,it,ivmu))
+        if(delay_krook.le.epsilon(0.)) then
+          g(:,it,ivmu) = tmp
+        else
+          g(:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(it,ivmu)) &
+                       / (code_dt     + exp_fac*int_proj)
+        endif
+        g_proj(it,ivmu) = sum(dl_over_b(ia,:)*g(:,it,ivmu))
+      enddo
+    enddo
+
+    int_proj = code_dt + exp_fac*int_proj
+
+  end subroutine project_out_zero
 
   subroutine advance_collisions_explicit (g, phi, gke_rhs)
 

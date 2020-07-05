@@ -29,7 +29,7 @@ module stella_save
 
   public :: stella_restore, stella_save_for_restart
   public :: read_many, save_many
-  public :: init_save, init_dt, init_tstart
+  public :: init_save, init_dt, init_tstart, finish_save
 
 !# ifdef NETCDF
 !  public :: netcdf_real, kind_nf, get_netcdf_code_precision, netcdf_error
@@ -828,5 +828,14 @@ contains
 # endif
 
   end subroutine init_tstart
+
+  subroutine finish_save
+    
+    if (allocated(tmpr))  deallocate (tmpr)
+    if (allocated(tmpi))  deallocate (tmpi)
+    if (allocated(ftmpr)) deallocate (ftmpr)
+    if (allocated(ftmpi)) deallocate (ftmpi)
+
+  end subroutine finish_save
 
 end module stella_save

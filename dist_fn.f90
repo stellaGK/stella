@@ -37,7 +37,6 @@ contains
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use kt_grids, only: nalpha, nakx, naky, nx, x
     use vpamu_grids, only: mu, vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use stella_geometry, only: dBdrho, dxdpsi, drhodpsi
