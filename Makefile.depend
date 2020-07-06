@@ -146,6 +146,7 @@ fields.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 fields_arrays.o: \
@@ -327,8 +328,6 @@ run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o \
-	 stella_save.o \
-	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
@@ -438,6 +437,8 @@ stella_layouts.o: \
 	 mp.o 
 stella_save.o: \
 	 common_types.o \
+	 dissipation.o \
+	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 kt_grids.o \

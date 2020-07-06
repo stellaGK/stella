@@ -133,7 +133,7 @@ contains
     local%d2psidr2 = d2psidr2
 
     ! following two variables are not inputs
-    local%dr = 1.e-3
+    local%dr = 1.e-3*(rhoc/rmaj)
     local%rhotor = rhotor
     local%psitor_lcfs = psitor_lcfs
     local%drhotordrho = drhotordrho
@@ -521,6 +521,7 @@ contains
          + 2.0*local%betadbprim/bmag**2 - 4.0*local%betaprim*dBdrho/bmag**3 &
          - 2.0*local%betaprim*local%d2psidr2/dpsidrho
 
+
     ! interpolate here
     call geo_spline (theta, grho, zed_in, grho_out)
     call geo_spline (theta, bmag, zed_in, bmag_out)
@@ -547,6 +548,7 @@ contains
     call geo_spline (theta, dgds22dr, zed_in, dgds22dr_out)
     call geo_spline (theta, dgds22bdr, zed_in, dgds22bdr_out)
     call geo_spline (theta, djacdrho/dpsidrho, zed_in, djacdrho_out)
+
 
     ! get the toroidal component of the magnetic field
     ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
@@ -585,7 +587,7 @@ contains
          '56.gds23', '57.gds24', '58. Zr'
 
     do i = -nz, nz
-       write (1001,'(58e13.4)') theta(i), Rr(2,i),dRdrho(i), d2Rdr2(i), dRdth(i), &
+       write (1001,'(58e18.9)') theta(i), Rr(2,i),dRdrho(i), d2Rdr2(i), dRdth(i), &
             d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i), &
             bmag(i), dBdrho(i), d2Bdr2(i), dBdth(i), d2Bdrdth(i), &
             varthet(i), dvarthdr(i), d2varthdr2(i), jacrho(i), djacrdrho(i), &

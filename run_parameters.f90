@@ -7,7 +7,7 @@ module run_parameters
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
   public :: code_delt_max
-  public :: nstep
+  public :: nstep, delt
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
@@ -45,8 +45,6 @@ contains
 
   subroutine init_run_parameters
 
-    use stella_time, only: init_delt
-    
     implicit none
 
     if (initialized) return
@@ -54,15 +52,12 @@ contains
 
     call read_parameters
 
-    call init_delt (delt)
-
   end subroutine init_run_parameters
 
   subroutine read_parameters
 
     use file_utils, only: input_unit, error_unit, input_unit_exist
     use mp, only: proc0, broadcast
-    use stella_save, only: init_dt
     use text_options, only: text_option, get_option_value
     use physics_flags, only: include_mirror, full_flux_surface
 
@@ -74,8 +69,7 @@ contains
             text_option('check_restart', delt_option_auto) /)
     character(20) :: delt_option
 
-    integer :: ierr, istatus, in_file
-    real :: delt_saved
+    integer :: ierr, in_file
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
          delt_option, &
@@ -142,12 +136,6 @@ contains
     if (.not.include_mirror) mirror_implicit = .false.
 
     code_delt_max = delt
-
-    delt_saved = delt
-    if (delt_option_switch == delt_option_auto) then
-       call init_dt (delt_saved, istatus)
-       if (istatus == 0) delt  = delt_saved
-    endif
 
     if (driftkinetic_implicit) then
        stream_implicit = .false.

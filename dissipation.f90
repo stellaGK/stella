@@ -6,13 +6,13 @@ module dissipation
   public :: include_collisions
   public :: include_krook_operator, update_delay_krook
   public :: remove_zero_projection, project_out_zero
-  public :: delay_krook, int_krook
   public :: advance_collisions_explicit, advance_collisions_implicit
   public :: time_collisions
   public :: hyper_dissipation
   public :: advance_hyper_dissipation
   public :: add_krook_operator
   public :: collisions_implicit
+  public :: delay_krook, int_krook, int_proj
 
   private
 
@@ -943,7 +943,6 @@ contains
     int_krook_old = int_krook
     int_krook =  code_dt + exp_fac*int_krook_old
 
-    ! FLAG DSO - these should probably be saved for restarts in stella_save
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do ikx = 1, nakx

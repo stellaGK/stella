@@ -9,6 +9,7 @@ program stella
   use stella_diagnostics, only: diagnose_stella, nsave
   use stella_save, only: stella_save_for_restart
   use dist_fn_arrays, only: gnew, gvmu
+    use file_utils, only: error_unit, flush_output_file
 
   implicit none
 
@@ -16,7 +17,7 @@ program stella
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
-  integer :: istep
+  integer :: istep, ierr
   integer :: istatus
   real, dimension (2) :: time_init = 0.
   real, dimension (2) :: time_diagnostics = 0.
@@ -42,6 +43,8 @@ program stella
      call time_message(.false.,time_diagnostics,' diagnostics')
      if (mod(istep,10)==0) call checkstop (stop_stella)
      if (stop_stella) exit
+     ierr = error_unit()
+     call flush_output_file (ierr)
   end do
 
   if (debug) write (*,*) 'stella::finish_stella'
@@ -64,8 +67,9 @@ contains
     use physics_flags, only: nonlinear, include_parallel_nonlinearity
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: init_run_parameters
-    use run_parameters, only: avail_cpu_time, nstep, rng_seed
+    use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
     use run_parameters, only: stream_implicit, driftkinetic_implicit
+    use run_parameters, only: delt_option_switch, delt_option_auto
     use species, only: init_species, read_species_knobs
     use species, only: nspec, communicate_species_multibox
     use zgrid, only: init_zgrid
@@ -76,7 +80,7 @@ contains
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
     use fields, only: init_fields, advance_fields, get_radial_correction
-    use stella_time, only: init_tstart
+    use stella_time, only: init_tstart, init_delt
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
     use fields_arrays, only: phi, apar
@@ -89,6 +93,7 @@ contains
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
+    use stella_save, only: init_dt
     use multibox, only: init_multibox, xL, xR
     use ran, only: get_rnd_seed_length, init_ranf
 
@@ -98,6 +103,7 @@ contains
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
     integer :: i, n, ierr
+    real :: delt_saved
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
@@ -157,6 +163,16 @@ contains
     call init_init_g
     if (debug) write(6,*) "stella::init_stella::init_run_parameters"
     call init_run_parameters
+    if(delt_option_switch == delt_option_auto) then
+      delt_saved = delt
+      if (debug) write(6,*) "stella::init_stella::init_dt"
+      call init_dt(delt_saved, istatus)
+      if(istatus == 0) delt = delt_saved
+    endif
+    if (debug) write(6,*) "stella::init_stella::init_delt"
+    call init_delt(delt)
+
+
 
     if (debug) write(6,*) "stella::init_stella::init_ranf"
     n=get_rnd_seed_length()
@@ -201,9 +217,8 @@ contains
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
        call advance_fields (gnew, phi, apar, dist='gbar')
-       if(radial_variation) &
-         call get_radial_correction(gnew,phi,dist='gbar')
     end if
+    if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
     call init_stella_diagnostics (nstep)
