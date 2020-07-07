@@ -42,7 +42,7 @@ module multibox
 !>DSO 
 ! the multibox simulation has one parameter: boundary_size
 ! 
-  integer :: boundary_size
+  integer :: boundary_size, blend_size
   real :: g_exb
   logical :: smooth_ZFs
   logical :: RK_step
@@ -99,11 +99,12 @@ contains
          text_option('no_fsa',  mb_zf_option_no_fsa)/)
     character(30) :: zf_option, blend_option
 
-    namelist /multibox_parameters/ boundary_size, g_exb, smooth_ZFs, zf_option, blend_option, RK_step
+    namelist /multibox_parameters/ boundary_size, blend_size, g_exb, smooth_ZFs, zf_option, blend_option, RK_step
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
+    blend_size = -1
     g_exb = 0.
     smooth_ZFs = .false.
     RK_step = .false.
@@ -121,9 +122,13 @@ contains
       call get_option_value & 
         (zf_option, mb_zf_opts, mb_zf_option_switch, & 
          ierr, "zf_option in multibox_parameters")
+
+       if(blend_size < 0) blend_size = boundary_size 
     endif
 
+
     call broadcast(boundary_size)
+    call broadcast(blend_size)
     call broadcast(g_exb)
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
@@ -151,22 +156,21 @@ contains
     case (blend_option_default)
       ! do nothing
     case (blend_option_linear)
-      db = 1.0/boundary_size
-      do i = 1, boundary_size
+      db = 1.0/blend_size
+      do i = 1, blend_size
         blending_mask(i) = 1.0-i*db
       enddo
     case (blend_option_expin)
-      db = 3.0/boundary_size
-      do i = 1, boundary_size
-        blending_mask(i) = (1.0-exp(-(boundary_size-i)*db))/(1.0-exp(-3.0))
+      db = 3.0/blend_size
+      do i = 1, blend_size
+        blending_mask(i) = (1.0-exp(-(blend_size-i)*db))/(1.0-exp(-3.0))
       enddo
     case (blend_option_expout)
-      db = 3.0/boundary_size
-      do i = 1, boundary_size
+      db = 3.0/blend_size
+      do i = 1, blend_size
         blending_mask(i) = 1.0-(1.0-exp(-i*db))/(1.0-exp(-3.0))
       enddo
     end select
-
 
     call scope(crossdomprocs)
 
