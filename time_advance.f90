@@ -1306,6 +1306,8 @@ contains
              g1xy = g1xy*exb_nonlin_fac - spread(shear,1,ny)
              bracket = g0xy*g1xy
 
+             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
+
              if(radial_variation) then
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
@@ -1316,6 +1318,7 @@ contains
                g1xy = g1xy*exb_nonlin_fac
                bracket = bracket + g0xy*g1xy
              endif
+
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              call get_dgdx (g(:,:,iz,it,ivmu), g0k)
@@ -1328,6 +1331,8 @@ contains
              call transform_kx2x (g0kxy, g1xy)
              g1xy = g1xy*exb_nonlin_fac
              bracket = bracket - g0xy*g1xy
+
+             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
              if(radial_variation) then
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
