@@ -935,6 +935,8 @@ contains
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use multibox, only: include_multibox_krook, add_multibox_krook
 
     implicit none
 
@@ -1005,6 +1007,9 @@ contains
        if (radial_variation) call advance_radial_variation(gin,rhs)
 
        if (include_krook_operator) call add_krook_operator(gin,rhs)
+
+       if (runtype_option_switch == runtype_multibox .and. include_multibox_krook) &
+         call add_multibox_krook(gin,rhs)
 
        ! calculate and add omega_* term to RHS of GK eqn
 !       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)

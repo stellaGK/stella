@@ -8,18 +8,21 @@ module multibox
   public :: init_multibox
   public :: finish_multibox
   public :: multibox_communicate
+  public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
   public :: g_exb
   public :: xL, xR
   public :: RK_step
+  public :: include_multibox_krook
 
   private
 
   complex, dimension (:), allocatable :: g_buffer0
   complex, dimension (:), allocatable :: g_buffer1
   complex, dimension (:), allocatable :: fsa_x
-  real,    dimension (:), allocatable :: blending_mask
+  real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
+  real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   
   complex, dimension (:,:), allocatable :: fft_xky
   real, dimension (:,:), allocatable :: fft_xy
@@ -42,15 +45,15 @@ module multibox
 !>DSO 
 ! the multibox simulation has one parameter: boundary_size
 ! 
-  integer :: boundary_size, blend_size
-  real :: g_exb
+  integer :: boundary_size, krook_size
+  real :: g_exb, nu_krook_mb
   logical :: smooth_ZFs
-  logical :: RK_step
-  integer :: blend_option_switch
-  integer, parameter:: blend_option_default = 0, &
-                       blend_option_linear  = 1, &
-                       blend_option_expin   = 2, &
-                       blend_option_expout  = 3 
+  logical :: RK_step, include_multibox_krook
+  integer :: krook_option_switch
+  integer, parameter:: krook_option_default = 0, &
+                       krook_option_linear  = 1, &
+                       krook_option_expin   = 2, &
+                       krook_option_expout  = 3 
   integer:: mb_zf_option_switch
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
@@ -88,28 +91,30 @@ contains
 
     real :: db
 
-    type (text_option), dimension (4), parameter :: blend_opts = &
-      (/ text_option('default', blend_option_default), &
-         text_option('linear',  blend_option_linear) , &
-         text_option('exp_in',  blend_option_expin) , &
-         text_option('exp_out', blend_option_expout)/)
+    type (text_option), dimension (4), parameter :: krook_opts = &
+      (/ text_option('default', krook_option_default), &
+         text_option('linear',  krook_option_linear) , &
+         text_option('exp_in',  krook_option_expin) , &
+         text_option('exp_out', krook_option_expout)/)
     type (text_option), dimension (3), parameter :: mb_zf_opts = &
       (/ text_option('default', mb_zf_option_default), &
          text_option('no_ky0',  mb_zf_option_no_ky0) , &
          text_option('no_fsa',  mb_zf_option_no_fsa)/)
-    character(30) :: zf_option, blend_option
+    character(30) :: zf_option, krook_option
 
-    namelist /multibox_parameters/ boundary_size, blend_size, g_exb, smooth_ZFs, zf_option, blend_option, RK_step
+    namelist /multibox_parameters/ boundary_size, krook_size, g_exb, smooth_ZFs, zf_option, &
+                                   krook_option, RK_step, nu_krook_mb
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
-    blend_size = -1
+    krook_size = 0
+    nu_krook_mb = 0.0
     g_exb = 0.
     smooth_ZFs = .false.
     RK_step = .false.
     zf_option = 'default'
-    blend_option = 'default'
+    krook_option = 'default'
     
     if (proc0) then
       in_file = input_unit_exist("multibox_parameters", exist)
@@ -117,23 +122,26 @@ contains
 
       ierr = error_unit()
       call get_option_value & 
-        (blend_option, blend_opts, blend_option_switch, & 
-         ierr, "blend_option in multibox_parameters")
+        (krook_option, krook_opts, krook_option_switch, & 
+         ierr, "krook_option in multibox_parameters")
       call get_option_value & 
         (zf_option, mb_zf_opts, mb_zf_option_switch, & 
          ierr, "zf_option in multibox_parameters")
 
-       if(blend_size < 0) blend_size = boundary_size 
+       if(krook_size > boundary_size) krook_size = boundary_size 
     endif
 
 
     call broadcast(boundary_size)
-    call broadcast(blend_size)
+    call broadcast(krook_size)
+    call broadcast(nu_krook_mb)
     call broadcast(g_exb)
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
-    call broadcast(blend_option_switch)
+    call broadcast(krook_option_switch)
     call broadcast(RK_step)
+
+    if(krook_option_switch.ne.krook_option_default) include_multibox_krook = .true.
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
@@ -145,32 +153,43 @@ contains
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
       allocate(fsa_x(nakx))
     endif
-    if (.not.allocated(blending_mask)) allocate(blending_mask(boundary_size)); blending_mask=0.
+    if (.not.allocated(copy_mask_left))  allocate(copy_mask_left(boundary_size));  copy_mask_left =1.0
+    if (.not.allocated(copy_mask_right)) allocate(copy_mask_right(boundary_size)); copy_mask_right=1.0
+    if (.not.allocated(krook_mask_left))  allocate(krook_mask_left(boundary_size));  krook_mask_left =0.0
+    if (.not.allocated(krook_mask_right)) allocate(krook_mask_right(boundary_size)); krook_mask_right=0.0
 
     !gets the correct normalization in code units. Works for Miller. 
     !Not sure if its correct for stellarators/VMEC
     ! FLAG DSO - this should be moved to physics parameters
     g_exb = g_exb / geo_surf%rmaj
 
-    select case (blend_option_switch)
-    case (blend_option_default)
+    select case (krook_option_switch)
+    case (krook_option_default)
       ! do nothing
-    case (blend_option_linear)
-      db = 1.0/blend_size
-      do i = 1, blend_size
-        blending_mask(i) = 1.0-i*db
+    case (krook_option_linear)
+      db = 1.0/krook_size
+      do i = 1, krook_size
+        krook_mask_right(i) = i*db
+        copy_mask_right(i) = 0.0
       enddo
-    case (blend_option_expin)
-      db = 3.0/blend_size
-      do i = 1, blend_size
-        blending_mask(i) = (1.0-exp(-(blend_size-i)*db))/(1.0-exp(-3.0))
+    case (krook_option_expin)
+      db = 3.0/krook_size
+      do i = 1, krook_size
+        krook_mask_right(i) = 1.0-(1.0-exp(-(krook_size-i)*db))/(1.0-exp(-3.0))
+        copy_mask_right(i) = 0.0
       enddo
-    case (blend_option_expout)
-      db = 3.0/blend_size
-      do i = 1, blend_size
-        blending_mask(i) = 1.0-(1.0-exp(-i*db))/(1.0-exp(-3.0))
+    case (krook_option_expout)
+      db = 3.0/krook_size
+      do i = 1, krook_size
+        krook_mask_right(i) = (1.0-exp(-i*db))/(1.0-exp(-3.0))
+        copy_mask_right(i) = 0.0
       enddo
     end select
+
+    do i = 1, boundary_size
+      copy_mask_left(i)  = copy_mask_right(boundary_size - i + 1)
+      krook_mask_left(i) = krook_mask_right(boundary_size - i + 1)
+    enddo
 
     call scope(crossdomprocs)
 
@@ -199,6 +218,10 @@ contains
     if (allocated(g_buffer0))   deallocate (g_buffer0)
     if (allocated(g_buffer1))   deallocate (g_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
+    if (allocated(copy_mask_left))   deallocate (copy_mask_left)
+    if (allocated(copy_mask_right))  deallocate (copy_mask_right)
+    if (allocated(krook_mask_left))  deallocate (krook_mask_left)
+    if (allocated(krook_mask_right)) deallocate (krook_mask_right)
 
     call finish_mb_transforms
 
@@ -320,10 +343,11 @@ contains
             call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iky=1,naky
-                fft_xky(iky,ix) = fft_xky(iky,ix)*blending_mask(boundary_size-ix+1) &  
-                                  + (1.0-blending_mask(boundary_size-ix+1))*g_buffer0(num)
-                fft_xky(iky,ix+offset) = fft_xky(iky,ix+offset)*blending_mask(ix) &
-                                  + (1.0-blending_mask(ix))*g_buffer1(num)
+                fft_xky(iky,ix)        = fft_xky(iky,ix)*(1-copy_mask_left(ix)) &
+                                       + g_buffer0(num)*copy_mask_left(ix)
+                                        
+                fft_xky(iky,ix+offset) = fft_xky(iky,ix+offset)*(1-copy_mask_right(ix)) &
+                                       + g_buffer1(num)*copy_mask_right(ix)
                 num=num+1
               enddo
             enddo
@@ -354,6 +378,53 @@ contains
 
 #endif
   end subroutine multibox_communicate
+
+  subroutine add_multibox_krook (g, rhs)
+
+    use stella_time, only: code_dt
+    use stella_layouts, only: vmu_lo
+    use kt_grids, only:  nakx, naky
+    use zgrid, only: nzgrid, ntubes
+    use mp, only: job
+
+
+    implicit none
+
+    integer ::  iky, ix, iz, it, ivmu, num, offset
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: rhs
+
+    complex, allocatable, dimension (:,:) :: g0x, g0k
+    if(job /= 1) return
+
+    allocate (g0k(naky,nakx))
+    allocate (g0x(naky,nakx))
+    
+    offset = nakx - boundary_size
+
+    num=1
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          g0x = 0.0
+          call transform_kx2x(g(:,:,iz,it,ivmu),fft_xky)  
+          do ix=1,boundary_size
+            do iky=1,naky
+                g0x(iky,ix)        = (fft_xky(iky,ix)        - g_buffer0(num))*krook_mask_left(ix)
+                g0x(iky,ix+offset) = (fft_xky(iky,ix+offset) - g_buffer1(num))*krook_mask_right(ix)
+                num=num+1
+            enddo
+          enddo
+          call transform_x2kx(g0x,g0k)  
+          rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) - code_dt*nu_krook_mb*g0k
+        enddo
+      enddo
+    enddo
+
+    deallocate(g0k,g0x)
+
+  end subroutine add_multibox_krook
 
 
 
