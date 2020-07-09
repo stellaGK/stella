@@ -93,13 +93,15 @@ contains
 
   end subroutine init_init_g
 
-  subroutine ginit (restarted)
+  subroutine ginit (restarted,istep0)
 
     use stella_save, only: init_tstart
     logical, intent (out) :: restarted
+    integer, intent (out) :: istep0
     integer :: istatus
 
     restarted = .false.
+    istep0 = 0
     select case (ginitopt_switch)
     case (ginitopt_default)
        call ginit_default
@@ -111,7 +113,7 @@ contains
         call ginit_rh
     case (ginitopt_restart_many)
        call ginit_restart_many 
-       call init_tstart (tstart, istatus)
+       call init_tstart (tstart, istep0, istatus)
        restarted = .true.
        scale = 1.
 !    case (ginitopt_nltest)

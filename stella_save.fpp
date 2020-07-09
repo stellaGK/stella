@@ -18,6 +18,7 @@ module stella_save
   use netcdf, only: nf90_put_var, nf90_get_var, nf90_strerror
   use netcdf, only: nf90_inq_dimid, nf90_inquire_dimension
   use netcdf, only: nf90_inq_varid, nf90_inquire_variable
+  use netcdf, only: nf90_int
   
   use netcdf_utils, only: get_netcdf_code_precision
   use netcdf_utils, only: check_netcdf_file_precision
@@ -53,7 +54,7 @@ module stella_save
   integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id
   integer (kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
 !  integer (kind_nf) :: bparr_id, bpari_id
-  integer (kind_nf) :: t0id, gr_id, gi_id, delt0id
+  integer (kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
   integer (kind_nf) :: intkrook_id, intproj_id;
 
   logical :: initialized = .false.
@@ -68,7 +69,7 @@ contains
 !!----------------------------------------------------------------------!!
 
   subroutine stella_save_for_restart &
-       (g, t0, delt0, istatus, fphi, fapar, exit_in, fileopt)
+       (g, istep0, t0, delt0, istatus, fphi, fapar, exit_in, fileopt)
 
 # ifdef NETCDF
     use fields_arrays, only: phi, apar
@@ -93,6 +94,7 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, intent (in) :: t0, delt0
     real, intent (in) :: fphi, fapar
+    integer, intent (in) :: istep0
     integer, intent (out) :: istatus
     logical, intent (in), optional :: exit_in
     character (20), INTENT (in), optional :: fileopt
@@ -280,6 +282,13 @@ contains
           write(ierr,*) "nf90_def_var t0 error: ", nf90_strerror(istatus)
           goto 1
        end if
+
+       istatus = nf90_def_var (ncid, "istep0", nf90_int, istep0id)
+       if (istatus /= NF90_NOERR) then
+          ierr = error_unit()
+          write(ierr,*) "nf90_def_var istep0 error: ", nf90_strerror(istatus)
+          goto 1
+       end if
        
        istatus = nf90_def_var (ncid, "delt0", netcdf_real, delt0id)
        if (istatus /= NF90_NOERR) then
@@ -461,6 +470,13 @@ contains
        if (istatus /= NF90_NOERR) then
           ierr = error_unit()
           write (ierr,*) "nf90_put_var t0 error: ", nf90_strerror(istatus)
+          goto 1
+       end if
+
+       istatus = nf90_put_var (ncid, istep0id, istep0)
+       if (istatus /= NF90_NOERR) then
+          ierr = error_unit()
+          write (ierr,*) "nf90_put_var istep0 error: ", nf90_strerror(istatus)
           goto 1
        end if
 
@@ -1130,7 +1146,7 @@ contains
 
   end subroutine init_dt
 
-  subroutine init_tstart (tstart, istatus)
+  subroutine init_tstart (tstart, istep0, istatus)
 
 # ifdef NETCDF
     use mp, only: proc0, broadcast
@@ -1138,6 +1154,7 @@ contains
 # endif
     implicit none
     real, intent (in out) :: tstart
+    integer, intent (out) :: istep0
     integer, intent (out) :: istatus
 # ifdef NETCDF
     character (306) :: file_proc
@@ -1167,11 +1184,22 @@ contains
           call netcdf_error (istatus, ncid, t0id, message=' in init_tstart')
           tstart = -1.
        end if           
+
+       istatus = nf90_inq_varid (ncid, "istep0", istep0id)
+       if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='istep0')
+
+       istatus = nf90_get_var (ncid, istep0id, istep0)
+       if (istatus /= NF90_NOERR) then
+          call netcdf_error (istatus, ncid, istep0id, message=' in init_tstart')
+          istep0 = -1
+       end if           
+
        if (.not.initialized) istatus = nf90_close (ncid)
           
     endif
 
     call broadcast (istatus)
+    call broadcast (istep0)
     call broadcast (tstart)
 
 # endif

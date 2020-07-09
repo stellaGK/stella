@@ -246,17 +246,28 @@ contains
     end do
   end subroutine get_unused_unit
 
-  subroutine open_output_file (unit, ext)
+  subroutine open_output_file (unit, ext, overwrite_in)
     ! open an output file to write (replacing any existing)
     ! whose name is [[run_name]] + [[ext]], and set [[unit]] to the 
     ! unit number of that output file.
     implicit none
     integer, intent (out) :: unit
+    logical, intent (in), optional :: overwrite_in
+    logical :: overwrite
     character (*), intent (in) :: ext
     character (500) :: hack
+    if (present (overwrite_in)) then
+       overwrite = overwrite_in
+    else
+       overwrite = .true.
+    end if
     call get_unused_unit (unit)
     hack=trim(run_name)//ext
-    open (unit=unit, file=trim(hack), status="replace", action="write")
+    if(overwrite) then
+      open (unit=unit, file=trim(hack), status="replace", action="write")
+    else 
+      open (unit=unit, file=trim(hack), status="old", action="write", position="append")
+    endif
   end subroutine open_output_file
 
   subroutine close_output_file (unit)

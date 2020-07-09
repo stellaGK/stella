@@ -17,27 +17,27 @@ program stella
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
-  integer :: istep, ierr
+  integer :: istep0, istep, ierr
   integer :: istatus
   real, dimension (2) :: time_init = 0.
   real, dimension (2) :: time_diagnostics = 0.
   real, dimension (2) :: time_total = 0.
 
-  call init_stella
+  call init_stella(istep0)
 
   if (debug) write (*,*) 'stella::diagnose_stella'
-  call diagnose_stella (0)
+  if (istep0.eq.0) call diagnose_stella (istep0)
 
   if (debug) write (*,*) 'stella::advance_stella'
-  do istep = 1, nstep
+  do istep = (istep0+1), nstep
      if (debug) write (*,*) 'istep = ', istep
      call advance_stella (istep)
 !     call advance_stella
+     call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, code_time, code_dt, istatus, fphi, fapar)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar)
      end if
-     call update_time
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
      call time_message(.false.,time_diagnostics,' diagnostics')
@@ -53,7 +53,7 @@ program stella
 
 contains
 
-  subroutine init_stella
+  subroutine init_stella(istep0)
 
     use mp, only: init_mp, broadcast
     use mp, only: proc0,job
@@ -99,6 +99,7 @@ contains
 
     implicit none
 
+    integer, intent (out) :: istep0
     logical :: exit, list, restarted
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
@@ -207,7 +208,7 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
     if (debug) write(6,*) "stella::init_stella::ginit"
-    call ginit (restarted)
+    call ginit (restarted,istep0)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz (restarted)
     if (debug) write(6,*) "stella::init_stella::init_response_matrix"
@@ -221,7 +222,7 @@ contains
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
-    call init_stella_diagnostics (nstep)
+    call init_stella_diagnostics (restarted,nstep,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
 
@@ -258,7 +259,7 @@ contains
     use job_manage, only: time_message
     use physics_parameters, only: finish_physics_parameters
     use physics_flags, only: finish_physics_flags
-    use run_parameters, only: finish_run_parameters
+    use run_parameters, only: finish_run_parameters, nstep
     use zgrid, only: finish_zgrid
     use species, only: finish_species
     use time_advance, only: time_gke, time_parallel_nl
@@ -282,7 +283,7 @@ contains
     logical, intent (in), optional :: last_call
 
     if (debug) write (*,*) 'stella::finish_stella::finish_stella_diagnostics'
-    call finish_stella_diagnostics
+    call finish_stella_diagnostics(nstep)
     if (debug) write (*,*) 'stella::finish_stella::finish_response_matrix'
     call finish_response_matrix
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'

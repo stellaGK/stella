@@ -42,7 +42,7 @@ module stella_diagnostics
 
 contains
 
-  subroutine init_stella_diagnostics (nstep)
+  subroutine init_stella_diagnostics (restart, nstep, tstart)
 
     use zgrid, only: init_zgrid
     use kt_grids, only: init_kt_grids
@@ -52,12 +52,14 @@ contains
     use species, only: init_species
     use dist_fn, only: init_dist_fn
     use init_g, only: init_init_g
-    use stella_io, only: init_stella_io
+    use stella_io, only: init_stella_io, get_nout
     use mp, only: broadcast, proc0
 
     implicit none
 
     integer, intent (in) :: nstep
+    logical, intent (in) :: restart
+    real, intent (in) :: tstart
 
     integer :: nmovie_tot
 
@@ -93,11 +95,13 @@ contains
     nmovie_tot = nstep/nmovie
     
     call init_averages
-    call init_stella_io (write_phi_vs_time, write_kspectra, &
+    call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
 !         write_gvmus, write_gzvs, write_symmetry, write_moments)
          write_gvmus, write_gzvs, write_moments)
-    call open_loop_ascii_files
-    
+    call open_loop_ascii_files(restart)
+
+    if(proc0) call get_nout(tstart,nout)
+    call broadcast (nout)
   end subroutine init_stella_diagnostics
   
   subroutine read_parameters
@@ -178,23 +182,28 @@ contains
 
   end subroutine init_averages
 
-  subroutine open_loop_ascii_files
+  subroutine open_loop_ascii_files(restart)
 
     use file_utils, only: open_output_file
     use species, only: nspec
 
     implicit none
 
+    logical, intent (in) :: restart
     character (3) :: nspec_str
     character (100) :: str
 
-    call open_output_file (stdout_unit,'.out')
-    call open_output_file (fluxes_unit,'.fluxes')
+    logical :: overwrite
+
+    overwrite = .not.restart
+
+    call open_output_file (stdout_unit,'.out',overwrite)
+    call open_output_file (fluxes_unit,'.fluxes',overwrite)
     write (nspec_str,'(i3)') nspec*12
     str = trim('(2a12,2a'//trim(nspec_str)//')')
     write (fluxes_unit,str) '#time', 'pflx', 'vflx', 'qflx'
     if (write_omega) then
-       call open_output_file (omega_unit,'.omega')
+       call open_output_file (omega_unit,'.omega',overwrite)
        write (omega_unit,'(7a12)') '#time', 'ky', 'kx', &
             'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
     end if
@@ -771,7 +780,7 @@ contains
 
   end subroutine get_gzvs
 
-  subroutine finish_stella_diagnostics
+  subroutine finish_stella_diagnostics(istep)
 
     use mp, only: proc0
     use redistribute, only: scatter
@@ -785,6 +794,7 @@ contains
     implicit none
 
     integer :: istatus
+    integer, intent (in) :: istep
 
     if (proc0) then
        call write_final_ascii_files
@@ -792,7 +802,7 @@ contains
     end if
     if (save_for_restart) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, code_time, code_dt, istatus, fphi, fapar, .true.)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, .true.)
     end if
     call finish_stella_io
     call finish_averages
