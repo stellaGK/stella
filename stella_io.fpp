@@ -1209,7 +1209,7 @@ contains
       status = nf90_get_var(ncid,time_id,times)
       if (status /= nf90_noerr) call netcdf_error (status, ncid, time_dim)
       i=length
-      do while (times(i).gt.tstart)
+      do while (times(i).gt.tstart.and.i.gt.0)
         i = i-1
       end do
     

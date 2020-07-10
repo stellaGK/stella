@@ -305,6 +305,7 @@ contains
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
+    dl_over_b(:,nzgrid) = 0
 
     ! this is the correction to flux-surface-averaging for adiabatic electrons
     d_dl_over_b_drho = spread(delzed,1,nalpha)*djacdrho
