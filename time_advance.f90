@@ -1212,12 +1212,12 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky, x
+    use kt_grids, only: akx, aky, x, dx
     use physics_flags, only: full_flux_surface, radial_variation
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: bs_fullgrid, g_exb, xL, xR
+    use multibox, only: bs_fullgrid, g_exb, xL, xR, kx0_L, kx0_R
     use smooth_step
 
     implicit none
@@ -1257,18 +1257,25 @@ contains
                         g_exb*g_exb > epsilon(0.0))  then
       select case (job)
       case (0)
-        shear= g_exb*xL
+        do i=1,nx
+          shear(i) = g_exb*(xL + sin(akx(2)*dx*(i-bs_fullgrid))/akx(2))
+        enddo
       case (1)
         ccount = nx - 2*bs_fullgrid
-        shear(1:bs_fullgrid)         = g_exb*xL
-        shear((nx-bs_fullgrid+1):nx) = g_exb*xR
         do i=1,ccount
           shear(i+bs_fullgrid) = g_exb*x(i+bs_fullgrid)
-          !r0 = (1.0*i)/(1.0*ccount+1)
-          !shear(i+bs_fullgrid) = smoothstep(r0,2,-g_exb,g_exb)
+        enddo
+
+        !shear(1:bs_fullgrid)         = g_exb*xL
+        !shear((nx-bs_fullgrid+1):nx) = g_exb*xR
+        do i = 1, bs_fullgrid
+          shear(i)                = g_exb*(xL + sin(kx0_L*dx*(i-bs_fullgrid))/kx0_L)
+          shear(nx-bs_fullgrid+i) = g_exb*(xR + sin(kx0_R*dx*(i-1))/kx0_R)
         enddo
       case (2)
-        shear= g_exb*xR
+        do i=1,nx
+          shear(i) = g_exb*(xR + sin(akx(2)*dx*(i-1+bs_fullgrid))/akx(2))
+        enddo
       end select
     endif
 
