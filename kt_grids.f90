@@ -8,7 +8,7 @@ module kt_grids
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky
-  public :: jtwist, ikx_twist_shift, x0, y0, x
+  public :: jtwist, ikx_twist_shift, x0, y0, x, x_clamped
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -24,7 +24,7 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
-  real, dimension (:), allocatable :: x
+  real, dimension (:), allocatable :: x, x_clamped
   real :: dx, dy, dkx, dky
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift

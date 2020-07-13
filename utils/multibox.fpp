@@ -13,6 +13,7 @@ module multibox
   public :: bs_fullgrid
   public :: g_exb
   public :: xL, xR
+  public :: kx0_L, kx0_R
   public :: RK_step
   public :: include_multibox_krook
 
@@ -41,6 +42,7 @@ module multibox
   
 
   real :: xL = 0., xR = 0.
+  real :: kx0_L, kx0_R
 
 !>DSO 
 ! the multibox simulation has one parameter: boundary_size
@@ -64,7 +66,7 @@ contains
   subroutine init_multibox (geo_surf)
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky,nx,x
+    use kt_grids, only: nakx,naky,akx, nx,x, x_clamped
     use file_utils, only: input_unit_exist, error_unit
     use file_utils, only: runtype_option_switch, runtype_multibox
     use text_options, only: text_option, get_option_value
@@ -198,10 +200,22 @@ contains
       xR = x(nx-bs_fullgrid+1)
       call send(xL,0)
       call send(xR,njobs-1)
+
+      if(.not.allocated(x_clamped)) allocate(x_clamped(nx))
+      x_clamped = x
+      do i = 1, nx
+        if(x_clamped(i) < xL) x_clamped(i) = xL
+        if(x_clamped(i) > xR) x_clamped(i) = xR
+      enddo
+
+      call receive(kx0_L,0)
+      call receive(kx0_R,njobs-1)
     else if(job==0) then
       call receive(xL,1)
+      call send(akx(2),1)
     elseif(job==njobs-1) then
       call receive(xR,1)
+      call send(akx(2),1)
     endif
 
     call scope(subprocs)
@@ -213,11 +227,15 @@ contains
 
   subroutine finish_multibox
 
+    use kt_grids, only: x_clamped
+
     implicit none
 
     if (allocated(g_buffer0))   deallocate (g_buffer0)
     if (allocated(g_buffer1))   deallocate (g_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
+    if (allocated(x_clamped))   deallocate (x_clamped)
+
     if (allocated(copy_mask_left))   deallocate (copy_mask_left)
     if (allocated(copy_mask_right))  deallocate (copy_mask_right)
     if (allocated(krook_mask_left))  deallocate (krook_mask_left)

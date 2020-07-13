@@ -305,10 +305,14 @@ contains
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
-    dl_over_b(:,nzgrid) = 0
+    ! the next line is to avoid double counting.  You'd be suprised what sort of errors you'd get if you do so!
+     dl_over_b(:,nzgrid) = 0 
+    !dl_over_b(:,-nzgrid) = 0.5*dl_over_b(:,-nzgrid)
+    !dl_over_b(:,nzgrid) = 0.5*dl_over_b(:,nzgrid)
 
     ! this is the correction to flux-surface-averaging for adiabatic electrons
     d_dl_over_b_drho = spread(delzed,1,nalpha)*djacdrho
+    d_dl_over_b_drho(:,nzgrid) = 0
     d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b & 
                      * spread(sum(d_dl_over_b_drho,dim=2)/sum(dl_over_b,dim=2),2,2*nzgrid+1) 
     d_dl_over_b_drho = d_dl_over_b_drho / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
