@@ -260,6 +260,14 @@ contains
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
+
+    ! the next line is to avoid double counting the end points for ky = 0 modes (which leads to destabilization 
+    ! of the zonal modes for certain input parameters)
+    ! FLAG DSO - while this is correct for ky = 0 modes and sufficient for output, if dl_over_b is applied to 
+    ! non-zero ky modes, a more sophisticated approach will be required that takes into account the sign of 
+    ! v_parallel
+    dl_over_b(:,nzgrid) = 0.
+
     ! normalize dl/B by int dl/B
     dl_over_b = dl_over_b / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
 
