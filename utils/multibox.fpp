@@ -11,7 +11,7 @@ module multibox
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
-  public :: g_exb
+  public :: g_exb, shear
   public :: xL, xR
   public :: kx0_L, kx0_R
   public :: RK_step
@@ -22,6 +22,7 @@ module multibox
   complex, dimension (:), allocatable :: g_buffer0
   complex, dimension (:), allocatable :: g_buffer1
   complex, dimension (:), allocatable :: fsa_x
+  real,    dimension (:), allocatable :: shear
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   
@@ -39,6 +40,7 @@ module multibox
   logical :: mb_transforms_initialized = .false.
   integer :: temp_ind = 0
   integer :: bs_fullgrid
+  integer :: mb_debug_step
   
 
   real :: xL = 0., xR = 0.
@@ -60,6 +62,10 @@ module multibox
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
                         mb_zf_option_no_fsa  = 2
+  integer :: shear_option_switch
+  integer, parameter:: shear_option_triangle  = 0, &
+                       shear_option_sine      = 1, &
+                       shear_option_flat      = 2 
 
 contains
 
@@ -79,6 +85,8 @@ contains
     implicit none
 
 #ifndef MPI
+
+    allocate (shear(1)); shear(1)=0.0
     return
 #else
 
@@ -102,10 +110,17 @@ contains
       (/ text_option('default', mb_zf_option_default), &
          text_option('no_ky0',  mb_zf_option_no_ky0) , &
          text_option('no_fsa',  mb_zf_option_no_fsa)/)
-    character(30) :: zf_option, krook_option
+    type (text_option), dimension (4), parameter :: shear_opts = &
+      (/ text_option('default',  shear_option_triangle), &
+         text_option('triangle', shear_option_triangle) , &
+         text_option('sine',     shear_option_sine), &
+         text_option('flat',     shear_option_flat)/)
+    character(30) :: zf_option, krook_option, shear_option
 
-    namelist /multibox_parameters/ boundary_size, krook_size, g_exb, smooth_ZFs, zf_option, &
-                                   krook_option, RK_step, nu_krook_mb
+    namelist /multibox_parameters/ boundary_size, krook_size, shear_option,& 
+                                   g_exb, smooth_ZFs, zf_option, &
+                                   krook_option, RK_step, nu_krook_mb, &
+                                   mb_debug_step
 
     if(runtype_option_switch /= runtype_multibox) return
 
@@ -113,9 +128,11 @@ contains
     krook_size = 0
     nu_krook_mb = 0.0
     g_exb = 0.
+    mb_debug_step = 1000
     smooth_ZFs = .false.
     RK_step = .false.
     zf_option = 'default'
+    shear_option = 'default'
     krook_option = 'default'
     
     if (proc0) then
@@ -129,6 +146,9 @@ contains
       call get_option_value & 
         (zf_option, mb_zf_opts, mb_zf_option_switch, & 
          ierr, "zf_option in multibox_parameters")
+      call get_option_value & 
+        (shear_option, shear_opts, shear_option_switch, & 
+         ierr, "shear_option in multibox_parameters")
 
        if(krook_size > boundary_size) krook_size = boundary_size 
     endif
@@ -141,7 +161,9 @@ contains
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
     call broadcast(krook_option_switch)
+    call broadcast(shear_option_switch)
     call broadcast(RK_step)
+    call broadcast(mb_debug_step)
 
     if(krook_option_switch.ne.krook_option_default) include_multibox_krook = .true.
 
@@ -220,6 +242,8 @@ contains
 
     call scope(subprocs)
 
+    call init_shear
+
     call init_mb_transforms
   
 #endif
@@ -235,6 +259,7 @@ contains
     if (allocated(g_buffer1))   deallocate (g_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
     if (allocated(x_clamped))   deallocate (x_clamped)
+    if (allocated(shear))       deallocate (shear)
 
     if (allocated(copy_mask_left))   deallocate (copy_mask_left)
     if (allocated(copy_mask_right))  deallocate (copy_mask_right)
@@ -244,6 +269,80 @@ contains
     call finish_mb_transforms
 
   end subroutine finish_multibox
+
+  subroutine init_shear
+
+    use kt_grids, only: akx, nx, x, dx
+    use mp, only: job
+
+    implicit none
+
+    integer :: i, j, ccount
+
+    if (.not.allocated(shear)) allocate(shear(nx)); shear = 0.0
+
+    if(g_exb*g_exb > epsilon(0.0))  then
+      select case (job)
+
+      case (0)
+        do i=1,nx
+          select case (shear_option_switch)
+
+          case (shear_option_triangle)
+            j=i-bs_fullgrid-nx/2
+            do while(j<1) 
+              j = j + nx
+            enddo
+            shear(j) = g_exb*(xL + dx*(abs(i-nx/2) - abs(2*bs_fullgrid)))
+          case (shear_option_sine)
+            shear(i) = g_exb*(xL + sin(akx(2)*dx*(i-bs_fullgrid))/akx(2))
+          case (shear_option_flat)
+            shear(i) = g_exb*xL
+          end select
+        enddo
+      case (1)
+        select case (shear_option_switch)
+          
+        case (shear_option_triangle)
+          do i=1,nx
+            shear(i) = g_exb*x(i)
+          enddo
+        case (shear_option_sine)
+          do i=1,nx
+            shear(i) = g_exb*x(i)
+          enddo
+          do i = 1, bs_fullgrid
+            shear(i)                = g_exb*(xL + sin(kx0_L*dx*(i-bs_fullgrid))/kx0_L)
+            shear(nx-bs_fullgrid+i) = g_exb*(xR + sin(kx0_R*dx*(i-1))/kx0_R)
+          enddo
+        case (shear_option_flat)
+          ccount = nx - 2*bs_fullgrid
+          do i=1,ccount
+            shear(i+bs_fullgrid) = g_exb*x(i+bs_fullgrid)
+          enddo
+          shear(1:bs_fullgrid)         = g_exb*xL
+          shear((nx-bs_fullgrid+1):nx) = g_exb*xR
+        end select
+      case (2)
+        do i=1,nx
+          select case (shear_option_switch)
+          
+          case (shear_option_triangle)
+            j=i+bs_fullgrid
+            do while(j>nx) 
+              j = j - nx
+            enddo
+            shear(j) = g_exb*(xR + dx*(abs(i-nx/2) - abs(nx/2 - 2*bs_fullgrid + 1)))
+          case (shear_option_sine)
+            shear(i) = g_exb*(xR + sin(akx(2)*dx*(i-1+bs_fullgrid))/akx(2))
+          case (shear_option_flat)
+            shear(i) = g_exb*xR
+          end select
+        enddo
+      end select
+    endif
+
+  end subroutine init_shear
 
   subroutine multibox_communicate (gin)
 
@@ -277,7 +376,7 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 
-    if(mod(temp_ind,1000)==0 .and. proc0) then
+    if(mod(temp_ind,mb_debug_step)==0 .and. proc0) then
      ! call get_unused_unit(temp_unit)
       temp_unit=3023+job
       afacx = real(nx)/real(nakx)
@@ -308,7 +407,7 @@ contains
     if(job==0 .or. job==(njobs-1)) then
       offset=0;
       ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
-      ! FLAG DSO - might do something weird with shear
+      ! FLAG DSO - might do something weird with magnetic shear
       if(job==njobs-1) offset=nakx-boundary_size
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc

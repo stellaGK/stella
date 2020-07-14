@@ -1198,7 +1198,7 @@ contains
   subroutine advance_ExB_nonlinearity (g, gout, restart_time_step)
 
     use mp, only: proc0, min_allreduce
-    use mp, only: scope, allprocs, subprocs, job
+    use mp, only: scope, allprocs, subprocs
     use stella_layouts, only: vmu_lo, imu_idx, is_idx
     use job_manage, only: time_message
     use gyro_averages, only: gyro_average
@@ -1212,13 +1212,12 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky, x, dx
+    use kt_grids, only: akx, aky
     use physics_flags, only: full_flux_surface, radial_variation
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: bs_fullgrid, g_exb, xL, xR, kx0_L, kx0_R
-    use smooth_step
+    use multibox, only: shear
 
     implicit none
 
@@ -1230,10 +1229,8 @@ contains
     complex, dimension (:,:), allocatable :: g0k, g0a, g0k_swap
     complex, dimension (:,:), allocatable :: g0kxy
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
-    real, dimension (:), allocatable :: shear
 
-    integer ccount
-    integer :: ivmu, iz, it, i, ia, imu, is
+    integer :: ivmu, iz, it, ia, imu, is
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
@@ -1249,35 +1246,6 @@ contains
     allocate (g0xy(ny,nx))
     allocate (g1xy(ny,nx))
     allocate (bracket(ny,nx))
-    allocate (shear(nx))
-
-    shear=0.0
-
-    if(runtype_option_switch == runtype_multibox .and. &
-                        g_exb*g_exb > epsilon(0.0))  then
-      select case (job)
-      case (0)
-        do i=1,nx
-          shear(i) = g_exb*(xL + sin(akx(2)*dx*(i-bs_fullgrid))/akx(2))
-        enddo
-      case (1)
-        ccount = nx - 2*bs_fullgrid
-        do i=1,ccount
-          shear(i+bs_fullgrid) = g_exb*x(i+bs_fullgrid)
-        enddo
-
-        !shear(1:bs_fullgrid)         = g_exb*xL
-        !shear((nx-bs_fullgrid+1):nx) = g_exb*xR
-        do i = 1, bs_fullgrid
-          shear(i)                = g_exb*(xL + sin(kx0_L*dx*(i-bs_fullgrid))/kx0_L)
-          shear(nx-bs_fullgrid+i) = g_exb*(xR + sin(kx0_R*dx*(i-1))/kx0_R)
-        enddo
-      case (2)
-        do i=1,nx
-          shear(i) = g_exb*(xR + sin(akx(2)*dx*(i-1+bs_fullgrid))/akx(2))
-        enddo
-      end select
-    endif
 
     ia=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1371,7 +1339,7 @@ contains
        gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
     end do
 
-    deallocate (g0k, g0a, g0k_swap, g0kxy, g0xy, g1xy, bracket,shear)
+    deallocate (g0k, g0a, g0k_swap, g0kxy, g0xy, g1xy, bracket)
 
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 
