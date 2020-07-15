@@ -1384,6 +1384,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx
     use multibox, only: shear
+    use stella_time, only: code_dt
 
     implicit none
 
@@ -1408,7 +1409,7 @@ contains
             g0x = -spread(shear,1,naky)*g0x
             call transform_x2kx_solo (g0x, g0k)
 
-            gout(:,:,iz,it,ivmu)  = g0k
+            gout(:,:,iz,it,ivmu)  = gout(:,:,iz,it,ivmu) + code_dt*g0k
           end do
        end do
     end do
