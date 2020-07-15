@@ -94,7 +94,7 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
     use stella_save, only: init_dt
-    use multibox, only: init_multibox, xL, xR
+    use multibox, only: read_multibox_parameters, init_multibox, xL, xR, g_exb
     use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
@@ -146,13 +146,16 @@ contains
     call init_zgrid
     if (debug) write (6,*) "stella::init_stella::read_species_knobs"
     call read_species_knobs
+    if (debug) write (6,*) "stella::init_stella::read_multibox_parameters"
+    call read_multibox_parameters
     if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_kt_grids_parameters
     if (debug) write (6,*) "stella::init_stella::read_vpamu_grids_parameters"
     call read_vpamu_grids_parameters
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity .or. radial_variation) then
+    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
+        .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0)) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
        call init_transforms
     end if
@@ -191,7 +194,7 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
     if (debug) write (6,*) 'stella::init_stella::init_multibox'
-    call init_multibox(geo_surf)
+    call init_multibox
     if (proc0.and.runtype_option_switch.eq.runtype_multibox &
              .and.(job.eq.1).and.radial_variation) then
       call communicate_geo_multibox(xL,xR)

@@ -936,7 +936,7 @@ contains
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: include_multibox_krook, add_multibox_krook
+    use multibox, only: include_multibox_krook, add_multibox_krook, g_exb
 
     implicit none
 
@@ -971,6 +971,10 @@ contains
     ! do this first, as the CFL condition may require a change in time step
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+
+    !if we don't use advance_ExB_nonlinearity but still need shear, call the stand-alone routine
+    !and save on some FFTs
+    if (.not.nonlinear.and.(g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
@@ -1372,6 +1376,46 @@ contains
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
   end subroutine advance_ExB_nonlinearity
+
+  subroutine advance_equilibrium_shear (g, gout)
+
+    use stella_layouts, only: vmu_lo
+    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, naky, nx
+    use multibox, only: shear
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+    
+
+    complex, dimension (:,:), allocatable :: g0k, g0x
+
+    integer :: ivmu, iz, it
+
+    allocate (g0k(naky,nakx))
+    allocate (g0x(naky,nx))
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            call get_dgdy (g(:,:,iz,it,ivmu), g0k)
+
+            !inverse and forward transforms
+            call transform_kx2x_solo (g0k, g0x)
+            g0x = -spread(shear,1,naky)*g0x
+            call transform_x2kx_solo (g0x, g0k)
+
+            gout(:,:,iz,it,ivmu)  = g0k
+          end do
+       end do
+    end do
+
+    deallocate (g0k, g0x)
+
+  end subroutine advance_equilibrium_shear
 
   subroutine advance_parallel_nonlinearity (g, gout, restart_time_step)
 

@@ -5,6 +5,7 @@ module multibox
 
   implicit none
 
+  public :: read_multibox_parameters
   public :: init_multibox
   public :: finish_multibox
   public :: multibox_communicate
@@ -69,37 +70,18 @@ module multibox
 
 contains
 
-  subroutine init_multibox (geo_surf)
-    use stella_layouts, only: vmu_lo
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky,akx, nx,x, x_clamped
+  subroutine read_multibox_parameters
+
     use file_utils, only: input_unit_exist, error_unit
     use file_utils, only: runtype_option_switch, runtype_multibox
     use text_options, only: text_option, get_option_value
-    use job_manage, only: njobs
-    use physics_flags, only: radial_variation
-    use mp, only: broadcast, proc0, job
-    use mp, only: scope, crossdomprocs, subprocs, &
-                  send, receive
+    use mp, only: broadcast, proc0
 
     implicit none
-
-#ifndef MPI
-
-    allocate (shear(1)); shear(1)=0.0
-    return
-#else
-
-    type (flux_surface_type) :: geo_surf
 
     integer :: in_file, ierr
     logical exist
     
-    integer :: g_buff_size
-    integer :: phi_buff_size
-    integer :: i
-
-    real :: db
 
     type (text_option), dimension (4), parameter :: krook_opts = &
       (/ text_option('default', krook_option_default), &
@@ -167,6 +149,34 @@ contains
 
     if(krook_option_switch.ne.krook_option_default) include_multibox_krook = .true.
 
+
+  end subroutine read_multibox_parameters
+
+  subroutine init_multibox 
+    use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx,naky,akx, nx,x, x_clamped
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use job_manage, only: njobs
+    use mp, only: scope, crossdomprocs, subprocs, &
+                  send, receive, job
+
+    implicit none
+
+#ifndef MPI
+
+    allocate (shear(1)); shear(1)=0.0
+    return
+#else
+
+    integer :: g_buff_size
+    integer :: phi_buff_size
+    integer :: i
+
+    real :: db
+
+    if(runtype_option_switch /= runtype_multibox) return
+
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
     phi_buff_size = boundary_size*naky*ntubes*(2*nzgrid+1)
@@ -181,11 +191,6 @@ contains
     if (.not.allocated(copy_mask_right)) allocate(copy_mask_right(boundary_size)); copy_mask_right=1.0
     if (.not.allocated(krook_mask_left))  allocate(krook_mask_left(boundary_size));  krook_mask_left =0.0
     if (.not.allocated(krook_mask_right)) allocate(krook_mask_right(boundary_size)); krook_mask_right=0.0
-
-    !gets the correct normalization in code units. Works for Miller. 
-    !Not sure if its correct for stellarators/VMEC
-    ! FLAG DSO - this should be moved to physics parameters
-    g_exb = g_exb / geo_surf%rmaj
 
     select case (krook_option_switch)
     case (krook_option_default)
@@ -341,6 +346,10 @@ contains
         enddo
       end select
     endif
+
+    do i=1,nx
+      write (*,*) i, shear(i), job
+    enddo
 
   end subroutine init_shear
 
