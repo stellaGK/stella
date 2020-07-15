@@ -7,8 +7,9 @@ module kt_grids
   public :: read_kt_grids_parameters
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
-  public :: dx,dy,dkx, dky
-  public :: jtwist, ikx_twist_shift, x0, y0, x, x_clamped
+  public :: dx,dy,dkx, dky, dx_d
+  public :: jtwist, ikx_twist_shift, x0, y0, x
+  public :: x_d, x_clamped
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -24,8 +25,8 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
-  real, dimension (:), allocatable :: x, x_clamped
-  real :: dx, dy, dkx, dky
+  real, dimension (:), allocatable :: x, x_d, x_clamped
+  real :: dx, dy, dkx, dky, dx_d
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
@@ -288,11 +289,17 @@ contains
 
     ! for radial variation
     if(.not.allocated(x)) allocate (x(nx))
+    if(.not.allocated(x_d)) allocate (x_d(nakx))
 
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
     do ikx = 1, nx
       x(ikx) = (ikx-0.5)*dx - pi*x0
+    enddo
+
+    dx_d = (2*pi*x0)/nakx
+    do ikx = 1, nakx
+      x_d(ikx) = (ikx-0.5)*dx_d - pi*x0
     enddo
     
   end subroutine init_kt_grids_box
@@ -586,6 +593,7 @@ contains
     if (allocated(theta0)) deallocate (theta0)
 
     if (allocated(x)) deallocate (x)
+    if (allocated(x_d)) deallocate (x_d)
 
     reality = .false.
     read_kt_grids_initialized = .false.

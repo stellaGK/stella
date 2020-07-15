@@ -13,7 +13,7 @@ program stella
 
   implicit none
 
-  logical :: debug = .false.
+  logical :: debug = .true.
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
