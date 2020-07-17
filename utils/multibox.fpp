@@ -167,11 +167,6 @@ contains
 
     implicit none
 
-#ifndef MPI
-
-    allocate (shear(1)); shear(1)=0.0
-    return
-#else
 
     integer :: g_buff_size
     integer :: phi_buff_size
@@ -179,7 +174,10 @@ contains
 
     real :: db
 
-    if(runtype_option_switch /= runtype_multibox) return
+    if(runtype_option_switch /= runtype_multibox) then
+      allocate (shear(1)); shear(1)=0.0
+      return
+    endif
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
@@ -261,7 +259,6 @@ contains
 
     call init_shear
   
-#endif
   end subroutine init_multibox
 
   subroutine finish_multibox
@@ -440,10 +437,6 @@ contains
         end select
       endif
     endif
-
-    do i=1,nx
-      write (*,*) i, shear(i), job
-    enddo
 
   end subroutine init_shear
 
