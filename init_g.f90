@@ -388,15 +388,21 @@ contains
 
     ia = 1
     if (proc0) then
+       phi(1,1,:,:) = 0.0
+
        ! keep old (ikx, iky) loop order to get old results exactly: 
-       if (naky > 1 .and. nakx > 1) then
+       if(nakx .eq.1) then
+          kmin = minval(kperp2(2,1,ia,:))
+       else if(naky.eq.1) then
+          kmin = minval(kperp2(1,2,ia,:))
+       else
           kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
-          phi(1,1,:,:) = 0.0
-          if(runtype_option_switch == runtype_multibox) then
-           call scope(crossdomprocs)
-           call max_allreduce (kmin)
-           call scope(subprocs)
-         end if
+       end if
+
+       if(runtype_option_switch == runtype_multibox) then
+         call scope(crossdomprocs)
+         call max_allreduce (kmin)
+         call scope(subprocs)
        end if
 
        !Fill phi with random (complex) numbers between -0.5 and 0.5
