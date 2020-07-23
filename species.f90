@@ -216,8 +216,8 @@ contains
          close (1002)
 
          dr = geo_surf%rhoc - 0.5
-         spec(is)%dens = dens*(1.0 - dr*fprim + 0.5*dr**2*d2ndr2)
-         spec(is)%temp = temp*(1.0 - dr*tprim + 0.5*dr**2*d2Tdr2)
+         spec(is)%dens = dens*(1.0 - dr*fprim)! + 0.5*dr**2*d2ndr2)
+         spec(is)%temp = temp*(1.0 - dr*tprim)! + 0.5*dr**2*d2Tdr2)
          spec(is)%fprim = (fprim - dr*d2ndr2)*(dens/spec(is)%dens)
          spec(is)%tprim = (tprim - dr*d2Tdr2)*(temp/spec(is)%temp)
          !spec(is)%dens = 1.0
@@ -426,13 +426,13 @@ contains
         dr_p=  rhostar*r_edge*drhodpsi/dxdpsi
 
         ! recall that fprim and tprim are the negative gradients
-        ldens  =  spec%dens*(1.0 - dr_m*spec%fprim + 0.5*dr_m**2*spec%d2ndr2)
-        ltemp  =  spec%temp*(1.0 - dr_m*spec%tprim + 0.5*dr_m**2*spec%d2Tdr2)
+        ldens  =  spec%dens*(1.0 - dr_m*spec%fprim)! + 0.5*dr_m**2*spec%d2ndr2)
+        ltemp  =  spec%temp*(1.0 - dr_m*spec%tprim)! + 0.5*dr_m**2*spec%d2Tdr2)
         lfprim = (spec%fprim - dr_m*spec%d2ndr2)*(spec%dens/ldens)
         ltprim = (spec%tprim - dr_m*spec%d2Tdr2)*(spec%temp/ltemp)
 
-        rdens  =  spec%dens*(1.0 - dr_p*spec%fprim + 0.5*dr_p**2*spec%d2ndr2)
-        rtemp  =  spec%temp*(1.0 - dr_p*spec%tprim + 0.5*dr_p**2*spec%d2Tdr2)
+        rdens  =  spec%dens*(1.0 - dr_p*spec%fprim)! + 0.5*dr_p**2*spec%d2ndr2)
+        rtemp  =  spec%temp*(1.0 - dr_p*spec%tprim)! + 0.5*dr_p**2*spec%d2Tdr2)
         rfprim = (spec%fprim - dr_p*spec%d2ndr2)*(spec%dens/rdens)
         rtprim = (spec%tprim - dr_p*spec%d2Tdr2)*(spec%temp/rtemp)
 

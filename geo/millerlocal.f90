@@ -180,14 +180,14 @@ contains
       dqdr = local%shat*local%qinp/local%rhoc
 
       lrhoc  = local%rhoc + drl
-      lqinp  = local%qinp + drl*dqdr + 0.5*drl**2*local%d2qdr2
+      lqinp  = local%qinp + drl*dqdr !+ 0.5*drl**2*local%d2qdr2
       lshat  = (local%rhoc/lqinp)*(dqdr + drl*local%d2qdr2)
       lkappa = kappa + drl*kapprim
       ltri   = tri   + drl*triprim
       lbetaprim = betaprim + drl*betadbprim
 
       rrhoc  = local%rhoc + drr
-      rqinp  = local%qinp + drr*dqdr + 0.5*drr**2*local%d2qdr2
+      rqinp  = local%qinp + drr*dqdr !+ 0.5*drr**2*local%d2qdr2
       rshat  = (local%rhoc/lqinp)*(dqdr + drr*local%d2qdr2)
       rkappa = kappa + drr*kapprim
       rtri   = tri   + drr*triprim
