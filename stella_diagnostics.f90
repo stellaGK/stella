@@ -243,7 +243,6 @@ contains
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
     use run_parameters, only: fphi
-    use physics_parameters, only: rhostar
     use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
@@ -263,26 +262,15 @@ contains
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
-    complex, dimension (:,:), allocatable :: omega_avg
 
+    complex, dimension (:,:), allocatable :: omega_avg
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
     complex, dimension (:,:,:,:), allocatable :: phi_out
-
-    ! only write data to file every nwrite time steps
-    if (mod(istep,nwrite) /= 0) return
-    if (proc0) then
-      allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
-      phi_out = phi
-      if(radial_variation) then
-        phi_out = phi_out + phi_corr_QN
-      endif
-    endif
 
     ! calculation of omega requires computation of omega more
     ! frequently than every nwrite time steps
     if (write_omega .and. proc0) then
        zero = 100.*epsilon(0.)
-       allocate (omega_avg(naky,nakx))
        if (istep > 0) then
           allocate (phiavg(naky,nakx))
           allocate (phioldavg(naky,nakx))
@@ -293,13 +281,20 @@ contains
           elsewhere
              omega_vs_time(mod(istep,navg)+1,:,:) = log(phiavg/phioldavg)*zi/code_dt
           end where
-          omega_avg = sum(omega_vs_time,dim=1)/real(navg)
           deallocate (phiavg, phioldavg)
        end if
-    else
-       allocate (omega_avg(1,1))
     end if
 
+    ! only write data to file every nwrite time steps
+    if (mod(istep,nwrite) /= 0) return
+
+    if (proc0) then
+      allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
+      phi_out = phi
+      if(radial_variation) then
+        phi_out = phi_out + phi_corr_QN
+      endif
+    endif
 
     allocate (part_flux(nspec))
     allocate (mom_flux(nspec))
@@ -312,16 +307,23 @@ contains
 !    call g_to_h (gvmu, phi, -fphi)
 
     if (proc0) then
+       if(write_omega) then
+         allocate (omega_avg(naky,nakx))
+         omega_avg = sum(omega_vs_time,dim=1)/real(navg)
+       else
+         allocate (omega_avg(1,1))
+       endif
        call volume_average (phi_out, phi2)
        call volume_average (apar, apar2)
        write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
             'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, "job=", job
        call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
             omega_vs_time(mod(istep,navg)+1,:,:), omega_avg)
+
+       ! do not need omega_avg again this time step
+       deallocate (omega_avg)
     end if
 
-    ! do not need omega_avg again this time step
-    deallocate (omega_avg)
 
     if (proc0) then
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
