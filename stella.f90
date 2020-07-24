@@ -95,6 +95,7 @@ contains
     use stella_transforms, only: init_transforms
     use stella_save, only: init_dt
     use multibox, only: read_multibox_parameters, init_multibox, xL, xR, g_exb
+    use multibox, only: communicate_multibox_parameters
     use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
@@ -199,6 +200,7 @@ contains
              .and.(job.eq.1).and.radial_variation) then
       call communicate_geo_multibox(xL,xR)
       call communicate_species_multibox(xL,xR)
+      call communicate_multibox_parameters
     endif
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids

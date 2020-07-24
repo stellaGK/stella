@@ -9,6 +9,7 @@ module multibox
   public :: init_multibox
   public :: finish_multibox
   public :: multibox_communicate
+  public :: communicate_multibox_parameters
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
@@ -229,10 +230,6 @@ contains
       xR = x(nx-bs_fullgrid+1)
       xL_d = x_d(boundary_size)
       xR_d = x_d(nakx-boundary_size+1)
-      call send(xL,0)
-      call send(xR,njobs-1)
-      call send(xL_d,0)
-      call send(xR_d,njobs-1)
 
       if(.not.allocated(x_clamped)) allocate(x_clamped(nx))
       x_clamped = x
@@ -240,10 +237,7 @@ contains
         if(x_clamped(i) < xL) x_clamped(i) = xL
         if(x_clamped(i) > xR) x_clamped(i) = xR
       enddo
-
-      call receive(kx0_L,0)
-      call receive(kx0_R,njobs-1)
-    else if(job==0) then
+    elseif(job==0) then
       call receive(xL,1)
       call receive(xL_d,1)
       call send(akx(2),1)
@@ -260,6 +254,29 @@ contains
     call init_shear
   
   end subroutine init_multibox
+
+  subroutine communicate_multibox_parameters
+    use job_manage, only: njobs
+    use mp, only: scope, crossdomprocs, subprocs, &
+                  send, receive, job
+
+    implicit none
+
+    call scope(crossdomprocs)
+
+    if(job==1) then
+      call send(xL,0)
+      call send(xR,njobs-1)
+      call send(xL_d,0)
+      call send(xR_d,njobs-1)
+
+      call receive(kx0_L,0)
+      call receive(kx0_R,njobs-1)
+    endif
+
+    call scope(subprocs)
+
+  end subroutine communicate_multibox_parameters
 
   subroutine finish_multibox
 
