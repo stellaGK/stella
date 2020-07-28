@@ -59,7 +59,8 @@ contains
          include_collisions, collisions_implicit, &
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
-         nu_krook, delay_krook, remove_zero_projection
+         nu_krook, delay_krook, remove_zero_projection, &
+         ikxmax_krook
 
     integer :: in_file
     logical :: dexist
