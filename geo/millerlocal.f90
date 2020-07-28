@@ -255,8 +255,6 @@ contains
       local%betaprim = betaprim
     endif
 
-    dI=dI*(rhoc-rhoc0)
-
     call scope(subprocs)
 
   end subroutine communicate_parameters_multibox
@@ -477,7 +475,11 @@ contains
     ! this is (grad alpha x B) . grad theta
     cross = dpsidrho*(gradrho_gradalph*gradalph_gradthet - gradalph2*gradrho_gradthet)
 
-    ! this is bhat/B x (grad B) . grad alpha * 2 * dpsiN/drho
+    ! note that the definitions of gbdrift, gbdrift0, dgbdriftdr and dgbdrift0dr
+    ! are such that it gets multiplied by vperp2, not mu.  This is in constant to
+    ! Michael's GS3 notes
+
+    ! this is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
     gbdrift = 2.0*(-dBdrho + cross*dBdth*dpsidrho/bmag**2)/bmag
     ! this is bhat/B x (bhat . grad bhat) . grad alpha * 2 * dpsiN/drho
     ! this is assuming betaprim = 4*pi*ptot/B0^2 * (-d ln ptot / drho)
@@ -490,13 +492,13 @@ contains
     ! this is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
     dcvdrift0drho = cvdrift0*(dgradparbdrho + gradparb*(dIdrho/bi - 2.*dBdrho/bmag - local%d2psidr2/dpsidrho)) &
          - 2.*bi*gradparb*local%d2qdr2/bmag**2
-    ! this is 2*dpsiN/drho times the rho derivative of (bhat x gradB/B) . (grad q)
-    dgbdrift0drho = cvdrift0*bmag*(dgradparbdrho + gradparb*(dIdrho/bi - dBdrho/bmag - local%d2psidr2/dpsidrho)) &
-         - 2.*bi*gradparb*local%d2qdr2/bmag
+    ! this is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
+    ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
+    dgbdrift0drho = cvdrift0*(dgradparbdrho + gradparb*(dIdrho/bi - dBdrho/bmag - local%d2psidr2/dpsidrho)) &
+         - 2.*bi*gradparb*local%d2qdr2/bmag**2
 
     cvdrift0 = cvdrift0*gradparb
     ! this is 2 * dpsiN/drho * (bhat/B x gradB/B) . (grad q)
-!    gbdrift0 = cvdrift0*bmag
     gbdrift0 = cvdrift0
 
     ! get d^2I/drho^2 and d^2 Jac / dr^2
@@ -511,13 +513,12 @@ contains
     ! get d/dr [(grad alpha x B) . grad theta]
     call get_dcrossdr (dpsidrho, dIdrho, grho)
 
-    ! dgbdriftdrho is d/drho (bhat/B x (grad B) . grad alpha) * 2 * dpsiN/drho
+    ! dgbdriftdrho is d/drho [(bhat/B x (grad B) . grad alpha) * 2 * dpsiN/drho] / B
+    ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
     dgbdriftdrho = 2.0*(local%d2psidr2*dBdrho/dpsidrho - d2Bdr2 &
-         + dpsidrho*(dcrossdr*dBdth+cross*(d2Bdrdth-2.*dBdth*dBdrho/bmag))/bmag**2)
+         + dpsidrho*(dcrossdr*dBdth+cross*(d2Bdrdth-2.*dBdth*dBdrho/bmag))/bmag**2)/bmag
     ! dcvdriftdrho is d/drho (bhat/B x [bhat . grad bhat] . grad alpha) * 2 * dpsiN/drho
-    ! shoudl check gbdrift term below
-!   dcvdriftdrho = (dgbdriftdrho - gbdrift*dBdrho/bmag)/bmag &
-    dcvdriftdrho = (dgbdriftdrho - gbdrift*dBdrho)/bmag &
+    dcvdriftdrho = dgbdriftdrho - gbdrift*dBdrho/bmag &
          + 2.0*local%betadbprim/bmag**2 - 4.0*local%betaprim*dBdrho/bmag**3 &
          - 2.0*local%betaprim*local%d2psidr2/dpsidrho
 
