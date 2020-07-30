@@ -652,12 +652,13 @@ contains
     use dissipation, only: include_krook_operator, update_delay_krook
     use dissipation, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx
     use stella_layouts, only: vmu_lo
 
     implicit none
 
     integer, intent (in) :: istep
-    complex, allocatable, dimension (:,:,:) :: g1
+    complex, allocatable, dimension (:,:,:,:) :: g1
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -688,10 +689,10 @@ contains
     end if
 
     if(remove_zero_projection) then
-      allocate (g1(-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g1 = gnew(1,1,:,:,:) - gold(1,1,:,:,:)
+      allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
       call project_out_zero(g1)
-      gnew(1,1,:,:,:) = gnew(1,1,:,:,:) - g1
+      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
       deallocate (g1)
     end if
 
@@ -926,6 +927,7 @@ contains
     use physics_flags, only: include_mirror
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
+    use physics_parameters, only: g_exb
     use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
@@ -936,7 +938,7 @@ contains
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: include_multibox_krook, add_multibox_krook, g_exb
+    use multibox, only: include_multibox_krook, add_multibox_krook
 
     implicit none
 

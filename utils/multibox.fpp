@@ -13,7 +13,7 @@ module multibox
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
-  public :: g_exb, shear
+  public :: shear
   public :: xL, xR, xL_d, xR_d
   public :: kx0_L, kx0_R
   public :: RK_step
@@ -54,7 +54,7 @@ module multibox
 ! the multibox simulation has one parameter: boundary_size
 ! 
   integer :: boundary_size, krook_size
-  real :: g_exb, nu_krook_mb
+  real :: nu_krook_mb
   logical :: smooth_ZFs
   logical :: RK_step, include_multibox_krook
   integer :: krook_option_switch
@@ -103,7 +103,7 @@ contains
     character(30) :: zf_option, krook_option, shear_option
 
     namelist /multibox_parameters/ boundary_size, krook_size, shear_option,& 
-                                   g_exb, smooth_ZFs, zf_option, &
+                                   smooth_ZFs, zf_option, &
                                    krook_option, RK_step, nu_krook_mb, &
                                    mb_debug_step, dealiased_shear
 
@@ -112,7 +112,6 @@ contains
     boundary_size = 4
     krook_size = 0
     nu_krook_mb = 0.0
-    g_exb = 0.
     mb_debug_step = 1000
     smooth_ZFs = .false.
     RK_step = .false.
@@ -143,7 +142,6 @@ contains
     call broadcast(boundary_size)
     call broadcast(krook_size)
     call broadcast(nu_krook_mb)
-    call broadcast(g_exb)
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
     call broadcast(krook_option_switch)
@@ -305,6 +303,7 @@ contains
     use kt_grids, only: x_d, dx_d
     use mp, only: job
     use constants, only: pi
+    use physics_parameters, only: g_exb
     use stella_transforms, only: transform_kx2x_solo
 
     implicit none

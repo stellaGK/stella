@@ -574,7 +574,7 @@ contains
     filename="millerlocal."//trim(run_name)//".output"
     open (1001,file=trim(filename),status='unknown')
     write (1001,'(a9,e12.4,a11,e12.4,a11,e12.4)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
-    write (1001,'(59a13)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
+    write (1001,'(59a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
          '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
          '11.bmag', '12.dBdr', '13.d2Bdr2', '14.dB/dth', '15.d2Bdrdth', &
          '16.varthet', '17.dvarthdr', '18.d2varthdr2', '19.jacr', '20.djacrdr', &
@@ -585,7 +585,7 @@ contains
          '41.gbdrift', '42.dgbdrift', '43.cvdrift', '44.dcvdrift', '45.drzdth', &
          '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.gds2', &
          '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
-         '56.gds23', '57.gds24', '58. Zr', '59. dgds22bdr'
+         '56.gds23', '57.gds24', '58.Zr', '59.dgds22bdr'
 
     do i = -nz, nz
        write (1001,'(59e18.9)') theta(i), Rr(2,i),dRdrho(i), d2Rdr2(i), dRdth(i), &
@@ -897,6 +897,7 @@ contains
     gds24 = (gradrho_gradthet*gradrho_gradalph-gradalph_gradthet*grho**2)*(dpsidrho/bmag)**2*(local%qinp/local%rhoc)
 
     ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gds22)
+    ! theta0 = kx/(ky*shat)
 
   end subroutine get_gds
 

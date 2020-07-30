@@ -62,7 +62,7 @@ contains
     use file_utils, only: run_name, init_job_name
     use file_utils, only: flush_output_file, error_unit
     use job_manage, only: checktime, time_message
-    use physics_parameters, only: init_physics_parameters
+    use physics_parameters, only: init_physics_parameters, g_exb
     use physics_flags, only: init_physics_flags
     use physics_flags, only: nonlinear, include_parallel_nonlinearity
     use physics_flags, only: full_flux_surface, radial_variation
@@ -94,7 +94,7 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
     use stella_save, only: init_dt
-    use multibox, only: read_multibox_parameters, init_multibox, xL, xR, g_exb
+    use multibox, only: read_multibox_parameters, init_multibox, xL, xR
     use multibox, only: communicate_multibox_parameters
     use ran, only: get_rnd_seed_length, init_ranf
 

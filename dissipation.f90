@@ -21,7 +21,7 @@ module dissipation
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation, remove_zero_projection
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
-  integer:: ikxmax_krook
+  integer:: ikxmax_source
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
 
@@ -60,7 +60,7 @@ contains
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_krook
+         ikxmax_source
 
     integer :: in_file
     logical :: dexist
@@ -78,13 +78,13 @@ contains
        D_hyper = 0.05
        nu_krook = 0.05
        delay_krook =0.02
-       ikxmax_krook = 2 ! kx=0 and kx=1
+       ikxmax_source = 2 ! kx=0 and kx=1
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
     end if
 
-    ikxmax_krook = min(ikxmax_krook,ikx_max)
+    ikxmax_source = min(ikxmax_source,ikx_max)
 
     call broadcast (include_collisions)
     call broadcast (include_krook_operator)
@@ -97,7 +97,7 @@ contains
     call broadcast (D_hyper)
     call broadcast (nu_krook)
     call broadcast (delay_krook)
-    call broadcast (ikxmax_krook)
+    call broadcast (ikxmax_source)
     call broadcast (remove_zero_projection)
 
     if (.not.include_collisions) collisions_implicit = .false.
@@ -147,7 +147,7 @@ contains
     endif
     
     if(remove_zero_projection.and..not.allocated(g_proj)) then
-      allocate (g_proj(ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_proj(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_proj = 0.
     endif
     int_krook = 0.
@@ -906,7 +906,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do ikx = 1, nakx
-            if(abs(akx(ikx)).gt.akx(ikxmax_krook)) cycle
+            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
             tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
             gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
                                      * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
@@ -960,7 +960,7 @@ contains
   subroutine project_out_zero (g)
 
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: zonal_mode
+    use kt_grids, only: zonal_mode, akx, nakx
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj
@@ -970,9 +970,9 @@ contains
 
     real :: exp_fac
     complex :: tmp
-    integer :: it, ia, ivmu
+    integer :: ikx, it, ia, ivmu
 
-    complex, dimension (-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
+    complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
 
     ia = 1
     if(.not.zonal_mode(1)) return
@@ -981,14 +981,17 @@ contains
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
-        tmp = sum(dl_over_b(ia,:)*g(:,it,ivmu))
-        if(delay_krook.le.epsilon(0.)) then
-          g(:,it,ivmu) = tmp
-        else
-          g(:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(it,ivmu)) &
-                       / (code_dt     + exp_fac*int_proj)
-        endif
-        g_proj(it,ivmu) = sum(dl_over_b(ia,:)*g(:,it,ivmu))
+        do ikx = 1, nakx
+          if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+          tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+          if(delay_krook.le.epsilon(0.)) then
+            g(ikx,:,it,ivmu) = tmp
+          else
+            g(ikx,:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,it,ivmu)) &
+                             / (code_dt     + exp_fac*int_proj)
+          endif
+          g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+        enddo
       enddo
     enddo
 

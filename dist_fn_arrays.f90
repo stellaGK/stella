@@ -27,8 +27,8 @@ module dist_fn_arrays
   ! (nakx, ntubes, -vmu-layout-)
 
   ! needed to implement time-delayed source when using projection method
-  complex, dimension (:,:), allocatable :: g_proj
-  ! (ntubes, -vmu-layout-)
+  complex, dimension (:,:,:), allocatable :: g_proj
+  ! (nakx, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (nvpa, nmu, -kxkyz-layout-)
