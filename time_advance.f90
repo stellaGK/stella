@@ -36,6 +36,7 @@ module time_advance
   logical :: parnlinit  = .false.
   logical :: readinit   = .false.
   logical :: radialinit = .false.
+  logical :: prlshearinit = .false.
 
   ! if .true., dist fn is represented on alpha grid
   ! if .false., dist fn is given on k-alpha grid
@@ -104,6 +105,8 @@ contains
     call init_wdrift
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
     call init_wstar
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_shear'
+    call init_parallel_shear
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
@@ -330,6 +333,44 @@ contains
     deallocate (energy)
 
   end subroutine init_wstar
+
+  subroutine init_parallel_shear
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_time, only: code_dt
+    use species, only: spec
+    use zgrid, only: nzgrid
+    use kt_grids, only: nalpha
+    use stella_geometry, only: geo_surf, bmag, btor, rmajor
+    use physics_parameters, only: g_exb, omprimfac
+    use vpamu_grids, only: vpa
+    use dist_fn_arrays, only: prl_shear
+
+    implicit none
+
+    integer :: is, iv, ivmu, iz, ia
+
+    !perpendicular shear is currently done in multibox
+
+    if (prlshearinit) return
+    prlshearinit = .true.
+
+    ia=1
+
+    if (.not.allocated(prl_shear)) &
+         allocate (prl_shear(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; prl_shear = 0.0
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      is = is_idx(vmu_lo,ivmu)
+      iv = iv_idx(vmu_lo,ivmu)
+      do iz = -nzgrid,nzgrid
+        prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv) &
+               *(geo_surf%qinp/geo_surf%rhoc)*(btor(iz)*rmajor(iz)/bmag(ia,iz))/spec(is)%stm
+      enddo
+    enddo
+
+  end subroutine init_parallel_shear
 
   subroutine init_parallel_nonlinearity
 
@@ -620,12 +661,14 @@ contains
     wdriftinit = .false.
     wstarinit = .false.
     radialinit = .false.
+    prlshearinit = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
+    call init_parallel_shear
     if (radial_variation) call init_radial_variation
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
@@ -974,9 +1017,7 @@ contains
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
 
-    !if we don't use advance_ExB_nonlinearity but still need shear, call the stand-alone routine
-    !and save on some FFTs
-    if (.not.nonlinear.and.(g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
+    if ((g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
@@ -1382,11 +1423,15 @@ contains
   subroutine advance_equilibrium_shear (g, gout)
 
     use stella_layouts, only: vmu_lo
+    use physics_parameters, only: g_exb, omprimfac
+    use physics_flags, only: nonlinear
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx
     use multibox, only: shear
     use stella_time, only: code_dt
+    use fields_arrays, only: phi, apar
+    use dist_fn_arrays, only: prl_shear
 
     implicit none
 
@@ -1396,14 +1441,25 @@ contains
 
     complex, dimension (:,:), allocatable :: g0k, g0x
 
-    integer :: ivmu, iz, it
+    integer :: ivmu, iz, it, ia
+
+    ia = 1
 
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,nx))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+            
+          !parallel flow shear
+          gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k
+
+          !perpendicular flow shear
+          !if we use advance_ExB_nonlinearity, we can piggy-back on the 
+          !FFTs there and save on some computations
+          if (.not.nonlinear) then
             call get_dgdy (g(:,:,iz,it,ivmu), g0k)
 
             !inverse and forward transforms
@@ -1411,9 +1467,10 @@ contains
             g0x = -spread(shear,1,naky)*g0x
             call transform_x2kx_solo (g0x, g0k)
 
-            gout(:,:,iz,it,ivmu)  = gout(:,:,iz,it,ivmu) + code_dt*g0k
-          end do
-       end do
+            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + code_dt*g0k
+          endif
+        end do
+      end do
     end do
 
     deallocate (g0k, g0x)
@@ -2516,6 +2573,7 @@ contains
     call finish_wstar
     call finish_wdrift
     call finish_parallel_streaming
+    call finish_parallel_shear
     call finish_mirror
     call finish_neoclassical_terms
     call deallocate_arrays
@@ -2572,6 +2630,18 @@ contains
     wstarinit = .false.
 
   end subroutine finish_wstar
+
+  subroutine finish_parallel_shear
+
+    use dist_fn_arrays, only: prl_shear
+
+    implicit none
+
+    if (allocated(prl_shear)) deallocate (prl_shear)
+
+    prlshearinit = .false.
+
+  end subroutine finish_parallel_shear
 
   subroutine deallocate_arrays
 
