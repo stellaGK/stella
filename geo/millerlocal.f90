@@ -8,6 +8,7 @@ module millerlocal
   public :: read_local_parameters
   public :: communicate_parameters_multibox
   public :: get_local_geo
+  public :: finish_local_geo
   public :: local
 
   private
@@ -19,16 +20,17 @@ module millerlocal
   real :: betaprim, betadbprim
   real :: qinp, shat, d2qdr2
   real :: rgeo
-  real :: d2psidr2
+  real :: dpsidrho, d2psidr2, dpsidrho_psi0
   real :: psitor_lcfs
   real :: rhotor, drhotordrho, dIdrho, dI
   real :: rhoc0
   logical :: write_profile_variation, read_profile_variation
+  logical :: load_psi0_variables
 
   integer :: nz, nz2pi
 
   real :: bi, dqdr, d2Idr2
-  real, dimension (:), allocatable :: grho, bmag, gradpar
+  real, dimension (:), allocatable :: grho, bmag, bmag_psi0, gradpar
   real, dimension (:), allocatable :: gds2, gds21, gds22
   real, dimension (:), allocatable :: gds23, gds24
   real, dimension (:), allocatable :: gbdrift0, gbdrift
@@ -42,7 +44,7 @@ module millerlocal
   real, dimension (:), allocatable :: d2Bdr2, d2Rdr2, d2Zdr2, drz, drzdth
   real, dimension (:), allocatable :: d2Rdr2dth, d2Zdr2dth, d2gpsidr2, dcrossdr
   real, dimension (:), allocatable :: dcvdriftdrho, dgbdriftdrho
-  real, dimension (:), allocatable :: dgds2dr, dgds21dr, dgds22dr, dgds22bdr
+  real, dimension (:), allocatable :: dgds2dr, dgds21dr, dgds22dr
   real, dimension (:), allocatable :: dgr2dr, dgpsi2dr
   real, dimension (:), allocatable :: dgrgt, dgt2, dgagr, dgagt, dga2
   real, dimension (:,:), allocatable :: Rr, Zr
@@ -85,6 +87,7 @@ contains
     d2psidr2 = 0.0
     read_profile_variation = .false.
     write_profile_variation = .false.
+    load_psi0_variables = .true.
     
     ! only needed for sfincs when not using 
     ! geo info from file
@@ -140,6 +143,12 @@ contains
     local%dpsitordrho = 0.0
     local%d2psitordrho2 = 0.0
 
+    ! the next three variablaes are for multibox simulations 
+    ! with radial variation
+    local%rhoc_ref = rhoc
+    local%qinp_ref = qinp
+    local%shat_ref = shat
+
     local_out = local
 
     ! first get nperiod corresponding to input number of grid points
@@ -157,24 +166,27 @@ contains
     ! these needs to be deallocated somewhere
     allocate(d2R(-nz:nz))
     allocate(d2Z(-nz:nz))
+    allocate(bmag_psi0(-nz:nz))
     d2R = 0. ; d2Z = 0. ; dI = 0.
 
   end subroutine read_local_parameters
 
-  subroutine communicate_parameters_multibox (drl,drr)
+  subroutine communicate_parameters_multibox (surf,drl,drr)
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs,  &
                   send, receive
     use job_manage, only: njobs
+    use common_types, only: flux_surface_type
 
     implicit none
 
     real, optional, intent (in) :: drl,drr
+    type (flux_surface_type),  intent (inout) :: surf
 
     real :: lrhoc, lqinp, lshat, lkappa, ltri, lbetaprim
     real :: rrhoc, rqinp, rshat, rkappa, rtri, rbetaprim
     real :: dqdr
-
+    real :: rhoc_ref, qinp_ref, shat_ref
 
     if(job == 1) then
       dqdr = local%shat*local%qinp/local%rhoc
@@ -207,60 +219,102 @@ contains
       call send(d2R       ,0,127)
       call send(d2Z       ,0,128)
       call send(dIdrho    ,0,129)
+      call send(rhoc      ,0,130)
+      call send(qinp      ,0,131)
+      call send(shat      ,0,132)
+      call send(dpsidrho  ,0,133)
+      call send(bmag      ,0,134)
 
-      call send(rrhoc     ,njobs-1,130)
-      call send(rqinp     ,njobs-1,131)
-      call send(rshat     ,njobs-1,132)
-      call send(rkappa    ,njobs-1,133)
-      call send(rtri      ,njobs-1,134)
-      call send(rbetaprim ,njobs-1,135)
-      call send(local%rhoc,njobs-1,136)
-      call send(d2R       ,njobs-1,137)
-      call send(d2Z       ,njobs-1,138)
-      call send(dIdrho    ,njobs-1,139)
+
+      call send(rrhoc     ,njobs-1,220)
+      call send(rqinp     ,njobs-1,221)
+      call send(rshat     ,njobs-1,222)
+      call send(rkappa    ,njobs-1,223)
+      call send(rtri      ,njobs-1,224)
+      call send(rbetaprim ,njobs-1,225)
+      call send(local%rhoc,njobs-1,226)
+      call send(d2R       ,njobs-1,227)
+      call send(d2Z       ,njobs-1,228)
+      call send(dIdrho    ,njobs-1,229)
+      call send(rhoc      ,njobs-1,230)
+      call send(qinp      ,njobs-1,231)
+      call send(shat      ,njobs-1,232)
+      call send(dpsidrho  ,njobs-1,233)
+      call send(bmag      ,njobs-1,234)
 
     elseif(job == 0) then
-      call receive(rhoc     ,1,120)
-      call receive(qinp     ,1,121)
-      call receive(shat     ,1,122)
-      call receive(kappa    ,1,123)
-      call receive(tri      ,1,124)
-      call receive(betaprim ,1,125)
-      call receive(rhoc0    ,1,126)
-      call receive(d2R      ,1,127)
-      call receive(d2Z      ,1,128)
-      call receive(dI       ,1,129)
+      call receive(rhoc         ,1,120)
+      call receive(qinp         ,1,121)
+      call receive(shat         ,1,122)
+      call receive(kappa        ,1,123)
+      call receive(tri          ,1,124)
+      call receive(betaprim     ,1,125)
+      call receive(rhoc0        ,1,126)
+      call receive(d2R          ,1,127)
+      call receive(d2Z          ,1,128)
+      call receive(dI           ,1,129)
+      call receive(rhoc_ref     ,1,130)
+      call receive(qinp_ref     ,1,131)
+      call receive(shat_ref     ,1,132)
+      call receive(dpsidrho_psi0,1,133)
+      call receive(bmag_psi0    ,1,134)
       local%rhoc  = rhoc
       local%qinp  = qinp
       local%shat  = shat
       local%kappa = kappa
       local%tri   = tri
       local%betaprim = betaprim
+      local%rhoc_ref  = rhoc_ref
+      local%qinp_ref  = qinp_ref
+      local%shat_ref  = shat_ref
+      
+      load_psi0_variables = .false.
     elseif(job== njobs-1) then
-      call receive(rhoc     ,1,130)
-      call receive(qinp     ,1,131)
-      call receive(shat     ,1,132)
-      call receive(kappa    ,1,133)
-      call receive(tri      ,1,134)
-      call receive(betaprim ,1,135)
-      call receive(rhoc0    ,1,136)
-      call receive(d2R      ,1,137)
-      call receive(d2Z      ,1,138)
-      call receive(dI       ,1,139)
+      call receive(rhoc         ,1,220)
+      call receive(qinp         ,1,221)
+      call receive(shat         ,1,222)
+      call receive(kappa        ,1,223)
+      call receive(tri          ,1,224)
+      call receive(betaprim     ,1,225)
+      call receive(rhoc0        ,1,226)
+      call receive(d2R          ,1,227)
+      call receive(d2Z          ,1,228)
+      call receive(dI           ,1,229)
+      call receive(rhoc_ref     ,1,230)
+      call receive(qinp_ref     ,1,231)
+      call receive(shat_ref     ,1,232)
+      call receive(dpsidrho_psi0,1,233)
+      call receive(bmag_psi0    ,1,234)
       local%rhoc  = rhoc
       local%qinp  = qinp
       local%shat  = shat
       local%kappa = kappa
       local%tri   = tri
       local%betaprim = betaprim
+      local%rhoc_ref  = rhoc_ref
+      local%qinp_ref  = qinp_ref
+      local%shat_ref  = shat_ref
+      
+      load_psi0_variables = .false.
     endif
+
+    surf%rhoc = local%rhoc
+    surf%qinp = local%qinp
+    surf%shat = local%shat
+    surf%kappa = local%kappa
+    surf%tri = local%tri
+    surf%betaprim = local%betaprim
+    surf%rhoc_ref = rhoc_ref
+    surf%qinp_ref = qinp_ref
+    surf%shat_ref = shat_ref
 
     call scope(subprocs)
 
   end subroutine communicate_parameters_multibox
 
   subroutine get_local_geo (nzed, nzgrid, zed_in, &
-       dpsidrho, dIdrho_out, grho_out, bmag_out, &
+       dpsidrho_out, dpsidrho_psi0_out,dIdrho_out, grho_out, &
+       bmag_out, bmag_psi0_out, &
        gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
        gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
        dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
@@ -268,8 +322,7 @@ contains
        dcvdrift0drho_out, dcvdriftdrho_out, &
        dgbdrift0drho_out, dgbdriftdrho_out, &
        dgds2dr_out, dgds21dr_out, &
-       dgds22dr_out, dgds22bdr_out, &
-       djacdrho_out)
+       dgds22dr_out, djacdrho_out)
     
     use constants, only: pi
     use splines, only: geo_spline
@@ -279,8 +332,9 @@ contains
 
     integer, intent (in) :: nzed, nzgrid
     real, dimension (-nzgrid:), intent (in) :: zed_in
-    real, intent (out) :: dpsidrho, dIdrho_out
-    real, dimension (-nzgrid:), intent (out) :: grho_out, bmag_out, &
+    real, intent (out) :: dpsidrho_out, dpsidrho_psi0_out, dIdrho_out
+    real, dimension (-nzgrid:), intent (out) :: grho_out, &
+         bmag_out, bmag_psi0_out, &
          gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, &
          gradpar_out, gbdrift0_out, &
          gbdrift_out, cvdrift0_out, cvdrift_out, &
@@ -289,7 +343,7 @@ contains
          dcvdrift0drho_out, dcvdriftdrho_out, &
          dgbdrift0drho_out, dgbdriftdrho_out, &
          dgds2dr_out, dgds21dr_out, &
-         dgds22dr_out, dgds22bdr_out, &
+         dgds22dr_out,  &
          djacdrho_out
 
     integer :: nr, np
@@ -374,6 +428,7 @@ contains
     call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsidrho)
     dpsidrho = dpsidrho/(2.*pi)
 
+
     ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
 
     ! if using input.profiles, we are given
@@ -398,6 +453,7 @@ contains
 
 !    ! get dpsinorm/drho
 !    call get_dpsidrho (dpsidrho)
+
 
     ! get |grad rho| and |grad psi|
     call get_gradrho (dpsidrho, grho)
@@ -438,6 +494,12 @@ contains
     ! B/B0 = sqrt(I**2 + |grad psi|**2)/R
     bmag = sqrt(bi**2 + gpsi**2)/Rr(2,:)
 
+    ! the next line is for multibox runs
+    if(load_psi0_variables) then
+      dpsidrho_psi0 = dpsidrho
+      bmag_psi0 = bmag
+    endif
+
     ! get dB/dtheta
     call get_dthet (bmag, dbdth)
     
@@ -470,13 +532,13 @@ contains
     ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
     call get_graddotgrad (dpsidrho, grho)
 
-    call get_gds (dpsidrho, gds2, gds21, gds22, gds23, gds24)
+    call get_gds (gds2, gds21, gds22, gds23, gds24)
 
     ! this is (grad alpha x B) . grad theta
     cross = dpsidrho*(gradrho_gradalph*gradalph_gradthet - gradalph2*gradrho_gradthet)
 
     ! note that the definitions of gbdrift, gbdrift0, dgbdriftdr and dgbdrift0dr
-    ! are such that it gets multiplied by vperp2, not mu.  This is in constant to
+    ! are such that it gets multiplied by vperp2, not mu.  This is in contrast to
     ! Michael's GS3 notes
 
     ! this is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
@@ -523,9 +585,22 @@ contains
          - 2.0*local%betaprim*local%d2psidr2/dpsidrho
 
 
+    !the next two sets of lines are corrections needed for the side boxes in a multibox simulation
+    gbdrift  = gbdrift *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    gbdrift0 = gbdrift0*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    cvdrift  = cvdrift *(dpsidrho_psi0/dpsidrho)
+    cvdrift0 = cvdrift0*(dpsidrho_psi0/dpsidrho)
+
+    dgbdriftdrho  = dgbdriftdrho *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    dgbdrift0drho = dgbdrift0drho*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    dcvdriftdrho  = dcvdriftdrho *(dpsidrho_psi0/dpsidrho)
+    dcvdrift0drho = dcvdrift0drho*(dpsidrho_psi0/dpsidrho)
+
+
     ! interpolate here
     call geo_spline (theta, grho, zed_in, grho_out)
     call geo_spline (theta, bmag, zed_in, bmag_out)
+    call geo_spline (theta, bmag_psi0, zed_in, bmag_psi0_out)
     call geo_spline (theta, gds2, zed_in, gds2_out)
     call geo_spline (theta, gds21, zed_in, gds21_out)
     call geo_spline (theta, gds22, zed_in, gds22_out)
@@ -547,13 +622,15 @@ contains
     call geo_spline (theta, dgds2dr,  zed_in, dgds2dr_out)
     call geo_spline (theta, dgds21dr, zed_in, dgds21dr_out)
     call geo_spline (theta, dgds22dr, zed_in, dgds22dr_out)
-    call geo_spline (theta, dgds22bdr, zed_in, dgds22bdr_out)
     call geo_spline (theta, djacdrho/dpsidrho, zed_in, djacdrho_out)
 
 
     ! get the toroidal component of the magnetic field
     ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
     btor_out = bi/rmajor_out
+
+    dpsidrho_out     = dpsidrho
+    dpsidrho_psi0_out = dpsidrho_psi0
 
     filename="millerlocal."//trim(run_name)//".input"
     open (1002,file=trim(filename),status='unknown')
@@ -574,7 +651,7 @@ contains
     filename="millerlocal."//trim(run_name)//".output"
     open (1001,file=trim(filename),status='unknown')
     write (1001,'(a9,e12.4,a11,e12.4,a11,e12.4)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
-    write (1001,'(59a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
+    write (1001,'(58a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
          '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
          '11.bmag', '12.dBdr', '13.d2Bdr2', '14.dB/dth', '15.d2Bdrdth', &
          '16.varthet', '17.dvarthdr', '18.d2varthdr2', '19.jacr', '20.djacrdr', &
@@ -585,7 +662,7 @@ contains
          '41.gbdrift', '42.dgbdrift', '43.cvdrift', '44.dcvdrift', '45.drzdth', &
          '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.gds2', &
          '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
-         '56.gds23', '57.gds24', '58.Zr', '59.dgds22bdr'
+         '56.gds23', '57.gds24', '58.Zr'
 
     do i = -nz, nz
        write (1001,'(59e18.9)') theta(i), Rr(2,i),dRdrho(i), d2Rdr2(i), dRdth(i), &
@@ -599,11 +676,9 @@ contains
             gbdrift(i), dgbdriftdrho(i), cvdrift(i), dcvdriftdrho(i), drzdth(i), &
             gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i), &
             dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i), &
-            Zr(2,i), dgds22bdr(i)
+            Zr(2,i)
     end do
     close (1001)
-
-    call deallocate_arrays
 
     defaults_initialized = .false.
 
@@ -634,10 +709,9 @@ contains
     allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz), d2Zdr2dth(-nz:nz))
     allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz))
     allocate (d2gpsidr2(-nz:nz))
-!    allocate (dgds22dr(-nz:nz), gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz))
     allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
     allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz))
-    allocate (dgds22dr(-nz:nz), dgds22bdr(-nz:nz))
+    allocate (dgds22dr(-nz:nz))
     allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz))
     allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz))
     allocate (cross(-nz:nz))
@@ -677,15 +751,25 @@ contains
     deallocate (d2gpsidr2)
     deallocate (gradalph_gradthet, gradalph2, gradrho_gradalph)
     deallocate (dgds2dr, dgds21dr)
-    deallocate (dgds22dr,dgds22bdr)
+    deallocate (dgds22dr)
     deallocate (dcvdriftdrho, dgbdriftdrho)
     deallocate (varthet, dvarthdr, d2varthdr2)
     deallocate (cross)
     deallocate (dcrossdr)
-    !deallocate (d2R, d2Z) FLAG - these need to be deallocated somewhere
+    deallocate (d2R, d2Z)
     if (allocated(delthet)) deallocate (delthet)
+    if (allocated(bmag_psi0)) deallocate (bmag_psi0)
 
   end subroutine deallocate_arrays
+
+
+  subroutine finish_local_geo
+
+    implicit none
+
+    call deallocate_arrays
+
+  end subroutine finish_local_geo
 
   ! takes in f(r), with r given at three radial locations
   ! and returns df = df/dr at the middle radius
@@ -878,23 +962,23 @@ contains
 
   end subroutine get_graddotgrad
 
-  subroutine get_gds (dpsidrho, gds2, gds21, gds22, gds23, gds24)
+  subroutine get_gds (gds2, gds21, gds22, gds23, gds24)
 
     implicit none
 
-    real, intent (in) :: dpsidrho
     real, dimension (-nz:), intent (out) :: gds2, gds21, gds22, gds23, gds24
 
     ! |grad alpha|^2 * (dpsiN/drho)^2 (dpsiN/drho factor accounts for ky normalization)
-    gds2 = gradalph2*dpsidrho**2
+    gds2 = gradalph2*dpsidrho_psi0**2
     ! (grad q . grad alpha) * (dpsiN/drho)^2
-    gds21 = gradrho_gradalph*dqdr*dpsidrho**2
+    gds21 = gradrho_gradalph*dqdr*dpsidrho_psi0**2
     ! |grad q|^2 * (dpsiN/drho)^2
-    gds22 = (gpsi*dqdr)**2
+    gds22 = (grho*dpsidrho_psi0*dqdr)**2
     ! (grad rho . grad theta * |grad alpha|^2 - grad alpha . grad theta * grad rho . grad alpha) * (dpsiN/drho)^2 / B^2
-    gds23 = (gradrho_gradthet*gradalph2-gradalph_gradthet*gradrho_gradalph)*(dpsidrho/bmag)**2
+    gds23 = (gradrho_gradthet*gradalph2-gradalph_gradthet*gradrho_gradalph)*(dpsidrho_psi0/bmag)**2
     ! (grad rho . grad theta * grad rho . grad alpha - grad alpha . grad theta * |grad rho|^2) * (dpsiN/drho)^2 / B^2 * q/rho
-    gds24 = (gradrho_gradthet*gradrho_gradalph-gradalph_gradthet*grho**2)*(dpsidrho/bmag)**2*(local%qinp/local%rhoc)
+    gds24 = (gradrho_gradthet*gradrho_gradalph-gradalph_gradthet*grho**2) & 
+             *(dpsidrho_psi0/bmag)**2*(local%qinp_ref/local%rhoc_ref)
 
     ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gds22)
     ! theta0 = kx/(ky*shat)
@@ -1092,17 +1176,15 @@ contains
          - dga2*gradrho_gradthet - gradalph2*dgrgt) + local%d2psidr2*cross/dpsidrho
 
     ! this is (dpsi/drho)^2*d|grad alpha|^2/dr
-    dgds2dr = dga2*dpsidrho**2
+    dgds2dr = dga2*dpsidrho_psi0**2
     ! this is (dpsi/drho)^2*d(grad alpha . grad q)/dr
     ! note that there will be multiplication by 2 in dist_fn.fpp
-    dgds21dr = (dgagr*dqdr+local%d2qdr2*gradrho_gradalph)*dpsidrho**2
+    dgds21dr = (dgagr*dqdr+local%d2qdr2*gradrho_gradalph)*dpsidrho_psi0**2
     ! this is (dpsi/drho)^2*d(|grad q|^2)/dr
-    dgds22dr = (dqdr**2*dgr2dr + 2.*grho**2*dqdr*local%d2qdr2)*dpsidrho**2
+    dgds22dr = (dqdr**2*dgr2dr + 2.*grho**2*dqdr*local%d2qdr2)*dpsidrho_psi0**2
 
     ! note that dkperp2/dr = (n0/a)^2*(drho/dpsiN)^2*(dgds2dr + 2*theta0*dgds21dr + theta0^2*dgds22dr)
     
-    ! for the zonal component of dkperp2dr 
-    dgds22bdr = (local%qinp/local%rhoc)**2*dgpsi2dr
 
   end subroutine get_dcrossdr
 

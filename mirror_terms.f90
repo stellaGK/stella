@@ -52,7 +52,7 @@ contains
     
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
     if (include_neoclassical_terms) then
-       neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt,1,nztot)*0.5
+       neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt_psi0,1,nztot)*0.5
     else
        neoclassical_term = 0.
     end if
@@ -63,7 +63,7 @@ contains
        do imu = 1, nmu
           do iy = 1, nalpha
              do iz = -nzgrid, nzgrid
-                mirror(iy,iz,imu,:) = code_dt*spec%stm*gradpar(iz) &
+                mirror(iy,iz,imu,:) = code_dt*spec%stm_psi0*gradpar(iz) &
                      *(mu(imu)*dbdzed(iy,iz)+neoclassical_term(iz,:))
              end do
           end do
@@ -84,7 +84,7 @@ contains
       do imu = 1, nmu
         do iy = 1, nalpha
           do iz = -nzgrid, nzgrid
-            mirror_rad_var(iy,iz,imu,:) = code_dt*spec%stm*mu(imu) &
+            mirror_rad_var(iy,iz,imu,:) = code_dt*spec%stm_psi0*mu(imu) &
                                           *(dgradpardrho(iz)*dbdzed(iy,iz) &
                                           +  gradpar(iz)*d2Bdrdth(iz))
           end do
@@ -173,7 +173,7 @@ contains
              do iy = 1, nalpha
                 where (abs(mu(imu)*dbdzed(iy,:)) > zero)
                    mirror_int_fac(iy,:,ivmu) = exp( vpa(iv)**2*mu(imu)*dbdzed(iy,:) &
-                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt*dphineo_dzed(1,:)*0.5) )
+                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt_psi0*dphineo_dzed(1,:)*0.5) )
                 elsewhere
                    mirror_int_fac(iy,:,ivmu) = 1.0
                 end where
@@ -578,7 +578,8 @@ contains
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
-             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv)
+             is = is_idx(vmu_lo,ivmu)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv,is)
           end do
        end if
 
@@ -604,7 +605,8 @@ contains
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
-             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*maxwell_vpa(iv)
+             is = is_idx(vmu_lo,ivmu)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*maxwell_vpa(iv,is)
           end do
        end if
 

@@ -154,7 +154,7 @@ contains
                    call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
 !                   call find_max_required_kalpha_index (aj0_kalpha, ia_max_aj0a(iky,ikx,iz,ivmu), imu, iz)
 !                   ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
-                   call find_max_required_kalpha_index (aj0_kalpha, aj0a(iky,ikx,iz,ivmu)%max_idx, imu, iz)
+                   call find_max_required_kalpha_index (aj0_kalpha, aj0a(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
                    ia_max_aj0a_count = ia_max_aj0a_count + aj0a(iky,ikx,iz,ivmu)%max_idx
                    if (.not.associated(aj0a(iky,ikx,iz,ivmu)%fourier)) &
                         allocate (aj0a(iky,ikx,iz,ivmu)%fourier(aj0a(iky,ikx,iz,ivmu)%max_idx))
@@ -179,7 +179,7 @@ contains
                       aj0_alpha(ivmu) = j0(arg)
                       ! form coefficient needed to calculate 1-Gamma_0
                       aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2) &
-                           * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+                           * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
                    end do
 
                    ! calculate gamma0 = int d3v (1-J0^2)*F_{Maxwellian}
@@ -250,7 +250,7 @@ contains
 
   end subroutine init_bessel
 
-  subroutine find_max_required_kalpha_index (ft, idx, imu, iz)
+  subroutine find_max_required_kalpha_index (ft, idx, imu, iz, is)
 
     use vpamu_grids, only: maxwell_mu
 
@@ -258,7 +258,7 @@ contains
 
     complex, dimension (:), intent (in) :: ft
     integer, intent (out) :: idx
-    integer, intent (in), optional :: imu, iz
+    integer, intent (in), optional :: imu, iz, is
 
     real, parameter :: tol_floor = 0.01
     integer :: i, n
@@ -270,8 +270,8 @@ contains
 
     ! use conservative estimate
     ! when deciding number of modes to retain
-    if (present(imu) .and. present(iz)) then
-       tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu)))
+    if (present(imu) .and. present(iz).and.present(is)) then
+       tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu,is)))
     else
        tol = tol_floor
     end if

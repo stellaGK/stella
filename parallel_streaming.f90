@@ -92,7 +92,7 @@ contains
         energy = vpa(iv)**2 + vperp2(ia,:,imu)
         stream_rad_var2(ia,:,ivmu) = &
                 -code_dt*spec(is)%stm*vpa(iv)*gradpar &
-                *spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,:,imu) & 
+                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is) & 
                 *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
       enddo
       deallocate (energy)
@@ -217,7 +217,7 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        g0(:,:,:,:) = g0(:,:,:,:) + g1(:,:,:,:)*spec(is)%zt &
-            *maxwell_vpa(iv)*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+            *maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes)
 
        ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
        call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
@@ -288,7 +288,7 @@ contains
 
     !!#1 - variation in gradpar
            g0k = g0(:,:,iz,it) & 
-               + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+               + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
 
            g0k = g0k*stream_rad_var1(iz,iv,is)
 
@@ -300,7 +300,7 @@ contains
 
 
     !!#3 - variation in the gyroaveraging and quasineutrality of phi
-           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu) &
+           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is) &
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 
            rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
@@ -609,7 +609,7 @@ contains
 
     if (maxwellian_inside_zed_derivative) then
        ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-       g = g*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+       g = g*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes)
        call get_dzed (iv,g,dphidz)
        ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
        g = g*spread(spread(spread(dbdzed(ia,:),1,naky),2,nakx),4,ntubes)
@@ -622,7 +622,7 @@ contains
        call get_dzed (iv,g,dphidz)
        ! center Maxwellian factor in mu
        ! and store in dummy variable gp
-       gp = maxwell_mu(ia,:,imu)
+       gp = maxwell_mu(ia,:,imu,is)
        call center_zed (iv,gp)
        ! multiply by Maxwellian factor
        dphidz = dphidz*spread(spread(spread(gp,1,naky),2,nakx),4,ntubes)
@@ -630,7 +630,7 @@ contains
 
     ! NB: could do this once at beginning of simulation to speed things up
     ! this is vpa*Z/T*exp(-vpa^2)
-    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv)
+    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv,is)
     ! if including neoclassical correction to equilibrium distribution function
     ! then must also account for -vpa*dF_neo/dvpa*Z/T
     ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!

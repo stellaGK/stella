@@ -315,7 +315,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu)*aj0v(imu,ikxkyz)
+          gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu,is)*aj0v(imu,ikxkyz)
           call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
        end do
     end do
@@ -362,7 +362,7 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
-             gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*vpa*aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
+             gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*vpa*aj0v(imu,ikxkyz)*maxwell_vpa(:,is)*maxwell_mu(1,iz,imu,is)
              call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
           end do
        end do
@@ -411,7 +411,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
              gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*(vpa**2+vperp2(1,iz,imu)-1.5) &
-                  *aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
+                  *aj0v(imu,ikxkyz)*maxwell_vpa(:,is)*maxwell_mu(1,iz,imu,is)
              call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
           end do
        end do
@@ -509,7 +509,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do iv = 1, nvpa
-          gvmu(iv,:,ikxkyz) = ztmax(iv,is)*maxwell_mu(1,iz,:)*aj0v(:,ikxkyz)
+          gvmu(iv,:,ikxkyz) = ztmax(iv,is)*maxwell_mu(1,iz,:,is)*aj0v(:,ikxkyz)
           call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
        end do
     end do
@@ -560,7 +560,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do iv = 1, nvpa
              gvmu(iv,:,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,ia,iz)*vperp2(ia,iz,:) &
-                  *(spec(is)%smz/bmag(ia,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(ia,iz,:)
+                  *(spec(is)%smz/bmag(ia,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,:,is)
              call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
@@ -609,7 +609,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do iv = 1, nvpa
              gvmu(iv,:,ikxkyz) = 2.0*code_dt*spec(is)%vnew(is)*(vpa(iv)**2+vperp2(1,iz,:)-1.5) &
-                  *aj0v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(1,iz,:)
+                  *aj0v(:,ikxkyz)*maxwell_vpa(iv,is)*maxwell_mu(1,iz,:,is)
              call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
@@ -1071,7 +1071,7 @@ contains
           end do
        end if
        if (momentum_conservation) call conserve_momentum (iky, ikx, iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
-       if (energy_conservation) call conserve_energy (iz, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
+       if (energy_conservation) call conserve_energy (iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
        ! save memory by using gvmu and deallocating coll below
        ! before re-allocating tmp_vmulo
        gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
@@ -1204,18 +1204,18 @@ contains
     u_fac = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)
     call integrate_vmu (u_fac*h,iz,integral)
 
-    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
 
     u_fac = spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,ia,iz))*spec(is)%smz/bmag(ia,iz)
     call integrate_vmu (u_fac*h,iz,integral)
     
-    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
 
     deallocate (u_fac)
 
   end subroutine conserve_momentum
 
-  subroutine conserve_energy (iz, ikxkyz, h, Ch)
+  subroutine conserve_energy (iz, is, ikxkyz, h, Ch)
 
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
@@ -1224,7 +1224,7 @@ contains
     
     implicit none
 
-    integer, intent (in) :: iz, ikxkyz
+    integer, intent (in) :: iz, is, ikxkyz
     complex, dimension (:,:), intent (in) :: h
     complex, dimension (:,:), intent (in out) :: Ch
 
@@ -1236,7 +1236,7 @@ contains
     T_fac = spread(aj0v(:,ikxkyz),1,nvpa)*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
     call integrate_vmu (T_fac*h,iz,integral)
 
-    Ch = Ch + 4.0*T_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)/3.0
+    Ch = Ch + 4.0*T_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)/3.0
 
     deallocate (T_fac)
 
@@ -1378,7 +1378,7 @@ contains
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
-               *spread(maxwell_vpa,2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:),1,nvpa)
+               *spread(maxwell_vpa(:,is),2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:,is),1,nvpa)
           if (momentum_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,it,is+1),2,nmu)
           if (energy_conservation) &
@@ -1516,7 +1516,7 @@ contains
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
-               *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
+               *spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)
           if (momentum_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,ia,iz) &
                *spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(ia,iz))**2 &

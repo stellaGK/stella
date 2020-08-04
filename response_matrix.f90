@@ -185,9 +185,9 @@ contains
           end if
           
           fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-               *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv)
+               *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)
           
-          gradpar_fac = gradpar*maxwell_mu(ia,:,imu)
+          gradpar_fac = gradpar*maxwell_mu(ia,:,imu,is)
           
           ! stream_sign < 0 corresponds to positive advection speed
           if (stream_sign(iv)<0) then
@@ -301,7 +301,7 @@ contains
           end if
           
           fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-               *gyro_fac*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+               *gyro_fac*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
 
           mu_dbdzed_p = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.+zed_upwind)
           mu_dbdzed_m = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.-zed_upwind)

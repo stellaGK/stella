@@ -169,7 +169,7 @@ contains
 
   end subroutine read_kt_grids_range
 
-  subroutine init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+  subroutine init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
 
     use common_types, only: flux_surface_type
     use zgrid, only: init_zgrid
@@ -180,6 +180,7 @@ contains
 
     type (flux_surface_type), intent (in) :: geo_surf
     real, intent (in) :: twist_and_shift_geo_fac
+    logical, intent (in) :: q_as_x
 
     if (init_kt_grids_initialized) return
     init_kt_grids_initialized = .true.
@@ -188,9 +189,9 @@ contains
 
     select case (gridopt_switch)
     case (gridopt_range)
-       call init_kt_grids_range (geo_surf)
+       call init_kt_grids_range (geo_surf,q_as_x)
     case (gridopt_box)
-       call init_kt_grids_box (geo_surf, twist_and_shift_geo_fac)
+       call init_kt_grids_box (geo_surf, twist_and_shift_geo_fac, q_as_x)
     end select
 
     ! determine if iky corresponds to zonal mode
@@ -200,7 +201,7 @@ contains
 
   end subroutine init_kt_grids
 
-  subroutine init_kt_grids_box (geo_surf, twist_and_shift_geo_fac)
+  subroutine init_kt_grids_box (geo_surf, twist_and_shift_geo_fac, q_as_x)
 
     use mp, only: mp_abort
     use common_types, only: flux_surface_type
@@ -213,6 +214,7 @@ contains
     
     type (flux_surface_type), intent (in) :: geo_surf
     real, intent (in) :: twist_and_shift_geo_fac
+    logical, intent (in) :: q_as_x
 
     integer :: ikx, iky
 
@@ -275,7 +277,12 @@ contains
 
     ! set theta0=0 for ky=0
     theta0(1,:) = 0.0
-    if (abs(geo_surf%shat) > shat_zero) then
+    if (q_as_x) then
+       do ikx = 1, nakx
+          ! theta0 = kx/ky
+          theta0(2:,ikx) = akx(ikx)/aky(2:)
+       end do
+    else if (abs(geo_surf%shat) > shat_zero) then
        do ikx = 1, nakx
           ! theta0 = kx/ky/shat
           theta0(2:,ikx) = akx(ikx)/(aky(2:)*geo_surf%shat)
@@ -304,7 +311,7 @@ contains
     
   end subroutine init_kt_grids_box
 
-  subroutine init_kt_grids_range (geo_surf)
+  subroutine init_kt_grids_range (geo_surf, q_as_x)
 
     use mp, only: mp_abort
     use common_types, only: flux_surface_type
@@ -313,9 +320,10 @@ contains
     implicit none
 
     type (flux_surface_type), intent (in) :: geo_surf
+    logical, intent (in) :: q_as_x
 
     integer :: i, j
-    real :: dkx, dky, dtheta0
+    real :: dkx, dky, dtheta0, tfac
     real :: zero
 
     ! NB: we are assuming here that all ky are positive
@@ -327,17 +335,23 @@ contains
     ! set default akx and theta0 to 0
     akx = 0.0 ; theta0 = 0.0
 
+    if (q_as_x) then
+      tfac = 1.0
+    else
+      tfac = geo_surf%shat
+    endif
+
     zero = 100.*epsilon(0.)
 
     ! if theta0_min and theta0_max have been specified,
     ! use them to determine akx_min and akx_max
     if (theta0_max > theta0_min-zero) then
        if (geo_surf%shat > epsilon(0.)) then
-          akx_min = theta0_min * geo_surf%shat * aky(1)
-          akx_max = theta0_max * geo_surf%shat * aky(1)
+          akx_min = theta0_min * tfac * aky(1)
+          akx_max = theta0_max * tfac * aky(1)
        else
-          akx_min = theta0_max * geo_surf%shat * aky(1)
-          akx_max = theta0_min * geo_surf%shat * aky(1)
+          akx_min = theta0_max * tfac * aky(1)
+          akx_max = theta0_min * tfac * aky(1)
        end if
     end if
 
@@ -347,8 +361,8 @@ contains
        ! instead of theta0_min and theta0_max,
        ! use them to get theta0_min and theta0_max
        if (theta0_min > theta0_max+zero .and. abs(aky(1)) > zero) then
-          theta0_min = akx_min/(geo_surf%shat*aky(1))
-          theta0_max = akx_max/(geo_surf%shat*aky(1))
+          theta0_min = akx_min/(tfac*aky(1))
+          theta0_max = akx_max/(tfac*aky(1))
           dtheta0 = 0.0
           if (nakx > 1) dtheta0 = (theta0_max - theta0_min)/real(nakx - 1)
           
@@ -356,7 +370,7 @@ contains
              theta0(j,:) &
                   = (/ (theta0_min + dtheta0*real(i), i=0,nakx-1) /)
           end do
-          akx = theta0(1,:) * geo_surf%shat * aky(1)
+          akx = theta0(1,:) * tfac * aky(1)
        else if (akx_max > akx_min-zero) then
           dkx = 0.0
           if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)

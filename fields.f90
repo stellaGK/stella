@@ -113,7 +113,7 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
-               * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+               * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)
           wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
           call integrate_vmu (g0, iz, tmp)
           gamtot(iky,ikx,iz) = gamtot(iky,ikx,iz) + tmp*wgt
@@ -142,7 +142,7 @@ contains
               / (1.0 - aj0v(:,ikxkyz)**2)
 
            g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
-              * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa) &
+              * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa) &
               * (-spec(is)%tprim*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa)-2.5) &
                  -spec(is)%fprim &
               +  (dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*spread(mu,1,nvpa)*bmag(ia,iz)) + spread(g1,1,nvpa))
@@ -205,8 +205,8 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread(maxwell_vpa*vpa**2,2,nmu) &
-               * spread(maxwell_mu(ia,iz,:)*aj0v(:,ikxkyz)**2,1,nvpa)
+          g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu) &
+               * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)**2,1,nvpa)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
           call integrate_vmu (g0, iz, tmp)
           apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
@@ -716,8 +716,7 @@ contains
     use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: fphi, fapar
-    use physics_parameters, only: rhostar
-    use stella_geometry, only: dl_over_b, bmag, dBdrho, dxdpsi,drhodpsi
+    use stella_geometry, only: dl_over_b, bmag, dBdrho, rho_to_x
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
@@ -742,10 +741,7 @@ contains
     complex, dimension (:,:,:), allocatable :: gyro_g
     complex, dimension (:,:), allocatable :: g0k, g0x
 
-    real dpsidx
-
     ia = 1
-    dpsidx = 1.0/dxdpsi
 
     if (fphi > epsilon(0.0)) then
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -810,7 +806,7 @@ contains
          do iz = -nzgrid, nzgrid
            g0k = phi(:,:,iz,it)
            call transform_kx2x_solo (g0k,g0x)
-           g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+           g0x = rho_to_x*spread(x,1,naky)*g0x
            call transform_x2kx_solo (g0x,phi_corr_QN(:,:,iz,it))
          enddo
        enddo
@@ -829,7 +825,7 @@ contains
                  * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
              call transform_kx2x_solo (g0k,g0x)
-             g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+             g0x = rho_to_x*spread(x,1,naky)*g0x
              call transform_x2kx_solo (g0x,phi_corr_GA(:,:,iz,it,ivmu))
            enddo
          enddo

@@ -32,19 +32,18 @@ contains
     use redistribute, only: gather, scatter
     use dist_redistribute, only: kxkyz2vmu
     use physics_flags, only: radial_variation
-    use physics_parameters, only: rhostar
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use kt_grids, only: nalpha, nakx, naky, nx, x
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
-    use stella_geometry, only: dBdrho, dxdpsi, drhodpsi
+    use stella_geometry, only: dBdrho, rho_to_x
 
 
     implicit none
 
-    real :: dpsidx, corr
+    real :: corr
     integer :: ivmu, is, imu, iv, it, iz, ia
     real, dimension (:,:), allocatable :: energy
     complex, dimension (:,:), allocatable :: f0k, g0k, g0x
@@ -59,7 +58,6 @@ contains
     call gather (kxkyz2vmu, gvmu, gnew)
 
     ia = 1
-    dpsidx = 1./dxdpsi
 
     !calculate radial corrections to F0 for use in Krook operator, as well as g1 from initialization
     if(radial_variation) then
@@ -70,7 +68,7 @@ contains
       allocate (g0k(naky,nakx))
       allocate (g0x(naky,nx))
 
-      g0x = rhostar*drhodpsi*dpsidx*spread(x,1,naky)
+      g0x = rho_to_x*spread(x,1,naky)
       call transform_x2kx_solo(g0x,f0k)
 
 
@@ -88,7 +86,7 @@ contains
               g0k = gnew(:,:,iz,it,ivmu)
 
               call transform_kx2x_solo(g0k,g0x)
-              g0x = g0x*(1.0 + rhostar*drhodpsi*dpsidx*corr*spread(x,1,naky))
+              g0x = g0x*(1.0 + rho_to_x*corr*spread(x,1,naky))
               call transform_x2kx_solo(g0x,g0k)
 
               gnew(:,:,iz,it,ivmu) = g0k
@@ -185,17 +183,20 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use stella_geometry, only: gds2, gds21, gds22
     use stella_geometry, only: dgds2dr, dgds21dr
-    use stella_geometry, only: dgds22dr, dgds22bdr
-    use stella_geometry, only: geo_surf
+    use stella_geometry, only: dgds22dr
+    use stella_geometry, only: geo_surf, q_as_x
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
     use kt_grids, only: zonal_mode
     use kt_grids, only: nalpha
 
+    use file_utils, only: run_name
+
     implicit none
 
-    integer :: iky, ikx
+    integer :: iky, ikx, ia, iz
+    character(len=512) :: filename
 
     if (kp2init) return
     kp2init = .true.
@@ -205,8 +206,13 @@ contains
     do iky = 1, naky
        if (zonal_mode(iky)) then
           do ikx = 1, nakx
-             kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
-             dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22bdr/kperp2(iky,ikx,:,:)
+             if(q_as_x) then
+               kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22
+               dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/kperp2(iky,ikx,:,:)
+             else
+               kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
+               dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/(geo_surf%shat**2*kperp2(iky,ikx,:,:))
+             endif
              if(any(kperp2(iky,ikx,:,:) .lt. epsilon(0.))) dkperp2dr(iky,ikx,:,:) = 0.
           end do
        else
@@ -222,6 +228,19 @@ contains
           end do
        end if
     end do
+
+    filename=trim(run_name)//".kperp2"
+    open (1232,file=trim(filename),status='unknown')
+    ia=1
+    do iz=-nzgrid,nzgrid
+      do ikx=1, naky
+        do iky = 1, 1
+          write(1232,'(2e15.8)') kperp2(iky,ikx,ia,iz), dkperp2dr(iky,ikx,ia,iz)
+        enddo
+      enddo
+    enddo
+    close (1232)
+
     
   end subroutine init_kperp2
 
@@ -252,7 +271,7 @@ contains
 
   subroutine init_vperp2
 
-    use stella_geometry, only: bmag
+    use stella_geometry, only: bmag_psi0
     use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2
     use vpamu_grids, only: nmu, mu
@@ -268,7 +287,7 @@ contains
     if (.not.allocated(vperp2)) allocate (vperp2(nalpha,-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
     
     do imu = 1, nmu
-       vperp2(:,:,imu) = 2.0*mu(imu)*bmag
+       vperp2(:,:,imu) = 2.0*mu(imu)*bmag_psi0
     end do
 
   end subroutine init_vperp2

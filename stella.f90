@@ -75,7 +75,8 @@ contains
     use zgrid, only: init_zgrid
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: init_geometry, communicate_geo_multibox
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
+    use stella_geometry, only: finish_init_geometry
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
@@ -132,7 +133,7 @@ contains
     call broadcast (runtype_option_switch)
     if(list) call job_fork
 
-    debug = debug .and. proc0
+    !debug = debug .and. proc0
 
     if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)
@@ -177,8 +178,6 @@ contains
     if (debug) write(6,*) "stella::init_stella::init_delt"
     call init_delt(delt)
 
-
-
     if (debug) write(6,*) "stella::init_stella::init_ranf"
     n=get_rnd_seed_length()
     allocate(seed(n))
@@ -193,15 +192,20 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
-    call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+    call init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
     if (debug) write (6,*) 'stella::init_stella::init_multibox'
     call init_multibox
     if (proc0.and.runtype_option_switch.eq.runtype_multibox &
              .and.(job.eq.1).and.radial_variation) then
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_geo'
       call communicate_geo_multibox(xL,xR)
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_spec'
       call communicate_species_multibox(xL,xR)
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_param'
       call communicate_multibox_parameters
     endif
+    if (debug) write (6,*) 'stella::init_stella::finish_init_geometry'
+    !call finish_init_geometry
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"
@@ -230,6 +234,8 @@ contains
     call init_stella_diagnostics (restarted,nstep,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
+
+
 
     ierr = error_unit()
     if (proc0) call flush_output_file (ierr)

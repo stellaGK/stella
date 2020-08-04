@@ -22,9 +22,10 @@ module vpamu_grids
 
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
-  real, dimension (:), allocatable :: maxwell_vpa
+  real, dimension (:,:), allocatable :: maxwell_vpa
   real, dimension (:), allocatable :: mu
-  real, dimension (:,:,:), allocatable :: wgts_mu, maxwell_mu
+  real, dimension (:,:,:), allocatable :: wgts_mu
+  real, dimension (:,:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
   real, dimension (:), allocatable :: dmu
@@ -125,7 +126,7 @@ contains
        allocate (wgts_vpa(nvpa)) ; wgts_vpa = 0.0
        allocate (wgts_vpa_default(nvpa)) ; wgts_vpa_default = 0.0
        ! this is the Maxwellian in vpa
-       allocate (maxwell_vpa(nvpa)) ; maxwell_vpa = 0.0
+       allocate (maxwell_vpa(nvpa,nspec)) ; maxwell_vpa = 0.0
        allocate (ztmax(nvpa,nspec)) ; ztmax = 0.0
     end if
 
@@ -143,8 +144,8 @@ contains
     vpa(:nvgrid) = -vpa(nvpa:nvgrid+1:-1)
 
     ! this is the equilibrium Maxwellian in vpa
-    maxwell_vpa = exp(-vpa*vpa)
-    ztmax = spread(spec%zt,1,nvpa)*spread(maxwell_vpa,2,nspec)
+    maxwell_vpa = exp(-spread(vpa*vpa,2,nspec))
+    ztmax = spread(spec%zt,1,nvpa)*maxwell_vpa
 
     ! get integration weights corresponding to vpa grid points
     ! for now use Simpson's rule; 
@@ -644,7 +645,8 @@ contains
     use gauss_quad, only: get_laguerre_grids
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
-    use stella_geometry, only: bmag
+    use species, only: spec, nspec
+    use stella_geometry, only: bmag_psi0
     
     implicit none
 
@@ -656,7 +658,7 @@ contains
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
        allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
-       allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu)) ; maxwell_mu = 0.0
+       allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; maxwell_mu = 0.0
        allocate (dmu(nmu-1))
     end if
 
@@ -666,7 +668,7 @@ contains
     if (equally_spaced_mu_grid) then
        ! first get equally spaced grid in mu with max value
        ! mu_max = vperp_max**2/(2*max(bmag))
-       mu_max = vperp_max**2/(2.*maxval(bmag))
+       mu_max = vperp_max**2/(2.*maxval(bmag_psi0))
        ! want first grid point at dmu/2 to avoid mu=0 special point
        ! dmu/2 + (nmu-1)*dmu = mu_max
        ! so dmu = mu_max/(nmu-1/2)
@@ -681,10 +683,10 @@ contains
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
        call get_laguerre_grids (mu, wgts_mu_tmp)
-       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
-       mu = mu/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+       mu = mu/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
 
        dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
        ! leave dmu(nmu) uninitialized. should never be used, so want 
@@ -692,12 +694,12 @@ contains
     end if
 
     ! this is the mu part of the v-space Maxwellian
-    maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
+    maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag_psi0,3,nmu),4,nspec))
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
     ! of velocity space Jacobian
-    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
+    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag_psi0,3,nmu)
 
     deallocate (wgts_mu_tmp)
 

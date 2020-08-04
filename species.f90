@@ -203,6 +203,9 @@ contains
        ! this is (1/T_s)*d^2 T_s / drho^2
        spec(is)%d2Tdr2 = d2Tdr2
 
+       spec(is)%dens_psi0 = dens
+       spec(is)%temp_psi0 = temp
+
        if(write_profile_variation) then
          write (filename,"(A,I1)") "specprof_", is
          open  (1002, file=filename,status='unknown')
@@ -250,13 +253,21 @@ contains
        call broadcast (spec(is)%vnew)
        call broadcast (spec(is)%d2ndr2)
        call broadcast (spec(is)%d2Tdr2)
+       call broadcast (spec(is)%dens_psi0)
+       call broadcast (spec(is)%temp_psi0)
        call broadcast (spec(is)%type)
 
-       spec(is)%stm = sqrt(spec(is)%temp/spec(is)%mass)
+       spec(is)%stm  = sqrt(spec(is)%temp/spec(is)%mass)
        spec(is)%zstm = spec(is)%z/sqrt(spec(is)%temp*spec(is)%mass)
-       spec(is)%tz = spec(is)%temp/spec(is)%z
-       spec(is)%zt = spec(is)%z/spec(is)%temp
-       spec(is)%smz = abs(sqrt(spec(is)%temp*spec(is)%mass)/spec(is)%z)
+       spec(is)%tz   = spec(is)%temp/spec(is)%z
+       spec(is)%zt   = spec(is)%z/spec(is)%temp
+       spec(is)%smz  = abs(sqrt(spec(is)%temp*spec(is)%mass)/spec(is)%z)
+
+       spec(is)%stm_psi0  = sqrt(spec(is)%temp_psi0/spec(is)%mass)
+       spec(is)%zstm_psi0 = spec(is)%z/sqrt(spec(is)%temp_psi0*spec(is)%mass)
+       spec(is)%tz_psi0   = spec(is)%temp_psi0/spec(is)%z
+       spec(is)%zt_psi0   = spec(is)%z/spec(is)%temp_psi0
+       spec(is)%smz_psi0  = abs(sqrt(spec(is)%temp_psi0*spec(is)%mass)/spec(is)%z)
     end do
 
   end subroutine broadcast_parameters
@@ -392,8 +403,7 @@ contains
 
 
     subroutine communicate_species_multibox(l_edge,r_edge)
-      use physics_parameters, only: rhostar
-      use stella_geometry, only: drhodpsi, dxdpsi
+      use stella_geometry, only: rho_to_x
       use job_manage, only: njobs
       use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs,  &
@@ -403,13 +413,15 @@ contains
 
       real, optional, intent (in) :: l_edge, r_edge
 
-      real, dimension (:), allocatable :: ldens, ltemp, lfprim, ltprim
-      real, dimension (:), allocatable :: rdens, rtemp, rfprim, rtprim
+      real, dimension (:), allocatable :: dens, ldens, ltemp, lfprim, ltprim
+      real, dimension (:), allocatable :: temp, rdens, rtemp, rfprim, rtprim
 
       real dr_m,dr_p
 
       integer :: i
 
+      allocate(dens(nspec))
+      allocate(temp(nspec))
       allocate(ldens(nspec))
       allocate(ltemp(nspec))
       allocate(lfprim(nspec))
@@ -422,8 +434,8 @@ contains
 
       if(job == 1) then
 
-        dr_m=  rhostar*l_edge*drhodpsi/dxdpsi
-        dr_p=  rhostar*r_edge*drhodpsi/dxdpsi
+        dr_m=  rho_to_x*l_edge
+        dr_p=  rho_to_x*r_edge
 
         ! recall that fprim and tprim are the negative gradients
         ldens  =  spec%dens*(1.0 - dr_m*spec%fprim)! + 0.5*dr_m**2*spec%d2ndr2)
@@ -447,36 +459,50 @@ contains
       call scope(crossdomprocs)
 
       if(job==1) then
-        call send(ldens ,0,120)
-        call send(ltemp ,0,121)
-        call send(lfprim,0,122)
-        call send(ltprim,0,123)
-        call send(rdens ,njobs-1,130)
-        call send(rtemp ,njobs-1,131)
-        call send(rfprim,njobs-1,132)
-        call send(rtprim,njobs-1,133)
+        call send(ldens    ,0,120)
+        call send(ltemp    ,0,121)
+        call send(lfprim   ,0,122)
+        call send(ltprim   ,0,123)
+        call send(spec%dens,0,124)
+        call send(spec%temp,0,125)
+        call send(rdens    ,njobs-1,130)
+        call send(rtemp    ,njobs-1,131)
+        call send(rfprim   ,njobs-1,132)
+        call send(rtprim   ,njobs-1,133)
+        call send(spec%dens,njobs-1,134)
+        call send(spec%temp,njobs-1,135)
       elseif(job == 0) then
         call receive(ldens, 1,120)
         call receive(ltemp, 1,121)
         call receive(lfprim,1,122)
         call receive(ltprim,1,123)
-        spec%dens  = ldens
-        spec%temp  = ltemp
-        spec%fprim = lfprim
-        spec%tprim = ltprim
+        call receive(dens,  1,124)
+        call receive(temp,  1,125)
+        spec%dens       = ldens
+        spec%temp       = ltemp
+        spec%fprim      = lfprim
+        spec%tprim      = ltprim
+        spec%dens_psi0  = dens
+        spec%temp_psi0  = temp
       elseif(job== njobs-1) then
         call receive(rdens, 1,130)
         call receive(rtemp, 1,131)
         call receive(rfprim,1,132)
         call receive(rtprim,1,133)
+        call receive(dens,  1,134)
+        call receive(temp,  1,135)
         spec%dens  = rdens
         spec%temp  = rtemp
         spec%fprim = rfprim
         spec%tprim = rtprim
+        spec%dens_psi0  = dens
+        spec%temp_psi0  = temp
       endif
 
       call scope(subprocs)
 
+      deallocate(dens)
+      deallocate(temp)
       deallocate(ldens)
       deallocate(ltemp)
       deallocate(lfprim)
@@ -499,12 +525,15 @@ contains
 
       filename = trim(trim(run_name)//'.species.input')
       open (1003,file=filename,status='unknown')
-      write (1003,'(7a12,a9)') '#1.z', '2.mass', '3.dens', &
-            '4.temp', '5.tprim','6.fprim', '7.vnewss', '8.type'
+      write (1003,'(9a12,a9)') '#1.z', '2.mass', '3.dens', &
+            '4.temp', '5.tprim','6.fprim', '7.vnewss',  &
+           '8.dens_psi0', '9.temp_psi0', '11.type'
       do is = 1, nspec
-        write (1003,'(7e12.4,i9)') spec(is)%z, spec(is)%mass, &
+        write (1003,'(9e12.4,i9)') spec(is)%z, spec(is)%mass, &
                spec(is)%dens, spec(is)%temp, spec(is)%tprim, &
-               spec(is)%fprim, spec(is)%vnew(is), spec(is)%type
+               spec(is)%fprim, spec(is)%vnew(is), &
+               spec(is)%dens_psi0, spec(is)%temp_psi0, &
+               spec(is)%type
       end do
       close (1003)
 
