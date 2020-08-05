@@ -194,14 +194,18 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+
     if (debug) write (6,*) 'stella::init_stella::init_multibox'
     call init_multibox
     if (proc0.and.runtype_option_switch.eq.runtype_multibox &
              .and.(job.eq.1).and.radial_variation) then
       call communicate_geo_multibox(xL,xR)
       call communicate_species_multibox(xL,xR)
+    endif
+    if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1)) then
       call communicate_multibox_parameters
     endif
+
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"

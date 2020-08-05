@@ -2227,9 +2227,12 @@ contains
 
     integer :: ierr
 
+# ifndef MPI
+    call error("mp_gather")
+# else
     call mpi_gather (senddata, 1, mpi_integer, recvarray, &
          1, mpi_integer, 0, mp_comm, ierr)
-
+#endif
   end subroutine mp_gather
 
   subroutine broadcast_with_comm (x, comm)

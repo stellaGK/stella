@@ -119,7 +119,7 @@ contains
     zf_option = 'default'
     shear_option = 'default'
     krook_option = 'default'
-    dealiased_shear = .true.
+    dealiased_shear = .false.
     
     if (proc0) then
       in_file = input_unit_exist("multibox_parameters", exist)
@@ -223,6 +223,11 @@ contains
       krook_mask_left(i) = krook_mask_right(boundary_size - i + 1)
     enddo
 
+    call init_mb_transforms
+
+#ifndef MPI
+    call init_shear
+#else
     call scope(crossdomprocs)
 
     if(job==1) then
@@ -241,18 +246,18 @@ contains
       call receive(xL,1)
       call receive(xL_d,1)
       call send(akx(2),1)
+
+      call init_shear
     elseif(job==njobs-1) then
       call receive(xR,1)
       call receive(xR_d,1)
       call send(akx(2),1)
+
+      call init_shear
     endif
 
     call scope(subprocs)
-
-    call init_mb_transforms
-
-    call init_shear
-  
+#endif
   end subroutine init_multibox
 
   subroutine communicate_multibox_parameters
@@ -261,10 +266,12 @@ contains
                   send, receive, job
 
     implicit none
-
-    call scope(crossdomprocs)
-
+#ifndef MPI
+    return
+#else
     if(job==1) then
+      call scope(crossdomprocs)
+
       call send(xL,0)
       call send(xR,njobs-1)
       call send(xL_d,0)
@@ -272,10 +279,12 @@ contains
 
       call receive(kx0_L,0)
       call receive(kx0_R,njobs-1)
+
+      call scope(subprocs)
+
+      call init_shear
     endif
-
-    call scope(subprocs)
-
+#endif
   end subroutine communicate_multibox_parameters
 
   subroutine finish_multibox
@@ -454,6 +463,9 @@ contains
         end select
       endif
     endif
+    do i=1,nx
+      write (*,*) i,shear(i),job
+    enddo
 
   end subroutine init_shear
 
