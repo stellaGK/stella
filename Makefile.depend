@@ -41,7 +41,6 @@ stella_mod = \
 	 response_matrix.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
-	 smooth_step.o \
 	 species.o \
 	 spfunc.o \
 	 spl.o \
@@ -98,7 +97,6 @@ dist_fn.o: \
 	 kt_grids.o \
 	 mp.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 redistribute.o \
 	 species.o \
 	 stella_geometry.o \
@@ -135,6 +133,7 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -249,6 +248,7 @@ mp.o: \
 mt19937.o: 
 multibox.o: \
 	 common_types.o \
+	 constants.o \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
@@ -256,9 +256,11 @@ multibox.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 physics_parameters.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 zgrid.o 
 neoclassical_terms.o: \
@@ -332,7 +334,6 @@ run_parameters.o: \
 sfincs_interface.o: \
 	 mp.o \
 	 zgrid.o 
-smooth_step.o: 
 species.o: \
 	 common_types.o \
 	 euterpe_interface.o \
@@ -479,7 +480,6 @@ time_advance.o: \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
-	 smooth_step.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \

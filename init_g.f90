@@ -195,7 +195,7 @@ contains
     use kt_grids, only: reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
     use ran, only: ranf
@@ -238,7 +238,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z) &
             * (den0 + 2.0*zi*spread(vpa,2,nmu)*upar0) &
-            * spread(maxwell_mu(ia,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+            * spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)*maxwell_fac(is)
     end do
 
   end subroutine ginit_default
@@ -360,7 +360,7 @@ contains
     use extended_zgrid, only: it_right
     use kt_grids, only: aky, naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -500,7 +500,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi2*phi(iky,ikx,iz,it) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa) 
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
     end do
 
   end subroutine ginit_noise
@@ -512,9 +512,9 @@ contains
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx
+    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
     use constants, only: zi
 
     implicit none
@@ -522,7 +522,7 @@ contains
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi, odd
     real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ikxkyz
-    integer :: iz, iky, ikx, imu, iv, ia
+    integer :: iz, iky, ikx, imu, iv, ia, is
     
     phi = 0.
     odd = 0.
@@ -556,6 +556,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = 1, nvpa
              gvmu(iv,imu,ikxkyz) = phiinit &
@@ -566,7 +567,7 @@ contains
           end do
        end do
        gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
     end do
 
 ! FLAG -- should be uncommented, which means I need to fix flae
@@ -584,7 +585,7 @@ contains
     use dist_fn_arrays, only: gvmu, kperp2
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: nvpa, nmu
 
     implicit none
@@ -603,7 +604,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        
        gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
     end do
 
   end subroutine ginit_rh

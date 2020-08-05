@@ -36,6 +36,7 @@ module time_advance
   logical :: parnlinit  = .false.
   logical :: readinit   = .false.
   logical :: radialinit = .false.
+  logical :: prlshearinit = .false.
 
   ! if .true., dist fn is represented on alpha grid
   ! if .false., dist fn is given on k-alpha grid
@@ -104,6 +105,8 @@ contains
     call init_wdrift
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
     call init_wstar
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_shear'
+    call init_parallel_shear
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
@@ -114,6 +117,8 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
+
+    call write_drifts
 
   end subroutine init_time_advance
 
@@ -172,6 +177,39 @@ contains
 
   end subroutine read_parameters 
 
+  subroutine write_drifts
+    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+    use dist_fn_arrays, only: wstar, wstarp
+    use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
+
+    use file_utils, only: run_name
+    
+    implicit none
+
+    integer ia, iz, ivmu
+    character(len=512) :: filename
+
+    ia=1
+
+    filename=trim(run_name)//".drifts"
+    open(3345,file=trim(filename),status='unknown')
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do iz= -nzgrid, nzgrid
+        write(3345,'(10e25.8)') wstar(ia,iz,ivmu),wstarp(ia,iz,ivmu), &
+                               wdriftx_g(ia,iz,ivmu), wdriftpx_g(ia,iz,ivmu), &
+                               wdrifty_g(ia,iz,ivmu), wdriftpy_g(ia,iz,ivmu), &
+                               wdriftx_phi(ia,iz,ivmu), wdriftpx_phi(ia,iz,ivmu), &
+                               wdrifty_phi(ia,iz,ivmu), wdriftpy_phi(ia,iz,ivmu)
+      enddo
+    enddo
+    close (3345)
+
+  end subroutine write_drifts
+
   subroutine init_wdrift
 
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
@@ -185,10 +223,10 @@ contains
     use stella_geometry, only: cvdrift, gbdrift
     use stella_geometry, only: cvdrift0, gbdrift0
     use stella_geometry, only: gds23, gds24
-    use stella_geometry, only: geo_surf
-    use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
+    use stella_geometry, only: geo_surf, q_as_x
+    use stella_geometry, only: dxdXcoord, drhodpsi, dydalpha
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
     use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
@@ -224,7 +262,7 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
-       fac = -ydriftknob*0.5*code_dt*spec(is)%tz
+       fac = -ydriftknob*0.5*code_dt*spec(is)%tz_psi0
        ! this is the curvature drift piece of wdrifty with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
@@ -240,7 +278,7 @@ contains
        end if
 
        wdrifty_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
-            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
@@ -250,7 +288,11 @@ contains
                - code_dt*0.5*dfneo_dzed(:,:,ivmu)*gds23
        end if
 
-       fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
+       if(q_as_x) then
+         fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0
+       else
+         fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0/geo_surf%shat
+       endif
        ! this is the curvature drift piece of wdriftx with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
@@ -262,10 +304,10 @@ contains
        ! then add in v_E^{nc} . grad x dg/dx coefficient here
        if (include_neoclassical_terms) then
           wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)+code_dt*0.5*(gds24*dphineo_dzed &
-               - dxdpsi*dphineo_dalpha)
+               - dxdXcoord*dphineo_dalpha)
        end if
        wdriftx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
-            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
        ! if including neoclassical corrections to equilibrium,
        ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
@@ -273,7 +315,7 @@ contains
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
                - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdriftx &
-               + code_dt*0.5*(dfneo_dalpha(:,:,ivmu)*dxdpsi-dfneo_dzed(:,:,ivmu)*gds24)
+               + code_dt*0.5*(dfneo_dalpha(:,:,ivmu)*dxdXcoord-dfneo_dzed(:,:,ivmu)*gds24)
        end if
 
     end do
@@ -292,7 +334,7 @@ contains
     use kt_grids, only: nalpha
     use stella_geometry, only: dydalpha, drhodpsi
     use vpamu_grids, only: vperp2, vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_drho
@@ -314,15 +356,15 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       energy = vpa(iv)**2 + vperp2(:,:,imu)
+       energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
        if (include_neoclassical_terms) then
           wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-               * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+               * (maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
                - dfneo_drho(:,:,ivmu))
        else
           wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-               * maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+               * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
@@ -330,6 +372,44 @@ contains
     deallocate (energy)
 
   end subroutine init_wstar
+
+  subroutine init_parallel_shear
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_time, only: code_dt
+    use species, only: spec
+    use zgrid, only: nzgrid
+    use kt_grids, only: nalpha
+    use stella_geometry, only: geo_surf, bmag, btor, rmajor
+    use physics_parameters, only: g_exb, omprimfac
+    use vpamu_grids, only: vpa
+    use dist_fn_arrays, only: prl_shear
+
+    implicit none
+
+    integer :: is, iv, ivmu, iz, ia
+
+    !perpendicular shear is currently done in multibox
+
+    if (prlshearinit) return
+    prlshearinit = .true.
+
+    ia=1
+
+    if (.not.allocated(prl_shear)) &
+         allocate (prl_shear(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; prl_shear = 0.0
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      is = is_idx(vmu_lo,ivmu)
+      iv = iv_idx(vmu_lo,ivmu)
+      do iz = -nzgrid,nzgrid
+        prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv) &
+               *(geo_surf%qinp/geo_surf%rhoc)*(btor(iz)*rmajor(iz)/bmag(ia,iz))/spec(is)%stm
+      enddo
+    enddo
+
+  end subroutine init_parallel_shear
 
   subroutine init_parallel_nonlinearity
 
@@ -370,12 +450,13 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nalpha
     use stella_geometry, only: drhodpsi, dydalpha
-    use stella_geometry, only: dBdrho, geo_surf
+    use stella_geometry, only: dBdrho, geo_surf, q_as_x
     use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
     use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
     use vpamu_grids, only: vperp2, vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
     use neoclassical_terms, only: include_neoclassical_terms
@@ -415,7 +496,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       energy = vpa(iv)**2 + vperp2(:,:,imu)
+       energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
        !FLAG DSO - THIS NEEDS TO BE ADDED SOMEDAY!
        !if (include_neoclassical_terms) then 
        !   wstarp(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
@@ -426,7 +507,7 @@ contains
        !recall that fprim = -dn/dr and trpim = -dt/dr
        
        wstarp(:,:,ivmu) = -wstarknob*0.5*code_dt &
-          * dydalpha*drhodpsi*maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
+          * dydalpha*drhodpsi*maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
           * ( spec(is)%d2ndr2-(spec(is)%fprim)**2-(spec(is)%tprim)**2*energy &
            + (spec(is)%d2Tdr2-(spec(is)%tprim)**2)*(energy-1.5) &
            - 2*spec(is)%tprim*mu(imu)*spread(dBdrho,1,nalpha) &
@@ -438,7 +519,7 @@ contains
        !end if
        
        !wdrift
-       fac = -ydriftknob*0.5*code_dt*spec(is)%tz
+       fac = -ydriftknob*0.5*code_dt*spec(is)%tz_psi0
        ! this is the curvature drift piece of wdrifty with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
@@ -448,10 +529,16 @@ contains
        wdriftpy_g(:,:,ivmu) = wcvdrifty*vpa(iv) + wgbdrifty
 
        wdriftpy_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
-            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
+            - wdrifty_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
+              + 2.*mu(imu)*spread(dBdrho,1,nalpha))
 
 
-       fac = -xdriftknob*0.5*code_dt*spec(is)%tz/geo_surf%shat
+       if(q_as_x) then
+         fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0
+       else
+         fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0/geo_surf%shat
+       endif
        ! this is the curvature drift piece of wdriftx with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
@@ -461,10 +548,13 @@ contains
        wdriftpx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
 
        wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
-            * maxwell_vpa(iv)*maxwell_mu(:,:,imu)
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
+            - wdriftx_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
+              + 2.*mu(imu)*spread(dBdrho,1,nalpha))
     end do
 
-    deallocate (energy)
+    deallocate (energy, wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
+
   end subroutine init_radial_variation
 
 
@@ -500,14 +590,13 @@ contains
 
   subroutine init_cfl
     
-    use mp, only: proc0, nproc, max_allreduce
+    use mp, only: proc0, nproc, max_allreduce, min_allreduce
     use mp, only: scope, allprocs, subprocs
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
     use physics_flags, only: radial_variation
-    use physics_parameters, only: rhostar
-    use stella_geometry, only: dxdpsi, drhodpsi
+    use stella_geometry, only: rho_to_x
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky, nx, x
@@ -557,11 +646,11 @@ contains
       !while other quantities should go here, parallel streaming with electrons
       !is what will limit us
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var1)),zero)
-      cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt_stream = cfl_dt_stream/abs((rho_to_x+zero)*x(nx))
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var2)),zero)
-      cfl_dt_stream = cfl_dt_stream/abs((rhostar+zero)*drhodpsi*x(nx)/dxdpsi)
+      cfl_dt_stream = cfl_dt_stream/abs((rho_to_x+zero)*x(nx))
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
     end if
@@ -577,6 +666,10 @@ contains
     ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
     cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
+
+    if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+    call min_allreduce (cfl_dt)
+    if(runtype_option_switch == runtype_multibox) call scope(subprocs)
     
     if (proc0) then
        write (*,'(a16)') 'LINEAR CFL_DT: '
@@ -620,12 +713,14 @@ contains
     wdriftinit = .false.
     wstarinit = .false.
     radialinit = .false.
+    prlshearinit = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
+    call init_parallel_shear
     if (radial_variation) call init_radial_variation
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
@@ -652,12 +747,13 @@ contains
     use dissipation, only: include_krook_operator, update_delay_krook
     use dissipation, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx
     use stella_layouts, only: vmu_lo
 
     implicit none
 
     integer, intent (in) :: istep
-    complex, allocatable, dimension (:,:,:) :: g1
+    complex, allocatable, dimension (:,:,:,:) :: g1
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -688,10 +784,10 @@ contains
     end if
 
     if(remove_zero_projection) then
-      allocate (g1(-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g1 = gnew(1,1,:,:,:) - gold(1,1,:,:,:)
+      allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
       call project_out_zero(g1)
-      gnew(1,1,:,:,:) = gnew(1,1,:,:,:) - g1
+      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
       deallocate (g1)
     end if
 
@@ -926,6 +1022,7 @@ contains
     use physics_flags, only: include_mirror
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
+    use physics_parameters, only: g_exb
     use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
@@ -936,7 +1033,7 @@ contains
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: include_multibox_krook, add_multibox_krook, g_exb
+    use multibox, only: include_multibox_krook, add_multibox_krook
 
     implicit none
 
@@ -972,9 +1069,7 @@ contains
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
 
-    !if we don't use advance_ExB_nonlinearity but still need shear, call the stand-alone routine
-    !and save on some FFTs
-    if (.not.nonlinear.and.(g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
+    if ((g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
@@ -1214,9 +1309,10 @@ contains
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: exb_nonlin_fac
+    use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky
+    use kt_grids, only: akx, aky, x_clamped
+    use stella_geometry, only: rho_to_x
     use physics_flags, only: full_flux_surface, radial_variation
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
@@ -1282,12 +1378,13 @@ contains
              call swap_kxky (g0k, g0k_swap)
              call transform_ky2y (g0k_swap, g0kxy)
              call transform_kx2x (g0kxy, g1xy)
-             g1xy = g1xy*exb_nonlin_fac - spread(shear,1,ny)
-             bracket = g0xy*g1xy
+             g1xy = g1xy*exb_nonlin_fac
+             bracket = g0xy*(g1xy - spread(shear,1,ny))
 
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
+             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy)+maxval(abs(shear)))*aky(naky)))
 
              if(radial_variation) then
+               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdx(g0a,g0k)
@@ -1314,6 +1411,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
              if(radial_variation) then
+               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdy(g0a,g0k)
@@ -1380,11 +1478,15 @@ contains
   subroutine advance_equilibrium_shear (g, gout)
 
     use stella_layouts, only: vmu_lo
+    use physics_parameters, only: g_exb, omprimfac
+    use physics_flags, only: nonlinear
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx
     use multibox, only: shear
     use stella_time, only: code_dt
+    use fields_arrays, only: phi, apar
+    use dist_fn_arrays, only: prl_shear
 
     implicit none
 
@@ -1394,14 +1496,25 @@ contains
 
     complex, dimension (:,:), allocatable :: g0k, g0x
 
-    integer :: ivmu, iz, it
+    integer :: ivmu, iz, it, ia
+
+    ia = 1
 
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,nx))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+            
+          !parallel flow shear
+          gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k
+
+          !perpendicular flow shear
+          !if we use advance_ExB_nonlinearity, we can piggy-back on the 
+          !FFTs there and save on some computations
+          if (.not.nonlinear) then
             call get_dgdy (g(:,:,iz,it,ivmu), g0k)
 
             !inverse and forward transforms
@@ -1409,9 +1522,10 @@ contains
             g0x = -spread(shear,1,naky)*g0x
             call transform_x2kx_solo (g0x, g0k)
 
-            gout(:,:,iz,it,ivmu)  = gout(:,:,iz,it,ivmu) + code_dt*g0k
-          end do
-       end do
+            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + code_dt*g0k
+          endif
+        end do
+      end do
     end do
 
     deallocate (g0k, g0x)
@@ -1660,10 +1774,9 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
-    use stella_geometry, only: dBdrho, dxdpsi,drhodpsi
+    use stella_geometry, only: rho_to_x
     use zgrid, only: nzgrid, ntubes
-    use species, only: spec
-    use kt_grids, only: nalpha, nakx, naky, nx, x
+    use kt_grids, only: nakx, naky, nx, x_clamped
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -1672,10 +1785,8 @@ contains
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
     use dist_fn_arrays, only: wstar, wstarp
-    use vpamu_grids, only: mu, vpa, vperp2
     use mirror_terms, only: add_mirror_radial_variation
     use parallel_streaming, only: add_parallel_streaming_radial_variation
-    use physics_parameters, only: rhostar
 
     implicit none
 
@@ -1684,9 +1795,6 @@ contains
     
     integer :: ia, ivmu, iv, imu, is, iz, it
 
-    real :: dpsidx
-    real, dimension (:,:), allocatable :: energy
-
     complex, dimension (:,:), allocatable :: g0k, g1k, g0a, g0x, g1x
     complex, dimension (:,:,:,:,:), allocatable :: g_corr
 
@@ -1694,8 +1802,6 @@ contains
     !if (proc0) call time_message(.false.,time_gke(:,7),' global variation advance')
 
     !if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
-
-    allocate (energy(nalpha,-nzgrid:nzgrid))
 
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
@@ -1722,14 +1828,11 @@ contains
        call mp_abort ('wstarp term not yet setup for full_flux_surface = .true. aborting.')
     endif
 
-    dpsidx = 1.0/dxdpsi
-
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       energy = vpa(iv)**2 + vperp2(:,:,imu)
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
             g0k = 0.
@@ -1752,19 +1855,12 @@ contains
             call get_dgdx(phi(:,:,iz,it),g1k)
             !wdriftx variation
             call gyro_average (g1k,iz,ivmu,g0a ) 
-            g0k = g0k + g0a*wdriftpx_phi(ia,iz,ivmu) &
-                      - g0a*wdriftx_phi(ia,iz,ivmu) &
-                      *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
-                        +2.*mu(imu)*dBdrho(iz))
-
+            g0k = g0k + g0a*wdriftpx_phi(ia,iz,ivmu) 
 
             call get_dgdy(phi(:,:,iz,it),g1k)
             !wdrifty variation
             call gyro_average (g1k,iz,ivmu,g0a) 
-            g0k = g0k + g0a*wdriftpy_phi(ia,iz,ivmu) &
-                      - g0a*wdrifty_phi(ia,iz,ivmu) &
-                      *(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-2.5) &
-                        +2.*mu(imu)*dBdrho(iz))
+            g0k = g0k + g0a*wdriftpy_phi(ia,iz,ivmu)
 
             !mirror term and/or parallel streaming
             if(include_mirror.or.include_parallel_streaming) then
@@ -1773,7 +1869,7 @@ contains
 
             !inverse and forward transforms
             call transform_kx2x_solo (g0k, g0x)
-            g1x =rhostar*drhodpsi*dpsidx*spread(x,1,naky)*g0x
+            g1x =rho_to_x*spread(x_clamped,1,naky)*g0x
             call transform_x2kx_solo (g1x, g0k)
 
 
@@ -1800,7 +1896,6 @@ contains
     end do
 
     deallocate (g0k, g1k, g0a, g0x, g1x)
-    deallocate (energy)
     if(allocated(g_corr)) deallocate(g_corr)
 
   end subroutine advance_radial_variation
@@ -2514,6 +2609,7 @@ contains
     call finish_wstar
     call finish_wdrift
     call finish_parallel_streaming
+    call finish_parallel_shear
     call finish_mirror
     call finish_neoclassical_terms
     call deallocate_arrays
@@ -2570,6 +2666,18 @@ contains
     wstarinit = .false.
 
   end subroutine finish_wstar
+
+  subroutine finish_parallel_shear
+
+    use dist_fn_arrays, only: prl_shear
+
+    implicit none
+
+    if (allocated(prl_shear)) deallocate (prl_shear)
+
+    prlshearinit = .false.
+
+  end subroutine finish_parallel_shear
 
   subroutine deallocate_arrays
 

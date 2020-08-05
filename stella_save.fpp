@@ -48,7 +48,7 @@ module stella_save
 # ifdef NETCDF
   real, allocatable, dimension (:,:,:) :: tmpr, tmpi
   real, allocatable, dimension (:,:,:) :: ktmpr, ktmpi
-  real, allocatable, dimension (:,:)   :: ptmpr, ptmpi
+  real, allocatable, dimension (:,:,:)   :: ptmpr, ptmpi
   real, allocatable, dimension (:,:,:,:) :: ftmpr, ftmpi
   integer (kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
   integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id
@@ -628,9 +628,9 @@ contains
 
        if (remove_zero_projection) then
          if (.not. allocated(ptmpr)) &
-           allocate (ptmpr(ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+           allocate (ptmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ptmpi)) &
-           allocate (ptmpi(ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+           allocate (ptmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
 # ifdef NETCDF_PARALLEL                    
          if(save_many .or. iproc == 0) then
@@ -659,8 +659,8 @@ contains
            istatus = nf90_var_par_access(ncid, projr_id, NF90_COLLECTIVE)
            istatus = nf90_var_par_access(ncid, proji_id, NF90_COLLECTIVE)
 
-           start_pos = (/1,vmu_lo%llim_proc+1/)
-           counts = (/ntubes, nvmulo_elements/)
+           start_pos = (/1,1,vmu_lo%llim_proc+1/)
+           counts = (/nakx,ntubes, nvmulo_elements/)
 
            istatus = nf90_put_var (ncid, projr_id, ptmpr, start=start_pos, count=counts)
          endif
@@ -997,9 +997,9 @@ contains
 
     if(remove_zero_projection) then
       if (.not. allocated(ptmpr)) &
-        allocate (ptmpr(ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (ptmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(ptmpi)) &
-        allocate (ptmpi(ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (ptmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       istatus = nf90_get_var (ncid, intproj_id, int_proj)
       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, intproj_id)
@@ -1011,8 +1011,8 @@ contains
         istatus = nf90_get_var (ncid, projr_id, ptmpr)
 #ifdef NETCDF_PARALLEL
       else
-        start_pos = (/1,vmu_lo%llim_proc+1/)
-        counts = (/ntubes, nvmulo_elements/)
+        start_pos = (/1,1,vmu_lo%llim_proc+1/)
+        counts = (/nakx,ntubes, nvmulo_elements/)
         istatus = nf90_get_var (ncid, projr_id, ptmpr, start=start_pos, count=counts)
       end if
 # endif

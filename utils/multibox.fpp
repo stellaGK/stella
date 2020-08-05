@@ -13,7 +13,7 @@ module multibox
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
-  public :: g_exb, shear
+  public :: shear
   public :: xL, xR, xL_d, xR_d
   public :: kx0_L, kx0_R
   public :: RK_step
@@ -54,7 +54,7 @@ module multibox
 ! the multibox simulation has one parameter: boundary_size
 ! 
   integer :: boundary_size, krook_size
-  real :: g_exb, nu_krook_mb
+  real :: nu_krook_mb
   logical :: smooth_ZFs
   logical :: RK_step, include_multibox_krook
   integer :: krook_option_switch
@@ -70,6 +70,10 @@ module multibox
   integer, parameter:: shear_option_triangle  = 0, &
                        shear_option_sine      = 1, &
                        shear_option_flat      = 2 
+  integer :: LR_debug_switch
+  integer, parameter:: LR_debug_option_default  = 0, &
+                       LR_debug_option_L        = 1, &
+                       LR_debug_option_R        = 2 
 
 contains
 
@@ -95,15 +99,19 @@ contains
       (/ text_option('default', mb_zf_option_default), &
          text_option('no_ky0',  mb_zf_option_no_ky0) , &
          text_option('no_fsa',  mb_zf_option_no_fsa)/)
+    type (text_option), dimension (3), parameter :: LR_db_opts = &
+      (/ text_option('default', LR_debug_option_default), &
+         text_option('L',       LR_debug_option_L) , &
+         text_option('R',       LR_debug_option_R)/)
     type (text_option), dimension (4), parameter :: shear_opts = &
       (/ text_option('default',  shear_option_triangle), &
          text_option('triangle', shear_option_triangle) , &
          text_option('sine',     shear_option_sine), &
          text_option('flat',     shear_option_flat)/)
-    character(30) :: zf_option, krook_option, shear_option
+    character(30) :: zf_option, krook_option, shear_option, LR_debug_option
 
     namelist /multibox_parameters/ boundary_size, krook_size, shear_option,& 
-                                   g_exb, smooth_ZFs, zf_option, &
+                                   smooth_ZFs, zf_option, LR_debug_option, &
                                    krook_option, RK_step, nu_krook_mb, &
                                    mb_debug_step, dealiased_shear
 
@@ -112,7 +120,6 @@ contains
     boundary_size = 4
     krook_size = 0
     nu_krook_mb = 0.0
-    g_exb = 0.
     mb_debug_step = 1000
     smooth_ZFs = .false.
     RK_step = .false.
@@ -120,6 +127,7 @@ contains
     shear_option = 'default'
     krook_option = 'default'
     dealiased_shear = .false.
+    LR_debug_option = 'default'
     
     if (proc0) then
       in_file = input_unit_exist("multibox_parameters", exist)
@@ -135,6 +143,9 @@ contains
       call get_option_value & 
         (shear_option, shear_opts, shear_option_switch, & 
          ierr, "shear_option in multibox_parameters")
+      call get_option_value & 
+        (LR_debug_option, LR_db_opts, LR_debug_switch, & 
+         ierr, "LR_debug_option in multibox_parameters")
 
        if(krook_size > boundary_size) krook_size = boundary_size 
     endif
@@ -143,11 +154,11 @@ contains
     call broadcast(boundary_size)
     call broadcast(krook_size)
     call broadcast(nu_krook_mb)
-    call broadcast(g_exb)
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
     call broadcast(krook_option_switch)
     call broadcast(shear_option_switch)
+    call broadcast(LR_debug_switch)
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
     call broadcast(dealiased_shear)
@@ -174,6 +185,8 @@ contains
     integer :: i
 
     real :: db
+
+    if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
 
     if(runtype_option_switch /= runtype_multibox) then
       allocate (shear(1)); shear(1)=0.0
@@ -236,12 +249,17 @@ contains
       xL_d = x_d(boundary_size)
       xR_d = x_d(nakx-boundary_size+1)
 
-      if(.not.allocated(x_clamped)) allocate(x_clamped(nx))
-      x_clamped = x
-      do i = 1, nx
-        if(x_clamped(i) < xL) x_clamped(i) = xL
-        if(x_clamped(i) > xR) x_clamped(i) = xR
-      enddo
+      if(LR_debug_switch == LR_debug_option_L) then
+        x_clamped = xL
+      else if(LR_debug_switch == LR_debug_option_R) then
+        x_clamped = xR
+      else
+        x_clamped = x
+        do i = 1, nx
+          if(x_clamped(i) < xL) x_clamped(i) = xL
+          if(x_clamped(i) > xR) x_clamped(i) = xR
+        enddo
+      endif
     elseif(job==0) then
       call receive(xL,1)
       call receive(xL_d,1)
@@ -314,6 +332,7 @@ contains
     use kt_grids, only: x_d, dx_d
     use mp, only: job
     use constants, only: pi
+    use physics_parameters, only: g_exb
     use stella_transforms, only: transform_kx2x_solo
 
     implicit none
@@ -498,6 +517,7 @@ contains
     return
 #else
     if(runtype_option_switch /= runtype_multibox) return
+    if(LR_debug_switch /= LR_debug_option_default) return
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
 

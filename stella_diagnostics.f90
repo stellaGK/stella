@@ -47,7 +47,7 @@ contains
     use zgrid, only: init_zgrid
     use kt_grids, only: init_kt_grids
     use physics_parameters, only: init_physics_parameters
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x
     use run_parameters, only: init_run_parameters
     use species, only: init_species
     use dist_fn, only: init_dist_fn
@@ -70,7 +70,7 @@ contains
     
     call init_zgrid
     call init_physics_parameters
-    call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+    call init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
     call init_run_parameters
     call init_species
     call init_init_g
@@ -565,9 +565,9 @@ contains
        end do
     end if
 
-    call sum_reduce (pflx, 0) ; pflx = pflx*spec%dens
-    call sum_reduce (qflx, 0) ; qflx = qflx*spec%dens*spec%temp
-    call sum_reduce (vflx, 0) ; vflx = vflx*spec%dens*sqrt(spec%mass*spec%temp)
+    call sum_reduce (pflx, 0) ; pflx = pflx*spec%dens_psi0
+    call sum_reduce (qflx, 0) ; qflx = qflx*spec%dens_psi0*spec%temp_psi0
+    call sum_reduce (vflx, 0) ; vflx = vflx*spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0)
 
     ! normalise to account for contributions from multiple flux tubes
     ! in flux tube train
@@ -645,7 +645,7 @@ contains
     use species, only: spec
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_mu, ztmax
+    use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
     use kt_grids, only: naky, nakx
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -671,8 +671,8 @@ contains
        call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
        ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
        g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
-            * spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx) &
-            * (aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
+            * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
+            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
     end do
     call integrate_vmu (g2, spec%dens, dens)
 
@@ -686,7 +686,7 @@ contains
     end do
     ! integrate to get dTs/Tr
 !    call integrate_vmu (g2, spec%temp, temp)
-    call integrate_vmu (g2, spec%temp*spec%dens, temp)
+    call integrate_vmu (g2, spec%temp_psi0*spec%dens, temp)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -694,7 +694,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        g2(:,:,:,:,ivmu) = vpa(iv)*g1(:,:,:,:,ivmu)
     end do
-    call integrate_vmu (g2, spec%stm, upar)
+    call integrate_vmu (g2, spec%stm_psi0, upar)
 
   end subroutine get_moments
 

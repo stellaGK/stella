@@ -4,20 +4,20 @@ module stella_geometry
 
   implicit none
 
-  public :: init_geometry, finish_geometry
+  public :: init_geometry, finish_init_geometry, finish_geometry
   public :: communicate_geo_multibox
   public :: grho
-  public :: bmag, dbdzed, btor
+  public :: bmag, dbdzed, btor, bmag_psi0
   public :: gradpar, gradpar_eqarc, zed_eqarc
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
   public :: dcvdriftdrho, dcvdrift0drho
   public :: dgbdriftdrho, dgbdrift0drho
   public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
-  public :: dgds2dr, dgds21dr, dgds22dr, dgds22bdr
-  public :: exb_nonlin_fac
+  public :: dgds2dr, dgds21dr, dgds22dr
+  public :: exb_nonlin_fac, exb_nonlin_fac_p
   public :: jacob, djacdrho
-  public :: drhodpsi
+  public :: drhodpsi, drhodpsi_psi0
   public :: dl_over_b, d_dl_over_b_drho
   public :: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
   public :: geo_surf
@@ -25,32 +25,35 @@ module stella_geometry
   public :: alpha
   public :: theta_vmec
   public :: zed_scalefac
-  public :: dxdpsi, dydalpha
+  public :: dxdXcoord, dydalpha
   public :: aref, bref
   public :: twist_and_shift_geo_fac
+  public :: rho_to_x, q_as_x
 
   private
 
   type (flux_surface_type) :: geo_surf
 
   real :: aref, bref
-  real :: dxdpsi, dydalpha
+  real :: dxdXcoord, dydalpha
+  real :: dqdrho
   real :: dIdrho
-  real :: drhodpsi, shat, qinp
-  real :: exb_nonlin_fac
+  real :: drhodpsi, drhodpsi_psi0, shat, qinp
+  real :: rho_to_x
+  real :: exb_nonlin_fac, exb_nonlin_fac_p
   real :: gradpar_eqarc
   real :: zed_scalefac
   real :: twist_and_shift_geo_fac
   real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:), allocatable :: gradpar
-  real, dimension (:,:), allocatable :: bmag, dbdzed
+  real, dimension (:,:), allocatable :: bmag, bmag_psi0, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
   real, dimension (:,:), allocatable :: dcvdriftdrho, dcvdrift0drho
   real, dimension (:,:), allocatable :: dgbdriftdrho, dgbdrift0drho
   real, dimension (:,:), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
   real, dimension (:,:), allocatable :: dgds2dr, dgds21dr
-  real, dimension (:,:), allocatable :: dgds22dr, dgds22bdr
+  real, dimension (:,:), allocatable :: dgds22dr
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, djacdrho, grho
   real, dimension (:,:), allocatable :: dl_over_b, d_dl_over_b_drho
@@ -70,6 +73,7 @@ module stella_geometry
   logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
   logical :: overwrite_gds23, overwrite_gds24
   logical :: overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
+  logical :: q_as_x
   character (100) :: geo_file
 
   logical :: geoinit = .false.
@@ -90,15 +94,16 @@ contains
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
     use kt_grids, only: nalpha
     use file_utils, only: get_unused_unit
+    use physics_parameters, only: rhostar
 
     implicit none
 
     logical, parameter :: debug = .false.
 
-    real :: dpsidrho
+    real :: dpsidrho, dpsidrho_psi0
     integer :: iy
     integer :: sign_torflux
-    integer :: dxdpsi_sign, dydalpha_sign
+    integer :: dxdXcoord_sign, dydalpha_sign
     real, dimension (:,:), allocatable :: grad_alpha_grad_alpha
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi
     real, dimension (:,:), allocatable :: grad_psi_grad_psi
@@ -128,7 +133,8 @@ contains
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
+               dpsidrho, dpsidrho_psi0,dIdrho, grho(1,:), &
+               bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
@@ -136,33 +142,45 @@ contains
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), & 
-               dgds22dr(1,:), dgds22bdr(1,:), &
-               djacdrho(1,:))
+               dgds22dr(1,:), djacdrho(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
-          ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
-          dxdpsi_sign = 1
-          dxdpsi = dxdpsi_sign*geo_surf%qinp/geo_surf%rhoc
+          drhodpsi_psi0 = 1./dpsidrho_psi0
+          ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+          dxdXcoord_sign = 1
+          if(q_as_x) then
+            dxdXcoord = dxdXcoord_sign*dpsidrho
+          else
+            dxdXcoord = dxdXcoord_sign*geo_surf%qinp_ref/geo_surf%rhoc_ref
+          endif
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
-          twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
+          if(q_as_x) then
+            twist_and_shift_geo_fac = 2.0*pi
+          else
+            twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat_ref
+          endif
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
           zeta(1,:) = zed*geo_surf%qinp
        case (geo_option_multibox)
           ! read in Miller local parameters
           call read_local_parameters (nzed,nzgrid,geo_surf)
-          call communicate_parameters_multibox
+
           ! allocate geometry arrays
           call allocate_arrays (nalpha, nzgrid)
+
+          call communicate_parameters_multibox(surf=geo_surf)
+
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
+               dpsidrho, dpsidrho_psi0, dIdrho, grho(1,:), &
+               bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
@@ -170,20 +188,28 @@ contains
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), & 
-               dgds22dr(1,:), dgds22bdr(1,:), &
-               djacdrho(1,:))
+               dgds22dr(1,:), djacdrho(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
-          ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
-          dxdpsi_sign = 1
-          dxdpsi = dxdpsi_sign*geo_surf%qinp/geo_surf%rhoc
+          drhodpsi_psi0 = 1./dpsidrho_psi0
+          ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+          dxdXcoord_sign = 1
+          if(q_as_x) then
+            dxdXcoord = dxdXcoord_sign/drhodpsi_psi0
+          else
+            dxdXcoord = dxdXcoord_sign*geo_surf%qinp_ref/geo_surf%rhoc_ref
+          endif
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
-          dydalpha = dydalpha_sign*dpsidrho
+          dydalpha = dydalpha_sign/drhodpsi_psi0
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
-          twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat
+          if(q_as_x) then
+            twist_and_shift_geo_fac = 2.0*pi
+          else
+            twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat_ref
+          endif
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
           zeta(1,:) = zed*geo_surf%qinp
@@ -199,7 +225,8 @@ contains
           ! use rhoc from input as surface
           call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, &
-               dpsidrho, dIdrho, grho(1,:), bmag(1,:), &
+               dpsidrho, dpsidrho_psi0,dIdrho, grho(1,:), &
+               bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
                gbdrift0(1,:), gbdrift(1,:), cvdrift0(1,:), cvdrift(1,:), &
@@ -207,13 +234,13 @@ contains
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), &
-               dgds22dr(1,:),dgds22bdr(1,:), &
-               djacdrho(1,:))
+               dgds22dr(1,:),djacdrho(1,:))
           ! psi here is enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
-          ! dxdpsi = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
-          dxdpsi_sign = 1
-          dxdpsi = dxdpsi_sign*geo_surf%qinp/geo_surf%rhoc
+          drhodpsi_psi0 = 1./dpsidrho_psi0
+          ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+          dxdXcoord_sign = 1
+          dxdXcoord = dxdXcoord_sign*geo_surf%qinp/geo_surf%rhoc
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
@@ -245,29 +272,31 @@ contains
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
-          ! dxdpsi = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
-          dxdpsi_sign = -1
-          dxdpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
+          ! dxdXcoord = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
+          dxdXcoord_sign = -1
+          dxdXcoord = dxdXcoord_sign*sign_torflux/geo_surf%rhotor
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*geo_surf%rhotor
           ! if using vmec, rho = sqrt(psitor/psitor_lcfs)
           ! psiN = -psitor/(aref**2*Bref)
           ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
-          drhodpsi = dxdpsi_sign*sign_torflux/geo_surf%rhotor
+          drhodpsi = dxdXcoord_sign*sign_torflux/geo_surf%rhotor
+          drhodpsi_psi0 = drhodpsi
+          bmag_psi0 = bmag
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
-          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
+          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdXcoord*geo_surf%rhotor)
 
           ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
           ! note that rhotor = sqrt(psi/psi_LCFS)
           gds2 = grad_alpha_grad_alpha * dydalpha**2
           ! gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
           ! NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
-          gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdpsi * dydalpha
+          gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdXcoord * dydalpha
           ! gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
-          gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdpsi**2
+          gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
 
           ! gbdrift_alpha and cvdrift_alpha contain
           ! the grad-B and curvature drifts projected onto
@@ -280,8 +309,8 @@ contains
           ! the grad-B and curvature drifts projected onto
           ! the grad psi direction
           ! need the projections on grad x
-          gbdrift0 = gbdrift0_psi * dxdpsi
-          cvdrift0 = cvdrift0_psi * dxdpsi
+          gbdrift0 = gbdrift0_psi * dxdXcoord
+          cvdrift0 = cvdrift0_psi * dxdXcoord
 
           call deallocate_temporary_arrays
        end select
@@ -289,7 +318,15 @@ contains
        if (overwrite_geometry) call overwrite_selected_geometric_coefficients
 
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
-       exb_nonlin_fac = 0.5*dxdpsi*dydalpha
+       if(q_as_x) then
+         dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
+         exb_nonlin_fac   = 0.5*dxdXcoord*dydalpha*drhodpsi*dqdrho
+         !the following will get multiplied by exb_nonlin_fac in advance_exb_nonlinearity
+         exb_nonlin_fac_p = geo_surf%d2qdr2/dqdrho - geo_surf%d2psidr2*drhodpsi
+       else
+         exb_nonlin_fac   = 0.5*dxdXcoord*dydalpha
+         exb_nonlin_fac_p = 0.0
+       endif
     end if
 
     if (.not.proc0) call allocate_arrays (nalpha, nzgrid)
@@ -300,6 +337,12 @@ contains
     ! should reduce to 2*pi*shat in axisymmetric case
     ! but not in non-axisymmetric case
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
+    if(q_as_x) then
+      dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
+      rho_to_x = rhostar / (dqdrho * dxdXcoord)
+    else
+      rho_to_x = rhostar * drhodpsi / dxdXcoord
+    endif
 
     jacob = 1.0/abs(drhodpsi*spread(gradpar,1,nalpha)*bmag)
     
@@ -436,6 +479,7 @@ contains
     integer, intent (in) :: nalpha, nzgrid
 
     if (.not.allocated(bmag)) allocate (bmag(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(bmag_psi0)) allocate (bmag_psi0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds2)) allocate (gds2(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds21)) allocate (gds21(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gds22)) allocate (gds22(nalpha,-nzgrid:nzgrid))
@@ -446,7 +490,6 @@ contains
     if (.not.allocated(dgds2dr))  allocate (dgds2dr(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dgds21dr)) allocate (dgds21dr(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dgds22dr)) allocate (dgds22dr(nalpha,-nzgrid:nzgrid))
-    if (.not.allocated(dgds22bdr)) allocate (dgds22bdr(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift)) allocate (gbdrift(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(gbdrift0)) allocate (gbdrift0(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(cvdrift)) allocate (cvdrift(nalpha,-nzgrid:nzgrid))
@@ -499,7 +542,7 @@ contains
 
     namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_gradpar, &
          overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
-         overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
+         overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x
 
     geo_option = 'local'
     overwrite_bmag = .false.
@@ -512,7 +555,9 @@ contains
     overwrite_gbdrift = .false.
     overwrite_cvdrift = .false.
     overwrite_gbdrift0 = .false.
+    q_as_x = radial_variation !true by default in radial variation runs
     geo_file = 'input.geometry'
+
 
     in_file = input_unit_exist("geo_knobs", exist)
     if (exist) read (unit=in_file, nml=geo_knobs)
@@ -543,9 +588,11 @@ contains
     call broadcast (shat)
     call broadcast (drhodpsi)
     call broadcast (exb_nonlin_fac)
+    call broadcast (exb_nonlin_fac_p)
     call broadcast (dIdrho)
     call broadcast (grho)
     call broadcast (bmag)
+    call broadcast (bmag_psi0)
     call broadcast (btor)
     call broadcast (rmajor)
     call broadcast (gradpar)
@@ -559,7 +606,6 @@ contains
     call broadcast (dgds2dr)
     call broadcast (dgds21dr)
     call broadcast (dgds22dr)
-    call broadcast (dgds22bdr)
     call broadcast (gbdrift0)
     call broadcast (gbdrift)
     call broadcast (cvdrift0)
@@ -596,7 +642,7 @@ contains
     call broadcast (zed_scalefac)
     call broadcast (alpha)
     call broadcast (zeta)
-    call broadcast (dxdpsi)
+    call broadcast (dxdXcoord)
     call broadcast (dydalpha)
     call broadcast (twist_and_shift_geo_fac)
 
@@ -608,20 +654,21 @@ contains
   subroutine communicate_geo_multibox(l_edge, r_edge)
   
     use millerlocal, only: communicate_parameters_multibox
-    use physics_parameters, only: rhostar
     use mp, only: proc0
 
     implicit none
 
     real, intent (in) :: l_edge, r_edge
     real :: drl, drr
-    drl = rhostar*l_edge*drhodpsi/dxdpsi
-    drr = rhostar*r_edge*drhodpsi/dxdpsi
+    drl = l_edge*rho_to_x
+    drr = r_edge*rho_to_x
 
     !everything in the following function should go here, but d2R, d2Z and dI 
     !will have to move as well
 
-    if(proc0) call communicate_parameters_multibox(drl, drr)
+    if(proc0) then 
+      call communicate_parameters_multibox(geo_surf,drl, drr)
+    endif
 
   end subroutine communicate_geo_multibox
 
@@ -719,16 +766,20 @@ contains
 
     call open_output_file (geometry_unit,'.geometry')
 
-    write (geometry_unit,'(a1,8a12)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdpsi', 'dydalpha'
-    write (geometry_unit,'(a1,8e12.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha
+    write (geometry_unit,'(a1,10a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdXcoord', 'dydalpha', & 
+                                      'exb_nonlin', 'exb_nonlin_p'
+    write (geometry_unit,'(a1,10e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, &
+                                              dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac
     write (geometry_unit,*)
 
-    write (geometry_unit,'(13a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', 'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0'
+    write (geometry_unit,'(14a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', &
+                                    'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0'
     do ia = 1, nalpha
        do iz = -nzgrid, nzgrid
-          write (geometry_unit,'(13e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
+          write (geometry_unit,'(14e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
                gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gds23(ia,iz), &
-               gds24(ia,iz), gbdrift(ia,iz), cvdrift(ia,iz), gbdrift0(ia,iz)
+               gds24(ia,iz), gbdrift(ia,iz), cvdrift(ia,iz), gbdrift0(ia,iz), &
+               bmag_psi0(ia,iz)
        end do
        write (geometry_unit,*)
     end do
@@ -737,6 +788,27 @@ contains
 
   end subroutine write_geometric_coefficients
 
+  subroutine finish_init_geometry
+
+    use mp, only: proc0
+    use millerlocal, only: finish_local_geo
+
+    implicit none
+
+    if (proc0) then
+       select case (geo_option_switch)
+       case (geo_option_local)
+         call finish_local_geo
+       case (geo_option_multibox)
+         call finish_local_geo
+       case (geo_option_inputprof)
+         call finish_local_geo
+       case (geo_option_vmec)
+       end select
+    end if
+
+  end subroutine finish_init_geometry
+
   subroutine finish_geometry
 
     implicit none
@@ -744,6 +816,7 @@ contains
     if (allocated(zed_eqarc)) deallocate (zed_eqarc)
     if (allocated(grho)) deallocate (grho)
     if (allocated(bmag)) deallocate (bmag)
+    if (allocated(bmag_psi0)) deallocate (bmag_psi0)
     if (allocated(btor)) deallocate (btor)
     if (allocated(rmajor)) deallocate (rmajor)
     if (allocated(dbdzed)) deallocate (dbdzed)
@@ -762,7 +835,6 @@ contains
     if (allocated(dgds2dr))  deallocate (dgds2dr)
     if (allocated(dgds21dr)) deallocate (dgds21dr)
     if (allocated(dgds22dr)) deallocate (dgds22dr)
-    if (allocated(dgds22bdr)) deallocate (dgds22bdr)
     if (allocated(gbdrift)) deallocate (gbdrift)
     if (allocated(gbdrift0)) deallocate (gbdrift0)
     if (allocated(cvdrift)) deallocate (cvdrift)
