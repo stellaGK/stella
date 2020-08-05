@@ -590,7 +590,7 @@ contains
 
   subroutine init_cfl
     
-    use mp, only: proc0, nproc, max_allreduce
+    use mp, only: proc0, nproc, max_allreduce, min_allreduce
     use mp, only: scope, allprocs, subprocs
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
@@ -666,6 +666,10 @@ contains
     ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
     cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
+
+    if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+    call min_allreduce (cfl_dt)
+    if(runtype_option_switch == runtype_multibox) call scope(subprocs)
     
     if (proc0) then
        write (*,'(a16)') 'LINEAR CFL_DT: '
