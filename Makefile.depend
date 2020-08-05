@@ -133,6 +133,7 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -409,7 +410,6 @@ stella_geometry.o: \
 	 constants.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
-	 job_manage.o \
 	 kt_grids.o \
 	 millerlocal.o \
 	 mp.o \

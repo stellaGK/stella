@@ -224,9 +224,9 @@ contains
     use stella_geometry, only: cvdrift0, gbdrift0
     use stella_geometry, only: gds23, gds24
     use stella_geometry, only: geo_surf, q_as_x
-    use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
+    use stella_geometry, only: dxdXcoord, drhodpsi, dydalpha
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
     use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
@@ -277,14 +277,14 @@ contains
                + drhodpsi*dydalpha*dphineo_drho)
        end if
 
-       wdrifty_phi(:,:,ivmu) = spec(is)%zt_psi0*(wgbdrifty + wcvdrifty*vpa(iv)) &
-            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)
+       wdrifty_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
        ! if including neoclassical corrections to equilibrium,
        ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
        if (include_neoclassical_terms) then
           wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
-               - 0.5*spec(is)%zt_psi0*dfneo_dvpa(:,:,ivmu)*wcvdrifty &
+               - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdrifty &
                - code_dt*0.5*dfneo_dzed(:,:,ivmu)*gds23
        end if
 
@@ -304,18 +304,18 @@ contains
        ! then add in v_E^{nc} . grad x dg/dx coefficient here
        if (include_neoclassical_terms) then
           wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)+code_dt*0.5*(gds24*dphineo_dzed &
-               - dxdpsi*dphineo_dalpha)
+               - dxdXcoord*dphineo_dalpha)
        end if
-       wdriftx_phi(:,:,ivmu) = spec(is)%zt_psi0*(wgbdriftx + wcvdriftx*vpa(iv)) &
-            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)
+       wdriftx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
        ! if including neoclassical corrections to equilibrium,
        ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
        ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
        ! and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
-               - 0.5*spec(is)%zt_psi0*dfneo_dvpa(:,:,ivmu)*wcvdriftx &
-               + code_dt*0.5*(dfneo_dalpha(:,:,ivmu)*dxdpsi-dfneo_dzed(:,:,ivmu)*gds24)
+               - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdriftx &
+               + code_dt*0.5*(dfneo_dalpha(:,:,ivmu)*dxdXcoord-dfneo_dzed(:,:,ivmu)*gds24)
        end if
 
     end do
@@ -334,7 +334,7 @@ contains
     use kt_grids, only: nalpha
     use stella_geometry, only: dydalpha, drhodpsi
     use vpamu_grids, only: vperp2, vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstar
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_drho
@@ -356,15 +356,15 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       energy = vpa(iv)**2 + vperp2(:,:,imu)
+       energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
        if (include_neoclassical_terms) then
           wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-               * (maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
+               * (maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
                - dfneo_drho(:,:,ivmu))
        else
           wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-               * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
+               * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
@@ -454,7 +454,7 @@ contains
     use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
     use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
     use vpamu_grids, only: vperp2, vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
@@ -496,7 +496,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       energy = vpa(iv)**2 + vperp2(:,:,imu)
+       energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
        !FLAG DSO - THIS NEEDS TO BE ADDED SOMEDAY!
        !if (include_neoclassical_terms) then 
        !   wstarp(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
@@ -507,7 +507,7 @@ contains
        !recall that fprim = -dn/dr and trpim = -dt/dr
        
        wstarp(:,:,ivmu) = -wstarknob*0.5*code_dt &
-          * dydalpha*drhodpsi*maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
+          * dydalpha*drhodpsi*maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
           * ( spec(is)%d2ndr2-(spec(is)%fprim)**2-(spec(is)%tprim)**2*energy &
            + (spec(is)%d2Tdr2-(spec(is)%tprim)**2)*(energy-1.5) &
            - 2*spec(is)%tprim*mu(imu)*spread(dBdrho,1,nalpha) &
@@ -529,7 +529,7 @@ contains
        wdriftpy_g(:,:,ivmu) = wcvdrifty*vpa(iv) + wgbdrifty
 
        wdriftpy_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
-            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
             - wdrifty_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
               + 2.*mu(imu)*spread(dBdrho,1,nalpha))
 
@@ -547,7 +547,7 @@ contains
        wgbdriftx = fac*dgbdrift0drho*0.5*vperp2(:,:,imu)
        wdriftpx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
 
-       wdriftpx_phi(:,:,ivmu) = spec(is)%zt_psi0*(wgbdriftx + wcvdriftx*vpa(iv)) &
+       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
             * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
             - wdriftx_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
               + 2.*mu(imu)*spread(dBdrho,1,nalpha))
@@ -1305,9 +1305,10 @@ contains
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: exb_nonlin_fac
+    use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky
+    use kt_grids, only: akx, aky, x_clamped
+    use stella_geometry, only: rho_to_x
     use physics_flags, only: full_flux_surface, radial_variation
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
@@ -1373,12 +1374,13 @@ contains
              call swap_kxky (g0k, g0k_swap)
              call transform_ky2y (g0k_swap, g0kxy)
              call transform_kx2x (g0kxy, g1xy)
-             g1xy = g1xy*exb_nonlin_fac - spread(shear,1,ny)
-             bracket = g0xy*g1xy
+             g1xy = g1xy*exb_nonlin_fac
+             bracket = g0xy*(g1xy - spread(shear,1,ny))
 
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
+             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy)+maxval(abs(shear)))*aky(naky)))
 
              if(radial_variation) then
+               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdx(g0a,g0k)
@@ -1405,6 +1407,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
              if(radial_variation) then
+               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdy(g0a,g0k)
@@ -1769,7 +1772,7 @@ contains
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_geometry, only: rho_to_x
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, x
+    use kt_grids, only: nakx, naky, nx, x_clamped
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -1862,7 +1865,7 @@ contains
 
             !inverse and forward transforms
             call transform_kx2x_solo (g0k, g0x)
-            g1x =rho_to_x*spread(x,1,naky)*g0x
+            g1x =rho_to_x*spread(x_clamped,1,naky)*g0x
             call transform_x2kx_solo (g1x, g0k)
 
 

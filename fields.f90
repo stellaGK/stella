@@ -39,14 +39,14 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use gyro_averages, only: aj0v, aj1v
     use run_parameters, only: fphi, fapar
-    use physics_parameters, only: tite, nine, feprim, teprim, beta
+    use physics_parameters, only: tite, nine, beta
     use physics_flags, only: radial_variation
     use species, only: spec, has_electron_species, ion_species
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu, mu
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
     use kt_grids, only: naky, nakx, akx
@@ -54,12 +54,16 @@ contains
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
 
+    use file_utils, only: run_name
+
     implicit none
 
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
-    real :: efac, tmp, tmp2, wgt
+    real :: efac, efacp, tmp, tmp2, wgt
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
+
+    character(len=512) filename
 
     ia = 1
 
@@ -113,15 +117,16 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
-               * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)
-          wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
+               * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+          wgt = spec(is)%z*spec(is)%z*spec(is)%dens_psi0/spec(is)%temp
           call integrate_vmu (g0, iz, tmp)
           gamtot(iky,ikx,iz) = gamtot(iky,ikx,iz) + tmp*wgt
        end do
        call sum_allreduce (gamtot)
        ! avoid divide by zero when kx=ky=0
        ! do not evolve this mode, so value is irrelevant
-       if (zonal_mode(1).and.akx(1)<epsilon(0.).and.has_electron_species(spec)) gamtot(1,1,:) = 1.0
+       !if (zonal_mode(1).and.akx(1)<epsilon(0.).and.has_electron_species(spec)) gamtot(1,1,:) = 1.0
+       if (zonal_mode(1).and.akx(1)<epsilon(0.)) gamtot(1,1,:) = 0.0
 
        gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
 
@@ -142,7 +147,7 @@ contains
               / (1.0 - aj0v(:,ikxkyz)**2)
 
            g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
-              * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa) &
+              * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is) &
               * (-spec(is)%tprim*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa)-2.5) &
                  -spec(is)%fprim &
               +  (dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*spread(mu,1,nvpa)*bmag(ia,iz)) + spread(g1,1,nvpa))
@@ -152,9 +157,8 @@ contains
          end do
          call sum_allreduce (dgamtotdr)
          ! avoid divide by zero when kx=ky=0
-         ! do not evolve this mode, so value is irrelevant
-         if (zonal_mode(1).and.akx(1)<epsilon(0.).and.has_electron_species(spec)) then 
-           dgamtotdr(1,1,:) = 1.0
+         if (zonal_mode(1).and.akx(1)<epsilon(0.)) then 
+           dgamtotdr(1,1,:) = 0.0
          endif
 
          deallocate (g1)
@@ -163,9 +167,10 @@ contains
 
        if (.not.has_electron_species(spec)) then
           efac = tite/nine * (spec(ion_species)%dens/spec(ion_species)%temp) 
+          efacp = efac*(spec(ion_species)%tprim - spec(ion_species)%fprim)
           gamtot   = gamtot   + efac
           gamtot_h = gamtot_h + efac
-          if(radial_variation) dgamtotdr = dgamtotdr - efac*(feprim - teprim)
+          if(radial_variation) dgamtotdr = dgamtotdr + efacp
           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
              if (zonal_mode(1)) then
                 gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
@@ -176,7 +181,7 @@ contains
                    tmp = 1./efac - sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
                    gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
                    if (radial_variation) then
-                     tmp2 = (teprim - feprim)/efac &
+                     tmp2 = (spec(ion_species)%tprim - spec(ion_species)%fprim)/efac &
                             + sum(d_dl_over_b_drho(ia,:)/gamtot(1,ikx,:)) &
                             - sum(dl_over_b(ia,:)*dgamtotdr(1,ikx,:) &
                                 / gamtot(1,ikx,:)**2)
@@ -184,8 +189,13 @@ contains
                                         * (-dgamtotdr(1,ikx,:)/gamtot(1,ikx,:) + tmp2/tmp)
                    endif
                 end do
+                if(akx(1)<epsilon(0.)) dgamtot3dr(1,:) = 0.0
              end if
           end if
+          if (zonal_mode(1).and.akx(1)<epsilon(0.)) then
+            gamtot(1,1,:)    = 0.0
+            dgamtotdr(1,1,:) = 0.0
+          endif
        end if
 
 
@@ -205,7 +215,7 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu) &
+          g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu)*maxwell_fac(is) &
                * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)**2,1,nvpa)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
           call integrate_vmu (g0, iz, tmp)
@@ -216,6 +226,19 @@ contains
 
        deallocate (g0)
     end if
+
+    filename=trim(run_name)//".gamtot"
+    open(3636,file=trim(filename),status='unknown')
+    do iky = 1, naky
+      do ikx = 1, nakx
+        do iz = -nzgrid,nzgrid
+          write(3636,'(4e25.8)') gamtot(iky,ikx,iz), dgamtotdr(iky,ikx,iz), &
+                                 gamtot3(ikx,iz), dgamtot3dr(ikx,iz)
+        enddo
+      enddo
+    enddo
+    close(3636)
+
 
 !    if (wstar_implicit) call init_get_fields_wstar
 
@@ -379,7 +402,7 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
-          wgt = spec(is)%z*spec(is)%dens
+          wgt = spec(is)%z*spec(is)%dens_psi0
           call integrate_vmu (g0, iz, tmp)
           phi(iky,ikx,iz,it) = phi(iky,ikx,iz,it) + wgt*tmp
        end do
@@ -506,7 +529,7 @@ contains
            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens, phi(:,:,iz,it))
+           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
          end do
        end do
        deallocate (gyro_g)
@@ -636,6 +659,7 @@ contains
 !        deallocate (phi_swap)
     else
        phi = phi/spread(gamtot,4,ntubes)
+       phi(1,1,:,:) = 0.0
     end if
 
   end subroutine get_phi
@@ -678,7 +702,7 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          wgt = spec(is)%z*spec(is)%dens
+          wgt = spec(is)%z*spec(is)%dens_psi0
           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
           g0 = g0*wgt
           call integrate_vmu (g0, iz, fld(iky,ikx,iz,it,is))
@@ -721,7 +745,7 @@ contains
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
-    use kt_grids, only: nakx, nx, naky, x
+    use kt_grids, only: nakx, nx, naky, x_clamped
     use kt_grids, only: zonal_mode
     use species, only: spec, has_electron_species
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
@@ -766,7 +790,7 @@ contains
 
              call gyro_average (g0k, iz, ivmu, gyro_g(:,:,ivmu))
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens, phi(:,:,iz,it))
+           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
          end do
        end do
 
@@ -806,7 +830,7 @@ contains
          do iz = -nzgrid, nzgrid
            g0k = phi(:,:,iz,it)
            call transform_kx2x_solo (g0k,g0x)
-           g0x = rho_to_x*spread(x,1,naky)*g0x
+           g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
            call transform_x2kx_solo (g0x,phi_corr_QN(:,:,iz,it))
          enddo
        enddo
@@ -825,7 +849,7 @@ contains
                  * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
              call transform_kx2x_solo (g0k,g0x)
-             g0x = rho_to_x*spread(x,1,naky)*g0x
+             g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
              call transform_x2kx_solo (g0x,phi_corr_GA(:,:,iz,it,ivmu))
            enddo
          enddo

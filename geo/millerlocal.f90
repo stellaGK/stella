@@ -586,13 +586,17 @@ contains
 
 
     !the next two sets of lines are corrections needed for the side boxes in a multibox simulation
-    gbdrift  = gbdrift *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
-    gbdrift0 = gbdrift0*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    !gbdrift  = gbdrift *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    !gbdrift0 = gbdrift0*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    gbdrift  = gbdrift *(dpsidrho_psi0/dpsidrho)
+    gbdrift0 = gbdrift0*(dpsidrho_psi0/dpsidrho)
     cvdrift  = cvdrift *(dpsidrho_psi0/dpsidrho)
     cvdrift0 = cvdrift0*(dpsidrho_psi0/dpsidrho)
 
-    dgbdriftdrho  = dgbdriftdrho *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
-    dgbdrift0drho = dgbdrift0drho*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    !dgbdriftdrho  = dgbdriftdrho *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    !dgbdrift0drho = dgbdrift0drho*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
+    dgbdriftdrho  = dgbdriftdrho *(dpsidrho_psi0/dpsidrho)
+    dgbdrift0drho = dgbdrift0drho*(dpsidrho_psi0/dpsidrho)
     dcvdriftdrho  = dcvdriftdrho *(dpsidrho_psi0/dpsidrho)
     dcvdrift0drho = dcvdrift0drho*(dpsidrho_psi0/dpsidrho)
 

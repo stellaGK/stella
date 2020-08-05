@@ -50,7 +50,7 @@ contains
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid, nztot
     use vpamu_grids, only: vperp2, nmu, nvpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
 !    use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: integrate_species
     use vpamu_grids, only: mu
@@ -96,7 +96,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
+          arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
           aj0v(imu,ikxkyz) = j0(arg)
           ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
           aj1v(imu,ikxkyz) = j1(arg)
@@ -137,7 +137,7 @@ contains
              do ikx = 1, ikx_max
                 do iky = 1, naky_all
                    do ia = 1, nalpha
-                      arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
+                      arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ia) = j0(arg)
                    end do
                    if (iz == 0 .and. ikx == 1 .and. iky == naky_all/2 .and. imu == nmu/2 .and. is == 1 .and. iv_idx(vmu_lo,ivmu)==1) then
@@ -175,11 +175,11 @@ contains
                       is = is_idx(vmu_lo,ivmu)
                       imu = imu_idx(vmu_lo,ivmu)
                       iv = iv_idx(vmu_lo,ivmu)
-                      arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
+                      arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ivmu) = j0(arg)
                       ! form coefficient needed to calculate 1-Gamma_0
                       aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2) &
-                           * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
+                           * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
                    end do
 
                    ! calculate gamma0 = int d3v (1-J0^2)*F_{Maxwellian}
@@ -239,7 +239,7 @@ contains
           do iz = -nzgrid, nzgrid
              do ikx = 1, nakx
                 do iky = 1, naky
-                   arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
+                   arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
                    aj0x(iky,ikx,iz,ivmu) = j0(arg)
                    aj1x(iky,ikx,iz,ivmu) = j1(arg)
                 end do

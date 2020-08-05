@@ -43,7 +43,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use species, only: spec, nspec
     use vpamu_grids, only: nvpa, nvpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: vperp2, vpa, mu
     use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
@@ -66,7 +66,7 @@ contains
     ! sign of stream corresponds to appearing on RHS of GK equation
     ! i.e., this is the factor multiplying dg/dz on RHS of equation
     if (include_parallel_streaming) then
-       stream = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
+       stream = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
             * spread(spread(vpa,1,nztot)*spread(gradpar,2,nvpa),3,nspec)
     else
        stream = 0.0
@@ -83,16 +83,16 @@ contains
         allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       endif
       ia=1
-      stream_rad_var1 = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
+      stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
             * spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo,ivmu)
         imu = imu_idx(vmu_lo,ivmu)
         iv  = iv_idx(vmu_lo,ivmu)
-        energy = vpa(iv)**2 + vperp2(ia,:,imu)
+        energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
         stream_rad_var2(ia,:,ivmu) = &
-                -code_dt*spec(is)%stm*vpa(iv)*gradpar &
-                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is) & 
+                -code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
+                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
                 *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
       enddo
       deallocate (energy)
@@ -177,7 +177,7 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use species, only: spec
     use gyro_averages, only: gyro_average
     use fields_arrays, only: phi
@@ -217,7 +217,8 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        g0(:,:,:,:) = g0(:,:,:,:) + g1(:,:,:,:)*spec(is)%zt &
-            *maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes)
+            *maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes) &
+            *maxwell_fac(is)
 
        ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
        call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
@@ -235,7 +236,7 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use species, only: spec
     use gyro_averages, only: gyro_average, gyro_average_j1
     use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
@@ -288,7 +289,7 @@ contains
 
     !!#1 - variation in gradpar
            g0k = g0(:,:,iz,it) & 
-               + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
+               + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
 
            g0k = g0k*stream_rad_var1(iz,iv,is)
 
@@ -300,7 +301,7 @@ contains
 
 
     !!#3 - variation in the gyroaveraging and quasineutrality of phi
-           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is) &
+           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 
            rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
@@ -544,7 +545,7 @@ contains
     use kt_grids, only: naky, nakx
     use gyro_averages, only: gyro_average
     use vpamu_grids, only: vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use stella_geometry, only: dbdzed
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
@@ -609,7 +610,7 @@ contains
 
     if (maxwellian_inside_zed_derivative) then
        ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-       g = g*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes)
+       g = g*spread(spread(spread(maxwell_mu(ia,:,imu,is)*maxwell_fac(is),1,naky),2,nakx),4,ntubes)
        call get_dzed (iv,g,dphidz)
        ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
        g = g*spread(spread(spread(dbdzed(ia,:),1,naky),2,nakx),4,ntubes)
@@ -622,7 +623,7 @@ contains
        call get_dzed (iv,g,dphidz)
        ! center Maxwellian factor in mu
        ! and store in dummy variable gp
-       gp = maxwell_mu(ia,:,imu,is)
+       gp = maxwell_mu(ia,:,imu,is)*maxwell_fac(is)
        call center_zed (iv,gp)
        ! multiply by Maxwellian factor
        dphidz = dphidz*spread(spread(spread(gp,1,naky),2,nakx),4,ntubes)
@@ -651,7 +652,7 @@ contains
     end if
 
     ! construct RHS of GK eqn
-    fac = code_dt*spec(is)%stm
+    fac = code_dt*spec(is)%stm_psi0
     do iz = -nzgrid, nzgrid
        g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(iz) &
             * (tupwnd1*vpa(iv)*dgdz(:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(:,:,iz,:))

@@ -34,7 +34,7 @@ contains
     use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
-    use kt_grids, only: nalpha, nakx, naky, nx, x
+    use kt_grids, only: nalpha, nakx, naky, nx, x_clamped
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
@@ -68,7 +68,7 @@ contains
       allocate (g0k(naky,nakx))
       allocate (g0x(naky,nx))
 
-      g0x = rho_to_x*spread(x,1,naky)
+      g0x = rho_to_x*spread(x_clamped,1,naky)
       call transform_x2kx_solo(g0x,f0k)
 
 
@@ -76,7 +76,7 @@ contains
         is  = is_idx(vmu_lo, ivmu)
         imu = imu_idx(vmu_lo, ivmu)
         iv  = iv_idx(vmu_lo, ivmu)
-        energy = vpa(iv)**2 + vperp2(:,:,imu)
+        energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
 
@@ -86,7 +86,7 @@ contains
               g0k = gnew(:,:,iz,it,ivmu)
 
               call transform_kx2x_solo(g0k,g0x)
-              g0x = g0x*(1.0 + rho_to_x*corr*spread(x,1,naky))
+              g0x = g0x*(1.0 + rho_to_x*corr*spread(x_clamped,1,naky))
               call transform_x2kx_solo(g0x,g0k)
 
               gnew(:,:,iz,it,ivmu) = g0k
@@ -271,7 +271,7 @@ contains
 
   subroutine init_vperp2
 
-    use stella_geometry, only: bmag_psi0
+    use stella_geometry, only: bmag
     use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2
     use vpamu_grids, only: nmu, mu
@@ -287,7 +287,7 @@ contains
     if (.not.allocated(vperp2)) allocate (vperp2(nalpha,-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
     
     do imu = 1, nmu
-       vperp2(:,:,imu) = 2.0*mu(imu)*bmag_psi0
+       vperp2(:,:,imu) = 2.0*mu(imu)*bmag
     end do
 
   end subroutine init_vperp2

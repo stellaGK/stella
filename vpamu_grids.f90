@@ -10,6 +10,7 @@ module vpamu_grids
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu, dmu
   public :: maxwell_vpa, maxwell_mu, ztmax
+  public :: maxwell_fac
   public :: vperp2
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
@@ -23,7 +24,7 @@ module vpamu_grids
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
   real, dimension (:,:), allocatable :: maxwell_vpa
-  real, dimension (:), allocatable :: mu
+  real, dimension (:), allocatable :: mu, maxwell_fac
   real, dimension (:,:,:), allocatable :: wgts_mu
   real, dimension (:,:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
@@ -98,6 +99,8 @@ contains
 
   subroutine init_vpamu_grids
 
+    use species, only: spec, nspec
+
     implicit none
 
     if (vpamu_initialized) return
@@ -105,6 +108,13 @@ contains
 
     call init_vpa_grid
     call init_mu_grid
+
+    if(.not.allocated(maxwell_fac)) then
+      allocate(maxwell_fac(nspec)) ; maxwell_fac = 1.0
+    endif
+
+    maxwell_fac = spec%dens/spec%dens_psi0*(spec%temp_psi0/spec%temp)**1.5
+
 
   end subroutine init_vpamu_grids
 
@@ -144,7 +154,7 @@ contains
     vpa(:nvgrid) = -vpa(nvpa:nvgrid+1:-1)
 
     ! this is the equilibrium Maxwellian in vpa
-    maxwell_vpa = exp(-spread(vpa*vpa,2,nspec))
+    maxwell_vpa = exp(-spread(vpa*vpa,2,nspec)*spread(spec%temp_psi0/spec%temp,1,nvpa))
     ztmax = spread(spec%zt,1,nvpa)*maxwell_vpa
 
     ! get integration weights corresponding to vpa grid points
@@ -646,7 +656,7 @@ contains
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
     use species, only: spec, nspec
-    use stella_geometry, only: bmag_psi0
+    use stella_geometry, only: bmag, bmag_psi0
     
     implicit none
 
@@ -694,12 +704,13 @@ contains
     end if
 
     ! this is the mu part of the v-space Maxwellian
-    maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag_psi0,3,nmu),4,nspec))
+    maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu),4,nspec) &
+                       *spread(spread(spread(spec%temp_psi0/spec%temp,1,nalpha),2,nztot),3,nmu))
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
     ! of velocity space Jacobian
-    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag_psi0,3,nmu)
+    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
 
     deallocate (wgts_mu_tmp)
 
@@ -723,6 +734,8 @@ contains
     
     call finish_vpa_grid
     call finish_mu_grid
+
+    if(allocated(maxwell_fac)) deallocate(maxwell_fac)
 
     vpamu_initialized = .false.
 
