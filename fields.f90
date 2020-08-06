@@ -99,6 +99,9 @@ contains
           allocate (dgamtot3dr(1,1)) ; dgamtot3dr = 0.
         endif
       endif
+    else
+      if (.not.allocated(dgamtotdr))  allocate(dgamtotdr(1,1,1)) ; dgamtotdr = 0.
+      if (.not.allocated(dgamtot3dr)) allocate (dgamtot3dr(1,1)) ; dgamtot3dr = 0.
     endif
 
     if (fphi > epsilon(0.0)) then

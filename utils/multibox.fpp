@@ -1,7 +1,6 @@
 module multibox
 
   use fft_work, only: fft_type
-  use common_types, only: flux_surface_type
 
   implicit none
 
@@ -13,7 +12,7 @@ module multibox
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
-  public :: shear
+  public :: shear, init_shear
   public :: xL, xR, xL_d, xR_d
   public :: kx0_L, kx0_R
   public :: RK_step
@@ -188,10 +187,7 @@ contains
 
     if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
 
-    if(runtype_option_switch /= runtype_multibox) then
-      allocate (shear(1)); shear(1)=0.0
-      return
-    endif
+    if(runtype_option_switch /= runtype_multibox) return
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
@@ -238,9 +234,7 @@ contains
 
     call init_mb_transforms
 
-#ifndef MPI
-    call init_shear
-#else
+#ifdef MPI
     call scope(crossdomprocs)
 
     if(job==1) then
@@ -264,14 +258,10 @@ contains
       call receive(xL,1)
       call receive(xL_d,1)
       call send(akx(2),1)
-
-      call init_shear
     elseif(job==njobs-1) then
       call receive(xR,1)
       call receive(xR_d,1)
       call send(akx(2),1)
-
-      call init_shear
     endif
 
     call scope(subprocs)
@@ -299,8 +289,6 @@ contains
       call receive(kx0_R,njobs-1)
 
       call scope(subprocs)
-
-      call init_shear
     endif
 #endif
   end subroutine communicate_multibox_parameters
@@ -326,7 +314,7 @@ contains
 
   end subroutine finish_multibox
 
-  subroutine init_shear
+  subroutine init_shear(q_as_x, geo_surf)
 
     use kt_grids, only: akx, nakx, naky, nx, x, dx
     use kt_grids, only: x_d, dx_d
@@ -334,10 +322,14 @@ contains
     use constants, only: pi
     use physics_parameters, only: g_exb
     use stella_transforms, only: transform_kx2x_solo
+    use common_types, only: flux_surface_type
 
     implicit none
 
     integer :: i, j, ccount,nakx2
+
+    logical, intent (in) :: q_as_x
+    type (flux_surface_type), intent (in) :: geo_surf
 
     real, dimension (:), allocatable :: shear_d
     complex, dimension (:,:), allocatable :: g0k, g0x
@@ -482,9 +474,12 @@ contains
         end select
       endif
     endif
-    do i=1,nx
-      write (*,*) i,shear(i),job
-    enddo
+
+    if(q_as_x) shear = shear/geo_surf%shat
+
+    !do i=1,nx
+    !  write (*,*) i,shear(i),job
+    !enddo
 
   end subroutine init_shear
 

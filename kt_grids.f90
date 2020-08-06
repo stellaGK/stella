@@ -8,7 +8,7 @@ module kt_grids
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
-  public :: jtwist, ikx_twist_shift, x0, y0, x
+  public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0, x
   public :: x_d, x_clamped
   public :: nalpha
   public :: ikx_max, naky_all
@@ -27,6 +27,7 @@ module kt_grids
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x, x_d, x_clamped
   real :: dx, dy, dkx, dky, dx_d
+  real :: jtwistfac
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
@@ -112,7 +113,7 @@ contains
     integer :: in_file
     logical :: exist
 
-    namelist /kt_grids_box_parameters/ nx, ny, jtwist, y0
+    namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0
 
     ! note that jtwist and y0 will possibly be modified
     ! later in init_kt_grids_box if they make it out
@@ -124,6 +125,7 @@ contains
     nx = 1
     ny = 1
     jtwist = -1
+    jtwistfac = 1.0
     y0 = -1.0
     nalpha = 1
 
@@ -220,7 +222,10 @@ contains
 
     ! set jtwist and y0 for cases where they have not been specified
     ! and for which it makes sense to set them automatically
-    if (jtwist < 1) jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
+    if (jtwist < 1) then 
+      jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
+      jtwist = max(1,int(jtwistfac*jtwist+0.5))
+    endif
     ! signed version of jtwist, with sign determined by, e.g., magnetic shear
     ikx_twist_shift = -jtwist*int(sign(1.0,twist_and_shift_geo_fac))
 

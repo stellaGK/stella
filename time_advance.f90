@@ -381,7 +381,7 @@ contains
     use species, only: spec
     use zgrid, only: nzgrid
     use kt_grids, only: nalpha
-    use stella_geometry, only: geo_surf, bmag, btor, rmajor
+    use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor
     use physics_parameters, only: g_exb, omprimfac
     use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: prl_shear
@@ -410,6 +410,8 @@ contains
                * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
       enddo
     enddo
+
+    if(q_as_x) prl_shear = prl_shear/geo_surf%shat
 
   end subroutine init_parallel_shear
 
@@ -1071,14 +1073,12 @@ contains
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
 
-    if ((g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
-
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
 
-
-
     if (.not.restart_time_step) then
+
+       if ((g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
 
        ! calculate and add mirror term to RHS of GK eqn
        if (include_mirror.and..not.mirror_implicit) then
@@ -1480,7 +1480,6 @@ contains
   subroutine advance_equilibrium_shear (g, gout)
 
     use stella_layouts, only: vmu_lo
-    use physics_parameters, only: g_exb, omprimfac
     use physics_flags, only: nonlinear
     use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use zgrid, only: nzgrid, ntubes

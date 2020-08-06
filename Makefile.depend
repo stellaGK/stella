@@ -133,7 +133,6 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
-	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
