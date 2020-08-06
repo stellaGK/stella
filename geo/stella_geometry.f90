@@ -587,6 +587,7 @@ contains
     call broadcast (qinp)
     call broadcast (shat)
     call broadcast (drhodpsi)
+    call broadcast (drhodpsi_psi0)
     call broadcast (exb_nonlin_fac)
     call broadcast (exb_nonlin_fac_p)
     call broadcast (dIdrho)
@@ -640,6 +641,7 @@ contains
     call broadcast (geo_surf%drhotordrho)
 
     call broadcast (zed_scalefac)
+    call broadcast (q_as_x)
     call broadcast (alpha)
     call broadcast (zeta)
     call broadcast (dxdXcoord)
