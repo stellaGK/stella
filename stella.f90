@@ -133,7 +133,7 @@ contains
     call broadcast (runtype_option_switch)
     if(list) call job_fork
 
-    !debug = debug .and. proc0
+    debug = debug .and. proc0
 
     if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)

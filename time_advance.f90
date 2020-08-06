@@ -118,7 +118,7 @@ contains
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
 
-    call write_drifts
+    !call write_drifts
 
   end subroutine init_time_advance
 
@@ -177,38 +177,38 @@ contains
 
   end subroutine read_parameters 
 
-  subroutine write_drifts
-    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
-    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-    use dist_fn_arrays, only: wstar, wstarp
-    use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
-    use zgrid, only: nzgrid
-    use stella_layouts, only: vmu_lo
+! subroutine write_drifts
+!   use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+!   use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+!   use dist_fn_arrays, only: wstar, wstarp
+!   use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
+!   use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+!   use zgrid, only: nzgrid
+!   use stella_layouts, only: vmu_lo
 
-    use file_utils, only: run_name
-    
-    implicit none
+!   use file_utils, only: run_name
+!   
+!   implicit none
 
-    integer ia, iz, ivmu
-    character(len=512) :: filename
+!   integer ia, iz, ivmu
+!   character(len=512) :: filename
 
-    ia=1
+!   ia=1
 
-    filename=trim(run_name)//".drifts"
-    open(3345,file=trim(filename),status='unknown')
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      do iz= -nzgrid, nzgrid
-        write(3345,'(10e25.8)') wstar(ia,iz,ivmu),wstarp(ia,iz,ivmu), &
-                               wdriftx_g(ia,iz,ivmu), wdriftpx_g(ia,iz,ivmu), &
-                               wdrifty_g(ia,iz,ivmu), wdriftpy_g(ia,iz,ivmu), &
-                               wdriftx_phi(ia,iz,ivmu), wdriftpx_phi(ia,iz,ivmu), &
-                               wdrifty_phi(ia,iz,ivmu), wdriftpy_phi(ia,iz,ivmu)
-      enddo
-    enddo
-    close (3345)
+!   filename=trim(run_name)//".drifts"
+!   open(3345,file=trim(filename),status='unknown')
+!   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!     do iz= -nzgrid, nzgrid
+!       write(3345,'(10e25.8)') wstar(ia,iz,ivmu),wstarp(ia,iz,ivmu), &
+!                              wdriftx_g(ia,iz,ivmu), wdriftpx_g(ia,iz,ivmu), &
+!                              wdrifty_g(ia,iz,ivmu), wdriftpy_g(ia,iz,ivmu), &
+!                              wdriftx_phi(ia,iz,ivmu), wdriftpx_phi(ia,iz,ivmu), &
+!                              wdrifty_phi(ia,iz,ivmu), wdriftpy_phi(ia,iz,ivmu)
+!     enddo
+!   enddo
+!   close (3345)
 
-  end subroutine write_drifts
+! end subroutine write_drifts
 
   subroutine init_wdrift
 
@@ -383,12 +383,12 @@ contains
     use kt_grids, only: nalpha
     use stella_geometry, only: geo_surf, bmag, btor, rmajor
     use physics_parameters, only: g_exb, omprimfac
-    use vpamu_grids, only: vpa
+    use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: prl_shear
 
     implicit none
 
-    integer :: is, iv, ivmu, iz, ia
+    integer :: is, imu, iv, ivmu, iz, ia
 
     !perpendicular shear is currently done in multibox
 
@@ -403,9 +403,11 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       is = is_idx(vmu_lo,ivmu)
       iv = iv_idx(vmu_lo,ivmu)
+      imu = imu_idx(vmu_lo,ivmu)
       do iz = -nzgrid,nzgrid
         prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv) &
-               *(geo_surf%qinp/geo_surf%rhoc)*(btor(iz)*rmajor(iz)/bmag(ia,iz))/spec(is)%stm
+               *(geo_surf%qinp/geo_surf%rhoc)*(btor(iz)*rmajor(iz)/bmag(ia,iz))/spec(is)%stm &
+               * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
       enddo
     enddo
 

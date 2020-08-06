@@ -54,16 +54,12 @@ contains
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
 
-    use file_utils, only: run_name
-
     implicit none
 
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
     real :: efac, efacp, tmp, tmp2, wgt
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
-
-    character(len=512) filename
 
     ia = 1
 
@@ -227,17 +223,17 @@ contains
        deallocate (g0)
     end if
 
-    filename=trim(run_name)//".gamtot"
-    open(3636,file=trim(filename),status='unknown')
-    do iky = 1, naky
-      do ikx = 1, nakx
-        do iz = -nzgrid,nzgrid
-          write(3636,'(4e25.8)') gamtot(iky,ikx,iz), dgamtotdr(iky,ikx,iz), &
-                                 gamtot3(ikx,iz), dgamtot3dr(ikx,iz)
-        enddo
-      enddo
-    enddo
-    close(3636)
+!    filename=trim(run_name)//".gamtot"
+!    open(3636,file=trim(filename),status='unknown')
+!    do iky = 1, naky
+!      do ikx = 1, nakx
+!        do iz = -nzgrid,nzgrid
+!          write(3636,'(4e25.8)') gamtot(iky,ikx,iz), dgamtotdr(iky,ikx,iz), &
+!                                 gamtot3(ikx,iz), dgamtot3dr(ikx,iz)
+!        enddo
+!      enddo
+!    enddo
+!    close(3636)
 
 
 !    if (wstar_implicit) call init_get_fields_wstar
