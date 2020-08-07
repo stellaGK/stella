@@ -53,9 +53,9 @@ module common_types
      real :: drhotordrho
      real :: psitor_lcfs
 
-     real :: rhoc_ref
-     real :: qinp_ref
-     real :: shat_ref
+     real :: rhoc_psi0
+     real :: qinp_psi0
+     real :: shat_psi0
   end type flux_surface_type
   
   type spec_type

@@ -145,9 +145,9 @@ contains
 
     ! the next three variablaes are for multibox simulations 
     ! with radial variation
-    local%rhoc_ref = rhoc
-    local%qinp_ref = qinp
-    local%shat_ref = shat
+    local%rhoc_psi0 = rhoc
+    local%qinp_psi0 = qinp
+    local%shat_psi0 = shat
 
     local_out = local
 
@@ -186,7 +186,7 @@ contains
     real :: lrhoc, lqinp, lshat, lkappa, ltri, lbetaprim
     real :: rrhoc, rqinp, rshat, rkappa, rtri, rbetaprim
     real :: dqdr
-    real :: rhoc_ref, qinp_ref, shat_ref
+    real :: rhoc_psi0, qinp_psi0, shat_psi0
 
     if(job == 1) then
       dqdr = local%shat*local%qinp/local%rhoc
@@ -253,9 +253,9 @@ contains
       call receive(d2R          ,1,127)
       call receive(d2Z          ,1,128)
       call receive(dI           ,1,129)
-      call receive(rhoc_ref     ,1,130)
-      call receive(qinp_ref     ,1,131)
-      call receive(shat_ref     ,1,132)
+      call receive(rhoc_psi0    ,1,130)
+      call receive(qinp_psi0    ,1,131)
+      call receive(shat_psi0    ,1,132)
       call receive(dpsidrho_psi0,1,133)
       call receive(bmag_psi0    ,1,134)
       local%rhoc  = rhoc
@@ -264,9 +264,9 @@ contains
       local%kappa = kappa
       local%tri   = tri
       local%betaprim = betaprim
-      local%rhoc_ref  = rhoc_ref
-      local%qinp_ref  = qinp_ref
-      local%shat_ref  = shat_ref
+      local%rhoc_psi0  = rhoc_psi0
+      local%qinp_psi0  = qinp_psi0
+      local%shat_psi0  = shat_psi0
       
       load_psi0_variables = .false.
     elseif(job== njobs-1) then
@@ -280,9 +280,9 @@ contains
       call receive(d2R          ,1,227)
       call receive(d2Z          ,1,228)
       call receive(dI           ,1,229)
-      call receive(rhoc_ref     ,1,230)
-      call receive(qinp_ref     ,1,231)
-      call receive(shat_ref     ,1,232)
+      call receive(rhoc_psi0    ,1,230)
+      call receive(qinp_psi0    ,1,231)
+      call receive(shat_psi0    ,1,232)
       call receive(dpsidrho_psi0,1,233)
       call receive(bmag_psi0    ,1,234)
       local%rhoc  = rhoc
@@ -291,9 +291,9 @@ contains
       local%kappa = kappa
       local%tri   = tri
       local%betaprim = betaprim
-      local%rhoc_ref  = rhoc_ref
-      local%qinp_ref  = qinp_ref
-      local%shat_ref  = shat_ref
+      local%rhoc_psi0  = rhoc_psi0
+      local%qinp_psi0  = qinp_psi0
+      local%shat_psi0  = shat_psi0
       
       load_psi0_variables = .false.
     endif
@@ -304,9 +304,9 @@ contains
     surf%kappa = local%kappa
     surf%tri = local%tri
     surf%betaprim = local%betaprim
-    surf%rhoc_ref = rhoc_ref
-    surf%qinp_ref = qinp_ref
-    surf%shat_ref = shat_ref
+    surf%rhoc_psi0 = rhoc_psi0
+    surf%qinp_psi0 = qinp_psi0
+    surf%shat_psi0 = shat_psi0
 
     call scope(subprocs)
 
@@ -982,7 +982,7 @@ contains
     gds23 = (gradrho_gradthet*gradalph2-gradalph_gradthet*gradrho_gradalph)*(dpsidrho_psi0/bmag)**2
     ! (grad rho . grad theta * grad rho . grad alpha - grad alpha . grad theta * |grad rho|^2) * (dpsiN/drho)^2 / B^2 * q/rho
     gds24 = (gradrho_gradthet*gradrho_gradalph-gradalph_gradthet*grho**2) & 
-             *(dpsidrho_psi0/bmag)**2*(local%qinp_ref/local%rhoc_ref)
+             *(dpsidrho_psi0/bmag)**2*(local%qinp_psi0/local%rhoc_psi0)
 
     ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gds22)
     ! theta0 = kx/(ky*shat)

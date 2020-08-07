@@ -405,13 +405,14 @@ contains
       iv = iv_idx(vmu_lo,ivmu)
       imu = imu_idx(vmu_lo,ivmu)
       do iz = -nzgrid,nzgrid
-        prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv) &
-               *(geo_surf%qinp/geo_surf%rhoc)*(btor(iz)*rmajor(iz)/bmag(ia,iz))/spec(is)%stm &
+        prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv)*spec(is)%stm_psi0 &
+               *(geo_surf%qinp_psi0/geo_surf%rhoc_psi0)  & 
+               *(btor(iz)*rmajor(iz)/bmag(ia,iz))*(spec(is)%mass/spec(is)%temp) &
                * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
       enddo
     enddo
 
-    if(q_as_x) prl_shear = prl_shear/geo_surf%shat
+    if(q_as_x) prl_shear = prl_shear/geo_surf%shat_psi0
 
   end subroutine init_parallel_shear
 
@@ -455,11 +456,13 @@ contains
     use kt_grids, only: nalpha
     use stella_geometry, only: drhodpsi, dydalpha
     use stella_geometry, only: dBdrho, geo_surf, q_as_x
+    use stella_geometry, only: dIdrho, rmajor, btor, bmag
     use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
     use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
+    use dist_fn_arrays, only: prl_shear, prl_shear_p
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
@@ -494,6 +497,8 @@ contains
       allocate (wdriftpx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpy_g)) &
       allocate (wdriftpy_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(prl_shear_p)) &
+      allocate (prl_shear_p(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     allocate (energy(nalpha,-nzgrid:nzgrid))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -555,6 +560,12 @@ contains
             * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
             - wdriftx_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
               + 2.*mu(imu)*spread(dBdrho,1,nalpha))
+
+
+       prl_shear_p(:,:,ivmu) = prl_shear(:,:,ivmu)*(dIdrho/spread(rmajor*btor,1,nalpha) &
+                               - spread(dBdrho,1,nalpha)/bmag &
+                               - spec(is)%fprim - spec(is)%tprim*(energy-2.5)  &
+                               - 2.*mu(imu)*spread(dBdrho,1,nalpha))
     end do
 
     deallocate (energy, wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
@@ -1786,6 +1797,7 @@ contains
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
     use dist_fn_arrays, only: wstar, wstarp
+    use dist_fn_arrays, only: prl_shear, prl_shear_p
     use mirror_terms, only: add_mirror_radial_variation
     use parallel_streaming, only: add_parallel_streaming_radial_variation
 
@@ -1863,6 +1875,9 @@ contains
             call gyro_average (g1k,iz,ivmu,g0a) 
             g0k = g0k + g0a*wdriftpy_phi(ia,iz,ivmu)
 
+            !prl_shear variation
+            g0k = g0k + g0a*prl_shear_p(ia,iz,ivmu)
+
             !mirror term and/or parallel streaming
             if(include_mirror.or.include_parallel_streaming) then
               g0k = g0k + g_corr(:,:,iz,it,ivmu)
@@ -1886,6 +1901,9 @@ contains
 
             !wdrifty gyroaverage/quasineutrality variation
             g0k = g0k + g1k*wdrifty_phi(ia,iz,ivmu)
+
+            !prl_shear gyroaverage/quasineutrality variation
+            g0k = g0k + g1k*prl_shear(ia,iz,ivmu)
 
             !wdriftx gyroaverage/quasineutrality variation
             call get_dgdx(g0a,g1k)
@@ -2670,11 +2688,12 @@ contains
 
   subroutine finish_parallel_shear
 
-    use dist_fn_arrays, only: prl_shear
+    use dist_fn_arrays, only: prl_shear, prl_shear_p
 
     implicit none
 
     if (allocated(prl_shear)) deallocate (prl_shear)
+    if (allocated(prl_shear_p)) deallocate (prl_shear_p)
 
     prlshearinit = .false.
 

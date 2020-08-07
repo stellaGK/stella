@@ -151,7 +151,7 @@ contains
           if(q_as_x) then
             dxdXcoord = dxdXcoord_sign*dpsidrho
           else
-            dxdXcoord = dxdXcoord_sign*geo_surf%qinp_ref/geo_surf%rhoc_ref
+            dxdXcoord = dxdXcoord_sign*geo_surf%qinp_psi0/geo_surf%rhoc_psi0
           endif
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
@@ -162,7 +162,7 @@ contains
           if(q_as_x) then
             twist_and_shift_geo_fac = 2.0*pi
           else
-            twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat_ref
+            twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat_psi0
           endif
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0
@@ -197,7 +197,7 @@ contains
           if(q_as_x) then
             dxdXcoord = dxdXcoord_sign/drhodpsi_psi0
           else
-            dxdXcoord = dxdXcoord_sign*geo_surf%qinp_ref/geo_surf%rhoc_ref
+            dxdXcoord = dxdXcoord_sign*geo_surf%qinp_psi0/geo_surf%rhoc_psi0
           endif
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
@@ -208,7 +208,7 @@ contains
           if(q_as_x) then
             twist_and_shift_geo_fac = 2.0*pi
           else
-            twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat_ref
+            twist_and_shift_geo_fac = 2.0*pi*geo_surf%shat_psi0
           endif
           ! aref and bref should not be needed, so set to 1
           aref = 1.0 ; bref = 1.0

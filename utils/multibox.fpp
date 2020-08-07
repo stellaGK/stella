@@ -475,7 +475,7 @@ contains
       endif
     endif
 
-    if(q_as_x) shear = shear/geo_surf%shat
+    if(q_as_x) shear = shear/geo_surf%shat_psi0
 
     !do i=1,nx
     !  write (*,*) i,shear(i),job
