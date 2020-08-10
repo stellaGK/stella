@@ -484,7 +484,7 @@ contains
 
     allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-    wgt = spec%z*spec%dens
+    wgt = spec%z*spec%dens_psi0
     phi = 0.
 
     idx = 0 ; izl_offset = 0

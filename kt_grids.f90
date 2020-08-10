@@ -426,6 +426,7 @@ contains
     call broadcast (nalpha)
     call broadcast (reality)
     call broadcast (jtwist)
+    call broadcast (jtwistfac)
     call broadcast (y0)
     call broadcast (aky_min)
     call broadcast (aky_max)
