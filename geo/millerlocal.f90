@@ -241,7 +241,12 @@ contains
       call send(shat      ,njobs-1,232)
       call send(dpsidrho  ,njobs-1,233)
       call send(bmag      ,njobs-1,234)
-
+      rhoc_psi0 = rhoc
+      qinp_psi0 = qinp
+      shat_psi0 = shat
+      local%rhoc_psi0  = rhoc_psi0
+      local%qinp_psi0  = qinp_psi0
+      local%shat_psi0  = shat_psi0
     elseif(job == 0) then
       call receive(rhoc         ,1,120)
       call receive(qinp         ,1,121)
