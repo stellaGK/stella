@@ -19,11 +19,6 @@ module time_advance
      module procedure get_dgdx_4d
   end interface
 
-  interface get_dchidy
-     module procedure get_dchidy_4d
-     module procedure get_dchidy_2d
-  end interface
-
   interface checksum
      module procedure checksum_field
      module procedure checksum_dist
@@ -36,7 +31,6 @@ module time_advance
   logical :: parnlinit  = .false.
   logical :: readinit   = .false.
   logical :: radialinit = .false.
-  logical :: prlshearinit = .false.
 
   ! if .true., dist fn is represented on alpha grid
   ! if .false., dist fn is given on k-alpha grid
@@ -83,6 +77,7 @@ contains
     use parallel_streaming, only: init_parallel_streaming
     use dist_redistribute, only: init_redistribute
     use mirror_terms, only: init_mirror
+    use flow_shear, only: init_flow_shear
 
     implicit none
 
@@ -105,8 +100,8 @@ contains
     call init_wdrift
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
     call init_wstar
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_shear'
-    call init_parallel_shear
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_flow_shear'
+    call init_flow_shear
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
@@ -373,48 +368,6 @@ contains
 
   end subroutine init_wstar
 
-  subroutine init_parallel_shear
-
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_time, only: code_dt
-    use species, only: spec
-    use zgrid, only: nzgrid
-    use kt_grids, only: nalpha
-    use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor
-    use physics_parameters, only: g_exb, omprimfac
-    use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
-    use dist_fn_arrays, only: prl_shear
-
-    implicit none
-
-    integer :: is, imu, iv, ivmu, iz, ia
-
-    !perpendicular shear is currently done in multibox
-
-    if (prlshearinit) return
-    prlshearinit = .true.
-
-    ia=1
-
-    if (.not.allocated(prl_shear)) &
-         allocate (prl_shear(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; prl_shear = 0.0
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      is = is_idx(vmu_lo,ivmu)
-      iv = iv_idx(vmu_lo,ivmu)
-      imu = imu_idx(vmu_lo,ivmu)
-      do iz = -nzgrid,nzgrid
-        prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv)*spec(is)%stm_psi0 &
-               *(geo_surf%qinp_psi0/geo_surf%rhoc_psi0)  & 
-               *(btor(iz)*rmajor(iz)/bmag(ia,iz))*(spec(is)%mass/spec(is)%temp) &
-               * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
-      enddo
-    enddo
-
-    if(q_as_x) prl_shear = prl_shear/geo_surf%shat_psi0
-
-  end subroutine init_parallel_shear
 
   subroutine init_parallel_nonlinearity
 
@@ -456,13 +409,11 @@ contains
     use kt_grids, only: nalpha
     use stella_geometry, only: drhodpsi, dydalpha
     use stella_geometry, only: dBdrho, geo_surf, q_as_x
-    use stella_geometry, only: dIdrho, rmajor, btor, bmag
     use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
     use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
-    use dist_fn_arrays, only: prl_shear, prl_shear_p
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
@@ -497,8 +448,6 @@ contains
       allocate (wdriftpx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpy_g)) &
       allocate (wdriftpy_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(prl_shear_p)) &
-      allocate (prl_shear_p(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     allocate (energy(nalpha,-nzgrid:nzgrid))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -561,11 +510,6 @@ contains
             - wdriftx_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
               + 2.*mu(imu)*spread(dBdrho,1,nalpha))
 
-
-       prl_shear_p(:,:,ivmu) = prl_shear(:,:,ivmu)*(dIdrho/spread(rmajor*btor,1,nalpha) &
-                               - spread(dBdrho,1,nalpha)/bmag &
-                               - spec(is)%fprim - spec(is)%tprim*(energy-2.5)  &
-                               - 2.*mu(imu)*spread(dBdrho,1,nalpha))
     end do
 
     deallocate (energy, wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
@@ -619,11 +563,12 @@ contains
     use parallel_streaming, only: stream, stream_rad_var1
     use parallel_streaming, only: stream_rad_var2
     use mirror_terms, only: mirror
+    use flow_shear, only: prl_shear
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
     
-    real :: cfl_dt_mirror, cfl_dt_stream
+    real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_prls
     real :: cfl_dt_wdriftx, cfl_dt_wdrifty
     real :: zero
     real :: wdriftx_max, wdrifty_max
@@ -644,6 +589,10 @@ contains
     ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
     cfl_dt = cfl_dt_wdriftx
+
+    cfl_dt_prls = abs(code_dt)/max(maxval(abs(aky))*maxval(abs(prl_shear)),zero)
+    cfl_dt = min(cfl_dt,cfl_dt_prls)
+
 
     if (.not.stream_implicit) then
        ! NB: stream has code_dt built-in, which accounts for code_dt factor here
@@ -719,6 +668,8 @@ contains
     use response_matrix, only: init_response_matrix
     use mirror_terms, only: mirror_initialized
     use mirror_terms, only: init_mirror
+    use flow_shear, only: flow_shear_initialized
+    use flow_shear, only: init_flow_shear
     use physics_flags, only: radial_variation
 
     implicit none
@@ -728,14 +679,14 @@ contains
     wdriftinit = .false.
     wstarinit = .false.
     radialinit = .false.
-    prlshearinit = .false.
+    flow_shear_initialized = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
-    call init_parallel_shear
+    call init_flow_shear
     if (radial_variation) call init_radial_variation
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
@@ -1047,6 +998,7 @@ contains
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
+    use flow_shear, only: advance_flow_shear_explicit
     use file_utils, only: runtype_option_switch, runtype_multibox
     use multibox, only: include_multibox_krook, add_multibox_krook
 
@@ -1089,7 +1041,7 @@ contains
 
     if (.not.restart_time_step) then
 
-       if ((g_exb**2).gt.epsilon(0.0)) call advance_equilibrium_shear (gin, rhs)
+       if ((g_exb**2).gt.epsilon(0.0)) call advance_flow_shear_explicit (gin, rhs)
 
        ! calculate and add mirror term to RHS of GK eqn
        if (include_mirror.and..not.mirror_implicit) then
@@ -1140,6 +1092,7 @@ contains
 
     use mp, only: proc0, mp_abort
     use job_manage, only: time_message
+    use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
@@ -1314,6 +1267,7 @@ contains
     use stella_layouts, only: vmu_lo, imu_idx, is_idx
     use job_manage, only: time_message
     use gyro_averages, only: gyro_average
+    use fields, only: get_dchidx, get_dchidy
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_corr_QN,   phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
@@ -1330,7 +1284,6 @@ contains
     use kt_grids, only: swap_kxky, swap_kxky_back
     use constants, only: pi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use multibox, only: shear
 
     implicit none
 
@@ -1392,9 +1345,11 @@ contains
              call transform_ky2y (g0k_swap, g0kxy)
              call transform_kx2x (g0kxy, g1xy)
              g1xy = g1xy*exb_nonlin_fac
-             bracket = g0xy*(g1xy - spread(shear,1,ny))
+             !bracket = g0xy*(g1xy - spread(shear,1,ny))
+             bracket = g0xy*g1xy
 
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy)+maxval(abs(shear)))*aky(naky)))
+             !cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy)+maxval(abs(shear)))*aky(naky)))
+             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              if(radial_variation) then
                bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
@@ -1487,62 +1442,6 @@ contains
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
   end subroutine advance_ExB_nonlinearity
-
-  subroutine advance_equilibrium_shear (g, gout)
-
-    use stella_layouts, only: vmu_lo
-    use physics_flags, only: nonlinear
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx
-    use multibox, only: shear
-    use stella_time, only: code_dt
-    use fields_arrays, only: phi, apar
-    use dist_fn_arrays, only: prl_shear
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
-    
-
-    complex, dimension (:,:), allocatable :: g0k, g0x
-
-    integer :: ivmu, iz, it, ia
-
-    ia = 1
-
-    allocate (g0k(naky,nakx))
-    allocate (g0x(naky,nx))
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      do it = 1, ntubes
-        do iz = -nzgrid, nzgrid
-          call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-            
-          !parallel flow shear
-          gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k
-
-          !perpendicular flow shear
-          !if we use advance_ExB_nonlinearity, we can piggy-back on the 
-          !FFTs there and save on some computations
-          if (.not.nonlinear) then
-            call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-
-            !inverse and forward transforms
-            call transform_kx2x_solo (g0k, g0x)
-            g0x = -spread(shear,1,naky)*g0x
-            call transform_x2kx_solo (g0x, g0k)
-
-            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + code_dt*g0k
-          endif
-        end do
-      end do
-    end do
-
-    deallocate (g0k, g0x)
-
-  end subroutine advance_equilibrium_shear
 
   subroutine advance_parallel_nonlinearity (g, gout, restart_time_step)
 
@@ -1780,6 +1679,7 @@ contains
 
     use mp, only: mp_abort
     use job_manage, only: time_message
+    use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_corr_QN,  phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
@@ -1797,8 +1697,8 @@ contains
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
     use dist_fn_arrays, only: wstar, wstarp
-    use dist_fn_arrays, only: prl_shear, prl_shear_p
     use mirror_terms, only: add_mirror_radial_variation
+    use flow_shear, only: prl_shear, prl_shear_p
     use parallel_streaming, only: add_parallel_streaming_radial_variation
 
     implicit none
@@ -1817,7 +1717,6 @@ contains
     !if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
     allocate (g0k(naky,nakx))
-    allocate (g1k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0x(naky,nx))
     allocate (g1x(naky,nx))
@@ -2101,104 +2000,6 @@ contains
 
   end subroutine add_dphi_term_global
 
-  subroutine get_dchidy_4d (phi, apar, dchidy)
-
-    use constants, only: zi
-    use gyro_averages, only: gyro_average
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use zgrid, only: nzgrid, ntubes
-    use vpamu_grids, only: vpa
-    use kt_grids, only: nakx, aky, naky
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
-
-    integer :: ivmu, iv, is
-    complex, dimension (:,:,:,:), allocatable :: field
-
-    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       is = is_idx(vmu_lo,ivmu)
-       iv = iv_idx(vmu_lo,ivmu)
-       field = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
-            * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-       call gyro_average (field, ivmu, dchidy(:,:,:,:,ivmu))
-    end do
-
-    deallocate (field)
-
-  end subroutine get_dchidy_4d
-
-  subroutine get_dchidy_2d (iz, ivmu, phi, apar, dchidy)
-
-    use constants, only: zi
-    use gyro_averages, only: gyro_average
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use vpamu_grids, only: vpa
-    use kt_grids, only: nakx, aky, naky
-
-    implicit none
-
-    integer, intent (in) :: ivmu, iz
-    complex, dimension (:,:), intent (in) :: phi, apar
-    complex, dimension (:,:), intent (out) :: dchidy
-
-    integer :: iv, is
-    complex, dimension (:,:), allocatable :: field
-
-    allocate (field(naky,nakx))
-
-    is = is_idx(vmu_lo,ivmu)
-    iv = iv_idx(vmu_lo,ivmu)
-    field = zi*spread(aky,2,nakx) &
-         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-    call gyro_average (field, iz, ivmu, dchidy)
-    
-    deallocate (field)
-
-  end subroutine get_dchidy_2d
-
-  subroutine get_dchidx (iz, ivmu, phi, apar, dchidx)
-
-    use constants, only: zi
-    use gyro_averages, only: gyro_average
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use vpamu_grids, only: vpa
-    use kt_grids, only: akx, naky, nakx
-
-    implicit none
-
-    integer, intent (in) :: ivmu, iz
-    complex, dimension (:,:), intent (in) :: phi, apar
-    complex, dimension (:,:), intent (out) :: dchidx
-
-    integer :: iv, is
-    complex, dimension (:,:), allocatable :: field
-
-    allocate (field(naky,nakx))
-
-    is = is_idx(vmu_lo,ivmu)
-    iv = iv_idx(vmu_lo,ivmu)
-    field = zi*spread(akx,1,naky) &
-         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-    call gyro_average (field, iz, ivmu, dchidx)
-    
-    deallocate (field)
-
-  end subroutine get_dchidx
-
   subroutine add_wstar_term (g, src)
 
     use dist_fn_arrays, only: wstar
@@ -2238,6 +2039,7 @@ contains
     use dissipation, only: collisions_implicit, include_collisions
     use dissipation, only: advance_collisions_implicit
     use run_parameters, only: driftkinetic_implicit
+    use flow_shear, only: advance_flow_shear_implicit
     use multibox, only: RK_step, multibox_communicate
 
     implicit none
@@ -2279,6 +2081,9 @@ contains
     if(RK_step) call multibox_communicate (g)
 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
+
+       call advance_flow_shear_implicit(g)
+       fields_updated = .false.
 
        if (hyper_dissipation) then
 !          ! for hyper-dissipation, need to be in k-alpha space
@@ -2341,6 +2146,9 @@ contains
           call advance_hyper_dissipation (g)
           fields_updated = .false.
        end if
+
+       call advance_flow_shear_implicit(g)
+       fields_updated = .false.
 
     end if
 
@@ -2615,6 +2423,7 @@ contains
     use extended_zgrid, only: finish_extended_zgrid
     use parallel_streaming, only: finish_parallel_streaming
     use mirror_terms, only: finish_mirror
+    use flow_shear, only : finish_flow_shear
     use dist_redistribute, only: finish_redistribute
     use neoclassical_terms, only: finish_neoclassical_terms
     use dissipation, only: finish_dissipation
@@ -2628,7 +2437,7 @@ contains
     call finish_wstar
     call finish_wdrift
     call finish_parallel_streaming
-    call finish_parallel_shear
+    call finish_flow_shear
     call finish_mirror
     call finish_neoclassical_terms
     call deallocate_arrays
@@ -2685,19 +2494,6 @@ contains
     wstarinit = .false.
 
   end subroutine finish_wstar
-
-  subroutine finish_parallel_shear
-
-    use dist_fn_arrays, only: prl_shear, prl_shear_p
-
-    implicit none
-
-    if (allocated(prl_shear)) deallocate (prl_shear)
-    if (allocated(prl_shear_p)) deallocate (prl_shear_p)
-
-    prlshearinit = .false.
-
-  end subroutine finish_parallel_shear
 
   subroutine deallocate_arrays
 

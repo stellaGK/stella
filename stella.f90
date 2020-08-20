@@ -96,7 +96,7 @@ contains
     use stella_transforms, only: init_transforms
     use stella_save, only: init_dt
     use multibox, only: read_multibox_parameters, init_multibox, xL, xR
-    use multibox, only: communicate_multibox_parameters, init_shear
+    use multibox, only: communicate_multibox_parameters
     use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
@@ -215,8 +215,6 @@ contains
     call init_extended_zgrid
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
-    if (debug) write (6,*) 'stella::init_stella::init_shear'
-    call init_shear(q_as_x, geo_surf)
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
     if (debug) write(6,*) "stella::init_stella::ginit"

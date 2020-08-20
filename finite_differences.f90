@@ -4,9 +4,13 @@ module finite_differences
 
   public :: first_order_upwind
   public :: third_order_upwind
+  public :: fifth_order_upwind
   public :: third_order_upwind_zed
   public :: first_order_upwind_zed
+  public :: second_order_centered
+  public :: fourth_order_centered
   public :: second_order_centered_zed
+  public :: four_point_triangle
   public :: fd3pt, fd5pt
   public :: d2_3pt
   public :: fd_variable_upwinding_vpa
@@ -34,9 +38,29 @@ module finite_differences
      module procedure third_order_upwind_real
   end interface
 
+  interface fifth_order_upwind
+     module procedure fifth_order_upwind_complex
+     module procedure fifth_order_upwind_real
+  end interface
+
   interface tridag
      module procedure tridag_real
      module procedure tridag_complex
+  end interface
+
+  interface second_order_centered
+     module procedure second_order_centered_real
+     module procedure second_order_centered_complex
+  end interface
+
+  interface four_point_triangle
+     module procedure  four_point_triangle_real
+     module procedure  four_point_triangle_complex
+  end interface
+
+  interface fourth_order_centered
+     module procedure fourth_order_centered_real
+     module procedure fourth_order_centered_complex
   end interface
 
   interface second_order_centered_zed
@@ -186,6 +210,92 @@ contains
 
   end subroutine third_order_upwind_real
 
+  subroutine fifth_order_upwind_complex (llim, f, del, sgn, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    complex, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    if (sgn == -1) then
+       istart = llim
+       iend = llim+n-1
+    else
+       istart = llim+n-1
+       iend = llim
+    end if
+
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+    ! zero BC, 3rd order accurate upwind
+    i = istart-sgn
+    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    ! zero BC, 5th order accurate upwind
+    i = istart-2*sgn
+    df(i) = -sgn*(-3.*f(i-2*sgn)+30.*f(i-sgn)+20.*f(i)-60.*f(i+sgn)+15.*f(i+2*sgn))/(60.*del)
+
+    ! 1st order accurate upwind
+    df(iend) = sgn*(f(iend+sgn)-f(iend))/del
+    ! 3rd order accurate upwind
+    df(iend+sgn) = -sgn*(2.*f(iend)+3*f(iend+sgn)-6.*f(iend+2*sgn)+f(iend+3*sgn))/(6.*del)
+
+    ! 5th order accurate upwind
+    do i = istart-3*sgn, iend+2*sgn, -sgn
+       df(i) = -sgn*(-3.*f(i-2*sgn)+30.*f(i-sgn)+20.*f(i)-60.*f(i+sgn)+15.*f(i+2*sgn)-2.*f(i+3*sgn)) &
+                /(60.*del)
+    end do
+
+  end subroutine fifth_order_upwind_complex
+
+  subroutine fifth_order_upwind_real (llim, f, del, sgn, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    real, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    if (sgn == -1) then
+       istart = llim
+       iend = llim+n-1
+    else
+       istart = llim+n-1
+       iend = llim
+    end if
+
+    ! zero BC, 1st order accurate upwind
+    df(istart) = -f(istart)*sgn/del
+    ! zero BC, 3rd order accurate upwind
+    i = istart-sgn
+    df(i) = -sgn*(2.*f(i-sgn)+3.*f(i)-6.*f(i+sgn))/(6.*del)
+    ! zero BC, 5th order accurate upwind
+    i = istart-2*sgn
+    df(i) = -sgn*(-3.*f(i-2*sgn)+30.*f(i-sgn)+20.*f(i)-60.*f(i+sgn)+15.*f(i+2*sgn))/(60.*del)
+
+    ! 1st order accurate upwind
+    df(iend) = -sgn*(f(iend)-f(iend+sgn))/del
+    ! 3rd order accurate upwind
+    df(iend+sgn) = -sgn*(2.*f(iend)+3*f(iend+sgn)-6.*f(iend+2*sgn)+f(iend+3*sgn))/(6.*del)
+
+    ! 5th order accurate upwind
+    do i = istart-3*sgn, iend+2*sgn, -sgn
+       df(i) = -sgn*(-3.*f(i-2*sgn)+30.*f(i-sgn)+20.*f(i)-60.*f(i+sgn)+15.*f(i+2*sgn)-2.*f(i+3*sgn)) &
+                /(60.*del)
+    end do
+
+  end subroutine fifth_order_upwind_real
+
   subroutine third_order_upwind_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
     implicit none
@@ -311,6 +421,200 @@ contains
     end do
 
   end subroutine first_order_upwind_zed
+
+  subroutine second_order_centered_real (llim, f, del, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    real, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    istart = llim
+    iend = llim+n-1
+
+    ! zero BC
+    df(istart) = f(istart+1) / (2.*del)
+    df(iend)   =-f(iend-1)   / (2.*del) 
+
+
+    ! 2nd order accurate centered
+    do i = istart+1, iend-1
+       df(i) = (f(i+1) - f(i-1)) / (2.*del)
+    end do
+
+  end subroutine second_order_centered_real
+
+  subroutine second_order_centered_complex (llim, f, del, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    complex, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    istart = llim
+    iend = llim+n-1
+
+    ! zero BC
+    df(istart) = f(istart+1) / (2.*del)
+    df(iend)   =-f(iend-1)   / (2.*del) 
+
+
+    ! 2nd order accurate centered
+    do i = istart+1, iend-1
+       df(i) = (f(i+1) - f(i-1)) / (2.*del)
+    end do
+
+  end subroutine second_order_centered_complex
+
+  subroutine four_point_triangle_real (llim, f, del, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    real, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    istart = llim
+    iend = llim+n-1
+
+    ! zero BC
+    i=istart
+    df(i) = f(i+1) / (2.0*del)
+    i=istart+1
+    df(i) = (f(i+1)-f(i-1)) / (2.0*del)
+    i=istart+2
+    df(i) = (-2.*f(i+3)+9.*f(i+1)-9.*f(i-1)) / (18.0*del)
+
+    i=iend
+    df(i) = -f(i-1) / (2.0*del)
+    i=iend-1
+    df(i) = (f(i+1)-f(i-1)) / (2.0*del)
+    i=iend-2
+    df(i) = (9.*f(i+1)-9.*f(i-1)+2.*f(i-3)) / (18.0*del)
+
+
+    ! 2nd order accurate centered
+    do i = istart+3, iend-3
+      df(i) = (-2.*f(i+3)+9.*f(i+1)-9.*f(i-1)+2.*f(i-3)) / (18.0*del)
+    end do
+
+  end subroutine four_point_triangle_real
+
+  subroutine four_point_triangle_complex (llim, f, del, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    complex, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    istart = llim
+    iend = llim+n-1
+
+    ! zero BC
+    i=istart
+    df(i) = f(i+1) / (2.0*del)
+    i=istart+1
+    df(i) = (f(i+1)-f(i-1)) / (2.0*del)
+    i=istart+2
+    df(i) = (-2.*f(i+3)+9.*f(i+1)-9.*f(i-1)) / (18.0*del)
+
+    i=iend
+    df(i) = -f(i-1) / (2.0*del)
+    i=iend-1
+    df(i) = (f(i+1)-f(i-1)) / (2.0*del)
+    i=iend-2
+    df(i) = (9.*f(i+1)-9.*f(i-1)+2.*f(i-3)) / (18.0*del)
+
+
+    ! 2nd order accurate centered
+    do i = istart+3, iend-3
+      df(i) = (-2.*f(i+3)+9.*f(i+1)-9.*f(i-1)+2.*f(i-3)) / (18.0*del)
+    end do
+
+  end subroutine four_point_triangle_complex
+
+  subroutine fourth_order_centered_real (llim, f, del, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    real, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    istart = llim
+    iend = llim+n-1
+
+    ! zero BC
+    ! 2nd order accurate centered
+    df(istart) = f(istart + 1) / (2.*del)
+    df(iend)   =-f(iend   - 1) / (2.*del) 
+
+    ! 4th order accurate centered
+    df(istart+1) = (f(istart+3) - 8.*f(istart+2) + 8.*f(istart)) / (12.*del)
+    df(iend-1)   = (-8*f(iend)  + 8.*f(iend-2) - f(iend-3))      / (12.*del) 
+
+
+    ! 4th order accurate centered
+    do i = istart+2, iend-2
+       df(i) = (f(i+2)-8.*f(i+1) + 8.*f(i-1)-f(i-2)) / (12.*del)
+    end do
+
+  end subroutine fourth_order_centered_real
+
+  subroutine fourth_order_centered_complex (llim, f, del, df)
+    
+    implicit none
+    
+    integer, intent (in) :: llim
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    complex, dimension (llim:), intent (out) :: df
+    
+    integer :: i, n, istart, iend
+
+    n = size(f)
+    istart = llim
+    iend = llim+n-1
+
+    ! zero BC
+    ! 2nd order accurate centered
+    df(istart) = f(istart + 1) / (2.*del)
+    df(iend)   =-f(iend   - 1) / (2.*del) 
+
+    ! 4th order accurate centered
+    df(istart+1) = (f(istart+3) - 8.*f(istart+2) + 8.*f(istart))/ (12.*del)
+    df(iend-1)   = (-8*f(iend) + 8.*f(iend-2) - f(iend-3))      / (12.*del) 
+
+
+    ! 4th order accurate centered
+    do i = istart+2, iend-2
+       df(i) = (f(i+2)-8.*f(i+1) + 8.*f(i-1)-f(i-2)) / (12.*del)
+    end do
+
+  end subroutine fourth_order_centered_complex
 
   subroutine second_order_centered_zed_real (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 

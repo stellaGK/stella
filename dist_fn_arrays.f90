@@ -34,7 +34,6 @@ module dist_fn_arrays
   ! (nvpa, nmu, -kxkyz-layout-)
 
   real, dimension (:,:,:), allocatable :: wstar, wstarp
-  real, dimension (:,:,:), allocatable :: prl_shear, prl_shear_p
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:), allocatable :: wdriftx_g, wdrifty_g

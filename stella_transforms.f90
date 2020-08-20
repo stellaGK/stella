@@ -101,7 +101,7 @@ contains
   subroutine init_x_solo_fft
 
     use stella_layouts, only: vmu_lo
-    use fft_work, only: init_ccfftw, init_ccfftw
+    use fft_work, only: init_ccfftw
 
     implicit none
 

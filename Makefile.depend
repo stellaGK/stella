@@ -17,6 +17,7 @@ stella_mod = \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 flow_shear.o \
 	 fzero.o \
 	 g_tofrom_h.o \
 	 gauss_quad.o \
@@ -129,6 +130,7 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
@@ -152,6 +154,21 @@ fields_arrays.o: \
 file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
+flow_shear.o: \
+	 constants.o \
+	 fields.o \
+	 fields_arrays.o \
+	 finite_differences.o \
+	 kt_grids.o \
+	 physics_flags.o \
+	 physics_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
 	 gyro_averages.o \
@@ -246,8 +263,6 @@ mp.o: \
 	 file_utils.o 
 mt19937.o: 
 multibox.o: \
-	 common_types.o \
-	 constants.o \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
@@ -255,11 +270,9 @@ multibox.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_parameters.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
-	 stella_transforms.o \
 	 text_options.o \
 	 zgrid.o 
 neoclassical_terms.o: \
@@ -466,6 +479,7 @@ time_advance.o: \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 flow_shear.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \

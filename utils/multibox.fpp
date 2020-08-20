@@ -12,7 +12,6 @@ module multibox
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
-  public :: shear, init_shear
   public :: xL, xR, xL_d, xR_d
   public :: kx0_L, kx0_R
   public :: RK_step
@@ -23,7 +22,6 @@ module multibox
   complex, dimension (:), allocatable :: g_buffer0
   complex, dimension (:), allocatable :: g_buffer1
   complex, dimension (:), allocatable :: fsa_x
-  real,    dimension (:), allocatable :: shear
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   
@@ -39,7 +37,6 @@ module multibox
   real, dimension (:), allocatable :: fft_y_y
 
   logical :: mb_transforms_initialized = .false.
-  logical :: dealiased_shear
   integer :: temp_ind = 0
   integer :: bs_fullgrid
   integer :: mb_debug_step
@@ -65,10 +62,6 @@ module multibox
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
                         mb_zf_option_no_fsa  = 2
-  integer :: shear_option_switch
-  integer, parameter:: shear_option_triangle  = 0, &
-                       shear_option_sine      = 1, &
-                       shear_option_flat      = 2 
   integer :: LR_debug_switch
   integer, parameter:: LR_debug_option_default  = 0, &
                        LR_debug_option_L        = 1, &
@@ -102,17 +95,12 @@ contains
       (/ text_option('default', LR_debug_option_default), &
          text_option('L',       LR_debug_option_L) , &
          text_option('R',       LR_debug_option_R)/)
-    type (text_option), dimension (4), parameter :: shear_opts = &
-      (/ text_option('default',  shear_option_triangle), &
-         text_option('triangle', shear_option_triangle) , &
-         text_option('sine',     shear_option_sine), &
-         text_option('flat',     shear_option_flat)/)
-    character(30) :: zf_option, krook_option, shear_option, LR_debug_option
+    character(30) :: zf_option, krook_option, LR_debug_option
 
-    namelist /multibox_parameters/ boundary_size, krook_size, shear_option,& 
+    namelist /multibox_parameters/ boundary_size, krook_size, & 
                                    smooth_ZFs, zf_option, LR_debug_option, &
                                    krook_option, RK_step, nu_krook_mb, &
-                                   mb_debug_step, dealiased_shear
+                                   mb_debug_step
 
     if(runtype_option_switch /= runtype_multibox) return
 
@@ -123,9 +111,7 @@ contains
     smooth_ZFs = .false.
     RK_step = .false.
     zf_option = 'default'
-    shear_option = 'default'
     krook_option = 'default'
-    dealiased_shear = .false.
     LR_debug_option = 'default'
     
     if (proc0) then
@@ -140,9 +126,6 @@ contains
         (zf_option, mb_zf_opts, mb_zf_option_switch, & 
          ierr, "zf_option in multibox_parameters")
       call get_option_value & 
-        (shear_option, shear_opts, shear_option_switch, & 
-         ierr, "shear_option in multibox_parameters")
-      call get_option_value & 
         (LR_debug_option, LR_db_opts, LR_debug_switch, & 
          ierr, "LR_debug_option in multibox_parameters")
 
@@ -156,11 +139,9 @@ contains
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
     call broadcast(krook_option_switch)
-    call broadcast(shear_option_switch)
     call broadcast(LR_debug_switch)
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
-    call broadcast(dealiased_shear)
 
     if(krook_option_switch.ne.krook_option_default) include_multibox_krook = .true.
 
@@ -303,7 +284,6 @@ contains
     if (allocated(g_buffer1))   deallocate (g_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
     if (allocated(x_clamped))   deallocate (x_clamped)
-    if (allocated(shear))       deallocate (shear)
 
     if (allocated(copy_mask_left))   deallocate (copy_mask_left)
     if (allocated(copy_mask_right))  deallocate (copy_mask_right)
@@ -313,175 +293,6 @@ contains
     call finish_mb_transforms
 
   end subroutine finish_multibox
-
-  subroutine init_shear(q_as_x, geo_surf)
-
-    use kt_grids, only: akx, nakx, naky, nx, x, dx
-    use kt_grids, only: x_d, dx_d
-    use mp, only: job
-    use constants, only: pi
-    use physics_parameters, only: g_exb
-    use stella_transforms, only: transform_kx2x_solo
-    use common_types, only: flux_surface_type
-
-    implicit none
-
-    integer :: i, j, ccount,nakx2
-
-    logical, intent (in) :: q_as_x
-    type (flux_surface_type), intent (in) :: geo_surf
-
-    real, dimension (:), allocatable :: shear_d
-    complex, dimension (:,:), allocatable :: g0k, g0x
-
-    if (.not.allocated(shear)) allocate(shear(nx)); shear = 0.0
-
-    if(g_exb*g_exb > epsilon(0.0))  then
-
-      if(dealiased_shear) then
-
-        allocate (shear_d(nakx))
-        allocate (g0k(naky,nakx))
-        allocate (g0x(naky,nx))
-
-
-        nakx2=(nakx+1)/2
-
-        select case (job)
-
-        case (0)
-          do i=1,nakx
-            select case (shear_option_switch)
-        
-            case (shear_option_triangle)
-              j=i-boundary_size-nakx2
-              do while(j<1) 
-                j = j + nakx
-              enddo
-              shear_d(j) = g_exb*(xL_d + dx_d*(abs(i-nakx2) - abs(2*boundary_size)))
-            case (shear_option_sine)
-              shear_d(i) = g_exb*(xL_d + sin(akx(2)*dx_d*(i-boundary_size))/akx(2))
-            case (shear_option_flat)
-              shear_d(i) = g_exb*xL_d
-            end select
-          enddo
-        case (1)
-          select case (shear_option_switch)
-          
-          case (shear_option_triangle)
-            do i=1,nakx
-              shear_d(i) = g_exb*x_d(i)
-            enddo
-          case (shear_option_sine)
-            do i=1,nakx
-              shear_d(i) = g_exb*x_d(i)
-            enddo
-            do i = 1, boundary_size
-              shear_d(i)                = g_exb*(xL_d + sin(kx0_L*dx_d*(i-boundary_size))/kx0_L)
-              shear_d(nakx-boundary_size+i) = g_exb*(xR_d + sin(kx0_R*dx_d*(i-1))/kx0_R)
-            enddo
-          case (shear_option_flat)
-            ccount = nakx - 2*boundary_size
-            do i=1,ccount
-              shear_d(i+boundary_size) = g_exb*x_d(i+boundary_size)
-            enddo
-            shear_d(1:boundary_size)         = g_exb*xL_d
-            shear_d((nakx-boundary_size+1):) = g_exb*xR_d
-          end select
-        case (2)
-          do i=1,nakx
-            select case (shear_option_switch)
-          
-            case (shear_option_triangle)
-              j=i+boundary_size
-              do while(j>nakx) 
-                j = j - nakx
-              enddo
-              shear_d(j) = g_exb*(xR_d + dx_d*(abs(i-nakx2) - abs(nakx-nakx2-2*boundary_size+1)))
-            case (shear_option_sine)
-              shear_d(i) = g_exb*(xR_d + sin(akx(2)*dx_d*(i-1+boundary_size))/akx(2))
-            case (shear_option_flat)
-              shear_d(i) = g_exb*xR_d
-            end select
-          enddo
-        end select
-        
-        fft_x_x = shear_d
-        call dfftw_execute_dft(xb_fft%plan, fft_x_x, fft_x_k)
-        g0k = spread(fft_x_k*xb_fft%scale,1,naky)
-        call transform_kx2x_solo(g0k,g0x)
-        shear = real(g0x(1,:))
-
-        deallocate (shear_d, g0k, g0x)
-      else !shear on full grid
-        select case (job)
-
-        case (0)
-          do i=1,nx
-            select case (shear_option_switch)
-        
-            case (shear_option_triangle)
-              j=i-bs_fullgrid-nx/2
-              do while(j<1) 
-                j = j + nx
-              enddo
-              shear(j) = g_exb*(xL + dx*(abs(i-nx/2) - abs(2*bs_fullgrid)))
-            case (shear_option_sine)
-              shear(i) = g_exb*(xL + sin(akx(2)*dx*(i-bs_fullgrid))/akx(2))
-            case (shear_option_flat)
-              shear(i) = g_exb*xL
-            end select
-          enddo
-        case (1)
-          select case (shear_option_switch)
-          
-          case (shear_option_triangle)
-            do i=1,nx
-              shear(i) = g_exb*x(i)
-           enddo
-          case (shear_option_sine)
-            do i=1,nx
-              shear(i) = g_exb*x(i)
-            enddo
-            do i = 1, bs_fullgrid
-              shear(i)                = g_exb*(xL + sin(kx0_L*dx*(i-bs_fullgrid))/kx0_L)
-              shear(nx-bs_fullgrid+i) = g_exb*(xR + sin(kx0_R*dx*(i-1))/kx0_R)
-            enddo
-          case (shear_option_flat)
-            ccount = nx - 2*bs_fullgrid
-            do i=1,ccount
-              shear(i+bs_fullgrid) = g_exb*x(i+bs_fullgrid)
-            enddo
-            shear(1:bs_fullgrid)         = g_exb*xL
-            shear((nx-bs_fullgrid+1):nx) = g_exb*xR
-          end select
-        case (2)
-          do i=1,nx
-            select case (shear_option_switch)
-          
-            case (shear_option_triangle)
-              j=i+bs_fullgrid
-              do while(j>nx) 
-                j = j - nx
-              enddo
-              shear(j) = g_exb*(xR + dx*(abs(i-nx/2) - abs(nx/2 - 2*bs_fullgrid + 1)))
-            case (shear_option_sine)
-              shear(i) = g_exb*(xR + sin(akx(2)*dx*(i-1+bs_fullgrid))/akx(2))
-            case (shear_option_flat)
-              shear(i) = g_exb*xR
-            end select
-          enddo
-        end select
-      endif
-    endif
-
-    if(q_as_x) shear = shear/geo_surf%shat_psi0
-
-    !do i=1,nx
-    !  write (*,*) i,shear(i),job
-    !enddo
-
-  end subroutine init_shear
 
   subroutine multibox_communicate (gin)
 

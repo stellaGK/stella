@@ -229,17 +229,17 @@ contains
        end if
     end do
 
-    filename=trim(run_name)//".kperp2"
-    open (1232,file=trim(filename),status='unknown')
-    ia=1
-    do iz=-nzgrid,nzgrid
-      do ikx=1, naky
-        do iky = 1, 1
-          write(1232,'(2e15.8)') kperp2(iky,ikx,ia,iz), dkperp2dr(iky,ikx,ia,iz)
-        enddo
-      enddo
-    enddo
-    close (1232)
+!   filename=trim(run_name)//".kperp2"
+!   open (1232,file=trim(filename),status='unknown')
+!   ia=1
+!   do iz=-nzgrid,nzgrid
+!     do ikx=1, naky
+!       do iky = 1, 1
+!         write(1232,'(2e15.8)') kperp2(iky,ikx,ia,iz), dkperp2dr(iky,ikx,ia,iz)
+!       enddo
+!     enddo
+!   enddo
+!   close (1232)
 
     
   end subroutine init_kperp2

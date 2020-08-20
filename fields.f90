@@ -11,6 +11,7 @@ module fields
   public :: dgamtotdr, dgamtot3dr
   public :: time_field_solve
   public :: fields_updated
+  public :: get_dchidy, get_dchidx
 
   private
 
@@ -28,6 +29,12 @@ module fields
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
   logical :: debug = .false.
+
+  interface get_dchidy
+     module procedure get_dchidy_4d
+     module procedure get_dchidy_2d
+  end interface
+
 
 contains
 
@@ -860,6 +867,104 @@ contains
     end if
     
   end subroutine get_radial_correction
+
+  subroutine get_dchidy_4d (phi, apar, dchidy)
+
+    use constants, only: zi
+    use gyro_averages, only: gyro_average
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: is_idx, iv_idx
+    use run_parameters, only: fphi, fapar
+    use species, only: spec
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: vpa
+    use kt_grids, only: nakx, aky, naky
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
+
+    integer :: ivmu, iv, is
+    complex, dimension (:,:,:,:), allocatable :: field
+
+    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       is = is_idx(vmu_lo,ivmu)
+       iv = iv_idx(vmu_lo,ivmu)
+       field = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
+            * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+       call gyro_average (field, ivmu, dchidy(:,:,:,:,ivmu))
+    end do
+
+    deallocate (field)
+
+  end subroutine get_dchidy_4d
+
+  subroutine get_dchidy_2d (iz, ivmu, phi, apar, dchidy)
+
+    use constants, only: zi
+    use gyro_averages, only: gyro_average
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: is_idx, iv_idx
+    use run_parameters, only: fphi, fapar
+    use species, only: spec
+    use vpamu_grids, only: vpa
+    use kt_grids, only: nakx, aky, naky
+
+    implicit none
+
+    integer, intent (in) :: ivmu, iz
+    complex, dimension (:,:), intent (in) :: phi, apar
+    complex, dimension (:,:), intent (out) :: dchidy
+
+    integer :: iv, is
+    complex, dimension (:,:), allocatable :: field
+
+    allocate (field(naky,nakx))
+
+    is = is_idx(vmu_lo,ivmu)
+    iv = iv_idx(vmu_lo,ivmu)
+    field = zi*spread(aky,2,nakx) &
+         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+    call gyro_average (field, iz, ivmu, dchidy)
+    
+    deallocate (field)
+
+  end subroutine get_dchidy_2d
+
+  subroutine get_dchidx (iz, ivmu, phi, apar, dchidx)
+
+    use constants, only: zi
+    use gyro_averages, only: gyro_average
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: is_idx, iv_idx
+    use run_parameters, only: fphi, fapar
+    use species, only: spec
+    use vpamu_grids, only: vpa
+    use kt_grids, only: akx, naky, nakx
+
+    implicit none
+
+    integer, intent (in) :: ivmu, iz
+    complex, dimension (:,:), intent (in) :: phi, apar
+    complex, dimension (:,:), intent (out) :: dchidx
+
+    integer :: iv, is
+    complex, dimension (:,:), allocatable :: field
+
+    allocate (field(naky,nakx))
+
+    is = is_idx(vmu_lo,ivmu)
+    iv = iv_idx(vmu_lo,ivmu)
+    field = zi*spread(akx,1,naky) &
+         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+    call gyro_average (field, iz, ivmu, dchidx)
+    
+    deallocate (field)
+
+  end subroutine get_dchidx
 
   subroutine finish_fields
 

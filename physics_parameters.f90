@@ -6,12 +6,12 @@ module physics_parameters
   public :: finish_physics_parameters
   public :: beta, zeff, tite, nine, rhostar, vnew_ref
   public :: feprim, teprim
-  public :: g_exb, omprimfac
+  public :: g_exb, g_exbfac, g_exb_efold, omprimfac
 
   private
 
   real :: beta, zeff, tite, nine, rhostar, vnew_ref, feprim, teprim
-  real :: g_exb, omprimfac
+  real :: g_exb, g_exbfac, g_exb_efold, omprimfac
   logical :: initialized = .false.
 
 contains
@@ -38,7 +38,7 @@ contains
     logical :: rpexist
     
     namelist /parameters/ beta, zeff, tite, nine, feprim, teprim, rhostar, vnew_ref &
-                          ,g_exb,omprimfac
+                          ,g_exb, g_exbfac, g_exb_efold, omprimfac
 
     if (proc0) then
        beta = 0.0
@@ -48,7 +48,9 @@ contains
        tite = 1.0
        nine = 1.0
 
-       g_exb = 0.0
+       g_exb    = 0.0
+       g_exbfac = 1.0
+       g_exb_efold = 3.0
        omprimfac = 1.0
 
        !the following are for runs with radial variation and adiabatic electron response
@@ -70,6 +72,8 @@ contains
     call broadcast (feprim)
     call broadcast (teprim)
     call broadcast (g_exb)
+    call broadcast (g_exbfac)
+    call broadcast (g_exb_efold)
     call broadcast (omprimfac)
 
   end subroutine read_parameters
