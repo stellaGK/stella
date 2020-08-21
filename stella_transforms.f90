@@ -8,6 +8,8 @@ module stella_transforms
   public :: init_transforms, finish_transforms
   public :: transform_ky2y, transform_y2ky
   public :: transform_kx2x, transform_x2kx
+  public :: transform_ky2y_unpadded, transform_y2ky_unpadded
+  public :: transform_kx2x_unpadded, transform_x2kx_unpadded
   public :: transform_kx2x_solo, transform_x2kx_solo
   public :: transform_kalpha2alpha, transform_alpha2kalpha
 
@@ -25,6 +27,8 @@ module stella_transforms
 
   type (fft_type) :: yf_fft, yb_fft
   type (fft_type) :: xf_fft, xb_fft
+  type (fft_type) :: yfnp_fft, ybnp_fft
+  type (fft_type) :: xfnp_fft, xbnp_fft
   type (fft_type) :: xsf_fft, xsb_fft
   type (fft_type) :: alpha_f_fft, alpha_b_fft
 
@@ -34,6 +38,10 @@ module stella_transforms
   complex, dimension (:), allocatable :: fft_xs_k, fft_xs_x
   complex, dimension (:), allocatable :: fft_x_k
   real, dimension (:), allocatable :: fft_x_x
+
+  complex, dimension (:), allocatable :: fftnp_x_k, fftnp_x_x
+  complex, dimension (:), allocatable :: fftnp_y_k
+  real, dimension (:), allocatable :: fftnp_y_y
   ! arrays for transforming from alpha-space to k-alpha space
   real, dimension (:), allocatable :: fft_alpha_alpha
   complex, dimension (:), allocatable :: fft_alpha_kalpha
@@ -54,6 +62,8 @@ contains
     call init_y_fft
     call init_x_fft
     call init_x_solo_fft
+    call init_unpadded_x_fft
+    call init_unpadded_y_fft
     if (full_flux_surface) call init_alpha_fft
 
   end subroutine init_transforms
@@ -117,6 +127,36 @@ contains
     call init_ccfftw (xsb_fft, -1, vmu_lo%nx, fft_xs_x, fft_xs_k)
 
   end subroutine init_x_solo_fft
+
+  subroutine init_unpadded_x_fft
+
+    use kt_grids, only: nakx
+    use fft_work, only: init_ccfftw, FFT_BACKWARD, FFT_FORWARD
+
+    implicit none
+
+    if (.not.allocated(fftnp_x_k)) allocate (fftnp_x_k(nakx))
+    if (.not.allocated(fftnp_x_x)) allocate (fftnp_x_x(nakx))
+
+    call init_ccfftw (xfnp_fft, FFT_BACKWARD, nakx, fftnp_x_k, fftnp_x_x)
+    call init_ccfftw (xbnp_fft, FFT_FORWARD , nakx, fftnp_x_x, fftnp_x_k)
+
+  end subroutine init_unpadded_x_fft
+
+  subroutine init_unpadded_y_fft
+
+    use kt_grids, only: naky, naky_all
+    use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
+
+    implicit none
+
+    if (.not.allocated(fftnp_y_k)) allocate (fftnp_y_k(naky))
+    if (.not.allocated(fftnp_y_y)) allocate (fftnp_y_y(naky_all))
+
+    call init_crfftw (yfnp_fft, FFT_BACKWARD, naky_all, fftnp_y_k, fftnp_y_y)
+    call init_rcfftw (ybnp_fft, FFT_FORWARD , naky_all, fftnp_y_y, fftnp_y_k)
+
+  end subroutine init_unpadded_y_fft
 
   subroutine init_alpha_fft
 
@@ -351,6 +391,84 @@ contains
 
   end subroutine transform_x2kx_solo
 
+
+  subroutine transform_kx2x_unpadded (gkx, gx)
+
+    use kt_grids, only: naky
+
+    implicit none
+
+    complex, dimension (:,:), intent (in)  :: gkx
+    complex, dimension (:,:), intent (out) :: gx
+
+    integer :: iy
+
+    do iy = 1, naky
+       fftnp_x_k = gkx(iy,:)
+       call dfftw_execute_dft(xfnp_fft%plan, fftnp_x_k, fftnp_x_x)
+       gx(iy,:) = fftnp_x_x*xfnp_fft%scale
+    end do
+
+  end subroutine transform_kx2x_unpadded
+
+  subroutine transform_x2kx_unpadded (gx, gkx)
+
+    use kt_grids, only: naky
+
+    implicit none
+
+    complex, dimension (:,:), intent (in)  :: gx
+    complex, dimension (:,:), intent (out) :: gkx
+
+    integer :: iy
+
+    do iy = 1, naky
+       fftnp_x_x = gx(iy,:)
+       call dfftw_execute_dft(xbnp_fft%plan, fftnp_x_x, fftnp_x_k)
+       gkx(iy,:) = fftnp_x_k*xbnp_fft%scale
+    end do
+
+  end subroutine transform_x2kx_unpadded
+
+  subroutine transform_ky2y_unpadded (gky, gy)
+
+    use kt_grids, only: nakx
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: gky
+    real, dimension (:,:), intent (out) :: gy
+
+    integer :: ikx
+
+
+    do ikx = 1, nakx
+       fftnp_y_k = gky(:,ikx)
+       call dfftw_execute_dft_c2r(yfnp_fft%plan, fftnp_y_k, fftnp_y_y)
+       gy(:,ikx) =fftnp_y_y*yfnp_fft%scale
+    end do
+
+  end subroutine transform_ky2y_unpadded
+
+  subroutine transform_y2ky_unpadded (gy, gky)
+ 
+    use kt_grids, only: nakx
+ 
+    implicit none
+ 
+    real, dimension (:,:), intent (in out) :: gy
+    complex, dimension (:,:), intent (out) :: gky
+ 
+    integer :: ikx
+ 
+    do ikx = 1, nakx
+      fftnp_y_k = gy(:,ikx)
+      call dfftw_execute_dft_r2c(ybnp_fft%plan, fftnp_y_y, fftnp_y_k)
+      gky(:,ikx) = fftnp_y_y*ybnp_fft%scale
+    end do
+ 
+  end subroutine transform_y2ky_unpadded
+
   subroutine transform_kalpha2alpha (gkalph, galph)
 
     use stella_layouts, only: vmu_lo
@@ -399,6 +517,10 @@ contains
     call dfftw_destroy_plan (xb_fft%plan)
     call dfftw_destroy_plan (xsf_fft%plan)
     call dfftw_destroy_plan (xsb_fft%plan)
+    call dfftw_destroy_plan (yfnp_fft%plan)
+    call dfftw_destroy_plan (ybnp_fft%plan)
+    call dfftw_destroy_plan (xfnp_fft%plan)
+    call dfftw_destroy_plan (xbnp_fft%plan)
     if (full_flux_surface) then
        call dfftw_destroy_plan (alpha_f_fft%plan)
        call dfftw_destroy_plan (alpha_b_fft%plan)
@@ -411,6 +533,10 @@ contains
     if (allocated(fft_xs_x)) deallocate (fft_xs_x)
     if (allocated(fft_alpha_alpha)) deallocate (fft_alpha_alpha)
     if (allocated(fft_alpha_kalpha)) deallocate (fft_alpha_kalpha)
+    if (allocated(fftnp_y_k)) deallocate (fftnp_y_k)
+    if (allocated(fftnp_y_y)) deallocate (fftnp_y_y)
+    if (allocated(fftnp_x_k)) deallocate (fftnp_x_k)
+    if (allocated(fftnp_x_x)) deallocate (fftnp_x_x)
     transforms_initialized = .false.
 
   end subroutine finish_transforms

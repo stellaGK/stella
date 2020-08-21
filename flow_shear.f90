@@ -12,12 +12,18 @@ module flow_shear
   private
 
   logical :: flow_shear_initialized = .false.
-  logical :: hammett_flow_shear = .true.
+  logical :: hammett_flow_shear = .false.
+  logical :: prp_shear_implicit = .false.
 
+  complex, dimension (:), allocatable :: shift_in, shift_out
+  complex, dimension (:,:), allocatable :: upwind_advect
+  real, dimension (:,:), allocatable ::    upwind_diss
   real, dimension (:,:,:), allocatable :: prl_shear, prl_shear_p
   real, dimension (:), allocatable :: prp_shear, shift_times, shift_state
 
-  integer :: shift_sign, shift_start, shift_end
+  integer :: shift_sign, shift_start
+
+  real :: v_edge, v_shift = 0.
 
 ! integer :: shear_option_switch
 ! integer, parameter:: shear_option_triangle  = 0, &
@@ -31,17 +37,21 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use species, only: spec
+    use constants, only: zi, pi
     use zgrid, only: nzgrid
-    use kt_grids, only: nalpha, naky, akx, aky, ikx_max
+    use kt_grids, only: x, x_d, x0, nalpha, nx, nakx, naky, akx, aky, ikx_max
     use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
     use physics_parameters, only: g_exb, g_exbfac, omprimfac
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use physics_flags, only: radial_variation
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use job_manage, only: njobs
+    use mp, only: job, send, receive, crossdomprocs, subprocs, scope
 
     implicit none
 
-    integer :: is, imu, iv, ivmu, iz, ia
+    integer :: is, imu, iv, ivmu, iz, ia, shift
     real, dimension (:,:), allocatable :: energy
 
 !   type (text_option), dimension (4), parameter :: shear_opts = &
@@ -65,6 +75,44 @@ contains
     if (flow_shear_initialized) return
     flow_shear_initialized = .true.
 
+    if (.not.allocated(shift_in))  allocate(shift_in(nakx))
+    if (.not.allocated(shift_out)) allocate(shift_out(nakx))
+
+    if(runtype_option_switch .eq. runtype_multibox .and. job.ne.1) then 
+      prp_shear_implicit = .false.
+    else
+      prp_shear_implicit = .true.
+    endif
+
+    shift_in = exp(pi*zi*x0*akx)
+
+    if(runtype_option_switch .eq. runtype_multibox) then 
+
+      call scope(crossdomprocs)
+      if(job == 1) then
+        call send(g_exbfac*g_exb*x(1) ,0,120)
+        call send(g_exbfac*g_exb*x(nx),njobs-1,121)
+      elseif (job == 0) then
+        shift=nx/6
+        shift_in = exp(2.0*pi*zi*x0*akx/3.0)
+        call receive(v_edge, 1, 120)
+        v_shift=v_edge-g_exbfac*g_exb*x(shift)
+      elseif (job == njobs-1) then
+        shift=nx/6
+        shift_in = exp(-2.0*pi*zi*x0*akx/3.0)
+        call receive(v_edge, 1, 121)
+        v_shift=v_edge-g_exbfac*g_exb*x(nx-shift)
+      endif
+      call scope(subprocs)
+    endif
+    
+    if(runtype_option_switch .eq. runtype_multibox) then 
+      if(job == 0) then
+      elseif(job==njobs-1) then
+      endif
+    endif
+    shift_out = 1./shift_in
+
     ia=1
 
     !parallel flow shear
@@ -76,6 +124,7 @@ contains
 
     if (radial_variation.and..not.allocated(prl_shear_p)) &
       allocate (prl_shear_p(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       is = is_idx(vmu_lo,ivmu)
@@ -104,18 +153,31 @@ contains
 
     if (.not.allocated(shift_times)) allocate (shift_times(naky)); shift_times = 0.
     if (.not.allocated(shift_state)) allocate (shift_state(naky)); shift_state = 0.
+!   if (.not.allocated(upwind_advect)) allocate (upwind_advect(naky,nx)); upwind_advect = 0.
+    if (.not.allocated(upwind_advect)) allocate (upwind_advect(naky,nakx)); upwind_advect = 0.
+    if (.not.allocated(upwind_diss))   allocate (upwind_diss(naky,nx));    upwind_diss  = 0.
 
     shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
 
     if(g_exb*g_exbfac > 0.) then
       shift_sign = -1
       shift_start = ikx_max
-      shift_end   = ikx_max + 1
     else
       shift_sign=1
       shift_start = ikx_max + 1
-      shift_end   = ikx_max
     endif
+
+!   upwind_advect = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nx)*spread(x,1,naky))
+    upwind_advect = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nakx)*spread(x_d,1,naky))
+
+!   upwind_diss = exp(-abs(g_exbfac*g_exb*code_dt*spread(aky,2,nx)) * &
+!                    spread(1. - cos(akx(2)*x),1,naky)/akx(2))
+!   upwind_diss = exp(-1.5*abs(g_exbfac*g_exb*code_dt*spread(aky,2,nx)) * &
+!                    spread(3. - 4.*cos(akx(2)*x)+cos(akx(3)*x),1,naky)/(6.*akx(2)))
+!   upwind_diss = exp(-nx*abs(g_exbfac*g_exb*code_dt*spread(aky,2,nx)) * &
+!                    spread(70. - 112.*cos(akx(2)*x) + 56.*cos(akx(3)*x)           &
+!                               -  16.*cos(akx(4)*x) +  2.*cos(akx(5)*x),1,naky)   &
+!                     /(280.*akx(2)))
 
 
   end subroutine init_flow_shear
@@ -126,7 +188,6 @@ contains
     use constants, only: zi, pi
     use physics_flags, only: nonlinear
     use physics_parameters, only: g_exb
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx, akx,aky, ikx_max, x, x_d, x0
     use stella_time, only: code_dt
@@ -145,7 +206,7 @@ contains
     
 
     complex, dimension (:,:), allocatable :: g0k, g0x
-    complex, dimension (:), allocatable :: g_shift, dg, shift_in, shift_out
+    complex, dimension (:), allocatable :: g_shift, dg
 
     integer :: ivmu, iz, it, ia, iky, sshear, bb
 
@@ -160,33 +221,7 @@ contains
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,nx))
     allocate (dg(nakx),g_shift(nakx))
-    allocate(shift_in(nakx))
-    allocate(shift_out(nakx))
 
-    shift_in = exp(pi*zi*x0*akx)
-    shift_out = 1./shift_in
-
-    if (.not.allocated(prp_shear)) then 
-      allocate(prp_shear(nx))
-
-      prp_shear = x
-  
-      dp = (prp_shear(bb+1)-prp_shear(nx-bb))/(2.*bb+1)
-      do iky = 1, bb
-        prp_shear(iky)      =  dp*(iky-0.5)
-        prp_shear(nx-iky+1) = -dp*(iky-0.5)
-
-      enddo
-      do iky = 1, nx
-        write (*,*) prp_shear(iky)
-      enddo
-
-      g0x = spread(prp_shear,1,naky)
-      call transform_x2kx_solo(g0x,g0k)
-      call transform_kx2x_solo(g0k,g0x)
-
-      prp_shear = real(g0x(1,:))
-    endif
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
@@ -197,49 +232,37 @@ contains
           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k
 
           !perpendicular flow shear
-          !if we use advance_ExB_nonlinearity, we can piggy-back on the 
-          !FFTs there and save on some computations
-!         if (.not.nonlinear) then
-!           call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-
-!           !inverse and forward transforms
-!           call transform_kx2x_solo (g0k, g0x)
-!           !g0x = -spread(shear,1,naky)*g0x
-!           g0x = -g_exb*spread(prp_shear,1,naky)*g0x
-!           call transform_x2kx_solo (g0x, g0k)
-
-!           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + code_dt*g0k
-!         endif
 
           !call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-!         g0k = spread(shift_in,1,naky)*g(:,:,iz,it,ivmu)
-          do iky=1, naky
-            !call third_order_upwind (1,g0k(iky,:),akx(2),sshear,dg)
+          if(.not.prp_shear_implicit) then 
+            g0k = spread(shift_in,1,naky)*g(:,:,iz,it,ivmu)
+            do iky=1, naky
 
-!           !shift the x grid so that it's properly centered
-!           g_shift(1:(ikx_max-1)) = g0k(iky,(ikx_max+1):)
-!           g_shift(ikx_max:)      = g0k(iky,1:ikx_max)
+              !shift the x grid so that it's properly centered
+              g_shift(1:(ikx_max-1)) = g0k(iky,(ikx_max+1):)
+              g_shift(ikx_max:)      = g0k(iky,1:ikx_max)
 !
-!           call first_order_upwind (1,g_shift,akx(2),sshear,dg)
-!           call third_order_upwind (1,g_shift,akx(2),sshear,dg)
-!           call fifth_order_upwind (1,g_shift,akx(2),sshear,dg)
-!           call second_order_centered (1,g_shift,akx(2),dg)
-!           call four_point_triangle (1,g_shift,akx(2),dg)
-!
-!           !shift the x grid so that kx=0 is at the first index
-!           g_shift(1:ikx_max)    = dg(ikx_max:)
-!           g_shift((ikx_max+1):) = dg(1:(ikx_max-1))
-!           
-!
-!           !positive shear leads to advection in the _negative_ kx direction
-!           gout(iky,:,iz,it,ivmu) = gout(iky,:,iz,it,ivmu) + code_dt*aky(iky)*g_exb*shift_out*(g_shift)
-          enddo
+!             call first_order_upwind (1,g_shift,akx(2),sshear,dg)
+!             call third_order_upwind (1,g_shift,akx(2),sshear,dg)
+!             call second_order_centered (1,g_shift,akx(2),dg)
+!             call four_point_triangle (1,g_shift,akx(2),dg)
+
+              call fifth_order_upwind (1,g_shift,akx(2),sshear,dg)
+
+              !shift the x grid so that kx=0 is at the first index
+              g_shift(1:ikx_max)    = dg(ikx_max:)
+              g_shift((ikx_max+1):) = dg(1:(ikx_max-1))
+ 
+              !positive shear leads to advection in the _negative_ kx direction
+              gout(iky,:,iz,it,ivmu) = gout(iky,:,iz,it,ivmu) + code_dt*aky(iky)*g_exb*shift_out*(g_shift) &
+                                                              - code_dt*zi*aky(iky)*v_shift*g(iky,:,iz,it,ivmu)
+            enddo
+          endif
         enddo
       enddo
     enddo
 
     deallocate (g0k, g0x,dg, g_shift)
-    deallocate (shift_in, shift_out)
 
 
   end subroutine advance_flow_shear_explicit
@@ -249,7 +272,8 @@ contains
     use stella_layouts, only: vmu_lo
     use constants, only: zi
     use physics_parameters, only: g_exb, g_exbfac, g_exb_efold
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+!   use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx, akx, aky, x, ikx_max
     use stella_time, only: code_dt
@@ -263,8 +287,11 @@ contains
 
     integer :: ivmu, iz, it, iky
 
+    if(.not.prp_shear_implicit) return
+
     allocate (g0k(naky,nakx))
-    allocate (g0x(naky,nx))
+    allocate (g0x(naky,nakx))
+!   allocate (g0x(naky,nx))
 
     if(hammett_flow_shear) then
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -303,10 +330,11 @@ contains
 
             g0k = g(:,:,iz,it,ivmu)
 
-            call transform_kx2x_solo (g0k, g0x)
-            g0x = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nx)*spread(x,1,naky))*g0x
+            call transform_kx2x_unpadded (g0k, g0x)
+            g0x = upwind_advect*g0x
+!           g0x = upwind_diss  *g0x
          
-            call transform_x2kx_solo (g0x, g0k)
+            call transform_x2kx_unpadded (g0x, g0k)
 
             if(g_exb < 0) then
               g0k(:,ikx_max-1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
@@ -314,10 +342,10 @@ contains
 !             g0k(:,ikx_max+1) = exp(     g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
 !             g0k(:,ikx_max+2) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
             else 
-!             g0k(:,ikx_max-1) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
-!             g0k(:,ikx_max)   = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
               g0k(:,ikx_max+1) = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
               g0k(:,ikx_max+2) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
+!             g0k(:,ikx_max-1) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
+!             g0k(:,ikx_max)   = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
             endif
 
             g(:,:,iz,it,ivmu) = g0k
@@ -337,6 +365,12 @@ contains
 
     if (allocated(prl_shear)) deallocate (prl_shear)
     if (allocated(prl_shear_p)) deallocate (prl_shear_p)
+    if (allocated(shift_times)) deallocate (shift_times)
+    if (allocated(shift_state)) deallocate (shift_state)
+    if (allocated(shift_in)) deallocate (shift_in)
+    if (allocated(shift_out)) deallocate (shift_out)
+    if (allocated(upwind_advect)) deallocate (upwind_advect)
+    if (allocated(upwind_diss))   deallocate (upwind_diss)
 
     flow_shear_initialized = .false.
 

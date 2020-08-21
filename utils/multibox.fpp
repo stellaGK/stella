@@ -17,6 +17,7 @@ module multibox
   public :: RK_step
   public :: include_multibox_krook
 
+
   private
 
   complex, dimension (:), allocatable :: g_buffer0
@@ -24,19 +25,11 @@ module multibox
   complex, dimension (:), allocatable :: fsa_x
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
+  real,    dimension (:), allocatable :: krook_fac
   
   complex, dimension (:,:), allocatable :: fft_xky
   real, dimension (:,:), allocatable :: fft_xy
 
-  ! for the unpadded FFTs
-  type (fft_type) :: yf_fft, yb_fft
-  type (fft_type) :: xf_fft, xb_fft
-
-  complex, dimension (:), allocatable :: fft_x_k, fft_x_x
-  complex, dimension (:), allocatable :: fft_y_k
-  real, dimension (:), allocatable :: fft_y_y
-
-  logical :: mb_transforms_initialized = .false.
   integer :: temp_ind = 0
   integer :: bs_fullgrid
   integer :: mb_debug_step
@@ -50,14 +43,14 @@ module multibox
 ! the multibox simulation has one parameter: boundary_size
 ! 
   integer :: boundary_size, krook_size
-  real :: nu_krook_mb
+  real :: nu_krook_mb, krook_exponent
   logical :: smooth_ZFs
   logical :: RK_step, include_multibox_krook
   integer :: krook_option_switch
   integer, parameter:: krook_option_default = 0, &
-                       krook_option_linear  = 1, &
-                       krook_option_expin   = 2, &
-                       krook_option_expout  = 3 
+                       krook_option_linear  = 0, &
+                       krook_option_expin   = 1, &
+                       krook_option_expout  = 2 
   integer:: mb_zf_option_switch
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
@@ -100,12 +93,13 @@ contains
     namelist /multibox_parameters/ boundary_size, krook_size, & 
                                    smooth_ZFs, zf_option, LR_debug_option, &
                                    krook_option, RK_step, nu_krook_mb, &
-                                   mb_debug_step
+                                   mb_debug_step, krook_exponent
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
     krook_size = 0
+    krook_exponent = 0.0
     nu_krook_mb = 0.0
     mb_debug_step = 1000
     smooth_ZFs = .false.
@@ -125,13 +119,12 @@ contains
       call get_option_value & 
         (zf_option, mb_zf_opts, mb_zf_option_switch, & 
          ierr, "zf_option in multibox_parameters")
-      call get_option_value & 
+      call get_option_value &
         (LR_debug_option, LR_db_opts, LR_debug_switch, & 
          ierr, "LR_debug_option in multibox_parameters")
 
        if(krook_size > boundary_size) krook_size = boundary_size 
     endif
-
 
     call broadcast(boundary_size)
     call broadcast(krook_size)
@@ -139,19 +132,21 @@ contains
     call broadcast(smooth_ZFs)
     call broadcast(mb_zf_option_switch)
     call broadcast(krook_option_switch)
+    call broadcast(krook_exponent)
     call broadcast(LR_debug_switch)
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
 
-    if(krook_option_switch.ne.krook_option_default) include_multibox_krook = .true.
-
+    if(abs(nu_krook_mb) > epsilon(0.0)) then
+      include_multibox_krook = .true.
+    endif
 
   end subroutine read_multibox_parameters
 
   subroutine init_multibox 
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky,akx, nx,x, x_clamped, x_d
+    use kt_grids, only: nakx,naky,naky_all, akx, aky, nx,x, x_clamped, x_d
     use file_utils, only: runtype_option_switch, runtype_multibox
     use job_manage, only: njobs
     use mp, only: scope, crossdomprocs, subprocs, &
@@ -165,6 +160,9 @@ contains
     integer :: i
 
     real :: db
+
+    if (.not.allocated(fft_xky)) allocate (fft_xky(naky,nakx))
+    if (.not.allocated(fft_xy)) allocate (fft_xy(naky_all,nakx))
 
     if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
 
@@ -186,8 +184,6 @@ contains
     if (.not.allocated(krook_mask_right)) allocate(krook_mask_right(boundary_size)); krook_mask_right=0.0
 
     select case (krook_option_switch)
-    case (krook_option_default)
-      ! do nothing
     case (krook_option_linear)
       db = 1.0/krook_size
       do i = 1, krook_size
@@ -213,7 +209,9 @@ contains
       krook_mask_left(i) = krook_mask_right(boundary_size - i + 1)
     enddo
 
-    call init_mb_transforms
+    if(.not.allocated(krook_fac)) allocate (krook_fac(naky))
+
+    krook_fac = (aky/aky(2))**krook_exponent
 
 #ifdef MPI
     call scope(crossdomprocs)
@@ -290,7 +288,8 @@ contains
     if (allocated(krook_mask_left))  deallocate (krook_mask_left)
     if (allocated(krook_mask_right)) deallocate (krook_mask_right)
 
-    call finish_mb_transforms
+    if (allocated(fft_xky)) deallocate (fft_xky)
+    if (allocated(fft_xy)) deallocate (fft_xy)
 
   end subroutine finish_multibox
 
@@ -303,7 +302,9 @@ contains
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: dl_over_b
+!   use stella_geometry, only: dl_over_b
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+    use stella_transforms, only: transform_ky2y_unpadded
     use zgrid, only: nzgrid
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
@@ -332,8 +333,8 @@ contains
       temp_unit=3023+job
       afacx = real(nx)/real(nakx)
       afacy = real(ny)/real(2*naky-1)
-      call transform_kx2x(phi(:,:,0,1),fft_xky)  
-      call transform_ky2y(fft_xky,fft_xy)
+      call transform_kx2x_unpadded(phi(:,:,0,1),fft_xky)  
+      call transform_ky2y_unpadded(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
       open (unit=temp_unit, file=filename, status="replace",& 
             action="write",form="unformatted",access="stream")
@@ -366,15 +367,15 @@ contains
 
           !this is where the FSA goes
           if(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
-            do ix= 1,nakx
-              fft_x_k(ix) = sum(dl_over_b(ia,:)*gin(1,ix,:,it,iv))
-            enddo
-            call dfftw_execute_dft(xf_fft%plan, fft_x_k, fft_x_x)
-            fsa_x = fft_x_x*xf_fft%scale
+!           do ix= 1,nakx
+!             fft_x_k(ix) = sum(dl_over_b(ia,:)*gin(1,ix,:,it,iv))
+!           enddo
+!           call dfftw_execute_dft(xf_fft%plan, fft_x_k, fft_x_x)
+!           fsa_x = fft_x_x*xf_fft%scale
           endif
 
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
-            call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
+            call transform_kx2x_unpadded(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iky=1,naky
                 !DSO if in the future the grids can have different naky, one will
@@ -408,7 +409,7 @@ contains
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
-            call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
+            call transform_kx2x_unpadded(gin(:,:,iz,it,iv),fft_xky)  
             do ix=1,boundary_size
               do iky=1,naky
                 fft_xky(iky,ix)        = fft_xky(iky,ix)*(1-copy_mask_left(ix)) &
@@ -427,7 +428,7 @@ contains
                 fft_xky(1,ix+offset)=fft_xky(1,ix+offset) - dzp
               enddo
             endif
-            call transform_x2kx(fft_xky,gin(:,:,iz,it,iv))  
+            call transform_x2kx_unpadded(fft_xky,gin(:,:,iz,it,iv))  
           enddo
         enddo
       enddo
@@ -453,6 +454,7 @@ contains
     use stella_layouts, only: vmu_lo
     use kt_grids, only:  nakx, naky
     use zgrid, only: nzgrid, ntubes
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use mp, only: job
 
 
@@ -476,7 +478,7 @@ contains
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
           g0x = 0.0
-          call transform_kx2x(g(:,:,iz,it,ivmu),fft_xky)  
+          call transform_kx2x_unpadded(g(:,:,iz,it,ivmu),fft_xky)  
           do ix=1,boundary_size
             do iky=1,naky
                 g0x(iky,ix)        = (fft_xky(iky,ix)        - g_buffer0(num))*krook_mask_left(ix)
@@ -484,8 +486,9 @@ contains
                 num=num+1
             enddo
           enddo
-          call transform_x2kx(g0x,g0k)  
-          rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) - code_dt*nu_krook_mb*g0k
+          call transform_x2kx_unpadded(g0x,g0k)  
+          rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) &
+                              - code_dt*nu_krook_mb*spread(krook_fac,2,nakx)*g0k
         enddo
       enddo
     enddo
@@ -493,160 +496,5 @@ contains
     deallocate(g0k,g0x)
 
   end subroutine add_multibox_krook
-
-
-
-!!>DSO - The following subroutines are the _unpadded_ analogues of the ones found in
-! stella_transforms.f90. These perhaps should also be moved to that file, but for now I
-! want to keep all the multibox subroutines in one place.
-
-  subroutine init_mb_transforms
-
-    use stella_layouts, only: init_stella_layouts
-    use kt_grids, only: nakx, naky, naky_all
-
-    implicit none
-
-    if (mb_transforms_initialized) return
-    mb_transforms_initialized = .true.
-
-    if (.not.allocated(fft_xky)) allocate (fft_xky(naky,nakx))
-    if (.not.allocated(fft_xy)) allocate (fft_xy(naky_all,nakx))
-
-    call init_x_fft
-    call init_y_fft
-
-  end subroutine init_mb_transforms
-
-  subroutine init_x_fft
-
-    use kt_grids, only: nakx
-    use fft_work, only: init_ccfftw, FFT_BACKWARD, FFT_FORWARD
-
-    implicit none
-
-    if (.not.allocated(fft_x_k)) allocate (fft_x_k(nakx))
-    if (.not.allocated(fft_x_x)) allocate (fft_x_x(nakx))
-
-    call init_ccfftw (xf_fft, FFT_BACKWARD, nakx, fft_x_k, fft_x_x)
-    call init_ccfftw (xb_fft, FFT_FORWARD , nakx, fft_x_x, fft_x_k)
-
-  end subroutine init_x_fft
-
-  subroutine init_y_fft
-
-    use kt_grids, only: naky, naky_all
-    use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
-
-    implicit none
-
-    if (.not.allocated(fft_y_k)) allocate (fft_y_k(naky))
-    if (.not.allocated(fft_y_y)) allocate (fft_y_y(naky_all))
-
-    call init_crfftw (yf_fft, FFT_BACKWARD, naky_all, fft_y_k, fft_y_y)
-    call init_rcfftw (yb_fft, FFT_FORWARD , naky_all, fft_y_y, fft_y_k)
-
-  end subroutine init_y_fft
-
-
-!  
-!> transform routines start here
-!
-
-  subroutine transform_kx2x (gkx, gx)
-
-    use kt_grids, only: naky
-
-    implicit none
-
-    complex, dimension (:,:), intent (in)  :: gkx
-    complex, dimension (:,:), intent (out) :: gx
-
-    integer :: iy
-
-    do iy = 1, naky
-       fft_x_k = gkx(iy,:)
-       call dfftw_execute_dft(xf_fft%plan, fft_x_k, fft_x_x)
-       gx(iy,:) = fft_x_x*xf_fft%scale
-    end do
-
-  end subroutine transform_kx2x
-
-  subroutine transform_x2kx (gx, gkx)
-
-    use kt_grids, only: naky
-
-    implicit none
-
-    complex, dimension (:,:), intent (in)  :: gx
-    complex, dimension (:,:), intent (out) :: gkx
-
-    integer :: iy
-
-    do iy = 1, naky
-       fft_x_x = gx(iy,:)
-       call dfftw_execute_dft(xb_fft%plan, fft_x_x, fft_x_k)
-       gkx(iy,:) = fft_x_k*xb_fft%scale
-    end do
-
-  end subroutine transform_x2kx
-
-  subroutine transform_ky2y (gky, gy)
-
-    use kt_grids, only: nakx
-
-    implicit none
-
-    complex, dimension (:,:), intent (in) :: gky
-    real, dimension (:,:), intent (out) :: gy
-
-    integer :: ikx
-
-    do ikx = 1, nakx
-       fft_y_k = gky(:,ikx)
-       call dfftw_execute_dft_c2r(yf_fft%plan, fft_y_k, fft_y_y)
-       gy(:,ikx) =fft_y_y*yf_fft%scale
-    end do
-
-  end subroutine transform_ky2y
-
-!   subroutine transform_y2ky (gy, gky)
-!
-!    use kt_grids, only: nakx
-!
-!    implicit none
-!
-!    real, dimension (:,:), intent (in out) :: gy
-!    complex, dimension (:,:), intent (out) :: gky
-!
-!    integer :: ikx
-!
-!    do ikx = 1, nakx
-!       fft_y_k = gy(:,ikx)
-!       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_y, fft_y_k)
-!       gky(:,ikx) = fft_y_y*yb_fft%scale
-!    end do
-!
-!  end subroutine transform_y2ky
-
-
-  subroutine finish_mb_transforms
-
-    implicit none
-
-    call dfftw_destroy_plan (yf_fft%plan)
-    call dfftw_destroy_plan (yb_fft%plan)
-    call dfftw_destroy_plan (xf_fft%plan)
-    call dfftw_destroy_plan (xb_fft%plan)
-    if (allocated(fft_y_k)) deallocate (fft_y_k)
-    if (allocated(fft_y_y)) deallocate (fft_y_y)
-    if (allocated(fft_x_k)) deallocate (fft_x_k)
-    if (allocated(fft_x_x)) deallocate (fft_x_x)
-    if (allocated(fft_xky)) deallocate (fft_xky)
-    if (allocated(fft_xy)) deallocate (fft_xy)
-
-    mb_transforms_initialized = .false.
-
-  end subroutine finish_mb_transforms
 
 end module multibox

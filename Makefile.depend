@@ -158,8 +158,11 @@ flow_shear.o: \
 	 constants.o \
 	 fields.o \
 	 fields_arrays.o \
+	 file_utils.o \
 	 finite_differences.o \
+	 job_manage.o \
 	 kt_grids.o \
+	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 species.o \
@@ -270,9 +273,9 @@ multibox.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
-	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 zgrid.o 
 neoclassical_terms.o: \
@@ -464,6 +467,7 @@ stella_save.o: \
 stella_time.o: 
 stella_transforms.o: \
 	 fft_work.o \
+	 kt_grids.o \
 	 physics_flags.o \
 	 stella_layouts.o 
 test_vmec_to_stella_geometry_interface.o: \
