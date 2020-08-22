@@ -49,8 +49,8 @@ module multibox
   integer :: krook_option_switch
   integer, parameter:: krook_option_default = 0, &
                        krook_option_linear  = 0, &
-                       krook_option_expin   = 1, &
-                       krook_option_expout  = 2 
+                       krook_option_exp   = 1, &
+                       krook_option_exp_rev  = 2 
   integer:: mb_zf_option_switch
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
@@ -78,8 +78,8 @@ contains
     type (text_option), dimension (4), parameter :: krook_opts = &
       (/ text_option('default', krook_option_default), &
          text_option('linear',  krook_option_linear) , &
-         text_option('exp_in',  krook_option_expin) , &
-         text_option('exp_out', krook_option_expout)/)
+         text_option('exp',         krook_option_exp) , &
+         text_option('exp_reverse', krook_option_exp_rev)/)
     type (text_option), dimension (3), parameter :: mb_zf_opts = &
       (/ text_option('default', mb_zf_option_default), &
          text_option('no_ky0',  mb_zf_option_no_ky0) , &
@@ -190,19 +190,23 @@ contains
         krook_mask_right(i) = i*db
         copy_mask_right(i) = 0.0
       enddo
-    case (krook_option_expin)
+    case (krook_option_exp)
       db = 3.0/krook_size
       do i = 1, krook_size
         krook_mask_right(i) = 1.0-(1.0-exp(-(krook_size-i)*db))/(1.0-exp(-3.0))
         copy_mask_right(i) = 0.0
       enddo
-    case (krook_option_expout)
+    case (krook_option_exp_rev)
       db = 3.0/krook_size
       do i = 1, krook_size
         krook_mask_right(i) = (1.0-exp(-i*db))/(1.0-exp(-3.0))
         copy_mask_right(i) = 0.0
       enddo
     end select
+
+      do i = 1, krook_size
+        write (*,*) krook_mask_right(i), job
+      enddo
 
     do i = 1, boundary_size
       copy_mask_left(i)  = copy_mask_right(boundary_size - i + 1)
