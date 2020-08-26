@@ -428,15 +428,15 @@ contains
     real, dimension (:,:), allocatable :: wcvdrifty, wgbdrifty
     real, dimension (:,:), allocatable :: wcvdriftx, wgbdriftx
 
-    allocate (wcvdrifty(nalpha,-nzgrid:nzgrid))
-    allocate (wgbdrifty(nalpha,-nzgrid:nzgrid))
-    allocate (wcvdriftx(nalpha,-nzgrid:nzgrid))
-    allocate (wgbdriftx(nalpha,-nzgrid:nzgrid))
-
 !wstar
 
     if (radialinit) return
     radialinit = .true.
+
+    allocate (wcvdrifty(nalpha,-nzgrid:nzgrid))
+    allocate (wgbdrifty(nalpha,-nzgrid:nzgrid))
+    allocate (wcvdriftx(nalpha,-nzgrid:nzgrid))
+    allocate (wgbdriftx(nalpha,-nzgrid:nzgrid))
 
     if (.not.allocated(wstarp)) &
       allocate (wstarp(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstarp = 0.0
@@ -1352,7 +1352,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              if(radial_variation) then
-               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
+               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,ny)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdx(g0a,g0k)
@@ -1379,7 +1379,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
              if(radial_variation) then
-               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,naky)
+               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,ny)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdy(g0a,g0k)
@@ -1717,9 +1717,12 @@ contains
     !if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
     allocate (g0k(naky,nakx))
+    allocate (g1k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0x(naky,nx))
     allocate (g1x(naky,nx))
+
+    if (debug) write (*,*) 'time_advance::solve_gke::advance_radial_variation'
 
     if(include_mirror .or. include_parallel_streaming) then
       allocate (g_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))

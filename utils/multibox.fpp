@@ -204,10 +204,6 @@ contains
       enddo
     end select
 
-      do i = 1, krook_size
-        write (*,*) krook_mask_right(i), job
-      enddo
-
     do i = 1, boundary_size
       copy_mask_left(i)  = copy_mask_right(boundary_size - i + 1)
       krook_mask_left(i) = krook_mask_right(boundary_size - i + 1)
