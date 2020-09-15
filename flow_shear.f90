@@ -41,6 +41,7 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: x, x_d, x0, nalpha, nx, nakx, naky, akx, aky, ikx_max
     use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
+    use stella_geometry, only: dydalpha, drhodpsi
     use physics_parameters, only: g_exb, g_exbfac, omprimfac
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -132,6 +133,7 @@ contains
       imu = imu_idx(vmu_lo,ivmu)
       do iz = -nzgrid,nzgrid
         prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv)*spec(is)%stm_psi0 &
+               * dydalpha*drhodpsi  &
                *(geo_surf%qinp_psi0/geo_surf%rhoc_psi0)  & 
                *(btor(iz)*rmajor(iz)/bmag(ia,iz))*(spec(is)%mass/spec(is)%temp) &
                * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
