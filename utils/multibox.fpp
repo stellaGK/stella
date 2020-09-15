@@ -27,7 +27,7 @@ module multibox
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   real,    dimension (:), allocatable :: krook_fac
   
-  complex, dimension (:,:), allocatable :: fft_xky
+  complex, dimension (:,:), allocatable :: fft_kxky, fft_xky
   real, dimension (:,:), allocatable :: fft_xy
 
   integer :: temp_ind = 0
@@ -161,7 +161,8 @@ contains
 
     real :: db
 
-    if (.not.allocated(fft_xky)) allocate (fft_xky(naky,nakx))
+    if (.not.allocated(fft_kxky)) allocate (fft_kxky(naky,nakx))
+    if (.not.allocated(fft_xky))  allocate (fft_xky(naky,nakx))
     if (.not.allocated(fft_xy)) allocate (fft_xy(naky_all,nakx))
 
     if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
@@ -176,7 +177,7 @@ contains
     if (.not.allocated(g_buffer0)) allocate(g_buffer0(g_buff_size))
     if (.not.allocated(g_buffer1)) allocate(g_buffer1(g_buff_size))
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
-      allocate(fsa_x(nakx))
+      allocate(fsa_x(nakx)); fsa_x=0.0
     endif
     if (.not.allocated(copy_mask_left))  allocate(copy_mask_left(boundary_size));  copy_mask_left =1.0
     if (.not.allocated(copy_mask_right)) allocate(copy_mask_right(boundary_size)); copy_mask_right=1.0
@@ -288,8 +289,9 @@ contains
     if (allocated(krook_mask_left))  deallocate (krook_mask_left)
     if (allocated(krook_mask_right)) deallocate (krook_mask_right)
 
-    if (allocated(fft_xky)) deallocate (fft_xky)
-    if (allocated(fft_xy)) deallocate (fft_xy)
+    if (allocated(fft_kxky)) deallocate (fft_kxky)
+    if (allocated(fft_xky))  deallocate (fft_xky)
+    if (allocated(fft_xy))   deallocate (fft_xy)
 
   end subroutine finish_multibox
 
@@ -302,7 +304,7 @@ contains
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
     use stella_layouts, only: vmu_lo
-!   use stella_geometry, only: dl_over_b
+    use stella_geometry, only: dl_over_b
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_transforms, only: transform_ky2y_unpadded
     use zgrid, only: nzgrid
@@ -366,28 +368,29 @@ contains
         do it = 1, vmu_lo%ntubes
 
           !this is where the FSA goes
-          if(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
-!           do ix= 1,nakx
-!             fft_x_k(ix) = sum(dl_over_b(ia,:)*gin(1,ix,:,it,iv))
-!           enddo
-!           call dfftw_execute_dft(xf_fft%plan, fft_x_k, fft_x_x)
-!           fsa_x = fft_x_x*xf_fft%scale
+          if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+            do ix= 1,nakx
+              fsa_x(ix) = sum(dl_over_b(ia,:)*gin(1,ix,:,it,iv))
+            enddo
           endif
 
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
-            call transform_kx2x_unpadded(gin(:,:,iz,it,iv),fft_xky)  
+            fft_kxky = gin(:,:,iz,it,iv)
+
+            if(zonal_mode(1)) then
+              if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
+                fft_kxky(1,:) = 0.0
+              elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+                fft_kxky(1,:) = fft_kxky(1,:) - fsa_x
+              endif
+            endif
+
+            call transform_kx2x_unpadded(fft_kxky,fft_xky)
             do ix=1,boundary_size
               do iky=1,naky
                 !DSO if in the future the grids can have different naky, one will
                 !have to divide by naky here, and multiply on the receiving end
                 g_buffer0(num) = fft_xky(iky,ix + offset)
-                if((iky.eq. 1) .and. (zonal_mode(iky))) then
-                  if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
-                    g_buffer0(num) = 0
-                  elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
-                    g_buffer0(num) = fft_xky(iky,ix + offset) - fsa_x(ix + offset)
-                  endif
-                endif
                 num=num+1
               enddo
             enddo
