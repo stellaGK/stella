@@ -189,7 +189,8 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
     if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
-        .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0)) then
+        .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
+        runtype_option_switch.eq.runtype_multibox) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
        call init_transforms
     end if
