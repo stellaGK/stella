@@ -277,7 +277,7 @@ contains
 !   use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, akx, aky, x, ikx_max
+    use kt_grids, only: nakx, naky, nx, akx, aky, x, ikx_max, zonal_mode
     use stella_time, only: code_dt
 
     implicit none
@@ -318,13 +318,6 @@ contains
           enddo
         enddo
       enddo
-
-      do iky=1,naky
-        if(shift_state(iky) > shift_times(iky)) &
-           shift_state(iky) = shift_state(iky) - shift_times(iky)
-      enddo
-
-      shift_state = shift_state + code_dt
     else
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
@@ -338,16 +331,26 @@ contains
          
             call transform_x2kx_unpadded (g0x, g0k)
 
+            do iky = 1, naky
+              if(zonal_mode(iky)) cycle
+              if(shift_state(iky) > shift_times(iky)) then
+                if(g_exb < 0) then
+                  g0k(iky,ikx_max+1)   = 0.0
+                else
+                  g0k(iky,ikx_max) = 0.0
+                endif
+              endif
+            enddo
             if(g_exb < 0) then
-              g0k(:,ikx_max-1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
-              g0k(:,ikx_max)   = exp(     g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
-              g0k(:,ikx_max+1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
+!              g0k(:,ikx_max-1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
+!              g0k(:,ikx_max)   = exp(     g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
+!              g0k(:,ikx_max+1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
 !             g0k(:,ikx_max+1) = exp(     g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
 !             g0k(:,ikx_max+2) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
             else 
-              g0k(:,ikx_max)   = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
-              g0k(:,ikx_max+1) = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
-              g0k(:,ikx_max+2) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
+!              g0k(:,ikx_max)   = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
+!              g0k(:,ikx_max+1) = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
+!              g0k(:,ikx_max+2) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
 !             g0k(:,ikx_max-1) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
 !             g0k(:,ikx_max)   = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
             endif
@@ -358,6 +361,14 @@ contains
         enddo
       enddo
     endif
+
+    do iky=1,naky
+      if(shift_state(iky) > shift_times(iky)) then
+        shift_state(iky) = shift_state(iky) - shift_times(iky)
+      endif
+    enddo
+
+    shift_state = shift_state + code_dt
 
     deallocate(g0k,g0x)
 
