@@ -23,7 +23,7 @@ module init_g
   real :: den0, upar0, tpar0, tperp0
   real :: den1, upar1, tpar1, tperp1
   real :: den2, upar2, tpar2, tperp2
-  real :: tstart, scale
+  real :: tstart, scale, kxmax, kxmin
   logical :: chop_side, left, even
   character(300), public :: restart_file
   character (len=150) :: restart_dir
@@ -81,6 +81,8 @@ contains
     call broadcast (tperp2)
     call broadcast (phiinit)
     call broadcast (zf_init)
+    call broadcast (kxmax)
+    call broadcast (kxmin)
     call broadcast (tstart)
     call broadcast (chop_side)
     call broadcast (even)
@@ -145,7 +147,8 @@ contains
          restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
          den0, upar0, tpar0, tperp0, imfac, refac, even, &
          den1, upar1, tpar1, tperp1, &
-         den2, upar2, tpar2, tperp2
+         den2, upar2, tpar2, tperp2, &
+         kxmax, kxmin
 
     integer :: ierr, in_file
 
@@ -169,6 +172,8 @@ contains
     tperp2 = 0.
     phiinit = 1.0
     zf_init = 1.0
+    kxmax = 1.e100
+    kxmin = 0.
     chop_side = .false.
     left = .true.
     even = .true.
@@ -587,6 +592,7 @@ contains
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: nvpa, nmu
+    use kt_grids, only: akx
 
     implicit none
     
@@ -603,8 +609,10 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        
-       gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
+       if(abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
+         gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
             * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+       end if
     end do
 
   end subroutine ginit_rh

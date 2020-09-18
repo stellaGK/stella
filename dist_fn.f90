@@ -71,7 +71,6 @@ contains
       g0x = rho_to_x*spread(x_clamped,1,naky)
       call transform_x2kx_solo(g0x,f0k)
 
-
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo, ivmu)
         imu = imu_idx(vmu_lo, ivmu)
@@ -252,7 +251,6 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use dist_fn_arrays, only: gnew, gold
     use dist_fn_arrays, only: gvmu
-    use physics_flags, only: radial_variation
 
     implicit none
 
