@@ -897,11 +897,20 @@ contains
 
     ia = 1
 
-    !TODO: add number and momentum conservation, flux-surface-averaging
+    if(.not.zonal_mode(1)) return
+
+    !TODO: add number and momentum conservation
     if(delay_krook.le.epsilon(0.)) then
-      gke_rhs = gke_rhs - code_dt*nu_krook*g
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do ikx = 1, nakx
+            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook*tmp
+          enddo
+        enddo
+      enddo
     else
-      if(.not.zonal_mode(1)) return
       exp_fac = exp(-code_dt/delay_krook)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
