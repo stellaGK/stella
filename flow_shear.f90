@@ -13,7 +13,7 @@ module flow_shear
 
   logical :: flow_shear_initialized = .false.
   logical :: hammett_flow_shear = .false.
-  logical :: prp_shear_implicit = .false.
+  logical :: prp_shear_implicit = .true.
 
   complex, dimension (:), allocatable :: shift_in, shift_out
   complex, dimension (:,:), allocatable :: upwind_advect
@@ -81,8 +81,6 @@ contains
 
     if(runtype_option_switch .eq. runtype_multibox .and. job.ne.1) then 
       prp_shear_implicit = .false.
-    else
-      prp_shear_implicit = .true.
     endif
 
     shift_in = exp(pi*zi*x0*akx)
@@ -191,7 +189,7 @@ contains
     use physics_flags, only: nonlinear
     use physics_parameters, only: g_exb
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, akx,aky, ikx_max, x, x_d, x0
+    use kt_grids, only: nakx, naky, nx, akx,aky, ikx_max, x, x_d, x0, zonal_mode
     use stella_time, only: code_dt
     use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
@@ -210,12 +208,11 @@ contains
     complex, dimension (:,:), allocatable :: g0k, g0x
     complex, dimension (:), allocatable :: g_shift, dg
 
-    integer :: ivmu, iz, it, ia, iky, sshear, bb
+    integer :: ivmu, iz, it, ia, iky, sshear
 
     real dp
 
     ia = 1
-    bb = 3
 
     sshear = 1
     if(g_exb < 0) sshear = -1
@@ -239,6 +236,8 @@ contains
           if(.not.prp_shear_implicit) then 
             g0k = spread(shift_in,1,naky)*g(:,:,iz,it,ivmu)
             do iky=1, naky
+
+              if(zonal_mode(iky)) cycle
 
               !shift the x grid so that it's properly centered
               g_shift(1:(ikx_max-1)) = g0k(iky,(ikx_max+1):)
@@ -296,10 +295,13 @@ contains
 !   allocate (g0x(naky,nx))
 
     if(hammett_flow_shear) then
+      !TODO (DSO) - This assumes the timestep is small enough so that a shift is never
+      !             more than a single cell
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
             do iky=1,naky
+              if(zonal_mode(iky)) cycle
               if(shift_state(iky) > shift_times(iky)) then
                 if(shift_sign < 0) then
                   !shift everything left by one
@@ -310,7 +312,7 @@ contains
                   !shift everything right by one
                   g(iky,2:ikx_max,iz,it,ivmu) = g(iky,1:(ikx_max-1),iz,it,ivmu)
                   g(iky,1,iz,it,ivmu) = g(iky,nakx,iz,it,ivmu)
-                  g(iky,ikx_max+1:,iz,it,ivmu) = g(iky,ikx_max:(nakx-1),iz,it,ivmu)
+                  g(iky,ikx_max+2:,iz,it,ivmu) = g(iky,(ikx_max+1):(nakx-1),iz,it,ivmu)
                 endif
                 g(iky,shift_start,iz,it,ivmu) = 0.
               endif
@@ -334,11 +336,7 @@ contains
             do iky = 1, naky
               if(zonal_mode(iky)) cycle
               if(shift_state(iky) > shift_times(iky)) then
-                if(g_exb < 0) then
-                  g0k(iky,ikx_max+1)   = 0.0
-                else
-                  g0k(iky,ikx_max) = 0.0
-                endif
+                g0k(iky,shift_start)   = 0.0
               endif
             enddo
             if(g_exb < 0) then
