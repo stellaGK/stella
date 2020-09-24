@@ -348,10 +348,9 @@ contains
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
-    ! the next line is to avoid double counting.  You'd be suprised what sort of errors you'd get if you do so!
-     dl_over_b(:,nzgrid) = 0 
-    !dl_over_b(:,-nzgrid) = 0.5*dl_over_b(:,-nzgrid)
-    !dl_over_b(:,nzgrid) = 0.5*dl_over_b(:,nzgrid)
+    ! the next line is to avoid double counting the endpoints.   
+    ! Without it, zonal flows would be linearly unstable for certain input parameters
+    dl_over_b(:,nzgrid) = 0 
 
     ! this is the correction to flux-surface-averaging for adiabatic electrons
     d_dl_over_b_drho = spread(delzed,1,nalpha)*djacdrho
