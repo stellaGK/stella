@@ -78,10 +78,15 @@ contains
     use file_utils, only: runtype_option_switch, runtype_multibox
     use text_options, only: text_option, get_option_value
     use mp, only: broadcast, proc0
+    use kt_grids, only: nx, nakx
+    use job_manage, only: njobs
+    use mp, only: scope, crossdomprocs, subprocs, &
+                  send, receive, job
 
     implicit none
 
     integer :: in_file, ierr
+    integer :: nakxl, nxl, nakxr, nxr, fac
     logical exist
     
 
@@ -147,6 +152,28 @@ contains
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
 
+    call scope(crossdomprocs)
+
+    if(job==1) then
+      call receive(nakxl,0)
+      call receive(nxl  ,0)
+      call receive(nakxr,njobs-1)
+      call receive(nxr  ,njobs-1)
+
+      ! the following assumes nx in the center domain is some
+      ! integer multiple of nx in the left or right domain.
+      ! Also assumes dx is the same in every domain, which should
+      ! be the case
+      fac=nx/nxl
+      x_fft_size=nakxl*fac
+    else
+      call send(nakx,1)
+      call send(nx,1)
+      x_fft_size = nakx
+    endif
+
+    call scope(subprocs)
+
     if(abs(nu_krook_mb) > epsilon(0.0)) then
       include_multibox_krook = .true.
     endif
@@ -154,9 +181,10 @@ contains
   end subroutine read_multibox_parameters
 
   subroutine init_multibox 
+    use constants, only: pi
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky, akx, aky, nx,x, x_clamped, x_d
+    use kt_grids, only: nakx,naky, akx, aky, nx,x,x0, x_clamped
     use file_utils, only: runtype_option_switch, runtype_multibox
     use job_manage, only: njobs
     use mp, only: scope, crossdomprocs, subprocs, &
@@ -169,14 +197,13 @@ contains
     integer :: phi_buff_size
     integer :: i
 
-    real :: db
+    real, dimension(:), allocatable :: x_d
+    real :: db, dx_d
 
 
     if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
 
     if(runtype_option_switch /= runtype_multibox) return
-
-    x_fft_size = nakx
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
@@ -221,16 +248,25 @@ contains
 
     if(.not.allocated(krook_fac)) allocate (krook_fac(naky))
 
-    krook_fac = (aky/aky(2))**krook_exponent
+    if(naky>1) krook_fac = (aky/aky(2))**krook_exponent
 
 #ifdef MPI
     call scope(crossdomprocs)
 
     if(job==1) then
+
+      allocate (x_d(x_fft_size))
+      dx_d = (2*pi*x0)/x_fft_size
+      do i = 1, x_fft_size
+        x_d(i) = (i-0.5)*dx_d - pi*x0
+      enddo
+
       xL = x(bs_fullgrid)
       xR = x(nx-bs_fullgrid+1)
       xL_d = x_d(boundary_size)
-      xR_d = x_d(nakx-boundary_size+1)
+      xR_d = x_d(x_fft_size-boundary_size+1)
+
+      deallocate(x_d)
 
       if(LR_debug_switch == LR_debug_option_L) then
         x_clamped = xL
@@ -247,33 +283,26 @@ contains
       call receive(xL,1)
       call receive(xL_d,1)
       call send(akx(2),1)
-      call send(nakx,1)
-      call send(nx,1)
-      call init_mb_transforms
     elseif(job==njobs-1) then
       call receive(xR,1)
       call receive(xR_d,1)
       call send(akx(2),1)
-      call send(nakx,1)
-      call send(nx,1)
-      call init_mb_transforms
     endif
 
     call scope(subprocs)
 #endif
 
+    call init_mb_transforms
 
   end subroutine init_multibox
 
   subroutine communicate_multibox_parameters
     use job_manage, only: njobs
-    use kt_grids, only: nx
     use mp, only: scope, crossdomprocs, subprocs, &
                   send, receive, job
 
     implicit none
 
-    integer :: nakxl, nxl, nakxr, nxr, fac
 #ifdef MPI
     if(job==1) then
       call scope(crossdomprocs)
@@ -284,23 +313,10 @@ contains
       call send(xR_d,njobs-1)
 
       call receive(kx0_L,0)
-      call receive(nakxl,0)
-      call receive(nxl  ,0)
-
       call receive(kx0_R,njobs-1)
-      call receive(nakxr,njobs-1)
-      call receive(nxr  ,njobs-1)
 
       call scope(subprocs)
 
-      ! the following assumes nx in the center domain is some
-      ! integer multiple of nx in the left or right domain.
-      ! Also assumes dx is the same in every domain, which should
-      ! be the case
-      fac=nx/nxl
-      x_fft_size=nakxl*fac
-
-      call init_mb_transforms
     endif
 #endif
   end subroutine communicate_multibox_parameters
@@ -648,8 +664,6 @@ contains
 
 !   subroutine transform_y2ky (gy, gky)
 !
-!    use kt_grids, only: nakx
-!
 !    implicit none
 !
 !    real, dimension (:,:), intent (in out) :: gy
@@ -657,7 +671,7 @@ contains
 !
 !    integer :: ikx
 !
-!    do ikx = 1, nakx
+!    do ikx = 1, x_fft_size
 !       fft_y_k = gy(:,ikx)
 !       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_y, fft_y_k)
 !       gky(:,ikx) = fft_y_y*yb_fft%scale
