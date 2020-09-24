@@ -12,6 +12,7 @@ module flow_shear
   private
 
   logical :: flow_shear_initialized = .false.
+  logical :: prp_flow_shear_enabled = .true.
   logical :: hammett_flow_shear = .false.
   logical :: prp_shear_implicit = .true.
 
@@ -75,6 +76,8 @@ contains
 
     if (flow_shear_initialized) return
     flow_shear_initialized = .true.
+
+    if(abs(g_exb*g_exbfac) < epsilon(0.)) prp_flow_shear_enabled = .false.
 
     if (.not.allocated(shift_in))  allocate(shift_in(nakx))
     if (.not.allocated(shift_out)) allocate(shift_out(nakx))
@@ -233,7 +236,7 @@ contains
           !perpendicular flow shear
 
           !call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-          if(.not.prp_shear_implicit) then 
+          if(.not.prp_shear_implicit.and.prp_flow_shear_enabled) then 
             g0k = spread(shift_in,1,naky)*g(:,:,iz,it,ivmu)
             do iky=1, naky
 
@@ -288,7 +291,7 @@ contains
 
     integer :: ivmu, iz, it, iky
 
-    if(.not.prp_shear_implicit) return
+    if(.not.prp_shear_implicit .or..not. prp_flow_shear_enabled) return
 
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,nakx))
