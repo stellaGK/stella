@@ -149,10 +149,10 @@ contains
     if (debug) write (6,*) "stella::init_stella::read_species_knobs"
     call read_species_knobs
     if (debug) write (6,*) "stella::init_stella::read_multibox_parameters"
-    call read_multibox_parameters
-    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_kt_grids_parameters
     if (debug) write (6,*) "stella::init_stella::read_vpamu_grids_parameters"
+    call read_multibox_parameters
+    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_vpamu_grids_parameters
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
