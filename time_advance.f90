@@ -1271,19 +1271,22 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_corr_QN,   phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
-    use stella_transforms, only: transform_ky2y, transform_y2ky
-    use stella_transforms, only: transform_kx2x, transform_x2kx
+    use stella_transforms, only: transform_y2ky,transform_x2kx
+    use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
+    use physics_parameters, only: g_exb, g_exbfac
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky, x_clamped
     use stella_geometry, only: rho_to_x
     use physics_flags, only: full_flux_surface, radial_variation
-    use kt_grids, only: swap_kxky, swap_kxky_back
-    use constants, only: pi
+    use kt_grids, only: x, swap_kxky, swap_kxky_back
+    use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use flow_shear, only: prp_shear_enabled, hammett_flow_shear
+    use flow_shear, only: shift_state, shift_times
 
     implicit none
 
@@ -1293,7 +1296,7 @@ contains
     
 
     complex, dimension (:,:), allocatable :: g0k, g0a, g0k_swap
-    complex, dimension (:,:), allocatable :: g0kxy
+    complex, dimension (:,:), allocatable :: g0kxy, g0xky, prefac
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
 
     integer :: ivmu, iz, it, ia, imu, is
@@ -1307,11 +1310,23 @@ contains
 
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
-    allocate (g0k_swap(2*naky-1,ikx_max))
-    allocate (g0kxy(ny,ikx_max))
     allocate (g0xy(ny,nx))
     allocate (g1xy(ny,nx))
     allocate (bracket(ny,nx))
+    allocate (prefac(naky,nx))
+
+    if(full_flux_surface) then
+      allocate (g0k_swap(2*naky-1,ikx_max))
+      allocate (g0kxy(ny,ikx_max))
+    else
+      allocate (g0xky(naky,nx))
+    endif
+
+    prefac = 1.0
+    if(prp_shear_enabled.and.hammett_flow_shear) then
+      prefac = exp(-zi*g_exb*g_exbfac*spread(x,1,naky) & 
+                   * spread(aky*(shift_state-0.5*shift_times),2,nx))
+    endif
 
     ia=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1319,36 +1334,19 @@ contains
        is = is_idx(vmu_lo,ivmu)
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
-            !
-            !quasineutrality/gyroaveraging 
-            !
-
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-             call swap_kxky (g0k, g0k_swap)
-
-             ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
-             ! want to do 1D complex to complex transform in y
-             ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
-             ! use g(kx,-ky) = conjg(g(-kx,ky))
-             ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
-             ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
-             ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
-             ! and i*kx*J0(kx,-ky)*phi(kx,-ky) = conjg(i*(-kx)*J0(-kx,ky)*phi(-kx,ky))
-             ! i.e., can calculate dg/dx, dg/dy, d<phi>/dx and d<phi>/dy 
-             ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
-             ! NB: J0(kx,ky) = J0(-kx,-ky)
-             call transform_ky2y (g0k_swap, g0kxy)
-             call transform_kx2x (g0kxy, g0xy)
+             call forward_transform(g0k,g0xy)
 
              call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-             call swap_kxky (g0k, g0k_swap)
-             call transform_ky2y (g0k_swap, g0kxy)
-             call transform_kx2x (g0kxy, g1xy)
+             if(prp_shear_enabled.and.hammett_flow_shear) then
+               call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0a)
+               g0k = g0k - g_exb*g_exbfac*spread(shift_state-0.5*shift_times,2,nakx)*g0a
+             endif
+             call forward_transform(g0k,g1xy)
+
              g1xy = g1xy*exb_nonlin_fac
-             !bracket = g0xy*(g1xy - spread(shear,1,ny))
              bracket = g0xy*g1xy
 
-             !cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy)+maxval(abs(shear)))*aky(naky)))
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              if(radial_variation) then
@@ -1356,9 +1354,7 @@ contains
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdx(g0a,g0k)
-               call swap_kxky (g0k, g0k_swap)
-               call transform_ky2y (g0k_swap, g0kxy)
-               call transform_kx2x (g0kxy, g1xy)
+               call forward_transform(g0k,g1xy)
                g1xy = g1xy*exb_nonlin_fac
                bracket = bracket + g0xy*g1xy
              endif
@@ -1366,13 +1362,13 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              call get_dgdx (g(:,:,iz,it,ivmu), g0k)
-             call swap_kxky (g0k, g0k_swap)
-             call transform_ky2y (g0k_swap, g0kxy)
-             call transform_kx2x (g0kxy, g0xy)
+             if(prp_shear_enabled.and.hammett_flow_shear) then
+               call get_dgdy (g(:,:,iz,it,ivmu), g0a)
+               g0k = g0k - g_exb*g_exbfac*spread(shift_state-0.5*shift_times,2,nakx)*g0a
+             endif
+             call forward_transform(g0k,g0xy)
              call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-             call swap_kxky (g0k, g0k_swap)
-             call transform_ky2y (g0k_swap, g0kxy)
-             call transform_kx2x (g0kxy, g1xy)
+             call forward_transform(g0k,g1xy)
              g1xy = g1xy*exb_nonlin_fac
              bracket = bracket - g0xy*g1xy
 
@@ -1383,22 +1379,20 @@ contains
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdy(g0a,g0k)
-               call swap_kxky (g0k, g0k_swap)
-               call transform_ky2y (g0k_swap, g0kxy)
-               call transform_kx2x (g0kxy, g1xy)
+               call forward_transform(g0k,g1xy)
                g1xy = g1xy*exb_nonlin_fac
                bracket = bracket - g0xy*g1xy
              endif
 
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
-             call transform_x2kx (bracket, g0kxy)
-
              if (full_flux_surface) then
+                call transform_x2kx (bracket, g0kxy)
                 gout(:,:,iz,it,ivmu) = g0kxy
              else
-                call transform_y2ky (g0kxy, g0k_swap)
-                call swap_kxky_back (g0k_swap, gout(:,:,iz,it,ivmu))
+                call transform_y2ky_xfirst (bracket, g0xky)
+                g0xky = g0xky/prefac
+                call transform_x2kx_xfirst (g0xky, gout(:,:,iz,it,ivmu))
              end if
           end do
        end do
@@ -1409,7 +1403,10 @@ contains
        gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
     end do
 
-    deallocate (g0k, g0a, g0k_swap, g0kxy, g0xy, g1xy, bracket)
+    deallocate (g0k, g0a, g0xy, g1xy, bracket)
+    if (allocated(g0k_swap)) deallocate(g0k_swap)
+    if (allocated(g0xky)) deallocate(g0xky)
+    if (allocated(g0kxy)) deallocate(g0kxy)
 
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 
@@ -1440,6 +1437,42 @@ contains
     end if
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
+
+    contains
+
+    subroutine forward_transform (gk,gx)
+      
+      use stella_transforms, only: transform_ky2y, transform_kx2x
+      use stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
+
+      implicit none
+
+      complex, dimension(:,:), intent (in) :: gk
+      real, dimension(:,:), intent (out) :: gx
+
+      if(full_flux_surface) then
+        ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
+        ! want to do 1D complex to complex transform in y
+        ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
+        ! use g(kx,-ky) = conjg(g(-kx,ky))
+        ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
+        ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
+        ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
+        ! and i*kx*J0(kx,-ky)*phi(kx,-ky) = conjg(i*(-kx)*J0(-kx,ky)*phi(-kx,ky))
+        ! i.e., can calculate dg/dx, dg/dy, d<phi>/dx and d<phi>/dy 
+        ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
+        ! NB: J0(kx,ky) = J0(-kx,-ky)
+        ! TODO DSO: coordinate change for shearing
+        call swap_kxky (gk, g0k_swap)
+        call transform_ky2y (g0k_swap, g0kxy)
+        call transform_kx2x (g0kxy, gx)
+      else
+        call transform_kx2x_xfirst(gk, g0xky)
+        g0xky = g0xky*prefac
+        call transform_ky2y_xfirst(g0xky, gx)
+      endif
+
+    end subroutine forward_transform
 
   end subroutine advance_ExB_nonlinearity
 
@@ -1685,7 +1718,7 @@ contains
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use stella_geometry, only: rho_to_x
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx, x_clamped
@@ -1786,9 +1819,9 @@ contains
             endif
 
             !inverse and forward transforms
-            call transform_kx2x_solo (g0k, g0x)
+            call transform_kx2x_xfirst (g0k, g0x)
             g1x =rho_to_x*spread(x_clamped,1,naky)*g0x
-            call transform_x2kx_solo (g1x, g0k)
+            call transform_x2kx_xfirst (g1x, g0k)
 
 
             !

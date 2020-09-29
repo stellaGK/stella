@@ -747,7 +747,7 @@ contains
     use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: fphi, fapar
     use stella_geometry, only: dl_over_b, bmag, dBdrho, rho_to_x
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
@@ -835,9 +835,9 @@ contains
        do it = 1, ntubes
          do iz = -nzgrid, nzgrid
            g0k = phi(:,:,iz,it)
-           call transform_kx2x_solo (g0k,g0x)
+           call transform_kx2x_xfirst (g0k,g0x)
            g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
-           call transform_x2kx_solo (g0x,phi_corr_QN(:,:,iz,it))
+           call transform_x2kx_xfirst (g0x,phi_corr_QN(:,:,iz,it))
          enddo
        enddo
 
@@ -854,9 +854,9 @@ contains
                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                  * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
-             call transform_kx2x_solo (g0k,g0x)
+             call transform_kx2x_xfirst (g0k,g0x)
              g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
-             call transform_x2kx_solo (g0x,phi_corr_GA(:,:,iz,it,ivmu))
+             call transform_x2kx_xfirst (g0x,phi_corr_GA(:,:,iz,it,ivmu))
            enddo
          enddo
        enddo

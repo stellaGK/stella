@@ -33,7 +33,7 @@ contains
     use dist_redistribute, only: kxkyz2vmu
     use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use kt_grids, only: nalpha, nakx, naky, nx, x_clamped
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
@@ -69,7 +69,7 @@ contains
       allocate (g0x(naky,nx))
 
       g0x = rho_to_x*spread(x_clamped,1,naky)
-      call transform_x2kx_solo(g0x,f0k)
+      call transform_x2kx_xfirst(g0x,f0k)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo, ivmu)
@@ -84,9 +84,9 @@ contains
             if(.not.restarted) then
               g0k = gnew(:,:,iz,it,ivmu)
 
-              call transform_kx2x_solo(g0k,g0x)
+              call transform_kx2x_xfirst(g0k,g0x)
               g0x = g0x*(1.0 + rho_to_x*corr*spread(x_clamped,1,naky))
-              call transform_x2kx_solo(g0x,g0k)
+              call transform_x2kx_xfirst(g0x,g0k)
 
               gnew(:,:,iz,it,ivmu) = g0k
             endif

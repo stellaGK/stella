@@ -232,7 +232,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx

@@ -3,16 +3,17 @@ module flow_shear
   implicit none
 
   public :: flow_shear_initialized
-  public :: shift_state
   public :: init_flow_shear, finish_flow_shear
   public :: prl_shear, prl_shear_p, prp_shear
   public :: advance_flow_shear_explicit, advance_flow_shear_implicit
+  public :: shift_state, shift_times
+  public :: prp_shear_enabled, hammett_flow_shear
 ! public :: add_flow_shear_radial_variation
 
   private
 
   logical :: flow_shear_initialized = .false.
-  logical :: prp_flow_shear_enabled = .true.
+  logical :: prp_shear_enabled = .true.
   logical :: hammett_flow_shear = .false.
   logical :: prp_shear_implicit = .true.
 
@@ -40,7 +41,7 @@ contains
     use species, only: spec
     use constants, only: zi, pi
     use zgrid, only: nzgrid
-    use kt_grids, only: x, x_d, x0, nalpha, nx, nakx, naky, akx, aky, ikx_max
+    use kt_grids, only: x, x_d, x0, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode
     use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
     use stella_geometry, only: dydalpha, drhodpsi
     use physics_parameters, only: g_exb, g_exbfac, omprimfac
@@ -77,7 +78,7 @@ contains
     if (flow_shear_initialized) return
     flow_shear_initialized = .true.
 
-    if(abs(g_exb*g_exbfac) < epsilon(0.)) prp_flow_shear_enabled = .false.
+    if(abs(g_exb*g_exbfac) < epsilon(0.)) prp_shear_enabled = .false.
 
     if (.not.allocated(shift_in))  allocate(shift_in(nakx))
     if (.not.allocated(shift_out)) allocate(shift_out(nakx))
@@ -161,6 +162,7 @@ contains
     if (.not.allocated(upwind_diss))   allocate (upwind_diss(naky,nx));    upwind_diss  = 0.
 
     shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
+    if(zonal_mode(1)) shift_times(1) = 0.
 
     if(g_exb*g_exbfac > 0.) then
       shift_sign = -1
@@ -236,7 +238,7 @@ contains
           !perpendicular flow shear
 
           !call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-          if(.not.prp_shear_implicit.and.prp_flow_shear_enabled) then 
+          if(.not.prp_shear_implicit.and.prp_shear_enabled) then 
             g0k = spread(shift_in,1,naky)*g(:,:,iz,it,ivmu)
             do iky=1, naky
 
@@ -291,7 +293,7 @@ contains
 
     integer :: ivmu, iz, it, iky
 
-    if(.not.prp_shear_implicit .or..not. prp_flow_shear_enabled) return
+    if(.not.prp_shear_implicit .or..not. prp_shear_enabled) return
 
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,nakx))
@@ -364,6 +366,7 @@ contains
     endif
 
     do iky=1,naky
+      if(zonal_mode(iky)) cycle
       if(shift_state(iky) > shift_times(iky)) then
         shift_state(iky) = shift_state(iky) - shift_times(iky)
       endif

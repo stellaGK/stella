@@ -337,6 +337,9 @@ contains
     ! should reduce to 2*pi*shat in axisymmetric case
     ! but not in non-axisymmetric case
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
+
+    ! FLAG DSO - the followiing assumes a linear relation from q to rho, but this will 
+    !            not be correct if d2qdrho != 0
     if(q_as_x) then
       dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
       rho_to_x = rhostar / (dqdrho * dxdXcoord)
@@ -770,10 +773,10 @@ contains
 
     call open_output_file (geometry_unit,'.geometry')
 
-    write (geometry_unit,'(a1,10a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdXcoord', 'dydalpha', & 
-                                      'exb_nonlin', 'exb_nonlin_p'
-    write (geometry_unit,'(a1,10e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, &
-                                              dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac
+    write (geometry_unit,'(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdXcoord', 'dydalpha', & 
+                                      'exb_nonlin', 'exb_nonlin_p', 'rho_to_x'
+    write (geometry_unit,'(a1,11e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, &
+                                              dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac, rho_to_x
     write (geometry_unit,*)
 
     write (geometry_unit,'(14a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', &

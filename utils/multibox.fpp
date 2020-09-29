@@ -350,9 +350,10 @@ contains
     use kt_grids, only: nakx,naky,naky_all,nx,ny,dx,dy, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
-    use fields_arrays, only: phi
+    use fields_arrays, only: phi, phi_corr_QN
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
+    use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
@@ -383,7 +384,11 @@ contains
       temp_unit=3023+job
       afacx = real(nx)/real(x_fft_size)
       afacy = real(ny)/real(2*naky-1)
-      call transform_kx2x(phi(:,:,0,1),fft_xky)  
+      fft_kxky=phi(:,:,0,1)
+      if(radial_variation) then
+        fft_kxky = fft_kxky + phi_corr_QN(:,:,0,1)
+      endif 
+      call transform_kx2x(fft_kxky,fft_xky)  
       call transform_ky2y(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
       open (unit=temp_unit, file=filename, status="replace",& 
