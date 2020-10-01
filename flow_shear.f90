@@ -194,7 +194,7 @@ contains
     use physics_flags, only: nonlinear
     use physics_parameters, only: g_exb
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, akx,aky, ikx_max, x, x_d, x0, zonal_mode
+    use kt_grids, only: nakx, naky, nx, akx,aky, ikx_max, zonal_mode
     use stella_time, only: code_dt
     use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
@@ -214,8 +214,6 @@ contains
     complex, dimension (:), allocatable :: g_shift, dg
 
     integer :: ivmu, iz, it, ia, iky, sshear
-
-    real dp
 
     ia = 1
 
@@ -281,7 +279,7 @@ contains
 !   use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, akx, aky, x, ikx_max, zonal_mode
+    use kt_grids, only: nakx, naky, nx, ikx_max, zonal_mode
     use stella_time, only: code_dt
 
     implicit none

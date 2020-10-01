@@ -211,6 +211,7 @@ contains
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface
     use zgrid, only: shat_zero
+    use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
     
@@ -306,7 +307,11 @@ contains
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
     do ikx = 1, nx
-      x(ikx) = (ikx-0.5)*dx - pi*x0
+      if(runtype_option_switch .eq. runtype_multibox ) then
+        x(ikx) = (ikx-0.5)*dx - pi*x0
+      else
+        x(ikx) = (ikx-1)*dx
+      endif
     enddo
 
     dx_d = (2*pi*x0)/nakx
