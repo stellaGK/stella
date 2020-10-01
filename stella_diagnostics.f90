@@ -580,6 +580,127 @@ contains
 
   end subroutine get_fluxes
 
+  ! assumes that the non-Boltzmann part of df is passed in (aka h)
+  subroutine get_fluxes_vmulo (g, pflx, vflx, qflx)
+
+    use mp, only: sum_reduce
+    use constants, only: zi
+    use fields_arrays, only: phi, apar
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+    use species, only: spec
+    use stella_geometry, only: jacob, grho, bmag
+    use stella_geometry, only: gds21, gds22
+    use stella_geometry, only: geo_surf
+    use zgrid, only: delzed, nzgrid, ntubes
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: vperp2, vpa
+    use run_parameters, only: fphi, fapar
+    use kt_grids, only: aky, theta0
+    use gyro_averages, only: gyro_average, gyro_average_j1
+
+    implicit none
+
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    real, dimension (:), intent (out) :: pflx, vflx, qflx
+
+    integer :: ikxkyz, iky, ikx, iz, it, is, ia
+    real, dimension (:), allocatable :: flx_norm
+    complex, dimension (:,:), allocatable :: gtmp1, gtmp2, gtmp3
+
+    allocate (flx_norm(-nzgrid:nzgrid))
+    allocate (gtmp1(nvpa,nmu), gtmp2(nvpa,nmu), gtmp3(nvpa,nmu))
+
+    pflx = 0. ; vflx = 0. ; qflx = 0.
+
+    flx_norm = jacob(1,:)*delzed
+    flx_norm = flx_norm/sum(flx_norm*grho(1,:))
+
+    ia = 1
+    ! get electrostatic contributions to fluxes
+    if (fphi > epsilon(0.0)) then
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          
+          ! get particle flux
+          call gyro_average (g(:,:,ikxkyz), ikxkyz, gtmp1)
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx(is))
+
+          ! get heat flux
+          ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
+          gtmp1 = gtmp1*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx(is))
+
+          ! get momentum flux
+          ! parallel component
+          gtmp1 = g(:,:,ikxkyz)*spread(vpa,2,nmu)*geo_surf%rgeo/bmag(ia,iz)
+          call gyro_average (gtmp1, ikxkyz, gtmp2)
+          gtmp1 = -g(:,:,ikxkyz)*zi*aky(iky)*spread(vperp2(ia,iz,:),1,nvpa)*geo_surf%rhoc &
+               * (gds21(ia,iz)+theta0(iky,ikx)*gds22(ia,iz))*spec(is)%smz &
+               / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
+          call gyro_average_j1 (gtmp1, ikxkyz, gtmp3)
+          gtmp1 = gtmp2 + gtmp3
+
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx(is))
+       end do
+    end if
+
+    if (fapar > epsilon(0.0)) then
+       ! particle flux
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          
+          ! Apar contribution to particle flux
+          gtmp1 = -g(:,:,ikxkyz)*spec(is)%stm*spread(vpa,2,nmu)
+          call gyro_average (gtmp1, ikxkyz, gtmp2)
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), pflx(is))
+          
+          ! Apar contribution to heat flux
+          gtmp2 = gtmp2*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), qflx(is))
+          
+          ! Apar contribution to momentum flux
+          ! parallel component
+          gtmp1 = -spread(vpa**2,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
+               * geo_surf%rgeo/bmag(1,iz)
+          call gyro_average (gtmp1, ikxkyz, gtmp2)
+          ! perp component
+          gtmp1 = spread(vpa,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
+               * zi*aky(iky)*spread(vperp2(ia,iz,:),1,nvpa)*geo_surf%rhoc &
+               * (gds21(ia,iz)+theta0(iky,ikx)*gds22(ia,iz))*spec(is)%smz &
+               / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
+          call gyro_average_j1 (gtmp1, ikxkyz, gtmp3)
+          ! FLAG -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !!
+
+          gtmp1 = gtmp2 + gtmp3
+
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, apar(iky,ikx,iz,it), vflx(is))
+       end do
+    end if
+
+    call sum_reduce (pflx, 0) ; pflx = pflx*spec%dens_psi0
+    call sum_reduce (qflx, 0) ; qflx = qflx*spec%dens_psi0*spec%temp_psi0
+    call sum_reduce (vflx, 0) ; vflx = vflx*spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0)
+
+    ! normalise to account for contributions from multiple flux tubes
+    ! in flux tube train
+    pflx = pflx/real(ntubes)
+    qflx = qflx/real(ntubes)
+    vflx = vflx/real(ntubes)
+
+    deallocate (gtmp1, gtmp2, gtmp3)
+    deallocate (flx_norm)
+
+  end subroutine get_fluxes_vmulo
+
   subroutine get_one_flux (iky, iz, norm, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
@@ -652,7 +773,7 @@ contains
     use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
     use stella_geometry, only: bmag, dBdrho, rho_to_x
     use gyro_averages, only: aj0x, aj1x, gyro_average
-    use fields_arrays, only: phi
+    use fields_arrays, only: phi, phi_corr_QN
     use physics_flags, only: radial_variation
     use stella_transforms, only: transform_x2kx_xfirst, transform_kx2x_xfirst
 
@@ -709,7 +830,11 @@ contains
              g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,g0k)
 
-             g2(:,:,iv,it,ivmu) = g2(:,:,iv,it,ivmu) + g0k
+             !phi QN
+             g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+               * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
+
+             g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
            enddo
          enddo
        endif
@@ -739,6 +864,7 @@ contains
                     /(aj0x(:,:,iz,ivmu)**2 - 1.0) &
                  + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
 
+
              !g
              g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 & 
                * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
@@ -751,7 +877,12 @@ contains
              g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,g0k)
 
-             g2(:,:,iv,it,ivmu) = g2(:,:,iv,it,ivmu) + g0k
+             !phi QN
+             g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
+               * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
+
+             g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
            enddo
          enddo
        endif
@@ -779,7 +910,7 @@ contains
              g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,g0k)
 
-             g2(:,:,iv,it,ivmu) = g2(:,:,iv,it,ivmu) + g0k
+             g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
            enddo
          enddo
        endif
