@@ -991,13 +991,16 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do ikx = 1, nakx
-          if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
-          tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
-          if(delay_krook.le.epsilon(0.)) then
-            g(ikx,:,it,ivmu) = tmp
+          if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
+            g(ikx,:,it,ivmu) = 0.0
           else
-            g(ikx,:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,it,ivmu)) &
-                             / (code_dt     + exp_fac*int_proj)
+            tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+            if(delay_krook.le.epsilon(0.)) then
+              g(ikx,:,it,ivmu) = tmp
+            else
+              g(ikx,:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,it,ivmu)) &
+                               / (code_dt     + exp_fac*int_proj)
+            endif
           endif
           g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
         enddo
