@@ -658,7 +658,7 @@ contains
      
 # if defined(__INTEL_COMPILER)
 !   for system call with intel compiler
-    use ifport, only :: system
+    use ifport, only: system
 # endif
      
     integer :: ierr
