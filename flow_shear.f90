@@ -305,7 +305,7 @@ contains
           do iz = -nzgrid, nzgrid
             do iky=1,naky
               if(zonal_mode(iky)) cycle
-              if(shift_state(iky) > shift_times(iky)) then
+              if(shift_state(iky) > 0.5*shift_times(iky)) then
                 if(shift_sign < 0) then
                   !shift everything left by one
                   g(iky,(ikx_max+1):(nakx-1),iz,it,ivmu) = g(iky,ikx_max+2:,iz,it,ivmu)
@@ -365,12 +365,13 @@ contains
 
     do iky=1,naky
       if(zonal_mode(iky)) cycle
-      if(shift_state(iky) > shift_times(iky)) then
+      if(shift_state(iky) > 0.5*shift_times(iky)) then
         shift_state(iky) = shift_state(iky) - shift_times(iky)
       endif
     enddo
 
     shift_state = shift_state + code_dt
+    if(zonal_mode(1)) shift_state(1) = 0.
 
     deallocate(g0k,g0x)
 
