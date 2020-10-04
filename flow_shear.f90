@@ -8,14 +8,15 @@ module flow_shear
   public :: advance_flow_shear_explicit, advance_flow_shear_implicit
   public :: shift_state, shift_times
   public :: prp_shear_enabled, hammett_flow_shear
-! public :: add_flow_shear_radial_variation
+  public :: exb_shear_corrections
 
   private
 
   logical :: flow_shear_initialized = .false.
   logical :: prp_shear_enabled = .true.
-  logical :: hammett_flow_shear = .false.
+  logical :: hammett_flow_shear = .true.
   logical :: prp_shear_implicit = .true.
+  logical :: exb_shear_corrections = .true.
 
   complex, dimension (:), allocatable :: shift_in, shift_out
   complex, dimension (:,:), allocatable :: upwind_advect
@@ -26,11 +27,6 @@ module flow_shear
   integer :: shift_sign, shift_start
 
   real :: v_edge, v_shift = 0.
-
-! integer :: shear_option_switch
-! integer, parameter:: shear_option_triangle  = 0, &
-!                      shear_option_sine      = 1, &
-!                      shear_option_flat      = 2 
 
 contains
 
@@ -57,28 +53,13 @@ contains
     integer :: is, imu, iv, ivmu, iz, ia, shift
     real, dimension (:,:), allocatable :: energy
 
-!   type (text_option), dimension (4), parameter :: shear_opts = &
-!     (/ text_option('default',  shear_option_triangle), &
-!        text_option('triangle', shear_option_triangle) , &
-!        text_option('sine',     shear_option_sine), &
-!        text_option('flat',     shear_option_flat)/)
-!   character(30) :: zf_option, krook_option, shear_option, LR_debug_option
-
-!   namelist /multibox_parameters/ boundary_size, krook_size, shear_option,& 
-!                                  smooth_ZFs, zf_option, LR_debug_option, &
-!                                  krook_option, RK_step, nu_krook_mb, &
-!                                  mb_debug_step, dealiased_shear
-!     call get_option_value & 
-!       (shear_option, shear_opts, shear_option_switch, & 
-!        ierr, "shear_option in multibox_parameters")
-
-
-    !perpendicular shear is currently done in multibox
-
     if (flow_shear_initialized) return
     flow_shear_initialized = .true.
 
     if(abs(g_exb*g_exbfac) < epsilon(0.)) prp_shear_enabled = .false.
+
+    exb_shear_corrections = exb_shear_corrections.and.prp_shear_enabled.and. &
+                            hammett_flow_shear
 
     if (.not.allocated(shift_in))  allocate(shift_in(nakx))
     if (.not.allocated(shift_out)) allocate(shift_out(nakx))
@@ -107,12 +88,6 @@ contains
         v_shift=v_edge-g_exbfac*g_exb*x(nx-shift)
       endif
       call scope(subprocs)
-    endif
-    
-    if(runtype_option_switch .eq. runtype_multibox) then 
-      if(job == 0) then
-      elseif(job==njobs-1) then
-      endif
     endif
     shift_out = 1./shift_in
 
@@ -234,8 +209,6 @@ contains
           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k
 
           !perpendicular flow shear
-
-          !call get_dgdy (g(:,:,iz,it,ivmu), g0k)
           if(.not.prp_shear_implicit.and.prp_shear_enabled) then 
             g0k = spread(shift_in,1,naky)*g(:,:,iz,it,ivmu)
             do iky=1, naky
@@ -246,11 +219,6 @@ contains
               g_shift(1:(ikx_max-1)) = g0k(iky,(ikx_max+1):)
               g_shift(ikx_max:)      = g0k(iky,1:ikx_max)
 !
-!             call first_order_upwind (1,g_shift,akx(2),sshear,dg)
-!             call third_order_upwind (1,g_shift,akx(2),sshear,dg)
-!             call second_order_centered (1,g_shift,akx(2),dg)
-!             call four_point_triangle (1,g_shift,akx(2),dg)
-
               call fifth_order_upwind (1,g_shift,akx(2),sshear,dg)
 
               !shift the x grid so that kx=0 is at the first index
@@ -276,7 +244,6 @@ contains
     use stella_layouts, only: vmu_lo
     use constants, only: zi
     use physics_parameters, only: g_exb, g_exbfac, g_exb_efold
-!   use stella_transforms, only: transform_kx2x_solo, transform_x2kx_solo
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, nx, ikx_max, zonal_mode
@@ -295,7 +262,6 @@ contains
 
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,nakx))
-!   allocate (g0x(naky,nx))
 
     if(hammett_flow_shear) then
       !TODO (DSO) - This assumes the timestep is small enough so that a shift is never
@@ -305,7 +271,7 @@ contains
           do iz = -nzgrid, nzgrid
             do iky=1,naky
               if(zonal_mode(iky)) cycle
-              if(shift_state(iky) > shift_times(iky)) then
+              if(shift_state(iky) > 0.5*shift_times(iky)) then
                 if(shift_sign < 0) then
                   !shift everything left by one
                   g(iky,(ikx_max+1):(nakx-1),iz,it,ivmu) = g(iky,ikx_max+2:,iz,it,ivmu)
@@ -342,19 +308,19 @@ contains
                 g0k(iky,shift_start)   = 0.0
               endif
             enddo
-            if(g_exb < 0) then
+!           if(g_exb < 0) then
 !              g0k(:,ikx_max-1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
 !              g0k(:,ikx_max)   = exp(     g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
 !              g0k(:,ikx_max+1) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
 !             g0k(:,ikx_max+1) = exp(     g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
 !             g0k(:,ikx_max+2) = exp( 0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
-            else 
+!           else 
 !              g0k(:,ikx_max)   = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
 !              g0k(:,ikx_max+1) = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+1)
 !              g0k(:,ikx_max+2) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max+2)
 !             g0k(:,ikx_max-1) = exp(-0.5*g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max-1)
 !             g0k(:,ikx_max)   = exp(    -g_exb_efold*g_exb*code_dt*aky/akx(2))*g0k(:,ikx_max)
-            endif
+!           endif
 
             g(:,:,iz,it,ivmu) = g0k
 
@@ -365,12 +331,13 @@ contains
 
     do iky=1,naky
       if(zonal_mode(iky)) cycle
-      if(shift_state(iky) > shift_times(iky)) then
+      if(shift_state(iky) > 0.5*shift_times(iky)) then
         shift_state(iky) = shift_state(iky) - shift_times(iky)
       endif
     enddo
 
     shift_state = shift_state + code_dt
+    if(zonal_mode(1)) shift_state(1) = 0.
 
     deallocate(g0k,g0x)
 
