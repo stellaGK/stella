@@ -1286,7 +1286,7 @@ contains
     use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
     use flow_shear, only: prp_shear_enabled, hammett_flow_shear
-    use flow_shear, only: shift_state, shift_times
+    use flow_shear, only: shift_state
 
     implicit none
 
@@ -1324,8 +1324,7 @@ contains
 
     prefac = 1.0
     if(prp_shear_enabled.and.hammett_flow_shear) then
-      prefac = exp(-zi*g_exb*g_exbfac*spread(x,1,naky) & 
-                   * spread(aky*(shift_state-0.5*shift_times),2,nx))
+      prefac = exp(-zi*g_exb*g_exbfac*spread(x,1,naky)*spread(aky*shift_state,2,nx))
     endif
 
     ia=1
@@ -1340,7 +1339,7 @@ contains
              call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
              if(prp_shear_enabled.and.hammett_flow_shear) then
                call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0a)
-               g0k = g0k - g_exb*g_exbfac*spread(shift_state-0.5*shift_times,2,nakx)*g0a
+               g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
              endif
              call forward_transform(g0k,g1xy)
 
@@ -1364,7 +1363,7 @@ contains
              call get_dgdx (g(:,:,iz,it,ivmu), g0k)
              if(prp_shear_enabled.and.hammett_flow_shear) then
                call get_dgdy (g(:,:,iz,it,ivmu), g0a)
-               g0k = g0k - g_exb*g_exbfac*spread(shift_state-0.5*shift_times,2,nakx)*g0a
+               g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
              endif
              call forward_transform(g0k,g0xy)
              call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
