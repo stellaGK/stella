@@ -205,7 +205,7 @@ contains
 
   subroutine init_kt_grids_box (geo_surf, twist_and_shift_geo_fac, q_as_x)
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, job
     use common_types, only: flux_surface_type
     use constants, only: pi
     use physics_parameters, only: rhostar
@@ -306,8 +306,9 @@ contains
 
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
+
     do ikx = 1, nx
-      if(runtype_option_switch .eq. runtype_multibox ) then
+      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
         x(ikx) = (ikx-0.5)*dx - pi*x0
       else
         x(ikx) = (ikx-1)*dx
@@ -316,7 +317,11 @@ contains
 
     dx_d = (2*pi*x0)/nakx
     do ikx = 1, nakx
-      x_d(ikx) = (ikx-0.5)*dx_d - pi*x0
+      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
+        x_d(ikx) = (ikx-0.5)*dx_d - pi*x0
+      else
+        x_d(ikx) = (ikx-1)*dx_d
+      endif
     enddo
     
   end subroutine init_kt_grids_box

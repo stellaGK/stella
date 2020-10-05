@@ -352,7 +352,6 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu
-    use physics_parameters, only: rhostar
 
     implicit none
 

@@ -9,6 +9,8 @@ module physics_flags
   public :: include_parallel_nonlinearity
   public :: include_parallel_streaming
   public :: include_mirror
+  public :: prp_shear_enabled
+  public :: hammett_flow_shear
   public :: nonlinear
 
   private
@@ -19,6 +21,8 @@ module physics_flags
   logical :: include_parallel_streaming
   logical :: include_mirror
   logical :: nonlinear
+  logical :: prp_shear_enabled
+  logical :: hammett_flow_shear
 
   logical :: initialized = .false.
 
@@ -60,6 +64,9 @@ contains
        in_file = input_unit_exist("physics_flags", rpexist)
        if (rpexist) read (unit=in_file,nml=physics_flags)
     end if
+    
+    prp_shear_enabled = .false.
+    hammett_flow_shear = .true.
 
     call broadcast (full_flux_surface)
     call broadcast (radial_variation)

@@ -26,7 +26,10 @@ module multibox
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   real,    dimension (:), allocatable :: krook_fac
-  
+  real, dimension(:), allocatable :: x_d
+
+  real :: dx_d
+
   complex, dimension (:,:), allocatable :: fft_kxky, fft_xky
   real, dimension (:,:), allocatable :: fft_xy
 
@@ -197,8 +200,7 @@ contains
     integer :: phi_buff_size
     integer :: i
 
-    real, dimension(:), allocatable :: x_d
-    real :: db, dx_d
+    real :: db
 
 
     if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
@@ -253,20 +255,16 @@ contains
 #ifdef MPI
     call scope(crossdomprocs)
 
-    if(job==1) then
+    if(.not.allocated(x_d)) allocate(x_d(x_fft_size))
+    dx_d = (2*pi*x0)/x_fft_size
 
-      allocate (x_d(x_fft_size))
-      dx_d = (2*pi*x0)/x_fft_size
-      do i = 1, x_fft_size
-        x_d(i) = (i-0.5)*dx_d - pi*x0
-      enddo
+    if(job==1) then
 
       xL = x(bs_fullgrid)
       xR = x(nx-bs_fullgrid+1)
       xL_d = x_d(boundary_size)
       xR_d = x_d(x_fft_size-boundary_size+1)
 
-      deallocate(x_d)
 
       if(LR_debug_switch == LR_debug_option_L) then
         x_clamped = xL
@@ -280,10 +278,18 @@ contains
         enddo
       endif
     elseif(job==0) then
+      do i = 1, x_fft_size
+        x_d(i) = (i-1)*dx_d
+      enddo
+
       call receive(xL,1)
       call receive(xL_d,1)
       call send(akx(2),1)
     elseif(job==njobs-1) then
+      do i = 1, x_fft_size
+        x_d(i) = (i-1)*dx_d
+      enddo
+
       call receive(xR,1)
       call receive(xR_d,1)
       call send(akx(2),1)
@@ -347,16 +353,19 @@ contains
 
   subroutine multibox_communicate (gin)
 
-    use kt_grids, only: nakx,naky,naky_all,nx,ny,dx,dy, zonal_mode
+    use constants, only: zi
+    use kt_grids, only: nakx,naky,naky_all, aky, nx,ny,dx,dy, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
     use fields_arrays, only: phi, phi_corr_QN
     use fields, only: advance_fields, fields_updated
     use job_manage, only: njobs
-    use physics_flags, only: radial_variation
+    use physics_flags, only: radial_variation,prp_shear_enabled, hammett_flow_shear
+    use physics_parameters, only: g_exb, g_exbfac
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
+    use flow_shear, only:  shift_state
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
                   send, receive, proc0
@@ -369,6 +378,7 @@ contains
     complex :: dzm,dzp
     character(len=512) :: filename
 
+    complex, dimension (:,:), allocatable :: prefac
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: gin
 
 #ifndef MPI
@@ -378,6 +388,11 @@ contains
     if(LR_debug_switch /= LR_debug_option_default) return
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
+    allocate (prefac(naky,x_fft_size)); prefac = 1.0
+
+    if(prp_shear_enabled.and.hammett_flow_shear) then
+      prefac = exp(-zi*g_exb*g_exbfac*spread(x_d,1,naky)*spread(aky*shift_state,2,x_fft_size))
+    endif
 
     if(mod(temp_ind,mb_debug_step)==0 .and. proc0) then
      ! call get_unused_unit(temp_unit)
@@ -389,6 +404,7 @@ contains
         fft_kxky = fft_kxky + phi_corr_QN(:,:,0,1)
       endif 
       call transform_kx2x(fft_kxky,fft_xky)  
+      fft_xky=fft_xky*prefac
       call transform_ky2y(fft_xky,fft_xy)
       write (filename,"(A,I1,A,I0.6)") "phiout",job,"_",temp_ind
       open (unit=temp_unit, file=filename, status="replace",& 
@@ -439,6 +455,7 @@ contains
             endif
 
             call transform_kx2x(fft_kxky,fft_xky)
+            fft_xky = fft_xky*prefac
             do ix=1,boundary_size
               do iky=1,naky
                 !DSO if in the future the grids can have different naky, one will
@@ -500,6 +517,8 @@ contains
     !endif
 
     temp_ind=temp_ind+1
+
+    deallocate (prefac)
 
 #endif
   end subroutine multibox_communicate

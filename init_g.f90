@@ -17,7 +17,8 @@ module init_g
   integer, parameter :: ginitopt_default = 1,  &
        ginitopt_noise = 2, ginitopt_restart_many = 3, &
        ginitopt_kpar = 4, ginitopt_nltest = 5, &
-       ginitopt_kxtest = 6, ginitopt_rh = 7
+       ginitopt_kxtest = 6, ginitopt_rh = 7, &
+       ginitopt_remap = 8
 
   real :: width0, phiinit, imfac, refac, zf_init
   real :: den0, upar0, tpar0, tperp0
@@ -113,6 +114,8 @@ contains
        call ginit_kpar
      case (ginitopt_rh)
         call ginit_rh
+     case (ginitopt_remap)
+        call ginit_remap
     case (ginitopt_restart_many)
        call ginit_restart_many 
        call init_tstart (tstart, istep0, istatus)
@@ -133,14 +136,15 @@ contains
 
     implicit none
 
-    type (text_option), dimension (7), parameter :: ginitopts = &
+    type (text_option), dimension (8), parameter :: ginitopts = &
          (/ text_option('default', ginitopt_default), &
             text_option('noise', ginitopt_noise), &
             text_option('many', ginitopt_restart_many), &
             text_option('nltest', ginitopt_nltest), &
             text_option('kxtest', ginitopt_kxtest), &
             text_option('kpar', ginitopt_kpar), &
-            text_option('rh', ginitopt_rh) &
+            text_option('rh', ginitopt_rh), &
+            text_option('remap', ginitopt_remap) &
             /)
     character(20) :: ginit_option
     namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
@@ -616,6 +620,39 @@ contains
     end do
 
   end subroutine ginit_rh
+
+  subroutine ginit_remap
+
+    use species, only: spec
+    use dist_fn_arrays, only: gvmu, kperp2
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use vpamu_grids, only: nvpa, nmu
+    use kt_grids, only: akx, nakx
+
+    implicit none
+
+    integer :: ikxkyz, iky, ikx, iz, is, ia
+
+    ! initialize g to be a Maxwellian with a constant density perturbation
+
+    gvmu = 0.
+
+    ia = 1
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+
+       if((ikx.eq.15.and.iky.eq.5).or.((ikx-nakx).eq.-12.and.iky.eq.3)) then
+         gvmu(:,:,ikxkyz) = spec(is)%z*phiinit &
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+       endif
+    end do
+
+  end subroutine ginit_remap
 
   subroutine ginit_restart_many
 

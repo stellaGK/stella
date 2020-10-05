@@ -190,12 +190,10 @@ contains
     use kt_grids, only: zonal_mode
     use kt_grids, only: nalpha
 
-    use file_utils, only: run_name
 
     implicit none
 
-    integer :: iky, ikx, ia, iz
-    character(len=512) :: filename
+    integer :: iky, ikx
 
     if (kp2init) return
     kp2init = .true.

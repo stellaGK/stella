@@ -998,7 +998,7 @@ contains
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
-    use flow_shear, only: advance_flow_shear_explicit
+    use flow_shear, only: advance_parallel_flow_shear
     use file_utils, only: runtype_option_switch, runtype_multibox
     use multibox, only: include_multibox_krook, add_multibox_krook
 
@@ -1041,7 +1041,7 @@ contains
 
     if (.not.restart_time_step) then
 
-       if ((g_exb**2).gt.epsilon(0.0)) call advance_flow_shear_explicit (gin, rhs)
+       if ((g_exb**2).gt.epsilon(0.0)) call advance_parallel_flow_shear (rhs)
 
        ! calculate and add mirror term to RHS of GK eqn
        if (include_mirror.and..not.mirror_implicit) then
@@ -1282,10 +1282,10 @@ contains
     use kt_grids, only: akx, aky, x_clamped
     use stella_geometry, only: rho_to_x
     use physics_flags, only: full_flux_surface, radial_variation
+    use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use kt_grids, only: x, swap_kxky, swap_kxky_back
     use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use flow_shear, only: prp_shear_enabled, hammett_flow_shear
     use flow_shear, only: shift_state
 
     implicit none
@@ -2074,7 +2074,7 @@ contains
     use dissipation, only: collisions_implicit, include_collisions
     use dissipation, only: advance_collisions_implicit
     use run_parameters, only: driftkinetic_implicit
-    use flow_shear, only: advance_flow_shear_implicit
+    use flow_shear, only: advance_perp_flow_shear
     use multibox, only: RK_step, multibox_communicate
 
     implicit none
@@ -2117,7 +2117,7 @@ contains
 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
 
-       call advance_flow_shear_implicit(g)
+       call advance_perp_flow_shear(g)
        fields_updated = .false.
 
        if (hyper_dissipation) then
@@ -2182,7 +2182,7 @@ contains
           fields_updated = .false.
        end if
 
-       call advance_flow_shear_implicit(g)
+       call advance_perp_flow_shear(g)
        fields_updated = .false.
 
     end if
