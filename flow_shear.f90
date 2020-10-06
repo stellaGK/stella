@@ -186,9 +186,9 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-    
-
     complex, dimension (:,:), allocatable :: g0k, g0x
+
+    real :: shift_fac
 
     integer :: ivmu, iz, it, iky
 
@@ -249,9 +249,12 @@ contains
       enddo
     endif
 
+    shift_fac = 1.0
+    if(hammett_flow_shear) shift_fac = 0.5
+
     do iky=1,naky
       if(zonal_mode(iky)) cycle
-      if(shift_state(iky) > 0.5*shift_times(iky)) then
+      if(shift_state(iky) > shift_fac*shift_times(iky)) then
         shift_state(iky) = shift_state(iky) - shift_times(iky)
       endif
     enddo
