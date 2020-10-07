@@ -56,6 +56,7 @@ module stella_save
 !  integer (kind_nf) :: bparr_id, bpari_id
   integer (kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
   integer (kind_nf) :: intkrook_id, intproj_id;
+  integer (kind_nf) :: shift_id
 
   logical :: initialized = .false.
 # endif
@@ -88,6 +89,8 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use dissipation, only: include_krook_operator, int_krook
     use dissipation, only: remove_zero_projection, int_proj
+    use flow_shear, only: shift_state
+    use physics_flags, only: prp_shear_enabled
 
     implicit none
 
@@ -402,6 +405,16 @@ contains
 
           end if
 
+          if (prp_shear_enabled) then
+             istatus = nf90_def_var (ncid, "shiftstate", netcdf_real,&
+                (/ kyid /), shift_id)
+             if (istatus /= NF90_NOERR) then
+                ierr = error_unit()
+                write(ierr,*) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
+                goto 1
+             end if
+          endif
+
 !           if (fbpar > epsilon(0.)) then
 !              istatus = nf90_def_var (ncid, "bpar_r", netcdf_real, &
 !                   (/ zedid, kxid, kyid /), bparr_id)
@@ -679,6 +692,11 @@ contains
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, proji_id)
        
        end if
+
+       if (prp_shear_enabled) then
+         istatus = nf90_put_var (ncid, shift_id, shift_state)
+         if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, shift_id)
+       end if
     end if
        
     if (exit) then
@@ -731,6 +749,8 @@ contains
     use species, only: nspec
     use dissipation, only: include_krook_operator, int_krook
     use dissipation, only: remove_zero_projection, int_proj
+    use flow_shear, only: shift_state
+    use physics_flags, only: prp_shear_enabled
 
     implicit none
 
@@ -868,7 +888,11 @@ contains
           
           istatus = nf90_inq_varid (ncid, "proji", proji_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='proji')
+       endif
 
+       if(prp_shear_enabled) then
+          istatus = nf90_inq_varid (ncid, "shiftstate", shift_id)
+          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='shiftstate')
        endif
 
 !        if (fbpar > epsilon(0.)) then
@@ -1033,6 +1057,11 @@ contains
 
       g_proj = cmplx(ptmpr, ptmpi)
       
+    endif
+
+    if(prp_shear_enabled) then
+      istatus = nf90_get_var (ncid, shift_id, shift_state)
+      if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, shift_id)
     endif
 
 

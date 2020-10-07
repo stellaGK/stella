@@ -241,6 +241,7 @@ contains
                 do iky = 1, naky
                    arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
                    aj0x(iky,ikx,iz,ivmu) = j0(arg)
+                   ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
                    aj1x(iky,ikx,iz,ivmu) = j1(arg)
                 end do
              end do

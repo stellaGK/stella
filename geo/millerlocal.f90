@@ -30,7 +30,7 @@ module millerlocal
   integer :: nz, nz2pi
 
   real :: bi, dqdr, d2Idr2
-  real, dimension (:), allocatable :: grho, bmag, bmag_psi0, gradpar
+  real, dimension (:), allocatable :: grho, bmag, grho_psi0, bmag_psi0, gradpar
   real, dimension (:), allocatable :: gds2, gds21, gds22
   real, dimension (:), allocatable :: gds23, gds24
   real, dimension (:), allocatable :: gbdrift0, gbdrift
@@ -167,6 +167,7 @@ contains
     allocate(d2R(-nz:nz))
     allocate(d2Z(-nz:nz))
     allocate(bmag_psi0(-nz:nz))
+    allocate(grho_psi0(-nz:nz))
     d2R = 0. ; d2Z = 0. ; dI = 0.
 
   end subroutine read_local_parameters
@@ -224,6 +225,7 @@ contains
       call send(shat      ,0,132)
       call send(dpsidrho  ,0,133)
       call send(bmag      ,0,134)
+      call send(grho      ,0,135)
 
 
       call send(rrhoc     ,njobs-1,220)
@@ -241,6 +243,7 @@ contains
       call send(shat      ,njobs-1,232)
       call send(dpsidrho  ,njobs-1,233)
       call send(bmag      ,njobs-1,234)
+      call send(grho      ,njobs-1,235)
       rhoc_psi0 = rhoc
       qinp_psi0 = qinp
       shat_psi0 = shat
@@ -263,6 +266,7 @@ contains
       call receive(shat_psi0    ,1,132)
       call receive(dpsidrho_psi0,1,133)
       call receive(bmag_psi0    ,1,134)
+      call receive(grho_psi0    ,1,135)
       local%rhoc  = rhoc
       local%qinp  = qinp
       local%shat  = shat
@@ -290,6 +294,7 @@ contains
       call receive(shat_psi0    ,1,232)
       call receive(dpsidrho_psi0,1,233)
       call receive(bmag_psi0    ,1,234)
+      call receive(grho_psi0    ,1,235)
       local%rhoc  = rhoc
       local%qinp  = qinp
       local%shat  = shat
@@ -503,6 +508,7 @@ contains
     if(load_psi0_variables) then
       dpsidrho_psi0 = dpsidrho
       bmag_psi0 = bmag
+      grho_psi0 = grho
     endif
 
     ! get dB/dtheta
@@ -607,7 +613,7 @@ contains
 
 
     ! interpolate here
-    call geo_spline (theta, grho, zed_in, grho_out)
+    call geo_spline (theta, grho_psi0, zed_in, grho_out) !grho is used to normalize fluxes
     call geo_spline (theta, bmag, zed_in, bmag_out)
     call geo_spline (theta, bmag_psi0, zed_in, bmag_psi0_out)
     call geo_spline (theta, gds2, zed_in, gds2_out)
@@ -768,6 +774,7 @@ contains
     deallocate (d2R, d2Z)
     if (allocated(delthet)) deallocate (delthet)
     if (allocated(bmag_psi0)) deallocate (bmag_psi0)
+    if (allocated(grho_psi0)) deallocate (grho_psi0)
 
   end subroutine deallocate_arrays
 

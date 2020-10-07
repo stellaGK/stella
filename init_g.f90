@@ -624,12 +624,12 @@ contains
   subroutine ginit_remap
 
     use species, only: spec
-    use dist_fn_arrays, only: gvmu, kperp2
+    use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: nvpa, nmu
-    use kt_grids, only: akx, nakx
+    use kt_grids, only: nakx
 
     implicit none
 
