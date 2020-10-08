@@ -597,7 +597,6 @@ contains
     use stella_geometry, only: dBdrho, dIdrho, rho_to_x
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use zgrid, only: delzed, nzgrid, ntubes
-    use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa, mu
     use run_parameters, only: fphi, fapar
     use kt_grids, only: aky, theta0, naky, nakx, nx, x_clamped
@@ -612,14 +611,19 @@ contains
     real, dimension (:), intent (out) :: pflx, vflx, qflx
 
     integer :: ivmu, imu, iv, iz, it, is, ia
-    real, dimension (:), allocatable :: flx_norm
-    complex, dimension (:,:), allocatable :: gtmp1, gtmp2, gtmp3
+    real, dimension (:), allocatable :: flx_norm, dflx_norm
     complex, dimension (:,:), allocatable :: g0k, g0x
+    real :: zero
 
     allocate (flx_norm(-nzgrid:nzgrid))
-    allocate (gtmp1(nvpa,nmu), gtmp2(nvpa,nmu), gtmp3(nvpa,nmu))
+    allocate (dflx_norm(-nzgrid:nzgrid))
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
+
+    ia = 1
+
+    !hack for below
+    zero = 100.*epsilon(0.)
 
     flx_norm = jacob(1,:)*delzed
     flx_norm = flx_norm/sum(flx_norm*grho(1,:))
@@ -627,9 +631,11 @@ contains
     if(radial_variation) then
       allocate (g0k(naky,nakx))
       allocate (g0x(naky,nx))
+      dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
+      dflx_norm(nzgrid) = 0.
     endif
 
-    ia = 1
+
     ! FLAG - electrostatic for now
     ! get electrostatic contributions to fluxes
 
@@ -651,7 +657,7 @@ contains
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dBdrho(iz)/bmag(ia,iz) + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
+                  + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
                
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -683,7 +689,7 @@ contains
                      * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                      + dBdrho(iz)/bmag(ia,iz) &
                      + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)) &
-                     + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
+                     + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -713,7 +719,7 @@ contains
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                   + dIdrho/(geo_surf%rmaj*btor(iz)) & 
-                  + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
+                  + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -731,12 +737,12 @@ contains
               call gyro_average_j1 (g0k, iz, ivmu, g2(:,:,iz,it,ivmu))
               if(radial_variation) then
                 g0k = g2(:,:,iz,it,ivmu) &
-                    * ( (dgds21dr(ia,iz)+theta0*dgds22dr(ia,iz))/(gds21(ia,iz)+theta0*gds22(ia,iz)) &
-                       - geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) & 
+                    * ((dgds21dr(ia,iz)+theta0*dgds22dr(ia,iz))/(gds21(ia,iz)+theta0*gds22(ia,iz)+zero) &
+                       - geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
                        - geo_surf%d2psidr2*drhodpsi &
-                       + (0.5*aj0x(:,:,iz,ivmu)/aj1x(:,:,iz,ivmu) - 1.0) & 
+                       + (0.5*aj0x(:,:,iz,ivmu)/(aj1x(:,:,iz,ivmu)+zero) - 1.0) &
                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                       + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
+                       + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -760,6 +766,9 @@ contains
     vflx = vflx/real(ntubes)
 
     deallocate (flx_norm)
+    if(allocated(dflx_norm)) deallocate(dflx_norm)
+    if(allocated(g0x)) deallocate(g0x)
+    if(allocated(g0k)) deallocate(g0k)
 
   end subroutine get_fluxes_vmulo
 
