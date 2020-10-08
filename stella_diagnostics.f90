@@ -469,7 +469,7 @@ contains
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use species, only: spec
-    use stella_geometry, only: jacob, grho, bmag
+    use stella_geometry, only: jacob, grho, bmag, btor
     use stella_geometry, only: gds21, gds22
     use stella_geometry, only: geo_surf
     use zgrid, only: delzed, nzgrid, ntubes
@@ -517,7 +517,7 @@ contains
 
           ! get momentum flux
           ! parallel component
-          gtmp1 = g(:,:,ikxkyz)*spread(vpa,2,nmu)*geo_surf%rgeo/bmag(ia,iz)
+          gtmp1 = g(:,:,ikxkyz)*spread(vpa,2,nmu)*geo_surf%rmaj*btor(iz)/bmag(ia,iz)
           call gyro_average (gtmp1, ikxkyz, gtmp2)
           gtmp1 = -g(:,:,ikxkyz)*zi*aky(iky)*spread(vperp2(ia,iz,:),1,nvpa)*geo_surf%rhoc &
                * (gds21(ia,iz)+theta0(iky,ikx)*gds22(ia,iz))*spec(is)%smz &
@@ -550,7 +550,7 @@ contains
           ! Apar contribution to momentum flux
           ! parallel component
           gtmp1 = -spread(vpa**2,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
-               * geo_surf%rgeo/bmag(1,iz)
+               * geo_surf%rmaj*btor(iz)/bmag(1,iz)
           call gyro_average (gtmp1, ikxkyz, gtmp2)
           ! perp component
           gtmp1 = spread(vpa,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
@@ -589,7 +589,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use species, only: spec
-    use stella_geometry, only: jacob, grho, bmag
+    use stella_geometry, only: jacob, grho, bmag, btor
     use stella_geometry, only: drhodpsi
     use stella_geometry, only: gds21, gds22
     use stella_geometry, only: dgds21dr, dgds22dr
@@ -671,29 +671,28 @@ contains
           is = is_idx(vmu_lo,ivmu)
 
           call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
+          do it = 1, ntubes
+            do iz= -nzgrid, nzgrid
 
-          g1(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) & 
-                           * (vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))
+              g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))
 
-          if(radial_variation) then
-            do it = 1, ntubes
-              do iz= -nzgrid, nzgrid
-                g0k = g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 & 
+              if(radial_variation) then
+                g0k = g1(:,:,iz,it,ivmu) & 
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
-                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                    + dBdrho(iz)/bmag(ia,iz) &
-                    + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)) &
-                    + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
+                     * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                     * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                     + dBdrho(iz)/bmag(ia,iz) &
+                     + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)) &
+                     + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
                 call transform_x2kx_xfirst (g0x,g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
-              enddo
+              endif
             enddo
-          endif
+          enddo
        enddo
        call get_one_flux_vmulo (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
 
@@ -705,7 +704,7 @@ contains
           do it = 1, ntubes
             do iz= -nzgrid, nzgrid
             ! parallel component
-              g0k = g(:,:,iz,it,ivmu)*vpa(iv)*geo_surf%rgeo/bmag(ia,iz)
+              g0k = g(:,:,iz,it,ivmu)*vpa(iv)*geo_surf%rmaj*btor(iz)/bmag(ia,iz)
               call gyro_average (g0k, iz, ivmu, g1(:,:,iz,it,ivmu))
 
               if(radial_variation) then
@@ -713,7 +712,8 @@ contains
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dIdrho/geo_surf%rgeo + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
+                  + dIdrho/(geo_surf%rmaj*btor(iz)) & 
+                  + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
