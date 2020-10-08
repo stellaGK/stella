@@ -595,6 +595,7 @@ contains
     use stella_geometry, only: dgds21dr, dgds22dr
     use stella_geometry, only: geo_surf
     use stella_geometry, only: dBdrho, dIdrho, rho_to_x
+    use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa, mu
@@ -632,8 +633,6 @@ contains
     ! FLAG - electrostatic for now
     ! get electrostatic contributions to fluxes
 
-    ! FLAG - radial variation of FSA not handled yet here
-
     if (fphi > epsilon(0.0)) then
        ia = 1
 
@@ -652,7 +651,7 @@ contains
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dBdrho(iz)/bmag(ia,iz))
+                  + dBdrho(iz)/bmag(ia,iz) + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
                
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -684,7 +683,8 @@ contains
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                     + dBdrho(iz)/bmag(ia,iz) &
-                    + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+                    + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)) &
+                    + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -713,7 +713,7 @@ contains
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dIdrho/geo_surf%rgeo)
+                  + dIdrho/geo_surf%rgeo + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
@@ -735,7 +735,8 @@ contains
                        - geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) & 
                        - geo_surf%d2psidr2*drhodpsi &
                        + (0.5*aj0x(:,:,iz,ivmu)/aj1x(:,:,iz,ivmu) - 1.0) & 
-                       * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)))
+                       * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                       + d_dl_over_b_drho(ia,iz)/dl_over_b(ia,iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
