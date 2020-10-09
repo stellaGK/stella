@@ -22,6 +22,7 @@ module stella_diagnostics
   logical :: write_gvmus
   logical :: write_gzvs
   logical :: write_kspectra
+  logical :: write_radial_fluxes
 !  logical :: write_symmetry
 
   integer :: stdout_unit, fluxes_unit, omega_unit
@@ -90,6 +91,7 @@ contains
     call broadcast (write_phi_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
+    call broadcast (write_radial_fluxes)
 !    call broadcast (write_symmetry)
     
     nmovie_tot = nstep/nmovie
@@ -97,7 +99,7 @@ contains
     call init_averages
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
 !         write_gvmus, write_gzvs, write_symmetry, write_moments)
-         write_gvmus, write_gzvs, write_moments)
+         write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
     call open_loop_ascii_files(restart)
 
     if(proc0) call get_nout(tstart,nout)
@@ -109,6 +111,7 @@ contains
     use mp, only: proc0
     use file_utils, only: input_unit_exist
     use zgrid, only: nperiod, nzed
+    use physics_flags, only: radial_variation
 
     implicit none
 
@@ -118,7 +121,7 @@ contains
     namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
 !         write_omega, write_kspectra, write_symmetry, write_moments
-         write_omega, write_kspectra, write_moments
+         write_omega, write_kspectra, write_moments, write_radial_fluxes
 
     if (proc0) then
        nwrite = 50
@@ -132,6 +135,7 @@ contains
        write_gzvs = .false.
        write_kspectra = .false.
        write_moments = .false.
+       write_radial_fluxes = radial_variation
 !       write_symmetry = .false.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
@@ -238,6 +242,7 @@ contains
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
     use stella_io, only: write_moments_nc
+    use stella_io, only: write_radial_fluxes_nc
     use stella_io, only: sync_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
@@ -245,7 +250,7 @@ contains
     use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
-    use kt_grids, only: naky, nakx, nx
+    use kt_grids, only: naky, nakx
     use dist_redistribute, only: kxkyz2vmu
     use physics_flags, only: radial_variation
 
@@ -259,6 +264,7 @@ contains
     real, dimension (:,:,:,:), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
+    real, dimension (:,:), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
 
@@ -297,9 +303,16 @@ contains
     allocate (mom_flux(nspec))
     allocate (heat_flux(nspec))
 
+    if(write_radial_fluxes) then
+      allocate (part_flux_x(nakx,nspec))
+      allocate (mom_flux_x(nakx,nspec))
+      allocate (heat_flux_x(nakx,nspec))
+    endif
+
     ! obtain turbulent fluxes
-    if(radial_variation) then
-      call get_fluxes_vmulo (gnew, phi_out, part_flux, mom_flux, heat_flux)
+    if(radial_variation.or.write_radial_fluxes) then
+      call get_fluxes_vmulo (gnew, phi_out, part_flux, mom_flux, heat_flux, &
+                                            part_flux_x,mom_flux_x, heat_flux_x)
     else
       call scatter (kxkyz2vmu, gnew, gvmu)
 !     call g_to_h (gvmu, phi, fphi)
@@ -341,6 +354,9 @@ contains
           call write_kspectra_nc (nout, phi2_vs_kxky)
           deallocate (phi2_vs_kxky)
        end if
+       if (write_radial_fluxes) then
+          call write_radial_fluxes_nc(nout,part_flux_x,mom_flux_x,heat_flux_x)
+       endif
     end if
     if (write_moments) then
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_moments'
@@ -379,6 +395,9 @@ contains
     if (proc0) call sync_nc
 
     deallocate (part_flux, mom_flux, heat_flux)
+    if(allocated(part_flux_x)) deallocate (part_flux_x)
+    if(allocated(mom_flux_x))  deallocate (mom_flux_x)
+    if(allocated(heat_flux_x)) deallocate (heat_flux_x)
     deallocate(phi_out)
 
     nout = nout + 1
@@ -581,7 +600,7 @@ contains
 
   end subroutine get_fluxes
 
-  subroutine get_fluxes_vmulo (g, phi, pflx, vflx, qflx)
+  subroutine get_fluxes_vmulo (g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x)
 
     use mp, only: sum_reduce
     use constants, only: zi
@@ -609,6 +628,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     real, dimension (:), intent (out) :: pflx, vflx, qflx
+    real, dimension (:,:), intent (out) :: pflx_x, vflx_x, qflx_x
 
     integer :: ivmu, imu, iv, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm, dflx_norm
@@ -619,6 +639,7 @@ contains
     allocate (dflx_norm(-nzgrid:nzgrid))
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
+    pflx_x = 0. ; vflx_x = 0. ; qflx_x = 0.
 
     ia = 1
 
@@ -670,6 +691,10 @@ contains
        enddo
        call get_one_flux_vmulo (flx_norm, spec%dens_psi0, g1, phi, pflx)
 
+       if(write_radial_fluxes) then
+         call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, pflx_x)
+       endif
+
        !get heat flux
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           iv = iv_idx(vmu_lo,ivmu)
@@ -701,6 +726,10 @@ contains
           enddo
        enddo
        call get_one_flux_vmulo (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
+
+       if(write_radial_fluxes) then
+         call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, qflx_x)
+       endif
 
        ! get momentum flux
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -756,6 +785,10 @@ contains
 
       g1 = g1 + g2
       call get_one_flux_vmulo (flx_norm,spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx)
+
+      if(write_radial_fluxes) then
+        call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, vflx_x)
+      endif
 
     end if
 
@@ -830,6 +863,53 @@ contains
     deallocate (totals)
 
   end subroutine get_one_flux_vmulo
+
+  subroutine get_one_flux_radial (norm, weights, gin, fld, flxout)
+
+    use vpamu_grids, only: integrate_vmu
+    use stella_layouts, only: vmu_lo
+    use kt_grids, only: aky, nakx, naky
+    use zgrid, only: nzgrid, ntubes
+    use species, only: nspec
+
+    use stella_transforms, only: transform_kx2x_unpadded
+
+    implicit none
+
+    real, dimension (-nzgrid:), intent (in) :: norm
+    real, dimension (:), intent (in) :: weights
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
+    real, dimension (:,:), intent (in out) :: flxout
+    
+    complex, dimension (:,:,:,:,:), allocatable :: totals
+
+    complex, dimension (:,:), allocatable :: g0x, g1x
+
+    integer :: is, it, iz, ikx
+
+    allocate (g0x(naky,nakx))
+    allocate (g1x(naky,nakx))
+
+    allocate (totals(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
+
+    call integrate_vmu (gin,weights,totals)
+    do is = 1, nspec
+      do it = 1, ntubes
+        do iz= -nzgrid, nzgrid
+          call transform_kx2x_unpadded(totals(:,:,iz,it,is),g0x)
+          call transform_kx2x_unpadded(fld(:,:,iz,it)      ,g1x)
+          do ikx = 1, nakx
+            flxout(ikx,is) = flxout(ikx,is) &
+              + sum(0.5*fac*aky*aimag(g0x(:,ikx)*conjg(g1x(:,ikx)))*norm(iz))
+          enddo
+        enddo
+      enddo
+    enddo
+
+    deallocate (totals)
+
+  end subroutine get_one_flux_radial
 
 !   subroutine get_fluxes_vs_zvpa (g, pflx, vflx, qflx)
 

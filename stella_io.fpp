@@ -19,6 +19,7 @@ module stella_io
   public :: write_gzvs_nc
   public :: write_kspectra_nc
   public :: write_moments_nc
+  public :: write_radial_fluxes_nc
   public :: get_nout
   public :: sync_nc
 
@@ -35,7 +36,7 @@ module stella_io
   integer, dimension (5) :: zvs_dim
   integer, dimension (4) :: vmus_dim
   integer, dimension (4) :: kykxaz_dim
-  integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim
+  integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim
 
@@ -44,6 +45,7 @@ module stella_io
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
   integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
   integer :: phi_vs_t_id, phi2_vs_kxky_id
+  integer :: pflux_x_id, vflux_x_id, qflux_x_id
   integer :: density_id, upar_id, temperature_id
   integer :: gvmus_id, gzvs_id
   integer :: input_id
@@ -65,7 +67,7 @@ contains
 
   subroutine init_stella_io (restart, write_phi_vs_t, write_kspectra, write_gvmus, &
 !       write_gzvs, write_symmetry, write_moments)
-       write_gzvs, write_moments)
+       write_gzvs, write_moments, write_radial_fluxes)
 
     use mp, only: proc0
     use file_utils, only: run_name
@@ -79,7 +81,7 @@ contains
 
     logical, intent (in) :: restart
     logical, intent (in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
-    logical, intent (in) :: write_moments!, write_symmetry
+    logical, intent (in) :: write_moments, write_radial_fluxes!, write_symmetry
 # ifdef NETCDF
     character (300) :: filename
     integer :: status
@@ -106,7 +108,7 @@ contains
 
        call define_dims
 !       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry, write_moments)
-       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments)
+       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
        call nc_grids
        call nc_species
        call nc_geo
@@ -308,7 +310,7 @@ contains
 
   subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, &
 !       write_gzvs, write_symmetry, write_moments)
-       write_gzvs, write_moments)
+       write_gzvs, write_moments, write_radial_fluxes)
 
     use mp, only: nproc
     use species, only: nspec
@@ -323,7 +325,7 @@ contains
     implicit none
 
     logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
-    logical, intent (in) :: write_moments
+    logical, intent (in) :: write_moments, write_radial_fluxes
 # ifdef NETCDF
     character (5) :: ci
     character (20) :: datestamp, timestamp, timezone
@@ -354,6 +356,10 @@ contains
     
     flux_dim (1) = nspec_dim
     flux_dim (2) = time_dim
+
+    flux_x_dim (1) = nakx_dim
+    flux_x_dim (2) = nspec_dim
+    flux_x_dim (3) = time_dim
 
     heat_dim (1) = nspec_dim
     heat_dim (2) = nheat_dim
@@ -780,6 +786,26 @@ contains
           status = nf90_put_att (ncid, phi_vs_t_id, 'long_name', 'Electrostatic Potential vs time')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id, att='long_name')
        end if
+       if (write_radial_fluxes) then
+          status = nf90_inq_varid(ncid,'pflux_x',pflux_x_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'pflux_x', netcdf_real, flux_x_dim, pflux_x_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='pflux_x')
+          endif
+          status = nf90_inq_varid(ncid,'vflux_x',pflux_x_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'vflux_x', netcdf_real, flux_x_dim, vflux_x_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='vflux_x')
+          endif
+          status = nf90_inq_varid(ncid,'qflux_x',pflux_x_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'qflux_x', netcdf_real, flux_x_dim, qflux_x_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='qflux_x')
+          endif
+       end if
        if (write_kspectra) then
           status = nf90_inq_varid(ncid,'phi2_vs_kxky',phi2_vs_kxky_id)
           if(status /= nf90_noerr) then
@@ -944,6 +970,41 @@ contains
 # endif
 
   end subroutine write_phi_nc
+
+  subroutine write_radial_fluxes_nc (nout, pflux, vflux,qflux)
+
+    use convert, only: c2r
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx
+    use species, only: nspec
+# ifdef NETCDF
+    use netcdf, only: nf90_put_var
+# endif
+
+    implicit none
+
+    integer, intent (in) :: nout
+    real, dimension (:,:), intent (in) :: pflux, vflux, qflux
+
+# ifdef NETCDF
+    integer :: status
+    integer, dimension (3) :: start, count
+
+    start = 1
+    start(3) = nout
+    count(1) = nakx
+    count(2) = nspec
+    count(3) = 1
+
+    status = nf90_put_var (ncid, pflux_x_id, pflux, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, pflux_x_id)
+    status = nf90_put_var (ncid, vflux_x_id, vflux, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflux_x_id)
+    status = nf90_put_var (ncid, qflux_x_id, qflux, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, qflux_x_id)
+# endif
+
+  end subroutine write_radial_fluxes_nc
 
   subroutine write_kspectra_nc (nout, phi2_vs_kxky)
 
