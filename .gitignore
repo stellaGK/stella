@@ -14,6 +14,7 @@ mp.f90
 multibox.f90
 netcdf_utils.f90
 ran.f90
+response_matrix.f90
 sfincs_interface.f90
 spfunc.f90
 stella_io.f90
