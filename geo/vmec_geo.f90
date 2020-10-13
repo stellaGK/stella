@@ -85,7 +85,8 @@ contains
        grad_alpha_grad_psi, grad_psi_grad_psi, &
        gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
        cvdrift0_psi, sign_torflux, &
-       theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta)
+       theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, &
+       field_period_ratio)
 
     use constants, only: pi
     use common_types, only: flux_surface_type
@@ -108,6 +109,7 @@ contains
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
+    real, intent (out) :: field_period_ratio
 
     logical, parameter :: debug = .false.
 
@@ -186,6 +188,9 @@ contains
          cvdrift_alpha_vmec, &
          cvdrift0_psi_vmec, thetamod_vmec)
     
+    ! get ratio of number of simulated field periods to the number of field periods of the device
+    field_period_ratio = nfield_periods / real(nfp)
+
     allocate (zed_domain_size(nalpha))
 
     if (nzgrid_vmec /= nzgrid) then
@@ -334,6 +339,11 @@ contains
 !    grho = sqrt(gds22/surf%shat**2)/L_reference
     surf%drhotordrho = 1.0
     surf%psitor_lcfs = 0.5*sign_torflux
+
+    ! this is zeta0 that appears everywhere in tandem with zeta-zeta0
+    ! converted to the zed coordinate (which is possibly arc-length
+    ! and is compressed to fit on the range -pi,pi)
+    surf%zed0_fac = -zed(nzgrid)/zeta(1,nzgrid)*surf%qinp
 
     ! scale the vmec output
     ! alpha = theta_pest - iota*zeta

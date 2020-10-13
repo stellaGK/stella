@@ -22,8 +22,11 @@ module dissipation
   logical :: hyper_dissipation, remove_zero_projection
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
   integer:: ikxmax_source
+
+  character(30) :: collision_model
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
+  real :: cfac
 
   real, dimension (:,:), allocatable :: aa_vpa, bb_vpa, cc_vpa
   real, dimension (:,:,:), allocatable :: aa_mu, cc_mu
@@ -32,6 +35,15 @@ module dissipation
   integer, dimension (:,:), allocatable :: vpadiff_idx
   complex, dimension (:,:,:), allocatable :: mudiff_response
   integer, dimension (:,:), allocatable :: mudiff_idx
+
+  complex, dimension (:,:,:,:,:), allocatable :: aa_blcs, cc_blcs
+  complex, dimension (:,:,:,:), allocatable :: bb_blcs
+  complex, dimension (:,:,:,:), allocatable :: dd_vecs
+  complex, dimension (:,:,:), allocatable :: cdiffmat_band
+  complex, dimension (:,:,:), allocatable :: blockmatrix
+  integer, dimension (:,:), allocatable :: ipiv
+  real, dimension (:,:,:), allocatable :: nus, nuD, nupa, nux, mw
+  integer :: info
 
   logical :: collisions_initialized = .false.
   real, dimension (2,2) :: time_collisions = 0.
@@ -43,7 +55,12 @@ contains
     implicit none
 
     call read_parameters
-    call init_collisions
+    if (include_collisions) then
+        call init_collisions
+    else
+        write(*,*) 'Coll. model:     None'
+        write(*,*)
+    end if
 
   end subroutine init_dissipation
 
@@ -55,12 +72,12 @@ contains
 
     implicit none
 
-    namelist /dissipation/ hyper_dissipation, D_hyper, &
+    namelist /dissipation/ collision_model, hyper_dissipation, D_hyper, &
          include_collisions, collisions_implicit, &
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_source
+         ikxmax_source, cfac
 
     integer :: in_file
     logical :: dexist
@@ -69,6 +86,7 @@ contains
        include_collisions = .false.
        include_krook_operator = .false.
        collisions_implicit = .true.
+       collision_model = "dougherty"
        momentum_conservation = .true.
        energy_conservation = .true.
        vpa_operator = .true.
@@ -79,6 +97,7 @@ contains
        nu_krook = 0.05
        delay_krook =0.02
        ikxmax_source = 2 ! kx=0 and kx=1
+       cfac = 1
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
@@ -89,6 +108,7 @@ contains
     call broadcast (include_collisions)
     call broadcast (include_krook_operator)
     call broadcast (collisions_implicit)
+    call broadcast (collision_model)
     call broadcast (momentum_conservation)
     call broadcast (energy_conservation)
     call broadcast (vpa_operator)
@@ -99,6 +119,7 @@ contains
     call broadcast (delay_krook)
     call broadcast (ikxmax_source)
     call broadcast (remove_zero_projection)
+    call broadcast (cfac)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -120,25 +141,32 @@ contains
     real :: cfl_dt_vpadiff, cfl_dt_mudiff
     real :: vnew_max
 
+
     if (collisions_initialized) return
     collisions_initialized = .true.
 
-    if (collisions_implicit) then
-       if (vpa_operator) then
-          call init_vpadiff_matrix
-          call init_vpadiff_conserve
-       end if
-       if (mu_operator) then
-          call init_mudiff_matrix
-          call init_mudiff_conserve
-       end if
-    else
-       vnew_max = 0.0
-       do is = 1, nspec
-          vnew_max = max(vnew_max,maxval(spec(is)%vnew))
-       end do
-       cfl_dt_vpadiff = 2.0*dvpa**2/vnew_max
-       cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
+    if (collision_model == "dougherty") then
+        write(*,*)
+        write(*,*) 'Coll. model:     Dougherty'
+        if (collisions_implicit) then
+            write(*,*) 'Coll. algorithm: implicit'
+           if (vpa_operator) then
+              call init_vpadiff_matrix
+              call init_vpadiff_conserve
+           end if
+           if (mu_operator) then
+              call init_mudiff_matrix
+              call init_mudiff_conserve
+           end if
+        else
+            write(*,*) 'Coll. algorithm: explicit'
+           vnew_max = 0.0
+           do is = 1, nspec
+              vnew_max = max(vnew_max,maxval(spec(is)%vnew))
+           end do
+           cfl_dt_vpadiff = 2.0*dvpa**2/vnew_max
+           cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
+        end if
     end if
 
     if(include_krook_operator.and..not.allocated(g_krook)) then
@@ -153,8 +181,591 @@ contains
     int_krook = 0.
     int_proj  = 0.
 
+    if (collision_model == "fokker-planck") then
+        write(*,*) 'Coll. model:     linearized Fokker-Planck'
+        write(*,*) 'Note:            tested for linear CBC w. adiabatic e-'
+        call init_nusDpa
+        if (collisions_implicit) then
+            write(*,*) 'Coll. algorithm: implicit'
+           call init_fp_diffmatrix
+           call init_fp_conserve
+        else
+            write(*,*) 'Coll. algorithm: explicit'
+           vnew_max = 0.0
+           do is = 1, nspec
+              vnew_max = max(vnew_max,maxval(spec(is)%vnew))
+           end do
+           cfl_dt_vpadiff = 2.0*dvpa**2/vnew_max
+           cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
+        end if
+    end if
+    write(*,*)
   end subroutine init_collisions
-  
+
+  subroutine init_nusDpa
+
+          ! AVB: compute the collision frequencies nuD, nus and nupa
+
+          use zgrid, only: nzgrid
+          use vpamu_grids, only: nmu, mu, dmu, vpa, nvpa
+          use stella_geometry, only: bmag
+          use species, only: spec
+          use spfunc, only: erf => erf_ext
+          use finite_differences, only: fd3pt
+          use vpamu_grids, only: maxwell_mu, maxwell_vpa
+          use constants, only: pi
+
+          implicit none
+
+          integer :: ia, imu, iv, iz, is
+          real :: x, Gf
+
+          if (.not.allocated(nus)) allocate (nus(nvpa,nmu,-nzgrid:nzgrid))
+          if (.not.allocated(nuD)) allocate (nuD(nvpa,nmu,-nzgrid:nzgrid))
+          if (.not.allocated(nupa)) allocate (nupa(nvpa,nmu,-nzgrid:nzgrid))
+          if (.not.allocated(nux)) allocate (nux(nvpa,nmu,-nzgrid:nzgrid))
+          if (.not.allocated(mw)) allocate (mw(nvpa,nmu,-nzgrid:nzgrid))
+
+          ia = 1
+          is = 1
+
+          do iz = -nzgrid, nzgrid
+              do iv = 1, nvpa
+                  do imu = 1, nmu
+                      x = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mu(imu))
+                      Gf = (erf(x)-x*(2/sqrt(pi))*exp(-x**2)) / (2*x**2)
+                      nuD(iv,imu,iz) = spec(is)%vnew(is)*(erf(x)-Gf)/x**3
+                      nus(iv,imu,iz) = spec(is)%vnew(is)*4*Gf/x
+                      nupa(iv,imu,iz)= spec(is)%vnew(is)*2*Gf/x**3
+                      mw(iv,imu,iz)  = maxwell_vpa(iv,is)*maxwell_mu(1,iz,imu,is)
+                  end do
+              end do
+          end do
+
+          nux = nupa - nuD
+
+      end subroutine init_nusDpa
+
+      subroutine finish_nusDpa
+
+              implicit none
+
+              if (allocated(nus)) deallocate (nus)
+              if (allocated(nuD)) deallocate (nuD)
+              if (allocated(nupa)) deallocate (nupa)
+              if (allocated(nux)) deallocate (nux)
+              if (allocated(mw)) deallocate (mw)
+
+      end subroutine finish_nusDpa
+
+      subroutine init_fp_diffmatrix
+
+        use stella_time, only: code_dt
+        use species, only: nspec, spec
+        use zgrid, only: nzgrid
+        use vpamu_grids, only: dvpa, vpa, nvpa, mu, nmu, maxwell_mu, maxwell_vpa, dmu, equally_spaced_mu_grid
+        use stella_layouts, only: kxkyz_lo
+        use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+        use stella_geometry, only: bmag
+        use dist_fn_arrays, only: kperp2
+        use constants, only: pi
+
+        implicit none
+
+        integer :: ikxkyz, iky, ikx, iz, is
+        integer :: imu, ia, iv
+        integer :: nc, nb, lldab
+        real :: vpap, vpam, vfac, mum, mup
+        real :: xpv, xmv, nupapv, nupamv, nuDpv, nuDmv, mwpv, mwmv, gam_mu, gam_mum, gam_mup
+        real :: mwm, mwp, nuDm, nuDp, nupam, nupap, xm, xp
+
+        if (.not.allocated(aa_blcs)) allocate (aa_blcs(nvpa,nmu,nmu,-nzgrid:nzgrid,nspec))
+        if (.not.allocated(bb_blcs)) allocate (bb_blcs(nvpa,nmu,nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+        if (.not.allocated(cc_blcs)) allocate (cc_blcs(nvpa,nmu,nmu,-nzgrid:nzgrid,nspec))
+        if (.not.allocated(dd_vecs)) allocate (dd_vecs(nvpa,nmu,-nzgrid:nzgrid,nspec))
+        if (.not.allocated(cdiffmat_band)) allocate (cdiffmat_band(3*(nmu+1)+1,nmu*nvpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+        if (.not.allocated(blockmatrix)) allocate (blockmatrix(nvpa*nmu,nvpa*nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+        if (.not.allocated(ipiv)) allocate (ipiv(nvpa*nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+
+        ia = 1
+        vfac = 1 ! zero vpa-operator, in beta
+        aa_blcs = 0.
+        bb_blcs = 0.
+        cc_blcs = 0.
+        dd_vecs = 0.
+
+        ! AVB: construct difference matrix stored in block form
+        ! AVB: this matrix is nvpa*nmu x nvpa*nmu
+        ! AVB: aa_blcs stores subdiagonal blocks, bb_blcs diagonal blocks and cc_blcs the superdiagonal blocks
+        ! AVB: aa_blcs(1,:,:) and cc_blcs(nmu,:,:) are never used
+
+        do imu = 1, nmu
+            do iv = 1, nvpa
+                do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                   iky = iky_idx(kxkyz_lo,ikxkyz)
+                   ikx = ikx_idx(kxkyz_lo,ikxkyz)
+                   iz = iz_idx(kxkyz_lo,ikxkyz)
+                   is = is_idx(kxkyz_lo,ikxkyz)
+
+                   if (iv == 1) then
+                        vpap   = 0.5*(vpa(iv)+vpa(iv+1))
+                        mwpv   = exp(-vpap**2)*maxwell_mu(1,iz,imu,is)
+                        xpv    = sqrt(vpap**2 + 2*bmag(ia,iz)*mu(imu))
+                        nupapv = vfac*spec(is)%vnew(is)*2*(erf(xpv)-xpv*(2/sqrt(pi))*exp(-xpv**2)) / (2*xpv**2)/xpv**3
+                        nuDpv  = vfac*spec(is)%vnew(is)*(erf(xpv)-(erf(xpv)-xpv*(2/sqrt(pi))*exp(-xpv**2)) / (2*xpv**2))/xpv**3
+
+                        if (imu == 1) then
+                            ! one-sided difference for mu-derivative at imu=1:
+                            cc_blcs(iv,imu,imu+1,iz,is) = -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu+1,iz) / (2*dvpa) / dmu(imu)
+                            cc_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz) &
+                                                                +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu,iz) / (2*dvpa) / dmu(imu)
+                            bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv) / dvpa**2 / mw(iv,imu,iz)
+                            ! mu operator
+                            if (mu_operator) then
+                                ! use ghost cell at mu_{0} = 0, where term vanishes, so dmu(0) = mu(1).
+                                mup = 0.5*(mu(imu)+mu(imu+1))
+                                mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+                                xp = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+                                nuDp = spec(is)%vnew(is)*(erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2)) / xp**3
+                                nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+                                gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
+
+                                bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(gam_mu*-1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(gam_mup*-1/dmu(imu) - gam_mu*-1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
+                                bb_blcs(iv,imu,imu+1,ikxkyz)= bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*(gam_mu * 1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(gam_mup*1/dmu(imu) - gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu+1,iz) / (dmu(imu)/2.+mu(imu))
+                                ! mixed derivative:
+                                cc_blcs(iv,imu,imu,iz,is)   = cc_blcs(iv,imu,imu,iz,is) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu)/mu(imu)-mu(imu)/dmu(imu))) / (mu(imu)+dmu(imu)) / dvpa
+                                cc_blcs(iv,imu,imu+1,iz,is) = cc_blcs(iv,imu,imu+1,iz,is) - code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv+1,imu+1,iz)* mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu)) / dvpa
+                                bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv,imu,iz)*(dmu(imu)/mu(imu)-mu(imu)/dmu(imu))) / (mu(imu)+dmu(imu)) / dvpa
+                                bb_blcs(iv,imu,imu+1,ikxkyz)= bb_blcs(iv,imu,imu+1,ikxkyz) + code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv,imu+1,iz)* mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu)) / dvpa
+                            end if
+                        else if (imu == nmu) then
+                            ! AVB: one-sided difference for mu-derivative at imu=nmu:
+                            cc_blcs(iv,imu,imu-1,iz,is) = +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu-1,iz) / (2*dvpa) / dmu(nmu-1)
+                            cc_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz) &
+                                                            -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu,iz) / (2*dvpa) / dmu(nmu-1)
+                            bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv) / dvpa**2 / mw(iv,imu,iz)
+                             ! mu operator
+                            if (mu_operator) then
+                                mum = 0.5*(mu(imu)+mu(imu-1))
+                                mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+                                xm  = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+                                nuDm = spec(is)%vnew(is)*(erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2)) / xm**3
+                                nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+                                gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mum = 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm
+
+                                bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                + (-gam_mu/dmu(imu-1))*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                bb_blcs(iv,imu,imu-1,ikxkyz)= bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) - gam_mum * -1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                -gam_mu * -1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                ! mixed derivative:
+                                cc_blcs(iv,imu,imu,iz,is)   = cc_blcs(iv,imu,imu,iz,is) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                                cc_blcs(iv,imu,imu-1,iz,is) = cc_blcs(iv,imu,imu-1,iz,is) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv+1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                                bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                                bb_blcs(iv,imu,imu-1,ikxkyz)= bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                            end if
+                        else
+                            cc_blcs(iv,imu,imu-1,iz,is) = +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu-1,iz)*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            cc_blcs(iv,imu,imu+1,iz,is) = -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu+1,iz)*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            cc_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz) &
+                                                            -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv) / dvpa**2 / mw(iv,imu,iz)
+                            ! mu operator
+                            if (mu_operator) then
+                                ! quantities at mu_{i+1/2} and mu_{i-1/2}:
+                                mup = 0.5*(mu(imu)+mu(imu+1))
+                                mum = 0.5*(mu(imu)+mu(imu-1))
+                                mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+                                mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+                                xp = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+                                xm = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+                                nuDp = spec(is)%vnew(is)*(erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2)) / xp**3
+                                nuDm = spec(is)%vnew(is)*(erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2)) / xm**3
+                                nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+                                nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+                                gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mum = 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm
+                                gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
+
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
+                                                                +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) - gam_mum* -1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
+                                                                -gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*( gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) * dmu(imu)/dmu(imu-1) &
+                                                                + (gam_mup/dmu(imu) - gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu))) * dmu(imu-1)/dmu(imu)) / mw(iv,imu+1,iz) * 2/(dmu(imu-1)+dmu(imu))
+                                ! mixed derivative:
+                                cc_blcs(iv,imu,imu,iz,is)    = cc_blcs(iv,imu,imu,iz,is) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu)/dmu(imu-1)-dmu(imu-1)/dmu(imu))) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                cc_blcs(iv,imu,imu-1,iz,is)  = cc_blcs(iv,imu,imu-1,iz,is) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv+1,imu-1,iz)* dmu(imu)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                cc_blcs(iv,imu,imu+1,iz,is)  = cc_blcs(iv,imu,imu+1,iz,is) - code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv+1,imu+1,iz)* dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv,imu,iz)*(dmu(imu)/dmu(imu-1)-dmu(imu-1)/dmu(imu))) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv,imu-1,iz)* dmu(imu)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) + code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv,imu+1,iz)* dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                            end if
+                        end if
+
+                    else if (iv == nvpa) then
+                        vpam = 0.5*(vpa(iv)+vpa(iv-1))
+                        mwmv = exp(-vpam**2)*maxwell_mu(1,iz,imu,is)
+                        xmv = sqrt(vpam**2 + 2*bmag(ia,iz)*mu(imu))
+                        nupamv = vfac*spec(is)%vnew(is)*2*(erf(xmv)-xmv*(2/sqrt(pi))*exp(-xmv**2)) / (2*xmv**2)/xmv**3
+                        nuDmv = vfac*spec(is)%vnew(is)*(erf(xmv)-(erf(xmv)-xmv*(2/sqrt(pi))*exp(-xmv**2)) / (2*xmv**2))/xmv**3
+
+                        if (imu == 1) then
+                            ! one-sided difference for mu-derivative at imu=1:
+                            aa_blcs(iv,imu,imu+1,iz,is) = +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu+1,iz) / (2*dvpa) / dmu(imu)
+                            aa_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2  / mw(iv-1,imu,iz) &
+                                                            -vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu,iz) / (2*dvpa) / dmu(imu)
+                            bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv) / dvpa**2  / mw(iv,imu,iz)
+                            ! mu operator
+                            if (mu_operator) then
+                                ! use ghost cell at mu_{0} = 0, where term vanishes, so dmu(0) = mu(1).
+                                mup = 0.5*(mu(imu)+mu(imu+1))
+                                mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+                                xp = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+                                nuDp = spec(is)%vnew(is)*(erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2)) / xp**3
+                                nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+                                gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
+
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(gam_mu *-1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(gam_mup*-1/dmu(imu) - gam_mu*-1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*(gam_mu * 1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(gam_mup* 1/dmu(imu) - gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.))  / mw(iv,imu+1,iz) / (dmu(imu)/2.+mu(imu))
+                                ! mixed derivative:
+                                aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu)/mu(imu)-mu(imu)/dmu(imu))) / (mu(imu)+dmu(imu)) / (dvpa)
+                                aa_blcs(iv,imu,imu+1,iz,is)  = aa_blcs(iv,imu,imu+1,iz,is) + code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv-1,imu+1,iz)* mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv,imu,iz)*(dmu(imu)/mu(imu)-mu(imu)/dmu(imu))) / (mu(imu)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv,imu+1,iz)* mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu)) / (dvpa)
+                            end if
+                        else if (imu == nmu) then
+                            ! one-sided difference for mu-derivative at imu=nmu:
+                            aa_blcs(iv,imu,imu-1,iz,is) = -vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu-1,iz) / (2*dvpa) / dmu(nmu-1)
+                            aa_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2  / mw(iv-1,imu,iz) &
+                                                            +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu,iz) / (2*dvpa) / dmu(nmu-1)
+                            bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv) / dvpa**2 / mw(iv,imu,iz)
+                            ! mu operator
+                            if (mu_operator) then
+                                mum = 0.5*(mu(imu)+mu(imu-1))
+                                mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+                                xm = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+                                nuDm = spec(is)%vnew(is)*(erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2)) / xm**3
+                                nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+                                gam_mu  = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mum = 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm
+
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                + (-gam_mu/dmu(imu-1))*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) - gam_mum * -1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                -gam_mu * -1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                ! mixed derivative:
+                                aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                                aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv-1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
+                            end if
+                        else
+                            aa_blcs(iv,imu,imu-1,iz,is)  = -vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu-1,iz)* dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            aa_blcs(iv,imu,imu+1,iz,is)  = +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu+1,iz)* dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            aa_blcs(iv,imu,imu,iz,is)    = -code_dt*0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2 / mw(iv-1,imu,iz) &
+                                                            +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            bb_blcs(iv,imu,imu,ikxkyz)   = 1 + code_dt*(0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv) / dvpa**2 / mw(iv,imu,iz)
+                            ! mu operator
+                            if (mu_operator) then
+                                ! quantities at mu_{i+1/2} and mu_{i-1/2}:
+                                mup = 0.5*(mu(imu)+mu(imu+1))
+                                mum = 0.5*(mu(imu)+mu(imu-1))
+                                mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+                                mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+                                xp = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+                                xm = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+                                nuDp = spec(is)%vnew(is)*(erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2)) / xp**3
+                                nuDm = spec(is)%vnew(is)*(erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2)) / xm**3
+                                nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+                                nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+                                gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mum = 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm
+                                gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
+
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
+                                                                +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) - gam_mum* -1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
+                                                                -gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*( gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) * dmu(imu)/dmu(imu-1) &
+                                                                + (gam_mup/dmu(imu) - gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu))) * dmu(imu-1)/dmu(imu)) / mw(iv,imu+1,iz) * 2/(dmu(imu-1)+dmu(imu))
+                                ! mixed derivative, one-sided difference in vpa at iv = nvpa:
+                                aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu)/dmu(imu-1)-dmu(imu-1)/dmu(imu))) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv-1,imu-1,iz)* dmu(imu)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                aa_blcs(iv,imu,imu+1,iz,is)  = aa_blcs(iv,imu,imu+1,iz,is) + code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv-1,imu+1,iz)* dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv,imu,iz)*(dmu(imu)/dmu(imu-1)-dmu(imu-1)/dmu(imu))) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv,imu-1,iz)* dmu(imu)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv,imu+1,iz)* dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                            end if
+                        end if
+                    else
+                        vpam = 0.5*(vpa(iv)+vpa(iv-1))
+                        vpap = 0.5*(vpa(iv)+vpa(iv+1))
+                        mwmv = exp(-vpam**2)*maxwell_mu(1,iz,imu,is)
+                        mwpv = exp(-vpap**2)*maxwell_mu(1,iz,imu,is)
+                        xpv  = sqrt(vpap**2 + 2*bmag(ia,iz)*mu(imu))
+                        xmv = sqrt(vpam**2 + 2*bmag(ia,iz)*mu(imu))
+                        nupamv = vfac*spec(is)%vnew(is)*2*(erf(xmv)-xmv*(2/sqrt(pi))*exp(-xmv**2)) / (2*xmv**2)/xmv**3
+                        nupapv = vfac*spec(is)%vnew(is)*2*(erf(xpv)-xpv*(2/sqrt(pi))*exp(-xpv**2)) / (2*xpv**2)/xpv**3
+                        nuDmv = vfac*spec(is)%vnew(is)*(erf(xmv)-(erf(xmv)-xmv*(2/sqrt(pi))*exp(-xmv**2)) / (2*xmv**2))/xmv**3
+                        nuDpv = vfac*spec(is)%vnew(is)*(erf(xpv)-(erf(xpv)-xpv*(2/sqrt(pi))*exp(-xpv**2)) / (2*xpv**2))/xpv**3
+
+                        if (imu == 1) then
+                            ! one-sided difference for mu-derivative at imu=1:
+                             aa_blcs(iv,imu,imu+1,iz,is) = +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu+1,iz) / (2*dvpa) / dmu(imu)
+                             aa_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2 / mw(iv-1,imu,iz) -vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz) / (2*dvpa) / dmu(imu)
+                             cc_blcs(iv,imu,imu+1,iz,is) = -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu+1,iz) / (2*dvpa) / dmu(imu)
+                             cc_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz) +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz) / (2*dvpa) / dmu(imu)
+                             bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv + 0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv) / dvpa**2 / mw(iv,imu,iz)
+                             ! mu operator
+                             if (mu_operator) then
+                                 ! use ghost cell at mu_{0} = 0, where term vanishes, so dmu(0) = mu(1).
+                                 mup = 0.5*(mu(imu)+mu(imu+1))
+                                 mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+                                 xp = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+                                 nuDp = spec(is)%vnew(is)*(erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2)) / xp**3
+                                 nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+                                 gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                 gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
+
+                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(gam_mu *-1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(gam_mup*-1/dmu(imu) - gam_mu*-1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
+                                 bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz)  - code_dt*(gam_mu * 1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(gam_mup* 1/dmu(imu) - gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.))  / mw(iv,imu+1,iz) / (dmu(imu)/2.+mu(imu))
+                                 ! mixed derivative:
+                                 aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu)/mu(imu)-mu(imu)/dmu(imu))) / (mu(imu)+dmu(imu)) / (2*dvpa)
+                                 aa_blcs(iv,imu,imu+1,iz,is)  = aa_blcs(iv,imu,imu+1,iz,is) + code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv-1,imu+1,iz)* mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu)) / (2*dvpa)
+                                 cc_blcs(iv,imu,imu,iz,is)    = cc_blcs(iv,imu,imu,iz,is) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu)/mu(imu)-mu(imu)/dmu(imu))) / (mu(imu)+dmu(imu)) / (2*dvpa)
+                                 cc_blcs(iv,imu,imu+1,iz,is)  = cc_blcs(iv,imu,imu+1,iz,is) - code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv+1,imu+1,iz)* mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu)) / (2*dvpa)
+                             end if
+                        else if (imu == nmu) then
+                             ! one-sided difference for mu-derivative at imu=nmu:
+                             aa_blcs(iv,imu,imu-1,iz,is) = -vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu-1,iz) / (2*dvpa) / dmu(nmu-1)
+                             aa_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2 / mw(iv-1,imu,iz) + vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz) / (2*dvpa) / dmu(nmu-1)
+                             cc_blcs(iv,imu,imu-1,iz,is) = +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu-1,iz) / (2*dvpa) / dmu(nmu-1)
+                             cc_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz) - vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz) / (2*dvpa) / dmu(nmu-1)
+                             bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv + 0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv) / dvpa**2 / mw(iv,imu,iz)
+                             ! mu operator
+                             if (mu_operator) then
+                                 mum = 0.5*(mu(imu)+mu(imu-1))
+                                 mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+                                 xm = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+                                 nuDm = spec(is)%vnew(is)*(erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2)) / xm**3
+                                 nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+                                 gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                 gam_mum = 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm
+
+                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                + (-gam_mu/dmu(imu-1))*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                 bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) - gam_mum * -1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                -gam_mu * -1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                 ! mixed derivative:
+                                 aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (2*dvpa)
+                                 aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv-1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (2*dvpa)
+                                 cc_blcs(iv,imu,imu,iz,is)    = cc_blcs(iv,imu,imu,iz,is) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (2*dvpa)
+                                 cc_blcs(iv,imu,imu-1,iz,is)  = cc_blcs(iv,imu,imu-1,iz,is) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv+1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (2*dvpa)
+                             end if
+                        else
+                            ! vpa operator (interior treatment):
+                            aa_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2 / mw(iv-1,imu,iz) &
+                                                            +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            cc_blcs(iv,imu,imu,iz,is)   = -code_dt*0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz) &
+                                                            -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            bb_blcs(iv,imu,imu,ikxkyz)  = 1 + code_dt*(0.5*(nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv + 0.5*(nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv) / dvpa**2 / mw(iv,imu,iz)
+                            ! vpa operator, mixed (interior treatment):
+                            aa_blcs(iv,imu,imu-1,iz,is) = -vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu-1,iz)*  dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            aa_blcs(iv,imu,imu+1,iz,is) = +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)/mw(iv-1,imu+1,iz)*  dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            cc_blcs(iv,imu,imu-1,iz,is) = +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu-1,iz)*  dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                            cc_blcs(iv,imu,imu+1,iz,is) = -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)/mw(iv+1,imu+1,iz)*  dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+
+                            ! mu operator
+                            if (mu_operator) then
+                                ! quantities at mu_{i+1/2} and mu_{i-1/2}:
+                                mup = 0.5*(mu(imu)+mu(imu+1))
+                                mum = 0.5*(mu(imu)+mu(imu-1))
+                                mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+                                mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+                                xp = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+                                xm = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+                                nuDp = spec(is)%vnew(is)*(erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2)) / xp**3
+                                nuDm = spec(is)%vnew(is)*(erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2)) / xm**3
+                                nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+                                nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+                                gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
+                                gam_mum = 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm
+                                gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
+                                ! mu_operator (interior treatment):
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
+                                                                +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) - gam_mum* -1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
+                                                                -gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*( gam_mu * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) * dmu(imu)/dmu(imu-1) &
+                                                                + (gam_mup/dmu(imu) - gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu))) * dmu(imu-1)/dmu(imu)) / mw(iv,imu+1,iz) * 2/(dmu(imu-1)+dmu(imu))
+                                ! mu operator, mixed (interior treatment):
+                                aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is)   + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu)/dmu(imu-1)-dmu(imu-1)/dmu(imu))) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv-1,imu-1,iz)* dmu(imu)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                aa_blcs(iv,imu,imu+1,iz,is)  = aa_blcs(iv,imu,imu+1,iz,is) + code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv-1,imu+1,iz)* dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                cc_blcs(iv,imu,imu,iz,is)    = cc_blcs(iv,imu,imu,iz,is)   - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu)/dmu(imu-1)-dmu(imu-1)/dmu(imu))) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                cc_blcs(iv,imu,imu-1,iz,is)  = cc_blcs(iv,imu,imu-1,iz,is) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv+1,imu-1,iz)* dmu(imu)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                cc_blcs(iv,imu,imu+1,iz,is)  = cc_blcs(iv,imu,imu+1,iz,is) - code_dt*(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*1/mw(iv+1,imu+1,iz)* dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                           end if
+
+                        end if
+                    end if
+
+                    ! add gyro-diffusive term:
+                    bb_blcs(iv,imu,imu,ikxkyz) = bb_blcs(iv,imu,imu,ikxkyz) + code_dt*cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz)*bmag(ia,iz)*mu(imu) + nuD(iv,imu,iz)*(vpa(iv)**2 + bmag(ia,iz)*mu(imu)))
+
+                end do
+            end do
+        end do
+
+        ! switch from block storage to full matrix
+        blockmatrix = 0.
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz  = iz_idx(kxkyz_lo,ikxkyz)
+            is  = is_idx(kxkyz_lo,ikxkyz)
+            do iv = 1, nvpa
+                ! diagonal blocks:
+                blockmatrix(nmu*(iv-1)+1:nmu*iv, nmu*(iv-1)+1:nmu*iv, ikxkyz) = bb_blcs(iv,:,:,ikxkyz)
+                if (iv < nvpa) then
+                    ! subdiagonal blocks:
+                    blockmatrix(nmu*iv+1:nmu*(iv+1), nmu*(iv-1)+1:nmu*iv, ikxkyz) = aa_blcs(iv+1,:,:,iz,is)
+                    ! superdiagonal blocks:
+                    blockmatrix(nmu*(iv-1)+1:nmu*iv, nmu*iv+1:nmu*(iv+1), ikxkyz) = cc_blcs(iv,:,:,iz,is)
+                end if
+            end do
+        end do
+
+        ! switch from full matrix to band-storage, for LAPACK banded solver routines:
+        ! a_ij is stored in aband(ku+1+i-j,j) for $\max(1,j-ku) \leq i \leq \min(m,j+kl)$
+        cdiffmat_band = 0.
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz  = iz_idx(kxkyz_lo,ikxkyz)
+            is  = is_idx(kxkyz_lo,ikxkyz)
+            do iv = 1, nmu*nvpa
+                do imu = 1, nmu*nvpa
+                    if ((max(1, iv-(nmu+1)) .le. imu) .and. (imu .le. min(nvpa*nmu, iv+(nmu+1)))) then
+                        cdiffmat_band(nmu+1 + nmu+1 + 1+imu-iv, iv, ikxkyz) = blockmatrix(imu, iv, ikxkyz)
+                    end if
+                end do
+            end do
+        end do
+
+        ! AVB: LU factorise cdiffmat, using LAPACK's zgbtrf routine for factorising banded matrices:
+        nc = nvpa*nmu
+        nb = nmu+1
+        lldab = 3*(nmu+1)+1
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            call zgbtrf(nc, nc, nb, nb, cdiffmat_band(:,:,ikxkyz), lldab, ipiv(:,ikxkyz), info)
+        end do
+
+    end subroutine init_fp_diffmatrix
+
+    subroutine init_fp_conserve
+
+      use finite_differences, only: tridag
+      use linear_solve, only: lu_decomposition
+      use stella_time, only: code_dt
+      use species, only: nspec, spec
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
+      use vpamu_grids, only: nmu, nvpa,vpa, vperp2
+      use vpamu_grids, only: set_vpa_weights, wgts_vpa, wgts_mu
+      use kt_grids, only: naky, nakx
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
+      use dist_fn_arrays, only: gvmu
+      use gyro_averages, only: aj0v
+      use fields, only: get_fields, get_fields_by_spec
+      use stella_geometry, only: bmag
+      use job_manage, only: time_message, timer_local
+
+      implicit none
+
+      integer :: ikxkyz, iky, ikx, iz, is, it
+      integer :: imu, idx, ix, iv
+      logical :: conservative_wgts
+      real :: dum2, dum3
+      complex, dimension (:,:,:,:), allocatable :: dum1
+      complex, dimension (:,:,:,:,:), allocatable :: field
+      complex, dimension (:,:), allocatable :: sumdelta
+      complex, dimension (:,:), allocatable :: gvmutr
+      complex, dimension (:), allocatable :: ghrs
+
+      if (.not.allocated(vpadiff_response)) then
+         nresponse_vpa = 1
+         if (momentum_conservation) nresponse_vpa = nresponse_vpa + nspec
+         if (energy_conservation) nresponse_vpa = nresponse_vpa + nspec
+         allocate (vpadiff_response(nresponse_vpa,nresponse_vpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         vpadiff_response = 0.
+         allocate (vpadiff_idx(nresponse_vpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      end if
+
+      allocate (dum1(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
+      allocate (sumdelta(nmu,nvpa)); sumdelta = 0.
+
+      allocate (gvmutr(nvpa,nmu))
+      allocate (ghrs(nmu*nvpa))
+
+      ! set wgts to be equally spaced to ensure exact conservation properties
+      conservative_wgts = .true.
+      call set_vpa_weights (conservative_wgts)
+
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iky = iky_idx(kxkyz_lo,ikxkyz)
+         ikx = ikx_idx(kxkyz_lo,ikxkyz)
+         iz = iz_idx(kxkyz_lo,ikxkyz)
+         is = is_idx(kxkyz_lo,ikxkyz)
+         ! AVB: calculate Green's function: supply unit impulse to rhs at location (iv,imu), solve for response
+         sumdelta = 0.
+         do iv = 1, nvpa
+            do imu = 1, nmu
+                ghrs = 0.
+                ghrs(nmu*(iv-1)+imu) = 1.
+                ! solve for response:
+                call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,ikxkyz), 3*(nmu+1)+1, ipiv(:,ikxkyz), ghrs, nvpa*nmu, info)
+                do ix = 1, nvpa
+                    gvmutr(ix,:) = ghrs(nmu*(ix-1)+1 : nmu*(ix-1)+nmu)
+                end do
+                sumdelta = sumdelta + ztmax(iv,is)*maxwell_mu(1,iz,imu,is)*aj0v(imu,ikxkyz)*transpose(gvmutr)
+            end do
+        end do
+        gvmu(:,:,ikxkyz) = transpose(sumdelta) ! AVB: gvmu(:,:,ikxkyz) now contains: sum_iv sum_imu [ response(vpar,mu)_{iv,imu} ] / phi^(n+1) = h_{hom}^n+1(vpa,mu)_ikxkyz / phi^{n+1}_ikxkyz
+      end do
+
+      ! gvmu contains dhs/dphi
+      ! for phi equation, need 1-P[dhs/dphi]
+      call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
+
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iky = iky_idx(kxkyz_lo,ikxkyz)
+         ikx = ikx_idx(kxkyz_lo,ikxkyz)
+         iz = iz_idx(kxkyz_lo,ikxkyz)
+         it = it_idx(kxkyz_lo,ikxkyz)
+         vpadiff_response(1,1,ikxkyz) = 1.0-field(iky,ikx,iz,it,1) ! AVB: ravelled response
+      end do
+
+      ! now get LU decomposition for vpadiff_response
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         call lu_decomposition (vpadiff_response(:,:,ikxkyz),vpadiff_idx(:,ikxkyz),dum2)
+      end do
+
+      ! reset wgts to default setting
+      conservative_wgts = .false.
+      call set_vpa_weights (conservative_wgts)
+
+      deallocate (dum1, field)
+
+  end subroutine init_fp_conserve
+
   subroutine init_vpadiff_matrix
 
     use stella_time, only: code_dt
@@ -191,7 +802,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_vpa(:,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 + 1./dvpa**2)
+          *  (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 + 1./dvpa**2)
     end do
 
   end subroutine init_vpadiff_matrix
@@ -252,14 +863,14 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_mu(1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
+          * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + 1.0/(dmu(1)*bmag(ia,iz)) - 1.0)
        bb_mu(2:nmu-1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
+          * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + (mu_cell(2:nmu-1)/dmu(2:)+mu_cell(:nmu-2)/dmu(:nmu-2)) &
             /(dmu_cell(2:nmu-1)*bmag(ia,iz)) - 1.0)
        bb_mu(nmu,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
-            *( 0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
+          * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(nmu))
     end do
 
@@ -513,7 +1124,7 @@ contains
           call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
        end do
     end do
-    
+
     ! gvmu contains dhs/dphi
     ! for phi equation, need 1-P[dhs/dphi]
     ! for uperp equations, need -Us[dhs/dphi]
@@ -764,7 +1375,7 @@ contains
        it = it_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        g0 = g(:,:,ikxkyz)*(spread(vpa**2,2,nmu)-0.5) &
-            *spread(aj0v(:,ikxkyz),1,nvpa)/1.5
+          * spread(aj0v(:,ikxkyz),1,nvpa)/1.5
        call integrate_vmu (g0,iz,fld(iky,ikx,iz,it,is))
     end do
     deallocate (g0)
@@ -801,7 +1412,7 @@ contains
        it = it_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        g0 = g(:,:,ikxkyz)*(spread(vperp2(1,iz,:),1,nvpa)-1.0) &
-            *spread(aj0v(:,ikxkyz),1,nvpa)/1.5
+          * spread(aj0v(:,ikxkyz),1,nvpa)/1.5
        call integrate_vmu (g0,iz,fld(iky,ikx,iz,it,is))
     end do
     deallocate (g0)
@@ -834,9 +1445,25 @@ contains
     if(allocated(g_krook)) deallocate(g_krook)
     if(allocated(g_proj))  deallocate(g_proj)
 
+    if (collision_model == "fokker-planck") then
+        call finish_nusDpa
+        call finish_fp_diffmatrix
+    end if
+
     collisions_initialized = .false.
 
   end subroutine finish_collisions
+
+  subroutine finish_fp_diffmatrix
+
+    implicit none
+
+    if (allocated(aa_vpa)) deallocate (aa_vpa)
+    if (allocated(bb_vpa)) deallocate (bb_vpa)
+    if (allocated(cc_vpa)) deallocate (cc_vpa)
+    if (allocated(cdiffmat_band)) deallocate (cdiffmat_band)
+
+  end subroutine finish_fp_diffmatrix
 
   subroutine finish_vpadiff_matrix
 
@@ -1042,6 +1669,9 @@ contains
     complex, dimension (:,:,:), allocatable :: coll
     complex, dimension (:,:,:,:,:), allocatable :: tmp_vmulo
 
+    complex, dimension (:,:,:), allocatable :: mucoll_fp
+    complex, dimension (:,:,:), allocatable :: coll_fp
+
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
 
     allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -1060,45 +1690,79 @@ contains
     if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
 
     deallocate (tmp_vmulo)
-    
-    allocate (coll(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-    allocate (mucoll(nmu))
 
     ia = 1
+
     ! take vpa derivatives
-    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-       iky = iky_idx(kxkyz_lo,ikxkyz)
-       ikx = ikx_idx(kxkyz_lo,ikxkyz)
-       iz = iz_idx(kxkyz_lo,ikxkyz)
-       is = is_idx(kxkyz_lo,ikxkyz)
-       if (vpa_operator) then
-          do imu = 1, nmu
-             call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz)) 
-          end do
-       end if
-       if (mu_operator) then
-          do iv = 1, nvpa
-             call mu_differential_operator (iz, ia, gvmu(iv,:,ikxkyz), mucoll)
-             coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
-          end do
-       end if
-       if (momentum_conservation) call conserve_momentum (iky, ikx, iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
-       if (energy_conservation) call conserve_energy (iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
-       ! save memory by using gvmu and deallocating coll below
-       ! before re-allocating tmp_vmulo
-       gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
-    end do
-    deallocate (coll, mucoll)
-    allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    ! remap so that (ky,kx,z,tube) local
-    call gather (kxkyz2vmu, gvmu, tmp_vmulo)
+    if (collision_model=="dougherty") then
+        allocate (coll(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+        allocate (mucoll(nmu))
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+           iky = iky_idx(kxkyz_lo,ikxkyz)
+           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+           iz = iz_idx(kxkyz_lo,ikxkyz)
+           is = is_idx(kxkyz_lo,ikxkyz)
+           if (vpa_operator) then
+              do imu = 1, nmu
+                 call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
+              end do
+           end if
+           if (mu_operator) then
+              do iv = 1, nvpa
+                 call mu_differential_operator (iz, ia, gvmu(iv,:,ikxkyz), mucoll)
+                 coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
+              end do
+           end if
+           if (momentum_conservation) call conserve_momentum (iky, ikx, iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
+           if (energy_conservation) call conserve_energy (iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
+           ! save memory by using gvmu and deallocating coll below
+           ! before re-allocating tmp_vmulo
+           gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
+       end do
+       deallocate (coll, mucoll)
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       is = is_idx(vmu_lo,ivmu)
-       gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
-    end do
+       allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! remap so that (ky,kx,z,tube) local
+       call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
-    deallocate (tmp_vmulo)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
+       end do
+       deallocate (tmp_vmulo)
+    end if
+
+    if (collision_model=="fokker-planck") then
+        allocate (coll_fp(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); coll_fp = 0.0
+        allocate (mucoll_fp(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); mucoll_fp = 0.0
+
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo,ikxkyz)
+            ikx = ikx_idx(kxkyz_lo,ikxkyz)
+            iz = iz_idx(kxkyz_lo,ikxkyz)
+            is = is_idx(kxkyz_lo,ikxkyz)
+            if (vpa_operator) then
+              do imu = 1, nmu
+                  call vpa_differential_operator_fp (gvmu(:,:,ikxkyz), coll_fp(:,:,ikxkyz), imu, iz, is, ia)
+              end do
+            end if
+            if (mu_operator) then
+              do iv = 1, nvpa
+                 call mu_differential_operator_fp (gvmu(:,:,ikxkyz), mucoll_fp(:,:,ikxkyz), iv, iz, is, ia, iky, ikx, cfac)
+              end do
+            end if
+            gvmu(:,:,ikxkyz) = coll_fp(:,:,ikxkyz) + mucoll_fp(:,:,ikxkyz)
+        end do
+        deallocate (coll_fp, mucoll_fp)
+
+        allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        call gather (kxkyz2vmu, gvmu, tmp_vmulo)
+
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+           gke_rhs(:,:,:,:,ivmu) = gke_rhs(:,:,:,:,ivmu) + code_dt*tmp_vmulo(:,:,:,:,ivmu)
+        end do
+        deallocate (tmp_vmulo)
+    end if
 
     ! reset to default integration wgts
     conservative_wgts = .false.
@@ -1107,6 +1771,270 @@ contains
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
 
   end subroutine advance_collisions_explicit
+
+  subroutine vpa_differential_operator_fp (h, Dh, imu, iz, is, ia)
+
+      use vpamu_grids, only: nvpa, vpa, dvpa, mu, dmu, nmu, equally_spaced_mu_grid, maxwell_mu, maxwell_vpa
+      use stella_geometry, only: bmag
+      use constants, only: pi
+      use species, only: spec
+
+      implicit none
+
+      complex, dimension (:,:), intent (out) :: Dh
+      complex, dimension (:,:), intent (in) :: h
+      integer, intent (in) :: imu, iz, ia, is
+      integer :: iv
+      complex :: Dhmu, Dhmu_u, Dhmu_l, dmuhp, dmuhm, dvpah, dvpahp, dvpahm
+      real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm, a, b, c
+
+      iv = 1
+      vpap = 0.5*(vpa(iv)+vpa(iv+1))
+      xp   = sqrt(vpap**2 + 2*bmag(ia,iz)*mu(imu))
+      nuDp = spec(is)%vnew(is)*(erf(xp) - (erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) )/xp**3
+      nupap= spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+      mwp  = exp(-vpap**2)*maxwell_mu(1,iz,imu,is)
+      dvpahp = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv,imu)/mw(iv,imu,iz))/dvpa
+
+      if (imu == 1) then
+          ! second-order accurate
+          !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
+          !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
+          !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
+          !dmuhp = a*h(iv+1,imu)/mw(iv+1,imu,iz)+ b*h(iv+1,imu+1)/mw(iv+1,imu+1,iz) + c*h(iv+1,imu+2)/mw(iv+1,imu+2,iz)
+          ! first-order accurate, as in implicit routine:
+          dmuhp = (h(iv+1,imu+1)/mw(iv+1,imu+1,iz) - h(iv+1,imu)/mw(iv+1,imu,iz))/dmu(imu)
+      else if (imu == nmu) then
+          ! second-order accurate
+          !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
+          !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
+          !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
+          !dmuhp = a*h(iv+1,imu-2)/mw(iv+1,imu-2,iz) + b*h(iv+1,imu-1)/mw(iv+1,imu-1,iz) + c*h(iv+1,imu)/mw(iv+1,imu,iz)
+          ! first-order accurate, as in implicit routine:
+          dmuhp = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv+1,imu-1)/mw(iv+1,imu-1,iz))/dmu(imu-1)
+      else
+          dmuhp = ((h(iv+1,imu)/mw(iv+1,imu,iz)-h(iv+1,imu-1)/mw(iv+1,imu-1,iz))*dmu(imu)/dmu(imu-1) &
+                  + (h(iv+1,imu+1)/mw(iv+1,imu+1,iz)-h(iv+1,imu)/mw(iv+1,imu,iz))*dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu))
+      end if
+      Dh(iv,imu) = (2*0.5*(nupap*vpap**2 + 2*nuDp*bmag(ia,iz)*mu(imu))*mwp*dvpahp + vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)*dmuhp)/(2*dvpa)
+
+      iv = nvpa
+      vpam = 0.5*(vpa(iv)+vpa(iv-1))
+      xm   = sqrt(vpam**2 + 2*bmag(ia,iz)*mu(imu))
+      nuDm = spec(is)%vnew(is)*(erf(xm) - (erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) )/xm**3
+      nupam= spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+      mwm  = exp(-vpam**2)*maxwell_mu(1,iz,imu,is)
+      dvpahm = (h(iv,imu)/mw(iv,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dvpa
+
+      if (imu == 1) then
+          ! second-order accurate
+          !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
+          !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
+          !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
+          !dmuhm = a*h(iv-1,imu)/mw(iv-1,imu,iz) + b*h(iv-1,imu+1)/mw(iv-1,imu+1,iz) + c*h(iv-1,imu+2)/mw(iv-1,imu+2,iz)
+          ! first-order accurate, as in implicit routine:
+          dmuhm = (h(iv-1,imu+1)/mw(iv-1,imu+1,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dmu(imu)
+      else if (imu == nmu) then
+          ! second-order accurate
+          !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
+          !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
+          !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
+          !dmuhm = a*h(iv-1,imu-2)/mw(iv-1,imu-2,iz) + b*h(iv-1,imu-1)/mw(iv-1,imu-1,iz) + c*h(iv-1,imu)/mw(iv-1,imu,iz)
+          ! first-order accurate, as in implicit routine:
+          dmuhm = (h(iv-1,imu)/mw(iv-1,imu,iz) - h(iv-1,imu-1)/mw(iv-1,imu-1,iz))/dmu(imu-1)
+      else
+          dmuhm = ((h(iv-1,imu)/mw(iv-1,imu,iz)-h(iv-1,imu-1)/mw(iv-1,imu-1,iz))*dmu(imu)/dmu(imu-1) + (h(iv-1,imu+1)/mw(iv-1,imu+1,iz)-h(iv-1,imu)/mw(iv-1,imu,iz))*dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu))
+      end if
+      Dh(iv,imu) = (-2*0.5*(nupam*vpam**2 + 2*nuDm*bmag(ia,iz)*mu(imu))*mwm*dvpahm - vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)*dmuhm) / (2*dvpa)
+
+      do iv = 2, nvpa-1
+          ! AVB: interior nodes:
+          ! quantities at half-grid-points:
+          vpap = 0.5*(vpa(iv)+vpa(iv+1))
+          vpam = 0.5*(vpa(iv)+vpa(iv-1))
+          xp   = sqrt(vpap**2 + 2*bmag(ia,iz)*mu(imu))
+          xm   = sqrt(vpam**2 + 2*bmag(ia,iz)*mu(imu))
+          nuDp = spec(is)%vnew(is)*(erf(xp) - (erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) )/xp**3
+          nuDm = spec(is)%vnew(is)*(erf(xm) - (erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) )/xm**3
+          nupap= spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+          nupam= spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+          mwp  = exp(-vpap**2)*maxwell_mu(1,iz,imu,is)
+          mwm  = exp(-vpam**2)*maxwell_mu(1,iz,imu,is)
+          dvpahp = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv  ,imu)/mw(iv,imu,iz))/dvpa
+          dvpahm = (h(iv  ,imu)/mw(iv,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dvpa
+
+          if (imu == 1) then
+              ! second-order accurate:
+              !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
+              !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
+              !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
+              !dmuhp = a*h(iv+1,imu)/mw(iv+1,imu,iz) + b*h(iv+1,imu+1)/mw(iv+1,imu+1,iz) + c*h(iv+1,imu+2)/mw(iv+1,imu+2,iz)
+              !dmuhm = a*h(iv-1,imu)/mw(iv-1,imu,iz) + b*h(iv-1,imu+1)/mw(iv-1,imu+1,iz) + c*h(iv-1,imu+2)/mw(iv-1,imu+2,iz)
+              ! or first-order accurate, as in implicit routine:
+              dmuhp = (h(iv+1,imu+1)/mw(iv+1,imu+1,iz) - h(iv+1,imu)/mw(iv+1,imu,iz))/dmu(imu)
+              dmuhm = (h(iv-1,imu+1)/mw(iv-1,imu+1,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dmu(imu)
+          else if (imu == nmu) then
+              ! second-order accurate:
+              !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
+              !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
+              !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
+              !dmuhp = a*h(iv+1,imu-2)/mw(iv+1,imu-2,iz) + b*h(iv+1,imu-1)/mw(iv+1,imu-1,iz) + c*h(iv+1,imu)/mw(iv+1,imu,iz)
+              !dmuhm = a*h(iv-1,imu-2)/mw(iv-1,imu-2,iz) + b*h(iv-1,imu-1)/mw(iv-1,imu-1,iz) + c*h(iv-1,imu)/mw(iv-1,imu,iz)
+              ! or first-order accurate, as in implicit routine:
+              dmuhp = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv+1,imu-1)/mw(iv+1,imu-1,iz))/dmu(imu-1)
+              dmuhm = (h(iv-1,imu)/mw(iv-1,imu,iz) - h(iv-1,imu-1)/mw(iv-1,imu-1,iz))/dmu(imu-1)
+          else
+              dmuhp = ((h(iv+1,imu)/mw(iv+1,imu,iz)-h(iv+1,imu-1)/mw(iv+1,imu-1,iz))*dmu(imu)/dmu(imu-1) + (h(iv+1,imu+1)/mw(iv+1,imu+1,iz)-h(iv+1,imu)/mw(iv+1,imu,iz))*dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu))
+              dmuhm = ((h(iv-1,imu)/mw(iv-1,imu,iz)-h(iv-1,imu-1)/mw(iv-1,imu-1,iz))*dmu(imu)/dmu(imu-1) + (h(iv-1,imu+1)/mw(iv-1,imu+1,iz)-h(iv-1,imu)/mw(iv-1,imu,iz))*dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu))
+          end if
+          Dh(iv,imu) = (2*0.5*(nupap*vpap**2 + 2*nuDp*bmag(ia,iz)*mu(imu))*mwp*dvpahp + vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz)*mw(iv+1,imu,iz)*dmuhp &
+                      - 2*0.5*(nupam*vpam**2 + 2*nuDm*bmag(ia,iz)*mu(imu))*mwm*dvpahm - vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz)*mw(iv-1,imu,iz)*dmuhm) / (2*dvpa)
+      end do
+
+  end subroutine vpa_differential_operator_fp
+
+  subroutine mu_differential_operator_fp (h, Dh, iv, iz, is, ia, iky, ikx, cfac)
+
+      use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_mu, maxwell_vpa, equally_spaced_mu_grid
+      use stella_geometry, only: bmag
+      use species, only: spec
+      use dist_fn_arrays, only: kperp2
+      use constants, only: pi
+      use job_manage, only: timer_local, time_message
+      use mp, only: proc0
+
+      implicit none
+
+      complex, dimension (:,:), intent (in) :: h
+      complex, dimension (:,:), intent (out) :: Dh
+      integer, intent (in) :: iv, iz, is, ia, iky, ikx
+      real, intent (in) :: cfac
+      complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
+      real :: nuDp, nuDm, nupap, nupam, mup, mum, nusp, nuxp, xp, xm, mwm, mwp, a, b, c
+      integer :: imu
+
+      imu = 1
+      ! vpa-differential terms:
+      if (iv == 1) then
+          ! AVB: first order accurate:
+          Dvpah   = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv,imu)/mw(iv,imu,iz))/dvpa
+          Dvpah_p = (h(iv+1,imu+1)/mw(iv+1,imu+1,iz) - h(iv,imu+1)/mw(iv,imu+1,iz))/dvpa
+      else if (iv == nvpa) then
+          ! AVB: first order accurate:
+          Dvpah   = (h(iv,imu)/mw(iv,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dvpa
+          Dvpah_p = (h(iv,imu+1)/mw(iv,imu+1,iz) - h(iv-1,imu+1)/mw(iv-1,imu+1,iz))/dvpa
+      else
+          Dvpah   = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/(2*dvpa)
+          Dvpah_p = (h(iv+1,imu+1)/mw(iv+1,imu+1,iz) - h(iv-1,imu+1)/mw(iv-1,imu+1,iz))/(2*dvpa)
+      end if
+
+      ! first mu-derivative term at mu_{i}:
+      ! use ghost cell at mu_{0} = 0, where term vanishes, so dmu(0) = mu(1).
+      Dmuh1 = ((vpa(iv)*mu(imu  )*nux(iv,imu  ,iz)*mw(iv,imu,iz)*Dvpah)*dmu(imu)/mu(imu) &
+              +(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*Dvpah_p-vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*Dvpah)*mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu))
+      ! first derivative of h, at mu_{i+1/2}, and at mu_i:
+      Dmuh  = (h(iv,imu+1)/mw(iv,imu+1,iz) - h(iv,imu)/mw(iv,imu,iz))/dmu(imu) ! first-order accurate, as used in implicit routine
+      ! for second-order accuracy:
+      !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
+      !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
+      !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
+      !Dmuh   = a*h(iv,imu)/mw(iv,imu,iz) + b*h(iv,imu+1)/mw(iv,imu+1,iz) + c*h(iv,imu+2)/mw(iv,imu+2,iz) ! second order accurate
+      Dmuh_p = (h(iv,imu+1)/mw(iv,imu+1,iz) - h(iv,imu)/mw(iv,imu,iz))/dmu(imu) ! second-order accurate
+      ! quantities at mu_{i+1/2}:
+      mup = 0.5*(mu(imu)+mu(imu+1))
+      mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+      xp  = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+      nuDp  = spec(is)%vnew(is)*( erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) )/xp**3
+      nupap = spec(is)%vnew(is)*2*(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2)) / (2*xp**2) / xp**3
+      ! second mu-derivative term at mu_{i}:
+      ! use d/dmu[...]_{1} = ([...]_{1+1/2} - [...]_{0})/(dmu_{1}/2+mu(1)), where [...]_{0} is a ghost cell at mu_{0} = 0, with [...]_{0} = 0.
+      Dmuh2 = ( (2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)*Dmuh )*dmu(imu)/2./mu(imu) &
+               +(2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp*Dmuh_p - 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)*Dmuh)*mu(imu)/(dmu(imu)/2.) )/(mu(imu)+dmu(imu)/2.)
+      ! add differential terms and gyro-diffusive term:
+      Dh(iv,imu) = Dmuh2 + Dmuh1 - cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz)*bmag(ia,iz)*mu(imu) + nuD(iv,imu,iz)*(vpa(iv)**2 + bmag(ia,iz)*mu(imu)))*h(iv,imu)
+
+      imu = nmu
+      ! vpa-differential terms:
+      if (iv == 1) then
+          ! AVB: first order accurate:
+          Dvpah   = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv,imu)/mw(iv,imu,iz))/dvpa
+          Dvpah_m = (h(iv+1,imu-1)/mw(iv+1,imu-1,iz) - h(iv,imu-1)/mw(iv,imu-1,iz))/dvpa
+      else if (iv == nvpa) then
+          ! AVB: first order accurate:
+          Dvpah   = (h(iv,imu)/mw(iv,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dvpa
+          Dvpah_m = (h(iv,imu-1)/mw(iv,imu-1,iz) - h(iv-1,imu-1)/mw(iv-1,imu-1,iz))/dvpa
+      else
+          Dvpah   = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/(2*dvpa)
+          Dvpah_m = (h(iv+1,imu-1)/mw(iv+1,imu-1,iz) - h(iv-1,imu-1)/mw(iv-1,imu-1,iz))/(2*dvpa)
+      end if
+
+      ! first mu-derivative term at mu_{nmu}:
+      Dmuh1 = (( vpa(iv)*mu(imu )*nux(iv,imu  ,iz)*mw(iv,imu,iz)*Dvpah - vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*Dvpah_m)*dmu(imu-1)/dmu(imu-1) &
+              +( - vpa(iv)*mu(imu  )*nux(iv,imu  ,iz)*mw(iv,imu  ,iz)*Dvpah )*dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1))
+      ! first derivative of h, at mu_{nmu} and mu_{nmu-1/2}:
+      Dmuh_m = (h(iv,imu)/mw(iv,imu,iz) - h(iv,imu-1)/mw(iv,imu-1,iz))/dmu(imu-1)
+      Dmuh   = (h(iv,imu)/mw(iv,imu,iz) - h(iv,imu-1)/mw(iv,imu-1,iz))/dmu(imu-1) ! first-order accurate
+      ! for second-order accuracy:
+      !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
+      !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
+      !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
+      !Dmuh = a*h(iv,imu-2)/mw(iv,imu-2,iz) + b*h(iv,imu-1)/mw(iv,imu-1,iz) + c*h(iv,imu)/mw(iv,imu,iz)
+      ! quantities at mu_{nmu-1/2}:
+      mum = 0.5*(mu(imu)+mu(imu-1))
+      mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+      xm  = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+      nuDm  = spec(is)%vnew(is)*( erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) )/xm**3
+      nupam = spec(is)%vnew(is)*2*(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2)) / (2*xm**2) / xm**3
+      ! second mu-derivative term at mu_{nmu}:
+      ! use d/dmu[...]_{nmu} = ([...]_{nmu+1} - [...]_{nmu-1/2})/(dmu_{nmu-1}/2+dmu(nmu-1)), where [...]_{nmu+1} is a ghost cell at mu = mu_{nmu} + dmu(nmu-1), with [...]_{nmu+1} = 0.
+      Dmuh2 = ( ( 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)*Dmuh - 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm*Dmuh_m)*dmu(imu-1)/(dmu(imu-1)/2) &
+               +(-2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)*Dmuh)*dmu(imu-1)/2./dmu(imu-1) )/(dmu(imu-1)/2.+dmu(imu-1))
+      ! add differential terms and gyro-diffusive term:
+      Dh(iv,imu) = Dmuh2 + Dmuh1 - cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz)*bmag(ia,iz)*mu(imu) + nuD(iv,imu,iz)*(vpa(iv)**2 + bmag(ia,iz)*mu(imu)))*h(iv,imu)
+
+      do imu = 2, nmu-1
+          ! vpa-differential terms:
+          if (iv == 1) then
+              ! AVB: first order accurate:
+              Dvpah   = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv,imu)/mw(iv,imu,iz))/dvpa
+              Dvpah_p = (h(iv+1,imu+1)/mw(iv+1,imu+1,iz) - h(iv,imu+1)/mw(iv,imu+1,iz))/dvpa
+              Dvpah_m = (h(iv+1,imu-1)/mw(iv+1,imu-1,iz) - h(iv,imu-1)/mw(iv,imu-1,iz))/dvpa
+          else if (iv == nvpa) then
+              ! AVB: first order accurate:
+              Dvpah   = (h(iv,imu)/mw(iv,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/dvpa
+              Dvpah_p = (h(iv,imu+1)/mw(iv,imu+1,iz) - h(iv-1,imu+1)/mw(iv-1,imu+1,iz))/dvpa
+              Dvpah_m = (h(iv,imu-1)/mw(iv,imu-1,iz) - h(iv-1,imu-1)/mw(iv-1,imu-1,iz))/dvpa
+          else
+              Dvpah   = (h(iv+1,imu)/mw(iv+1,imu,iz) - h(iv-1,imu)/mw(iv-1,imu,iz))/(2*dvpa)
+              Dvpah_p = (h(iv+1,imu+1)/mw(iv+1,imu+1,iz) - h(iv-1,imu+1)/mw(iv-1,imu+1,iz))/(2*dvpa)
+              Dvpah_m = (h(iv+1,imu-1)/mw(iv+1,imu-1,iz) - h(iv-1,imu-1)/mw(iv-1,imu-1,iz))/(2*dvpa)
+          end if
+          ! first mu-derivative of vpa-derivative term, at mu_{i}:
+          Dmuh1 = ( (vpa(iv)*mu(imu  )*nux(iv,imu  ,iz)*mw(iv,imu,iz)*Dvpah     - vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*Dvpah_m)*dmu(imu)/dmu(imu-1) &
+                   +(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz)*Dvpah_p - vpa(iv)*mu(imu  )*nux(iv,imu  ,iz)*mw(iv,imu,iz)*Dvpah    )*dmu(imu-1)/dmu(imu) ) / (dmu(imu-1)+dmu(imu))
+          ! first mu-derivatives of h, at mu_i, mu_{i+1/2} and mu_{i-1/2}:
+          Dmuh   = ( (h(iv,imu)/mw(iv,imu,iz)-h(iv,imu-1)/mw(iv,imu-1,iz))*dmu(imu)/dmu(imu-1) + (h(iv,imu+1)/mw(iv,imu+1,iz)-h(iv,imu)/mw(iv,imu,iz))*dmu(imu-1)/dmu(imu) ) / (dmu(imu-1)+dmu(imu))
+          Dmuh_m = (h(iv,imu)/mw(iv,imu,iz) - h(iv,imu-1)/mw(iv,imu-1,iz))/dmu(imu-1)
+          Dmuh_p = (h(iv,imu+1)/mw(iv,imu+1,iz) - h(iv,imu)/mw(iv,imu,iz))/dmu(imu)
+          ! quantities at mu_{i+1/2} and mu_{i-1/2}:
+          mup = 0.5*(mu(imu)+mu(imu+1))
+          mum = 0.5*(mu(imu)+mu(imu-1))
+          mwp = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mup)
+          mwm = maxwell_vpa(iv,is)*exp(-2*bmag(ia,iz)*mum)
+          xp  = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mup)
+          xm  = sqrt(vpa(iv)**2 + 2*bmag(ia,iz)*mum)
+          nuDp  = spec(is)%vnew(is)*( erf(xp)-(erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2) ) / (2*xp**2) )/xp**3
+          nuDm  = spec(is)%vnew(is)*( erf(xm)-(erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2) ) / (2*xm**2) )/xm**3
+          nupap = spec(is)%vnew(is)*2*( erf(xp)-xp*(2/sqrt(pi))*exp(-xp**2) ) / (2*xp**2) / xp**3
+          nupam = spec(is)%vnew(is)*2*( erf(xm)-xm*(2/sqrt(pi))*exp(-xm**2) ) / (2*xm**2) / xm**3
+          ! second mu-derivative term at mu_{i}:
+          Dmuh2 = ( ( 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)*Dmuh - 2*(nupam*mum**2+nuDm*vpa(iv)**2/(2*bmag(ia,iz))*mum)*mwm*Dmuh_m )*dmu(imu)/dmu(imu-1) &
+                   +( 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp*Dmuh_p - 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)*Dmuh )*dmu(imu-1)/dmu(imu) )*2/(dmu(imu-1)+dmu(imu))
+          ! add differential terms and gyro-diffusive term:
+          Dh(iv,imu) = Dmuh2 + Dmuh1 - cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz)*bmag(ia,iz)*mu(imu) + nuD(iv,imu,iz)*(vpa(iv)**2 + bmag(ia,iz)*mu(imu)))*h(iv,imu)
+      end do
+
+  end subroutine mu_differential_operator_fp
 
   subroutine vpa_differential_operator (h, Dh)
 
@@ -1173,13 +2101,13 @@ contains
        ! pad h_ghost array with ghost cell beyond max(mu) with zero BC
        h_ghost(:nmu) = h ; h_ghost(nmu+1) = 0.
        ! assign extra dmu value at nmu (beyond mu grid)
-       ! because it will be accessed (but not later used) 
+       ! because it will be accessed (but not later used)
        ! by generic subroutine d2_3pt
        dmu_ghost(:nmu-1) = dmu(:nmu-1) ; dmu_ghost(nmu) = 1.0
-       
+
        call d2_3pt (h_ghost, Dh_ghost, dmu_ghost)
        Dh = Dh_ghost(:nmu)*mu/bmag(ia,iz)
-       
+
        ! next add (1/B + 2*mu)*dh/dmu + 2*h
        call fd3pt (h_ghost, Dh_ghost, dmu_ghost)
        Dh = Dh + (1./bmag(ia,iz) + 2.*mu)*Dh_ghost(:nmu) + 2.*h
@@ -1233,7 +2161,7 @@ contains
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use gyro_averages, only: aj0v
-    
+
     implicit none
 
     integer, intent (in) :: iz, is, ikxkyz
@@ -1282,8 +2210,13 @@ contains
     call scatter (kxkyz2vmu, g, gvmu)
     if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
 
-    if (vpa_operator) call advance_vpadiff_implicit (phi, apar, gvmu)
-    if (mu_operator) call advance_mudiff_implicit (phi, apar, gvmu)
+    if (collision_model == "dougherty") then
+        if (vpa_operator) call advance_vpadiff_implicit (phi, apar, gvmu)
+        if (mu_operator) call advance_mudiff_implicit (phi, apar, gvmu)
+    end if
+    if (collision_model == "fokker-planck") then
+        call advance_implicit_fp (phi, apar, gvmu)
+    end if
 
     if (.not.mirror_implicit) then
        ! then take the results and remap again so ky,kx,z local.
@@ -1296,8 +2229,118 @@ contains
     call set_vpa_weights (conservative_wgts)
 
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
-    
+
   end subroutine advance_collisions_implicit
+
+  subroutine advance_implicit_fp (phi, apar, g)
+
+    use mp, only: sum_allreduce
+    use finite_differences, only: tridag
+    use linear_solve, only: lu_back_substitution
+    use stella_time, only: code_dt
+    use run_parameters, only: fphi
+    use species, only: nspec, spec
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: nmu, nvpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
+    use vpamu_grids, only: set_vpa_weights
+    use kt_grids, only: naky, nakx
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
+    use g_tofrom_h, only: g_to_h
+    use gyro_averages, only: aj0v
+    use fields, only: get_fields
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
+
+    real, dimension (:,:), allocatable :: tmp
+    complex, dimension (:,:,:,:,:), allocatable :: flds
+    complex, dimension (:,:,:), allocatable :: g_in
+    complex, dimension (:,:), allocatable :: gvmutr
+    complex, dimension (:), allocatable :: ghrs
+
+    integer :: ikxkyz, iky, ikx, iz, is, imu, iv, it
+    integer :: idx
+
+    ! store input g for use later, as g will be overwritten below
+    allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+    g_in = g
+
+    allocate (gvmutr(nvpa,nmu))
+    allocate (ghrs(nmu*nvpa))
+
+    !! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
+    !! g = g^{***}. tridag below inverts above equation to get h_inh^{n+1}
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       is = is_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       do iv = 1, nvpa
+             ghrs(nmu*(iv-1)+1 : nmu*iv) = g(iv,:,ikxkyz)
+       end do
+       ! using lapack:
+       call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,ikxkyz), 3*(nmu+1)+1, ipiv(:,ikxkyz), ghrs, nvpa*nmu, info)
+       do iv = 1, nvpa
+             gvmutr(iv,:) = ghrs(nmu*(iv-1)+1 : nmu*iv)
+       end do
+       g(:,:,ikxkyz) = gvmutr
+    end do
+
+    allocate (flds(naky,nakx,-nzgrid:nzgrid,ntubes,nresponse_vpa))
+
+    ! need to obtain phi^{n+1} and conservation terms using response matrix approach
+    ! first get phi_inh^{n+1}
+    call get_fields (g, phi, apar, dist='h')
+    flds(:,:,:,:,1) = phi
+
+    ! AVB: obtain phi^{n+1} from response matrix
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       it = it_idx(kxkyz_lo,ikxkyz)
+       ! all is indices inside ikxkyz super-index have same info
+       ! no need to compute multiple times
+       is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
+       call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), flds(iky,ikx,iz,it,:))
+       phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
+    end do
+
+    call sum_allreduce (phi)
+
+    g = g_in
+
+    ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + 2*dt*nu*J0*F0*(vpa*upar+(v^2-3/2)*temp)
+    ! first two terms added via g_to_h subroutine
+    call g_to_h (g, phi, fphi)
+
+    !allocate (tmp(nvpa,nmu))
+    !deallocate (tmp, flds)
+
+    ! now invert system to get h^{n+1}
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       is = is_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+
+       ! using lapack:
+       do iv = 1, nvpa
+           ghrs(nmu*(iv-1)+1 : nmu*iv) = g(iv,:,ikxkyz)
+       end do
+       call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,ikxkyz), 3*(nmu+1)+1, ipiv(:,ikxkyz), ghrs, nvpa*nmu, info)
+       do iv = 1, nvpa
+           gvmutr(iv,:) = ghrs(nmu*(iv-1)+1 : nmu*iv)
+       end do
+       g(:,:,ikxkyz) = gvmutr
+    end do
+
+    ! now get g^{n+1} from h^{n+1} and phi^{n+1}
+    call g_to_h (g, phi, -fphi)
+
+    deallocate (g_in)
+
+  end subroutine advance_implicit_fp
 
   subroutine advance_vpadiff_implicit (phi, apar, g)
 
@@ -1449,7 +2492,7 @@ contains
     integer :: iv
     integer :: idx
 
-    ! TMP FOR TESTING 
+    ! TMP FOR TESTING
 !    integer :: imu
 
     real, dimension (:,:), allocatable :: tmp
@@ -1475,7 +2518,7 @@ contains
        ! TMP FOR TESTING
 !       iv = nvpa/2
 !       do imu = 1, nmu
-!          write (*,*) 'ggg', mu(imu), real(g(iv,imu,ikxkyz)), aimag(g(iv,imu,ikxkyz)), maxwell_vpa(iv)*maxwell_mu(1,iz,imu)
+!          write (*,*) 'ggg', mu(imu), real(g(iv,imu,ikxkyz)), aimag(g(iv,imu,ikxkyz)), maxwell_vpa(iv,is)*maxwell_mu(1,iz,imu)
 !       end do
     end do
 
@@ -1531,15 +2574,15 @@ contains
                *spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)
           if (momentum_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,ia,iz) &
-               *spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(ia,iz))**2 &
-               *flds(iky,ikx,iz,it,is+1)
+             * spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(ia,iz))**2 &
+             * flds(iky,ikx,iz,it,is+1)
           if (energy_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) &
                + flds(iky,ikx,iz,it,idx+is-1)*tmp*spread(aj0v(:,ikxkyz),1,nvpa) &
-               *(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
+             * (spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
        end do
     end if
-    
+
     deallocate (tmp, flds)
 
     ! now invert system to get h^{n+1}
@@ -1582,7 +2625,7 @@ contains
        ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt &
-               *(spread(spread(spread(akx**2,1,naky)+spread(aky**2,2,nakx),3,nztot),4,ntubes)/k2max)**2*D_hyper)
+             * (spread(spread(spread(akx**2,1,naky)+spread(aky**2,2,nakx),3,nztot),4,ntubes)/k2max)**2*D_hyper)
        end do
     else
        k2max = maxval(kperp2)

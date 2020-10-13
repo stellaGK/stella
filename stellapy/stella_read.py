@@ -1,27 +1,14 @@
+import numpy as np
 from stella_dirs import *
-from numpy import *
-from pylab import *
-from struct import *
-from scipy import *
-from scipy import interpolate
-from matplotlib import *
-from matplotlib.ticker import MultipleLocator
-from matplotlib.ticker import AutoMinorLocator
-from matplotlib.ticker import LinearLocator, FixedLocator, FormatStrFormatter
-import matplotlib.pyplot as plt
-import matplotlib.animation as manimation
 from scipy.io import netcdf
-plt.rcParams.update({'font.size': 28})
-plt.rcParams['lines.linewidth'] = 2
-
+#plt.rcParams.update({'font.size': 28})
+#plt.rcParams['lines.linewidth'] = 2
 import tabCompleter
-
-from plotbox import *
 from tabCompleter import *
-import struct
-import physcon as pc
-import time
+from plotbox import *
+from aux_functions import *
 from os import listdir
+import os.path
 
 # ==============================================================
 # Some utils
@@ -67,8 +54,9 @@ def inputlist(case):
     inlist = []    
     for f in listdir(outdir(case)):
         if f.endswith(".in"):
-            inputname=f
-            inlist.append(f)
+            if not f.startswith('.'):
+                inputname=f
+                inlist.append(f)
             
     return inlist
 
@@ -79,10 +67,22 @@ def outdir(case=None):
     else:
         return runsdir()+'/'+ case
 
-def outfile(case=None, quant=None):
-    # It returnst the full path of an output file, endind with
+def geotxtfile(case=None):
+    # It returns the full path of an output file, endind with
     # the string value of "quant".
-    return outdir(case) + '/' + casestr(case) + '.' + quant
+    if os.path.isfile(case):
+        return case.split('.in')[0] + '.vmec_geo'
+    else:
+        return outdir(case) + '/' + casestr(case) + '.vmec_geo'
+
+    
+def outfile(case=None, quant=None):
+    # It returns the full path of an output file, endind with
+    # the string value of "quant".
+    if os.path.isfile(case):
+        return case.split('.in')[0] + '.' + quant
+    else:
+        return outdir(case) + '/' + casestr(case) + '.' + quant
 
 def infile(case=None):
     # infile = input("Path to netcdf file: ")
@@ -114,7 +114,7 @@ def read_stella_float(case, var):
         arr = np.arange(1,dtype=float)
         flag = False
         
-    return arr, flag
+    return arr
 
 def kx(case):
     # get kx grid
@@ -176,22 +176,21 @@ def geo(case):
 
 def phi2_vs_kxky(case):
     # electrostatic potential averaged over z as function of (ky,kx,t)
-    phi2_vs_kxky_stella, phi2_vs_kxky_present = read_stella_float(case, 'phi2_vs_kxky')
+    phi2_vs_kxky_stella = read_stella_float(case, 'phi2_vs_kxky')
 
-    if (phi2_vs_kxky_present):
-        phi2_vs_kxky_stella[:,0,0] = 0.0
-        phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:, kx(case)[2]:,:],\
-                                       phi2_vs_kxky_stella[:,:kx(case)[2] ,:]),axis=1)
-    return phi2_vs_kxky
+#    phi2_vs_kxky_stella[:,0,0] = 0.0
+#    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:, kx(case)[2]:,:],\
+#                                   phi2_vs_kxky_stella[:,:kx(case)[2] ,:]),axis=1)
+    return phi2_vs_kxky_stella
 
 def phi_vs_t(case):
     # electrostatic potential as a function of (z,kx,ky,t)
-    phi_vs_t_stella, phi_vs_t_present = read_stella_float(case, 'phi_vs_t')
-    return phi_vs_t_stella, phi_vs_t_present
+    phi_vs_t_stella = read_stella_float(case, 'phi_vs_t')
+    return phi_vs_t_stella
 
 def gvmus(case):
     # |g|^2 averaged over kx, ky, and z
-    return  read_stella_float(case, 'gzvs')
+    return  read_stella_float(case, 'gvmus')
 
 def gzvs(case):
     # |g|^2 averaged over kx, ky, and mu
@@ -286,17 +285,37 @@ def xgrid(case):
                             xgrid_stella[:kx_stella(case).shape[0]//2+1]))
     return xgrid, xgrid_present
 
-def density(case):
-    # density fluctuation (kx,ky,z,t)
-    return read_stella_float(case, 'density')
+def dens(case):
+    dens=read_stella_float(case, 'dens')
+    dens_exp=factormult(dens,1e19)
+    return dens_exp, size(dens)
 
 def ubar(case):
     # parallel flow fluctuation (kx,ky,z,t)
-    return read_stella_float('upar')
+    return read_stella_float(case,'upar')
 
-def temperature(case):
+def temp(case):
     # temperature fluctuation (kx,ky,z,t)
-    return read_stella_float('temperature')
+    temp=read_stella_float(case,'temp')
+    temp_exp=factormult(temp,1000)
+    return temp_exp, size(temp)
 
-# Translation of quantities read at stella_data module by Michael ended
+def species(case):
+    species=read_stella_float(case,'type_of_species')
+    return species, size(species)
+
+def nprim(case):
+    return read_stella_float(case,'fprim')
+
+def tprim(case):
+    return read_stella_float(case,'tprim')
+
+def charge(case):
+    charge=read_stella_float(case,'charge')
+    return charge, size(charge)
+
+def mass(case):
+    charge=read_stella_float(case,'mass')
+    return charge, size(mass)
+
 # ==================================================================

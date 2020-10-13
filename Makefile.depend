@@ -70,6 +70,7 @@ common_types.o:
 constants.o: 
 convert.o: 
 dissipation.o: \
+	 constants.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
@@ -85,6 +86,7 @@ dissipation.o: \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
+	 spfunc.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -93,6 +95,7 @@ dissipation.o: \
 dist_fn.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 extended_zgrid.o \
 	 file_utils.o \
 	 gyro_averages.o \
 	 kt_grids.o \
@@ -328,13 +331,16 @@ redistribute.o: \
 	 job_manage.o \
 	 mp.o 
 response_matrix.o: \
+	 common_types.o \
 	 dist_fn.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
+	 job_manage.o \
 	 kt_grids.o \
 	 linear_solve.o \
+	 mp.o \
 	 parallel_streaming.o \
 	 run_parameters.o \
 	 species.o \

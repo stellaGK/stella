@@ -70,6 +70,7 @@ contains
     use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use run_parameters, only: delt_option_switch, delt_option_auto
+    use run_parameters, only: mat_gen, mat_read
     use species, only: init_species, read_species_knobs
     use species, only: nspec, communicate_species_multibox
     use zgrid, only: init_zgrid
@@ -77,7 +78,7 @@ contains
     use stella_geometry, only: init_geometry, communicate_geo_multibox
     use stella_geometry, only: finish_init_geometry
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
-    use response_matrix, only: init_response_matrix
+    use response_matrix, only: init_response_matrix, read_response_matrix
     use init_g, only: ginit, init_init_g
     use fields, only: init_fields, advance_fields, get_radial_correction
     use stella_time, only: init_tstart, init_delt
@@ -209,10 +210,10 @@ contains
     call finish_init_geometry
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
-    if (debug) write(6,*) "stella::init_stella::init_dist_fn"
-    call init_dist_fn
     if (debug) write (6,*) 'stella::init_stella::init_extended_zgrid'
     call init_extended_zgrid
+    if (debug) write(6,*) "stella::init_stella::init_dist_fn"
+    call init_dist_fn
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
@@ -221,9 +222,17 @@ contains
     call ginit (restarted,istep0)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz (restarted)
-    if (debug) write(6,*) "stella::init_stella::init_response_matrix"
-    if (stream_implicit .or. driftkinetic_implicit) call init_response_matrix
-
+    !
+    if (stream_implicit .or. driftkinetic_implicit) then
+       if (mat_read) then
+          if (debug) write (6,*) "stella::init_stella::read_response_matrix"
+          call read_response_matrix
+       else
+          if (debug) write (6,*) "stella::init_stella::init_response_matrix"
+          call init_response_matrix
+       end if
+    end if
+    !
     if (.not.restarted) then
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
