@@ -41,8 +41,8 @@ module vpamu_grids
 !     module procedure integrate_species_vmu
      module procedure integrate_species_vmu_single
      module procedure integrate_species_vmu_single_real
-     module procedure integrate_species_vmu_block
-     module procedure integrate_species_vmu_whole
+     module procedure integrate_species_vmu_block_complex
+     module procedure integrate_species_vmu_block_real
 !     module procedure integrate_species_local_complex
 !     module procedure integrate_species_local_real
   end interface
@@ -528,7 +528,7 @@ contains
 
   end subroutine integrate_species_vmu_single_real
 
-  subroutine integrate_species_vmu_block (g, iz, weights, pout, ia_in)
+  subroutine integrate_species_vmu_block_complex (g, iz, weights, pout, ia_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -536,7 +536,7 @@ contains
 
     implicit none
 
-    integer :: ivmu, iv, is, imu, ia,num
+    integer :: ivmu, iv, is, imu, ia
 
     complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
@@ -558,43 +558,33 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       num=1
-       do ikx = 1, nakx
-         do iky = 1, naky
-            pout(iky,ikx) = pout(iky,ikx) + &
-              wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iky,ikx,ivmu)*weights(is)
-            num=num+1
-         end do
-       end do
+       pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
     end do
 
     call sum_allreduce (pout)
 
-  end subroutine integrate_species_vmu_block
+  end subroutine integrate_species_vmu_block_complex
 
-  subroutine integrate_species_vmu_whole (g, weights, pout, ia_in)
+  subroutine integrate_species_vmu_block_real (g, iz, weights, pout, ia_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use kt_grids, only: nakx, naky
-    use zgrid, only: nzgrid, ntubes
 
     implicit none
 
-    integer :: ivmu, iv, is, imu, ia,num
+    integer :: ivmu, iv, is, imu, ia
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in) :: iz
     integer, intent (in), optional :: ia_in
     real, dimension (:), intent (in) :: weights
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: pout
+    real, dimension (:,:), intent (out) :: pout
 
-    integer :: ikx,iky,iz,it
+    integer :: ikx,iky
 
+    pout =0.
 
-    if(.not.allocated(rbuffer)) allocate(rbuffer(naky*nakx*ntubes*(2*nzgrid+1)))
-
-    rbuffer = 0.
-    
     if (present(ia_in)) then
        ia = ia_in
     else
@@ -602,40 +592,15 @@ contains
     end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      num=1
-      do it=1,ntubes
-        do iz=-nzgrid,nzgrid
-          iv = iv_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          is = is_idx(vmu_lo,ivmu)
-          do ikx = 1, nakx
-            do iky = 1, naky
-              rbuffer(num) = rbuffer(num) + &
-                  wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iky,ikx,iz,it,ivmu)*weights(is)
-              num=num+1
-            end do
-          enddo
-        end do
-      end do
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
     end do
 
-    call sum_allreduce (rbuffer)
+    call sum_allreduce (pout)
 
-    num=1
-    do it=1,ntubes
-      do iz=-nzgrid,nzgrid
-        do ikx = 1, nakx
-          do iky = 1, naky
-            pout(iky,ikx,iz,it) = rbuffer(num)
-            num=num+1
-          end do
-        end do
-      end do
-    end do
-
-  end subroutine integrate_species_vmu_whole
-
-  ! integrave over v-space and sum over species for given (ky,kx,z) point
+  end subroutine integrate_species_vmu_block_real
 
   subroutine finish_vpa_grid
 

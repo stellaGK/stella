@@ -1,7 +1,0 @@
-\BOOKMARK [1][-]{section.1}{Review of GS2 geometry definitions}{}% 1
-\BOOKMARK [2][-]{subsection.1.1}{Definitions valid for any GS2 geometry}{section.1}% 2
-\BOOKMARK [2][-]{subsection.1.2}{Definitions used previously for stellarator geometry in GS2}{section.1}% 3
-\BOOKMARK [1][-]{section.2}{VMEC coordinates}{}% 4
-\BOOKMARK [1][-]{section.3}{Computation of GS2 geometry quantities from VMEC data}{}% 5
-\BOOKMARK [1][-]{section.4}{Parallel boundary condition and wavenumber quantization for a full surface calculation}{}% 6
-\BOOKMARK [2][-]{subsection.4.1}{Continuity of geometric quantities}{section.4}% 7

@@ -52,6 +52,7 @@ module common_types
      real :: rhotor
      real :: drhotordrho
      real :: psitor_lcfs
+     real :: zed0_fac
 
      real :: rhoc_psi0
      real :: qinp_psi0

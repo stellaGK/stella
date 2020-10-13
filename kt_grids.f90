@@ -5,7 +5,7 @@ module kt_grids
 
   public :: init_kt_grids, finish_kt_grids
   public :: read_kt_grids_parameters
-  public :: aky, theta0, akx
+  public :: aky, theta0, akx, zed0
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
   public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
@@ -24,7 +24,7 @@ module kt_grids
      module procedure swap_kxky_complex
   end interface
 
-  real, dimension (:,:), allocatable :: theta0
+  real, dimension (:,:), allocatable :: theta0, zed0
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x, x_d, x_clamped
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped
@@ -324,6 +324,8 @@ contains
     call get_x_to_rho(1,x,rho)
     call get_x_to_rho(1,x_d,rho_d)
     
+    zed0 = theta0*geo_surf%zed0_fac
+
   end subroutine init_kt_grids_box
 
   subroutine init_kt_grids_range
@@ -452,6 +454,7 @@ contains
     allocate (akx(nakx))
     allocate (aky(naky))
     allocate (theta0(naky,nakx))
+    allocate (zed0(naky,nakx))
 
   end subroutine allocate_arrays
 
@@ -619,6 +622,7 @@ contains
     if (allocated(aky)) deallocate (aky)
     if (allocated(akx)) deallocate (akx)
     if (allocated(theta0)) deallocate (theta0)
+    if (allocated(zed0)) deallocate (zed0)
 
     if (allocated(x)) deallocate (x)
     if (allocated(x_d)) deallocate (x_d)

@@ -17,7 +17,7 @@ module run_parameters
   public :: stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp
   public :: zed_upwind, vpa_upwind, time_upwind
-  public :: fields_kxkyz
+  public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
   
   private
@@ -32,7 +32,7 @@ module run_parameters
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
-  logical :: fields_kxkyz
+  LOGICAL :: fields_kxkyz, mat_gen, mat_read
   real :: avail_cpu_time
   integer :: nstep
   integer :: rng_seed
@@ -78,7 +78,7 @@ contains
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
-         fields_kxkyz, rng_seed
+         fields_kxkyz, mat_gen, mat_read, rng_seed
 
     if (proc0) then
        fphi = 1.0
@@ -100,6 +100,8 @@ contains
        cfl_cushion = 0.5
        delt_adjust = 2.0
        rng_seed = -1 !negative values use current time as seed
+       mat_gen = .true.
+       mat_read = .false.
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
@@ -132,6 +134,8 @@ contains
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
     call broadcast (rng_seed)
+    CALL broadcast (mat_gen)
+    CALL broadcast (mat_read)
     
     if (.not.include_mirror) mirror_implicit = .false.
 

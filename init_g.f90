@@ -393,20 +393,17 @@ contains
        end if
        call ginit_default
        return
+    else
+       ! zero out ky=kx=0 mode
+       phi(1,1,:,:) = 0.0
     end if
 
     ia = 1
     if (proc0) then
        phi(1,1,:,:) = 0.0
-
-       ! keep old (ikx, iky) loop order to get old results exactly: 
-       if(nakx .eq.1) then
-          kmin = minval(kperp2(2,1,ia,:))
-       else if(naky.eq.1) then
-          kmin = minval(kperp2(1,2,ia,:))
-       else
-          kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
-       end if
+       kmin = 1.e6
+       if (naky > 1) kmin = minval(kperp2(2,1,ia,:))
+       if (nakx > 1) kmin = min(kmin,minval(kperp2(1,2,ia,:)))
 
        if(runtype_option_switch == runtype_multibox) then
          call scope(crossdomprocs)
@@ -414,6 +411,7 @@ contains
          call scope(subprocs)
        end if
 
+       ! keep old (ikx, iky) loop order to get old results exactly: 
        !Fill phi with random (complex) numbers between -0.5 and 0.5
        do ikx = 1, nakx
           do iky = 1, naky
@@ -482,24 +480,25 @@ contains
     
     call broadcast (phi)
 
-    phi2 = 0.0
-    do it = 1,ntubes
-      do iz = -nzgrid,nzgrid
-        do ikx = 1, nakx
-          do iky= 1, naky
-            if(iky.eq.1 .and. aky(1)<epsilon(0.)) then
-              phi2 = phi2 + &
-                    real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
-            else
-              phi2 = phi2 + &
-                2.0*real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
-            endif
-          enddo
-        enddo
-      enddo
-    enddo
-    phi2 = phi2/real(ntubes)
-    phi2 = 1.0/sqrt(phi2)
+!   phi2 = 0.0
+!   do it = 1,ntubes
+!     do iz = -nzgrid,nzgrid
+!       do ikx = 1, nakx
+!         do iky= 1, naky
+!           if(iky.eq.1 .and. aky(1)<epsilon(0.)) then
+!             phi2 = phi2 + &
+!                   real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
+!           else
+!             phi2 = phi2 + &
+!               2.0*real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
+!           endif
+!         enddo
+!       enddo
+!     enddo
+!   enddo
+!   phi2 = phi2/real(ntubes)
+!   phi2 = 1.0/sqrt(phi2)
+    phi2 = 1.0
 
     !Now set g using data in phi
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc

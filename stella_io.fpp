@@ -54,7 +54,7 @@ module stella_io
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
   integer :: kperp2_id
-  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id
+  integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, jtwist_id
   integer :: beta_id
   integer :: code_id
 
@@ -737,6 +737,10 @@ contains
     endif
     status = nf90_put_att (ncid, shat_id, 'long_name', '(rho/q) dq/drho')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id, att='long_name')
+    status = nf90_def_var (ncid, 'jtwist', netcdf_real, jtwist_id)
+    if (status /= nf90_noerr) call netcdf_error (status, var='jtwist')
+    status = nf90_put_att (ncid, jtwist_id, 'long_name', '2*pi*shat*dky/dkx')
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, jtwist_id, att='long_name')
     
     status = nf90_inq_varid(ncid,'drhodpsi',drhodpsi_id)
     if(status /= nf90_noerr) then
@@ -897,7 +901,7 @@ contains
   subroutine write_time_nc (nout, time)
 
 # ifdef NETCDF
-    use netcdf, only: nf90_put_var
+    use netcdf, only: nf90_put_var, nf90_sync
 # endif
 
     implicit none
@@ -909,6 +913,10 @@ contains
     integer :: status
 
     status = nf90_put_var (ncid, time_id, time, start=(/ nout /))
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, time_id)
+
+!   The two lines below are added to flush buffers to disk
+    status = NF90_SYNC(ncid)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, time_id)
 # endif
 
@@ -940,7 +948,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky
 # ifdef NETCDF
-    use netcdf, only: nf90_put_var
+    use netcdf, only: nf90_put_var, nf90_sync
 # endif
 
     implicit none
@@ -966,6 +974,11 @@ contains
     call c2r (phi, phi_ri)
     status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id)
+
     deallocate (phi_ri)
 # endif
 
@@ -1009,7 +1022,7 @@ contains
 
     use kt_grids, only: nakx, naky
 # ifdef NETCDF
-    use netcdf, only: nf90_put_var
+    use netcdf, only: nf90_put_var, nf90_sync
 # endif
 
     implicit none
@@ -1029,6 +1042,10 @@ contains
 
     status = nf90_put_var (ncid, phi2_vs_kxky_id, phi2_vs_kxky, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, phi2_vs_kxky_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, phi2_vs_kxky_id)
 # endif
 
   end subroutine write_kspectra_nc
@@ -1040,7 +1057,7 @@ contains
     use kt_grids, only: nakx, naky
     use species, only: nspec
 # ifdef NETCDF
-    use netcdf, only: nf90_put_var
+    use netcdf, only: nf90_put_var, nf90_sync
 # endif
 
     implicit none
@@ -1069,13 +1086,27 @@ contains
     status = nf90_put_var (ncid, density_id, mom_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, density_id)
 
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, density_id)   
+
     call c2r (upar, mom_ri)
     status = nf90_put_var (ncid, upar_id, mom_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, upar_id)
 
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, upar_id) 
+
     call c2r (temperature, mom_ri)
     status = nf90_put_var (ncid, temperature_id, mom_ri, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, temperature_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, temperature_id) 
+
+
 
     deallocate (mom_ri)
 
@@ -1088,7 +1119,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
 # ifdef NETCDF
-    use netcdf, only: nf90_put_var
+    use netcdf, only: nf90_put_var, nf90_sync
 # endif
 
     implicit none
@@ -1110,6 +1141,11 @@ contains
 
     status = nf90_put_var (ncid, gvmus_id, g, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gvmus_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, gvmus_id) 
+
 # endif
 
   end subroutine write_gvmus_nc
@@ -1120,7 +1156,7 @@ contains
     use vpamu_grids, only: nvpa
     use species, only: nspec
 # ifdef NETCDF
-    use netcdf, only: nf90_put_var
+    use netcdf, only: nf90_put_var, nf90_sync
 # endif
 
     implicit none
@@ -1142,6 +1178,12 @@ contains
 
     status = nf90_put_var (ncid, gzvs_id, g, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id)
+
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id) 
+
 # endif
 
   end subroutine write_gzvs_nc
@@ -1191,7 +1233,7 @@ contains
     use zgrid, only: nzgrid
     use physics_parameters, only: beta
     use dist_fn_arrays, only: kperp2
-    use kt_grids, only: naky, nakx, nalpha
+    use kt_grids, only: naky, nakx, nalpha, jtwist
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 
@@ -1244,6 +1286,8 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id)
     status = nf90_put_var (ncid, drhodpsi_id, drhodpsi)   
     if (status /= nf90_noerr) call netcdf_error (status, ncid, drhodpsi_id)
+    status = nf90_put_var (ncid, jtwist_id, jtwist)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, jtwist_id)
 # endif
   end subroutine nc_geo
 

@@ -188,6 +188,7 @@ contains
     call geo_spline (rhoc, rhotor, local%rhoc, local%rhotor)
     call geo_spline (rhoc, drhotordrho, local%rhoc, local%drhotordrho)
     local%psitor_lcfs = psitor(n_exp)
+    local%zed0_fac = 1.0
 
     surf = local
 

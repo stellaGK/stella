@@ -24,6 +24,7 @@ module stella_geometry
   public :: Rmajor
   public :: alpha
   public :: theta_vmec
+  public :: zeta
   public :: zed_scalefac
   public :: dxdXcoord, dydalpha
   public :: aref, bref
@@ -104,6 +105,7 @@ contains
     integer :: iy
     integer :: sign_torflux
     integer :: dxdXcoord_sign, dydalpha_sign
+    real :: field_period_ratio
     real, dimension (:,:), allocatable :: grad_alpha_grad_alpha
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi
     real, dimension (:,:), allocatable :: grad_psi_grad_psi
@@ -252,6 +254,7 @@ contains
           aref = 1.0 ; bref = 1.0
 
           zeta(1,:) = zed*geo_surf%qinp
+
        case (geo_option_vmec)
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
@@ -268,7 +271,8 @@ contains
                grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
-               theta_vmec, zed_scalefac, aref, bref, alpha, zeta)
+               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
+               field_period_ratio)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
@@ -284,10 +288,13 @@ contains
           drhodpsi = dxdXcoord_sign*sign_torflux/geo_surf%rhotor
           drhodpsi_psi0 = drhodpsi
           bmag_psi0 = bmag
+
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
-          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdXcoord*geo_surf%rhotor)
+!          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
+          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*drhodpsi*dydalpha/(geo_surf%qinp*dxdXcoord*geo_surf%rhotor) &
+               * field_period_ratio
 
           ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
           ! note that rhotor = sqrt(psi/psi_LCFS)
@@ -346,9 +353,13 @@ contains
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
-    ! the next line is to avoid double counting the endpoints.   
-    ! Without it, zonal flows would be linearly unstable for certain input parameters
-    dl_over_b(:,nzgrid) = 0 
+
+    ! the next line is to avoid double counting the end points for ky = 0 modes (which leads to destabilization 
+    ! of the zonal modes for certain input parameters)
+    ! FLAG DSO - while this is correct for ky = 0 modes and sufficient for output, if dl_over_b is applied to 
+    ! non-zero ky modes, a more sophisticated approach will be required that takes into account the sign of 
+    ! v_parallel
+    dl_over_b(:,nzgrid) = 0.
 
     ! this is the correction to flux-surface-averaging for adiabatic electrons
     d_dl_over_b_drho = spread(delzed,1,nalpha)*djacdrho
@@ -826,19 +837,8 @@ contains
 
     use mp, only: proc0
     use millerlocal, only: finish_local_geo
-    !use kt_grids, only: x, x_d, rho, rho_d, nx
-    use physics_parameters, only: rhostar
 
     implicit none
-
-    !call get_x_to_rho (1,x,rho)
-    !call get_x_to_rho (1,x_d,rho_d)
-
-    !if(job.eq.1) then 
-    !  do ix = 1, nx
-    !    write (*,*) x(ix), rhostar*x(ix)/dxdXcoord + geo_surf%qinp, geo_surf%rhoc+rho(ix)
-    !  enddo
-    !endif
 
     if (proc0) then
        select case (geo_option_switch)
