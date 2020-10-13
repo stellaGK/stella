@@ -28,7 +28,7 @@ module stella_geometry
   public :: dxdXcoord, dydalpha
   public :: aref, bref
   public :: twist_and_shift_geo_fac
-  public :: rho_to_x, q_as_x
+  public :: q_as_x, get_x_to_rho
 
   private
 
@@ -39,7 +39,6 @@ module stella_geometry
   real :: dqdrho
   real :: dIdrho
   real :: drhodpsi, drhodpsi_psi0, shat, qinp
-  real :: rho_to_x
   real :: exb_nonlin_fac, exb_nonlin_fac_p
   real :: gradpar_eqarc
   real :: zed_scalefac
@@ -80,7 +79,7 @@ module stella_geometry
 
 contains
 
-  subroutine init_geometry
+  subroutine init_geometry (nalpha)
 
     use constants, only: pi
     use mp, only: proc0
@@ -92,13 +91,14 @@ contains
     use zgrid, only: zed, delzed
     use zgrid, only: shat_zero
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
-    use kt_grids, only: nalpha
     use file_utils, only: get_unused_unit
     use physics_parameters, only: rhostar
 
     implicit none
 
     logical, parameter :: debug = .false.
+
+    integer, intent (in) :: nalpha
 
     real :: dpsidrho, dpsidrho_psi0
     integer :: iy
@@ -264,7 +264,7 @@ contains
           call allocate_temporary_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
           if (debug) write (*,*) 'init_geometry::get_vmec_geo'
-          call get_vmec_geo (nzgrid, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
+          call get_vmec_geo (nzgrid, nalpha, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
                grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
@@ -315,7 +315,7 @@ contains
           call deallocate_temporary_arrays
        end select
 
-       if (overwrite_geometry) call overwrite_selected_geometric_coefficients
+       if (overwrite_geometry) call overwrite_selected_geometric_coefficients (nalpha)
 
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
        if(q_as_x) then
@@ -340,12 +340,7 @@ contains
 
     ! FLAG DSO - the followiing assumes a linear relation from q to rho, but this will 
     !            not be correct if d2qdrho != 0
-    if(q_as_x) then
-      dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
-      rho_to_x = rhostar / (dqdrho * dxdXcoord)
-    else
-      rho_to_x = rhostar * drhodpsi / dxdXcoord
-    endif
+    dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
 
     jacob = 1.0/abs(drhodpsi*spread(gradpar,1,nalpha)*bmag)
     
@@ -389,7 +384,7 @@ contains
     call get_gradpar_eqarc (gradpar, zed, delzed, gradpar_eqarc)
     call get_zed_eqarc (gradpar, delzed, zed, gradpar_eqarc, zed_eqarc)
 
-    if (proc0) call write_geometric_coefficients
+    if (proc0) call write_geometric_coefficients (nalpha)
 
   contains
 
@@ -423,14 +418,14 @@ contains
 
     end subroutine deallocate_temporary_arrays
 
-    subroutine overwrite_selected_geometric_coefficients
+    subroutine overwrite_selected_geometric_coefficients (nalpha)
       
       use file_utils, only: get_unused_unit
       use zgrid, only: nzgrid
-      use kt_grids, only: nalpha
 
       implicit none
 
+      integer, intent (in) :: nalpha
       integer :: geofile_unit
       character (100) :: dum_char
       real :: dum_real
@@ -666,15 +661,9 @@ contains
     implicit none
 
     real, intent (in) :: l_edge, r_edge
-    real :: drl, drr
-    drl = l_edge*rho_to_x
-    drr = r_edge*rho_to_x
-
-    !everything in the following function should go here, but d2R, d2Z and dI 
-    !will have to move as well
 
     if(proc0) then 
-      call communicate_parameters_multibox(geo_surf,drl, drr)
+      call communicate_parameters_multibox(geo_surf,l_edge, r_edge)
     endif
 
   end subroutine communicate_geo_multibox
@@ -760,23 +749,61 @@ contains
 
   end subroutine integrate_zed
 
-  subroutine write_geometric_coefficients
+  subroutine get_x_to_rho (llim, x_in, rho_out)
 
-    use file_utils, only: open_output_file, close_output_file
-    use zgrid, only: nzgrid, zed
-    use kt_grids, only: nalpha
+    use physics_parameters, only: rhostar
 
     implicit none
 
+    integer, intent (in) :: llim
+
+    real, dimension (:), intent (in) :: x_in
+    real, dimension (:), intent (out) :: rho_out
+
+    integer :: ix, ulim
+
+    real :: a, b, c
+
+    ulim = size(x_in)+llim-1
+         exb_nonlin_fac_p = geo_surf%d2qdr2/dqdrho - geo_surf%d2psidr2*drhodpsi
+
+    if(q_as_x) then
+      a = 0.5*geo_surf%d2qdr2/dqdrho
+      b = 1.0
+      c = -rhostar/(dqdrho*dxdXcoord)
+    else
+      a = 0.5*geo_surf%d2psidr2*drhodpsi
+      b = 1.0
+      c = -rhostar*drhodpsi/dxdXcoord
+    endif
+
+    do ix=llim, ulim
+      if(abs(4.0*a*c*x_in(ix)) .lt. 1.e-6) then
+        rho_out(ix) = -(c*x_in(ix))/b - a*(c*x_in(ix))**2/b**3
+      else
+        rho_out(ix) = (-b + sqrt(b**2 - 4.*a*c*x_in(ix)))/(2.*a)
+      endif
+    enddo
+
+  end subroutine get_x_to_rho
+
+  subroutine write_geometric_coefficients (nalpha)
+
+    use file_utils, only: open_output_file, close_output_file
+    use zgrid, only: nzgrid, zed
+
+    implicit none
+
+    integer, intent (in) :: nalpha
     integer :: geometry_unit
     integer :: ia, iz
 
     call open_output_file (geometry_unit,'.geometry')
 
     write (geometry_unit,'(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdXcoord', 'dydalpha', & 
-                                      'exb_nonlin', 'exb_nonlin_p', 'rho_to_x'
+                                      'exb_nonlin', 'exb_nonlin_p'
     write (geometry_unit,'(a1,11e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, &
-                                              dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac, rho_to_x
+                                              dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac
     write (geometry_unit,*)
 
     write (geometry_unit,'(14a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', &
@@ -799,8 +826,19 @@ contains
 
     use mp, only: proc0
     use millerlocal, only: finish_local_geo
+    !use kt_grids, only: x, x_d, rho, rho_d, nx
+    use physics_parameters, only: rhostar
 
     implicit none
+
+    !call get_x_to_rho (1,x,rho)
+    !call get_x_to_rho (1,x_d,rho_d)
+
+    !if(job.eq.1) then 
+    !  do ix = 1, nx
+    !    write (*,*) x(ix), rhostar*x(ix)/dxdXcoord + geo_surf%qinp, geo_surf%rhoc+rho(ix)
+    !  enddo
+    !endif
 
     if (proc0) then
        select case (geo_option_switch)

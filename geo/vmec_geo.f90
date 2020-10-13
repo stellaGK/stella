@@ -81,7 +81,7 @@ contains
 
   end subroutine init_vmec_defaults
 
-  subroutine get_vmec_geo (nzgrid, surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
+  subroutine get_vmec_geo (nzgrid, nalpha, surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
        grad_alpha_grad_psi, grad_psi_grad_psi, &
        gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
        cvdrift0_psi, sign_torflux, &
@@ -95,11 +95,10 @@ contains
     use vmec_to_stella_geometry_interface_mod, only: read_vmec_equilibrium
     use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
     use zgrid, only: zed
-    use kt_grids, only: nalpha
 
     implicit none
 
-    integer, intent (in) :: nzgrid
+    integer, intent (in) :: nzgrid, nalpha
     type (flux_surface_type), intent (out) :: surf
     real, dimension (-nzgrid:), intent (out) :: gradpar
     real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, grad_alpha_grad_alpha, &
@@ -260,18 +259,18 @@ contains
        if (full_flux_surface) then
           if (debug) write (*,*) 'get_vmec_geo::geo_spline'
           do iz = -nzgrid, nzgrid
-             call filter_geo_coef (bmag(:,iz))
-             call filter_geo_coef (grad_alpha_grad_alpha(:,iz))
-             call filter_geo_coef (grad_alpha_grad_psi(:,iz))
-             call filter_geo_coef (grad_psi_grad_psi(:,iz))
-             call filter_geo_coef (gds23(:,iz))
-             call filter_geo_coef (gds24(:,iz))
-             call filter_geo_coef (gds25(:,iz))
-             call filter_geo_coef (gds26(:,iz))
-             call filter_geo_coef (gbdrift_alpha(:,iz))
-             call filter_geo_coef (gbdrift0_psi(:,iz))
-             call filter_geo_coef (cvdrift_alpha(:,iz))
-             call filter_geo_coef (cvdrift0_psi(:,iz))
+             call filter_geo_coef (nalpha,bmag(:,iz))
+             call filter_geo_coef (nalpha,grad_alpha_grad_alpha(:,iz))
+             call filter_geo_coef (nalpha,grad_alpha_grad_psi(:,iz))
+             call filter_geo_coef (nalpha,grad_psi_grad_psi(:,iz))
+             call filter_geo_coef (nalpha,gds23(:,iz))
+             call filter_geo_coef (nalpha,gds24(:,iz))
+             call filter_geo_coef (nalpha,gds25(:,iz))
+             call filter_geo_coef (nalpha,gds26(:,iz))
+             call filter_geo_coef (nalpha,gbdrift_alpha(:,iz))
+             call filter_geo_coef (nalpha,gbdrift0_psi(:,iz))
+             call filter_geo_coef (nalpha,cvdrift_alpha(:,iz))
+             call filter_geo_coef (nalpha,cvdrift0_psi(:,iz))
           end do
        end if
     else
@@ -368,18 +367,18 @@ contains
 
   end subroutine get_vmec_geo
 
-  subroutine filter_geo_coef (geocoef)
+  subroutine filter_geo_coef (nalpha, geocoef)
 
-    use kt_grids, only: naky
     use stella_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
 
     implicit none
     
+    integer, intent (in) :: nalpha
     real, dimension (:), intent (in out) :: geocoef
 
     complex, dimension (:), allocatable :: fourier
 
-    allocate (fourier(naky))
+    allocate (fourier(nalpha/2+1))
 
     ! filtering and padding are built-in to the 
     ! Fourier transform routines below

@@ -746,12 +746,12 @@ contains
     use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: fphi, fapar
-    use stella_geometry, only: dl_over_b, bmag, dBdrho, rho_to_x
+    use stella_geometry, only: dl_over_b, bmag, dBdrho
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
-    use kt_grids, only: nakx, nx, naky, x_clamped
+    use kt_grids, only: nakx, nx, naky, rho_clamped
     use kt_grids, only: zonal_mode
     use species, only: spec, has_electron_species
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
@@ -836,7 +836,7 @@ contains
          do iz = -nzgrid, nzgrid
            g0k = phi(:,:,iz,it)
            call transform_kx2x_xfirst (g0k,g0x)
-           g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+           g0x = spread(rho_clamped,1,naky)*g0x
            call transform_x2kx_xfirst (g0x,phi_corr_QN(:,:,iz,it))
          enddo
        enddo
@@ -855,7 +855,7 @@ contains
                  * 0.5*(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
 
              call transform_kx2x_xfirst (g0k,g0x)
-             g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+             g0x = spread(rho_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,phi_corr_GA(:,:,iz,it,ivmu))
            enddo
          enddo

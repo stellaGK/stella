@@ -8,8 +8,9 @@ module kt_grids
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
-  public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0, x
-  public :: x_d, x_clamped
+  public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
+  public :: x, x_d, x_clamped
+  public :: rho, rho_d, rho_clamped
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -26,6 +27,7 @@ module kt_grids
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x, x_d, x_clamped
+  real, dimension (:), allocatable :: rho, rho_d, rho_clamped
   real :: dx, dy, dkx, dky, dx_d
   real :: jtwistfac
   integer :: naky, nakx, nx, ny, nalpha
@@ -171,7 +173,7 @@ contains
 
   end subroutine read_kt_grids_range
 
-  subroutine init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
+  subroutine init_kt_grids 
 
     use common_types, only: flux_surface_type
     use zgrid, only: init_zgrid
@@ -180,10 +182,6 @@ contains
 
     implicit none
 
-    type (flux_surface_type), intent (in) :: geo_surf
-    real, intent (in) :: twist_and_shift_geo_fac
-    logical, intent (in) :: q_as_x
-
     if (init_kt_grids_initialized) return
     init_kt_grids_initialized = .true.
 
@@ -191,9 +189,9 @@ contains
 
     select case (gridopt_switch)
     case (gridopt_range)
-       call init_kt_grids_range (geo_surf,q_as_x)
+       call init_kt_grids_range 
     case (gridopt_box)
-       call init_kt_grids_box (geo_surf, twist_and_shift_geo_fac, q_as_x)
+       call init_kt_grids_box 
     end select
 
     ! determine if iky corresponds to zonal mode
@@ -203,11 +201,12 @@ contains
 
   end subroutine init_kt_grids
 
-  subroutine init_kt_grids_box (geo_surf, twist_and_shift_geo_fac, q_as_x)
+  subroutine init_kt_grids_box
 
     use mp, only: mp_abort, job
     use common_types, only: flux_surface_type
     use constants, only: pi
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x, get_x_to_rho
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface
     use zgrid, only: shat_zero
@@ -215,10 +214,6 @@ contains
 
     implicit none
     
-    type (flux_surface_type), intent (in) :: geo_surf
-    real, intent (in) :: twist_and_shift_geo_fac
-    logical, intent (in) :: q_as_x
-
     integer :: ikx, iky
 
     ! set jtwist and y0 for cases where they have not been specified
@@ -303,6 +298,8 @@ contains
     ! for radial variation
     if(.not.allocated(x)) allocate (x(nx))
     if(.not.allocated(x_d)) allocate (x_d(nakx))
+    if(.not.allocated(rho)) allocate (rho(nx))
+    if(.not.allocated(rho_d)) allocate (rho_d(nakx))
 
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
@@ -323,19 +320,20 @@ contains
         x_d(ikx) = (ikx-1)*dx_d
       endif
     enddo
+
+    call get_x_to_rho(1,x,rho)
+    call get_x_to_rho(1,x_d,rho_d)
     
   end subroutine init_kt_grids_box
 
-  subroutine init_kt_grids_range (geo_surf, q_as_x)
+  subroutine init_kt_grids_range
 
     use mp, only: mp_abort
     use common_types, only: flux_surface_type
+    use stella_geometry, only: geo_surf, q_as_x
     use zgrid, only: shat_zero
 
     implicit none
-
-    type (flux_surface_type), intent (in) :: geo_surf
-    logical, intent (in) :: q_as_x
 
     integer :: i, j
     real :: dkx, dky, dtheta0, tfac
@@ -624,6 +622,8 @@ contains
 
     if (allocated(x)) deallocate (x)
     if (allocated(x_d)) deallocate (x_d)
+    if (allocated(rho)) deallocate (rho)
+    if (allocated(rho_d)) deallocate (rho_d)
 
     reality = .false.
     read_kt_grids_initialized = .false.

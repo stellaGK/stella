@@ -157,31 +157,31 @@ contains
 
   subroutine init_unpadded_x_fft
 
-    use kt_grids, only: nakx
+    use stella_layouts, only: vmu_lo
     use fft_work, only: init_ccfftw, FFT_BACKWARD, FFT_FORWARD
 
     implicit none
 
-    if (.not.allocated(fftnp_x_k)) allocate (fftnp_x_k(nakx))
-    if (.not.allocated(fftnp_x_x)) allocate (fftnp_x_x(nakx))
+    if (.not.allocated(fftnp_x_k)) allocate (fftnp_x_k(vmu_lo%nakx))
+    if (.not.allocated(fftnp_x_x)) allocate (fftnp_x_x(vmu_lo%nakx))
 
-    call init_ccfftw (xfnp_fft, FFT_BACKWARD, nakx, fftnp_x_k, fftnp_x_x)
-    call init_ccfftw (xbnp_fft, FFT_FORWARD , nakx, fftnp_x_x, fftnp_x_k)
+    call init_ccfftw (xfnp_fft, FFT_BACKWARD, vmu_lo%nakx, fftnp_x_k, fftnp_x_x)
+    call init_ccfftw (xbnp_fft, FFT_FORWARD , vmu_lo%nakx, fftnp_x_x, fftnp_x_k)
 
   end subroutine init_unpadded_x_fft
 
   subroutine init_unpadded_y_fft
 
-    use kt_grids, only: naky, naky_all
+    use stella_layouts, only: vmu_lo
     use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
 
     implicit none
 
-    if (.not.allocated(fftnp_y_k)) allocate (fftnp_y_k(naky))
-    if (.not.allocated(fftnp_y_y)) allocate (fftnp_y_y(naky_all))
+    if (.not.allocated(fftnp_y_k)) allocate (fftnp_y_k(vmu_lo%naky))
+    if (.not.allocated(fftnp_y_y)) allocate (fftnp_y_y(2*vmu_lo%naky-1))
 
-    call init_crfftw (yfnp_fft, FFT_BACKWARD, naky_all, fftnp_y_k, fftnp_y_y)
-    call init_rcfftw (ybnp_fft, FFT_FORWARD , naky_all, fftnp_y_y, fftnp_y_k)
+    call init_crfftw (yfnp_fft, FFT_BACKWARD, 2*vmu_lo%naky-1, fftnp_y_k, fftnp_y_y)
+    call init_rcfftw (ybnp_fft, FFT_FORWARD , 2*vmu_lo%naky-1, fftnp_y_y, fftnp_y_k)
 
   end subroutine init_unpadded_y_fft
 
@@ -464,8 +464,6 @@ contains
 
   subroutine transform_kx2x_unpadded (gkx, gx)
 
-    use kt_grids, only: naky
-
     implicit none
 
     complex, dimension (:,:), intent (in)  :: gkx
@@ -473,7 +471,7 @@ contains
 
     integer :: iy
 
-    do iy = 1, naky
+    do iy = 1, size(gkx,1)
        fftnp_x_k = gkx(iy,:)
        call dfftw_execute_dft(xfnp_fft%plan, fftnp_x_k, fftnp_x_x)
        gx(iy,:) = fftnp_x_x*xfnp_fft%scale
@@ -483,8 +481,6 @@ contains
 
   subroutine transform_x2kx_unpadded (gx, gkx)
 
-    use kt_grids, only: naky
-
     implicit none
 
     complex, dimension (:,:), intent (in)  :: gx
@@ -492,7 +488,7 @@ contains
 
     integer :: iy
 
-    do iy = 1, naky
+    do iy = 1, size(gx,1)
        fftnp_x_x = gx(iy,:)
        call dfftw_execute_dft(xbnp_fft%plan, fftnp_x_x, fftnp_x_k)
        gkx(iy,:) = fftnp_x_k*xbnp_fft%scale
@@ -502,8 +498,6 @@ contains
 
   subroutine transform_ky2y_unpadded (gky, gy)
 
-    use kt_grids, only: nakx
-
     implicit none
 
     complex, dimension (:,:), intent (in) :: gky
@@ -512,7 +506,7 @@ contains
     integer :: ikx
 
 
-    do ikx = 1, nakx
+    do ikx = 1, size(gky,1)
        fftnp_y_k = gky(:,ikx)
        call dfftw_execute_dft_c2r(yfnp_fft%plan, fftnp_y_k, fftnp_y_y)
        gy(:,ikx) =fftnp_y_y*yfnp_fft%scale
@@ -522,8 +516,6 @@ contains
 
   subroutine transform_y2ky_unpadded (gy, gky)
  
-    use kt_grids, only: nakx
- 
     implicit none
  
     real, dimension (:,:), intent (in out) :: gy
@@ -531,7 +523,7 @@ contains
  
     integer :: ikx
  
-    do ikx = 1, nakx
+    do ikx = 1, size(gy,2)
       fftnp_y_k = gy(:,ikx)
       call dfftw_execute_dft_r2c(ybnp_fft%plan, fftnp_y_y, fftnp_y_k)
       gky(:,ikx) = fftnp_y_y*ybnp_fft%scale

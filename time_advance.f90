@@ -555,10 +555,9 @@ contains
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
     use physics_flags, only: radial_variation
-    use stella_geometry, only: rho_to_x
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
-    use kt_grids, only: akx, aky, nx, x
+    use kt_grids, only: akx, aky, nx, rho
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: stream, stream_rad_var1
     use parallel_streaming, only: stream_rad_var2
@@ -610,11 +609,11 @@ contains
       !while other quantities should go here, parallel streaming with electrons
       !is what will limit us
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var1)),zero)
-      cfl_dt_stream = cfl_dt_stream/abs((rho_to_x+zero)*x(nx))
+      cfl_dt_stream = cfl_dt_stream/abs(rho(nx)+zero)
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
       cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream_rad_var2)),zero)
-      cfl_dt_stream = cfl_dt_stream/abs((rho_to_x+zero)*x(nx))
+      cfl_dt_stream = cfl_dt_stream/abs(rho(nx)+zero)
       cfl_dt = min(cfl_dt,cfl_dt_stream)
 
     end if
@@ -1279,8 +1278,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky, x_clamped
-    use stella_geometry, only: rho_to_x
+    use kt_grids, only: akx, aky, rho_clamped
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use kt_grids, only: x, swap_kxky, swap_kxky_back
@@ -1349,7 +1347,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              if(radial_variation) then
-               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,ny)
+               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdx(g0a,g0k)
@@ -1374,7 +1372,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
              if(radial_variation) then
-               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*rho_to_x*spread(x_clamped,1,ny)
+               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdy(g0a,g0k)
@@ -1718,9 +1716,8 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-    use stella_geometry, only: rho_to_x
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, x_clamped
+    use kt_grids, only: nakx, naky, nx, rho_clamped
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -1819,7 +1816,7 @@ contains
 
             !inverse and forward transforms
             call transform_kx2x_xfirst (g0k, g0x)
-            g1x =rho_to_x*spread(x_clamped,1,naky)*g0x
+            g1x =spread(rho_clamped,1,naky)*g0x
             call transform_x2kx_xfirst (g1x, g0k)
 
 

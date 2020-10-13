@@ -230,6 +230,7 @@ kt_grids.o: \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 stella_geometry.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
@@ -426,7 +427,6 @@ stella_geometry.o: \
 	 constants.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
-	 kt_grids.o \
 	 millerlocal.o \
 	 mp.o \
 	 physics_flags.o \
@@ -470,7 +470,6 @@ stella_save.o: \
 stella_time.o: 
 stella_transforms.o: \
 	 fft_work.o \
-	 kt_grids.o \
 	 physics_flags.o \
 	 stella_layouts.o 
 test_vmec_to_stella_geometry_interface.o: \
@@ -512,7 +511,6 @@ vmec_geo.o: \
 	 common_types.o \
 	 constants.o \
 	 file_utils.o \
-	 kt_grids.o \
 	 mp.o \
 	 physics_flags.o \
 	 spl.o \

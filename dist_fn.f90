@@ -34,11 +34,11 @@ contains
     use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-    use kt_grids, only: nalpha, nakx, naky, nx, x_clamped
+    use kt_grids, only: nalpha, nakx, naky, nx, rho_clamped
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
-    use stella_geometry, only: dBdrho, rho_to_x
+    use stella_geometry, only: dBdrho
 
 
     implicit none
@@ -68,7 +68,7 @@ contains
       allocate (g0k(naky,nakx))
       allocate (g0x(naky,nx))
 
-      g0x = rho_to_x*spread(x_clamped,1,naky)
+      g0x = spread(rho_clamped,1,naky)
       call transform_x2kx_xfirst(g0x,f0k)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -85,7 +85,7 @@ contains
               g0k = gnew(:,:,iz,it,ivmu)
 
               call transform_kx2x_xfirst(g0k,g0x)
-              g0x = g0x*(1.0 + rho_to_x*corr*spread(x_clamped,1,naky))
+              g0x = g0x*(1.0 + corr*spread(rho_clamped,1,naky))
               call transform_x2kx_xfirst(g0x,g0k)
 
               gnew(:,:,iz,it,ivmu) = g0k

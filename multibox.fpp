@@ -13,6 +13,7 @@ module multibox
   public :: boundary_size
   public :: bs_fullgrid
   public :: xL, xR, xL_d, xR_d
+  public :: rhoL, rhoR
   public :: kx0_L, kx0_R
   public :: RK_step
   public :: include_multibox_krook
@@ -49,6 +50,7 @@ module multibox
   
 
   real :: xL = 0., xR = 0.
+  real :: rhoL = 0., rhoR = 0.
   real :: xL_d = 0., xR_d = 0.
   real :: kx0_L, kx0_R
 
@@ -186,8 +188,9 @@ contains
   subroutine init_multibox 
     use constants, only: pi
     use stella_layouts, only: vmu_lo
+    use stella_geometry, only: get_x_to_rho
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky, akx, aky, nx,x,x0, x_clamped
+    use kt_grids, only: nakx,naky, akx, aky, nx,x, rho, x0, x_clamped, rho_clamped
     use file_utils, only: runtype_option_switch, runtype_multibox
     use job_manage, only: njobs
     use mp, only: scope, crossdomprocs, subprocs, &
@@ -204,6 +207,7 @@ contains
 
 
     if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
+    if(.not.allocated(rho_clamped)) allocate(rho_clamped(nx)); rho_clamped = 0.
 
     if(runtype_option_switch /= runtype_multibox) return
 
@@ -262,6 +266,8 @@ contains
 
       xL = x(bs_fullgrid)
       xR = x(nx-bs_fullgrid+1)
+      rhoL = rho(bs_fullgrid)
+      rhoR = rho(nx-bs_fullgrid+1)
       xL_d = x_d(boundary_size)
       xR_d = x_d(x_fft_size-boundary_size+1)
 
@@ -277,6 +283,9 @@ contains
           if(x_clamped(i) > xR) x_clamped(i) = xR
         enddo
       endif
+
+      call get_x_to_rho(1, x_clamped, rho_clamped)
+
     elseif(job==0) then
       do i = 1, x_fft_size
         x_d(i) = (i-1)*dx_d
@@ -329,7 +338,7 @@ contains
 
   subroutine finish_multibox
 
-    use kt_grids, only: x_clamped
+    use kt_grids, only: x_clamped, rho_clamped
 
     implicit none
 
@@ -337,6 +346,7 @@ contains
     if (allocated(g_buffer1))   deallocate (g_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
     if (allocated(x_clamped))   deallocate (x_clamped)
+    if (allocated(rho_clamped)) deallocate (rho_clamped)
 
     if (allocated(copy_mask_left))   deallocate (copy_mask_left)
     if (allocated(copy_mask_right))  deallocate (copy_mask_right)

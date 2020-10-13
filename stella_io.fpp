@@ -974,7 +974,6 @@ contains
   subroutine write_radial_fluxes_nc (nout, pflux, vflux,qflux)
 
     use convert, only: c2r
-    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
     use species, only: nspec
 # ifdef NETCDF

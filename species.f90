@@ -402,8 +402,7 @@ contains
     end subroutine reinit_species
 
 
-    subroutine communicate_species_multibox(l_edge,r_edge)
-      use stella_geometry, only: rho_to_x
+    subroutine communicate_species_multibox(dr_m,dr_p)
       use job_manage, only: njobs
       use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs,  &
@@ -411,12 +410,10 @@ contains
 
       implicit none
 
-      real, optional, intent (in) :: l_edge, r_edge
+      real, optional, intent (in) :: dr_m, dr_p
 
       real, dimension (:), allocatable :: dens, ldens, ltemp, lfprim, ltprim
       real, dimension (:), allocatable :: temp, rdens, rtemp, rfprim, rtprim
-
-      real dr_m,dr_p
 
       integer :: i
 
@@ -433,9 +430,6 @@ contains
 
 
       if(job == 1) then
-
-        dr_m=  rho_to_x*l_edge
-        dr_p=  rho_to_x*r_edge
 
         ! recall that fprim and tprim are the negative gradients
         ldens  =  spec%dens*(1.0 - dr_m*spec%fprim)! + 0.5*dr_m**2*spec%d2ndr2)

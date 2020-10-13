@@ -76,7 +76,6 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: init_geometry, communicate_geo_multibox
     use stella_geometry, only: finish_init_geometry
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
@@ -95,7 +94,7 @@ contains
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
     use stella_save, only: init_dt
-    use multibox, only: read_multibox_parameters, init_multibox, xL, xR
+    use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
     use multibox, only: communicate_multibox_parameters
     use ran, only: get_rnd_seed_length, init_ranf
 
@@ -157,7 +156,7 @@ contains
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
     if (debug) write(6,*) "stella::init_stella::init_geometry"
-    call init_geometry
+    call init_geometry (nalpha)
     if (debug) write (6,*) 'stella::init_stella::init_species'
     call init_species
     if (debug) write(6,*) "stella::init_stella::init_init_g"
@@ -187,7 +186,7 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
-    call init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
+    call init_kt_grids
     if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
         .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
         runtype_option_switch.eq.runtype_multibox) then
@@ -199,9 +198,9 @@ contains
     if (proc0.and.runtype_option_switch.eq.runtype_multibox &
              .and.(job.eq.1).and.radial_variation) then
       if (debug) write (6,*) 'stella::init_stella::init_multibox_geo'
-      call communicate_geo_multibox(xL,xR)
+      call communicate_geo_multibox(rhoL,rhoR)
       if (debug) write (6,*) 'stella::init_stella::init_multibox_spec'
-      call communicate_species_multibox(xL,xR)
+      call communicate_species_multibox(rhoL,rhoR)
     endif
     if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1)) then
       call communicate_multibox_parameters
@@ -236,8 +235,6 @@ contains
     call init_stella_diagnostics (restarted,nstep,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
-
-
 
     ierr = error_unit()
     if (proc0) call flush_output_file (ierr)

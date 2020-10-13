@@ -48,7 +48,6 @@ contains
     use zgrid, only: init_zgrid
     use kt_grids, only: init_kt_grids
     use physics_parameters, only: init_physics_parameters
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x
     use run_parameters, only: init_run_parameters
     use species, only: init_species
     use dist_fn, only: init_dist_fn
@@ -71,7 +70,7 @@ contains
     
     call init_zgrid
     call init_physics_parameters
-    call init_kt_grids (geo_surf, twist_and_shift_geo_fac, q_as_x)
+    call init_kt_grids
     call init_run_parameters
     call init_species
     call init_init_g
@@ -613,12 +612,12 @@ contains
     use stella_geometry, only: gds21, gds22
     use stella_geometry, only: dgds21dr, dgds22dr
     use stella_geometry, only: geo_surf
-    use stella_geometry, only: dBdrho, dIdrho, rho_to_x
+    use stella_geometry, only: dBdrho, dIdrho
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: vperp2, vpa, mu
     use run_parameters, only: fphi, fapar
-    use kt_grids, only: aky, theta0, naky, nakx, nx, x_clamped
+    use kt_grids, only: aky, theta0, naky, nakx, nx, rho_clamped
     use physics_flags, only: radial_variation
     use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
     use stella_transforms, only: transform_x2kx_xfirst, transform_kx2x_xfirst
@@ -681,7 +680,7 @@ contains
                   + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
                
                 call transform_kx2x_xfirst (g0k,g0x)
-                g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+                g0x = spread(rho_clamped,1,naky)*g0x
                 call transform_x2kx_xfirst (g0x,g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
@@ -717,7 +716,7 @@ contains
                      + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
-                g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+                g0x = spread(rho_clamped,1,naky)*g0x
                 call transform_x2kx_xfirst (g0x,g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
@@ -751,7 +750,7 @@ contains
                   + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
-                g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+                g0x = spread(rho_clamped,1,naky)*g0x
                 call transform_x2kx_xfirst (g0x,g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
@@ -774,7 +773,7 @@ contains
                        + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
-                g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+                g0x = spread(rho_clamped,1,naky)*g0x
                 call transform_x2kx_xfirst (g0x,g0k)
 
                 g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
@@ -956,11 +955,11 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, vperp2, mu
     use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
-    use kt_grids, only: naky, nakx, nx, x_clamped
+    use kt_grids, only: naky, nakx, nx, rho_clamped
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
-    use stella_geometry, only: bmag, dBdrho, rho_to_x
+    use stella_geometry, only: bmag, dBdrho
     use gyro_averages, only: aj0x, aj1x, gyro_average
     use fields_arrays, only: phi, phi_corr_QN
     use physics_flags, only: radial_variation
@@ -1016,7 +1015,7 @@ contains
                + dBdrho(iz)/bmag(ia,iz))
 
              call transform_kx2x_xfirst (g0k,g0x)
-             g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+             g0x = spread(rho_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,g0k)
 
              !phi QN
@@ -1063,7 +1062,7 @@ contains
                  + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
 
              call transform_kx2x_xfirst (g0k,g0x)
-             g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+             g0x = spread(rho_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,g0k)
 
              !phi QN
@@ -1096,7 +1095,7 @@ contains
                + dBdrho(iz)/bmag(ia,iz))
 
              call transform_kx2x_xfirst (g0k,g0x)
-             g0x = rho_to_x*spread(x_clamped,1,naky)*g0x
+             g0x = spread(rho_clamped,1,naky)*g0x
              call transform_x2kx_xfirst (g0x,g0k)
 
              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
