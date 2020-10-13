@@ -193,7 +193,7 @@ contains
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
              field = spec(is)%zt*facphi*phi(:,:,iz,it) &
-                  *maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+                  *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
              call gyro_average (field, iz, ivmu, adjust)
              g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
           end do
@@ -283,7 +283,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        field = facphi*phi(iky,ikx,iz,it)*spec(is)%zt &
-            *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+            *spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)
        call gyro_average (field, ikxkyz, adjust)
        g(:,:,ikxkyz) = g(:,:,ikxkyz) + adjust
     end do

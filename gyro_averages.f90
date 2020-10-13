@@ -2,7 +2,7 @@ module gyro_averages
 
   use common_types, only: coupled_alpha_type
 
-  public :: aj0x, aj0v, aj1v
+  public :: aj0x, aj0v, aj1x, aj1v
   public :: init_bessel, finish_bessel
   public :: gyro_average
   public :: gyro_average_j1
@@ -16,7 +16,13 @@ module gyro_averages
      module procedure gyro_average_vmus_nonlocal
   end interface
 
-  real, dimension (:,:,:,:), allocatable :: aj0x
+  interface gyro_average_j1
+     module procedure gyro_average_j1_kxky_local
+     module procedure gyro_average_j1_kxkyz_local
+     module procedure gyro_average_j1_vmu_local
+  end interface
+
+  real, dimension (:,:,:,:), allocatable :: aj0x, aj1x
   ! (naky, nakx, nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:), allocatable :: aj0v, aj1v
@@ -44,7 +50,7 @@ contains
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid, nztot
     use vpamu_grids, only: vperp2, nmu, nvpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
 !    use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: integrate_species
     use vpamu_grids, only: mu
@@ -90,7 +96,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
+          arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
           aj0v(imu,ikxkyz) = j0(arg)
           ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
           aj1v(imu,ikxkyz) = j1(arg)
@@ -131,7 +137,7 @@ contains
              do ikx = 1, ikx_max
                 do iky = 1, naky_all
                    do ia = 1, nalpha
-                      arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
+                      arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ia) = j0(arg)
                    end do
                    if (iz == 0 .and. ikx == 1 .and. iky == naky_all/2 .and. imu == nmu/2 .and. is == 1 .and. iv_idx(vmu_lo,ivmu)==1) then
@@ -148,7 +154,7 @@ contains
                    call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
 !                   call find_max_required_kalpha_index (aj0_kalpha, ia_max_aj0a(iky,ikx,iz,ivmu), imu, iz)
 !                   ia_max_aj0a_count = ia_max_aj0a_count + ia_max_aj0a(iky,ikx,iz,ivmu)
-                   call find_max_required_kalpha_index (aj0_kalpha, aj0a(iky,ikx,iz,ivmu)%max_idx, imu, iz)
+                   call find_max_required_kalpha_index (aj0_kalpha, aj0a(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
                    ia_max_aj0a_count = ia_max_aj0a_count + aj0a(iky,ikx,iz,ivmu)%max_idx
                    if (.not.associated(aj0a(iky,ikx,iz,ivmu)%fourier)) &
                         allocate (aj0a(iky,ikx,iz,ivmu)%fourier(aj0a(iky,ikx,iz,ivmu)%max_idx))
@@ -169,11 +175,11 @@ contains
                       is = is_idx(vmu_lo,ivmu)
                       imu = imu_idx(vmu_lo,ivmu)
                       iv = iv_idx(vmu_lo,ivmu)
-                      arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
+                      arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       aj0_alpha(ivmu) = j0(arg)
                       ! form coefficient needed to calculate 1-Gamma_0
                       aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2) &
-                           * maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+                           * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
                    end do
 
                    ! calculate gamma0 = int d3v (1-J0^2)*F_{Maxwellian}
@@ -221,6 +227,11 @@ contains
           aj0x = 0.
        end if
 
+       if (.not.allocated(aj1x)) then
+          allocate (aj1x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          aj1x = 0.
+       end if
+
        ia = 1
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           is = is_idx(vmu_lo,ivmu)
@@ -228,8 +239,10 @@ contains
           do iz = -nzgrid, nzgrid
              do ikx = 1, nakx
                 do iky = 1, naky
-                   arg = spec(is)%smz*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
+                   arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
                    aj0x(iky,ikx,iz,ivmu) = j0(arg)
+                   ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
+                   aj1x(iky,ikx,iz,ivmu) = j1(arg)
                 end do
              end do
           end do
@@ -238,7 +251,7 @@ contains
 
   end subroutine init_bessel
 
-  subroutine find_max_required_kalpha_index (ft, idx, imu, iz)
+  subroutine find_max_required_kalpha_index (ft, idx, imu, iz, is)
 
     use vpamu_grids, only: maxwell_mu
 
@@ -246,7 +259,7 @@ contains
 
     complex, dimension (:), intent (in) :: ft
     integer, intent (out) :: idx
-    integer, intent (in), optional :: imu, iz
+    integer, intent (in), optional :: imu, iz, is
 
     real, parameter :: tol_floor = 0.01
     integer :: i, n
@@ -258,8 +271,8 @@ contains
 
     ! use conservative estimate
     ! when deciding number of modes to retain
-    if (present(imu) .and. present(iz)) then
-       tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu)))
+    if (present(imu) .and. present(iz).and.present(is)) then
+       tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu,is)))
     else
        tol = tol_floor
     end if
@@ -296,6 +309,7 @@ contains
     if (allocated(aj0v)) deallocate (aj0v)
     if (allocated(aj1v)) deallocate (aj1v)
     if (allocated(aj0x)) deallocate (aj0x)
+    if (allocated(aj1x)) deallocate (aj1x)
     if (allocated(aj0a)) deallocate (aj0a)
     if (allocated(gam0a)) deallocate (gam0a)
     if (allocated(lu_gam0a)) deallocate (lu_gam0a)
@@ -397,20 +411,6 @@ contains
 
   end subroutine gyro_average_vmu_local
 
-  subroutine gyro_average_j1 (distfn, ikxkyz, gyro_distfn)
-
-    use vpamu_grids, only: nvpa
-
-    implicit none
-
-    complex, dimension (:,:), intent (in) :: distfn
-    integer, intent (in) :: ikxkyz
-    complex, dimension (:,:), intent (out) :: gyro_distfn
-
-    gyro_distfn = spread(aj1v(:,ikxkyz),1,nvpa)*distfn
-
-  end subroutine gyro_average_j1
-
   subroutine gyro_average_vmus_nonlocal (field, iky, ikx, iz, gyro_field)
 
     use stella_layouts, only: vmu_lo
@@ -424,5 +424,56 @@ contains
     gyro_field = aj0x(iky,ikx,iz,:)*field
 
   end subroutine gyro_average_vmus_nonlocal
+
+  subroutine gyro_average_j1_kxky_local (field, iz, ivmu, gyro_field)
+
+    use physics_flags, only: full_flux_surface
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: ikx_max
+    use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: field
+    integer, intent (in) :: iz, ivmu
+    complex, dimension (:,:), intent (out) :: gyro_field
+
+    gyro_field = aj1x(:,:,iz,ivmu)*field
+
+  end subroutine gyro_average_j1_kxky_local
+
+  subroutine gyro_average_j1_kxkyz_local (field, ivmu, gyro_field)
+
+    use zgrid, only: nzgrid, ntubes
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: field
+    integer, intent (in) :: ivmu
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_field
+
+    integer :: iz, it
+
+    do it = 1, ntubes
+       do iz = -nzgrid, nzgrid
+          call gyro_average_j1 (field(:,:,iz,it), iz, ivmu, gyro_field(:,:,iz,it))
+       end do
+    end do
+
+  end subroutine gyro_average_j1_kxkyz_local
+
+  subroutine gyro_average_j1_vmu_local (distfn, ikxkyz, gyro_distfn)
+
+    use vpamu_grids, only: nvpa
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: distfn
+    integer, intent (in) :: ikxkyz
+    complex, dimension (:,:), intent (out) :: gyro_distfn
+
+    gyro_distfn = spread(aj1v(:,ikxkyz),1,nvpa)*distfn
+
+  end subroutine gyro_average_j1_vmu_local
 
 end module gyro_averages

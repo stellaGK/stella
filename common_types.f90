@@ -52,6 +52,10 @@ module common_types
      real :: rhotor
      real :: drhotordrho
      real :: psitor_lcfs
+
+     real :: rhoc_psi0
+     real :: qinp_psi0
+     real :: shat_psi0
   end type flux_surface_type
   
   type spec_type
@@ -69,6 +73,10 @@ module common_types
      ! should be nspec large
      real, dimension (10) :: vnew
      integer :: type
+     
+     !the next few variables are for multibox simulations
+     real :: dens_psi0, temp_psi0
+     real :: stm_psi0, zstm_psi0, tz_psi0, smz_psi0, zt_psi0
   end type spec_type
 
   type :: eigen_type

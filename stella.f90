@@ -1,7 +1,7 @@
 program stella
 
   use redistribute, only: scatter
-  use job_manage, only: time_message, checkstop
+  use job_manage, only: time_message, checkstop, job_fork
   use run_parameters, only: nstep, fphi, fapar
   use stella_time, only: update_time, code_time, code_dt
   use dist_redistribute, only: kxkyz2vmu
@@ -9,6 +9,7 @@ program stella
   use stella_diagnostics, only: diagnose_stella, nsave
   use stella_save, only: stella_save_for_restart
   use dist_fn_arrays, only: gnew, gvmu
+    use file_utils, only: error_unit, flush_output_file
 
   implicit none
 
@@ -16,32 +17,34 @@ program stella
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
-  integer :: istep
+  integer :: istep0, istep, ierr
   integer :: istatus
   real, dimension (2) :: time_init = 0.
   real, dimension (2) :: time_diagnostics = 0.
   real, dimension (2) :: time_total = 0.
 
-  call init_stella
+  call init_stella(istep0)
 
   if (debug) write (*,*) 'stella::diagnose_stella'
-  call diagnose_stella (0)
+  if (istep0.eq.0) call diagnose_stella (istep0)
 
   if (debug) write (*,*) 'stella::advance_stella'
-  do istep = 1, nstep
+  do istep = (istep0+1), nstep
      if (debug) write (*,*) 'istep = ', istep
      call advance_stella (istep)
 !     call advance_stella
+     call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, code_time, code_dt, istatus, fphi, fapar)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar)
      end if
-     call update_time
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
      call time_message(.false.,time_diagnostics,' diagnostics')
      if (mod(istep,10)==0) call checkstop (stop_stella)
      if (stop_stella) exit
+     ierr = error_unit()
+     call flush_output_file (ierr)
   end do
 
   if (debug) write (*,*) 'stella::finish_stella'
@@ -50,30 +53,34 @@ program stella
 
 contains
 
-  subroutine init_stella
+  subroutine init_stella(istep0)
 
     use mp, only: init_mp, broadcast
-    use mp, only: proc0
+    use mp, only: proc0,job
     use file_utils, only: init_file_utils
-    use file_utils, only: run_name
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use file_utils, only: run_name, init_job_name
+    use file_utils, only: flush_output_file, error_unit
     use job_manage, only: checktime, time_message
-    use physics_parameters, only: init_physics_parameters
+    use physics_parameters, only: init_physics_parameters, g_exb
     use physics_flags, only: init_physics_flags
-    use physics_flags, only: nonlinear, full_flux_surface, include_parallel_nonlinearity
+    use physics_flags, only: nonlinear, include_parallel_nonlinearity
+    use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: init_run_parameters
-    use run_parameters, only: avail_cpu_time, nstep
+    use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
     use run_parameters, only: stream_implicit, driftkinetic_implicit
+    use run_parameters, only: delt_option_switch, delt_option_auto
     use species, only: init_species, read_species_knobs
-    use species, only: nspec
+    use species, only: nspec, communicate_species_multibox
     use zgrid, only: init_zgrid
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: init_geometry
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
+    use stella_geometry, only: init_geometry, communicate_geo_multibox
+    use stella_geometry, only: finish_init_geometry
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix
     use init_g, only: ginit, init_init_g
-    use fields, only: init_fields, advance_fields
-    use stella_time, only: init_tstart
+    use fields, only: init_fields, advance_fields, get_radial_correction
+    use stella_time, only: init_tstart, init_delt
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
     use fields_arrays, only: phi, apar
@@ -86,17 +93,24 @@ contains
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
     use stella_transforms, only: init_transforms
+    use stella_save, only: init_dt
+    use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
+    use multibox, only: communicate_multibox_parameters
+    use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
 
+    integer, intent (out) :: istep0
     logical :: exit, list, restarted
     character (500), target :: cbuff
+    integer, dimension (:), allocatable  :: seed
+    integer :: i, n, ierr
+    real :: delt_saved
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
     mpi_initialized = .true.
 
-    debug = debug .and. proc0
 
     if (debug) write (*,*) 'stella::init_stella::check_time'
     ! initialize timer
@@ -112,11 +126,18 @@ contains
        call init_file_utils (list)
        call time_message(.false.,time_total,' Total')
        call time_message(.false.,time_init,' Initialization')
-       cbuff = trim(run_name)
     end if
 
+    call broadcast (list)
+    call broadcast (runtype_option_switch)
+    if(list) call job_fork
+
+    debug = debug .and. proc0
+
+    if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)
-    if (.not. proc0) run_name => cbuff
+    if (.not. proc0) call init_job_name(cbuff)
+
 
     if (debug) write(6,*) "stella::init_stella::init_physics_flags"
     call init_physics_flags
@@ -126,28 +147,66 @@ contains
     call init_zgrid
     if (debug) write (6,*) "stella::init_stella::read_species_knobs"
     call read_species_knobs
-    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
+    if (debug) write (6,*) "stella::init_stella::read_multibox_parameters"
     call read_kt_grids_parameters
     if (debug) write (6,*) "stella::init_stella::read_vpamu_grids_parameters"
+    call read_multibox_parameters
+    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_vpamu_grids_parameters
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity) then
-       if (debug) write (*,*) "stella::init_stella::init_transforms"
-       call init_transforms
-    end if
     if (debug) write(6,*) "stella::init_stella::init_geometry"
-    call init_geometry
+    call init_geometry (nalpha)
     if (debug) write (6,*) 'stella::init_stella::init_species'
     call init_species
     if (debug) write(6,*) "stella::init_stella::init_init_g"
     call init_init_g
     if (debug) write(6,*) "stella::init_stella::init_run_parameters"
     call init_run_parameters
+    if(delt_option_switch == delt_option_auto) then
+      delt_saved = delt
+      if (debug) write(6,*) "stella::init_stella::init_dt"
+      call init_dt(delt_saved, istatus)
+      if(istatus == 0) delt = delt_saved
+    endif
+    if (debug) write(6,*) "stella::init_stella::init_delt"
+    call init_delt(delt)
+
+    if (debug) write(6,*) "stella::init_stella::init_ranf"
+    n=get_rnd_seed_length()
+    allocate(seed(n))
+    if(rng_seed .lt. 0) then
+      call init_ranf(.true.,seed,job+2)
+    else
+      seed = rng_seed + 37 * (/ ( i - 1, i = 1, n) /)
+      call init_ranf(.false.,seed,job+2)
+    endif
+    deallocate(seed)
+
     if (debug) write (6,*) 'stella::init_stella::init_stella_layouts'
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
-    call init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+    call init_kt_grids
+    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
+        .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
+        runtype_option_switch.eq.runtype_multibox) then
+       if (debug) write (*,*) "stella::init_stella::init_transforms"
+       call init_transforms
+    end if
+    if (debug) write (6,*) 'stella::init_stella::init_multibox'
+    call init_multibox
+    if (proc0.and.runtype_option_switch.eq.runtype_multibox &
+             .and.(job.eq.1).and.radial_variation) then
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_geo'
+      call communicate_geo_multibox(rhoL,rhoR)
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_spec'
+      call communicate_species_multibox(rhoL,rhoR)
+    endif
+    if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1)) then
+      call communicate_multibox_parameters
+    endif
+    if (debug) write (6,*) 'stella::init_stella::finish_init_geometry'
+    call finish_init_geometry
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
     call init_vpamu_grids
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"
@@ -159,9 +218,9 @@ contains
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
     if (debug) write(6,*) "stella::init_stella::ginit"
-    call ginit (restarted)
+    call ginit (restarted,istep0)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
-    call init_gxyz
+    call init_gxyz (restarted)
     if (debug) write(6,*) "stella::init_stella::init_response_matrix"
     if (stream_implicit .or. driftkinetic_implicit) call init_response_matrix
 
@@ -170,13 +229,18 @@ contains
        ! get initial field from initial distribution function
        call advance_fields (gnew, phi, apar, dist='gbar')
     end if
+    if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
-    call init_stella_diagnostics (nstep)
+    call init_stella_diagnostics (restarted,nstep,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
 
+    ierr = error_unit()
+    if (proc0) call flush_output_file (ierr)
+
     if (proc0) call time_message(.false.,time_init,' Initialization')
+
 
   end subroutine init_stella
 
@@ -205,7 +269,7 @@ contains
     use job_manage, only: time_message
     use physics_parameters, only: finish_physics_parameters
     use physics_flags, only: finish_physics_flags
-    use run_parameters, only: finish_run_parameters
+    use run_parameters, only: finish_run_parameters, nstep
     use zgrid, only: finish_zgrid
     use species, only: finish_species
     use time_advance, only: time_gke, time_parallel_nl
@@ -213,6 +277,7 @@ contains
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
     use dissipation, only: time_collisions
+    use init_g, only: finish_init_g
     use dist_fn, only: finish_dist_fn
     use fields, only: finish_fields
     use fields, only: time_field_solve
@@ -228,7 +293,7 @@ contains
     logical, intent (in), optional :: last_call
 
     if (debug) write (*,*) 'stella::finish_stella::finish_stella_diagnostics'
-    call finish_stella_diagnostics
+    call finish_stella_diagnostics(nstep)
     if (debug) write (*,*) 'stella::finish_stella::finish_response_matrix'
     call finish_response_matrix
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'
@@ -239,6 +304,8 @@ contains
     call finish_extended_zgrid
     if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'
     call finish_dist_fn
+    if (debug) write (*,*) 'stella::finish_stella::finish_init_g'
+    call finish_init_g
     if (debug) write (*,*) 'stella::finish_stella::finish_vpamu_grids'
     call finish_vpamu_grids
     if (debug) write (*,*) 'stella::finish_stella::finish_kt_grids'

@@ -17,6 +17,7 @@ stella_mod = \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 flow_shear.o \
 	 fzero.o \
 	 g_tofrom_h.o \
 	 gauss_quad.o \
@@ -30,6 +31,7 @@ stella_mod = \
 	 mirror_terms.o \
 	 mp.o \
 	 mt19937.o \
+	 multibox.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
@@ -100,6 +102,7 @@ dist_fn.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -127,6 +130,7 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
@@ -142,6 +146,7 @@ fields.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 fields_arrays.o: \
@@ -149,6 +154,23 @@ fields_arrays.o: \
 file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
+flow_shear.o: \
+	 constants.o \
+	 fields.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_flags.o \
+	 physics_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
 	 gyro_averages.o \
@@ -184,6 +206,7 @@ init_g.o: \
 	 ran.o \
 	 run_parameters.o \
 	 species.o \
+	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_save.o \
 	 text_options.o \
@@ -202,10 +225,12 @@ job_manage.o: \
 	 mp.o 
 kt_grids.o: \
 	 common_types.o \
+	 constants.o \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 stella_geometry.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
@@ -213,6 +238,8 @@ millerlocal.o: \
 	 common_types.o \
 	 constants.o \
 	 file_utils.o \
+	 job_manage.o \
+	 mp.o \
 	 spl.o 
 mirror_terms.o: \
 	 constants.o \
@@ -237,6 +264,23 @@ mp.o: \
 	 constants.o \
 	 file_utils.o 
 mt19937.o: 
+multibox.o: \
+	 constants.o \
+	 fft_work.o \
+	 fields.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 flow_shear.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_flags.o \
+	 physics_parameters.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 text_options.o \
+	 zgrid.o 
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
@@ -269,6 +313,7 @@ parallel_streaming.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 physics_flags.o: \
@@ -302,8 +347,6 @@ run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o \
-	 stella_save.o \
-	 stella_time.o \
 	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
@@ -313,8 +356,11 @@ species.o: \
 	 euterpe_interface.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
+	 job_manage.o \
 	 mp.o \
+	 physics_flags.o \
 	 physics_parameters.o \
+	 stella_geometry.o \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
@@ -334,9 +380,11 @@ stella.o: \
 	 kt_grids.o \
 	 mirror_terms.o \
 	 mp.o \
+	 multibox.o \
 	 parallel_streaming.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
@@ -361,6 +409,7 @@ stella_diagnostics.o: \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -370,6 +419,7 @@ stella_diagnostics.o: \
 	 stella_layouts.o \
 	 stella_save.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_geometry.o: \
@@ -377,9 +427,10 @@ stella_geometry.o: \
 	 constants.o \
 	 file_utils.o \
 	 inputprofiles_interface.o \
-	 kt_grids.o \
 	 millerlocal.o \
 	 mp.o \
+	 physics_flags.o \
+	 physics_parameters.o \
 	 text_options.o \
 	 vmec_geo.o \
 	 zgrid.o 
@@ -403,11 +454,15 @@ stella_layouts.o: \
 	 mp.o 
 stella_save.o: \
 	 common_types.o \
+	 dissipation.o \
+	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 flow_shear.o \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
+	 physics_flags.o \
 	 species.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
@@ -430,11 +485,13 @@ time_advance.o: \
 	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
+	 flow_shear.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mirror_terms.o \
 	 mp.o \
+	 multibox.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
 	 physics_flags.o \
@@ -454,7 +511,6 @@ vmec_geo.o: \
 	 common_types.o \
 	 constants.o \
 	 file_utils.o \
-	 kt_grids.o \
 	 mp.o \
 	 physics_flags.o \
 	 spl.o \

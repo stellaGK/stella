@@ -137,7 +137,7 @@ contains
     use species, only: spec
     use stella_geometry, only: gradpar, dbdzed
     use vpamu_grids, only: vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use fields_arrays, only: response_matrix
     use gyro_averages, only: aj0x
     use run_parameters, only: driftkinetic_implicit
@@ -184,10 +184,10 @@ contains
              gyro_fac = aj0x(iky,ikx,iz,ivmu)
           end if
           
-          fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-               *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv)
+          fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
+               *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)
           
-          gradpar_fac = gradpar*maxwell_mu(ia,:,imu)
+          gradpar_fac = gradpar*maxwell_mu(ia,:,imu,is)*maxwell_fac(is)
           
           ! stream_sign < 0 corresponds to positive advection speed
           if (stream_sign(iv)<0) then
@@ -300,8 +300,8 @@ contains
              gyro_fac = aj0x(iky,ikx,iz,ivmu)
           end if
           
-          fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm &
-               *gyro_fac*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(ia,iz,imu)
+          fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
+               *gyro_fac*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
 
           mu_dbdzed_p = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.+zed_upwind)
           mu_dbdzed_m = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.-zed_upwind)
@@ -461,7 +461,7 @@ contains
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: nsegments
-    use kt_grids, only: zonal_mode
+    use kt_grids, only: zonal_mode, akx
     use vpamu_grids, only: integrate_species
     use gyro_averages, only: gyro_average
     use dist_fn, only: adiabatic_option_switch
@@ -484,12 +484,16 @@ contains
 
     allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-    wgt = spec%z*spec%dens
+    wgt = spec%z*spec%dens_psi0
     phi = 0.
 
     idx = 0 ; izl_offset = 0
     iseg = 1
     ikx = ikxmod(iseg,ie,iky)
+    if(zonal_mode(iky).and.abs(akx(ikx)) < epsilon(0.)) then
+      phi(:) = 0.0
+      return
+    endif
     do iz = iz_low(iseg), iz_up(iseg)
        idx = idx + 1
        call gyro_average (g(idx,:), iky, ikx, iz, g0)

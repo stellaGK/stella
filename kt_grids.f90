@@ -7,7 +7,10 @@ module kt_grids
   public :: read_kt_grids_parameters
   public :: aky, theta0, akx
   public :: naky, nakx, nx, ny, reality
-  public :: jtwist, ikx_twist_shift, y0
+  public :: dx,dy,dkx, dky, dx_d
+  public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
+  public :: x, x_d, x_clamped
+  public :: rho, rho_d, rho_clamped
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -23,6 +26,10 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0
   real, dimension (:), allocatable :: aky, akx
+  real, dimension (:), allocatable :: x, x_d, x_clamped
+  real, dimension (:), allocatable :: rho, rho_d, rho_clamped
+  real :: dx, dy, dkx, dky, dx_d
+  real :: jtwistfac
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
@@ -39,7 +46,7 @@ module kt_grids
   real :: aky_min, aky_max
   real :: akx_min, akx_max
   real :: theta0_min, theta0_max
-  real :: y0
+  real :: x0, y0
   logical :: read_kt_grids_initialized = .false.
   logical :: init_kt_grids_initialized = .false.
 
@@ -108,7 +115,7 @@ contains
     integer :: in_file
     logical :: exist
 
-    namelist /kt_grids_box_parameters/ nx, ny, jtwist, y0
+    namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0
 
     ! note that jtwist and y0 will possibly be modified
     ! later in init_kt_grids_box if they make it out
@@ -120,6 +127,7 @@ contains
     nx = 1
     ny = 1
     jtwist = -1
+    jtwistfac = 1.0
     y0 = -1.0
     nalpha = 1
 
@@ -165,7 +173,7 @@ contains
 
   end subroutine read_kt_grids_range
 
-  subroutine init_kt_grids (geo_surf, twist_and_shift_geo_fac)
+  subroutine init_kt_grids 
 
     use common_types, only: flux_surface_type
     use zgrid, only: init_zgrid
@@ -174,9 +182,6 @@ contains
 
     implicit none
 
-    type (flux_surface_type), intent (in) :: geo_surf
-    real, intent (in) :: twist_and_shift_geo_fac
-
     if (init_kt_grids_initialized) return
     init_kt_grids_initialized = .true.
 
@@ -184,9 +189,9 @@ contains
 
     select case (gridopt_switch)
     case (gridopt_range)
-       call init_kt_grids_range (geo_surf)
+       call init_kt_grids_range 
     case (gridopt_box)
-       call init_kt_grids_box (geo_surf, twist_and_shift_geo_fac)
+       call init_kt_grids_box 
     end select
 
     ! determine if iky corresponds to zonal mode
@@ -196,25 +201,27 @@ contains
 
   end subroutine init_kt_grids
 
-  subroutine init_kt_grids_box (geo_surf, twist_and_shift_geo_fac)
+  subroutine init_kt_grids_box
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, job
     use common_types, only: flux_surface_type
+    use constants, only: pi
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x, get_x_to_rho
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface
     use zgrid, only: shat_zero
+    use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
     
-    type (flux_surface_type), intent (in) :: geo_surf
-    real, intent (in) :: twist_and_shift_geo_fac
-
-    real :: dkx, dky
     integer :: ikx, iky
 
     ! set jtwist and y0 for cases where they have not been specified
     ! and for which it makes sense to set them automatically
-    if (jtwist < 1) jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
+    if (jtwist < 1) then 
+      jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
+      jtwist = max(1,int(jtwistfac*jtwist+0.5))
+    endif
     ! signed version of jtwist, with sign determined by, e.g., magnetic shear
     ikx_twist_shift = -jtwist*int(sign(1.0,twist_and_shift_geo_fac))
 
@@ -246,6 +253,9 @@ contains
        dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
     end if
 
+    x0 = 1./dkx
+
+
     ! ky goes from zero to ky_max
     do iky = 1, naky
        aky(iky) = real(iky-1)*dky
@@ -268,7 +278,12 @@ contains
 
     ! set theta0=0 for ky=0
     theta0(1,:) = 0.0
-    if (abs(geo_surf%shat) > shat_zero) then
+    if (q_as_x) then
+       do ikx = 1, nakx
+          ! theta0 = kx/ky
+          theta0(2:,ikx) = akx(ikx)/aky(2:)
+       end do
+    else if (abs(geo_surf%shat) > shat_zero) then
        do ikx = 1, nakx
           ! theta0 = kx/ky/shat
           theta0(2:,ikx) = akx(ikx)/(aky(2:)*geo_surf%shat)
@@ -279,21 +294,49 @@ contains
           theta0(2:,ikx) = - akx(ikx)/aky(2:)
        end do
     end if
+
+    ! for radial variation
+    if(.not.allocated(x)) allocate (x(nx))
+    if(.not.allocated(x_d)) allocate (x_d(nakx))
+    if(.not.allocated(rho)) allocate (rho(nx))
+    if(.not.allocated(rho_d)) allocate (rho_d(nakx))
+
+    dx = (2*pi*x0)/nx
+    dy = (2*pi*y0)/ny
+
+    do ikx = 1, nx
+      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
+        x(ikx) = (ikx-0.5)*dx - pi*x0
+      else
+        x(ikx) = (ikx-1)*dx
+      endif
+    enddo
+
+    dx_d = (2*pi*x0)/nakx
+    do ikx = 1, nakx
+      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
+        x_d(ikx) = (ikx-0.5)*dx_d - pi*x0
+      else
+        x_d(ikx) = (ikx-1)*dx_d
+      endif
+    enddo
+
+    call get_x_to_rho(1,x,rho)
+    call get_x_to_rho(1,x_d,rho_d)
     
   end subroutine init_kt_grids_box
 
-  subroutine init_kt_grids_range (geo_surf)
+  subroutine init_kt_grids_range
 
     use mp, only: mp_abort
     use common_types, only: flux_surface_type
+    use stella_geometry, only: geo_surf, q_as_x
     use zgrid, only: shat_zero
 
     implicit none
 
-    type (flux_surface_type), intent (in) :: geo_surf
-
     integer :: i, j
-    real :: dkx, dky, dtheta0
+    real :: dkx, dky, dtheta0, tfac
     real :: zero
 
     ! NB: we are assuming here that all ky are positive
@@ -305,17 +348,23 @@ contains
     ! set default akx and theta0 to 0
     akx = 0.0 ; theta0 = 0.0
 
+    if (q_as_x) then
+      tfac = 1.0
+    else
+      tfac = geo_surf%shat
+    endif
+
     zero = 100.*epsilon(0.)
 
     ! if theta0_min and theta0_max have been specified,
     ! use them to determine akx_min and akx_max
     if (theta0_max > theta0_min-zero) then
        if (geo_surf%shat > epsilon(0.)) then
-          akx_min = theta0_min * geo_surf%shat * aky(1)
-          akx_max = theta0_max * geo_surf%shat * aky(1)
+          akx_min = theta0_min * tfac * aky(1)
+          akx_max = theta0_max * tfac * aky(1)
        else
-          akx_min = theta0_max * geo_surf%shat * aky(1)
-          akx_max = theta0_min * geo_surf%shat * aky(1)
+          akx_min = theta0_max * tfac * aky(1)
+          akx_max = theta0_min * tfac * aky(1)
        end if
     end if
 
@@ -325,8 +374,8 @@ contains
        ! instead of theta0_min and theta0_max,
        ! use them to get theta0_min and theta0_max
        if (theta0_min > theta0_max+zero .and. abs(aky(1)) > zero) then
-          theta0_min = akx_min/(geo_surf%shat*aky(1))
-          theta0_max = akx_max/(geo_surf%shat*aky(1))
+          theta0_min = akx_min/(tfac*aky(1))
+          theta0_max = akx_max/(tfac*aky(1))
           dtheta0 = 0.0
           if (nakx > 1) dtheta0 = (theta0_max - theta0_min)/real(nakx - 1)
           
@@ -334,7 +383,7 @@ contains
              theta0(j,:) &
                   = (/ (theta0_min + dtheta0*real(i), i=0,nakx-1) /)
           end do
-          akx = theta0(1,:) * geo_surf%shat * aky(1)
+          akx = theta0(1,:) * tfac * aky(1)
        else if (akx_max > akx_min-zero) then
           dkx = 0.0
           if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
@@ -385,6 +434,7 @@ contains
     call broadcast (nalpha)
     call broadcast (reality)
     call broadcast (jtwist)
+    call broadcast (jtwistfac)
     call broadcast (y0)
     call broadcast (aky_min)
     call broadcast (aky_max)
@@ -569,6 +619,11 @@ contains
     if (allocated(aky)) deallocate (aky)
     if (allocated(akx)) deallocate (akx)
     if (allocated(theta0)) deallocate (theta0)
+
+    if (allocated(x)) deallocate (x)
+    if (allocated(x_d)) deallocate (x_d)
+    if (allocated(rho)) deallocate (rho)
+    if (allocated(rho_d)) deallocate (rho_d)
 
     reality = .false.
     read_kt_grids_initialized = .false.

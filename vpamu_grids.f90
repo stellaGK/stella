@@ -9,7 +9,9 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu, dmu
-  public :: vperp2, maxwell_vpa, maxwell_mu, ztmax
+  public :: maxwell_vpa, maxwell_mu, ztmax
+  public :: maxwell_fac
+  public :: vperp2
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
 
@@ -21,12 +23,14 @@ module vpamu_grids
 
   ! arrays that are filled in vpamu_grids
   real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
-  real, dimension (:), allocatable :: maxwell_vpa
-  real, dimension (:), allocatable :: mu
-  real, dimension (:,:,:), allocatable :: wgts_mu, maxwell_mu
+  real, dimension (:,:), allocatable :: maxwell_vpa
+  real, dimension (:), allocatable :: mu, maxwell_fac
+  real, dimension (:,:,:), allocatable :: wgts_mu
+  real, dimension (:,:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
   real, dimension (:), allocatable :: dmu
+  complex, dimension (:), allocatable :: rbuffer
   logical :: equally_spaced_mu_grid
 
   ! vpa-mu related arrays that are declared here
@@ -37,6 +41,8 @@ module vpamu_grids
 !     module procedure integrate_species_vmu
      module procedure integrate_species_vmu_single
      module procedure integrate_species_vmu_single_real
+     module procedure integrate_species_vmu_block
+     module procedure integrate_species_vmu_whole
 !     module procedure integrate_species_local_complex
 !     module procedure integrate_species_local_real
   end interface
@@ -93,6 +99,8 @@ contains
 
   subroutine init_vpamu_grids
 
+    use species, only: spec, nspec
+
     implicit none
 
     if (vpamu_initialized) return
@@ -100,6 +108,13 @@ contains
 
     call init_vpa_grid
     call init_mu_grid
+
+    if(.not.allocated(maxwell_fac)) then
+      allocate(maxwell_fac(nspec)) ; maxwell_fac = 1.0
+    endif
+
+    maxwell_fac = spec%dens/spec%dens_psi0*(spec%temp_psi0/spec%temp)**1.5
+
 
   end subroutine init_vpamu_grids
 
@@ -121,7 +136,7 @@ contains
        allocate (wgts_vpa(nvpa)) ; wgts_vpa = 0.0
        allocate (wgts_vpa_default(nvpa)) ; wgts_vpa_default = 0.0
        ! this is the Maxwellian in vpa
-       allocate (maxwell_vpa(nvpa)) ; maxwell_vpa = 0.0
+       allocate (maxwell_vpa(nvpa,nspec)) ; maxwell_vpa = 0.0
        allocate (ztmax(nvpa,nspec)) ; ztmax = 0.0
     end if
 
@@ -139,8 +154,8 @@ contains
     vpa(:nvgrid) = -vpa(nvpa:nvgrid+1:-1)
 
     ! this is the equilibrium Maxwellian in vpa
-    maxwell_vpa = exp(-vpa*vpa)
-    ztmax = spread(spec%zt,1,nvpa)*spread(maxwell_vpa,2,nspec)
+    maxwell_vpa = exp(-spread(vpa*vpa,2,nspec)*spread(spec%temp_psi0/spec%temp,1,nvpa))
+    ztmax = spread(spec%zt,1,nvpa)*maxwell_vpa
 
     ! get integration weights corresponding to vpa grid points
     ! for now use Simpson's rule; 
@@ -513,6 +528,115 @@ contains
 
   end subroutine integrate_species_vmu_single_real
 
+  subroutine integrate_species_vmu_block (g, iz, weights, pout, ia_in)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use kt_grids, only: nakx, naky
+
+    implicit none
+
+    integer :: ivmu, iv, is, imu, ia,num
+
+    complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in) :: iz
+    integer, intent (in), optional :: ia_in
+    real, dimension (:), intent (in) :: weights
+    complex, dimension (:,:), intent (out) :: pout
+
+    integer :: ikx,iky
+
+    pout =0.
+
+    if (present(ia_in)) then
+       ia = ia_in
+    else
+       ia = 1
+    end if
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       num=1
+       do ikx = 1, nakx
+         do iky = 1, naky
+            pout(iky,ikx) = pout(iky,ikx) + &
+              wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iky,ikx,ivmu)*weights(is)
+            num=num+1
+         end do
+       end do
+    end do
+
+    call sum_allreduce (pout)
+
+  end subroutine integrate_species_vmu_block
+
+  subroutine integrate_species_vmu_whole (g, weights, pout, ia_in)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use kt_grids, only: nakx, naky
+    use zgrid, only: nzgrid, ntubes
+
+    implicit none
+
+    integer :: ivmu, iv, is, imu, ia,num
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in), optional :: ia_in
+    real, dimension (:), intent (in) :: weights
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: pout
+
+    integer :: ikx,iky,iz,it
+
+
+    if(.not.allocated(rbuffer)) allocate(rbuffer(naky*nakx*ntubes*(2*nzgrid+1)))
+
+    rbuffer = 0.
+    
+    if (present(ia_in)) then
+       ia = ia_in
+    else
+       ia = 1
+    end if
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      num=1
+      do it=1,ntubes
+        do iz=-nzgrid,nzgrid
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          do ikx = 1, nakx
+            do iky = 1, naky
+              rbuffer(num) = rbuffer(num) + &
+                  wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iky,ikx,iz,it,ivmu)*weights(is)
+              num=num+1
+            end do
+          enddo
+        end do
+      end do
+    end do
+
+    call sum_allreduce (rbuffer)
+
+    num=1
+    do it=1,ntubes
+      do iz=-nzgrid,nzgrid
+        do ikx = 1, nakx
+          do iky = 1, naky
+            pout(iky,ikx,iz,it) = rbuffer(num)
+            num=num+1
+          end do
+        end do
+      end do
+    end do
+
+  end subroutine integrate_species_vmu_whole
+
+  ! integrave over v-space and sum over species for given (ky,kx,z) point
+
   subroutine finish_vpa_grid
 
     implicit none
@@ -531,7 +655,8 @@ contains
     use gauss_quad, only: get_laguerre_grids
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
-    use stella_geometry, only: bmag
+    use species, only: spec, nspec
+    use stella_geometry, only: bmag, bmag_psi0
     
     implicit none
 
@@ -543,7 +668,7 @@ contains
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
        allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
-       allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu)) ; maxwell_mu = 0.0
+       allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; maxwell_mu = 0.0
        allocate (dmu(nmu-1))
     end if
 
@@ -553,7 +678,7 @@ contains
     if (equally_spaced_mu_grid) then
        ! first get equally spaced grid in mu with max value
        ! mu_max = vperp_max**2/(2*max(bmag))
-       mu_max = vperp_max**2/(2.*maxval(bmag))
+       mu_max = vperp_max**2/(2.*maxval(bmag_psi0))
        ! want first grid point at dmu/2 to avoid mu=0 special point
        ! dmu/2 + (nmu-1)*dmu = mu_max
        ! so dmu = mu_max/(nmu-1/2)
@@ -568,10 +693,10 @@ contains
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
        call get_laguerre_grids (mu, wgts_mu_tmp)
-       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
-       mu = mu/(2.*minval(bmag)*mu(nmu)/vperp_max**2)
+       mu = mu/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
 
        dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
        ! leave dmu(nmu) uninitialized. should never be used, so want 
@@ -579,7 +704,8 @@ contains
     end if
 
     ! this is the mu part of the v-space Maxwellian
-    maxwell_mu = exp(-2.*spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu))
+    maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu),4,nspec) &
+                       *spread(spread(spread(spec%temp_psi0/spec%temp,1,nalpha),2,nztot),3,nmu))
        
     ! factor of 2./sqrt(pi) necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
@@ -598,6 +724,7 @@ contains
     if (allocated(wgts_mu)) deallocate (wgts_mu)
     if (allocated(maxwell_mu)) deallocate (maxwell_mu)
     if (allocated(dmu)) deallocate (dmu)
+    if (allocated(rbuffer)) deallocate (rbuffer)
 
   end subroutine finish_mu_grid
 
@@ -607,6 +734,8 @@ contains
     
     call finish_vpa_grid
     call finish_mu_grid
+
+    if(allocated(maxwell_fac)) deallocate(maxwell_fac)
 
     vpamu_initialized = .false.
 

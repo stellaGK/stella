@@ -4,19 +4,24 @@ module dissipation
 
   public :: init_dissipation, finish_dissipation
   public :: include_collisions
+  public :: include_krook_operator, update_delay_krook
+  public :: remove_zero_projection, project_out_zero
   public :: advance_collisions_explicit, advance_collisions_implicit
   public :: time_collisions
   public :: hyper_dissipation
   public :: advance_hyper_dissipation
+  public :: add_krook_operator
   public :: collisions_implicit
+  public :: delay_krook, int_krook, int_proj
 
   private
 
   logical :: include_collisions, vpa_operator, mu_operator
-  logical :: collisions_implicit
+  logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
-  logical :: hyper_dissipation
-  real :: D_hyper
+  logical :: hyper_dissipation, remove_zero_projection
+  real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
+  integer:: ikxmax_source
   integer :: nresponse_vpa = 1
   integer :: nresponse_mu = 1
 
@@ -46,32 +51,43 @@ contains
 
     use file_utils, only: input_unit_exist
     use mp, only: proc0, broadcast
+    use kt_grids, only: ikx_max
 
     implicit none
 
     namelist /dissipation/ hyper_dissipation, D_hyper, &
          include_collisions, collisions_implicit, &
          momentum_conservation, energy_conservation, &
-         vpa_operator, mu_operator
+         vpa_operator, mu_operator, include_krook_operator, &
+         nu_krook, delay_krook, remove_zero_projection, &
+         ikxmax_source
 
     integer :: in_file
     logical :: dexist
 
     if (proc0) then
        include_collisions = .false.
+       include_krook_operator = .false.
        collisions_implicit = .true.
        momentum_conservation = .true.
        energy_conservation = .true.
        vpa_operator = .true.
        mu_operator = .true.
        hyper_dissipation = .false.
+       remove_zero_projection = .false.
        D_hyper = 0.05
+       nu_krook = 0.05
+       delay_krook =0.02
+       ikxmax_source = 2 ! kx=0 and kx=1
 
        in_file = input_unit_exist("dissipation", dexist)
        if (dexist) read (unit=in_file, nml=dissipation)
     end if
 
+    ikxmax_source = min(ikxmax_source,ikx_max)
+
     call broadcast (include_collisions)
+    call broadcast (include_krook_operator)
     call broadcast (collisions_implicit)
     call broadcast (momentum_conservation)
     call broadcast (energy_conservation)
@@ -79,6 +95,10 @@ contains
     call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
     call broadcast (D_hyper)
+    call broadcast (nu_krook)
+    call broadcast (delay_krook)
+    call broadcast (ikxmax_source)
+    call broadcast (remove_zero_projection)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -89,6 +109,10 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: dvpa, dmu, mu, nmu
     use stella_geometry, only: bmag
+    use dist_fn_arrays, only: g_krook, g_proj
+    use kt_grids, only: naky, nakx
+    use  zgrid, only: ntubes
+    use stella_layouts
 
     implicit none
 
@@ -116,6 +140,18 @@ contains
        cfl_dt_vpadiff = 2.0*dvpa**2/vnew_max
        cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
     end if
+
+    if(include_krook_operator.and..not.allocated(g_krook)) then
+      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_krook = 0.
+    endif
+    
+    if(remove_zero_projection.and..not.allocated(g_proj)) then
+      allocate (g_proj(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_proj = 0.
+    endif
+    int_krook = 0.
+    int_proj  = 0.
 
   end subroutine init_collisions
   
@@ -279,7 +315,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
-          gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu)*aj0v(imu,ikxkyz)
+          gvmu(:,imu,ikxkyz) = ztmax(:,is)*maxwell_mu(1,iz,imu,is)*aj0v(imu,ikxkyz)
           call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
        end do
     end do
@@ -326,7 +362,7 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
-             gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*vpa*aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
+             gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*vpa*aj0v(imu,ikxkyz)*maxwell_vpa(:,is)*maxwell_mu(1,iz,imu,is)
              call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
           end do
        end do
@@ -375,7 +411,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do imu = 1, nmu
              gvmu(:,imu,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*(vpa**2+vperp2(1,iz,imu)-1.5) &
-                  *aj0v(imu,ikxkyz)*maxwell_vpa*maxwell_mu(1,iz,imu)
+                  *aj0v(imu,ikxkyz)*maxwell_vpa(:,is)*maxwell_mu(1,iz,imu,is)
              call tridag (1, aa_vpa(:,is), bb_vpa(:,ikxkyz), cc_vpa(:,is), gvmu(:,imu,ikxkyz))
           end do
        end do
@@ -473,7 +509,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do iv = 1, nvpa
-          gvmu(iv,:,ikxkyz) = ztmax(iv,is)*maxwell_mu(1,iz,:)*aj0v(:,ikxkyz)
+          gvmu(iv,:,ikxkyz) = ztmax(iv,is)*maxwell_mu(1,iz,:,is)*aj0v(:,ikxkyz)
           call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
        end do
     end do
@@ -524,7 +560,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do iv = 1, nvpa
              gvmu(iv,:,ikxkyz) = 2.*code_dt*spec(is)%vnew(is)*kperp2(iky,ikx,ia,iz)*vperp2(ia,iz,:) &
-                  *(spec(is)%smz/bmag(ia,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(ia,iz,:)
+                  *(spec(is)%smz/bmag(ia,iz))**2*aj1v(:,ikxkyz)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,:,is)
              call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
@@ -573,7 +609,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           do iv = 1, nvpa
              gvmu(iv,:,ikxkyz) = 2.0*code_dt*spec(is)%vnew(is)*(vpa(iv)**2+vperp2(1,iz,:)-1.5) &
-                  *aj0v(:,ikxkyz)*maxwell_vpa(iv)*maxwell_mu(1,iz,:)
+                  *aj0v(:,ikxkyz)*maxwell_vpa(iv,is)*maxwell_mu(1,iz,:,is)
              call tridag (1, aa_mu(iz,:,is), bb_mu(:,ikxkyz), cc_mu(iz,:,is), gvmu(iv,:,ikxkyz))
           end do
        end do
@@ -784,6 +820,8 @@ contains
 
   subroutine finish_collisions
 
+    use dist_fn_arrays, only: g_krook, g_proj
+
     implicit none
 
     if (collisions_implicit) then
@@ -792,6 +830,9 @@ contains
        call finish_vpadiff_response
        call finish_mudiff_response
     end if
+
+    if(allocated(g_krook)) deallocate(g_krook)
+    if(allocated(g_proj))  deallocate(g_proj)
 
     collisions_initialized = .false.
 
@@ -834,6 +875,141 @@ contains
     if (allocated(mudiff_idx)) deallocate (mudiff_idx)
 
   end subroutine finish_mudiff_response
+
+  subroutine add_krook_operator (g, gke_rhs)
+
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: akx, nakx, zonal_mode
+    use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
+    use dist_fn_arrays, only: g_krook
+    use stella_geometry, only: dl_over_b
+
+    implicit none
+
+    real :: exp_fac
+    complex :: tmp
+    integer :: ikx, it, ia, ivmu
+
+    !complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+
+    ia = 1
+
+    if(.not.zonal_mode(1)) return
+
+    !TODO: add number and momentum conservation
+    if(delay_krook.le.epsilon(0.)) then
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do ikx = 1, nakx
+            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook*tmp
+          enddo
+        enddo
+      enddo
+    else
+      exp_fac = exp(-code_dt/delay_krook)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do ikx = 1, nakx
+            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
+                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
+                                     / (code_dt     + exp_fac*int_krook)
+          enddo
+        enddo
+      enddo
+    endif
+
+  end subroutine add_krook_operator 
+
+  subroutine update_delay_krook (g)
+
+    use dist_fn_arrays, only: g_krook
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, zonal_mode
+    use stella_layouts, only: vmu_lo
+    use stella_geometry, only: dl_over_b
+    use stella_time, only: code_dt
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
+
+    integer :: ivmu, it, ikx, ia
+    real :: int_krook_old, exp_fac
+    complex :: tmp
+
+    if(.not.zonal_mode(1)) return
+
+    exp_fac = exp(-code_dt/delay_krook)
+    
+    ia = 1
+
+    int_krook_old = int_krook
+    int_krook =  code_dt + exp_fac*int_krook_old
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do ikx = 1, nakx
+          tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+          g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
+        enddo
+      enddo
+    enddo
+
+    !g_krook   = (code_dt*g + exp_fac*int_krook_old*g_krook)/int_krook
+
+  end subroutine update_delay_krook
+
+  subroutine project_out_zero (g)
+
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: zonal_mode, akx, nakx
+    use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
+    use dist_fn_arrays, only: g_proj
+    use stella_geometry, only: dl_over_b
+
+    implicit none
+
+    real :: exp_fac
+    complex :: tmp
+    integer :: ikx, it, ia, ivmu
+
+    complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
+
+    ia = 1
+    if(.not.zonal_mode(1)) return
+
+    exp_fac = exp(-code_dt/delay_krook)
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do ikx = 1, nakx
+          if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
+            g(ikx,:,it,ivmu) = 0.0
+          else
+            tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+            if(delay_krook.le.epsilon(0.)) then
+              g(ikx,:,it,ivmu) = tmp
+            else
+              g(ikx,:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,it,ivmu)) &
+                               / (code_dt     + exp_fac*int_proj)
+            endif
+          endif
+          g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+        enddo
+      enddo
+    enddo
+
+    int_proj = code_dt + exp_fac*int_proj
+
+  end subroutine project_out_zero
 
   subroutine advance_collisions_explicit (g, phi, gke_rhs)
 
@@ -907,7 +1083,7 @@ contains
           end do
        end if
        if (momentum_conservation) call conserve_momentum (iky, ikx, iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
-       if (energy_conservation) call conserve_energy (iz, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
+       if (energy_conservation) call conserve_energy (iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
        ! save memory by using gvmu and deallocating coll below
        ! before re-allocating tmp_vmulo
        gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
@@ -1040,18 +1216,18 @@ contains
     u_fac = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)
     call integrate_vmu (u_fac*h,iz,integral)
 
-    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
 
     u_fac = spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,ia,iz))*spec(is)%smz/bmag(ia,iz)
     call integrate_vmu (u_fac*h,iz,integral)
     
-    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
 
     deallocate (u_fac)
 
   end subroutine conserve_momentum
 
-  subroutine conserve_energy (iz, ikxkyz, h, Ch)
+  subroutine conserve_energy (iz, is, ikxkyz, h, Ch)
 
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
@@ -1060,7 +1236,7 @@ contains
     
     implicit none
 
-    integer, intent (in) :: iz, ikxkyz
+    integer, intent (in) :: iz, is, ikxkyz
     complex, dimension (:,:), intent (in) :: h
     complex, dimension (:,:), intent (in out) :: Ch
 
@@ -1072,7 +1248,7 @@ contains
     T_fac = spread(aj0v(:,ikxkyz),1,nvpa)*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
     call integrate_vmu (T_fac*h,iz,integral)
 
-    Ch = Ch + 4.0*T_fac*integral*spread(maxwell_mu(1,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)/3.0
+    Ch = Ch + 4.0*T_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)/3.0
 
     deallocate (T_fac)
 
@@ -1214,7 +1390,7 @@ contains
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
-               *spread(maxwell_vpa,2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:),1,nvpa)
+               *spread(maxwell_vpa(:,is),2,nmu)*spread(aj0v(:,ikxkyz)*maxwell_mu(1,iz,:,is),1,nvpa)
           if (momentum_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*spread(vpa*flds(iky,ikx,iz,it,is+1),2,nmu)
           if (energy_conservation) &
@@ -1352,7 +1528,7 @@ contains
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           tmp = 2.0*code_dt*spec(is)%vnew(is) &
-               *spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(1,iz,:),1,nvpa)
+               *spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)
           if (momentum_conservation) &
                g(:,:,ikxkyz) = g(:,:,ikxkyz) + tmp*kperp2(iky,ikx,ia,iz) &
                *spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*(spec(is)%smz/bmag(ia,iz))**2 &

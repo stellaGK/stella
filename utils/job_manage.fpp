@@ -69,7 +69,7 @@ contains
 ! <MAB
     use mp, only: job, scope
     use mp, only: proc0, nproc
-    use mp, only: init_jobs, broadcast, finish_mp
+    use mp, only: init_job_topology, broadcast, finish_mp
     implicit none
     integer, intent (in), optional :: n_ensembles
     integer, dimension(:), allocatable :: group0
@@ -142,7 +142,7 @@ contains
     
     allocate (group0(0:njobs-1))
     
-    call init_jobs (njobs, group0, ierr)
+    call init_job_topology (njobs, group0, ierr)
     ! TT> brought up one line [call scope(subprocs)] from file_utils.fpp
     !     to init_jobs
     !    call init_job_name (njobs, group0, job_list)

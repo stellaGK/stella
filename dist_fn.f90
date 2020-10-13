@@ -26,20 +26,80 @@ module dist_fn
 
 contains
 
-  subroutine init_gxyz
+  subroutine init_gxyz (restarted)
 
     use dist_fn_arrays, only: gvmu, gold, gnew
-    use redistribute, only: gather
+    use redistribute, only: gather, scatter
     use dist_redistribute, only: kxkyz2vmu
+    use physics_flags, only: radial_variation
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+    use kt_grids, only: nalpha, nakx, naky, nx, rho_clamped
+    use vpamu_grids, only: mu, vpa, vperp2
+    use zgrid, only: nzgrid, ntubes
+    use species, only: spec
+    use stella_geometry, only: dBdrho
+
 
     implicit none
+
+    real :: corr
+    integer :: ivmu, is, imu, iv, it, iz, ia
+    real, dimension (:,:), allocatable :: energy
+    complex, dimension (:,:), allocatable :: f0k, g0k, g0x
+    logical, intent(in) :: restarted
+
 
     if (gxyz_initialized) return
     gxyz_initialized = .false.
 
+
     ! get version of g that has ky,kx,z local
     call gather (kxkyz2vmu, gvmu, gnew)
+
+    ia = 1
+
+    !calculate radial corrections to F0 for use in Krook operator, as well as g1 from initialization
+    if(radial_variation) then
+      !init_g uses maxwellians, so account for variation in temperature, density, and B
+
+      allocate (energy(nalpha,-nzgrid:nzgrid))
+      allocate (f0k(naky,nakx))
+      allocate (g0k(naky,nakx))
+      allocate (g0x(naky,nx))
+
+      g0x = spread(rho_clamped,1,naky)
+      call transform_x2kx_xfirst(g0x,f0k)
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        is  = is_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        iv  = iv_idx(vmu_lo, ivmu)
+        energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+
+            corr = -(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-1.5) + 2*mu(imu)*dBdrho(iz))
+         
+            if(.not.restarted) then
+              g0k = gnew(:,:,iz,it,ivmu)
+
+              call transform_kx2x_xfirst(g0k,g0x)
+              g0x = g0x*(1.0 + corr*spread(rho_clamped,1,naky))
+              call transform_x2kx_xfirst(g0x,g0k)
+
+              gnew(:,:,iz,it,ivmu) = g0k
+            endif
+          enddo
+        enddo
+      enddo
+      deallocate(energy, f0k, g0k, g0x)
+
+      if(.not.restarted) call scatter(kxkyz2vmu,gnew,gvmu)
+    endif
+
     gold = gnew
+
 
   end subroutine init_gxyz
 
@@ -119,14 +179,17 @@ contains
 
   subroutine init_kperp2
 
-    use dist_fn_arrays, only: kperp2
+    use dist_fn_arrays, only: kperp2, dkperp2dr
     use stella_geometry, only: gds2, gds21, gds22
-    use stella_geometry, only: geo_surf
+    use stella_geometry, only: dgds2dr, dgds21dr
+    use stella_geometry, only: dgds22dr
+    use stella_geometry, only: geo_surf, q_as_x
     use zgrid, only: nzgrid
     use kt_grids, only: naky, nakx, theta0
     use kt_grids, only: akx, aky
     use kt_grids, only: zonal_mode
     use kt_grids, only: nalpha
+
 
     implicit none
 
@@ -136,20 +199,46 @@ contains
     kp2init = .true.
 
     allocate (kperp2(naky,nakx,nalpha,-nzgrid:nzgrid))
+    allocate (dkperp2dr(naky,nakx,nalpha,-nzgrid:nzgrid))
     do iky = 1, naky
        if (zonal_mode(iky)) then
           do ikx = 1, nakx
-             kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
+             if(q_as_x) then
+               kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22
+               dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/kperp2(iky,ikx,:,:)
+             else
+               kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
+               dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/(geo_surf%shat**2*kperp2(iky,ikx,:,:))
+             endif
+             if(any(kperp2(iky,ikx,:,:) .lt. epsilon(0.))) dkperp2dr(iky,ikx,:,:) = 0.
           end do
        else
           do ikx = 1, nakx
              kperp2(iky,ikx,:,:) = aky(iky)*aky(iky) &
                   *(gds2 + 2.0*theta0(iky,ikx)*gds21 &
                   + theta0(iky,ikx)*theta0(iky,ikx)*gds22)
+             dkperp2dr(iky,ikx,:,:) = aky(iky)*aky(iky) &
+                  *(dgds2dr + 2.0*theta0(iky,ikx)*dgds21dr &
+                  + theta0(iky,ikx)*theta0(iky,ikx)*dgds22dr)
+             dkperp2dr(iky,ikx,:,:)=dkperp2dr(iky,ikx,:,:)/kperp2(iky,ikx,:,:)
+             if(any(kperp2(iky,ikx,:,:) .lt. epsilon(0.))) dkperp2dr(iky,ikx,:,:) = 0.
           end do
        end if
     end do
 
+!   filename=trim(run_name)//".kperp2"
+!   open (1232,file=trim(filename),status='unknown')
+!   ia=1
+!   do iz=-nzgrid,nzgrid
+!     do ikx=1, naky
+!       do iky = 1, 1
+!         write(1232,'(2e15.8)') kperp2(iky,ikx,ia,iz), dkperp2dr(iky,ikx,ia,iz)
+!       enddo
+!     enddo
+!   enddo
+!   close (1232)
+
+    
   end subroutine init_kperp2
 
   subroutine allocate_arrays
@@ -173,14 +262,15 @@ contains
          allocate (gvmu(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     gvmu = 0.
 
+
   end subroutine allocate_arrays
 
   subroutine init_vperp2
 
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp2, mu
-    use vpamu_grids, only: nmu
+    use vpamu_grids, only: vperp2
+    use vpamu_grids, only: nmu, mu
     use kt_grids, only: nalpha
 
     implicit none
@@ -229,11 +319,12 @@ contains
 
   subroutine finish_kperp2
 
-    use dist_fn_arrays, only: kperp2
+    use dist_fn_arrays, only: kperp2, dkperp2dr
 
     implicit none
 
     if (allocated(kperp2)) deallocate (kperp2)
+    if (allocated(dkperp2dr)) deallocate (dkperp2dr)
 
     kp2init = .false.
 

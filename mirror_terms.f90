@@ -6,6 +6,7 @@ module mirror_terms
   public :: init_mirror, finish_mirror
   public :: mirror
   public :: advance_mirror_explicit, advance_mirror_implicit
+  public :: add_mirror_radial_variation
   public :: time_mirror
 
   private
@@ -15,6 +16,7 @@ module mirror_terms
 
   integer, dimension (:,:), allocatable :: mirror_sign
   real, dimension (:,:,:,:), allocatable :: mirror
+  real, dimension (:,:,:,:), allocatable :: mirror_rad_var
   real, dimension (:,:,:), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
   real, dimension (:,:,:), allocatable :: mirror_int_fac
   real, dimension (:,:,:,:), allocatable :: mirror_interp_loc
@@ -31,10 +33,11 @@ contains
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
     use stella_geometry, only: dbdzed, gradpar
+    use stella_geometry, only: d2Bdrdth, dgradpardrho
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange
-    use physics_flags, only: include_mirror
+    use physics_flags, only: include_mirror, radial_variation
 
     implicit none
 
@@ -49,17 +52,18 @@ contains
     
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
     if (include_neoclassical_terms) then
-       neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt,1,nztot)*0.5
+       neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt_psi0,1,nztot)*0.5
     else
        neoclassical_term = 0.
     end if
+
 
     ! mirror has sign consistent with being on RHS of GKE
     if (include_mirror) then
        do imu = 1, nmu
           do iy = 1, nalpha
              do iz = -nzgrid, nzgrid
-                mirror(iy,iz,imu,:) = code_dt*spec%stm*gradpar(iz) &
+                mirror(iy,iz,imu,:) = code_dt*spec%stm_psi0*gradpar(iz) &
                      *(mu(imu)*dbdzed(iy,iz)+neoclassical_term(iz,:))
              end do
           end do
@@ -69,6 +73,24 @@ contains
     end if
 
     deallocate (neoclassical_term)
+
+    if(radial_variation) then
+
+      if(.not.allocated(mirror_rad_var)) then
+        allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
+        mirror_rad_var = 0.
+      endif
+      !FLAG should include neoclassical corrections here?
+      do imu = 1, nmu
+        do iy = 1, nalpha
+          do iz = -nzgrid, nzgrid
+            mirror_rad_var(iy,iz,imu,:) = code_dt*spec%stm_psi0*mu(imu) &
+                                          *(dgradpardrho(iz)*dbdzed(iy,iz) &
+                                          +  gradpar(iz)*d2Bdrdth(iz))
+          end do
+        end do
+      end do
+    endif
 
     do iy = 1, nalpha
        ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
@@ -151,7 +173,7 @@ contains
              do iy = 1, nalpha
                 where (abs(mu(imu)*dbdzed(iy,:)) > zero)
                    mirror_int_fac(iy,:,ivmu) = exp( vpa(iv)**2*mu(imu)*dbdzed(iy,:) &
-                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt*dphineo_dzed(1,:)*0.5) )
+                        / (mu(imu)*dbdzed(iy,:)+spec(is)%zt_psi0*dphineo_dzed(1,:)*0.5) )
                 elsewhere
                    mirror_int_fac(iy,:,ivmu) = 1.0
                 end where
@@ -316,6 +338,72 @@ contains
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
   end subroutine advance_mirror_explicit
+
+  subroutine add_mirror_radial_variation (g, gout)
+
+    use mp, only: proc0
+    use redistribute, only: gather, scatter
+    use dist_fn_arrays, only: gvmu
+    use job_manage, only: time_message
+    use stella_layouts, only: kxkyz_lo, vmu_lo
+    use stella_layouts, only: is_idx,imu_idx
+    use zgrid, only: nzgrid, ntubes
+    use physics_flags, only: full_flux_surface
+    use vpamu_grids, only: nvpa, nmu
+    use run_parameters, only: fields_kxkyz
+    use dist_redistribute, only: kxkyz2vmu
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    complex, dimension (:,:,:), allocatable :: g0v
+
+    integer :: iz,it,imu,is,ivmu,ia
+
+
+    allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+
+    !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+    ia = 1
+
+    ! the mirror term is most complicated of all when doing full flux surface
+    if (full_flux_surface) then
+      ! FLAG DSO - Someday one should be able to do full global 
+    else
+       if (.not.fields_kxkyz) then
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+          call scatter (kxkyz2vmu, g, gvmu)
+          if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       end if
+       ! get dg/dvpa and store in g0v
+       g0v = gvmu
+       call get_dgdvpa_explicit (g0v)
+       ! swap layouts so that (z,kx,ky) are local
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+       call gather (kxkyz2vmu, g0v, gout)
+       if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
+
+       ! get mirror term and add to source
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo,ivmu)
+         imu = imu_idx(vmu_lo,ivmu)
+         do it = 1, ntubes
+           do iz = -nzgrid,nzgrid
+             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) &
+                                  * mirror_rad_var(ia,iz,imu,is)
+          enddo
+        enddo
+       enddo
+    end if
+
+    deallocate (g0v)
+
+    !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+  end subroutine add_mirror_radial_variation
 
   subroutine get_dgdvpa_global (g)
 
@@ -489,7 +577,8 @@ contains
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
-             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv)
+             is = is_idx(vmu_lo,ivmu)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv,is)
           end do
        end if
 
@@ -515,7 +604,8 @@ contains
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
-             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*maxwell_vpa(iv)
+             is = is_idx(vmu_lo,ivmu)
+             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*maxwell_vpa(iv,is)
           end do
        end if
 
@@ -725,6 +815,7 @@ contains
 
     if (allocated(mirror)) deallocate (mirror)
     if (allocated(mirror_sign)) deallocate (mirror_sign)
+    if (allocated(mirror_rad_var)) deallocate (mirror_rad_var)
 
     if (mirror_implicit) then
        if (mirror_semi_lagrange) then

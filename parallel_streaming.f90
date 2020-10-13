@@ -5,10 +5,13 @@ module parallel_streaming
   public :: init_parallel_streaming, finish_parallel_streaming
   public :: advance_parallel_streaming_explicit
   public :: advance_parallel_streaming_implicit
+  public :: add_parallel_streaming_radial_variation
   public :: stream_tridiagonal_solve
   public :: parallel_streaming_initialized
   public :: stream, stream_c, stream_sign
   public :: time_parallel_streaming
+  public :: stream_rad_var1
+  public :: stream_rad_var2
 
   private
 
@@ -21,6 +24,8 @@ module parallel_streaming
 
   integer, dimension (:), allocatable :: stream_sign
   real, dimension (:,:,:), allocatable :: stream, stream_c
+  real, dimension (:,:,:), allocatable :: stream_rad_var1
+  real, dimension (:,:,:), allocatable :: stream_rad_var2
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
   real, dimension (:,:), allocatable :: stream_tri_b1, stream_tri_b2
   real, dimension (:,:), allocatable :: stream_tri_c1, stream_tri_c2
@@ -34,17 +39,23 @@ contains
 
     use finite_differences, only: fd3pt
     use stella_time, only: code_dt
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
     use species, only: spec, nspec
     use vpamu_grids, only: nvpa, nvpa
-    use vpamu_grids, only: vpa
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use vpamu_grids, only: vperp2, vpa, mu
+    use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: gradpar
+    use stella_geometry, only: gradpar,dgradpardrho,dBdrho
     use run_parameters, only: stream_implicit, driftkinetic_implicit
-    use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: include_parallel_streaming, radial_variation
 
     implicit none
 
-    integer :: iv, is
+    integer :: iv, imu, is, ivmu, ia
+    
+    real, dimension (:), allocatable :: energy
 
     if (parallel_streaming_initialized) return
     parallel_streaming_initialized = .true.
@@ -55,11 +66,37 @@ contains
     ! sign of stream corresponds to appearing on RHS of GK equation
     ! i.e., this is the factor multiplying dg/dz on RHS of equation
     if (include_parallel_streaming) then
-       stream = -code_dt*spread(spread(spec%stm,1,nztot),2,nvpa) &
+       stream = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
             * spread(spread(vpa,1,nztot)*spread(gradpar,2,nvpa),3,nspec)
     else
        stream = 0.0
     end if
+
+    if(radial_variation) then
+
+      allocate (energy(-nzgrid:nzgrid))
+
+      if(.not.allocated(stream_rad_var1)) then 
+        allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
+      endif
+      if(.not.allocated(stream_rad_var2)) then 
+        allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      endif
+      ia=1
+      stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
+            * spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        is  = is_idx(vmu_lo,ivmu)
+        imu = imu_idx(vmu_lo,ivmu)
+        iv  = iv_idx(vmu_lo,ivmu)
+        energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+        stream_rad_var2(ia,:,ivmu) = &
+                -code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
+                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
+                *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
+      enddo
+      deallocate (energy)
+    endif
 
     ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     ! NB: stream_sign = -1 corresponds to positive advection velocity
@@ -81,9 +118,9 @@ contains
        if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
        gradpar_c = spread(gradpar,2,3)
        ! get gradpar centred in zed for negative vpa (affects upwinding)
-       call center_zed(1,gradpar_c(:,-1))
+       call center_zed(1,gradpar_c(:,-stream_sign(1)))
        ! get gradpar centred in zed for positive vpa (affects upwinding)
-       call center_zed(nvpa,gradpar_c(:,1))
+       call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
        stream = stream_c
     end if
 
@@ -140,7 +177,7 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use species, only: spec
     use gyro_averages, only: gyro_average
     use fields_arrays, only: phi
@@ -152,46 +189,130 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     integer :: ivmu, iv, imu, is, ia
-    complex, dimension (:,:,:,:,:), allocatable :: g0, g1
+    complex, dimension (:,:,:,:), allocatable :: g0, g1
 
-    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes))
     ! parallel streaming stays in ky,kx,z space with ky,kx,z local
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
-    ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       call gyro_average (phi, ivmu, g0(:,:,:,:,ivmu))
-       if (driftkinetic_implicit) g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) - phi
-    end do
-
-    ! get d<phi>/dz, with z the parallel coordinate and store in g1
-    call get_dgdz (g0, g1)
-!    call get_dgdz_centered (g0, g1)
-    ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
-    if (driftkinetic_implicit) then
-       g0 = 0.
-    else
-       call get_dgdz (g, g0)
-    end if
-
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+    ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
+       call gyro_average (phi, ivmu, g0(:,:,:,:))
+       if (driftkinetic_implicit) g0(:,:,:,:) = g0(:,:,:,:) - phi
+
+    ! get d<phi>/dz, with z the parallel coordinate and store in g1
+       call get_dgdz (g0, ivmu, g1)
+    !    call get_dgdz_centered (g0, ivmu, g1)
+    ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
+       if (driftkinetic_implicit) then
+         g0 = 0.
+       else
+         call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
+         !call get_dgdz_centered (g(:,:,:,:,ivmu), ivmu, g0)
+       end if
+
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       g0(:,:,:,:,ivmu) = g0(:,:,:,:,ivmu) + g1(:,:,:,:,ivmu)*spec(is)%zt &
-            *maxwell_vpa(iv)*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
-    end do
+       g0(:,:,:,:) = g0(:,:,:,:) + g1(:,:,:,:)*spec(is)%zt &
+            *maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes) &
+            *maxwell_fac(is)
 
-    ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
-    call add_stream_term (g0, gout)
+       ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
+       call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
+    end do
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
     deallocate (g0, g1)
 
   end subroutine advance_parallel_streaming_explicit
 
-  subroutine get_dgdz (g, dgdz)
+  subroutine add_parallel_streaming_radial_variation (g, gout, rhs)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+    use job_manage, only: time_message
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use species, only: spec
+    use gyro_averages, only: gyro_average, gyro_average_j1
+    use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
+    use run_parameters, only: driftkinetic_implicit
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    !the next input/output is for quasineutrality and gyroaveraging corrections 
+    !that go directly in the RHS (since they don't require further FFTs)
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: rhs
+
+    integer :: ivmu, iv, imu, is, it, ia, iz
+
+    complex, dimension (:,:,:,:), allocatable :: g0, g1, g2, g3
+    complex, dimension (:,:), allocatable :: g0k
+
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (g2(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (g3(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (g0k(naky,nakx)); g0k =0
+
+    ! parallel streaming stays in ky,kx,z space with ky,kx,z local
+
+    ia = 1
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+    ! obtain <phi>
+    ! get d<phi>/dz, with z the parallel coordinate and store in g1
+       call gyro_average (phi, ivmu, g0)
+       call get_dgdz_variable (g0, ivmu, g1)
+
+    ! get variation in gyroaveraging and store in g2
+       call get_dgdz_variable (phi_corr_GA(:,:,:,:,ivmu), ivmu, g2)
+
+    ! get variation in quasineutrality and store in g3
+       call gyro_average (phi_corr_QN, ivmu, g0)
+       call get_dgdz_variable (g0,  ivmu, g3)
+
+       call get_dgdz_variable (g(:,:,:,:,ivmu),  ivmu, g0)
+
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do it = 1, ntubes
+         do iz = -nzgrid,nzgrid
+
+    !!#1 - variation in gradpar
+           g0k = g0(:,:,iz,it) & 
+               + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
+
+           g0k = g0k*stream_rad_var1(iz,iv,is)
+
+    !!#2 - variation in F_s/T_s
+           g0k = g0k + g1(:,:,iz,it)*stream_rad_var2(ia,iz,ivmu)
+
+           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+
+
+
+    !!#3 - variation in the gyroaveraging and quasineutrality of phi
+           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+                 *(g2(:,:,iz,it) + g3(:,:,iz,it))
+
+           rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
+
+         enddo
+       enddo
+    end do
+    deallocate (g0, g1, g2, g3, g0k)
+
+  end subroutine add_parallel_streaming_radial_variation
+
+  subroutine get_dgdz (g, ivmu, dgdz)
 
     use finite_differences, only: third_order_upwind_zed
     use stella_layouts, only: vmu_lo
@@ -201,79 +322,117 @@ contains
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: fill_zed_ghost_zones
-    use kt_grids, only: naky
+    use kt_grids, only: naky, zonal_mode
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dgdz
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+    integer, intent (in) :: ivmu
 
-    integer :: ivmu, iseg, ie, it, iky, iv
+    integer :: iseg, ie, it, iky, iv
     complex, dimension (2) :: gleft, gright
 
     ! FLAG -- assuming delta zed is equally spaced below!
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       do iky = 1, naky
-          do it = 1, ntubes
-             do ie = 1, neigen(iky)
-                do iseg = 1, nsegments(ie,iky)
-                   ! first fill in ghost zones at boundaries in g(z)
-                   call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:,ivmu), gleft, gright)
-                   ! now get dg/dz
-                   call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                        g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it,ivmu), &
-                        delzed(0), stream_sign(iv), gleft, gright, &
-                        dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it,ivmu))
-                end do
-             end do
+    iv = iv_idx(vmu_lo,ivmu)
+    do iky = 1, naky
+      do it = 1, ntubes
+        do ie = 1, neigen(iky)
+          do iseg = 1, nsegments(ie,iky)
+            ! first fill in ghost zones at boundaries in g(z)
+            call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+            ! now get dg/dz
+            call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                 g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                 delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
+                 dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+            end do
           end do
-       end do
+      end do
     end do
 
   end subroutine get_dgdz
 
-!   subroutine get_dgdz_centered (g, dgdz)
+! subroutine get_dgdz_centered (g, ivmu, dgdz)
 
-!     use finite_differences, only: second_order_centered_zed
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx
-!     use zgrid, only: nzgrid, delzed
-!     use extended_zgrid, only: neigen, nsegments
-!     use extended_zgrid, only: iz_low, iz_up
-!     use extended_zgrid, only: ikxmod
-!     use extended_zgrid, only: fill_zed_ghost_zones
-!     use kt_grids, only: naky
+!    use finite_differences, only: second_order_centered_zed
+!    use stella_layouts, only: vmu_lo
+!    use stella_layouts, only: iv_idx
+!    use zgrid, only: nzgrid, delzed, ntubes
+!    use extended_zgrid, only: neigen, nsegments
+!    use extended_zgrid, only: iz_low, iz_up
+!    use extended_zgrid, only: ikxmod
+!    use extended_zgrid, only: fill_zed_ghost_zones
+!    use kt_grids, only: naky, zonal_mode
 
-!     implicit none
+!    implicit none
 
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (out) :: dgdz
+!    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+!    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+!    integer, intent (in) :: ivmu
 
-!     integer :: ivmu, iseg, ie, iky, iv
-!     complex, dimension (2) :: gleft, gright
-
-!     ! FLAG -- assuming delta zed is equally spaced below!
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        do iky = 1, naky
-!           do ie = 1, neigen(iky)
-!              do iseg = 1, nsegments(ie,iky)
-!                 ! first fill in ghost zones at boundaries in g(z)
-!                 call fill_zed_ghost_zones (iseg, ie, iky, g(:,:,:,ivmu), gleft, gright)
-!                 ! now get dg/dz
-!                 call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-!                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu), &
-!                      delzed(0), stream_sign(iv), gleft, gright, .false., &
-!                      dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),ivmu))
-!              end do
+!    integer :: iseg, ie, iky, iv, it
+!    complex, dimension (2) :: gleft, gright
+!    ! FLAG -- assuming delta zed is equally spaced below!
+!     iv = iv_idx(vmu_lo,ivmu)
+!     do iky = 1, naky
+!       do it = 1, ntubes
+!         do ie = 1, neigen(iky)
+!           do iseg = 1, nsegments(ie,iky)
+!              ! first fill in ghost zones at boundaries in g(z)
+!              call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+!              ! now get dg/dz
+!              call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+!                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+!                   delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
+!                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
 !           end do
-!        end do
+!         end do
+!       enddo
 !     end do
+! end subroutine get_dgdz_centered
 
-!   end subroutine get_dgdz_centered
+  subroutine get_dgdz_variable (g, ivmu, dgdz)
 
-  subroutine add_stream_term (g, src)
+     use finite_differences, only: fd_variable_upwinding_zed
+     use stella_layouts, only: vmu_lo
+     use stella_layouts, only: iv_idx
+     use zgrid, only: nzgrid, delzed, ntubes
+     use extended_zgrid, only: neigen, nsegments
+     use extended_zgrid, only: iz_low, iz_up
+     use extended_zgrid, only: ikxmod
+     use extended_zgrid, only: fill_zed_ghost_zones
+     use run_parameters, only: zed_upwind
+     use kt_grids, only: naky, zonal_mode
+
+     implicit none
+
+     complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+     complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+     integer, intent (in) :: ivmu
+
+     integer :: iseg, ie, iky, iv, it
+     complex, dimension (2) :: gleft, gright
+     ! FLAG -- assuming delta zed is equally spaced below!
+      iv = iv_idx(vmu_lo,ivmu)
+      do iky = 1, naky
+        do it = 1, ntubes
+          do ie = 1, neigen(iky)
+            do iseg = 1, nsegments(ie,iky)
+               ! first fill in ghost zones at boundaries in g(z)
+               call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+               ! now get dg/dz
+               call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                    g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                    delzed(0), stream_sign(iv), zed_upwind,gleft, gright, zonal_mode(iky), &
+                    dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+            end do
+          end do
+        enddo
+      end do
+  end subroutine get_dgdz_variable
+
+  subroutine add_stream_term (g, ivmu, src)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
@@ -282,17 +441,16 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: src
+    integer, intent (in) :: ivmu
 
-    integer :: iv, is, ivmu
+    integer :: iv, is
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-!       if (zonal_mode(1)) src(1,:,-nzgrid,ivmu) = src(1,:,nzgrid,ivmu)
-    end do
+    iv = iv_idx(vmu_lo,ivmu)
+    is = is_idx(vmu_lo,ivmu)
+    src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
+  !  if (zonal_mode(1)) src(1,:,-nzgrid,:) = src(1,:,nzgrid,:)
 
   end subroutine add_stream_term
 
@@ -386,7 +544,7 @@ contains
     use kt_grids, only: naky, nakx
     use gyro_averages, only: gyro_average
     use vpamu_grids, only: vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use stella_geometry, only: dbdzed
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dfneo_dvpa
@@ -451,7 +609,7 @@ contains
 
     if (maxwellian_inside_zed_derivative) then
        ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-       g = g*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+       g = g*spread(spread(spread(maxwell_mu(ia,:,imu,is)*maxwell_fac(is),1,naky),2,nakx),4,ntubes)
        call get_dzed (iv,g,dphidz)
        ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
        g = g*spread(spread(spread(dbdzed(ia,:),1,naky),2,nakx),4,ntubes)
@@ -462,15 +620,20 @@ contains
     else
        ! obtain d<phi>/dz and store in dphidz
        call get_dzed (iv,g,dphidz)
+       ! center Maxwellian factor in mu
+       ! and store in dummy variable gp
+       gp = maxwell_mu(ia,:,imu,is)*maxwell_fac(is)
+       call center_zed (iv,gp)
        ! multiply by Maxwellian factor
-       dphidz = dphidz*spread(spread(spread(maxwell_mu(ia,:,imu),1,naky),2,nakx),4,ntubes)
+       dphidz = dphidz*spread(spread(spread(gp,1,naky),2,nakx),4,ntubes)
     end if
 
     ! NB: could do this once at beginning of simulation to speed things up
     ! this is vpa*Z/T*exp(-vpa^2)
-    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv)
+    vpadf0dE_fac = vpa(iv)*spec(is)%zt*maxwell_vpa(iv,is)
     ! if including neoclassical correction to equilibrium distribution function
     ! then must also account for -vpa*dF_neo/dvpa*Z/T
+    ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
     if (include_neoclassical_terms) then
        do iz = -nzgrid, nzgrid
           vpadf0dE_fac(iz) = vpadf0dE_fac(iz)-0.5*dfneo_dvpa(1,iz,ivmu)*spec(is)%zt
@@ -488,7 +651,7 @@ contains
     end if
 
     ! construct RHS of GK eqn
-    fac = code_dt*spec(is)%stm
+    fac = code_dt*spec(is)%stm_psi0
     do iz = -nzgrid, nzgrid
        g(:,:,iz,:) = g(:,:,iz,:) - fac*gp(iz) &
             * (tupwnd1*vpa(iv)*dgdz(:,:,iz,:) + vpadf0dE_fac(iz)*dphidz(:,:,iz,:))
@@ -873,6 +1036,8 @@ contains
     if (allocated(stream_c)) deallocate (stream_c)
     if (allocated(stream_sign)) deallocate (stream_sign)
     if (allocated(gradpar_c)) deallocate (gradpar_c)
+    if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
+    if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
     if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 

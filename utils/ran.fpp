@@ -36,17 +36,18 @@ contains
 # endif
     integer, intent(in), optional :: seed
     real :: ranf
-    integer :: l
-    integer, allocatable :: seed_in(:)
 # if RANDOM == _RANMT_    
     if (present(seed)) call sgrnd(seed)
     ranf = grnd()
 # else
+    integer :: l
+    integer, allocatable :: seed_in(:)
     if (present(seed)) then
        call random_seed(size=l)
        allocate(seed_in(l))
        seed_in(:)=seed
        call random_seed(put=seed_in)
+       deallocate(seed_in)
     endif
     call random_number(ranf)
 # endif
@@ -82,7 +83,10 @@ contains
     
   end subroutine get_rnd_seed
 !-------------------------------------------------------------------
-  subroutine init_ranf(randomize,init_seed)
+  subroutine init_ranf(randomize,init_seed,mult)
+# if RANDOM == _RANMT_
+    use mt19937, only: sgrnd, grnd
+# endif
     ! <doc>
     !  init_ranf seeds the choosen random number generator.
     !  if randomize=T, a random seed based on the date and time is used.
@@ -92,24 +96,35 @@ contains
     implicit none
     logical, intent(in) :: randomize
     integer, intent(inout), dimension(:) :: init_seed
+    integer, optional, intent(in) :: mult
+    integer :: lmult = 1, clock
 # if RANDOM == _RANMT_
-    real :: rnd
+    if(present(mult)) then
+      lmult = mult
+    endif
     
     if (randomize) then
-       !Use intrinsic function with randomized seed to generate seed for MT
-       call random_seed()
-       call random_number(rnd)
-       init_seed=int(rnd*2.**31)
-       call sgrnd(init_seed)
+       call system_clock(COUNT=clock)
+       init_seed(1) = clock*lmult
+       call sgrnd(init_seed(1))
     else
-       call sgrnd(init_seed)
+       call sgrnd(init_seed(1)*lmult)
     endif
 # else
+    integer :: i, n
+
+    if(present(mult)) then
+      lmult = mult
+    endif
+
     if (randomize) then
-       call random_seed()
-       call random_seed(get=init_seed)
-    else
+       call random_seed(size = n)
+       call system_clock(count=clock)
+
+       init_seed = clock + 37*lmult*(/ (i - 1, i = 1, n) /)
        call random_seed(put=init_seed)
+    else
+       call random_seed(put=init_seed*lmult)
     endif
 # endif
 

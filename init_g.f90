@@ -17,13 +17,14 @@ module init_g
   integer, parameter :: ginitopt_default = 1,  &
        ginitopt_noise = 2, ginitopt_restart_many = 3, &
        ginitopt_kpar = 4, ginitopt_nltest = 5, &
-       ginitopt_kxtest = 6, ginitopt_rh = 7
+       ginitopt_kxtest = 6, ginitopt_rh = 7, &
+       ginitopt_remap = 8
 
   real :: width0, phiinit, imfac, refac, zf_init
   real :: den0, upar0, tpar0, tperp0
   real :: den1, upar1, tpar1, tperp1
   real :: den2, upar2, tpar2, tperp2
-  real :: tstart, scale
+  real :: tstart, scale, kxmax, kxmin
   logical :: chop_side, left, even
   character(300), public :: restart_file
   character (len=150) :: restart_dir
@@ -81,6 +82,8 @@ contains
     call broadcast (tperp2)
     call broadcast (phiinit)
     call broadcast (zf_init)
+    call broadcast (kxmax)
+    call broadcast (kxmin)
     call broadcast (tstart)
     call broadcast (chop_side)
     call broadcast (even)
@@ -93,13 +96,15 @@ contains
 
   end subroutine init_init_g
 
-  subroutine ginit (restarted)
+  subroutine ginit (restarted,istep0)
 
     use stella_save, only: init_tstart
     logical, intent (out) :: restarted
+    integer, intent (out) :: istep0
     integer :: istatus
 
     restarted = .false.
+    istep0 = 0
     select case (ginitopt_switch)
     case (ginitopt_default)
        call ginit_default
@@ -109,9 +114,11 @@ contains
        call ginit_kpar
      case (ginitopt_rh)
         call ginit_rh
+     case (ginitopt_remap)
+        call ginit_remap
     case (ginitopt_restart_many)
        call ginit_restart_many 
-       call init_tstart (tstart, istatus)
+       call init_tstart (tstart, istep0, istatus)
        restarted = .true.
        scale = 1.
 !    case (ginitopt_nltest)
@@ -129,21 +136,23 @@ contains
 
     implicit none
 
-    type (text_option), dimension (7), parameter :: ginitopts = &
+    type (text_option), dimension (8), parameter :: ginitopts = &
          (/ text_option('default', ginitopt_default), &
             text_option('noise', ginitopt_noise), &
             text_option('many', ginitopt_restart_many), &
             text_option('nltest', ginitopt_nltest), &
             text_option('kxtest', ginitopt_kxtest), &
             text_option('kpar', ginitopt_kpar), &
-            text_option('rh', ginitopt_rh) &
+            text_option('rh', ginitopt_rh), &
+            text_option('remap', ginitopt_remap) &
             /)
     character(20) :: ginit_option
     namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
          restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
          den0, upar0, tpar0, tperp0, imfac, refac, even, &
          den1, upar1, tpar1, tperp1, &
-         den2, upar2, tpar2, tperp2
+         den2, upar2, tpar2, tperp2, &
+         kxmax, kxmin
 
     integer :: ierr, in_file
 
@@ -167,6 +176,8 @@ contains
     tperp2 = 0.
     phiinit = 1.0
     zf_init = 1.0
+    kxmax = 1.e100
+    kxmin = 0.
     chop_side = .false.
     left = .true.
     even = .true.
@@ -193,9 +204,10 @@ contains
     use kt_grids, only: reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+    use ran, only: ranf
 
     implicit none
 
@@ -209,6 +221,14 @@ contains
     do iz = -nzgrid, nzgrid
        phi(:,:,iz) = exp(-((zed(iz)-theta0)/width0)**2)*cmplx(1.0,1.0)
     end do
+
+    ! this is a messy way of doing things
+    ! could tidy it up a bit
+    if (sum(cabs(phi)) < epsilon(0.)) then
+       do iz = -nzgrid, nzgrid
+          phi(:,:,iz) = exp(-(zed(iz)/width0)**2)*cmplx(1.0,1.0)
+       end do
+    end if
 
     if (chop_side) then
        if (left) phi(:,:,:-1) = 0.0
@@ -227,7 +247,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z) &
             * (den0 + 2.0*zi*spread(vpa,2,nmu)*upar0) &
-            * spread(maxwell_mu(ia,iz,:),1,nvpa)*spread(maxwell_vpa,2,nmu)
+            * spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)*maxwell_fac(is)
     end do
 
   end subroutine ginit_default
@@ -347,19 +367,22 @@ contains
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: ikxmod, nsegments, neigen
     use extended_zgrid, only: it_right
-    use kt_grids, only: naky, nakx, reality, zonal_mode
+    use kt_grids, only: aky, naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-    use mp, only: proc0, broadcast
+    use stella_geometry, only: dl_over_b
+    use mp, only: proc0, broadcast, max_allreduce
+    use mp, only: scope, crossdomprocs, subprocs
+    use file_utils, only: runtype_option_switch, runtype_multibox
     use ran
 
     implicit none
 
     complex, dimension (naky,nakx,-nzgrid:nzgrid,ntubes) :: phi
-    real :: a, b, kmin
+    real :: a, b, kmin,phi2
     integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
     integer :: itmod
 
@@ -374,10 +397,21 @@ contains
 
     ia = 1
     if (proc0) then
+       phi(1,1,:,:) = 0.0
+
        ! keep old (ikx, iky) loop order to get old results exactly: 
-       if (naky > 1 .and. nakx > 1) then
+       if(nakx .eq.1) then
+          kmin = minval(kperp2(2,1,ia,:))
+       else if(naky.eq.1) then
+          kmin = minval(kperp2(1,2,ia,:))
+       else
           kmin = min(minval(kperp2(1,2,ia,:)),minval(kperp2(2,1,ia,:)))
-          phi(1,1,:,:) = 0.0
+       end if
+
+       if(runtype_option_switch == runtype_multibox) then
+         call scope(crossdomprocs)
+         call max_allreduce (kmin)
+         call scope(subprocs)
        end if
 
        !Fill phi with random (complex) numbers between -0.5 and 0.5
@@ -388,7 +422,11 @@ contains
                    a = ranf()-0.5
                    b = ranf()-0.5
                    ! do not populate high k modes with large amplitudes
-                   if (ikx > 1 .or. iky > 1) phi(iky,ikx,iz,it) = cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,ia,iz)
+                   if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky,ikx,ia,iz) .ge. kmin))  then
+                     phi(iky,ikx,iz,it) =cmplx(a,b)*kmin/kperp2(iky,ikx,ia,iz)
+                   else
+                     phi(iky,ikx,iz,it) = 0.0
+                   endif
                 end do
                 if (chop_side) then
                    if (left) then
@@ -444,6 +482,25 @@ contains
     
     call broadcast (phi)
 
+    phi2 = 0.0
+    do it = 1,ntubes
+      do iz = -nzgrid,nzgrid
+        do ikx = 1, nakx
+          do iky= 1, naky
+            if(iky.eq.1 .and. aky(1)<epsilon(0.)) then
+              phi2 = phi2 + &
+                    real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
+            else
+              phi2 = phi2 + &
+                2.0*real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
+    phi2 = phi2/real(ntubes)
+    phi2 = 1.0/sqrt(phi2)
+
     !Now set g using data in phi
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -451,8 +508,8 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi(iky,ikx,iz,it) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi2*phi(iky,ikx,iz,it) &
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
     end do
 
   end subroutine ginit_noise
@@ -464,9 +521,9 @@ contains
     use kt_grids, only: naky, nakx, theta0
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa, vperp2
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
-    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx
+    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
     use constants, only: zi
 
     implicit none
@@ -474,7 +531,7 @@ contains
     complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi, odd
     real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ikxkyz
-    integer :: iz, iky, ikx, imu, iv, ia
+    integer :: iz, iky, ikx, imu, iv, ia, is
     
     phi = 0.
     odd = 0.
@@ -508,6 +565,7 @@ contains
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = 1, nvpa
              gvmu(iv,imu,ikxkyz) = phiinit &
@@ -518,7 +576,7 @@ contains
           end do
        end do
        gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
     end do
 
 ! FLAG -- should be uncommented, which means I need to fix flae
@@ -536,8 +594,9 @@ contains
     use dist_fn_arrays, only: gvmu, kperp2
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: nvpa, nmu
+    use kt_grids, only: akx
 
     implicit none
     
@@ -554,11 +613,46 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        
-       gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
-            * spread(maxwell_vpa,2,nmu)*spread(maxwell_mu(ia,iz,:),1,nvpa)
+       if(abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
+         gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+       end if
     end do
 
   end subroutine ginit_rh
+
+  subroutine ginit_remap
+
+    use species, only: spec
+    use dist_fn_arrays, only: gvmu
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use vpamu_grids, only: nvpa, nmu
+    use kt_grids, only: nakx
+
+    implicit none
+
+    integer :: ikxkyz, iky, ikx, iz, is, ia
+
+    ! initialize g to be a Maxwellian with a constant density perturbation
+
+    gvmu = 0.
+
+    ia = 1
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+
+       if((ikx.eq.15.and.iky.eq.5).or.((ikx-nakx).eq.-12.and.iky.eq.3)) then
+         gvmu(:,:,ikxkyz) = spec(is)%z*phiinit &
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+       endif
+    end do
+
+  end subroutine ginit_remap
 
   subroutine ginit_restart_many
 
@@ -619,9 +713,13 @@ contains
 
   subroutine finish_init_g
 
+    use stella_save, only: finish_save
+
     implicit none
 
     initialized = .false.
+
+    call finish_save
 
   end subroutine finish_init_g
 

@@ -7,7 +7,7 @@ module run_parameters
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
   public :: code_delt_max
-  public :: nstep
+  public :: nstep, delt
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
@@ -18,6 +18,7 @@ module run_parameters
   public :: mirror_semi_lagrange, mirror_linear_interp
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz
+  public :: rng_seed
   
   private
 
@@ -34,6 +35,7 @@ module run_parameters
   logical :: fields_kxkyz
   real :: avail_cpu_time
   integer :: nstep
+  integer :: rng_seed
   integer, public :: delt_option_switch
   integer, public, parameter :: delt_option_hand = 1, delt_option_auto = 2
   logical :: initialized = .false.
@@ -43,8 +45,6 @@ contains
 
   subroutine init_run_parameters
 
-    use stella_time, only: init_delt
-    
     implicit none
 
     if (initialized) return
@@ -52,15 +52,12 @@ contains
 
     call read_parameters
 
-    call init_delt (delt)
-
   end subroutine init_run_parameters
 
   subroutine read_parameters
 
     use file_utils, only: input_unit, error_unit, input_unit_exist
     use mp, only: proc0, broadcast
-    use stella_save, only: init_dt
     use text_options, only: text_option, get_option_value
     use physics_flags, only: include_mirror, full_flux_surface
 
@@ -72,8 +69,7 @@ contains
             text_option('check_restart', delt_option_auto) /)
     character(20) :: delt_option
 
-    integer :: ierr, istatus, in_file
-    real :: delt_saved
+    integer :: ierr, in_file
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
          delt_option, &
@@ -82,7 +78,7 @@ contains
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
-         fields_kxkyz
+         fields_kxkyz, rng_seed
 
     if (proc0) then
        fphi = 1.0
@@ -103,6 +99,7 @@ contains
        avail_cpu_time = 1.e10
        cfl_cushion = 0.5
        delt_adjust = 2.0
+       rng_seed = -1 !negative values use current time as seed
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
@@ -134,16 +131,11 @@ contains
     call broadcast (time_upwind)
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
+    call broadcast (rng_seed)
     
     if (.not.include_mirror) mirror_implicit = .false.
 
     code_delt_max = delt
-
-    delt_saved = delt
-    if (delt_option_switch == delt_option_auto) then
-       call init_dt (delt_saved, istatus)
-       if (istatus == 0) delt  = delt_saved
-    endif
 
     if (driftkinetic_implicit) then
        stream_implicit = .false.
