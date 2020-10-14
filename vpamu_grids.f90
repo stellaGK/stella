@@ -532,7 +532,6 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use kt_grids, only: nakx, naky
 
     implicit none
 
@@ -543,8 +542,6 @@ contains
     integer, intent (in), optional :: ia_in
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:), intent (out) :: pout
-
-    integer :: ikx,iky
 
     pout =0.
 
@@ -569,7 +566,6 @@ contains
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use kt_grids, only: nakx, naky
 
     implicit none
 
@@ -580,8 +576,6 @@ contains
     integer, intent (in), optional :: ia_in
     real, dimension (:), intent (in) :: weights
     real, dimension (:,:), intent (out) :: pout
-
-    integer :: ikx,iky
 
     pout =0.
 

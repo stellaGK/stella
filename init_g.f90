@@ -367,13 +367,12 @@ contains
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: ikxmod, nsegments, neigen
     use extended_zgrid, only: it_right
-    use kt_grids, only: aky, naky, nakx, reality, zonal_mode
+    use kt_grids, only: naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: gvmu
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-    use stella_geometry, only: dl_over_b
     use mp, only: proc0, broadcast, max_allreduce
     use mp, only: scope, crossdomprocs, subprocs
     use file_utils, only: runtype_option_switch, runtype_multibox
