@@ -776,7 +776,6 @@ contains
     real :: a, b, c
 
     ulim = size(x_in)+llim-1
-         exb_nonlin_fac_p = geo_surf%d2qdr2/dqdrho - geo_surf%d2psidr2*drhodpsi
 
     if(q_as_x) then
       a = 0.5*geo_surf%d2qdr2/dqdrho

@@ -34,6 +34,7 @@ module kt_grids
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
   logical :: reality = .false.
+  logical :: centered_in_rho = .false.
   character(20) :: grid_option
   logical, dimension (:), allocatable :: zonal_mode
 
@@ -115,7 +116,8 @@ contains
     integer :: in_file
     logical :: exist
 
-    namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0
+    namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0, &
+                                       centered_in_rho
 
     ! note that jtwist and y0 will possibly be modified
     ! later in init_kt_grids_box if they make it out
@@ -130,6 +132,7 @@ contains
     jtwistfac = 1.0
     y0 = -1.0
     nalpha = 1
+    centered_in_rho = .true.
 
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_box_parameters)
@@ -206,15 +209,17 @@ contains
     use mp, only: mp_abort, job
     use common_types, only: flux_surface_type
     use constants, only: pi
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, q_as_x, get_x_to_rho
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
+    use stella_geometry, only: q_as_x, get_x_to_rho, dxdXcoord, drhodpsi
     use physics_parameters, only: rhostar
-    use physics_flags, only: full_flux_surface
+    use physics_flags, only: full_flux_surface, radial_variation
     use zgrid, only: shat_zero
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
     
     integer :: ikx, iky
+    real :: x_shift, dqdrho
 
     ! set jtwist and y0 for cases where they have not been specified
     ! and for which it makes sense to set them automatically
@@ -304,9 +309,21 @@ contains
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
 
+    x_shift = pi*x0
+    if(centered_in_rho) then
+      if(q_as_x) then
+        dqdrho = geo_surf%shat*geo_surf%qinp/geo_surf%rhoc
+        x_shift = pi*x0*(1.0 &
+                - 0.5*rhostar*pi*x0*geo_surf%d2qdr2/(dqdrho**2*dxdXcoord))
+      else
+        x_shift = pi*x0*(1.0 &
+                - 0.5*rhostar*pi*x0*geo_surf%d2psidr2*drhodpsi**2/dxdXcoord)
+      endif
+    endif
+
     do ikx = 1, nx
       if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
-        x(ikx) = (ikx-0.5)*dx - pi*x0
+        x(ikx) = (ikx-0.5)*dx - x_shift
       else
         x(ikx) = (ikx-1)*dx
       endif
@@ -315,7 +332,7 @@ contains
     dx_d = (2*pi*x0)/nakx
     do ikx = 1, nakx
       if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
-        x_d(ikx) = (ikx-0.5)*dx_d - pi*x0
+        x_d(ikx) = (ikx-0.5)*dx_d - x_shift
       else
         x_d(ikx) = (ikx-1)*dx_d
       endif
@@ -325,6 +342,8 @@ contains
     call get_x_to_rho(1,x_d,rho_d)
     
     zed0 = theta0*geo_surf%zed0_fac
+
+    if(job.eq.1.and.radial_variation) call dump_radial_grid
 
   end subroutine init_kt_grids_box
 
@@ -429,6 +448,7 @@ contains
     implicit none
 
     call broadcast (gridopt_switch)
+    call broadcast (centered_in_rho)
     call broadcast (naky)
     call broadcast (nakx)
     call broadcast (ny)
@@ -446,6 +466,50 @@ contains
     call broadcast (theta0_max)
 
   end subroutine broadcast_input
+
+  subroutine dump_radial_grid
+
+    use file_utils, only: run_name
+    use physics_parameters, only: rhostar
+    use stella_geometry, only: q_as_x, geo_surf, dxdXcoord, drhodpsi
+
+    implicit none
+
+    integer :: ix
+    character (300) :: filename
+
+    filename = trim(trim(run_name)//'.radial_grid')
+    open (1047,file=filename,status='unknown')
+    if(q_as_x) then
+      write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') & 
+            '#dxdXcoord = ', dxdXcoord, &
+            ' q    = '  , geo_surf%qinp, &
+            ' dqdr = '  , geo_surf%shat*geo_surf%qinp/geo_surf%rhoc, &
+            ' d2qdr2 = ', geo_surf%d2qdr2
+      write (1047,'(3a12)') '#1.x', '2.q', '3.rho'
+      do ix = 1, nx
+        write (1047,'(3e12.4,i9)') &
+          x(ix), &
+          rhostar*x(ix)/dxdXcoord + geo_surf%qinp, &
+          rho(ix) !+ geo_surf%rhoc
+      enddo
+    else
+      write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') & 
+            '#dxdXcoord = ', dxdXcoord, &
+            ' dpsidr    = ' , 1.0/drhodpsi, &
+            ' d2psidr2 = '  , geo_surf%d2psidr2
+      write (1047,'(3a12,a9)') '#1.x', '2.psi-psi0', '3.rho'
+      do ix = 1, nx
+        write (1047,'(3e12.4,i9)') &
+            x(ix), &
+            rhostar*x(ix)/dxdXcoord, &
+            rho(ix) !+ geo_surf%rhoc
+      enddo
+    endif
+
+    close (1047)
+
+  end subroutine dump_radial_grid
 
   subroutine allocate_arrays
 
