@@ -52,6 +52,11 @@ contains
 
   subroutine init_dissipation
 
+    use kt_grids, only: nakx
+    use zgrid, only: ntubes
+    use stella_layouts, only: vmu_lo
+    use dist_fn_arrays, only: g_krook, g_proj
+
     implicit none
 
     call read_parameters
@@ -61,6 +66,19 @@ contains
         write(*,*) 'Coll. model:     None'
         write(*,*)
     end if
+
+    if(include_krook_operator.and..not.allocated(g_krook)) then
+      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_krook = 0.
+    endif
+
+    if(remove_zero_projection.and..not.allocated(g_proj)) then
+      allocate (g_proj(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_proj = 0.
+    endif
+    int_krook = 0.
+    int_proj  = 0.
+
 
   end subroutine init_dissipation
 
@@ -130,9 +148,6 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: dvpa, dmu, mu, nmu
     use stella_geometry, only: bmag
-    use dist_fn_arrays, only: g_krook, g_proj
-    use kt_grids, only: naky, nakx
-    use  zgrid, only: ntubes
     use stella_layouts
 
     implicit none
@@ -168,18 +183,6 @@ contains
            cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
         end if
     end if
-
-    if(include_krook_operator.and..not.allocated(g_krook)) then
-      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g_krook = 0.
-    endif
-    
-    if(remove_zero_projection.and..not.allocated(g_proj)) then
-      allocate (g_proj(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g_proj = 0.
-    endif
-    int_krook = 0.
-    int_proj  = 0.
 
     if (collision_model == "fokker-planck") then
         write(*,*) 'Coll. model:     linearized Fokker-Planck'
