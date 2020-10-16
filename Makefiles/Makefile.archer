@@ -93,6 +93,10 @@ endif
 ifeq ($(USE_FFT),fftw3)	
         CPPFLAGS   += -I $$FFTW_INC
 endif	
+ifdef USE_LAPACK
+#archer libraries have LAPACK built in, so do nothing
+	LAPACK_LIB = 
+endif
 ifdef USE_NETCDF
   ifdef OWN_NETCDF
 	NETCDF_INC = -I $(NETCDF_DIR)/include/
