@@ -67,6 +67,8 @@ USE_LOCAL_SPFUNC ?=
 USE_NAGLIB ?= 
 # link to sfincs library at compilation
 USE_SFINCS ?=
+# Use LAPACK, needed for test particle collisions
+USE_LAPACK ?= on
 #
 # * Targets:
 #
@@ -91,7 +93,7 @@ export MPIFC	?= mpif90
 #export MPIFC	?= mpifort
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
-F90FLAGS	= -llapack
+F90FLAGS	=
 F90OPTFLAGS	=
 CC		= cc
 #MPICC		?= mpicc-mpich-gcc48
@@ -116,6 +118,8 @@ NETCDF_INC ?=
 NETCDF_LIB ?=
 HDF5_INC ?=
 HDF5_LIB ?=
+LAPACK_INC ?=
+LAPACK_LIB ?=
 NAG_LIB ?=
 NAG_PREC ?= dble
 SFINCS_LIB ?=
@@ -194,6 +198,10 @@ endif
 ifdef USE_NETCDF
 	NETCDF_LIB ?= -lnetcdf
 	CPPFLAGS += -DNETCDF
+endif
+ifdef USE_LAPACK
+  	LAPACK_LIB ?= -llapack
+	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
 	ifdef USE_MPI

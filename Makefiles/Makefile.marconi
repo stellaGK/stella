@@ -59,6 +59,10 @@ ifdef USE_NETCDF
   NETCDF_LIB= -L$(NETCDF_DIR)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 endif
 
+ifdef USE_LAPACK
+  LAPACK_LIB = -lmkl
+endif
+
 ifdef USE_SFINCS
       SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs
       SFINCS_INC = -I$(SFINCS_DIR)
