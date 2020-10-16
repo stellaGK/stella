@@ -62,9 +62,9 @@ USE_HDF5 ?=
 # see also README
 USE_LOCAL_RAN ?=
 # Use local special functions (bin)
-USE_LOCAL_SPFUNC ?= 
+USE_LOCAL_SPFUNC ?=
 # Use nag libraray (spfunc,undefined)
-USE_NAGLIB ?= 
+USE_NAGLIB ?=
 # link to sfincs library at compilation
 USE_SFINCS ?=
 # Use LAPACK, needed for test particle collisions
@@ -116,10 +116,10 @@ FFT_INC ?=
 FFT_LIB ?=
 NETCDF_INC ?=
 NETCDF_LIB ?=
-HDF5_INC ?=
-HDF5_LIB ?=
 LAPACK_INC ?=
 LAPACK_LIB ?=
+HDF5_INC ?=
+HDF5_LIB ?=
 NAG_LIB ?=
 NAG_PREC ?= dble
 SFINCS_LIB ?=
@@ -183,12 +183,16 @@ ifdef USE_MPI
 endif
 ifeq ($(USE_FFT),fftw)
 	CPPFLAGS += -DFFT=_FFTW_
-	FFT_LIB ?= -lfftw -lrfftw
+	ifeq ($(FFT_LIB),)
+		FFT_LIB = -lfftw -lrfftw
+	endif
 endif
 
 ifeq ($(USE_FFT),fftw3)
 	CPPFLAGS += -DFFT=_FFTW3_
-	FFT_LIB ?= -lfftw3
+	ifeq ($(FFT_LIB),)
+		FFT_LIB = -lfftw3
+	endif
 endif
 
 ifeq ($(USE_FFT),mkl_fftw)
@@ -196,11 +200,15 @@ ifeq ($(USE_FFT),mkl_fftw)
 endif
 
 ifdef USE_NETCDF
-	NETCDF_LIB ?= -lnetcdf
+	ifeq ($(NETCDF_LIB),)
+		NETCDF_LIB = -lnetcdf
+        endif
 	CPPFLAGS += -DNETCDF
 endif
 ifdef USE_LAPACK
-  	LAPACK_LIB ?= -llapack
+	ifeq ($(LAPACK_LIB),)
+  		LAPACK_LIB = -llapack
+        endif
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
@@ -246,10 +254,11 @@ ifdef USE_SFINCS
 endif
 
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
-		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB)
+		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) \
+		$(LAPACK_LIB)
 F90FLAGS+= $(F90OPTFLAGS) \
 	   $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
-	   $(SFINCS_INC) $(PETSC_INC)
+	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
 CFLAGS += $(COPTFLAGS)
 
 DATE=$(shell date +%y%m%d)
@@ -374,6 +383,7 @@ test_make:
 	@echo  USE_LOCAL_RAN is $(USE_LOCAL_RAN)
 	@echo  USE_LOCAL_SPFUNC is $(USE_LOCAL_SPFUNC)
 	@echo  USE_NAGLIB is $(USE_NAGLIB)
+	@echo  USE_LAPACK is $(USE_LAPACK)
 	@echo  DEFAULT_LIB is $(DEFAULT_LIB)
 	@echo  MPI_LIB is $(MPI_LIB)
 	@echo
