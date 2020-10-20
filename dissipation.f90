@@ -1540,7 +1540,7 @@ contains
           do ikx = 1, nakx
             if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
             tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-            if(krook_odd) tmp = zi*aimag(tmp)
+            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
             gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook*tmp
           enddo
         enddo
@@ -1552,7 +1552,7 @@ contains
           do ikx = 1, nakx
             if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
             tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-            if(krook_odd) tmp = zi*aimag(tmp)
+            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
             gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
                                      * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
                                      / (code_dt     + exp_fac*int_krook)
@@ -1568,7 +1568,7 @@ contains
     use constants, only: zi
     use dist_fn_arrays, only: g_krook
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, zonal_mode
+    use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b
     use stella_time, only: code_dt
@@ -1594,7 +1594,7 @@ contains
       do it = 1, ntubes
         do ikx = 1, nakx
           tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-          if(krook_odd) tmp = zi*aimag(tmp)
+          if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
           g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
         enddo
       enddo
@@ -1634,7 +1634,7 @@ contains
             g(ikx,:,it,ivmu) = 0.0
           else
             tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
-            if(krook_odd) tmp = zi*aimag(tmp)
+            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
             if(delay_krook.le.epsilon(0.)) then
               g(ikx,:,it,ivmu) = tmp
             else
@@ -1642,7 +1642,7 @@ contains
                                / (code_dt     + exp_fac*int_proj)
             endif
           endif
-          if(krook_odd) then
+          if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
             g_proj(ikx,it,ivmu) = zi*aimag(sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu)))
           else
             g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
