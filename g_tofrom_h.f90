@@ -163,27 +163,36 @@ contains
 
 !   end subroutine gbar_to_g_kxkyz
 
-  subroutine g_to_h_vmu (g, phi, facphi)
+  subroutine g_to_h_vmu (g, phi, facphi, phi_corr)
 
     use species, only: spec
     use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
-    use gyro_averages, only: gyro_average
+    use stella_geometry, only: bmag, dBdrho
+    use dist_fn_arrays, only: kperp2, dkperp2dr
+    use kt_grids, only: naky, nakx, rho_clamped
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
+    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+    use gyro_averages, only: gyro_average, aj0x, aj1x
+    use physics_flags, only: radial_variation
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,:), optional, intent (in) :: phi_corr
     real, intent (in) :: facphi
 
     integer :: ivmu, iz, it, is, imu, iv, ia
-    complex, dimension (:,:), allocatable :: field, adjust
+    complex, dimension (:,:), allocatable :: field, adjust, g0k, g0x
 
     allocate (field(naky,nakx))
     allocate (adjust(naky,nakx))
+    if(radial_variation) then
+      allocate (g0k(naky,nakx))
+      allocate (g0x(naky,nakx))
+    endif
 
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -193,14 +202,31 @@ contains
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
              field = spec(is)%zt*facphi*phi(:,:,iz,it) &
-                  *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
+                  *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
              call gyro_average (field, iz, ivmu, adjust)
              g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
+             if(radial_variation.and.present(phi_corr)) then
+               g0k = field*( -spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
+                             -spec(is)%fprim - 2.0*dBdrho(iz)*mu(imu)  &
+                             -0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                                 * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)))
+
+               call transform_kx2x_xfirst (g0k,g0x)
+               g0x = spread(rho_clamped,1,naky)*g0x
+               call transform_x2kx_xfirst (g0x,g0k)
+
+               field = field + g0k &
+                       + phi_corr(:,:,iz,it)*spec(is)%zt*facphi &
+                         *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
+             endif
           end do
        end do
     end do
 
     deallocate (field, adjust)
+    if (allocated(g0k)) deallocate (g0k)
+    if (allocated(g0x)) deallocate (g0x)
 
   end subroutine g_to_h_vmu
 

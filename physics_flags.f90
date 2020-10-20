@@ -11,6 +11,8 @@ module physics_flags
   public :: include_mirror
   public :: prp_shear_enabled
   public :: hammett_flow_shear
+  public :: include_pressure_variation
+  public :: include_geometric_variation
   public :: nonlinear
 
   private
@@ -19,6 +21,8 @@ module physics_flags
   logical :: radial_variation
   logical :: include_parallel_nonlinearity
   logical :: include_parallel_streaming
+  logical :: include_pressure_variation
+  logical :: include_geometric_variation
   logical :: include_mirror
   logical :: nonlinear
   logical :: prp_shear_enabled
@@ -51,11 +55,14 @@ contains
     
     namelist /physics_flags/ full_flux_surface, radial_variation, &
          include_parallel_nonlinearity, include_parallel_streaming, &
-         include_mirror, nonlinear
+         include_mirror, nonlinear, &
+         include_pressure_variation, include_geometric_variation
 
     if (proc0) then
        full_flux_surface = .false.
        radial_variation = .false.
+       include_pressure_variation = .true.
+       include_geometric_variation = .true.
        include_parallel_nonlinearity = .false.
        include_parallel_streaming = .true.
        include_mirror = .true.
@@ -70,6 +77,8 @@ contains
 
     call broadcast (full_flux_surface)
     call broadcast (radial_variation)
+    call broadcast (include_pressure_variation)
+    call broadcast (include_geometric_variation)
     call broadcast (include_parallel_nonlinearity)
     call broadcast (include_parallel_streaming)
     call broadcast (include_mirror)

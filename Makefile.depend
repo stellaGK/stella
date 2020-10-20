@@ -176,10 +176,14 @@ flow_shear.o: \
 	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
+	 dist_fn_arrays.o \
 	 gyro_averages.o \
 	 kt_grids.o \
+	 physics_flags.o \
 	 species.o \
+	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 gauss_quad.o: \
@@ -209,7 +213,6 @@ init_g.o: \
 	 ran.o \
 	 run_parameters.o \
 	 species.o \
-	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_save.o \
 	 text_options.o \
@@ -316,7 +319,6 @@ parallel_streaming.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
-	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 physics_flags.o: \
@@ -411,6 +413,7 @@ stella_diagnostics.o: \
 	 dist_redistribute.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 g_tofrom_h.o \
 	 gyro_averages.o \
 	 init_g.o \
 	 kt_grids.o \
@@ -448,6 +451,7 @@ stella_io.o: \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
+	 physics_flags.o \
 	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \

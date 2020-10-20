@@ -5,13 +5,12 @@ module physics_parameters
   public :: init_physics_parameters
   public :: finish_physics_parameters
   public :: beta, zeff, tite, nine, rhostar, vnew_ref
-  public :: feprim, teprim
-  public :: g_exb, g_exbfac, g_exb_efold, omprimfac
+  public :: g_exb, g_exbfac, omprimfac
 
   private
 
-  real :: beta, zeff, tite, nine, rhostar, vnew_ref, feprim, teprim
-  real :: g_exb, g_exbfac, g_exb_efold, omprimfac
+  real :: beta, zeff, tite, nine, rhostar, vnew_ref
+  real :: g_exb, g_exbfac, omprimfac
   logical :: initialized = .false.
 
 contains
@@ -37,8 +36,8 @@ contains
     integer :: in_file
     logical :: rpexist
     
-    namelist /parameters/ beta, zeff, tite, nine, feprim, teprim, rhostar, vnew_ref &
-                          ,g_exb, g_exbfac, g_exb_efold, omprimfac
+    namelist /parameters/ beta, zeff, tite, nine, rhostar, vnew_ref &
+                          ,g_exb, g_exbfac, omprimfac
 
     if (proc0) then
        beta = 0.0
@@ -50,14 +49,7 @@ contains
 
        g_exb    = 0.0
        g_exbfac = 1.0
-       g_exb_efold = 3.0
        omprimfac = 1.0
-
-       !the following are for runs with radial variation and adiabatic electron response
-       ! N.B.: feprim = -(dne/drho)/ne
-       !       teprim = -(dTe/drho)/Te
-       feprim = 0.0
-       teprim = 0.0
 
        in_file = input_unit_exist("parameters", rpexist)
        if (rpexist) read (unit=in_file,nml=parameters)
@@ -69,11 +61,8 @@ contains
     call broadcast (rhostar)
     call broadcast (tite)
     call broadcast (nine)
-    call broadcast (feprim)
-    call broadcast (teprim)
     call broadcast (g_exb)
     call broadcast (g_exbfac)
-    call broadcast (g_exb_efold)
     call broadcast (omprimfac)
 
   end subroutine read_parameters

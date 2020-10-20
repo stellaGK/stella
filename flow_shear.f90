@@ -175,7 +175,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use constants, only: zi
-    use physics_parameters, only: g_exb, g_exbfac, g_exb_efold
+    use physics_parameters, only: g_exb, g_exbfac
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes

@@ -41,13 +41,13 @@ contains
     use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use species, only: spec, nspec
+    use species, only: spec, nspec, pfac
     use vpamu_grids, only: nvpa, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: vperp2, vpa, mu
     use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: gradpar,dgradpardrho,dBdrho
+    use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use physics_flags, only: include_parallel_streaming, radial_variation
 
@@ -72,8 +72,8 @@ contains
        stream = 0.0
     end if
 
-    if(radial_variation) then
 
+    if(radial_variation) then
       allocate (energy(-nzgrid:nzgrid))
 
       if(.not.allocated(stream_rad_var1)) then 
@@ -84,16 +84,17 @@ contains
       endif
       ia=1
       stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
-            * spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
+            * gfac*spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo,ivmu)
         imu = imu_idx(vmu_lo,ivmu)
         iv  = iv_idx(vmu_lo,ivmu)
         energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
         stream_rad_var2(ia,:,ivmu) = &
-                -code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
+                +code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
                 *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
-                *(-spec(is)%fprim - spec(is)%tprim*(energy-2.5)-2*mu(imu)*dBdrho)
+                *(  pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
+                  + gfac*2*mu(imu)*dBdrho)
       enddo
       deallocate (energy)
     endif
@@ -232,7 +233,6 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
@@ -297,9 +297,9 @@ contains
 
            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
 
-
-
     !!#3 - variation in the gyroaveraging and quasineutrality of phi
+    !!     These variations already have the linear part calculated, so
+    !!     ad it into the rhs directly
            g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 

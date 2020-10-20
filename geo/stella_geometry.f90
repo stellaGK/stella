@@ -29,7 +29,7 @@ module stella_geometry
   public :: dxdXcoord, dydalpha
   public :: aref, bref
   public :: twist_and_shift_geo_fac
-  public :: q_as_x, get_x_to_rho
+  public :: q_as_x, get_x_to_rho, gfac
 
   private
 
@@ -43,7 +43,7 @@ module stella_geometry
   real :: exb_nonlin_fac, exb_nonlin_fac_p
   real :: gradpar_eqarc
   real :: zed_scalefac
-  real :: twist_and_shift_geo_fac
+  real :: twist_and_shift_geo_fac, gfac
   real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:), allocatable :: gradpar
   real, dimension (:,:), allocatable :: bmag, bmag_psi0, dbdzed
@@ -94,6 +94,7 @@ contains
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
     use file_utils, only: get_unused_unit
     use physics_parameters, only: rhostar
+    use physics_flags, only: include_geometric_variation
 
     implicit none
 
@@ -341,6 +342,9 @@ contains
     if (debug .and. proc0) write (*,*) 'init_geometry::broadcast_arrays'
     call broadcast_arrays
 
+    gfac = 1.0
+    if(.not.include_geometric_variation) gfac = 0.0
+
     ! should reduce to 2*pi*shat in axisymmetric case
     ! but not in non-axisymmetric case
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
@@ -366,7 +370,7 @@ contains
     d_dl_over_b_drho(:,nzgrid) = 0
     d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b & 
                      * spread(sum(d_dl_over_b_drho,dim=2)/sum(dl_over_b,dim=2),2,2*nzgrid+1) 
-    d_dl_over_b_drho = d_dl_over_b_drho / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
+    d_dl_over_b_drho = gfac*d_dl_over_b_drho / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
 
     ! normalize dl/B by int dl/B
     dl_over_b = dl_over_b / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
@@ -674,7 +678,7 @@ contains
     real, intent (in) :: l_edge, r_edge
 
     if(proc0) then 
-      call communicate_parameters_multibox(geo_surf,l_edge, r_edge)
+      call communicate_parameters_multibox(geo_surf,gfac*l_edge, gfac*r_edge)
     endif
 
   end subroutine communicate_geo_multibox
