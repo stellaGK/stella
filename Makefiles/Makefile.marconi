@@ -60,7 +60,7 @@ ifdef USE_NETCDF
 endif
 
 ifdef USE_LAPACK
-  LAPACK_LIB = -lmkl
+  LAPACK_LIB = -mkl
 endif
 
 ifdef USE_SFINCS
