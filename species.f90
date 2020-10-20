@@ -9,7 +9,7 @@ module species
   public :: reinit_species
   public :: communicate_species_multibox
   !public :: init_trin_species
-  public :: nspec, spec
+  public :: nspec, spec, pfac
   public :: ion_species, electron_species, slowing_down_species, tracer_species
   public :: has_electron_species, has_slowing_down_species
   public :: ions, electrons, impurity
@@ -33,6 +33,7 @@ module species
   type (spec_type), dimension (:), allocatable :: spec
 
   integer :: ions, electrons, impurity
+  real :: pfac
 !  integer :: ntspec_trin
 !  real, dimension (:), allocatable :: dens_trin, temp_trin, fprim_trin, tprim_trin, nu_trin
 
@@ -47,6 +48,7 @@ contains
 !    use mp, only: trin_flag
     use mp, only: proc0, broadcast
     use physics_parameters, only: vnew_ref, zeff
+    use physics_flags, only: include_pressure_variation
     use inputprofiles_interface, only: read_inputprof_spec
     use euterpe_interface, only: read_species_euterpe
 
@@ -90,6 +92,9 @@ contains
        call dump_species_input
 
     end if
+
+    pfac = 1.0
+    if(.not.include_pressure_variation) pfac = 0.0
 
     call broadcast_parameters
 

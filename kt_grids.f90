@@ -340,10 +340,14 @@ contains
 
     call get_x_to_rho(1,x,rho)
     call get_x_to_rho(1,x_d,rho_d)
-    
+
     zed0 = theta0*geo_surf%zed0_fac
 
     if(job.eq.1.and.radial_variation) call dump_radial_grid
+
+    if(any((rho+geo_surf%rhoc).lt.0.0).or.any((rho+geo_surf%rhoc).gt.1.0)) then
+      call mp_abort ('rho(x) is beyond range [0,1]. Try changing rhostar or q/psi profiles')
+    endif
 
   end subroutine init_kt_grids_box
 
@@ -491,7 +495,7 @@ contains
         write (1047,'(3e12.4,i9)') &
           x(ix), &
           rhostar*x(ix)/dxdXcoord + geo_surf%qinp, &
-          rho(ix) !+ geo_surf%rhoc
+          rho(ix) + geo_surf%rhoc
       enddo
     else
       write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') & 
@@ -503,7 +507,7 @@ contains
         write (1047,'(3e12.4,i9)') &
             x(ix), &
             rhostar*x(ix)/dxdXcoord, &
-            rho(ix) !+ geo_surf%rhoc
+            rho(ix) + geo_surf%rhoc
       enddo
     endif
 

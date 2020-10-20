@@ -37,8 +37,8 @@ contains
     use kt_grids, only: nalpha, nakx, naky, nx, rho_clamped
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
-    use species, only: spec
-    use stella_geometry, only: dBdrho
+    use species, only: spec, pfac
+    use stella_geometry, only: dBdrho, gfac
 
 
     implicit none
@@ -79,7 +79,8 @@ contains
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
 
-            corr = -(spec(is)%fprim + spec(is)%tprim*(energy(ia,iz)-1.5) + 2*mu(imu)*dBdrho(iz))
+            corr = -( pfac*(spec(is)%fprim+spec(is)%tprim*(energy(ia,iz)-1.5)) &
+                     + 2*gfac*mu(imu)*dBdrho(iz))
          
             if(.not.restarted) then
               g0k = gnew(:,:,iz,it,ivmu)

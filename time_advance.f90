@@ -404,10 +404,10 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
-    use species, only: spec
+    use species, only: spec, pfac
     use zgrid, only: nzgrid
     use kt_grids, only: nalpha
-    use stella_geometry, only: drhodpsi, dydalpha
+    use stella_geometry, only: drhodpsi, dydalpha, gfac
     use stella_geometry, only: dBdrho, geo_surf, q_as_x
     use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
     use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
@@ -466,13 +466,13 @@ contains
        
        wstarp(:,:,ivmu) = -wstarknob*0.5*code_dt &
           * dydalpha*drhodpsi*maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
-          * ( spec(is)%d2ndr2-(spec(is)%fprim)**2-(spec(is)%tprim)**2*energy &
-           + (spec(is)%d2Tdr2-(spec(is)%tprim)**2)*(energy-1.5) &
-           - 2*spec(is)%tprim*mu(imu)*spread(dBdrho,1,nalpha) &
+          * (pfac*(spec(is)%d2ndr2-(spec(is)%fprim)**2-(spec(is)%tprim)**2*energy) &
+           + pfac*(spec(is)%d2Tdr2-(spec(is)%tprim)**2)*(energy-1.5) &
+           - gfac*2*spec(is)%tprim*mu(imu)*spread(dBdrho,1,nalpha) &
            + (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-           * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)  &
-              + 2*mu(imu)*spread(dBdrho,1,nalpha) & 
-              + drhodpsi*geo_surf%d2psidr2))
+           * (  pfac*(spec(is)%fprim+spec(is)%tprim*(energy-1.5))  &
+              + gfac*2*mu(imu)*spread(dBdrho,1,nalpha) & 
+              + gfac*drhodpsi*geo_surf%d2psidr2))
 
        !end if
        
@@ -481,15 +481,15 @@ contains
        ! this is the curvature drift piece of wdrifty with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
-       wcvdrifty = fac*dcvdriftdrho*vpa(iv)
+       wcvdrifty = gfac*fac*dcvdriftdrho*vpa(iv)
        ! this is the grad-B drift piece of wdrifty
-       wgbdrifty = fac*dgbdriftdrho*0.5*vperp2(:,:,imu)
+       wgbdrifty = gfac*fac*dgbdriftdrho*0.5*vperp2(:,:,imu)
        wdriftpy_g(:,:,ivmu) = wcvdrifty*vpa(iv) + wgbdrifty
 
        wdriftpy_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
             * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
-            - wdrifty_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
-              + 2.*mu(imu)*spread(dBdrho,1,nalpha))
+            - wdrifty_phi(:,:,ivmu)*(pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
+              + gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
 
        if(q_as_x) then
@@ -500,15 +500,15 @@ contains
        ! this is the curvature drift piece of wdriftx with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
        ! non-Maxwellian corrections to equilibrium
-       wcvdriftx = fac*dcvdrift0drho*vpa(iv)
+       wcvdriftx = gfac*fac*dcvdrift0drho*vpa(iv)
        ! this is the grad-B drift piece of wdriftx
-       wgbdriftx = fac*dgbdrift0drho*0.5*vperp2(:,:,imu)
+       wgbdriftx = gfac*fac*dgbdrift0drho*0.5*vperp2(:,:,imu)
        wdriftpx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
 
        wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
             * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
-            - wdriftx_phi(:,:,ivmu)*(spec(is)%fprim + spec(is)%tprim*(energy-2.5) &
-              + 2.*mu(imu)*spread(dBdrho,1,nalpha))
+            - wdriftx_phi(:,:,ivmu)*(pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
+              + gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
     end do
 
@@ -1273,7 +1273,7 @@ contains
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
     use physics_parameters, only: g_exb, g_exbfac
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p
+    use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky, rho_clamped
     use physics_flags, only: full_flux_surface, radial_variation
@@ -1344,7 +1344,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
              if(radial_variation) then
-               bracket = bracket + g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
+               bracket = bracket + gfac*g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdx(g0a,g0k)
@@ -1369,7 +1369,7 @@ contains
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
              if(radial_variation) then
-               bracket = bracket - g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
+               bracket = bracket - gfac*g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
                call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a) 
                g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
                call get_dgdy(g0a,g0k)
@@ -1737,16 +1737,12 @@ contains
     complex, dimension (:,:), allocatable :: g0k, g1k, g0a, g0x, g1x
     complex, dimension (:,:,:,:,:), allocatable :: g_corr
 
-    ! alpha-component of magnetic drift (requires ky -> y)
-    !if (proc0) call time_message(.false.,time_gke(:,7),' global variation advance')
-
-    !if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
-
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0x(naky,nx))
     allocate (g1x(naky,nx))
+
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_radial_variation'
 

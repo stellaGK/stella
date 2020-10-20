@@ -20,6 +20,7 @@ module dissipation
   logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation, remove_zero_projection
+  logical :: krook_odd
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
   integer:: ikxmax_source
 
@@ -95,7 +96,7 @@ contains
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_source, cfac
+         ikxmax_source, cfac, krook_odd
 
     integer :: in_file
     logical :: dexist
@@ -115,6 +116,7 @@ contains
        nu_krook = 0.05
        delay_krook =0.02
        ikxmax_source = 2 ! kx=0 and kx=1
+       krook_odd = .true. ! damp only the odd mode that can affect profiles
        cfac = 1
 
        in_file = input_unit_exist("dissipation", dexist)
@@ -138,6 +140,7 @@ contains
     call broadcast (ikxmax_source)
     call broadcast (remove_zero_projection)
     call broadcast (cfac)
+    call broadcast (krook_odd)
 
     if (.not.include_collisions) collisions_implicit = .false.
 
@@ -1509,6 +1512,7 @@ contains
   subroutine add_krook_operator (g, gke_rhs)
 
     use zgrid, only: nzgrid, ntubes
+    use constants, only: zi
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
@@ -1536,6 +1540,7 @@ contains
           do ikx = 1, nakx
             if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
             tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            if(krook_odd) tmp = zi*aimag(tmp)
             gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook*tmp
           enddo
         enddo
@@ -1547,6 +1552,7 @@ contains
           do ikx = 1, nakx
             if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
             tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+            if(krook_odd) tmp = zi*aimag(tmp)
             gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
                                      * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
                                      / (code_dt     + exp_fac*int_krook)
@@ -1559,6 +1565,7 @@ contains
 
   subroutine update_delay_krook (g)
 
+    use constants, only: zi
     use dist_fn_arrays, only: g_krook
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, zonal_mode
@@ -1587,6 +1594,7 @@ contains
       do it = 1, ntubes
         do ikx = 1, nakx
           tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
+          if(krook_odd) tmp = zi*aimag(tmp)
           g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
         enddo
       enddo
@@ -1599,6 +1607,7 @@ contains
   subroutine project_out_zero (g)
 
     use zgrid, only: nzgrid, ntubes
+    use constants, only: zi
     use kt_grids, only: zonal_mode, akx, nakx
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
@@ -1625,6 +1634,7 @@ contains
             g(ikx,:,it,ivmu) = 0.0
           else
             tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+            if(krook_odd) tmp = zi*aimag(tmp)
             if(delay_krook.le.epsilon(0.)) then
               g(ikx,:,it,ivmu) = tmp
             else
@@ -1632,7 +1642,11 @@ contains
                                / (code_dt     + exp_fac*int_proj)
             endif
           endif
-          g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+          if(krook_odd) then
+            g_proj(ikx,it,ivmu) = zi*aimag(sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu)))
+          else
+            g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
+          endif
         enddo
       enddo
     enddo

@@ -236,7 +236,7 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old, phi_corr_QN
     use dist_fn_arrays, only: gvmu, gnew
-!    use g_tofrom_h, only: g_to_h
+    use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi2_nc
     use stella_io, only: write_phi_nc
@@ -313,8 +313,10 @@ contains
 
     ! obtain turbulent fluxes
     if(radial_variation.or.write_radial_fluxes) then
+      call g_to_h (gnew, phi, fphi, phi_corr_QN)
       call get_fluxes_vmulo (gnew, phi_out, part_flux, mom_flux, heat_flux, &
                                             part_flux_x,mom_flux_x, heat_flux_x)
+      call g_to_h (gnew, phi, -fphi, phi_corr_QN)
     else
       call scatter (kxkyz2vmu, gnew, gvmu)
 !     call g_to_h (gvmu, phi, fphi)
@@ -990,9 +992,11 @@ contains
       allocate (g0x(naky,nx))
     endif
 
-    ! f = h - Ze*phi/T * F0
-    ! g = h - Ze*<phi>/T * F0
-    ! f = g + Ze*(<phi>-phi)/T * F0
+    ! h is gyrophase independent, but is in gyrocenter coordinates, 
+    ! so requires a J_0 to get to particle coordinates
+    ! <f>_r = h J_0 - Ze*phi/T * F0
+    ! g     = h     - Ze*<phi>_R/T * F0
+    ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)

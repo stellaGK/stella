@@ -32,7 +32,7 @@ contains
     use vpamu_grids, only: mu
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
-    use stella_geometry, only: dbdzed, gradpar
+    use stella_geometry, only: dbdzed, gradpar, gfac
     use stella_geometry, only: d2Bdrdth, dgradpardrho
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
@@ -75,7 +75,6 @@ contains
     deallocate (neoclassical_term)
 
     if(radial_variation) then
-
       if(.not.allocated(mirror_rad_var)) then
         allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
         mirror_rad_var = 0.
@@ -84,9 +83,9 @@ contains
       do imu = 1, nmu
         do iy = 1, nalpha
           do iz = -nzgrid, nzgrid
-            mirror_rad_var(iy,iz,imu,:) = code_dt*spec%stm_psi0*mu(imu) &
+            mirror_rad_var(iy,iz,imu,:) = code_dt*spec%stm_psi0*mu(imu)*gfac &
                                           *(dgradpardrho(iz)*dbdzed(iy,iz) &
-                                          +  gradpar(iz)*d2Bdrdth(iz))
+                                          + gradpar(iz)*d2Bdrdth(iz))
           end do
         end do
       end do
