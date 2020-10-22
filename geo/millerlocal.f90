@@ -384,16 +384,20 @@ contains
 
     if (read_profile_variation) then
        open (1002,file='RZ.in',status='old')
-       read (1002,'(10e13.5)') rhoc0, dI, qinp, shat, kappa, kapprim, tri, triprim, &
-                              betaprim, betadbprim
+       read (1002,'(11e13.5)') rhoc0, dI, qinp, shat, kappa, kapprim, tri, triprim, &
+                              betaprim, betadbprim, dpsidrho_psi0
        do j=-nz,nz
-          read (1002,'(3e13.5)') theta(j), d2R(j), d2Z(j)       
+          read (1002,'(5e13.5)') theta(j), d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
        end do
        close (1002)
        local%qinp     = qinp  + shat*qinp/rhoc0*(local%rhoc-rhoc0)
        local%kappa    = kappa + kapprim*(local%rhoc-rhoc0)
        local%tri      = tri   + triprim*(local%rhoc-rhoc0)
        local%betaprim = betaprim +betadbprim*(local%rhoc-rhoc0)
+
+       local%rhoc_psi0 = rhoc0
+       local%qinp_psi0 = qinp
+       local%shat_psi0 = shat
 
     end if
     dqdr = local%shat*local%qinp/local%rhoc
@@ -490,17 +494,6 @@ contains
     d2R = d2Rdr2
     d2Z = d2Zdr2
     
-    if (write_profile_variation) then
-       open (1002,file='RZ.out',status='unknown')
-       write (1002,'(10e13.5)') local%rhoc, dIdrho, local%qinp, local%shat, local%kappa, &
-                                local%kapprim, local%tri, local%triprim, &
-                                local%betaprim, local%betadbprim
-       do j=-nz,nz
-          write (1002,'(3e13.5)') theta(j), d2Rdr2(j), d2Zdr2(j)
-       end do
-       close (1002)
-    end if
-    
     ! get theta derivative of d2R/drho2 and d2Z/drho2
     call get_dthet (d2Rdr2, d2Rdr2dth)
     call get_dthet (d2Zdr2, d2Zdr2dth)
@@ -515,6 +508,18 @@ contains
       bmag_psi0 = bmag
       grho_psi0 = grho
     endif
+
+    if (write_profile_variation) then
+       open (1002,file='RZ.out',status='unknown')
+       write (1002,'(11e13.5)') local%rhoc, dIdrho, local%qinp, local%shat, local%kappa, &
+                                local%kapprim, local%tri, local%triprim, &
+                                local%betaprim, local%betadbprim, dpsidrho
+       do j=-nz,nz
+          write (1002,'(5e13.5)') theta(j), d2Rdr2(j), d2Zdr2(j), bmag(j), grho(j)
+       end do
+       close (1002)
+    end if
+    
 
     ! get dB/dtheta
     call get_dthet (bmag, dbdth)
