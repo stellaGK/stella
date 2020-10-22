@@ -644,7 +644,6 @@ contains
     integer :: ivmu, imu, iv, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm, dflx_norm
     complex, dimension (:,:), allocatable :: g0k, g0x
-    real :: zero
 
     allocate (flx_norm(-nzgrid:nzgrid))
     allocate (dflx_norm(-nzgrid:nzgrid))
@@ -653,9 +652,6 @@ contains
     pflx_x = 0. ; vflx_x = 0. ; qflx_x = 0.
 
     ia = 1
-
-    !hack for below
-    zero = 100.*epsilon(0.)
 
     flx_norm = jacob(1,:)*delzed
     flx_norm = flx_norm/sum(flx_norm*grho(1,:))
@@ -776,13 +772,19 @@ contains
 
               call gyro_average_j1 (g0k, iz, ivmu, g2(:,:,iz,it,ivmu))
               if(radial_variation) then
-                g0k = g2(:,:,iz,it,ivmu) &
-                    * ((dgds21dr(ia,iz)+theta0*dgds22dr(ia,iz))/(gds21(ia,iz)+theta0*gds22(ia,iz)+zero) &
-                       - geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
-                       - geo_surf%d2psidr2*drhodpsi &
-                       + (0.5*aj0x(:,:,iz,ivmu)/(aj1x(:,:,iz,ivmu)+zero) - 1.0) &
-                       * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                       + dflx_norm(iz))
+                g0k =     - g(:,:,iz,it,ivmu)*zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
+                     * (dgds21dr(ia,iz)+theta0*dgds22dr(ia,iz))*aj1x(:,:,iz,ivmu)*spec(is)%smz &
+                     / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
+
+                g0k = g0k - g(:,:,iz,it,ivmu)*zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
+                            * (gds21(ia,iz)+theta0*gds22(ia,iz))*spec(is)%smz &
+                            / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2) &
+                            * (0.5*aj0x(:,:,iz,ivmu) - aj1x(:,:,iz,ivmu))  &
+                            * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+
+                g0k = g0k + g2(:,:,iz,it,ivmu) &
+                    * (- geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
+                       - geo_surf%d2psidr2*drhodpsi + dflx_norm(iz))
 
                 call transform_kx2x_xfirst (g0k,g0x)
                 g0x = spread(rho_clamped,1,naky)*g0x
@@ -983,6 +985,7 @@ contains
     complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp
 
     complex, dimension (:,:), allocatable :: g0k, g0x
+    real :: zero
 
     integer :: ivmu, iv, imu, is, ia
     integer :: iz, it
@@ -991,6 +994,9 @@ contains
       allocate (g0k(naky,nakx))
       allocate (g0x(naky,nx))
     endif
+
+    ! hack below. Works since J0^2 - 1 and its derivative are zero at the origin
+    zero = 100.*epsilon(0.)
 
     ! h is gyrophase independent, but is in gyrocenter coordinates, 
     ! so requires a J_0 to get to particle coordinates
@@ -1019,7 +1025,7 @@ contains
                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                    /(aj0x(:,:,iz,ivmu)**2 - 1.0))
+                    /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
 
              !g
              g0k = g0k + g1(:,:,iz,it,ivmu) &
@@ -1063,7 +1069,7 @@ contains
                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                    /(aj0x(:,:,iz,ivmu)**2 - 1.0) &
+                    /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero) &
                  + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
 
 
