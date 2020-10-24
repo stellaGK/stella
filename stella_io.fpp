@@ -788,32 +788,33 @@ contains
           status = nf90_put_att (ncid, phi2_vs_kxky_id, 'long_name', 'Electrostatic Potential vs (ky,kx,t)')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi2_vs_kxky_id, att='long_name')
        end if
-       if (write_moments) then
-          status = nf90_inq_varid(ncid,'density',density_id)
-          if(status /= nf90_noerr) then
-            status = nf90_def_var &
-               (ncid, 'density', netcdf_real, moment_dim, density_id)
-            if (status /= nf90_noerr) call netcdf_error (status, var='density')
-          endif
-          status = nf90_put_att (ncid, density_id, 'long_name', 'perturbed density vs (ky,kx,z,t)')
-          if (status /= nf90_noerr) call netcdf_error (status, ncid, density_id, att='long_name')
-          status = nf90_inq_varid(ncid,'upar',upar_id)
-          if(status /= nf90_noerr) then
-            status = nf90_def_var &
-               (ncid, 'upar', netcdf_real, moment_dim, upar_id)
-            if (status /= nf90_noerr) call netcdf_error (status, var='upar')
-          endif
-          status = nf90_put_att (ncid, upar_id, 'long_name', 'perturbed parallel flow vs (ky,kx,z,t)')
-          if (status /= nf90_noerr) call netcdf_error (status, ncid, upar_id, att='long_name')
-          status = nf90_inq_varid(ncid,'temperature',temperature_id)
-          if(status /= nf90_noerr) then
-            status = nf90_def_var &
-               (ncid, 'temperature', netcdf_real, moment_dim, temperature_id)
-            if (status /= nf90_noerr) call netcdf_error (status, var='temperature')
-          endif
-          status = nf90_put_att (ncid, temperature_id, 'long_name', 'perturbed temperature vs (ky,kx,z,t)')
-          if (status /= nf90_noerr) call netcdf_error (status, ncid, temperature_id, att='long_name')
-       end if
+    end if
+
+    if (write_moments) then
+      status = nf90_inq_varid(ncid,'density',density_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'density', netcdf_real, moment_dim, density_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='density')
+      endif
+      status = nf90_put_att (ncid, density_id, 'long_name', 'perturbed density vs (ky,kx,z,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, density_id, att='long_name')
+      status = nf90_inq_varid(ncid,'upar',upar_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'upar', netcdf_real, moment_dim, upar_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='upar')
+      endif
+      status = nf90_put_att (ncid, upar_id, 'long_name', 'perturbed parallel flow vs (ky,kx,z,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, upar_id, att='long_name')
+      status = nf90_inq_varid(ncid,'temperature',temperature_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'temperature', netcdf_real, moment_dim, temperature_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='temperature')
+      endif
+      status = nf90_put_att (ncid, temperature_id, 'long_name', 'perturbed temperature vs (ky,kx,z,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, temperature_id, att='long_name')
     end if
 
     if (write_gvmus) then
