@@ -976,6 +976,7 @@ contains
     use stella_geometry, only: bmag, dBdrho
     use gyro_averages, only: aj0x, aj1x, gyro_average
     use fields_arrays, only: phi, phi_corr_QN
+    use run_parameters, only: fphi
     use physics_flags, only: radial_variation
     use stella_transforms, only: transform_x2kx_xfirst, transform_kx2x_xfirst
 
@@ -1003,6 +1004,7 @@ contains
     ! <f>_r = h J_0 - Ze*phi/T * F0
     ! g     = h     - Ze*<phi>_R/T * F0
     ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
+
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -1012,13 +1014,13 @@ contains
        ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
        g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
             * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
-            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi
+            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*fphi*phi
 
        if(radial_variation) then
          do it = 1, ntubes
            do iz= -nzgrid, nzgrid
              !phi
-             g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+             g0k = fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it) &
                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
@@ -1039,15 +1041,15 @@ contains
              call transform_x2kx_xfirst (g0x,g0k)
 
              !phi QN
-             g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-               * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
+             g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*fphi &
+                 * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
 
              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
            enddo
          enddo
        endif
     end do
-    call integrate_vmu (g2, spec%dens, dens)
+    call integrate_vmu (g2, spec%dens_psi0, dens)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -1055,7 +1057,7 @@ contains
        is = is_idx(vmu_lo,ivmu)
        g2(:,:,:,:,ivmu) = (g1(:,:,:,:,ivmu) + ztmax(iv,is) &
             * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
-            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi) &
+            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi*fphi) &
             *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))/1.5
        if(radial_variation) then
          do it = 1, ntubes
@@ -1063,7 +1065,7 @@ contains
              !phi
              g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
-               *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it) &
+               *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it)*fphi &
                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
@@ -1086,7 +1088,7 @@ contains
              call transform_x2kx_xfirst (g0x,g0k)
 
              !phi QN
-             g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+             g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
                * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
 
@@ -1097,7 +1099,7 @@ contains
     end do
     ! integrate to get dTs/Tr
 !    call integrate_vmu (g2, spec%temp, temp)
-    call integrate_vmu (g2, spec%temp_psi0*spec%dens, temp)
+    call integrate_vmu (g2, spec%temp_psi0*spec%dens_psi0, temp)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
