@@ -16,6 +16,7 @@ module kt_grids
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
   public :: swap_kxky_ordered, swap_kxky_back_ordered
+  public :: multiply_by_rho
 
   private
 
@@ -28,6 +29,7 @@ module kt_grids
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x, x_d, x_clamped
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped
+  complex, dimension (:,:), allocatable:: g0x
   real :: dx, dy, dkx, dky, dx_d
   real :: jtwistfac
   integer :: naky, nakx, nx, ny, nalpha
@@ -345,7 +347,8 @@ contains
 
     if(job.eq.1.and.radial_variation) call dump_radial_grid
 
-    if(any((rho+geo_surf%rhoc).lt.0.0).or.any((rho+geo_surf%rhoc).gt.1.0)) then
+    if(radial_variation.and.(any((rho+geo_surf%rhoc).lt.0.0) & 
+                             .or.any((rho+geo_surf%rhoc).gt.1.0))) then
       call mp_abort ('rho(x) is beyond range [0,1]. Try changing rhostar or q/psi profiles')
     endif
 
@@ -697,11 +700,30 @@ contains
     if (allocated(rho)) deallocate (rho)
     if (allocated(rho_d)) deallocate (rho_d)
 
+    if (allocated(g0x)) deallocate (g0x)
+
     reality = .false.
     read_kt_grids_initialized = .false.
     init_kt_grids_initialized = .false.
 
   end subroutine finish_kt_grids
+
+  subroutine multiply_by_rho (gin)
+
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+    !use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+
+    implicit none
+
+    complex, dimension (:,:), intent (inout) :: gin
+
+    if(.not.allocated(g0x)) allocate(g0x(naky,nakx))
+
+    call transform_kx2x_unpadded(gin,g0x)
+    g0x = spread(rho_d,1,naky)*g0x
+    call transform_x2kx_unpadded(g0x,gin)
+
+  end subroutine multiply_by_rho
 
 end module kt_grids
 
