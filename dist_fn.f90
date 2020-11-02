@@ -34,7 +34,7 @@ contains
     use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-    use kt_grids, only: nalpha, nakx, naky, nx, rho_clamped
+    use kt_grids, only: nalpha, nakx, naky, nx, multiply_by_rho
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
     use species, only: spec, pfac
@@ -46,7 +46,7 @@ contains
     real :: corr
     integer :: ivmu, is, imu, iv, it, iz, ia
     real, dimension (:,:), allocatable :: energy
-    complex, dimension (:,:), allocatable :: f0k, g0k, g0x
+    complex, dimension (:,:), allocatable :: g0k
     logical, intent(in) :: restarted
 
 
@@ -64,12 +64,7 @@ contains
       !init_g uses maxwellians, so account for variation in temperature, density, and B
 
       allocate (energy(nalpha,-nzgrid:nzgrid))
-      allocate (f0k(naky,nakx))
       allocate (g0k(naky,nakx))
-      allocate (g0x(naky,nx))
-
-      g0x = spread(rho_clamped,1,naky)
-      call transform_x2kx_xfirst(g0x,f0k)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         is  = is_idx(vmu_lo, ivmu)
@@ -83,18 +78,14 @@ contains
                      + 2*gfac*mu(imu)*dBdrho(iz))
          
             if(.not.restarted) then
-              g0k = gnew(:,:,iz,it,ivmu)
-
-              call transform_kx2x_xfirst(g0k,g0x)
-              g0x = g0x*(1.0 + corr*spread(rho_clamped,1,naky))
-              call transform_x2kx_xfirst(g0x,g0k)
-
-              gnew(:,:,iz,it,ivmu) = g0k
+              g0k = corr*gnew(:,:,iz,it,ivmu)
+              call multiply_by_rho(g0k)
+              gnew(:,:,iz,it,ivmu) = gnew(:,:,iz,it,ivmu) + g0k
             endif
           enddo
         enddo
       enddo
-      deallocate(energy, f0k, g0k, g0x)
+      deallocate(energy, g0k)
 
       if(.not.restarted) call scatter(kxkyz2vmu,gnew,gvmu)
     endif

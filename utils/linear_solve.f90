@@ -4,6 +4,7 @@ module linear_solve
 
   public :: lu_decomposition
   public :: lu_back_substitution
+  public :: lu_inverse
 
   interface lu_decomposition
      module procedure lu_decomposition_real
@@ -12,7 +13,13 @@ module linear_solve
 
   interface lu_back_substitution
      module procedure lu_back_substitution_real
+     module procedure lu_back_substitution_real_complex
      module procedure lu_back_substitution_complex
+  end interface
+
+  interface lu_inverse
+     module procedure lu_inverse_real
+     module procedure lu_inverse_complex
   end interface
 
 contains
@@ -125,16 +132,19 @@ contains
 
   end subroutine lu_back_substitution_real
 
-  subroutine lu_back_substitution_complex (lu, idx, b)
+  subroutine lu_back_substitution_real_complex (lu, idx, b)
 
     implicit none
 
-    complex, dimension (:,:), intent (in) :: lu
+    real, dimension (:,:), intent (in) :: lu
     integer, dimension (:), intent (in) :: idx
     complex, dimension (:), intent (in out) :: b
 
     integer :: i, n, ii, ll
     complex :: summ
+
+    !! The dot products we use below automatically take the complex conjugate of its 
+    !! first argument, which we do not want here. Hence the use of conjg to undo this
 
     n = size(lu,1)
     ii = 0
@@ -153,7 +163,93 @@ contains
        b(i) = (b(i) - dot_product(lu(i,i+1:n),b(i+1:n))) / lu(i,i)
     end do
 
+  end subroutine lu_back_substitution_real_complex
+
+  subroutine lu_back_substitution_complex (lu, idx, b)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: lu
+    integer, dimension (:), intent (in) :: idx
+    complex, dimension (:), intent (in out) :: b
+
+    integer :: i, n, ii, ll
+    complex :: summ
+
+    !! The dot products we use below automatically take the complex conjugate of its 
+    !! first argument, which we do not want here. Hence the use of conjg to undo this
+
+    n = size(lu,1)
+    ii = 0
+    do i = 1, n
+       ll = idx(i)
+       summ = b(ll)
+       b(ll) = b(i)
+       if (ii /= 0) then
+          summ = summ - dot_product(conjg(lu(i,ii:i-1)),b(ii:i-1))
+       else if (summ /= 0.0) then
+          ii = i
+       end if
+       b(i) = summ
+    end do
+    do i = n, 1, -1
+       b(i) = (b(i) - dot_product(conjg(lu(i,i+1:n)),b(i+1:n))) / lu(i,i)
+    end do
+
   end subroutine lu_back_substitution_complex
+
+
+  !!
+  !! One shouldn't need to compute the inverse of a matrix if solving the linear equation A.x = y;
+  !! a simply back substitution should suffice.
+  !! 
+  !! Only compute the inverse of A when absolutely necessary!
+  !!
+  subroutine lu_inverse_real (lu,idx,inverse)
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: lu
+    integer, dimension (:), intent (in) :: idx
+    real, dimension (:,:), intent (out) :: inverse
+
+    integer :: i, n
+
+    n = size(lu,1)
+
+    inverse = 0.0
+    do i = 1, n
+      inverse(i,i) = 1.0
+    enddo
+
+    do i = 1, n
+      call lu_back_substitution(lu,idx,inverse(:,i))
+    enddo
+
+  end subroutine lu_inverse_real
+
+  subroutine lu_inverse_complex (lu,idx,inverse)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: lu
+    integer, dimension (:), intent (in) :: idx
+    complex, dimension (:,:), intent (out) :: inverse
+
+    integer :: i, n
+
+    n = size(lu,1)
+
+    inverse = 0.0
+    do i = 1, n
+      inverse(i,i) = 1.0
+    enddo
+
+    do i = 1, n
+      call lu_back_substitution(lu,idx,inverse(:,i))
+    enddo
+
+  end subroutine lu_inverse_complex
 
   function imaxloc (array)
     real, dimension (:), intent (in) :: array

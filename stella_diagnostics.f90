@@ -629,10 +629,9 @@ contains
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: vperp2, vpa, mu
     use run_parameters, only: fphi, fapar
-    use kt_grids, only: aky, theta0, naky, nakx, nx, rho_clamped
+    use kt_grids, only: aky, theta0, naky, nakx, nx, multiply_by_rho
     use physics_flags, only: radial_variation
     use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
-    use stella_transforms, only: transform_x2kx_xfirst, transform_kx2x_xfirst
 
     implicit none
 
@@ -643,7 +642,7 @@ contains
 
     integer :: ivmu, imu, iv, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm, dflx_norm
-    complex, dimension (:,:), allocatable :: g0k, g0x
+    complex, dimension (:,:), allocatable :: g0k
 
     allocate (flx_norm(-nzgrid:nzgrid))
     allocate (dflx_norm(-nzgrid:nzgrid))
@@ -658,7 +657,6 @@ contains
 
     if(radial_variation) then
       allocate (g0k(naky,nakx))
-      allocate (g0x(naky,nx))
       dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
       dflx_norm(nzgrid) = 0.
     endif
@@ -687,9 +685,7 @@ contains
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                   + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
                
-                call transform_kx2x_xfirst (g0k,g0x)
-                g0x = spread(rho_clamped,1,naky)*g0x
-                call transform_x2kx_xfirst (g0x,g0k)
+                call multiply_by_rho(g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
               enddo
@@ -723,9 +719,7 @@ contains
                      + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)) &
                      + dflx_norm(iz))
 
-                call transform_kx2x_xfirst (g0k,g0x)
-                g0x = spread(rho_clamped,1,naky)*g0x
-                call transform_x2kx_xfirst (g0x,g0k)
+                call multiply_by_rho(g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
               endif
@@ -757,9 +751,7 @@ contains
                   + dIdrho/(geo_surf%rmaj*btor(iz)) & 
                   + dflx_norm(iz))
 
-                call transform_kx2x_xfirst (g0k,g0x)
-                g0x = spread(rho_clamped,1,naky)*g0x
-                call transform_x2kx_xfirst (g0x,g0k)
+                call multiply_by_rho(g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
 
@@ -786,9 +778,7 @@ contains
                     * (- geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
                        - geo_surf%d2psidr2*drhodpsi + dflx_norm(iz))
 
-                call transform_kx2x_xfirst (g0k,g0x)
-                g0x = spread(rho_clamped,1,naky)*g0x
-                call transform_x2kx_xfirst (g0x,g0k)
+                call multiply_by_rho(g0k)
 
                 g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
               endif
@@ -813,7 +803,6 @@ contains
 
     deallocate (flx_norm)
     if(allocated(dflx_norm)) deallocate(dflx_norm)
-    if(allocated(g0x)) deallocate(g0x)
     if(allocated(g0k)) deallocate(g0k)
 
   end subroutine get_fluxes_vmulo
@@ -969,7 +958,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, vperp2, mu
     use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
-    use kt_grids, only: naky, nakx, nx, rho_clamped
+    use kt_grids, only: naky, nakx, nx, multiply_by_rho
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
@@ -978,14 +967,13 @@ contains
     use fields_arrays, only: phi, phi_corr_QN
     use run_parameters, only: fphi
     use physics_flags, only: radial_variation
-    use stella_transforms, only: transform_x2kx_xfirst, transform_kx2x_xfirst
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp
 
-    complex, dimension (:,:), allocatable :: g0k, g0x
+    complex, dimension (:,:), allocatable :: g0k
     real :: zero
 
     integer :: ivmu, iv, imu, is, ia
@@ -993,7 +981,6 @@ contains
 
     if(radial_variation) then
       allocate (g0k(naky,nakx))
-      allocate (g0x(naky,nx))
     endif
 
     ! hack below. Works since J0^2 - 1 and its derivative are zero at the origin
@@ -1015,19 +1002,19 @@ contains
        g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
             * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
             * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*fphi*phi
-
+ 
        if(radial_variation) then
          do it = 1, ntubes
            do iz= -nzgrid, nzgrid
              !phi
-             g0k = fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-               * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it) &
-               *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
-                 -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                 -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
-                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                 * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                    /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
+             g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*fphi*phi(:,:,iz,it) &
+                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
+                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
+                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                     /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
 
              !g
              g0k = g0k + g1(:,:,iz,it,ivmu) &
@@ -1036,9 +1023,9 @@ contains
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                + dBdrho(iz)/bmag(ia,iz))
 
-             call transform_kx2x_xfirst (g0k,g0x)
-             g0x = spread(rho_clamped,1,naky)*g0x
-             call transform_x2kx_xfirst (g0x,g0k)
+             call multiply_by_rho(g0k)
+
+             g0k(1,1) = 0.0
 
              !phi QN
              g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*fphi &
@@ -1083,9 +1070,7 @@ contains
                  + dBdrho(iz)/bmag(ia,iz) &
                  + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
 
-             call transform_kx2x_xfirst (g0k,g0x)
-             g0x = spread(rho_clamped,1,naky)*g0x
-             call transform_x2kx_xfirst (g0x,g0k)
+             call multiply_by_rho(g0k)
 
              !phi QN
              g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
@@ -1116,9 +1101,7 @@ contains
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                + dBdrho(iz)/bmag(ia,iz))
 
-             call transform_kx2x_xfirst (g0k,g0x)
-             g0x = spread(rho_clamped,1,naky)*g0x
-             call transform_x2kx_xfirst (g0x,g0k)
+             call multiply_by_rho(g0k)
 
              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
            enddo
@@ -1128,7 +1111,6 @@ contains
     call integrate_vmu (g2, spec%stm_psi0, upar)
 
     if(allocated(g0k)) deallocate(g0k)
-    if(allocated(g0x)) deallocate(g0x)
 
 
   end subroutine get_moments

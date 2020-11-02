@@ -1714,7 +1714,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, rho_clamped
+    use kt_grids, only: nakx, naky, nx, multiply_by_rho
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -1734,14 +1734,12 @@ contains
     
     integer :: ia, ivmu, iv, imu, is, iz, it
 
-    complex, dimension (:,:), allocatable :: g0k, g1k, g0a, g0x, g1x
+    complex, dimension (:,:), allocatable :: g0k, g1k, g0a
     complex, dimension (:,:,:,:,:), allocatable :: g_corr
 
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
     allocate (g0a(naky,nakx))
-    allocate (g0x(naky,nx))
-    allocate (g1x(naky,nx))
 
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_radial_variation'
@@ -1808,10 +1806,7 @@ contains
             endif
 
             !inverse and forward transforms
-            call transform_kx2x_xfirst (g0k, g0x)
-            g1x =spread(rho_clamped,1,naky)*g0x
-            call transform_x2kx_xfirst (g1x, g0k)
-
+            call multiply_by_rho(g0k)
 
             !
             !quasineutrality/gyroaveraging 
@@ -1838,7 +1833,7 @@ contains
        end do
     end do
 
-    deallocate (g0k, g1k, g0a, g0x, g1x)
+    deallocate (g0k, g1k, g0a)
     if(allocated(g_corr)) deallocate(g_corr)
 
   end subroutine advance_radial_variation
