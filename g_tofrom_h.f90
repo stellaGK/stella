@@ -171,7 +171,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_geometry, only: bmag, dBdrho
     use dist_fn_arrays, only: kperp2, dkperp2dr
-    use kt_grids, only: naky, nakx, rho_clamped
+    use kt_grids, only: naky, nakx, nx, multiply_by_rho
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -185,13 +185,12 @@ contains
     real, intent (in) :: facphi
 
     integer :: ivmu, iz, it, is, imu, iv, ia
-    complex, dimension (:,:), allocatable :: field, adjust, g0k, g0x
+    complex, dimension (:,:), allocatable :: field, adjust, g0k
 
     allocate (field(naky,nakx))
     allocate (adjust(naky,nakx))
     if(radial_variation) then
       allocate (g0k(naky,nakx))
-      allocate (g0x(naky,nakx))
     endif
 
     ia = 1
@@ -212,9 +211,7 @@ contains
                                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)))
 
-               call transform_kx2x_xfirst (g0k,g0x)
-               g0x = spread(rho_clamped,1,naky)*g0x
-               call transform_x2kx_xfirst (g0x,g0k)
+               call multiply_by_rho(g0k)
 
                field = field + g0k &
                        + phi_corr(:,:,iz,it)*spec(is)%zt*facphi &
@@ -226,7 +223,6 @@ contains
 
     deallocate (field, adjust)
     if (allocated(g0k)) deallocate (g0k)
-    if (allocated(g0x)) deallocate (g0x)
 
   end subroutine g_to_h_vmu
 
