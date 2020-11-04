@@ -36,7 +36,7 @@ module kt_grids
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
   logical :: reality = .false.
-  logical :: centered_in_rho = .false.
+  logical :: centered_in_rho
   character(20) :: grid_option
   logical, dimension (:), allocatable :: zonal_mode
 
@@ -324,7 +324,8 @@ contains
     endif
 
     do ikx = 1, nx
-      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
+      if((runtype_option_switch.eq.runtype_multibox.and.job.eq.1).or. &
+         (runtype_option_switch.ne.runtype_multibox.and.radial_variation)) then
         x(ikx) = (ikx-0.5)*dx - x_shift
       else
         x(ikx) = (ikx-1)*dx
@@ -333,7 +334,8 @@ contains
 
     dx_d = (2*pi*x0)/nakx
     do ikx = 1, nakx
-      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
+      if((runtype_option_switch.eq.runtype_multibox.and.job.eq.1).or. &
+         (runtype_option_switch.ne.runtype_multibox.and.radial_variation)) then
         x_d(ikx) = (ikx-0.5)*dx_d - x_shift
       else
         x_d(ikx) = (ikx-1)*dx_d
@@ -345,7 +347,7 @@ contains
 
     zed0 = theta0*geo_surf%zed0_fac
 
-    if(job.eq.1.and.radial_variation) call dump_radial_grid
+    if(radial_variation) call dump_radial_grid
 
     if(radial_variation.and.(any((rho+geo_surf%rhoc).lt.0.0) & 
                              .or.any((rho+geo_surf%rhoc).gt.1.0))) then

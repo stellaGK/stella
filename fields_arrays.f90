@@ -14,6 +14,7 @@ module fields_arrays
   ! radial corrections to phi and apar from gyroaveraging
   ! may result in tight space constraints however
   complex, dimension (:,:,:,:,:), allocatable :: phi_corr_GA, apar_corr_GA
+  complex, dimension (:,:,:,:,:), allocatable :: phi_corr_ztmax
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   type (response_matrix_type), dimension (:), allocatable :: response_matrix
