@@ -399,6 +399,7 @@ contains
        local%qinp_psi0 = qinp
        local%shat_psi0 = shat
 
+       load_psi0_variables = .false.
     end if
     dqdr = local%shat*local%qinp/local%rhoc
 
