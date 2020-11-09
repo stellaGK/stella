@@ -33,7 +33,7 @@ module fields
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
   logical :: debug = .false.
-  integer :: zm = 0
+  integer, dimension (:), allocatable :: zm
 
   interface get_dchidy
      module procedure get_dchidy_4d
@@ -218,32 +218,36 @@ contains
          allocate (g0k(1,nakx))
          allocate (g0x(1,nakx))
 
-         if(.not.allocated(phizf_solve)) allocate(phizf_solve(-nzgrid:nzgrid))
 
-         do iz = -nzgrid, nzgrid
-           if(.not.associated(phizf_solve(iz)%zloc)) &
-             allocate(phizf_solve(iz)%zloc(nakx-zm,nakx-zm))
-           if(.not.associated(phizf_solve(iz)%idx))  &
-             allocate(phizf_solve(iz)%idx(nakx-zm))
+         if(.not.allocated(phi_solve)) allocate(phi_solve(min(ky_solve,naky)))
 
-           phizf_solve(iz)%zloc = 0.0
-           phizf_solve(iz)%idx = 0
-           do ikx = 1+zm, nakx
-             g0k(1,:) = 0.0
-             g0k(1,ikx) = dgamtotdr(1,ikx,iz)
+         do iky = 1, min(ky_solve,naky)
+           if(.not.allocated(phi_solve(iky)%eigen)) allocate(phi_solve(iky)%eigen(-nzgrid:nzgrid))
+           do iz = -nzgrid, nzgrid
+             if(.not.associated(phi_solve(iky)%eigen(iz)%zloc)) &
+               allocate(phizf_solve(iz)%zloc(nakx-zm,nakx-zm))
+             if(.not.associated(phizf_solve(iz)%idx))  &
+               allocate(phizf_solve(iz)%idx(nakx-zm))
 
-             call transform_kx2x_unpadded (g0k,g0x)
-             g0x(1,:) = rho_d*g0x(1,:)
-             call transform_x2kx_unpadded(g0x,g0k)
+             phizf_solve(iz)%zloc = 0.0
+             phizf_solve(iz)%idx = 0
+             do ikx = 1+zm, nakx
+               g0k(1,:) = 0.0
+               g0k(1,ikx) = dgamtotdr(1,ikx,iz)
 
-             !column row
-             phizf_solve(iz)%zloc(:,ikx-zm) = g0k(1,(1+zm):)
-             phizf_solve(iz)%zloc(ikx-zm,ikx-zm) = phizf_solve(iz)%zloc(ikx-zm,ikx-zm) &
+               call transform_kx2x_unpadded (g0k,g0x)
+               g0x(1,:) = rho_d*g0x(1,:)
+               call transform_x2kx_unpadded(g0x,g0k)
+
+               !column row
+               phizf_solve(iz)%zloc(:,ikx-zm) = g0k(1,(1+zm):)
+               phizf_solve(iz)%zloc(ikx-zm,ikx-zm) = phizf_solve(iz)%zloc(ikx-zm,ikx-zm) &
                                                    + gamtot(1,ikx,iz)
-           enddo
+             enddo
 
-           call lu_decomposition(phizf_solve(iz)%zloc, phizf_solve(iz)%idx, dum)
+             call lu_decomposition(phizf_solve(iz)%zloc, phizf_solve(iz)%idx, dum)
 !          call zgetrf(nakx-zm, nakx-zm,phizf_solve(iz)%zloc,nakx-zm,phizf_solve(iz)%idx,info)
+           enddo
          enddo
 
          if (.not.has_electron_species(spec).and. & 
