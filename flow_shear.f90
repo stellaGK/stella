@@ -119,8 +119,11 @@ contains
       shift_state = 0.
     endif
 
-    shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
+    if(nakx.gt.1) then
+      shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
+    endif
     if(zonal_mode(1)) shift_times(1) = 0.
+
 
     if(g_exb*g_exbfac > 0.) then
       shift_sign = -1
