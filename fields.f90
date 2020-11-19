@@ -28,12 +28,13 @@ module fields
 
   real, dimension (2,2) :: time_field_solve
 
-  type (eigen_type), dimension (:), allocatable :: phizf_solve
-  type (eigen_type) :: phizf_solve_ae
+  type (eigen_type), dimension (:,:), allocatable :: phi_solve
+  type (eigen_type) :: phizf_solve
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
   logical :: debug = .false.
-  integer, dimension (:), allocatable :: zm
+  integer :: zm !this, along with zmi, keeps track of whether we want to 
+                !include the zero mode in our radial solver or not
 
   interface get_dchidy
      module procedure get_dchidy_4d
@@ -51,6 +52,7 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use gyro_averages, only: aj0v, aj1v
     use run_parameters, only: fphi, fapar
+    use run_parameters, only: ky_solve_radial
     use physics_parameters, only: tite, nine, beta
     use physics_flags, only: radial_variation
     use species, only: spec, has_electron_species, ion_species
@@ -72,7 +74,7 @@ contains
 
     implicit none
 
-    integer :: ikxkyz, iz, it, ikx, iky, is, ia, jkx 
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia, jkx, zmi
     real :: efac, efacp, tmp, tmp2, wgt, dum
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
@@ -219,19 +221,20 @@ contains
          allocate (g0x(1,nakx))
 
 
-         if(.not.allocated(phi_solve)) allocate(phi_solve(min(ky_solve,naky)))
+         if(.not.allocated(phi_solve)) allocate(phi_solve(min(ky_solve_radial,naky),-nzgrid:nzgrid))
 
-         do iky = 1, min(ky_solve,naky)
-           if(.not.allocated(phi_solve(iky)%eigen)) allocate(phi_solve(iky)%eigen(-nzgrid:nzgrid))
+         do iky = 1, min(ky_solve_radial,naky)
+           zmi = 0
+           if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
            do iz = -nzgrid, nzgrid
-             if(.not.associated(phi_solve(iky)%eigen(iz)%zloc)) &
-               allocate(phizf_solve(iz)%zloc(nakx-zm,nakx-zm))
-             if(.not.associated(phizf_solve(iz)%idx))  &
-               allocate(phizf_solve(iz)%idx(nakx-zm))
+             if(.not.associated(phi_solve(iky,iz)%zloc)) &
+               allocate(phi_solve(iky,iz)%zloc(nakx-zmi,nakx-zmi))
+             if(.not.associated(phi_solve(iky,iz)%idx))  &
+               allocate(phi_solve(iky,iz)%idx(nakx-zmi))
 
-             phizf_solve(iz)%zloc = 0.0
-             phizf_solve(iz)%idx = 0
-             do ikx = 1+zm, nakx
+             phi_solve(iky,iz)%zloc = 0.0
+             phi_solve(iky,iz)%idx = 0
+             do ikx = 1+zmi, nakx
                g0k(1,:) = 0.0
                g0k(1,ikx) = dgamtotdr(1,ikx,iz)
 
@@ -240,13 +243,13 @@ contains
                call transform_x2kx_unpadded(g0x,g0k)
 
                !column row
-               phizf_solve(iz)%zloc(:,ikx-zm) = g0k(1,(1+zm):)
-               phizf_solve(iz)%zloc(ikx-zm,ikx-zm) = phizf_solve(iz)%zloc(ikx-zm,ikx-zm) &
-                                                   + gamtot(1,ikx,iz)
+               phi_solve(iky,iz)%zloc(:,ikx-zmi) = g0k(1,(1+zmi):)
+               phi_solve(iky,iz)%zloc(ikx-zmi,ikx-zmi) = phi_solve(iky,iz)%zloc(ikx-zmi,ikx-zmi) &
+                                                     + gamtot(1,ikx,iz)
              enddo
 
-             call lu_decomposition(phizf_solve(iz)%zloc, phizf_solve(iz)%idx, dum)
-!          call zgetrf(nakx-zm, nakx-zm,phizf_solve(iz)%zloc,nakx-zm,phizf_solve(iz)%idx,info)
+             call lu_decomposition(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, dum)
+!          call zgetrf(nakx-zmi,nakx-zmi,phi_solve(iky,iz)%zloc,nakx-zmi,phi_solve(iky,iz)%idx,info)
            enddo
          enddo
 
@@ -258,11 +261,11 @@ contains
            allocate(a_inv(nakx-zm,nakx-zm))
            allocate(a_fsa(nakx-zm,nakx-zm)); a_fsa = 0.0
 
-           if(.not.associated(phizf_solve_ae%zloc)) &
-               allocate(phizf_solve_ae%zloc(nakx-zm,nakx-zm));
-           phizf_solve_ae%zloc = 0.0
+           if(.not.associated(phizf_solve%zloc)) &
+               allocate(phizf_solve%zloc(nakx-zm,nakx-zm));
+           phizf_solve%zloc = 0.0
 
-           if(.not.associated(phizf_solve_ae%idx)) allocate(phizf_solve_ae%idx(nakx-zm));
+           if(.not.associated(phizf_solve%idx)) allocate(phizf_solve%idx(nakx-zm));
 
            do ikx = 1+zm, nakx
              g0k(1,:) = 0.0
@@ -279,7 +282,7 @@ contains
            !get inverse of A
            do iz = -nzgrid, nzgrid
 
-             call lu_inverse(phizf_solve(iz)%zloc, phizf_solve(iz)%idx, &
+             call lu_inverse(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, &
                              a_inv)
 
              !flux surface average it
@@ -298,14 +301,14 @@ contains
            ! calculate I - <A^-1>B
            do ikx = 1, nakx-zm
              do jkx = 1, nakx-zm
-               phizf_solve_ae%zloc(ikx,jkx) = -sum(a_fsa(ikx,:)*b_mat(:,jkx))
+               phizf_solve%zloc(ikx,jkx) = -sum(a_fsa(ikx,:)*b_mat(:,jkx))
              enddo
            enddo
            do ikx = 1, nakx-zm
-             phizf_solve_ae%zloc(ikx,ikx) = 1.0 + phizf_solve_ae%zloc(ikx,ikx)
+             phizf_solve%zloc(ikx,ikx) = 1.0 + phizf_solve%zloc(ikx,ikx)
            enddo
 
-           call lu_decomposition(phizf_solve_ae%zloc,phizf_solve_ae%idx, dum)
+           call lu_decomposition(phizf_solve%zloc,phizf_solve%idx, dum)
 
            deallocate(a_inv,a_fsa)
 
@@ -730,7 +733,7 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
-    integer :: ia, it, iz, ikx, iky
+    integer :: ia, it, iz, ikx, iky, zmi
     complex, dimension (:,:), allocatable :: g0k, g0x
     complex, dimension (:), allocatable :: g_fsa
     complex :: tmp
@@ -771,8 +774,10 @@ contains
                if(iky > ky_solve_radial) then
                  phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
                else
-                 call lu_back_substitution(phizf_solve(iz)%zloc, &
-                                          phizf_solve(iz)%idx, phi(1,(1+zm):,iz,it))
+                 zmi=0
+                 if(iky.eq.1) zmi=zm
+                 call lu_back_substitution(phi_solve(iky,iz)%zloc, &
+                                          phi_solve(iky,iz)%idx, phi(iky,(1+zmi):,iz,it))
 !                call zgetrs('n',nakx-zm,1,phizf_solve(iz)%zloc,nakx-zm,phizf_solve(iz)%idx, &
 !                            phi(1,(1+zm):,iz,it),nakx-zm,info)
                endif
@@ -848,7 +853,7 @@ contains
               g_fsa = g_fsa + g0k(1,(1+zm):)
             enddo
         
-            call lu_back_substitution(phizf_solve_ae%zloc,phizf_solve_ae%idx, g_fsa)
+            call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, g_fsa)
 
             do ikx = 1,nakx-zm
               g0k(1,ikx+zm) = sum(b_mat(ikx,:)*g_fsa(:))
@@ -856,7 +861,7 @@ contains
 
             do iz = -nzgrid, nzgrid
               g_fsa = g0k(1,(1+zm):)
-              call lu_back_substitution(phizf_solve(iz)%zloc,phizf_solve(iz)%idx, g_fsa)
+              call lu_back_substitution(phi_solve(1,iz)%zloc,phi_solve(1,iz)%idx, g_fsa)
 
               phi(1,(1+zm):,iz,it) = phi(1,(1+zm):,iz,it) + g_fsa
             enddo

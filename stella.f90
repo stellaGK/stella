@@ -188,9 +188,10 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
-        .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
-        runtype_option_switch.eq.runtype_multibox) then
+    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
+    !    .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
+    !    runtype_option_switch.eq.runtype_multibox) then
+    if (needs_transforms) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
        call init_transforms
     end if
@@ -250,8 +251,25 @@ contains
 
     if (proc0) call time_message(.false.,time_init,' Initialization')
 
-
   end subroutine init_stella
+
+  logical function needs_transforms ()
+
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use physics_flags, only: nonlinear, include_parallel_nonlinearity
+    use physics_flags, only: full_flux_surface, radial_variation
+    use physics_flags, only: hammett_flow_shear
+    use physics_parameters, only: g_exb, g_exbfac
+
+    needs_transforms = .false.
+
+    if(nonlinear.or.include_parallel_nonlinearity) needs_transforms = .true.
+    if(radial_variation.or.full_flux_surface)      needs_transforms = .true.
+    if(runtype_option_switch.eq.runtype_multibox)  needs_transforms = .true.
+    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) & 
+      needs_transforms = .true.
+
+  end function needs_transforms
 
   subroutine write_start_message
 
@@ -273,6 +291,7 @@ contains
   subroutine finish_stella (last_call)
 
     use mp, only: finish_mp
+
     use mp, only: proc0
     use file_utils, only: finish_file_utils
     use job_manage, only: time_message
