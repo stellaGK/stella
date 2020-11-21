@@ -15,7 +15,7 @@ module multibox
   public :: xL, xR, xL_d, xR_d
   public :: rhoL, rhoR
   public :: kx0_L, kx0_R
-  public :: RK_step
+  public :: RK_step, comm_at_init
   public :: include_multibox_krook
 
 
@@ -27,9 +27,9 @@ module multibox
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   real,    dimension (:), allocatable :: krook_fac
-  real, dimension(:), allocatable :: x_d
+  real, dimension(:), allocatable :: x_mb
 
-  real :: dx_d
+  real :: dx_mb
 
   complex, dimension (:,:), allocatable :: fft_kxky, fft_xky
   real, dimension (:,:), allocatable :: fft_xy
@@ -54,13 +54,10 @@ module multibox
   real :: xL_d = 0., xR_d = 0.
   real :: kx0_L, kx0_R
 
-!>DSO 
-! the multibox simulation has one parameter: boundary_size
-! 
   integer :: boundary_size, krook_size
   real :: nu_krook_mb, krook_exponent
   logical :: smooth_ZFs
-  logical :: RK_step, include_multibox_krook
+  logical :: RK_step, include_multibox_krook, comm_at_init
   integer :: krook_option_switch
   integer, parameter:: krook_option_default = 0, &
                        krook_option_linear  = 0, &
@@ -113,7 +110,7 @@ contains
     namelist /multibox_parameters/ boundary_size, krook_size, & 
                                    smooth_ZFs, zf_option, LR_debug_option, &
                                    krook_option, RK_step, nu_krook_mb, &
-                                   mb_debug_step, krook_exponent
+                                   mb_debug_step, krook_exponent, comm_at_init
 
     if(runtype_option_switch /= runtype_multibox) return
 
@@ -123,6 +120,7 @@ contains
     nu_krook_mb = 0.0
     mb_debug_step = 1000
     smooth_ZFs = .false.
+    comm_at_init = .false.
     RK_step = .false.
     zf_option = 'default'
     krook_option = 'default'
@@ -156,6 +154,7 @@ contains
     call broadcast(LR_debug_switch)
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
+    call broadcast(comm_at_init)
 
     call scope(crossdomprocs)
 
@@ -190,7 +189,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: get_x_to_rho
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky, akx, aky, nx,x, rho, x0, x_clamped, rho_clamped
+    use kt_grids, only: nakx,naky, akx, aky, nx,x, x_d, rho, x0, rho_clamped,rho_d_clamped
     use file_utils, only: runtype_option_switch, runtype_multibox
     use job_manage, only: njobs
     use mp, only: scope, crossdomprocs, subprocs, &
@@ -203,11 +202,10 @@ contains
     integer :: phi_buff_size
     integer :: i
 
+    real, dimension (:), allocatable :: x_clamped, x_d_clamped
+
     real :: db
 
-
-    if(.not.allocated(x_clamped)) allocate(x_clamped(nx)); x_clamped = 0.
-    if(.not.allocated(rho_clamped)) allocate(rho_clamped(nx)); rho_clamped = 0.
 
     if(runtype_option_switch /= runtype_multibox) return
 
@@ -259,8 +257,8 @@ contains
 #ifdef MPI
     call scope(crossdomprocs)
 
-    if(.not.allocated(x_d)) allocate(x_d(x_fft_size))
-    dx_d = (2*pi*x0)/x_fft_size
+    if(.not.allocated(x_mb)) allocate(x_mb(x_fft_size))
+    dx_mb = (2*pi*x0)/x_fft_size
 
     if(job==1) then
 
@@ -271,24 +269,36 @@ contains
       xL_d = x_d(boundary_size)
       xR_d = x_d(x_fft_size-boundary_size+1)
 
+      allocate(x_clamped(nx))
+      allocate(x_d_clamped(nakx))
 
       if(LR_debug_switch == LR_debug_option_L) then
-        x_clamped = xL
+        x_clamped   = xL
+        x_d_clamped = xL_d
       else if(LR_debug_switch == LR_debug_option_R) then
-        x_clamped = xR
+        x_clamped   = xR
+        x_d_clamped = xR_d
       else
-        x_clamped = x
+        x_clamped   = x
+        x_d_clamped = x_d
         do i = 1, nx
           if(x_clamped(i) < xL) x_clamped(i) = xL
           if(x_clamped(i) > xR) x_clamped(i) = xR
         enddo
+        do i = 1, nakx
+          if(x_d_clamped(i) < xL_d) x_d_clamped(i) = xL_d
+          if(x_d_clamped(i) > xR_d) x_d_clamped(i) = xR_d
+        enddo
       endif
 
       call get_x_to_rho(1, x_clamped, rho_clamped)
+      call get_x_to_rho(1, x_d_clamped, rho_d_clamped)
+
+      deallocate (x_clamped, x_d_clamped)
 
     elseif(job==0) then
       do i = 1, x_fft_size
-        x_d(i) = (i-1)*dx_d
+        x_mb(i) = (i-1)*dx_mb
       enddo
 
       call receive(xL,1)
@@ -296,7 +306,7 @@ contains
       call send(akx(2),1)
     elseif(job==njobs-1) then
       do i = 1, x_fft_size
-        x_d(i) = (i-1)*dx_d
+        x_mb(i) = (i-1)*dx_mb
       enddo
 
       call receive(xR,1)
@@ -338,15 +348,11 @@ contains
 
   subroutine finish_multibox
 
-    use kt_grids, only: x_clamped, rho_clamped
-
     implicit none
 
     if (allocated(g_buffer0))   deallocate (g_buffer0)
     if (allocated(g_buffer1))   deallocate (g_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
-    if (allocated(x_clamped))   deallocate (x_clamped)
-    if (allocated(rho_clamped)) deallocate (rho_clamped)
 
     if (allocated(copy_mask_left))   deallocate (copy_mask_left)
     if (allocated(copy_mask_right))  deallocate (copy_mask_right)
@@ -401,7 +407,7 @@ contains
     allocate (prefac(naky,x_fft_size)); prefac = 1.0
 
     if(prp_shear_enabled.and.hammett_flow_shear) then
-      prefac = exp(-zi*g_exb*g_exbfac*spread(x_d,1,naky)*spread(aky*shift_state,2,x_fft_size))
+      prefac = exp(-zi*g_exb*g_exbfac*spread(x_mb,1,naky)*spread(aky*shift_state,2,x_fft_size))
     endif
 
     if(mod(temp_ind,mb_debug_step)==0 .and. proc0) then

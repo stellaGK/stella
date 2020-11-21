@@ -10,7 +10,7 @@ module kt_grids
   public :: dx,dy,dkx, dky, dx_d
   public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
   public :: x, x_d, x_clamped
-  public :: rho, rho_d, rho_clamped
+  public :: rho, rho_d, rho_clamped, rho_d_clamped
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
@@ -28,7 +28,7 @@ module kt_grids
   real, dimension (:,:), allocatable :: theta0, zed0
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x, x_d, x_clamped
-  real, dimension (:), allocatable :: rho, rho_d, rho_clamped
+  real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
   complex, dimension (:,:), allocatable:: g0x
   real :: dx, dy, dkx, dky, dx_d
   real :: jtwistfac
@@ -307,6 +307,8 @@ contains
     if(.not.allocated(x_d)) allocate (x_d(nakx))
     if(.not.allocated(rho)) allocate (rho(nx))
     if(.not.allocated(rho_d)) allocate (rho_d(nakx))
+    if(.not.allocated(rho_clamped)) allocate (rho_clamped(nx))
+    if(.not.allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx))
 
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
@@ -342,6 +344,10 @@ contains
 
     call get_x_to_rho(1,x,rho)
     call get_x_to_rho(1,x_d,rho_d)
+
+    ! the following two will get overwritten if using multibox
+    rho_clamped = rho
+    rho_d_clamped = rho_d
 
     zed0 = theta0*geo_surf%zed0_fac
 
@@ -699,6 +705,8 @@ contains
     if (allocated(x_d)) deallocate (x_d)
     if (allocated(rho)) deallocate (rho)
     if (allocated(rho_d)) deallocate (rho_d)
+    if (allocated(rho_clamped)) deallocate (rho_clamped)
+    if (allocated(rho_d_clamped)) deallocate (rho_d_clamped)
 
     if (allocated(g0x)) deallocate (g0x)
 
