@@ -6,8 +6,8 @@ module flow_shear
   public :: init_flow_shear, finish_flow_shear
   public :: prl_shear, prl_shear_p, prp_shear
   public :: advance_parallel_flow_shear, advance_perp_flow_shear
-  public :: shift_state, shift_times
   public :: v_edge, v_shift
+  public :: shift_times
 
   private
 
@@ -16,7 +16,7 @@ module flow_shear
   complex, dimension (:,:), allocatable :: upwind_advect
   real, dimension (:,:), allocatable ::    upwind_diss
   real, dimension (:,:,:), allocatable :: prl_shear, prl_shear_p
-  real, dimension (:), allocatable :: prp_shear, shift_times, shift_state
+  real, dimension (:), allocatable :: prp_shear, shift_times
 
   integer :: shift_sign, shift_start
 
@@ -32,6 +32,7 @@ contains
     use constants, only: zi, pi
     use zgrid, only: nzgrid
     use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode
+    use fields_arrays, only: shift_state
     use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
     use stella_geometry, only: dydalpha, drhodpsi
     use physics_parameters, only: g_exb, g_exbfac, omprimfac
@@ -120,7 +121,7 @@ contains
     endif
 
     shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
-    if(zonal_mode(1)) shift_times(1) = 0.
+    if(zonal_mode(1)) shift_times(1) = huge(0.)
 
     if(g_exb*g_exbfac > 0.) then
       shift_sign = -1
@@ -179,6 +180,7 @@ contains
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
+    use fields_arrays, only: shift_state
     use kt_grids, only: aky, nakx, naky, nx, ikx_max, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use stella_time, only: code_dt
@@ -277,6 +279,7 @@ contains
   end subroutine advance_perp_flow_shear
 
   subroutine finish_flow_shear
+    use fields_arrays, only: shift_state
 
     implicit none
 
