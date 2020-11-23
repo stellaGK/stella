@@ -384,13 +384,16 @@ contains
 
     if (read_profile_variation) then
        open (1002,file='RZ.in',status='old')
-       read (1002,'(11e13.5)') rhoc0, dI, qinp, shat, kappa, kapprim, tri, triprim, &
+       read (1002,'(12e13.5)') rhoc0, dI, qinp, shat, d2qdr2, kappa, kapprim, tri, triprim, &
                               betaprim, betadbprim, dpsidrho_psi0
        do j=-nz,nz
           read (1002,'(5e13.5)') theta(j), d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
        end do
        close (1002)
-       local%qinp     = qinp  + shat*qinp/rhoc0*(local%rhoc-rhoc0)
+       local%qinp     = qinp  + shat*qinp/rhoc0*(local%rhoc-rhoc0) &
+                              + 0.5*(local%rhoc-rhoc0)**2*d2qdr2
+       local%shat     = (local%rhoc/local%qinp) &
+                        * (shat*qinp/rhoc0 + (local%rhoc-rhoc0)*d2qdr2)
        local%kappa    = kappa + kapprim*(local%rhoc-rhoc0)
        local%tri      = tri   + triprim*(local%rhoc-rhoc0)
        local%betaprim = betaprim +betadbprim*(local%rhoc-rhoc0)
@@ -399,6 +402,7 @@ contains
        local%qinp_psi0 = qinp
        local%shat_psi0 = shat
 
+       load_psi0_variables = .false.
     end if
     dqdr = local%shat*local%qinp/local%rhoc
 
@@ -511,8 +515,9 @@ contains
 
     if (write_profile_variation) then
        open (1002,file='RZ.out',status='unknown')
-       write (1002,'(11e13.5)') local%rhoc, dIdrho, local%qinp, local%shat, local%kappa, &
-                                local%kapprim, local%tri, local%triprim, &
+       write (1002,'(12e13.5)') local%rhoc, dIdrho, local%qinp, local%shat, local%d2qdr2, &
+                                local%kappa, local%kapprim, &
+                                local%tri, local%triprim, &
                                 local%betaprim, local%betadbprim, dpsidrho
        do j=-nz,nz
           write (1002,'(5e13.5)') theta(j), d2Rdr2(j), d2Zdr2(j), bmag(j), grho(j)

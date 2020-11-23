@@ -223,7 +223,7 @@ contains
          read  (1002,'(6e13.5)') dens, temp, fprim, tprim, d2ndr2, d2Tdr2
          close (1002)
 
-         dr = geo_surf%rhoc - 0.5
+         dr = geo_surf%rhoc - geo_surf%rhoc_psi0
          spec(is)%dens = dens*(1.0 - dr*fprim)! + 0.5*dr**2*d2ndr2)
          spec(is)%temp = temp*(1.0 - dr*tprim)! + 0.5*dr**2*d2Tdr2)
          spec(is)%fprim = (fprim - dr*d2ndr2)*(dens/spec(is)%dens)

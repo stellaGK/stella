@@ -14,7 +14,6 @@ module flow_shear
   logical :: flow_shear_initialized = .false.
 
   complex, dimension (:,:), allocatable :: upwind_advect
-  real, dimension (:,:), allocatable ::    upwind_diss
   real, dimension (:,:,:), allocatable :: prl_shear, prl_shear_p
   real, dimension (:), allocatable :: prp_shear, shift_times
 
@@ -98,12 +97,12 @@ contains
                * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
       enddo
       if(radial_variation) then
-       energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
-       prl_shear_p(:,:,ivmu) = prl_shear(:,:,ivmu)*(dIdrho/spread(rmajor*btor,1,nalpha) &
-                               - spread(dBdrho,1,nalpha)/bmag &
-                               - spec(is)%fprim - spec(is)%tprim*(energy-2.5)  &
-                               - 2.*mu(imu)*spread(dBdrho,1,nalpha))
-       endif
+        energy = (vpa(iv)**2 + vperp2(:,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+        prl_shear_p(:,:,ivmu) = prl_shear(:,:,ivmu)*(dIdrho/spread(rmajor*btor,1,nalpha) &
+                                - spread(dBdrho,1,nalpha)/bmag &
+                                - spec(is)%fprim - spec(is)%tprim*(energy-2.5)  &
+                                - 2.*mu(imu)*spread(dBdrho,1,nalpha))
+      endif
     enddo
 
     if(q_as_x) prl_shear = prl_shear/geo_surf%shat_psi0
@@ -120,7 +119,9 @@ contains
       shift_state = 0.
     endif
 
-    shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
+    if(nakx.gt.1) then
+      shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
+    endif
     if(zonal_mode(1)) shift_times(1) = huge(0.)
 
     if(g_exb*g_exbfac > 0.) then
@@ -288,7 +289,6 @@ contains
     if (allocated(shift_times)) deallocate (shift_times)
     if (allocated(shift_state)) deallocate (shift_state)
     if (allocated(upwind_advect)) deallocate (upwind_advect)
-    if (allocated(upwind_diss))   deallocate (upwind_diss)
 
     flow_shear_initialized = .false.
 
