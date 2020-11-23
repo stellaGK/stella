@@ -73,7 +73,7 @@ contains
        (g, istep0, t0, delt0, istatus, fphi, fapar, exit_in, fileopt)
 
 # ifdef NETCDF
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, shift_state
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # else
@@ -89,7 +89,6 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use dissipation, only: include_krook_operator, int_krook
     use dissipation, only: remove_zero_projection, int_proj
-    use flow_shear, only: shift_state
     use physics_flags, only: prp_shear_enabled
 
     implicit none
@@ -738,7 +737,7 @@ contains
   subroutine stella_restore_many (g, scale, istatus, fphi, fapar)
 # ifdef NETCDF
     use mp, only: iproc
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, shift_state
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # endif
@@ -749,7 +748,6 @@ contains
     use species, only: nspec
     use dissipation, only: include_krook_operator, int_krook
     use dissipation, only: remove_zero_projection, int_proj
-    use flow_shear, only: shift_state
     use physics_flags, only: prp_shear_enabled
 
     implicit none

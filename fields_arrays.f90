@@ -19,4 +19,6 @@ module fields_arrays
 
   type (response_matrix_type), dimension (:), allocatable :: response_matrix
 
+  real, dimension (:), allocatable :: shift_state
+
 end module fields_arrays

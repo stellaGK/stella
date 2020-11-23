@@ -17,12 +17,12 @@ module multibox
   public :: kx0_L, kx0_R
   public :: RK_step
   public :: include_multibox_krook
+  public :: phi_buffer0, phi_buffer1
 
 
   private
 
-  complex, dimension (:), allocatable :: g_buffer0
-  complex, dimension (:), allocatable :: g_buffer1
+  complex, dimension (:), allocatable :: g_buffer0, g_buffer1, phi_buffer0, phi_buffer1
   complex, dimension (:), allocatable :: fsa_x
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
@@ -218,6 +218,8 @@ contains
 
     if (.not.allocated(g_buffer0)) allocate(g_buffer0(g_buff_size))
     if (.not.allocated(g_buffer1)) allocate(g_buffer1(g_buff_size))
+    if (.not.allocated(phi_buffer0)) allocate(phi_buffer0(phi_buff_size))
+    if (.not.allocated(phi_buffer1)) allocate(phi_buffer1(phi_buff_size))
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
       allocate(fsa_x(nakx)); fsa_x=0.0
     endif
@@ -344,6 +346,8 @@ contains
 
     if (allocated(g_buffer0))   deallocate (g_buffer0)
     if (allocated(g_buffer1))   deallocate (g_buffer1)
+    if (allocated(phi_buffer0))   deallocate (phi_buffer0)
+    if (allocated(phi_buffer1))   deallocate (phi_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
     if (allocated(x_clamped))   deallocate (x_clamped)
     if (allocated(rho_clamped)) deallocate (rho_clamped)
@@ -367,15 +371,13 @@ contains
     use kt_grids, only: nakx,naky,naky_all, aky, nx,ny,dx,dy, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
-    use fields_arrays, only: phi, phi_corr_QN
-    use fields, only: advance_fields, fields_updated
+    use fields_arrays, only: phi, phi_corr_QN, shift_state
     use job_manage, only: njobs
     use physics_flags, only: radial_variation,prp_shear_enabled, hammett_flow_shear
     use physics_parameters, only: g_exb, g_exbfac
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
-    use flow_shear, only:  shift_state
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
                   send, receive, proc0
@@ -442,6 +444,7 @@ contains
       ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
       ! FLAG DSO - might do something weird with magnetic shear
       if(job==njobs-1) offset=nakx-boundary_size
+      !first g
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
@@ -477,16 +480,53 @@ contains
           enddo
         enddo
       enddo
-! DSO - send data
       call send(g_buffer0,1,43 + job)
+      !now phi
+      num=1
+      do it = 1, vmu_lo%ntubes
+
+        !this is where the FSA goes
+        if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+          do ix= 1,nakx
+            fsa_x(ix) = sum(dl_over_b(ia,:)*phi(1,ix,:,it))
+          enddo
+        endif
+
+        do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
+          fft_kxky = phi(:,:,iz,it)
+
+          if(zonal_mode(1)) then
+            if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
+              fft_kxky(1,:) = 0.0
+            elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+              fft_kxky(1,:) = fft_kxky(1,:) - fsa_x
+            endif
+          endif
+
+          call transform_kx2x(fft_kxky,fft_xky)
+          fft_xky = fft_xky*prefac
+          do ix=1,boundary_size
+            do iky=1,naky
+              !DSO if in the future the grids can have different naky, one will
+              !have to divide by naky here, and multiply on the receiving end
+              phi_buffer0(num) = fft_xky(iky,ix + offset)
+              num=num+1
+            enddo
+          enddo
+        enddo
+      enddo
+! DSO - send data
+      call send(phi_buffer0,1,143 + job)
     else
       offset = x_fft_size - boundary_size
 ! DSO - receive the data
 
 ! left
       call receive(g_buffer0,0, 43)
+      call receive(phi_buffer0,0, 143)
 ! right
       call receive(g_buffer1,njobs-1, 43+njobs-1)
+      call receive(phi_buffer1,njobs-1, 143+njobs-1)
 
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -520,7 +560,7 @@ contains
 ! DSO - change communicator
     call scope(subprocs)
 
-    if(job==1) fields_updated = .false.
+    !if(job==1) fields_updated = .false.
     !if(job==1) then
      ! fields_updated = .false.
       !call advance_fields(gnew,phi,apar, dist='gbar')

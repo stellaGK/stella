@@ -299,9 +299,9 @@ contains
           end if
           
           fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
-               *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)
+               *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
           
-          gradpar_fac = gradpar*maxwell_mu(ia,:,imu,is)*maxwell_fac(is)
+          gradpar_fac = gradpar*maxwell_mu(ia,:,imu,is)
           
           ! stream_sign < 0 corresponds to positive advection speed
           if (stream_sign(iv)<0) then
