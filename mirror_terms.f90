@@ -1,5 +1,7 @@
 module mirror_terms
 
+! JFP Nov 2020: adding interpolation-free scheme for mirror term
+
   implicit none
 
   public :: mirror_initialized
@@ -36,7 +38,7 @@ contains
     use stella_geometry, only: d2Bdrdth, dgradpardrho
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
-    use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+    use run_parameters, only: mirror_implicit, mirror_semi_lagrange, mirror_semi_lagrange_non_interp
     use physics_flags, only: include_mirror, radial_variation
 
     implicit none
@@ -100,8 +102,10 @@ contains
     end do
 
     if (mirror_implicit) then
-       if (mirror_semi_lagrange) then
+       if (mirror_semi_lagrange) then 
           call init_mirror_semi_lagrange
+       else if (mirror_semi_lagrange_non_interp) then
+          call init_mirror_semi_lagrange_non_interp 
        else
           call init_invert_mirror_operator
        end if
@@ -131,6 +135,27 @@ contains
     ! + f(iv+idx_shift + mirror_sign)*mirror_interp_loc
 
   end subroutine init_mirror_semi_lagrange
+
+
+  subroutine init_mirror_semi_lagrange_non_interp ! JFP to edit, probably redunant
+
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: nmu, dvpa
+    use species, only: nspec
+    use kt_grids, only: nalpha
+
+    implicit none
+
+    if (.not.allocated(mirror_interp_idx_shift)) &
+         allocate(mirror_interp_idx_shift(nalpha,-nzgrid:nzgrid,nmu,nspec))
+    if (.not.allocated(mirror_interp_loc)) &
+         allocate(mirror_interp_loc(nalpha,-nzgrid:nzgrid,nmu,nspec))
+
+    mirror_interp_idx_shift = int(mirror/dvpa) ! JFP How many vpll gridpoints a particle will change by with acceleration term mirror, rounded.
+    mirror_interp_loc = abs(mod(mirror,dvpa))/dvpa ! JFP How many vpll gridpoints a particle will change by with acceleration term mirror, unrounded.
+
+
+  end subroutine init_mirror_semi_lagrange_non_interp
 
   subroutine init_invert_mirror_operator
 
@@ -522,7 +547,7 @@ contains
     use vpamu_grids, only: dvpa, maxwell_vpa
     use neoclassical_terms, only: include_neoclassical_terms
     use run_parameters, only: vpa_upwind, time_upwind
-    use run_parameters, only: mirror_semi_lagrange
+    use run_parameters, only: mirror_semi_lagrange, mirror_semi_lagrange_non_interp
     use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
     implicit none
@@ -622,8 +647,11 @@ contains
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(1,1,1,1,1))
 
-       if (mirror_semi_lagrange) then
-          call vpa_interpolation (gvmu, g0v)
+       if (mirror_semi_lagrange) then ! JFP to add another option?
+          call vpa_interpolation (gvmu, g0v) ! JFP reads in gvmu, spits out new g0v (now interpolated)
+       else if (mirror_semi_lagrange_non_interp) then
+          call vpa_non_interp (gvmu, g0v) ! JFP reads in gvmu, spits out new g0v (now interpolated), which is the full mirror term?
+          !PRINT *, "Using non-interpolating scheme, called 654!"
        else
           do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
              iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -771,7 +799,7 @@ contains
                    interp(iv,imu,ikxkyz) = (grid(iv+shift-sgn,imu,ikxkyz)*fac0 &
                         + grid(iv+shift,imu,ikxkyz)*fac1 &
                         + grid(iv+shift+sgn,imu,ikxkyz)*fac2 &
-                        + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6.
+                        + grid(iv+shift+2*sgn,imu,ikxkyz)*fac3)/6. ! old formula (eq 37 Barnes JCP)
                 end do
 
                 ! at boundary cell, use zero incoming BC for point just beyond boundary
@@ -793,6 +821,76 @@ contains
 
   end subroutine vpa_interpolation
 
+  subroutine vpa_non_interp (grid, non_interp_g)
+! We are calculating the RHS, which in the non_interpolating semi-Lagrange scheme, is - a_pll' dg/dvpa evaluated at v_plli - p \Delta v_pll,2, and the current timestep
+! p is given by NINT(2* a_pll \Delta t / \Delta v_pll), vplli is on grid.
+
+    use stella_time, only: code_dt
+    use vpamu_grids, only: nvpa, nmu, dvpa
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iz_idx, is_idx
+    !use run_parameters, only: mirror_linear_interp
+
+    implicit none
+
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: grid
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (out) :: non_interp_g
+
+    integer :: ikxkyz, iz, is, iv, imu, advected_index_plus, advected_index_minus, p, iy
+    integer :: shift, sgn, llim, ulim
+    real :: fac0, fac1, fac2, fac3
+    real :: tmp0, tmp1, tmp2, tmp3
+    real :: apll, apll_prime
+
+    !PRINT *, "Using non-interpolating scheme!"
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc ! iterate over kx, ky
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       !iy = iy_idx(kxkyz_lo,ikxkyz) ! Is this the full flux surface version?
+       iy = 1 ! flux tube limit
+       do imu = 1, nmu ! iterate over mu
+          !sgn = mirror_sign(1,iz)
+          !apll = sgn*mirror(iy,iz,imu,is)
+          apll = mirror(iy,iz,imu,is) ! parallel acceleration SMALL?
+          p = NINT(2*apll*code_dt/dvpa) ! need code_dt to be sufficiently large
+          ! otherwise no advection
+          apll_prime = apll - p*dvpa/(2*code_dt) ! shifted apll
+          PRINT *, "p is ", p, "and 2*apll*code_dt/dvpa is ", 2*apll*code_dt/dvpa
+
+          !do iv = llim, ulim, sgn ! these are only three selected values of vpll: lower lim, upper limt, and the mirror sign...
+          do iv = 1, nvpa
+             if (p == 0) then   
+                non_interp_g(iv,imu,ikxkyz) = grid(iv,imu,ikxkyz) 
+                PRINT *, "p = 0, no parallel acceleration here"
+             else if (MODULO(p,2) == 0) then ! if p even
+                advected_index_plus = iv+1-p/2
+                advected_index_minus = iv-1-p/2
+                if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid... what if we have to advect from points off grid?
+                   non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv+1-p/2,imu,ikxkyz)-grid(iv-1-p/2,imu,ikxkyz))/(2*dvpa)
+                   PRINT *, "p even, advecting! and g is ", non_interp_g(iv,imu,ikxkyz)
+                else ! else, we are being accelerated by points off grid. Just set boundary condition to zero?
+                   non_interp_g(iv,imu,ikxkyz) = 0.! probably need to change this...
+                   PRINT *, "p even, off grid!"
+                end if
+             else if (MODULO(p,1) == 0) then ! is p odd
+                advected_index_plus = iv-(p-1)/2
+                advected_index_minus = iv-(p+1)/2
+                if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid... what if we have to advect from points off grid?
+                   non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv-(p-1)/2,imu,ikxkyz)-grid(iv-(p+1)/2,imu,ikxkyz))/(2*dvpa)
+                   PRINT *, "p odd, advecting! and g is", non_interp_g(iv,imu,ikxkyz) 
+                else ! else, we are being accelerated by points off grid
+                   non_interp_g(iv,imu,ikxkyz) = 0.! probably need to change this...
+                   PRINT *, "p odd, off grid!"
+                end if
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine vpa_non_interp
+
+
   subroutine invert_mirror_operator (imu, ilo, g)
 
     use finite_differences, only: tridag
@@ -808,7 +906,7 @@ contains
 
   subroutine finish_mirror
 
-    use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+    use run_parameters, only: mirror_implicit, mirror_semi_lagrange, mirror_semi_lagrange_non_interp
 
     implicit none
 
@@ -816,9 +914,16 @@ contains
     if (allocated(mirror_sign)) deallocate (mirror_sign)
     if (allocated(mirror_rad_var)) deallocate (mirror_rad_var)
 
+    PRINT *, "Testing we are here 908!"
+
     if (mirror_implicit) then
+        !PRINT *, "Testing we are here 911!"
        if (mirror_semi_lagrange) then
           call finish_mirror_semi_lagrange
+          !PRINT *, "Using the interpolating scheme, called 912!"
+       else if (mirror_semi_lagrange_non_interp) then
+          call finish_mirror_semi_lagrange_non_interp ! JFP to make
+          PRINT *, "Using non-interpolating scheme, called 913!"
        else
           call finish_invert_mirror_operator
        end if
@@ -836,6 +941,16 @@ contains
     if (allocated(mirror_interp_idx_shift)) deallocate (mirror_interp_idx_shift)
 
   end subroutine finish_mirror_semi_lagrange
+
+  subroutine finish_mirror_semi_lagrange_non_interp ! JFP to edit? Probably redunant
+
+    implicit none
+
+    if (allocated(mirror_interp_loc)) deallocate (mirror_interp_loc)
+    if (allocated(mirror_interp_idx_shift)) deallocate (mirror_interp_idx_shift)
+
+  end subroutine finish_mirror_semi_lagrange_non_interp
+
 
   subroutine finish_invert_mirror_operator
 

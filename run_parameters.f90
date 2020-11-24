@@ -15,7 +15,7 @@ module run_parameters
   public :: fully_explicit
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
-  public :: mirror_semi_lagrange, mirror_linear_interp
+  public :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp ! JFP adding mirror_semi_lagrange_non_interp
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
@@ -31,7 +31,7 @@ module run_parameters
   logical :: fully_explicit
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
-  logical :: mirror_semi_lagrange, mirror_linear_interp
+  logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
   real :: avail_cpu_time
   integer :: nstep
@@ -78,7 +78,7 @@ contains
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
-         fields_kxkyz, mat_gen, mat_read, rng_seed
+         fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp
 
     if (proc0) then
        fphi = 1.0
@@ -106,6 +106,10 @@ contains
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
 
+       if (mirror_semi_lagrange_non_interp) then
+           mirror_semi_lagrange = .false.
+       end if
+
        ierr = error_unit()
        call get_option_value &
             (delt_option, deltopts, delt_option_switch, ierr, &
@@ -127,6 +131,7 @@ contains
     call broadcast (maxwellian_inside_zed_derivative)
     call broadcast (mirror_semi_lagrange)
     call broadcast (mirror_linear_interp)
+    call broadcast (mirror_semi_lagrange_non_interp)
     call broadcast (stream_matrix_inversion)
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
