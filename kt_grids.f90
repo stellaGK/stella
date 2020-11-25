@@ -9,7 +9,7 @@ module kt_grids
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
   public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
-  public :: x, x_d, x_clamped
+  public :: x, x_d
   public :: rho, rho_d, rho_clamped, rho_d_clamped
   public :: nalpha
   public :: ikx_max, naky_all
@@ -27,7 +27,7 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0, zed0
   real, dimension (:), allocatable :: aky, akx
-  real, dimension (:), allocatable :: x, x_d, x_clamped
+  real, dimension (:), allocatable :: x, x_d
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
   complex, dimension (:,:), allocatable:: g0x
   real :: dx, dy, dkx, dky, dx_d
@@ -347,9 +347,8 @@ contains
     call get_x_to_rho(1,x,rho)
     call get_x_to_rho(1,x_d,rho_d)
 
-    ! the following two will get overwritten if using multibox
-    rho_clamped = rho
-    rho_d_clamped = rho_d
+    if(.not.allocated(rho_clamped)) allocate(rho_clamped(nx)); rho_clamped = rho
+    if(.not.allocated(rho_d_clamped)) allocate(rho_d_clamped(nakx)); rho_d_clamped = rho_d
 
     zed0 = theta0*geo_surf%zed0_fac
 
