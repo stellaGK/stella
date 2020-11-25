@@ -16,7 +16,7 @@ module kt_grids
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
   public :: swap_kxky_ordered, swap_kxky_back_ordered
-  public :: multiply_by_rho
+  public :: multiply_by_rho, centered_in_rho
 
   private
 
@@ -730,7 +730,7 @@ contains
     if(.not.allocated(g0x)) allocate(g0x(naky,nakx))
 
     call transform_kx2x_unpadded(gin,g0x)
-    g0x = spread(rho_d,1,naky)*g0x
+    g0x = spread(rho_d_clamped,1,naky)*g0x
     call transform_x2kx_unpadded(g0x,gin)
 
   end subroutine multiply_by_rho

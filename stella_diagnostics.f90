@@ -1025,7 +1025,7 @@ contains
 
              call multiply_by_rho(g0k)
 
-             g0k(1,1) = 0.0
+            ! g0k(1,1) = 0.0
 
              !phi QN
              g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*fphi &

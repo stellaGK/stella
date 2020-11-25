@@ -1,6 +1,6 @@
 module fields_arrays
 
-  use common_types, only: response_matrix_type
+  use common_types, only: response_matrix_type, eigen_type
 
   implicit none
 
@@ -20,5 +20,11 @@ module fields_arrays
   type (response_matrix_type), dimension (:), allocatable :: response_matrix
 
   real, dimension (:), allocatable :: shift_state
+
+  real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr
+  !real :: gamtot_h, gamtot3_h, efac, efacp
+
+  type (eigen_type), dimension (:,:), allocatable :: phi_solve
+  type (eigen_type) :: phizf_solve
 
 end module fields_arrays

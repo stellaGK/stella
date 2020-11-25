@@ -249,11 +249,9 @@ contains
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
     if(runtype_option_switch.eq.runtype_multibox) then
-      write (*,*) 'belp'
       call multibox_communicate (gnew)
       if(job.eq.1) then
         fields_updated=.false.
-        write (*,*) 'help'
         call advance_fields (gnew, phi, apar, dist='gbar')
       endif
     endif
