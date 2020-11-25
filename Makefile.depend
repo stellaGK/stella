@@ -139,6 +139,7 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -302,9 +303,11 @@ multibox.o: \
 	 file_utils.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 run_parameters.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \

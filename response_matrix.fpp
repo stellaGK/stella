@@ -580,7 +580,8 @@ contains
     use gyro_averages, only: gyro_average
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
-    use fields, only: gamtot, gamtot3
+    use fields_arrays, only: gamtot
+    use fields, only: gamtot3
 
     implicit none
 
