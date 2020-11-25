@@ -831,6 +831,8 @@ contains
     use stella_layouts, only: iz_idx, is_idx
     !use run_parameters, only: mirror_linear_interp
 
+    use run_parameters, only: no_advection_option
+
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: grid
@@ -852,21 +854,22 @@ contains
        do imu = 1, nmu ! iterate over mu
           !sgn = mirror_sign(1,iz)
           !apll = sgn*mirror(iy,iz,imu,is)
-          apll = mirror(iy,iz,imu,is) ! parallel acceleration SMALL?
+          apll = -mirror(iy,iz,imu,is)/(code_dt) ! mirror definition has a code_dt, and sign of being on RHS on GKE
           p = NINT(2*apll*code_dt/dvpa) ! need code_dt to be sufficiently large
           ! otherwise no advection
           apll_prime = apll - p*dvpa/(2*code_dt) ! shifted apll
-          PRINT *, "p is ", p, "and 2*apll*code_dt/dvpa is ", 2*apll*code_dt/dvpa
+          PRINT *, "p is ", p, "and 2*apll*code_dt/dvpa is ", 2*apll*code_dt/dvpa, "and apll is", apll
 
-          !do iv = llim, ulim, sgn ! these are only three selected values of vpll: lower lim, upper limt, and the mirror sign...
           do iv = 1, nvpa
-             if (p == 0) then   
+             if (no_advection_option) then ! no advection occurs, only for debugging purposes!
                 non_interp_g(iv,imu,ikxkyz) = grid(iv,imu,ikxkyz) 
+             else if (p == 0) then   
+                non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv+1,imu,ikxkyz)-grid(iv-1,imu,ikxkyz))/(2*dvpa)
                 PRINT *, "p = 0, no parallel acceleration here"
              else if (MODULO(p,2) == 0) then ! if p even
                 advected_index_plus = iv+1-p/2
                 advected_index_minus = iv-1-p/2
-                if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid... what if we have to advect from points off grid?
+                if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid...
                    non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv+1-p/2,imu,ikxkyz)-grid(iv-1-p/2,imu,ikxkyz))/(2*dvpa)
                    PRINT *, "p even, advecting! and g is ", non_interp_g(iv,imu,ikxkyz)
                 else ! else, we are being accelerated by points off grid. Just set boundary condition to zero?
@@ -876,7 +879,7 @@ contains
              else if (MODULO(p,1) == 0) then ! is p odd
                 advected_index_plus = iv-(p-1)/2
                 advected_index_minus = iv-(p+1)/2
-                if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid... what if we have to advect from points off grid?
+                if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid
                    non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv-(p-1)/2,imu,ikxkyz)-grid(iv-(p+1)/2,imu,ikxkyz))/(2*dvpa)
                    PRINT *, "p odd, advecting! and g is", non_interp_g(iv,imu,ikxkyz) 
                 else ! else, we are being accelerated by points off grid

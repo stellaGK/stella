@@ -15,7 +15,7 @@ module run_parameters
   public :: fully_explicit
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
-  public :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp ! JFP adding mirror_semi_lagrange_non_interp
+  public :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option  ! JFP adding mirror_semi_lagrange_non_interp
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
@@ -31,7 +31,7 @@ module run_parameters
   logical :: fully_explicit
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
-  logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp
+  logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
   real :: avail_cpu_time
   integer :: nstep
@@ -78,7 +78,7 @@ contains
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
-         fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp
+         fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option
 
     if (proc0) then
        fphi = 1.0
@@ -90,7 +90,9 @@ contains
        driftkinetic_implicit = .false.
        maxwellian_inside_zed_derivative = .false.
        mirror_semi_lagrange = .true.
+       mirror_semi_lagrange_non_interp = .false.
        mirror_linear_interp = .false.
+       no_advection_option = .false.
        stream_matrix_inversion = .false.
        delt_option = 'default'
        zed_upwind = 0.02
@@ -132,6 +134,7 @@ contains
     call broadcast (mirror_semi_lagrange)
     call broadcast (mirror_linear_interp)
     call broadcast (mirror_semi_lagrange_non_interp)
+    call broadcast (no_advection_option)
     call broadcast (stream_matrix_inversion)
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
