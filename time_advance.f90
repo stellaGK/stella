@@ -414,9 +414,9 @@ contains
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
-    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+    use dist_fn_arrays, only: wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
     use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
@@ -442,6 +442,8 @@ contains
       allocate (wstarp(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstarp = 0.0
     if (.not.allocated(wdriftpx_phi)) &
        allocate (wdriftpx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(adiabatic_phi)) &
+       allocate (adiabatic_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpy_phi)) &
       allocate (wdriftpy_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpx_g)) &
@@ -503,12 +505,18 @@ contains
        wcvdriftx = gfac*fac*dcvdrift0drho*vpa(iv)
        ! this is the grad-B drift piece of wdriftx
        wgbdriftx = gfac*fac*dgbdrift0drho*0.5*vperp2(:,:,imu)
-       wdriftpx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
+       wdriftpx_g(:,:,ivmu) = wgbdriftx + wcvdriftx*vpa(iv)
 
-       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
-            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
-            - wdriftx_phi(:,:,ivmu)*(pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
-              + gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
+       !the next piece is everything under the x derivative, as this needs to be
+       !transformed separately
+       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv))  &
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
+
+       !this is variation in the Maxwellian part of the adiabatic response of phi,
+       !which needs to be transformed separately before differentiation wrt x
+       !the gyroaveraging and quasineutrality is already done in fields
+       adiabatic_phi(:,:,ivmu) = (pfac*(spec(is)%fprim+spec(is)%tprim*(energy-2.5)) &
+                                 +gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
     end do
 
@@ -1721,7 +1729,7 @@ contains
     use physics_flags, only: include_parallel_streaming, include_mirror
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
     use dist_fn_arrays, only: wstar, wstarp
     use mirror_terms, only: add_mirror_radial_variation
     use flow_shear, only: prl_shear, prl_shear_p
@@ -1808,6 +1816,7 @@ contains
             !inverse and forward transforms
             call multiply_by_rho(g0k)
 
+
             !
             !quasineutrality/gyroaveraging 
             !
@@ -1825,6 +1834,13 @@ contains
             g0k = g0k + g1k*prl_shear(ia,iz,ivmu)
 
             !wdriftx gyroaverage/quasineutrality variation
+            call get_dgdx(g0a,g1k)
+            g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
+
+            !wdriftx F_M/T_s variation
+            call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
+            g0a = adiabatic_phi(ia,iz,it)*g0a
+            call multiply_by_rho(g0a)
             call get_dgdx(g0a,g1k)
             g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
           
@@ -2486,6 +2502,7 @@ contains
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+    use dist_fn_arrays, only: adiabatic_phi
 
     implicit none
 
@@ -2497,6 +2514,7 @@ contains
     if (allocated(wdriftpy_g)) deallocate (wdriftpy_g)
     if (allocated(wdriftpx_phi)) deallocate (wdriftpx_phi)
     if (allocated(wdriftpy_phi)) deallocate (wdriftpy_phi)
+    if (allocated(adiabatic_phi)) deallocate (adiabatic_phi)
 
     wdriftinit = .false.
 
