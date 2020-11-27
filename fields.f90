@@ -79,7 +79,7 @@ contains
     real :: tmp, tmp2, wgt, dum
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
-    logical :: adia_elec
+    logical :: has_elec, adia_elec
 
     complex, dimension (:,:), allocatable :: g0k, g0x, a_inv, a_fsa
 
@@ -220,11 +220,12 @@ contains
 
        if(radial_variation.and.ky_solve_radial.gt.0) then
 
-         adia_elec = .not.has_electron_species(spec) & 
+         has_elec  = has_electron_species(spec)
+         adia_elec = .not.has_elec & 
                      .and.adiabatic_option_switch == adiabatic_option_fieldlineavg
 
          if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1.and.ky_solve_real) then
-           call init_mb_get_phi(adia_elec,efac,efacp)
+           call init_mb_get_phi(has_elec, adia_elec,efac,efacp)
          elseif(runtype_option_switch.ne.runtype_multibox.or. &
                 (job.eq.1.and..not.ky_solve_real)) then
            allocate (g0k(1,nakx))
@@ -747,12 +748,13 @@ contains
     complex, dimension (:,:), allocatable :: g0k, g0x, g0a
     complex, dimension (:), allocatable :: g_fsa
     complex :: tmp
-    logical :: adia_elec
+    logical :: has_elec, adia_elec
 
     character (*), intent (in) :: dist
 
     ia = 1
-    adia_elec = .not.has_electron_species(spec)  &
+    has_elec  = has_electron_species(spec)
+    adia_elec = .not.has_elec  &
                 .and.adiabatic_option_switch.eq.adiabatic_option_fieldlineavg
 
     if (dist == 'h') then
@@ -808,7 +810,7 @@ contains
          deallocate (g0k,g0x,g0a)
       else if (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1 &
              .and.runtype_option_switch.eq.runtype_multibox) then
-         call mb_get_phi(phi,adia_elec)
+         call mb_get_phi(phi,has_elec,adia_elec)
       else
         phi = phi/spread(gamtot,4,ntubes)
         if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
