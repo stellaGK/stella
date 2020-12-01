@@ -57,7 +57,7 @@ module multibox
   real :: xL = 0., xR = 0.
   real :: rhoL = 0., rhoR = 0.
   real :: kx0_L, kx0_R
-  real :: efac_l, efacp_l
+  !real :: efac_l, efacp_l
 
   integer :: boundary_size, krook_size
   real :: nu_krook_mb, krook_exponent
@@ -596,6 +596,7 @@ contains
                 fft_xky(1,ix+offset)=fft_xky(1,ix+offset) - dzp
               enddo
             endif
+            if(zonal_mode(1)) fft_xky(1,:) = real(fft_xky(1,:))
             call transform_x2kx(fft_xky,gin(:,:,iz,it,iv))  
           enddo
         enddo
@@ -685,7 +686,7 @@ contains
     real, intent (in) :: efac, efacp
     integer :: ia, iz, iky, ikx, b_solve
     real :: dum
-    complex, dimension (:,:), allocatable :: g0k, g0x, a_inv, a_fsa
+    complex, dimension (:,:), allocatable :: g0k, g1k, g0x, a_inv, a_fsa
 
     if(.not.radial_variation) return
 
@@ -696,14 +697,14 @@ contains
 
 
 
-    efac_l  = efac
-    efacp_l = efacp_l
+    !efac_l  = efac
+    !efacp_l = efacp_l
 
     ia = 1
     b_solve = boundary_size - phi_bound
-    write (*,*) 'hi', b_solve
 
     allocate (g0k(1,nakx))
+    allocate (g1k(1,nakx))
     allocate (g0x(1,x_fft_size))
 
     if(.not.allocated(phi_solve)) allocate(phi_solve(min(ky_solve_radial,naky),-nzgrid:nzgrid))
@@ -721,17 +722,15 @@ contains
           g0x(1,:) = 0.0
           g0x(1,ikx) = 1.0
           call transform_x2kx(g0x,g0k)
-          g0k(1,:) = g0k(1,:)*gamtot(iky,:,iz)
-          call transform_kx2x (g0k,g0x)
+
+          g1k(1,:) = g0k(1,:)*gamtot(iky,:,iz)
+          call transform_kx2x (g1k,g0x)
 
           !column row
           phi_solve(iky,iz)%zloc(:,ikx-b_solve) = g0x(1,(1+b_solve):(x_fft_size-b_solve))
 
-          g0x(1,:) = 0.0
-          g0x(1,ikx) = 1.0
-          call transform_x2kx(g0x,g0k)
-          g0k(1,:) = g0k(1,:)*dgamtotdr(iky,:,iz)
-          call transform_kx2x (g0k,g0x)
+          g1k(1,:) = g0k(1,:)*dgamtotdr(iky,:,iz)
+          call transform_kx2x (g1k,g0x)
           g0x(1,:) = rho_mb_clamped*g0x(1,:)
 
           phi_solve(iky,iz)%zloc(:,ikx-b_solve) = phi_solve(iky,iz)%zloc(:,ikx-b_solve) &
@@ -787,7 +786,7 @@ contains
 
     endif
 
-    deallocate(g0k,g0x)
+    deallocate(g0k,g1k,g0x)
   end subroutine init_mb_get_phi
 
   subroutine mb_get_phi(phi,has_elec,adiabatic_elec)
@@ -812,7 +811,6 @@ contains
 
     ia = 1
     b_solve = boundary_size - phi_bound
-    tmp = 0
 
     allocate (g0k(1,nakx))
     allocate (g1k(1,nakx))
@@ -825,19 +823,21 @@ contains
     endif
  
     do it = 1, ntubes
+      if(adiabatic_elec.and.zonal_mode(1)) pb_fsa = 0.0
       do iz = -nzgrid, nzgrid
         do iky = 1, naky
           if(iky > ky_solve_radial) then
             phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
           else
             g0x = 0.0
+            tmp = 0
             ind = boundary_size*(iky-1 + naky*(iz+nzgrid + (2*nzgrid+1)*(it-1)))
             do ix=1,b_solve
               g0x(1,ix)              = phi_buffer0(ind+ix)
               g0x(1,x_fft_size+1-ix) = phi_buffer1(ind+boundary_size+1-ix)
             enddo
 
-            if(iky.eq.1.and.phi_pow.ne.0) tmp = sum(real(g0x(1,:)))/x_fft_size
+            if(iky.eq.1) tmp = sum(real(g0x(1,:)))
             call transform_x2kx(g0x,g0k)
             if(phi_pow.ne.0) then
               g0k(1,:) = g0k(1,:)/((zi*akx)**phi_pow)
@@ -848,10 +848,14 @@ contains
             if(.not.has_elec.and.phi_pow.ne.0) then
               g1k(1,:) = g0k(1,:)
               call transform_kx2x (g1k,g0x)
-              g0x(1,(b_solve+1):(x_fft_size-b_solve)) = &
-                 -g0x(1,(b_solve+1):(x_fft_size-b_solve))*b_mat
-              if(adiabatic_elec) then
 
+              g0x(1,(b_solve+1):(x_fft_size-b_solve)) = &
+                 - g0x(1,(b_solve+1):(x_fft_size-b_solve))*b_mat
+
+              if(adiabatic_elec.and.iky.eq.1) then
+                pb_fsa = pb_fsa + (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz) & 
+                  *rho_mb_clamped((1+b_solve):(x_fft_size-b_solve))) & 
+                  *g0x(1,(1+b_solve):(x_fft_size-b_solve))
               endif
             endif
 
@@ -869,6 +873,12 @@ contains
             call lu_back_substitution(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, &
                                           g0x(1,(b_solve+1):(x_fft_size-b_solve)))
 
+            if(iky.eq.1) then 
+              tmp = (tmp + &
+                         sum(real(g0x(1,(b_solve+1):(x_fft_size-b_solve))))) &
+                         /(2*b_solve)
+            endif
+
             if(phi_pow.ne.0) then
               do ix=1,b_solve
                 g0x(1,ix)              = 0.0
@@ -880,8 +890,8 @@ contains
             endif
 
             do ix=1,b_solve
-              g0x(1,ix)              = phi_buffer0(ind+ix) + tmp
-              g0x(1,x_fft_size+1-ix) = phi_buffer1(ind+boundary_size+1-ix) + tmp
+              g0x(1,ix)              = phi_buffer0(ind+ix) !- tmp
+              g0x(1,x_fft_size+1-ix) = phi_buffer1(ind+boundary_size+1-ix) !- tmp
             enddo
 
             call transform_x2kx(g0x,g0k)
@@ -903,18 +913,14 @@ contains
           g0k(1,:) = phi(1,:,iz,it)
           call transform_kx2x(g0k,g0x)
           g0z(:,iz) = g0x(1,:)
+
+          if(phi_pow.ne.0) then
+            call lu_back_substitution(phi_solve(1,iz)%zloc, phi_solve(1,iz)%idx,pb_fsa)
+            g0z((1+b_solve):(x_fft_size-b_solve),iz) = &
+                    g0z((1+b_solve):(x_fft_size-b_solve),iz) + pb_fsa
+          endif
         enddo
 
-        if(phi_pow.ne.0) then
-!         do ix=1,b_solve
-!           g0x(1,ix)              = phi_buffer0(ind+ix)
-!           g0x(1,x_fft_size+1-ix) = phi_buffer1(ind+boundary_size+1-ix)
-!         enddo
-!           
-!         call transform_x2kx(g0x,g0k)
-!           g0k(1,:) = g0k(1,:)/((zi*akx)**phi_pow)
-!           g0k(1,1) = 0.0
-        endif
 
 
         ! get <A_p^-1.(g- - A_b.phi_b)>_psi

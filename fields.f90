@@ -799,6 +799,7 @@ contains
                else
                  call lu_back_substitution(phi_solve(iky,iz)%zloc, &
                                            phi_solve(iky,iz)%idx, phi(iky,(1+zmi):,iz,it))
+                 if(zmi.gt.0) phi(iky,zmi,iz,it) = 0.0
                endif
              enddo
            enddo
@@ -868,6 +869,7 @@ contains
 
                 phi(1,(1+zm):,iz,it) = phi(1,(1+zm):,iz,it) + g_fsa
               enddo
+              if(zm.gt.0) phi(1,zm,:,it) = 0.0
             enddo
             deallocate(g0k,g0x,g_fsa)
           else
