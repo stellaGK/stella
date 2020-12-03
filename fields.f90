@@ -1007,7 +1007,7 @@ contains
          enddo
        enddo
        !zero out the ones we've already solved for using the full method
-       do iky = 1, ky_solve_radial
+       do iky = 1, min(ky_solve_radial,naky)
          phi_corr_QN(iky,:,:,:) = 0.0
        enddo
 
