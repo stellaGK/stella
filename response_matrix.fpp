@@ -140,7 +140,7 @@ contains
           ! no need to obtain response to impulses at negative kx values
           do iz = iz_low(iseg), izup
              idx = idx + 1
-             call get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+             call get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
           end do
           ! once we have used one segments, remaining segments
           ! have one fewer unique zed point
@@ -150,12 +150,60 @@ contains
                 ikx = ikxmod(iseg,ie,iky)
                 do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
                    idx = idx + 1
-                   call get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                   call get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                 end do
                 if (izl_offset == 0) izl_offset = 1
              end do
           end if
+          deallocate (gext,phiext)
+       enddo
+       !DSO - This ends parallelization over velocity space.
+       !      At this point every processor has int_v dgdphi for a given ky
+       !      and so the quasineutrality solve and LU decomposition can be
+       !      parallelized locally if need be.
+       !      This is preferable to parallelization over ky as the LU 
+       !      decomposition (and perhaps QN) will be dominated by the 
+       !      ky with the most connections
+   
 
+
+       ! solve quasineutrality 
+       ! for local stella, this is a diagonal process, but global stella
+       ! may require something more sophisticated
+
+       ! loop over the sets of connected kx values
+       do ie = 1, neigen(iky)
+
+          ! number of zeds x number of segments
+          nz_ext = nsegments(ie,iky)*nzed_segment+1
+          
+          ! treat zonal mode specially to avoid double counting
+          ! as it is periodic
+          if (zonal_mode(iky)) then
+             nresponse = nz_ext-1
+          else
+             nresponse = nz_ext
+          end if
+
+          allocate (phiext(nz_ext))
+
+          do idx = 1, nresponse
+             phiext(nz_ext) = 0.0
+             phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:,idx)
+             call get_fields_for_response_matrix (phiext, iky, ie)
+
+             ! next need to create column in response matrix from phiext
+             ! negative sign because matrix to be inverted in streaming equation
+             ! is identity matrix - response matrix
+             ! add in contribution from identity matrix
+             phiext(idx) = phiext(idx)-1.0
+             response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext(:nresponse)
+
+          end do
+       enddo
+
+       !now we have the full response matrix. Finally, perform its LU decomposition
+       do ie = 1, neigen(iky)
           ! now that we have the reponse matrix for this ky and set of connected kx values
           ! get the LU decomposition so we are ready to solve the linear system
           call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
@@ -169,7 +217,7 @@ contains
              write(unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
           end if
           
-          deallocate (gext, phiext)
+          deallocate (phiext)
        end do
     end do
     if (mat_gen) then
@@ -241,7 +289,7 @@ contains
 
   end subroutine read_response_matrix
 
-  subroutine get_response_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+  subroutine get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -514,18 +562,19 @@ contains
 
     ! we now have g on the extended zed domain at this ky and set of connected kx values
     ! corresponding to a unit impulse in phi at this location
-    call get_fields_for_response_matrix (gext, phiext, iky, ie)
+    ! now integrate over velocities to get a square response matrix
+    ! (this ends the parallelization over velocity space, so every core should have a 
+    !  copy of phiext)
+    call integrate_over_velocity (gext, phiext, iky, ie)
 
-    ! next need to create column in response matrix from phiext
-    ! negative sign because matrix to be inverted in streaming equation
-    ! is identity matrix - response matrix
-    ! add in contribution from identity matrix
-    phiext(idx) = phiext(idx)-1.0
-    response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext(:nresponse)
+    response_matrix(iky)%eigen(ie)%zloc(:,idx) = phiext(:nresponse)
 
     if (allocated(gradpar_fac)) deallocate (gradpar_fac)
 
-  end subroutine get_response_matrix_column
+  end subroutine get_dgdphi_matrix_column
+
+! subroutine get_phi_matrix
+! end subroutine get_phi_matrix
 
   subroutine sweep_zed_zonal_response (iv, is, sgn, g)
 
@@ -566,33 +615,27 @@ contains
 
   end subroutine sweep_zed_zonal_response
 
-  subroutine get_fields_for_response_matrix (g, phi, iky, ie)
+  subroutine integrate_over_velocity(g,phi,iky,ie)
 
     use stella_layouts, only: vmu_lo
     use species, only: nspec, spec
-    use species, only: has_electron_species
-    use stella_geometry, only: dl_over_b
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: nsegments
     use kt_grids, only: zonal_mode, akx
     use vpamu_grids, only: integrate_species
     use gyro_averages, only: gyro_average
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
-    use fields, only: gamtot, gamtot3
 
     implicit none
 
     complex, dimension (:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:), intent (out) :: phi
     integer, intent (in) :: iky, ie
-    
+ 
     integer :: idx, iseg, ikx, iz, ia
     integer :: izl_offset
     real, dimension (nspec) :: wgt
     complex, dimension (:), allocatable :: g0
-    complex :: tmp
 
     ia = 1
 
@@ -610,9 +653,8 @@ contains
     endif
     do iz = iz_low(iseg), iz_up(iseg)
        idx = idx + 1
-       call gyro_average (g(idx,:), iky, ikx, iz, g0)
-       call integrate_species (g0, iz, wgt, phi(idx))
-       phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
+        call gyro_average (g(idx,:), iky, ikx, iz, g0)
+        call integrate_species (g0, iz, wgt, phi(idx))
     end do
     izl_offset = 1
     if (nsegments(ie,iky) > 1) then
@@ -622,6 +664,58 @@ contains
              idx = idx + 1
              call gyro_average (g(idx,:), iky, ikx, iz, g0)
              call integrate_species (g0, iz, wgt, phi(idx))
+          end do
+          if (izl_offset == 0) izl_offset = 1
+       end do
+    end if
+
+  end subroutine integrate_over_velocity
+
+  subroutine get_fields_for_response_matrix (phi, iky, ie)
+
+    use stella_layouts, only: vmu_lo
+    use species, only: nspec, spec
+    use species, only: has_electron_species
+    use stella_geometry, only: dl_over_b
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: nsegments
+    use kt_grids, only: zonal_mode, akx
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+    use fields, only: gamtot, gamtot3
+
+    implicit none
+
+    complex, dimension (:), intent (inout) :: phi
+    integer, intent (in) :: iky, ie
+    
+    integer :: idx, iseg, ikx, iz, ia
+    integer :: izl_offset
+    complex, dimension (:), allocatable :: g0
+    complex :: tmp
+
+    ia = 1
+
+    allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    idx = 0 ; izl_offset = 0
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    if(zonal_mode(iky).and.abs(akx(ikx)) < epsilon(0.)) then
+      phi(:) = 0.0
+      return
+    endif
+    do iz = iz_low(iseg), iz_up(iseg)
+       idx = idx + 1
+       phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
+    end do
+    izl_offset = 1
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          ikx = ikxmod(iseg,ie,iky)
+          do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
+             idx = idx + 1
              phi(idx) = phi(idx)/gamtot(iky,ikx,iz)
           end do
           if (izl_offset == 0) izl_offset = 1
