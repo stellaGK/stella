@@ -36,7 +36,7 @@ module mp
   public :: waitany
   public :: mp_abort
 ! MAB> needed by Trinity
-  public :: scope, allprocs, subprocs, crossdomprocs
+  public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB
@@ -51,17 +51,17 @@ module mp
   include 'mpif.h'
 #endif
   integer, pointer :: nproc
-  integer, target :: ntot_proc, ngroup_proc, ndomain_proc
+  integer, target :: ntot_proc, nshared_proc, ngroup_proc, ndomain_proc
 
   integer, pointer :: iproc
-  integer, target :: aproc, gproc, cproc
+  integer, target :: aproc, sproc, gproc, cproc
 
   logical, pointer :: proc0
-  logical, target :: aproc0, gproc0
+  logical, target :: aproc0, sproc0, gproc0
 
   integer :: mpi_comm_world_private
   integer, pointer :: mp_comm
-  integer, target :: comm_all, comm_group, comm_cross
+  integer, target :: comm_all, comm_shared, comm_group, comm_cross
 
   integer, parameter :: mp_info = MPI_INFO_NULL
 
@@ -74,7 +74,7 @@ module mp
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
 # endif
-  integer, parameter :: allprocs = 0, subprocs = 1, crossdomprocs = 2
+  integer, parameter :: allprocs = 0, sharedprocs = 1, subprocs = 2, crossdomprocs = 3
 
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
@@ -284,6 +284,13 @@ contains
     call mpi_comm_rank (comm_all, aproc, ierror)
     aproc0 = aproc == 0
 
+    !the next communicator is between all cores on a given node (i.e. shared memory)
+    call mpi_comm_split_type(comm_all,mpi_comm_type_shared,aproc,mp_info,comm_shared,ierror)
+
+    call mpi_comm_size(comm_shared,nshared_proc,ierror)
+    call mpi_comm_rank(comm_shared,sproc,ierror)
+    sproc0 = sproc == 0
+
     call scope (allprocs)
 
     if ( (kind(pi)==kind_rs) .and. (kind_rs/=kind_rd) ) then
@@ -309,6 +316,11 @@ contains
        nproc => ntot_proc
        iproc => aproc
        proc0 => aproc0
+    else if (focus == sharedprocs) then
+       mp_comm => comm_shared
+       nproc => nshared_proc
+       iproc => sproc
+       proc0 => sproc0
     else if(focus == subprocs) then
        mp_comm => comm_group
        nproc => ngroup_proc
