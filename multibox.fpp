@@ -8,26 +8,29 @@ module multibox
   public :: init_multibox
   public :: finish_multibox
   public :: multibox_communicate
+  public :: init_mb_get_phi
+  public :: mb_get_phi
   public :: communicate_multibox_parameters
   public :: add_multibox_krook
   public :: boundary_size
   public :: bs_fullgrid
-  public :: xL, xR, xL_d, xR_d
+  public :: xL, xR
   public :: rhoL, rhoR
   public :: kx0_L, kx0_R
   public :: RK_step, comm_at_init
   public :: include_multibox_krook
+  public :: phi_buffer0, phi_buffer1
 
 
   private
 
-  complex, dimension (:), allocatable :: g_buffer0
-  complex, dimension (:), allocatable :: g_buffer1
+  complex, dimension (:), allocatable :: g_buffer0, g_buffer1, phi_buffer0, phi_buffer1
   complex, dimension (:), allocatable :: fsa_x
   real,    dimension (:), allocatable :: copy_mask_left, copy_mask_right
   real,    dimension (:), allocatable :: krook_mask_left, krook_mask_right
   real,    dimension (:), allocatable :: krook_fac
-  real, dimension(:), allocatable :: x_mb
+  real,    dimension (:), allocatable :: b_mat
+  real, dimension(:), allocatable :: x_mb, rho_mb, rho_mb_clamped
 
   real :: dx_mb
 
@@ -43,16 +46,18 @@ module multibox
   real, dimension (:), allocatable :: fft_y_y
 
   logical :: mb_transforms_initialized = .false.
+  logical :: get_phi_initialized = .false.
   integer :: temp_ind = 0
   integer :: bs_fullgrid
   integer :: mb_debug_step 
   integer :: x_fft_size
+  integer :: phi_bound, phi_pow
   
 
   real :: xL = 0., xR = 0.
   real :: rhoL = 0., rhoR = 0.
-  real :: xL_d = 0., xR_d = 0.
   real :: kx0_L, kx0_R
+  !real :: efac_l, efacp_l
 
   integer :: boundary_size, krook_size
   real :: nu_krook_mb, krook_exponent
@@ -110,12 +115,15 @@ contains
     namelist /multibox_parameters/ boundary_size, krook_size, & 
                                    smooth_ZFs, zf_option, LR_debug_option, &
                                    krook_option, RK_step, nu_krook_mb, &
-                                   mb_debug_step, krook_exponent, comm_at_init
+                                   mb_debug_step, krook_exponent, comm_at_init, &
+                                   phi_bound, phi_pow
 
     if(runtype_option_switch /= runtype_multibox) return
 
     boundary_size = 4
     krook_size = 0
+    phi_bound = 0
+    phi_pow = 2
     krook_exponent = 0.0
     nu_krook_mb = 0.0
     mb_debug_step = 1000
@@ -155,6 +163,8 @@ contains
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
     call broadcast(comm_at_init)
+    call broadcast(phi_bound)
+    call broadcast(phi_pow)
 
     call scope(crossdomprocs)
 
@@ -187,11 +197,14 @@ contains
   subroutine init_multibox 
     use constants, only: pi
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: get_x_to_rho
+    use stella_geometry, only: geo_surf, q_as_x, get_x_to_rho
+    use stella_geometry, only: drhodpsi, dxdXcoord
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx,naky, akx, aky, nx,x, x_d, rho, x0, rho_clamped,rho_d_clamped
+    use kt_grids, only: nakx,naky, akx, aky, nx,x, x_d, x0
+    use kt_grids, only: centered_in_rho, rho_clamped, rho_d_clamped
     use file_utils, only: runtype_option_switch, runtype_multibox
     use job_manage, only: njobs
+    use physics_parameters, only: rhostar
     use mp, only: scope, crossdomprocs, subprocs, &
                   send, receive, job
 
@@ -202,9 +215,9 @@ contains
     integer :: phi_buff_size
     integer :: i
 
-    real, dimension (:), allocatable :: x_clamped, x_d_clamped
+    real, dimension (:), allocatable :: x_clamped, x_d_clamped, x_mb_clamped
 
-    real :: db
+    real :: db, x_shift, dqdrho
 
 
     if(runtype_option_switch /= runtype_multibox) return
@@ -216,6 +229,8 @@ contains
 
     if (.not.allocated(g_buffer0)) allocate(g_buffer0(g_buff_size))
     if (.not.allocated(g_buffer1)) allocate(g_buffer1(g_buff_size))
+    if (.not.allocated(phi_buffer0)) allocate(phi_buffer0(phi_buff_size))
+    if (.not.allocated(phi_buffer1)) allocate(phi_buffer1(phi_buff_size))
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
       allocate(fsa_x(nakx)); fsa_x=0.0
     endif
@@ -258,41 +273,66 @@ contains
     call scope(crossdomprocs)
 
     if(.not.allocated(x_mb)) allocate(x_mb(x_fft_size))
+    if(.not.allocated(rho_mb)) allocate(rho_mb(x_fft_size))
+    if(.not.allocated(rho_mb_clamped)) allocate(rho_mb_clamped(x_fft_size))
     dx_mb = (2*pi*x0)/x_fft_size
 
     if(job==1) then
+      x_shift = pi*x0
+      if(centered_in_rho) then
+        if(q_as_x) then
+          dqdrho = geo_surf%shat*geo_surf%qinp/geo_surf%rhoc
+          x_shift = pi*x0*(1.0 &
+                  - 0.5*rhostar*pi*x0*geo_surf%d2qdr2/(dqdrho**2*dxdXcoord))
+        else
+          x_shift = pi*x0*(1.0 &
+                  - 0.5*rhostar*pi*x0*geo_surf%d2psidr2*drhodpsi**2/dxdXcoord)
+        endif
+      endif
+      do i = 1, x_fft_size
+        x_mb(i) = (i-0.5)*dx_mb - x_shift
+      enddo
+      call get_x_to_rho(1, x_mb, rho_mb)
 
-      xL = x(bs_fullgrid)
-      xR = x(nx-bs_fullgrid+1)
-      rhoL = rho(bs_fullgrid)
-      rhoR = rho(nx-bs_fullgrid+1)
-      xL_d = x_d(boundary_size)
-      xR_d = x_d(x_fft_size-boundary_size+1)
+      xL = x_mb(boundary_size)
+      xR = x_mb(x_fft_size-boundary_size+1)
+      rhoL = rho_mb(boundary_size)
+      rhoR = rho_mb(x_fft_size-boundary_size+1)
 
       allocate(x_clamped(nx))
       allocate(x_d_clamped(nakx))
+      allocate(x_mb_clamped(x_fft_size))
 
       if(LR_debug_switch == LR_debug_option_L) then
-        x_clamped   = xL
-        x_d_clamped = xL_d
+        x_clamped    = xL
+        x_d_clamped  = xL
+        x_mb_clamped = xL
       else if(LR_debug_switch == LR_debug_option_R) then
-        x_clamped   = xR
-        x_d_clamped = xR_d
+        x_clamped    = xR
+        x_d_clamped  = xR
+        x_mb_clamped = xR
       else
-        x_clamped   = x
-        x_d_clamped = x_d
+        x_clamped    = x
+        x_d_clamped  = x_d
+        x_mb_clamped = x_mb
         do i = 1, nx
           if(x_clamped(i) < xL) x_clamped(i) = xL
           if(x_clamped(i) > xR) x_clamped(i) = xR
         enddo
+        do i = 1, x_fft_size
+          if(x_mb_clamped(i) < xL) x_mb_clamped(i) = xL
+          if(x_mb_clamped(i) > xR) x_mb_clamped(i) = xR
+        enddo
         do i = 1, nakx
-          if(x_d_clamped(i) < xL_d) x_d_clamped(i) = xL_d
-          if(x_d_clamped(i) > xR_d) x_d_clamped(i) = xR_d
+          if(x_d_clamped(i) < xL) x_d_clamped(i) = xL
+          if(x_d_clamped(i) > xR) x_d_clamped(i) = xR
         enddo
       endif
 
-      call get_x_to_rho(1, x_clamped, rho_clamped)
-      call get_x_to_rho(1, x_d_clamped, rho_d_clamped)
+
+      call get_x_to_rho(1, x_clamped,    rho_clamped)
+      call get_x_to_rho(1, x_d_clamped,  rho_d_clamped)
+      call get_x_to_rho(1, x_mb_clamped, rho_mb_clamped)
 
       deallocate (x_clamped, x_d_clamped)
 
@@ -302,7 +342,6 @@ contains
       enddo
 
       call receive(xL,1)
-      call receive(xL_d,1)
       call send(akx(2),1)
     elseif(job==njobs-1) then
       do i = 1, x_fft_size
@@ -310,7 +349,6 @@ contains
       enddo
 
       call receive(xR,1)
-      call receive(xR_d,1)
       call send(akx(2),1)
     endif
 
@@ -333,9 +371,7 @@ contains
       call scope(crossdomprocs)
 
       call send(xL  ,0)
-      call send(xL_d,0)
       call send(xR  ,njobs-1)
-      call send(xR_d,njobs-1)
 
       call receive(kx0_L,0)
       call receive(kx0_R,njobs-1)
@@ -352,16 +388,23 @@ contains
 
     if (allocated(g_buffer0))   deallocate (g_buffer0)
     if (allocated(g_buffer1))   deallocate (g_buffer1)
+    if (allocated(phi_buffer0))   deallocate (phi_buffer0)
+    if (allocated(phi_buffer1))   deallocate (phi_buffer1)
     if (allocated(fsa_x))       deallocate (fsa_x)
 
     if (allocated(copy_mask_left))   deallocate (copy_mask_left)
     if (allocated(copy_mask_right))  deallocate (copy_mask_right)
     if (allocated(krook_mask_left))  deallocate (krook_mask_left)
     if (allocated(krook_mask_right)) deallocate (krook_mask_right)
+    if (allocated(krook_fac))        deallocate (krook_fac)
 
     if (allocated(fft_kxky)) deallocate (fft_kxky)
     if (allocated(fft_xky))  deallocate (fft_xky)
     if (allocated(fft_xy))   deallocate (fft_xy)
+
+    if (allocated(x_mb)) deallocate (x_mb)
+    if (allocated(rho_mb)) deallocate (rho_mb)
+    if (allocated(rho_mb_clamped)) deallocate (rho_mb_clamped)
 
     call finish_mb_transforms
 
@@ -370,18 +413,16 @@ contains
   subroutine multibox_communicate (gin)
 
     use constants, only: zi
-    use kt_grids, only: nakx,naky,naky_all, aky, nx,ny,dx,dy, zonal_mode
+    use kt_grids, only: nakx,naky,naky_all, akx, aky, nx,ny,dx,dy, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
-    use fields_arrays, only: phi, phi_corr_QN
-    use fields, only: advance_fields, fields_updated
+    use fields_arrays, only: phi, phi_corr_QN, shift_state
     use job_manage, only: njobs
     use physics_flags, only: radial_variation,prp_shear_enabled, hammett_flow_shear
     use physics_parameters, only: g_exb, g_exbfac
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
-    use flow_shear, only:  shift_state
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
                   send, receive, proc0
@@ -448,6 +489,7 @@ contains
       ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
       ! FLAG DSO - might do something weird with magnetic shear
       if(job==njobs-1) offset=nakx-boundary_size
+      !first g
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
@@ -483,16 +525,53 @@ contains
           enddo
         enddo
       enddo
-! DSO - send data
       call send(g_buffer0,1,43 + job)
+      !now phi
+      num=1
+      do it = 1, vmu_lo%ntubes
+
+        !this is where the FSA goes
+        if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+          do ix= 1,nakx
+            fsa_x(ix) = sum(dl_over_b(ia,:)*phi(1,ix,:,it))
+          enddo
+        endif
+
+        do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
+          fft_kxky = spread((zi*akx)**phi_pow,1,naky)*phi(:,:,iz,it)
+
+          if(zonal_mode(1)) then
+            if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
+              fft_kxky(1,:) = 0.0
+            elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+              fft_kxky(1,:) = fft_kxky(1,:) - fsa_x
+            endif
+          endif
+
+          call transform_kx2x(fft_kxky,fft_xky)
+          fft_xky = fft_xky*prefac
+          do ix=1,boundary_size
+            do iky=1,naky
+              !DSO if in the future the grids can have different naky, one will
+              !have to divide by naky here, and multiply on the receiving end
+              phi_buffer0(num) = fft_xky(iky,ix + offset)
+              num=num+1
+            enddo
+          enddo
+        enddo
+      enddo
+! DSO - send data
+      call send(phi_buffer0,1,143 + job)
     else
       offset = x_fft_size - boundary_size
 ! DSO - receive the data
 
 ! left
       call receive(g_buffer0,0, 43)
+      call receive(phi_buffer0,0, 143)
 ! right
       call receive(g_buffer1,njobs-1, 43+njobs-1)
+      call receive(phi_buffer1,njobs-1, 143+njobs-1)
 
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -517,6 +596,7 @@ contains
                 fft_xky(1,ix+offset)=fft_xky(1,ix+offset) - dzp
               enddo
             endif
+            if(zonal_mode(1)) fft_xky(1,:) = real(fft_xky(1,:))
             call transform_x2kx(fft_xky,gin(:,:,iz,it,iv))  
           enddo
         enddo
@@ -526,7 +606,7 @@ contains
 ! DSO - change communicator
     call scope(subprocs)
 
-    if(job==1) fields_updated = .false.
+    !if(job==1) fields_updated = .false.
     !if(job==1) then
      ! fields_updated = .false.
       !call advance_fields(gnew,phi,apar, dist='gbar')
@@ -587,7 +667,296 @@ contains
 
   end subroutine add_multibox_krook
 
-!!>DSO - The following subroutines are the _unpadded_ analogues of the ones found in
+!!
+!!>DSO - The following subroutines solve for phi in the _physical_ region of space
+!!       It is done here because the radial grid may include an extra point
+
+  subroutine init_mb_get_phi(has_elec, adiabatic_elec,efac,efacp)
+    use kt_grids, only:  nakx, naky
+    use zgrid, only: nzgrid, ntubes
+    use physics_flags, only: radial_variation
+    use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+    use run_parameters, only: ky_solve_radial
+    use fields_arrays, only: phi_solve, phizf_solve, gamtot, dgamtotdr
+    use linear_solve, only: lu_decomposition, lu_inverse
+
+    implicit none
+
+    logical, intent (in) :: has_elec, adiabatic_elec
+    real, intent (in) :: efac, efacp
+    integer :: ia, iz, iky, ikx, b_solve
+    real :: dum
+    complex, dimension (:,:), allocatable :: g0k, g1k, g0x, a_inv, a_fsa
+
+    if(.not.radial_variation) return
+
+    !this does not depend on the timestep, so only do once
+    if(get_phi_initialized) return
+
+    get_phi_initialized = .true.
+
+
+
+    !efac_l  = efac
+    !efacp_l = efacp_l
+
+    ia = 1
+    b_solve = boundary_size - phi_bound
+
+    allocate (g0k(1,nakx))
+    allocate (g1k(1,nakx))
+    allocate (g0x(1,x_fft_size))
+
+    if(.not.allocated(phi_solve)) allocate(phi_solve(min(ky_solve_radial,naky),-nzgrid:nzgrid))
+
+    do iky = 1, min(ky_solve_radial,naky)
+      do iz = -nzgrid, nzgrid
+        if(.not.associated(phi_solve(iky,iz)%zloc)) &
+          allocate(phi_solve(iky,iz)%zloc(x_fft_size-2*b_solve,x_fft_size-2*b_solve))
+        if(.not.associated(phi_solve(iky,iz)%idx))  &
+          allocate(phi_solve(iky,iz)%idx(x_fft_size-2*b_solve))
+
+        phi_solve(iky,iz)%zloc = 0.0
+        phi_solve(iky,iz)%idx = 0
+        do ikx = 1+b_solve, x_fft_size-b_solve
+          g0x(1,:) = 0.0
+          g0x(1,ikx) = 1.0
+          call transform_x2kx(g0x,g0k)
+
+          g1k(1,:) = g0k(1,:)*gamtot(iky,:,iz)
+          call transform_kx2x (g1k,g0x)
+
+          !column row
+          phi_solve(iky,iz)%zloc(:,ikx-b_solve) = g0x(1,(1+b_solve):(x_fft_size-b_solve))
+
+          g1k(1,:) = g0k(1,:)*dgamtotdr(iky,:,iz)
+          call transform_kx2x (g1k,g0x)
+          g0x(1,:) = rho_mb_clamped*g0x(1,:)
+
+          phi_solve(iky,iz)%zloc(:,ikx-b_solve) = phi_solve(iky,iz)%zloc(:,ikx-b_solve) &
+                                                        + g0x(1,(1+b_solve):(x_fft_size-b_solve))
+        enddo
+
+        call lu_decomposition(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, dum)
+!       call zgetrf(nakx,nakx,phi_solve(iky,iz)%zloc,nakx,phi_solve(iky,iz)%idx,info)
+      enddo
+    enddo
+
+    if (.not.has_elec) then
+      if(.not.allocated(b_mat)) allocate(b_mat(x_fft_size-2*b_solve)); b_mat = 0.0
+      do ikx = 1+b_solve, x_fft_size-b_solve
+        !column row
+        b_mat(ikx-b_solve) = efac + efacp*rho_mb_clamped(ikx)
+      enddo
+    endif
+
+    if (adiabatic_elec) then
+           
+      allocate(a_inv(x_fft_size-2*b_solve,x_fft_size-2*b_solve))
+      allocate(a_fsa(x_fft_size-2*b_solve,x_fft_size-2*b_solve)); a_fsa = 0.0
+
+      if(.not.associated(phizf_solve%zloc)) &
+        allocate(phizf_solve%zloc(x_fft_size-2*b_solve,x_fft_size-2*b_solve));
+      phizf_solve%zloc = 0.0
+
+      if(.not.associated(phizf_solve%idx)) allocate(phizf_solve%idx(x_fft_size-2*b_solve));
+
+
+      !get inverse of A
+      do iz = -nzgrid, nzgrid
+
+        call lu_inverse(phi_solve(1,iz)%zloc, phi_solve(1,iz)%idx, a_inv)
+
+        !flux surface average it
+        do ikx = 1, x_fft_size-2*b_solve
+          a_fsa(:,ikx) = a_fsa(:,ikx) + (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz) &
+                         *rho_mb_clamped((1+b_solve):(x_fft_size-b_solve)))*a_inv(:,ikx)
+        enddo
+      enddo
+
+      ! calculate I - <A^-1>B
+      do ikx = 1, x_fft_size-2*b_solve
+        phizf_solve%zloc(ikx,:) = -a_fsa(ikx,:)*b_mat
+        phizf_solve%zloc(ikx,ikx) = 1.0 + phizf_solve%zloc(ikx,ikx)
+      enddo
+
+      call lu_decomposition(phizf_solve%zloc,phizf_solve%idx, dum)
+
+      deallocate(a_inv,a_fsa)
+
+    endif
+
+    deallocate(g0k,g1k,g0x)
+  end subroutine init_mb_get_phi
+
+  subroutine mb_get_phi(phi,has_elec,adiabatic_elec)
+    use constants, only: zi
+    use kt_grids, only:  akx, nakx, naky, zonal_mode
+    use zgrid, only: nzgrid, ntubes
+    use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+    use physics_flags, only: radial_variation
+    use run_parameters, only: ky_solve_radial
+    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
+    use linear_solve, only: lu_back_substitution
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
+    logical, intent (in) :: has_elec, adiabatic_elec
+
+    integer :: ia, it, iz, ix, iky, ind, b_solve
+    complex, dimension (:,:), allocatable :: g0k, g1k, g0x, g1x, g0z
+    complex, dimension (:), allocatable :: g_fsa, pb_fsa
+    real :: tmp
+
+    ia = 1
+    b_solve = boundary_size - phi_bound
+
+    allocate (g0k(1,nakx))
+    allocate (g1k(1,nakx))
+    allocate (g0x(1,x_fft_size))
+    allocate (g1x(1,x_fft_size))
+    if(adiabatic_elec.and.zonal_mode(1)) then
+      allocate (g0z(x_fft_size,-nzgrid:nzgrid))
+      allocate (g_fsa(x_fft_size-2*b_solve))
+      allocate (pb_fsa(x_fft_size-2*b_solve))
+    endif
+ 
+    do it = 1, ntubes
+      if(adiabatic_elec.and.zonal_mode(1)) pb_fsa = 0.0
+      do iz = -nzgrid, nzgrid
+        do iky = 1, naky
+          if(iky > ky_solve_radial) then
+            phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
+          else
+            g0x = 0.0
+            tmp = 0
+            ind = boundary_size*(iky-1 + naky*(iz+nzgrid + (2*nzgrid+1)*(it-1)))
+            do ix=1,b_solve
+              g0x(1,ix)              = phi_buffer0(ind+ix)
+              g0x(1,x_fft_size+1-ix) = phi_buffer1(ind+boundary_size+1-ix)
+            enddo
+
+            if(iky.eq.1) tmp = sum(real(g0x(1,:)))
+            call transform_x2kx(g0x,g0k)
+            if(phi_pow.ne.0) then
+              g0k(1,:) = g0k(1,:)/((zi*akx)**phi_pow)
+              if(iky.eq.1) g0k(1,1) = 0.0
+            endif
+
+            g0x = 0.0
+            if(.not.has_elec.and.phi_pow.ne.0) then
+              g1k(1,:) = g0k(1,:)
+              call transform_kx2x (g1k,g0x)
+
+              g0x(1,(b_solve+1):(x_fft_size-b_solve)) = &
+                 - g0x(1,(b_solve+1):(x_fft_size-b_solve))*b_mat
+
+              if(adiabatic_elec.and.iky.eq.1) then
+                pb_fsa = pb_fsa + (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz) & 
+                  *rho_mb_clamped((1+b_solve):(x_fft_size-b_solve))) & 
+                  *g0x(1,(1+b_solve):(x_fft_size-b_solve))
+              endif
+            endif
+
+            g1k(1,:) = g0k(1,:)*gamtot(iky,:,iz)
+            call transform_kx2x (g1k,g1x)
+            g0x = g0x + g1x
+            g1k(1,:) = g0k(1,:)*dgamtotdr(iky,:,iz)
+            call transform_kx2x (g1k,g1x)
+            g1x(1,:) = rho_mb_clamped*g1x(1,:) + g0x(1,:)
+
+            g0k(1,:) = phi(iky,:,iz,it)
+            call transform_kx2x (g0k,g0x)
+            g0x = g0x - g1x
+
+            call lu_back_substitution(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, &
+                                          g0x(1,(b_solve+1):(x_fft_size-b_solve)))
+
+            if(iky.eq.1) then 
+              tmp = (tmp + &
+                         sum(real(g0x(1,(b_solve+1):(x_fft_size-b_solve))))) &
+                         /(2*b_solve)
+            endif
+
+            if(phi_pow.ne.0) then
+              do ix=1,b_solve
+                g0x(1,ix)              = 0.0
+                g0x(1,x_fft_size+1-ix) = 0.0
+              enddo
+              call transform_x2kx (g0x,g0k)
+              g0k(1,:) = g0k(1,:)*(zi*akx)**phi_pow
+              call transform_kx2x (g0k,g0x)
+            endif
+
+            do ix=1,b_solve
+              g0x(1,ix)              = phi_buffer0(ind+ix) !- tmp
+              g0x(1,x_fft_size+1-ix) = phi_buffer1(ind+boundary_size+1-ix) !- tmp
+            enddo
+
+            call transform_x2kx(g0x,g0k)
+            if(phi_pow.ne.0) then
+              g0k(1,:) = g0k(1,:)/(zi*akx)**phi_pow
+              if(iky.eq.1) g0k(1,1) = 0.
+            endif
+            phi(iky,:,iz,it) = g0k(1,:)
+
+          endif
+        enddo
+      enddo
+        
+      if(ky_solve_radial.eq.0.and.any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,it) = 0.0
+
+      if(adiabatic_elec.and.zonal_mode(1)) then
+        !get A_p^-1.(g - A_b.phi_b) in real space
+        do iz = -nzgrid, nzgrid
+          g0k(1,:) = phi(1,:,iz,it)
+          call transform_kx2x(g0k,g0x)
+          g0z(:,iz) = g0x(1,:)
+
+          if(phi_pow.ne.0) then
+            call lu_back_substitution(phi_solve(1,iz)%zloc, phi_solve(1,iz)%idx,pb_fsa)
+            g0z((1+b_solve):(x_fft_size-b_solve),iz) = &
+                    g0z((1+b_solve):(x_fft_size-b_solve),iz) + pb_fsa
+          endif
+        enddo
+
+
+
+        ! get <A_p^-1.(g- - A_b.phi_b)>_psi
+        g_fsa = 0.0
+        do iz = -nzgrid, nzgrid
+          g_fsa = g_fsa + (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz) & 
+                  * rho_mb_clamped((1+b_solve):(x_fft_size-b_solve))) & 
+                  *g0z((1+b_solve):(x_fft_size-b_solve),iz)
+        enddo
+
+        call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, g_fsa)
+        g1x(1,(1+b_solve):(x_fft_size-b_solve)) = b_mat*g_fsa
+
+        do iz = -nzgrid, nzgrid
+          g_fsa = g1x(1,(1+b_solve):(x_fft_size-b_solve))
+          call lu_back_substitution(phi_solve(1,iz)%zloc,phi_solve(1,iz)%idx, g_fsa)
+
+          g0z((1+b_solve):(x_fft_size-b_solve),iz) = &
+                    g0z((1+b_solve):(x_fft_size-b_solve),iz) + g_fsa
+
+          g0x(1,:) = g0z(:,iz)
+          call transform_x2kx(g0x,g0k)
+          phi(1,:,iz,it) = g0k(1,:)
+        enddo
+      end if
+    enddo
+
+    deallocate (g0k,g1k,g0x,g1x)
+
+    if(allocated(g0z))    deallocate(g0z)
+    if(allocated(g_fsa))  deallocate(g_fsa)
+    if(allocated(pb_fsa)) deallocate(pb_fsa)
+
+  end subroutine mb_get_phi
+
+!!>DSO - The following subroutines are the _ analogues of the ones found in
 ! stella_transforms.f90. 
 ! The ones uses here ensure that the grid spacing in real space is consistent between 
 ! domains (since we do not keep the checkboard mode)
@@ -655,7 +1024,7 @@ contains
 
     integer :: iy
 
-    do iy = 1, naky
+    do iy = 1, size(gkx,1)
        fft_x_k = 0.
        fft_x_k(:ikx_max) = gkx(iy,:ikx_max)
        fft_x_k((x_fft_size-ikx_max+2):) = gkx(iy,ikx_max+1:)
@@ -676,7 +1045,7 @@ contains
 
     integer :: iy
 
-    do iy = 1, naky
+    do iy = 1, size(gx,1)
        fft_x_x = gx(iy,:)
        call dfftw_execute_dft(xb_fft%plan, fft_x_x, fft_x_k)
        gkx(iy,:ikx_max)   = fft_x_k(:ikx_max)*xb_fft%scale
@@ -694,7 +1063,7 @@ contains
 
     integer :: ikx
 
-    do ikx = 1, x_fft_size
+    do ikx = 1, size(gky,2)
        fft_y_k = gky(:,ikx)
        call dfftw_execute_dft_c2r(yf_fft%plan, fft_y_k, fft_y_y)
        gy(:,ikx) =fft_y_y*yf_fft%scale
@@ -711,7 +1080,7 @@ contains
 !
 !    integer :: ikx
 !
-!    do ikx = 1, x_fft_size
+!    do ikx = 1, size(gy,2)
 !       fft_y_k = gy(:,ikx)
 !       call dfftw_execute_dft_r2c(yb_fft%plan, fft_y_y, fft_y_k)
 !       gky(:,ikx) = fft_y_y*yb_fft%scale

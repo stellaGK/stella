@@ -680,7 +680,7 @@ contains
     close (1002)
     filename="millerlocal."//trim(run_name)//".output"
     open (1001,file=trim(filename),status='unknown')
-    write (1001,'(a9,e12.4,a11,e12.4,a11,e12.4)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
+    write (1001,'(a9,e18.9,a11,e18.9,a11,e18.9)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
     write (1001,'(58a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
          '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
          '11.bmag', '12.dBdr', '13.d2Bdr2', '14.dB/dth', '15.d2Bdrdth', &
@@ -1096,6 +1096,7 @@ contains
 
     tmp = jacrho*(local%betadbprim + local%betaprim*(djacrdrho/jacrho- dgpsi2dr/gpsi**2))/gpsi**2
     call theta_integrate (tmp(-nz2pi:nz2pi), num3)
+    !FLAG - next negative sign?
     d2jacdr2 = d2jacdr2 - tmp*Rr(2,:)**2
 
     tmp = jacrho/Rr(2,:)**2*(2.*d2Rdr2/Rr(2,:) - 2.*(dRdrho/Rr(2,:))**2 &

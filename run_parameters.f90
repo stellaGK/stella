@@ -13,6 +13,7 @@ module run_parameters
   public :: stream_implicit, mirror_implicit
   public :: driftkinetic_implicit
   public :: fully_explicit
+  public :: ky_solve_radial, ky_solve_real
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp
@@ -32,9 +33,10 @@ module run_parameters
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
-  LOGICAL :: fields_kxkyz, mat_gen, mat_read
+  logical :: fields_kxkyz, mat_gen, mat_read
+  logical :: ky_solve_real
   real :: avail_cpu_time
-  integer :: nstep
+  integer :: nstep, ky_solve_radial
   integer :: rng_seed
   integer, public :: delt_option_switch
   integer, public, parameter :: delt_option_hand = 1, delt_option_auto = 2
@@ -78,7 +80,8 @@ contains
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
-         fields_kxkyz, mat_gen, mat_read, rng_seed
+         fields_kxkyz, mat_gen, mat_read, rng_seed, &
+         ky_solve_radial, ky_solve_real
 
     if (proc0) then
        fphi = 1.0
@@ -100,6 +103,8 @@ contains
        cfl_cushion = 0.5
        delt_adjust = 2.0
        rng_seed = -1 !negative values use current time as seed
+       ky_solve_radial = 0
+       ky_solve_real   = .false.
        mat_gen = .true.
        mat_read = .false.
 
@@ -134,8 +139,10 @@ contains
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
     call broadcast (rng_seed)
-    CALL broadcast (mat_gen)
-    CALL broadcast (mat_read)
+    call broadcast (ky_solve_radial)
+    call broadcast (ky_solve_real)
+    call broadcast (mat_gen)
+    call broadcast (mat_read)
     
     if (.not.include_mirror) mirror_implicit = .false.
 
