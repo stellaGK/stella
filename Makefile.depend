@@ -133,15 +133,19 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 common_types.o \
 	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
+	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
@@ -173,6 +177,27 @@ flow_shear.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zgrid.o 
+flow_shear1.o: \
+	 constants.o \
+	 fields.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_flags.o \
+	 physics_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+full_xzgrid.o: \
+	 kt_grids.o \
+	 species.o \
 	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
@@ -237,6 +262,7 @@ kt_grids.o: \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 stella_geometry.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
@@ -273,15 +299,15 @@ mt19937.o:
 multibox.o: \
 	 constants.o \
 	 fft_work.o \
-	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
-	 flow_shear.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 run_parameters.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -468,7 +494,6 @@ stella_save.o: \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
-	 flow_shear.o \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \

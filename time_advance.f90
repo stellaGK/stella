@@ -559,7 +559,7 @@ contains
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
-    use physics_flags, only: radial_variation
+    use physics_flags, only: radial_variation, prp_shear_enabled
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky, nx, rho
@@ -567,12 +567,12 @@ contains
     use parallel_streaming, only: stream, stream_rad_var1
     use parallel_streaming, only: stream_rad_var2
     use mirror_terms, only: mirror
-    use flow_shear, only: prl_shear
+    use flow_shear, only: prl_shear, shift_times
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
     
-    real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_prls
+    real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_shear
     real :: cfl_dt_wdriftx, cfl_dt_wdrifty
     real :: zero
     real :: wdriftx_max, wdrifty_max
@@ -594,8 +594,13 @@ contains
     cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
     cfl_dt = cfl_dt_wdriftx
 
-    cfl_dt_prls = abs(code_dt)/max(maxval(abs(aky))*maxval(abs(prl_shear)),zero)
-    cfl_dt = min(cfl_dt,cfl_dt_prls)
+    cfl_dt_shear = abs(code_dt)/max(maxval(abs(aky))*maxval(abs(prl_shear)),zero)
+    cfl_dt = min(cfl_dt,cfl_dt_shear)
+
+    if(prp_shear_enabled) then
+      cfl_dt_shear = minval(shift_times)
+      cfl_dt = min(cfl_dt,cfl_dt_shear)
+    endif
 
 
     if (.not.stream_implicit) then
@@ -713,7 +718,7 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
     use dissipation, only: include_krook_operator, update_delay_krook
     use dissipation, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
@@ -727,7 +732,7 @@ contains
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
-      call multibox_communicate(gnew)
+      call mb_communicate(gnew)
     endif
 
     ! save value of phi
@@ -821,7 +826,7 @@ contains
     use dist_fn_arrays, only: g0, g1
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: RK_step,multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -835,7 +840,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate (g)
+    if(RK_step) call mb_communicate (g)
 
     g0 = g
 
@@ -850,7 +855,7 @@ contains
           call solve_gke (g0, g1, restart_time_step)
        case (2)
           g1 = g0 + g1
-          if(RK_step) call multibox_communicate (g1)
+          if(RK_step) call mb_communicate (g1)
           call solve_gke (g1, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -871,7 +876,7 @@ contains
     use dist_fn_arrays, only: g0, g1, g2
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -885,7 +890,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate (g)
+    if(RK_step) call mb_communicate (g)
 
     g0 = g
 
@@ -899,11 +904,11 @@ contains
           call solve_gke (g0, g1, restart_time_step)
        case (2)
           g1 = g0 + g1
-          if(RK_step) call multibox_communicate (g1)
+          if(RK_step) call mb_communicate (g1)
           call solve_gke (g1, g2, restart_time_step)
        case (3)
           g2 = g1 + g2
-          if(RK_step) call multibox_communicate (g2)
+          if(RK_step) call mb_communicate (g2)
           call solve_gke (g2, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -923,7 +928,7 @@ contains
     use dist_fn_arrays, only: g0, g1, g2, g3
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -937,7 +942,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate(g)
+    if(RK_step) call mb_communicate(g)
 
     g0 = g
 
@@ -952,19 +957,19 @@ contains
        case (2)
           ! g1 is h*k1
           g3 = g0 + 0.5*g1
-          if(RK_step) call multibox_communicate(g3)
+          if(RK_step) call mb_communicate(g3)
           call solve_gke (g3, g2, restart_time_step)
           g1 = g1 + 2.*g2
        case (3)
           ! g2 is h*k2
           g2 = g0+0.5*g2
-          if(RK_step) call multibox_communicate(g2)
+          if(RK_step) call mb_communicate(g2)
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
        case (4)
           ! g3 is h*k3
           g3 = g0+g3
-          if(RK_step) call multibox_communicate(g3)
+          if(RK_step) call mb_communicate(g3)
           call solve_gke (g3, g, restart_time_step)
           g1 = g1 + g
        end select
@@ -1272,7 +1277,7 @@ contains
     use job_manage, only: time_message
     use gyro_averages, only: gyro_average
     use fields, only: get_dchidx, get_dchidy
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, shift_state
     use fields_arrays, only: phi_corr_QN,   phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_transforms, only: transform_y2ky,transform_x2kx
@@ -1289,7 +1294,6 @@ contains
     use kt_grids, only: x, swap_kxky, swap_kxky_back
     use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use flow_shear, only: shift_state
 
     implicit none
 
@@ -2076,7 +2080,7 @@ contains
     use dissipation, only: advance_collisions_implicit
     use run_parameters, only: driftkinetic_implicit
     use flow_shear, only: advance_perp_flow_shear
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -2114,7 +2118,7 @@ contains
        ! g^{*} (coming from explicit solve) is input
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
 
-    if(RK_step) call multibox_communicate (g)
+    if(RK_step) call mb_communicate (g)
 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
 
@@ -2291,6 +2295,35 @@ contains
 !     call gstar_to_g (g, phi, apar, fphi, fapar)
 
 !   end subroutine advance_wstar_implicit
+
+  subroutine mb_communicate (g_in)
+
+    use mp, only: job
+    use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid
+    use multibox, only: multibox_communicate
+    use fields, only: fields_updated,advance_fields
+    use fields_arrays, only: phi, apar
+    use file_utils, only: runtype_option_switch, runtype_multibox
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g_in
+
+    if(runtype_option_switch.ne.runtype_multibox) return
+
+    if(job.ne.1) then
+      call advance_fields(g_in,phi,apar,dist='gbar')
+    endif
+
+    call multibox_communicate(g_in)
+
+    if(job.eq.1) then
+      fields_updated = .false.
+      call advance_fields(g_in,phi,apar,dist='gbar')
+    endif
+
+  end subroutine mb_communicate
 
   subroutine checksum_field (field, total)
 

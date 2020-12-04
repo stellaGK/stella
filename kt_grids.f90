@@ -9,14 +9,14 @@ module kt_grids
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
   public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
-  public :: x, x_d, x_clamped
+  public :: x, x_d
   public :: rho, rho_d, rho_clamped, rho_d_clamped
   public :: nalpha
   public :: ikx_max, naky_all
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
   public :: swap_kxky_ordered, swap_kxky_back_ordered
-  public :: multiply_by_rho
+  public :: multiply_by_rho, centered_in_rho
 
   private
 
@@ -27,7 +27,7 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0, zed0
   real, dimension (:), allocatable :: aky, akx
-  real, dimension (:), allocatable :: x, x_d, x_clamped
+  real, dimension (:), allocatable :: x, x_d
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
   complex, dimension (:,:), allocatable:: g0x
   real :: dx, dy, dkx, dky, dx_d
@@ -36,7 +36,7 @@ module kt_grids
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
   logical :: reality = .false.
-  logical :: centered_in_rho = .false.
+  logical :: centered_in_rho, periodic_variation
   character(20) :: grid_option
   logical, dimension (:), allocatable :: zonal_mode
 
@@ -119,7 +119,7 @@ contains
     logical :: exist
 
     namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0, &
-                                       centered_in_rho
+                                       centered_in_rho, periodic_variation
 
     ! note that jtwist and y0 will possibly be modified
     ! later in init_kt_grids_box if they make it out
@@ -135,6 +135,7 @@ contains
     y0 = -1.0
     nalpha = 1
     centered_in_rho = .true.
+    periodic_variation = .false.
 
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_box_parameters)
@@ -328,6 +329,16 @@ contains
     do ikx = 1, nx
       if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
         x(ikx) = (ikx-0.5)*dx - x_shift
+      elseif (runtype_option_switch.ne.runtype_multibox.and.radial_variation) then
+        if(periodic_variation) then
+          if(ikx.lt.nx/2) then
+            x(ikx) = (ikx-0.5)*dx - 0.5*x_shift
+          else
+            x(ikx) = x(nx-ikx+1)
+          endif
+        else
+          x(ikx) = (ikx-0.5)*dx - x_shift
+        endif
       else
         x(ikx) = (ikx-1)*dx
       endif
@@ -337,6 +348,16 @@ contains
     do ikx = 1, nakx
       if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
         x_d(ikx) = (ikx-0.5)*dx_d - x_shift
+      elseif(runtype_option_switch.ne.runtype_multibox.and.radial_variation) then
+        if(periodic_variation) then
+          if(ikx.le.(nakx+1)/2) then
+            x_d(ikx) = (ikx-0.5)*dx_d - 0.5*x_shift
+          else
+            x_d(ikx) = x_d(nakx-ikx+1)
+          endif
+        else
+          x_d(ikx) = (ikx-0.5)*dx_d - x_shift
+        endif
       else
         x_d(ikx) = (ikx-1)*dx_d
       endif
@@ -345,13 +366,12 @@ contains
     call get_x_to_rho(1,x,rho)
     call get_x_to_rho(1,x_d,rho_d)
 
-    ! the following two will get overwritten if using multibox
-    rho_clamped = rho
-    rho_d_clamped = rho_d
+    if(.not.allocated(rho_clamped)) allocate(rho_clamped(nx)); rho_clamped = rho
+    if(.not.allocated(rho_d_clamped)) allocate(rho_d_clamped(nakx)); rho_d_clamped = rho_d
 
     zed0 = theta0*geo_surf%zed0_fac
 
-    if(job.eq.1.and.radial_variation) call dump_radial_grid
+    if(radial_variation) call dump_radial_grid
 
     if(radial_variation.and.(any((rho+geo_surf%rhoc).lt.0.0) & 
                              .or.any((rho+geo_surf%rhoc).gt.1.0))) then
@@ -462,6 +482,7 @@ contains
 
     call broadcast (gridopt_switch)
     call broadcast (centered_in_rho)
+    call broadcast (periodic_variation)
     call broadcast (naky)
     call broadcast (nakx)
     call broadcast (ny)
@@ -728,7 +749,8 @@ contains
     if(.not.allocated(g0x)) allocate(g0x(naky,nakx))
 
     call transform_kx2x_unpadded(gin,g0x)
-    g0x = spread(rho_d,1,naky)*g0x
+    g0x = spread(rho_d_clamped,1,naky)*g0x
+    if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))
     call transform_x2kx_unpadded(g0x,gin)
 
   end subroutine multiply_by_rho

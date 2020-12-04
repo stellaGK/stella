@@ -62,10 +62,11 @@ contains
     use file_utils, only: run_name, init_job_name
     use file_utils, only: flush_output_file, error_unit
     use job_manage, only: checktime, time_message
-    use physics_parameters, only: init_physics_parameters, g_exb
+    use physics_parameters, only: init_physics_parameters, g_exb, g_exbfac
     use physics_flags, only: init_physics_flags
     use physics_flags, only: nonlinear, include_parallel_nonlinearity
     use physics_flags, only: full_flux_surface, radial_variation
+    use physics_flags, only: hammett_flow_shear
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
     use run_parameters, only: stream_implicit, driftkinetic_implicit
@@ -80,7 +81,7 @@ contains
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix, read_response_matrix
     use init_g, only: ginit, init_init_g
-    use fields, only: init_fields, advance_fields, get_radial_correction
+    use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
     use stella_time, only: init_tstart, init_delt
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
@@ -96,13 +97,13 @@ contains
     use stella_transforms, only: init_transforms
     use stella_save, only: init_dt
     use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
-    use multibox, only: communicate_multibox_parameters
+    use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
 
     implicit none
 
     integer, intent (out) :: istep0
-    logical :: exit, list, restarted
+    logical :: exit, list, restarted, needs_transforms
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
     integer :: i, n, ierr
@@ -188,9 +189,16 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids
-    if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
-        .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
-        runtype_option_switch.eq.runtype_multibox) then
+    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
+    !    .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
+    !    runtype_option_switch.eq.runtype_multibox) then
+    needs_transforms = .false.
+    if(nonlinear.or.include_parallel_nonlinearity) needs_transforms = .true.
+    if(radial_variation.or.full_flux_surface)      needs_transforms = .true.
+    if(runtype_option_switch.eq.runtype_multibox)  needs_transforms = .true.
+    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) & 
+      needs_transforms = .true.
+    if (needs_transforms) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
        call init_transforms
     end if
@@ -240,6 +248,14 @@ contains
     end if
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
+    if(runtype_option_switch.eq.runtype_multibox) then
+      call multibox_communicate (gnew)
+      if(job.eq.1) then
+        fields_updated=.false.
+        call advance_fields (gnew, phi, apar, dist='gbar')
+      endif
+    endif
+
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
     call init_stella_diagnostics (restarted,nstep,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
@@ -249,7 +265,6 @@ contains
     if (proc0) call flush_output_file (ierr)
 
     if (proc0) call time_message(.false.,time_init,' Initialization')
-
 
   end subroutine init_stella
 
@@ -273,6 +288,7 @@ contains
   subroutine finish_stella (last_call)
 
     use mp, only: finish_mp
+
     use mp, only: proc0
     use file_utils, only: finish_file_utils
     use job_manage, only: time_message
