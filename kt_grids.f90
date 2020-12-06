@@ -4,7 +4,7 @@ module kt_grids
   implicit none
 
   public :: init_kt_grids, finish_kt_grids
-  public :: read_kt_grids_parameters
+  public :: read_kt_grids_parameters, box
   public :: aky, theta0, akx, zed0
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
@@ -52,6 +52,7 @@ module kt_grids
   real :: x0, y0
   logical :: read_kt_grids_initialized = .false.
   logical :: init_kt_grids_initialized = .false.
+  logical :: box
 
 contains
   
@@ -224,6 +225,8 @@ contains
     integer :: ikx, iky
     real :: x_shift, dqdrho
 
+    box = .true.
+
     ! set jtwist and y0 for cases where they have not been specified
     ! and for which it makes sense to set them automatically
     if (jtwist < 1) then 
@@ -392,6 +395,8 @@ contains
     integer :: i, j
     real :: dkx, dky, dtheta0, tfac
     real :: zero
+
+    box = .false.
 
     ! NB: we are assuming here that all ky are positive
     ! when running in range mode
