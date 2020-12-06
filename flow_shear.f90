@@ -30,7 +30,7 @@ contains
     use species, only: spec
     use constants, only: zi, pi
     use zgrid, only: nzgrid
-    use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode
+    use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode, box
     use fields_arrays, only: shift_state
     use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
     use stella_geometry, only: dydalpha, drhodpsi
@@ -132,7 +132,7 @@ contains
       shift_start = ikx_max + 1
     endif
 
-    upwind_advect = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nakx)*spread(x_d,1,naky))
+    if(box) upwind_advect = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nakx)*spread(x_d,1,naky))
 
   end subroutine init_flow_shear
 
