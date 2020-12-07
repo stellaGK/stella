@@ -52,7 +52,7 @@ contains
     istatus = 0
 
 !   All matrices handled by processor i_proc are stored
-!   on a single file named: responst_mat.iproc
+!   on a single file named: response_mat.iproc
     fmt = '(I5.5)'
     if (mat_gen) THEN
        call check_directories
@@ -158,12 +158,15 @@ contains
           deallocate (gext,phiext)
        enddo
        !DSO - This ends parallelization over velocity space.
-       !      At this point every processor has int_v dgdphi for a given ky
+       !      At this point every processor has int dv dgdphi for a given ky
        !      and so the quasineutrality solve and LU decomposition can be
        !      parallelized locally if need be.
        !      This is preferable to parallelization over ky as the LU 
        !      decomposition (and perhaps QN) will be dominated by the 
        !      ky with the most connections
+
+       !      (perhaps further parallelization can be achieved by diviing up
+       !       jtwist across nodes and communicating the results)
    
 
 
@@ -747,6 +750,105 @@ contains
     response_matrix_initialized = .false.
 
   end subroutine finish_response_matrix
+
+
+!----------------------------------------------------------!
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!----------------------------------------------------------!
+
+
+  subroutine parallel_LU_decomposition (iky)
+
+    implicit none
+
+    integer, intent (in) :: iky
+    integer, dimension (:), allocatable :: job_list
+
+    real, parameter :: zero = 1.0e-20
+    real, dimension (size(lu,1)) :: vv
+    complex, dimension (size(lu,2)) :: dum
+
+    complex, dimension (:,:), pointer :: working_mat
+
+    integer :: j, n, imax
+
+    call scope (shared_procs)
+
+    allocate (job_list(nproc))
+
+    job_list(iproc) = job
+
+    call MPI_barrier
+
+    do i = 0, njobs-1
+      jroot = -1
+
+      do j = 1, nproc
+        if(job_list(j).eq.job) then
+          jroot = j !the first processor on this job will be the root process
+          neigen=
+          continue
+        endif
+      enddo
+      
+      if(jroot.eq.-1) continue !no processors on this core are on this job
+      
+      !
+      ! send n matrices, size of matrices
+      !
+      call broadcast(neigen,jroot)
+      
+      do ie = 1, neigen
+
+        call broadcast
+
+        n = size(lu,1)
+
+        d = 1.0
+        vv = maxval(cabs(lu),dim=2)
+        if (any(vv==0.0)) &
+           write (*,*) 'singular matrix in lu_decomposition'
+        vv = 1.0/vv
+        do j = 1, n
+           imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
+           if (j /= imax) then
+              dum = lu(imax,:)
+              lu(imax,:) = lu(j,:)
+              lu(j,:) = dum
+              d = -d
+              vv(imax) = vv(j)
+           end if
+           idx(j) = imax
+           if (lu(j,j)==0.0) lu(j,j) = zero
+           lu(j+1:n,j) = lu(j+1:n,j)/lu(j,j)
+           lu(j+1:n,j+1:n) = lu(j+1:n,j+1:n) - spread(lu(j+1:n,j),2,n-j) &
+                * spread(lu(j,j+1:n),1,n-j)
+        end do
+      enddo
+      
+
+      !
+      ! 
+      !
+
+
+
+
+      
+
+
+
+    enddo
+
+
+
+    call scope(subprocs)
+
+  end subroutine lu_decomposition_complex
+  
+
+  end subroutine
 
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!! CHECK_DIRECTORIES !!!!!!!!!!!!!!!!
