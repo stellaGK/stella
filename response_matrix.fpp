@@ -760,96 +760,150 @@ contains
 
   subroutine parallel_LU_decomposition (iky)
 
+    use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+    use fields_arrays, only: response_matrix
+    use mp, only: barrier, broadcast, scope, job, mp_comm
+    use mp, only: sharedprocs, subprocs, iproc, nproc
+    use job_manage, only: njobs
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: neigen, ikxmod
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
+    use mpi
+    use linear_solve, only: imaxloc
+
     implicit none
 
     integer, intent (in) :: iky
     integer, dimension (:), allocatable :: job_list
+    integer, dimension (:), allocatable :: row_limits
 
     real, parameter :: zero = 1.0e-20
-    real, dimension (size(lu,1)) :: vv
-    complex, dimension (size(lu,2)) :: dum
+    real, dimension (:), allocatable :: vv
+    complex, dimension (:), allocatable :: dum
+    type(C_PTR) :: bptr
 
-    complex, dimension (:,:), pointer :: working_mat
+    complex, dimension (:,:), pointer :: lu
 
-    integer :: j, n, imax
+    integer :: idx, ijob, i,j,k,l,ie,n
+    integer :: imax, jroot, neig, win_size, win, ierr
+    integer :: rdiv, rmod
+    integer :: disp_unit = 1 
 
-    call scope (shared_procs)
+    call scope (sharedprocs)
 
     allocate (job_list(nproc))
+    allocate (row_limits(0:nproc))
 
     job_list(iproc) = job
 
-    call MPI_barrier
+    call barrier
 
-    do i = 0, njobs-1
+    do ijob = 0, njobs-1
       jroot = -1
 
       do j = 1, nproc
         if(job_list(j).eq.job) then
           jroot = j !the first processor on this job will be the root process
-          neigen=
+          neig = neigen(iky)
           continue
         endif
       enddo
       
       if(jroot.eq.-1) continue !no processors on this core are on this job
       
-      !
-      ! send n matrices, size of matrices
-      !
-      call broadcast(neigen,jroot)
+      ! broadcast number of matrices
+      call broadcast(neig,jroot)
       
-      do ie = 1, neigen
+      do ie = 1, neig
 
-        call broadcast
+        win_size = 0
+        if(iproc.eq.jroot) then
+          n = size(response_matrix(iky)%eigen(ie)%idx)
+          win_size = int(n*n,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND
+        endif
 
-        n = size(lu,1)
+        !broadcast size of matrix
+        call broadcast(n, jroot)
 
-        d = 1.0
+        !allocate the window
+        call mpi_win_allocate_share(win_size,disp_unit,MPI_INFO_NULL,mp_comm,bptr,win,ierr)
+
+        if(iproc.ne.jroot) then
+          !make sure all the procs have the right memory address
+          call mpi_shared_query(win, jroot, win_size, disp_unit, bptr, ierr)
+        endif
+
+        ! bind this c_ptr to our fortran matrix
+        call c_f_pointer(bptr,lu,(/n,n/))
+
+        !load the matrix
+        if(iproc.eq.jroot) lu = response_matrix(iky)%eigen(ie)%zloc
+
+        !syncronize the processors
+        call mpi_win_fence(0,win,ierr)
+
+        ! All the processors have the matrix. 
+        ! Now perform LU decomposition
+
         vv = maxval(cabs(lu),dim=2)
         if (any(vv==0.0)) &
            write (*,*) 'singular matrix in lu_decomposition'
         vv = 1.0/vv
         do j = 1, n
+           !divide up the work using row_limits
+           rdiv = (n-j)/nproc
+           rmod = mod(n-j,nproc)
+           row_limits(0) = j+1
+           if(rdiv.eq.0) then
+             row_limits(rmod+1:) = -1
+             do k=1,rmod
+               row_limits(k)  = row_limits(k-1) + 1
+             enddo
+           else
+             do k=1,nproc
+               row_limits(k) = row_limits(k-1) + rdiv
+               if(k.le.rmod) row_limits(k) = row_limits(k) + 1
+             enddo
+           endif
+
+           !pivot if needed
            imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
            if (j /= imax) then
               dum = lu(imax,:)
               lu(imax,:) = lu(j,:)
               lu(j,:) = dum
-              d = -d
               vv(imax) = vv(j)
            end if
-           idx(j) = imax
+           if(job.eq.ijob) response_matrix(iky)%eigen(ie)%idx(j) = imax
+
+           !get the lead multiplier
            if (lu(j,j)==0.0) lu(j,j) = zero
-           lu(j+1:n,j) = lu(j+1:n,j)/lu(j,j)
-           lu(j+1:n,j+1:n) = lu(j+1:n,j+1:n) - spread(lu(j+1:n,j),2,n-j) &
-                * spread(lu(j,j+1:n),1,n-j)
-        end do
+           do i = row_limits(iproc-1), row_limits(iproc)
+             lu(i,j) = lu(i,j)/lu(j,j)
+           enddo
+
+           do k=row_limits(iproc-1), row_limits(iproc)
+             do i = j+1,n
+                lu(i,k) = lu(i,k) - lu(i,j)*lu(j,k)
+             enddo
+           enddo
+        enddo
+
+        !copy the decomposed matrix over
+        if(job.eq.ijob) response_matrix(iky)%eigen(ie)%zloc = lu
+
       enddo
-      
-
-      !
-      ! 
-      !
-
-
-
-
-      
-
-
-
     enddo
+
+    deallocate (job_list, row_limits)
 
 
 
     call scope(subprocs)
 
-  end subroutine lu_decomposition_complex
+  end subroutine parallel_LU_decomposition
   
-
-  end subroutine
-
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!! CHECK_DIRECTORIES !!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
