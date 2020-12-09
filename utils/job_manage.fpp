@@ -11,7 +11,7 @@ module job_manage
   public :: checktime
   public :: njobs
 
-  integer :: njobs
+  integer :: njobs = 1
 
 contains
 
