@@ -119,7 +119,7 @@ contains
       shift_state = 0.
     endif
 
-    if(nakx.gt.1) then
+    if(nakx.gt.1.and.abs(g_exb*g_exbfac).gt.0) then
       shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
     endif
     if(zonal_mode(1)) shift_times(1) = huge(0.)
