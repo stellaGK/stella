@@ -29,7 +29,8 @@ contains
     use extended_zgrid, only: nzed_segment
     use job_manage, only: time_message
     use mp, only: proc0, iproc
-    use run_parameters, only: mat_gen
+    use run_parameters, only: mat_gen, lu_option_switch
+    use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
 
     implicit none
 
@@ -41,8 +42,10 @@ contains
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: gext
-    logical :: debug = .false.
-    character(100) :: message_lu
+    logical :: debug = .true.
+    character(100) :: message_dgdphi, message_QN, message_lu
+    real, dimension (2) :: time_response_matrix_dgdphi
+    real, dimension (2) :: time_response_matrix_QN
     real, dimension (2) :: time_response_matrix_lu
 
     ! Related to the saving of the the matrices in netcdf format
@@ -50,6 +53,13 @@ contains
     character(len=100) :: file_name
     integer :: istatus
     istatus = 0
+
+    message_dgdphi = 'calculate dgdphi:'
+    message_QN     = 'calculate QN:    '
+    message_lu     = 'calculate LU:    '   
+    time_response_matrix_dgdphi = 0
+    time_response_matrix_QN     = 0
+    time_response_matrix_lu     = 0
 
 !   All matrices handled by processor i_proc are stored
 !   on a single file named: response_mat.iproc
@@ -85,6 +95,10 @@ contains
        ! independent sets of connected kx values
        if (.not.associated(response_matrix(iky)%eigen)) &
             allocate (response_matrix(iky)%eigen(neigen(iky)))
+
+       if(proc0.and.debug) then
+         call time_message(.false., time_response_matrix_dgdphi, message_dgdphi)
+       end if
        
        ! loop over the sets of connected kx values
        do ie = 1, neigen(iky)
@@ -168,6 +182,10 @@ contains
        !      (perhaps further parallelization can be achieved by diviing up
        !       jtwist across nodes and communicating the results)
    
+       if(proc0.and.debug) then
+         call time_message(.true. , time_response_matrix_dgdphi, message_dgdphi)
+         call time_message(.false., time_response_matrix_QN, message_QN)
+       end if
 
 
        ! solve quasineutrality 
@@ -203,26 +221,49 @@ contains
              response_matrix(iky)%eigen(ie)%zloc(:,idx) = -phiext(:nresponse)
 
           end do
+          deallocate (phiext)
        enddo
 
+       if(proc0.and.debug) then
+         call time_message(.true. , time_response_matrix_QN, message_QN)
+         call time_message(.false., time_response_matrix_lu, message_lu)
+       end if
+
        !now we have the full response matrix. Finally, perform its LU decomposition
-       do ie = 1, neigen(iky)
-          ! now that we have the reponse matrix for this ky and set of connected kx values
-          ! get the LU decomposition so we are ready to solve the linear system
-          call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
+       select case (lu_option_switch)
+       case (lu_option_global)
+!        call parallel_LU_decomposition_global(iky)
+       case (lu_option_local)
+         call parallel_LU_decomposition_local(iky)
+       case (lu_option_none)
+         do ie = 1, neigen(iky)
+           ! now that we have the reponse matrix for this ky and set of connected kx values
+           !get the LU decomposition so we are ready to solve the linear system
+           call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc,response_matrix(iky)%eigen(ie)%idx,dum)
           
-          if(proc0.and.debug) then
-             call time_message(.false., time_response_matrix_lu, message_lu)
-          end if
+         enddo
+       end select
+
+       if(proc0.and.debug) then
+         call time_message(.true., time_response_matrix_lu, message_lu)
+       end if
+
+       time_response_matrix_dgdphi = 0
+       time_response_matrix_QN     = 0
+       time_response_matrix_lu     = 0
+       
+       do ie = 1, neigen(iky)
           
           if (mat_gen) then
              write(unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
              write(unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
           end if
           
-          deallocate (phiext)
        end do
+
+       !write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(2)%zloc(3,:)
     end do
+
     if (mat_gen) then
        close(unit=mat_unit)
     end if
@@ -758,80 +799,118 @@ contains
 !----------------------------------------------------------!
 
 
-  subroutine parallel_LU_decomposition (iky)
+  subroutine parallel_LU_decomposition_local (iky)
 
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
     use fields_arrays, only: response_matrix
-    use mp, only: barrier, broadcast, scope, job, mp_comm
-    use mp, only: sharedprocs, subprocs, iproc, nproc
+    use mp, only: barrier, broadcast, sum_allreduce
+    use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
+    use mp, only: job, iproc, proc0, nproc, numnodes, inode
     use job_manage, only: njobs
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: neigen, ikxmod
-    use extended_zgrid, only: nsegments
-    use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: neigen
     use mpi
     use linear_solve, only: imaxloc
 
     implicit none
 
     integer, intent (in) :: iky
+    integer, dimension (:,:), allocatable :: eig_limits
     integer, dimension (:), allocatable :: job_list
     integer, dimension (:), allocatable :: row_limits
+    logical, dimension (:,:), allocatable :: node_jobs
 
     real, parameter :: zero = 1.0e-20
     real, dimension (:), allocatable :: vv
     complex, dimension (:), allocatable :: dum
-    type(C_PTR) :: bptr
+    type(c_ptr) :: bptr
 
     complex, dimension (:,:), pointer :: lu
+    logical :: needs_send = .false.
 
-    integer :: idx, ijob, i,j,k,l,ie,n
-    integer :: imax, jroot, neig, win_size, win, ierr
+    integer :: prior_focus, nodes_on_job
+    integer :: ijob, i,j,k,ie,n
+    integer :: imax, jroot, neig, ierr, win, nroot
+    integer (kind=MPI_ADDRESS_KIND) :: win_size
     integer :: rdiv, rmod
+    integer :: ediv, emod
     integer :: disp_unit = 1 
+
+    prior_focus = curr_focus
 
     call scope (sharedprocs)
 
-    allocate (job_list(nproc))
+    allocate (node_jobs(numnodes,njobs)); node_jobs = .false.
+    allocate (job_list(nproc)); job_list = 0
     allocate (row_limits(0:nproc))
+    allocate (eig_limits(0:numnodes,njobs)); eig_limits = 0
 
-    job_list(iproc) = job
+    job_list(iproc+1) = job
+    call sum_allreduce(job_list)
 
-    call barrier
+    if(proc0) then
+      do j = 1, nproc
+        node_jobs(inode+1,job_list(j)+1) = .true. !create a map of which nodes have which jobs
+      enddo
+    endif
+
+    !make sure all processors have this map
+    call scope (allprocs)
+    call mpi_allreduce &
+         (MPI_IN_PLACE, node_jobs,size(node_jobs), MPI_LOGICAL, MPI_LOR, mp_comm, ierr)
+    call scope (sharedprocs)
 
     do ijob = 0, njobs-1
-      jroot = -1
-
+      jroot=-1
       do j = 1, nproc
-        if(job_list(j).eq.job) then
-          jroot = j !the first processor on this job will be the root process
-          neig = neigen(iky)
+        if(job_list(j).eq.ijob) then
+          jroot = j-1 !the first processor on this job will be the root process
           continue
         endif
       enddo
-      
-      if(jroot.eq.-1) continue !no processors on this core are on this job
-      
+
+      if(jroot.eq.-1) continue !no processors on this node are on this job
+
+      if(iproc.eq.jroot) neig = neigen(iky)
+
       ! broadcast number of matrices
       call broadcast(neig,jroot)
+
+      ! split up neig across nodes that have the current job
+      nodes_on_job = count(node_jobs(:,ijob+1))
+      ediv = neig/nodes_on_job
+      emod = mod(neig,nodes_on_job)
+
+      eig_limits(0,ijob+1) = 1 
+      do j = 1, numnodes
+        if(node_jobs(j,ijob+1)) then
+          eig_limits(j,ijob+1) = eig_limits(j-1,ijob+1) + ediv
+          if(emod.gt.0) then
+            eig_limits(j,ijob+1) = eig_limits(j,ijob+1) + 1
+            emod = emod - 1
+          endif
+        else
+          eig_limits(j,ijob+1) = eig_limits(j-1,ijob+1)
+        endif
+      enddo
       
-      do ie = 1, neig
+      do ie = eig_limits(inode,ijob+1), eig_limits(inode+1,ijob+1)-1
 
         win_size = 0
         if(iproc.eq.jroot) then
+          needs_send = .true.
           n = size(response_matrix(iky)%eigen(ie)%idx)
-          win_size = int(n*n,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND
+          win_size = int(n*n,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND !complex size
         endif
 
         !broadcast size of matrix
         call broadcast(n, jroot)
 
         !allocate the window
-        call mpi_win_allocate_share(win_size,disp_unit,MPI_INFO_NULL,mp_comm,bptr,win,ierr)
+        call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm,bptr,win,ierr)
 
         if(iproc.ne.jroot) then
           !make sure all the procs have the right memory address
-          call mpi_shared_query(win, jroot, win_size, disp_unit, bptr, ierr)
+          call mpi_win_shared_query(win, jroot, win_size, disp_unit, bptr, ierr)
         endif
 
         ! bind this c_ptr to our fortran matrix
@@ -845,7 +924,6 @@ contains
 
         ! All the processors have the matrix. 
         ! Now perform LU decomposition
-
         vv = maxval(cabs(lu),dim=2)
         if (any(vv==0.0)) &
            write (*,*) 'singular matrix in lu_decomposition'
@@ -879,31 +957,52 @@ contains
 
            !get the lead multiplier
            if (lu(j,j)==0.0) lu(j,j) = zero
-           do i = row_limits(iproc-1), row_limits(iproc)
+           do i = row_limits(iproc), row_limits(iproc+1)-1
              lu(i,j) = lu(i,j)/lu(j,j)
            enddo
+           
+           call mpi_win_fence(0,win,ierr)
 
-           do k=row_limits(iproc-1), row_limits(iproc)
+           do k=row_limits(iproc), row_limits(iproc+1)-1
              do i = j+1,n
                 lu(i,k) = lu(i,k) - lu(i,j)*lu(j,k)
              enddo
            enddo
+
+           call mpi_win_fence(0,win,ierr)
         enddo
+        !LU decomposition ends here
 
         !copy the decomposed matrix over
         if(job.eq.ijob) response_matrix(iky)%eigen(ie)%zloc = lu
 
+        call mpi_win_free(win,ierr)
+
       enddo
     enddo
 
-    deallocate (job_list, row_limits)
+    call scope(prior_focus)
 
+    !copy all the matrices across all nodes
+    do ie = 1, neigen(iky)
+      nroot = 0
+      if(needs_send.and. &
+        (ie.ge.eig_limits(inode,job+1).and.ie.lt.eig_limits(inode+1,job+1))) nroot = iproc
+      !first let processors know who is sending the data
+      call sum_allreduce(nroot)
+      !now send the data
+      call broadcast(response_matrix(iky)%eigen(ie)%zloc,nroot)
+      call broadcast(response_matrix(iky)%eigen(ie)%idx, nroot)
+    enddo
 
+    deallocate (node_jobs,job_list,row_limits,eig_limits)
 
-    call scope(subprocs)
+  end subroutine parallel_LU_decomposition_local
 
-  end subroutine parallel_LU_decomposition
-  
+! subroutine parallel_LU_decomposition_global (iky)
+! 
+! end subroutine parallel_LU_decomposition_global (iky)
+
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!! CHECK_DIRECTORIES !!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
