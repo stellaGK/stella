@@ -387,7 +387,7 @@ contains
              end if
 
              istatus = nf90_def_var (ncid, "projr", netcdf_real, &
-                  (/ tubeid, gvmuloid /), projr_id)
+                  (/ kxid, tubeid, gvmuloid /), projr_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var projr error: ", nf90_strerror(istatus)
@@ -395,7 +395,7 @@ contains
              end if
              
              istatus = nf90_def_var (ncid, "proji", netcdf_real, &
-                  (/ tubeid, gvmuloid /), proji_id)
+                  (/ kxid, tubeid, gvmuloid /), proji_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var proji error: ", nf90_strerror(istatus)

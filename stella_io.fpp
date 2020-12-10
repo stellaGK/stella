@@ -705,8 +705,11 @@ contains
     endif
     status = nf90_put_att (ncid, shat_id, 'long_name', '(rho/q) dq/drho')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, shat_id, att='long_name')
-    status = nf90_def_var (ncid, 'jtwist', netcdf_real, jtwist_id)
-    if (status /= nf90_noerr) call netcdf_error (status, var='jtwist')
+    status = nf90_inq_varid(ncid,'jtwist',jtwist_id)
+    if(status /= nf90_noerr) then
+      status = nf90_def_var (ncid, 'jtwist', netcdf_real, jtwist_id)
+      if (status /= nf90_noerr) call netcdf_error (status, var='jtwist')
+    endif
     status = nf90_put_att (ncid, jtwist_id, 'long_name', '2*pi*shat*dky/dkx')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, jtwist_id, att='long_name')
     
