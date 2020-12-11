@@ -768,13 +768,13 @@ contains
                (ncid, 'pflux_x', netcdf_real, flux_x_dim, pflux_x_id)
             if (status /= nf90_noerr) call netcdf_error (status, var='pflux_x')
           endif
-          status = nf90_inq_varid(ncid,'vflux_x',pflux_x_id)
+          status = nf90_inq_varid(ncid,'vflux_x',vflux_x_id)
           if(status /= nf90_noerr) then
             status = nf90_def_var &
                (ncid, 'vflux_x', netcdf_real, flux_x_dim, vflux_x_id)
             if (status /= nf90_noerr) call netcdf_error (status, var='vflux_x')
           endif
-          status = nf90_inq_varid(ncid,'qflux_x',pflux_x_id)
+          status = nf90_inq_varid(ncid,'qflux_x',qflux_x_id)
           if(status /= nf90_noerr) then
             status = nf90_def_var &
                (ncid, 'qflux_x', netcdf_real, flux_x_dim, qflux_x_id)
@@ -1357,13 +1357,13 @@ contains
     nout = 1
 
     status = nf90_inquire_dimension(ncid,time_dim,len=length)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, time_dim)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, dimid=time_dim)
   
     if(length.gt.0) then
       allocate (times(length))
 
       status = nf90_get_var(ncid,time_id,times)
-      if (status /= nf90_noerr) call netcdf_error (status, ncid, time_dim)
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, dimid=time_dim)
       i=length
       do while (times(i).gt.tstart.and.i.gt.0)
         i = i-1
