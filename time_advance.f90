@@ -515,8 +515,8 @@ contains
        !this is variation in the Maxwellian part of the adiabatic response of phi,
        !which needs to be transformed separately before differentiation wrt x
        !the gyroaveraging and quasineutrality is already done in fields
-       adiabatic_phi(:,:,ivmu) = (pfac*(spec(is)%fprim+spec(is)%tprim*(energy-2.5)) &
-                                 +gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
+       adiabatic_phi(:,:,ivmu) = -(pfac*(spec(is)%fprim+spec(is)%tprim*(energy-2.5)) &
+                                  +gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
     end do
 
