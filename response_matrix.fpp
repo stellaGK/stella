@@ -236,7 +236,7 @@ contains
        case (lu_option_local)
          call parallel_LU_decomposition_local(iky)
 #endif
-       case (lu_option_none)
+       case default
 #endif
          do ie = 1, neigen(iky)
            ! now that we have the reponse matrix for this ky and set of connected kx values
@@ -265,7 +265,7 @@ contains
         
        end do
 
-       !write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(2)%zloc(3,:)
+       !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(2)%zloc(3,:)
     end do
 
     if (mat_gen) then
@@ -941,7 +941,7 @@ contains
         ! Now perform LU decomposition
         vv = maxval(cabs(lu),dim=2)
         if (any(vv==0.0)) &
-           write (*,*) 'singular matrix in lu_decomposition'
+           write (*,*) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
         vv = 1.0/vv
         do j = 1, n
            !divide up the work using row_limits
@@ -1050,7 +1050,7 @@ contains
     integer :: ncomm
     integer :: prior_focus
     integer :: ie, ie_hi, r_lo, r_hi
-    integer :: ijob, i,j,k,n, rsize
+    integer :: ijob, i,j,k,n, n_send, rsize
     integer :: imax, neig, ierr
     integer :: istage, nstage
     integer :: rdiv, rmod
@@ -1068,7 +1068,7 @@ contains
     if(sproc0) job_roots(job) = iproc
 
     call sum_allreduce(job_roots)
-
+    
     do ijob = 0, njobs-1
       if(job.eq.ijob.and.sproc0) then
         neig = neigen(iky)
@@ -1106,6 +1106,7 @@ contains
       nstage = ediv
       if(emod.gt.0) nstage = nstage + 1
 
+
       !determine which parts of neigen this communicator processes
       eig_limits(0) = 1
       do j = 1, ncomm
@@ -1128,11 +1129,11 @@ contains
             lu=response_matrix(iky)%eigen(ie)%zloc
           else if(iproc.eq.job_roots(ijob)) then !send data to subroots
             !send size of matrix
-            n=size(response_matrix(iky)%eigen(ie)%idx)
-            call mpi_send(n,1,MPI_INT,eig_roots(j),j,mp_comm,ierr)
+            n_send=size(response_matrix(iky)%eigen(ie)%idx)
+            call mpi_send(n_send,1,MPI_INT,eig_roots(j),j,mp_comm,ierr)
             !send matrix
             call mpi_send(response_matrix(iky)%eigen(ie)%zloc, &
-                          n*n,MPI_COMPLEX,eig_roots(j),nproc+j,mp_comm,ierr)
+                          n_send*n_send,MPI_COMPLEX,eig_roots(j),nproc+j,mp_comm,ierr)
           else if(iproc.eq.eig_roots(j)) then !subroot gets the data
             !receive size of matrix
             call mpi_recv(n,1,MPI_INT,job_roots(ijob),j,mp_comm,status, ierr)
@@ -1141,8 +1142,8 @@ contains
             call mpi_recv(lu,n*n,MPI_COMPLEX,job_roots(ijob),nproc+j,mp_comm,status,ierr)
           endif
         enddo
-    
-        if(nstage.ge.eig_limits(ceig_core+1)) cycle !nothing for this communicator to do
+
+        if(istage.ge.(eig_limits(ceig_core+1)-eig_limits(ceig_core))) cycle !nothing for this communicator to do
 
         !broadcast matrix and its size across the communicator
         call mpi_bcast(n,1,MPI_INT,0,eig_comm,ierr)
@@ -1157,7 +1158,7 @@ contains
         ! Now perform LU decomposition
         vv = maxval(cabs(lu),dim=2)
         if (any(vv==0.0)) &
-          write (*,*) 'singular matrix in lu_decomposition'
+          write (*,*) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
         vv = 1.0/vv
         do j = 1, n
           !divide up the work using row_limits
@@ -1213,6 +1214,7 @@ contains
 
         !copy the decomposed matrix over
         do j = 0,ncomm-1
+
           ie = eig_limits(j) + istage
           ie_hi = eig_limits(j+1) - 1
           if(ie.gt.ie_hi) cycle
