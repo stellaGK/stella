@@ -1693,7 +1693,7 @@ contains
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt
+          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
           write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
        end if
        code_dt = cfl_dt*cfl_cushion/delt_adjust
