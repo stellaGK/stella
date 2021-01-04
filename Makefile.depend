@@ -237,6 +237,7 @@ kt_grids.o: \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 stella_geometry.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
