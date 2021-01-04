@@ -28,7 +28,7 @@ contains
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
     use job_manage, only: time_message
-    use mp, only: proc0, iproc, job
+    use mp, only: proc0, iproc, job, mp_abort
     use run_parameters, only: mat_gen, lu_option_switch
     use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
 
@@ -232,9 +232,11 @@ contains
        select case (lu_option_switch)
        case (lu_option_global)
          call parallel_LU_decomposition_global(iky)
-#ifdef ISO_C_BINDING       
        case (lu_option_local)
+#ifdef ISO_C_BINDING       
          call parallel_LU_decomposition_local(iky)
+#else
+         call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
 #endif
        case (lu_option_none)
 #endif
