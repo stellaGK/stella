@@ -64,7 +64,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
     use kt_grids, only: naky, nakx, akx, nx
-    use kt_grids, only: zonal_mode, rho_d
+    use kt_grids, only: zonal_mode, rho_d_clamped
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use linear_solve, only: lu_decomposition, lu_inverse
@@ -249,7 +249,7 @@ contains
                  g0k(1,ikx) = dgamtotdr(iky,ikx,iz)
 
                  call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = rho_d*g0x(1,:)
+                 g0x(1,:) = rho_d_clamped*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
                  !column row
@@ -280,7 +280,7 @@ contains
                g0k(1,ikx) = 1.0
 
                call transform_kx2x_unpadded (g0k,g0x)
-               g0x(1,:) = (efac + efacp*rho_d)*g0x(1,:)
+               g0x(1,:) = (efac + efacp*rho_d_clamped)*g0x(1,:)
                call transform_x2kx_unpadded(g0x,g0k)
 
                !column row
@@ -299,7 +299,7 @@ contains
                  g0k(1,(1+zm):) = a_inv(:,ikx)
 
                  call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d)*g0x(1,:)
+                 g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
                  a_fsa(:,ikx) = a_fsa(:,ikx) + g0k(1,(1+zm):) 
@@ -730,7 +730,7 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d, zonal_mode
+    use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use linear_solve, only: lu_back_substitution
@@ -851,7 +851,7 @@ contains
               do iz = -nzgrid, nzgrid
                 g0k(1,:) = phi(1,:,iz,it)
                 call transform_kx2x_unpadded (g0k,g0x)
-                g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d)*g0x(1,:)
+                g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
                 call transform_x2kx_unpadded(g0x,g0k)
 
                 g_fsa = g_fsa + g0k(1,(1+zm):)
