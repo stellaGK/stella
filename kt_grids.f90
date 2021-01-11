@@ -745,7 +745,7 @@ contains
   subroutine multiply_by_rho (gin)
 
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-    !use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+!   use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
 
     implicit none
 
@@ -757,6 +757,13 @@ contains
     g0x = spread(rho_d_clamped,1,naky)*g0x
     if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))
     call transform_x2kx_unpadded(g0x,gin)
+
+!   if(.not.allocated(g0x)) allocate(g0x(naky,nx))
+
+!   call transform_kx2x_xfirst(gin,g0x)
+!   g0x = spread(rho_clamped,1,naky)*g0x
+!   if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))
+!   call transform_x2kx_xfirst(g0x,gin)
 
   end subroutine multiply_by_rho
 

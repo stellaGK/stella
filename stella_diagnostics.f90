@@ -235,6 +235,7 @@ contains
     use redistribute, only: scatter
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old, phi_corr_QN
+    use fields, only: fields_updated, advance_fields
     use dist_fn_arrays, only: gvmu, gnew
     use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
@@ -295,6 +296,9 @@ contains
     ! only write data to file every nwrite time steps
     if (mod(istep,nwrite) /= 0) return
 
+    if(radial_variation) fields_updated = .false.
+    call advance_fields(gnew, phi, apar, dist='gbar')
+
     allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
     phi_out = phi
     if(radial_variation) then
@@ -313,10 +317,11 @@ contains
 
     ! obtain turbulent fluxes
     if(radial_variation.or.write_radial_fluxes) then
-      call g_to_h (gnew, phi, fphi, phi_corr_QN)
+!     handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
+!     call g_to_h (gnew, phi, fphi, phi_corr_QN)
       call get_fluxes_vmulo (gnew, phi_out, part_flux, mom_flux, heat_flux, &
                                             part_flux_x,mom_flux_x, heat_flux_x)
-      call g_to_h (gnew, phi, -fphi, phi_corr_QN)
+!     call g_to_h (gnew, phi, -fphi, phi_corr_QN)
     else
       call scatter (kxkyz2vmu, gnew, gvmu)
 !     call g_to_h (gvmu, phi, fphi)
@@ -628,6 +633,7 @@ contains
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: vperp2, vpa, mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use run_parameters, only: fphi, fapar
     use kt_grids, only: aky, theta0, naky, nakx, nx, multiply_by_rho
     use physics_flags, only: radial_variation
@@ -642,7 +648,7 @@ contains
 
     integer :: ivmu, imu, iv, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm, dflx_norm
-    complex, dimension (:,:), allocatable :: g0k
+    complex, dimension (:,:), allocatable :: g0k,g1k
 
     allocate (flx_norm(-nzgrid:nzgrid))
     allocate (dflx_norm(-nzgrid:nzgrid))
@@ -655,11 +661,13 @@ contains
     flx_norm = jacob(1,:)*delzed
     flx_norm = flx_norm/sum(flx_norm*grho(1,:))
 
+    allocate (g0k(naky,nakx))
+    allocate (g1k(naky,nakx))
     if(radial_variation) then
-      allocate (g0k(naky,nakx))
       dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
       dflx_norm(nzgrid) = 0.
     endif
+
 
 
     ! FLAG - electrostatic for now
@@ -676,9 +684,9 @@ contains
 
           call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
 
-          if(radial_variation) then
-            do it = 1, ntubes
-              do iz= -nzgrid, nzgrid
+          do it = 1, ntubes
+            do iz= -nzgrid, nzgrid
+              if(radial_variation) then
                 g0k = g1(:,:,iz,it,ivmu) &
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
@@ -686,11 +694,28 @@ contains
                   + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
                
                 call multiply_by_rho(g0k)
-
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
-              enddo
+              endif
+
+              !subtract adiabatic contribution part of g
+              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 & 
+                    *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
+              if(radial_variation) then
+                g1k = g0k*( -spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
+                            -spec(is)%fprim - 2.0*dBdrho(iz)*mu(imu)  &
+                            -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                                 * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                            + dBdrho(iz)/bmag(ia,iz)+dflx_norm(iz))
+
+                call multiply_by_rho(g1k)
+
+                g0k = g0k + g1k
+              endif
+              g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
+
             enddo
-          endif
+          enddo
        enddo
        call get_one_flux_vmulo (flx_norm, spec%dens_psi0, g1, phi, pflx)
 
@@ -722,7 +747,27 @@ contains
                 call multiply_by_rho(g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
+
               endif
+
+              !subtract adiabatic contribution part of g
+              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 & 
+                    *(vpa(iv)**2+vperp2(ia,iz,imu)) &
+                    *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
+              if(radial_variation) then
+                g1k = g0k*( -spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
+                            -spec(is)%fprim - 2.0*dBdrho(iz)*mu(imu)  &
+                            -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                                 * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                            + dBdrho(iz)/bmag(ia,iz)+dflx_norm(iz) &
+                            + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+
+                call multiply_by_rho(g1k)
+
+                g0k = g0k + g1k
+              endif
+              g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
             enddo
           enddo
        enddo
@@ -756,6 +801,23 @@ contains
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
 
               endif
+              !subtract adiabatic contribution part of g
+              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 & 
+                    *vpa(iv)*geo_surf%rmaj*btor(iz)/bmag(ia,iz) &
+                    *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
+              if(radial_variation) then
+                g1k = g0k*( -spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
+                            -spec(is)%fprim - 2.0*dBdrho(iz)*mu(imu)  &
+                            -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                                 * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                            + dflx_norm(iz) + dIdrho/(geo_surf%rmaj*btor(iz))) 
+
+                call multiply_by_rho(g1k)
+
+                g0k = g0k + g1k
+              endif
+              g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
 
               ! perpendicular component
               g0k = -g(:,:,iz,it,ivmu)*zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
@@ -782,6 +844,43 @@ contains
 
                 g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
               endif
+
+              !subtract adiabatic contribution part of g
+              g0k = -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)*aj1x(:,:,iz,ivmu) & 
+                    *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+                    *zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
+                    * (gds21(ia,iz)+theta0*gds22(ia,iz))*spec(is)%smz &
+                      / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
+
+              if(radial_variation) then
+                g1k = -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)*aj1x(:,:,iz,ivmu) & 
+                      *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+                      *zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
+                      * (dgds21dr(ia,iz)+theta0*dgds22dr(ia,iz))*spec(is)%smz &
+                      / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
+
+                g1k = g1k -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu) & 
+                       *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+                       *zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
+                       * (gds21(ia,iz)+theta0*gds22(ia,iz))*spec(is)%smz &
+                       / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2) &
+                            * (0.5*aj0x(:,:,iz,ivmu) - aj1x(:,:,iz,ivmu))  &
+                            * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))
+
+                g1k = g1k + &
+                      g0k*(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
+                           -spec(is)%fprim - 2.0*dBdrho(iz)*mu(imu)  &
+                           -0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                              * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                              * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                           - geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
+                           - geo_surf%d2psidr2*drhodpsi + dflx_norm(iz))
+
+                call multiply_by_rho(g1k)
+
+                g0k = g0k + g1k
+              endif
+              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
           enddo
         enddo
       enddo
@@ -804,6 +903,7 @@ contains
     deallocate (flx_norm)
     if(allocated(dflx_norm)) deallocate(dflx_norm)
     if(allocated(g0k)) deallocate(g0k)
+    if(allocated(g1k)) deallocate(g1k)
 
   end subroutine get_fluxes_vmulo
 

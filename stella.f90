@@ -9,7 +9,7 @@ program stella
   use stella_diagnostics, only: diagnose_stella, nsave
   use stella_save, only: stella_save_for_restart
   use dist_fn_arrays, only: gnew, gvmu
-    use file_utils, only: error_unit, flush_output_file
+  use file_utils, only: error_unit, flush_output_file
 
   implicit none
 
