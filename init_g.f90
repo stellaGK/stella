@@ -381,7 +381,7 @@ contains
     implicit none
 
     complex, dimension (naky,nakx,-nzgrid:nzgrid,ntubes) :: phi
-    real :: a, b, kmin,phi2
+    real :: a, b, kmin
     integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
     integer :: itmod
 
@@ -420,7 +420,8 @@ contains
                    b = ranf()-0.5
                    ! do not populate high k modes with large amplitudes
                    if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky,ikx,ia,iz) .ge. kmin))  then
-                     phi(iky,ikx,iz,it) =cmplx(a,b)*kmin/kperp2(iky,ikx,ia,iz)
+                     !the following as an extra factor of kmin to offset the Gamma-1 in quasineutrality
+                     phi(iky,ikx,iz,it) =cmplx(a,b)*kmin*kmin/kperp2(iky,ikx,ia,iz)
                    else
                      phi(iky,ikx,iz,it) = 0.0
                    endif
@@ -479,26 +480,6 @@ contains
     
     call broadcast (phi)
 
-!   phi2 = 0.0
-!   do it = 1,ntubes
-!     do iz = -nzgrid,nzgrid
-!       do ikx = 1, nakx
-!         do iky= 1, naky
-!           if(iky.eq.1 .and. aky(1)<epsilon(0.)) then
-!             phi2 = phi2 + &
-!                   real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
-!           else
-!             phi2 = phi2 + &
-!               2.0*real(phi(iky,ikx,iz,it)*conjg(phi(iky,ikx,iz,it)))*dl_over_b(1,iz)
-!           endif
-!         enddo
-!       enddo
-!     enddo
-!   enddo
-!   phi2 = phi2/real(ntubes)
-!   phi2 = 1.0/sqrt(phi2)
-    phi2 = 1.0
-
     !Now set g using data in phi
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -506,7 +487,7 @@ contains
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iky = iky_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi2*phi(iky,ikx,iz,it) &
+       gvmu(:,:,ikxkyz) = spec(is)%z*phiinit*phi(iky,ikx,iz,it) &
             * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
     end do
 

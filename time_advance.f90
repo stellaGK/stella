@@ -1693,7 +1693,7 @@ contains
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt
+          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
           write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
        end if
        code_dt = cfl_dt*cfl_cushion/delt_adjust
@@ -2071,7 +2071,7 @@ contains
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use physics_flags, only: include_parallel_streaming
-    use physics_flags, only: include_mirror
+    use physics_flags, only: include_mirror, prp_shear_enabled
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: advance_parallel_streaming_implicit
     use fields, only: advance_fields, fields_updated
@@ -2122,8 +2122,10 @@ contains
 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
 
-       call advance_perp_flow_shear(g)
-       fields_updated = .false.
+       if (prp_shear_enabled) then
+          call advance_perp_flow_shear(g)
+          fields_updated = .false.
+       end if
 
        if (hyper_dissipation) then
 !          ! for hyper-dissipation, need to be in k-alpha space
@@ -2187,8 +2189,10 @@ contains
           fields_updated = .false.
        end if
 
-       call advance_perp_flow_shear(g)
-       fields_updated = .false.
+       if (prp_shear_enabled) then
+          call advance_perp_flow_shear(g)
+          fields_updated = .false.
+       end if
 
     end if
 
