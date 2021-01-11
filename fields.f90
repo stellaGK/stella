@@ -577,6 +577,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
     use kt_grids, only: nakx, naky, nx, multiply_by_rho
+    use run_parameters, only: ky_solve_radial
     use species, only: spec
 
     implicit none
@@ -585,7 +586,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
-    integer :: ivmu, iz, it, ia, imu, is
+    integer :: ivmu, iz, it, ia, imu, is, iky
     complex, dimension (:,:,:), allocatable :: gyro_g
     complex, dimension (:,:), allocatable :: g0k
 
@@ -603,12 +604,14 @@ contains
              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
              g0k = 0.0
              if(radial_variation) then
-               g0k = gyro_g(:,:,ivmu) &
-                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
-                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                   + dBdrho(iz)/bmag(ia,iz))
+               do iky = 1, min(ky_solve_radial,naky)
+                 g0k(iky,:) = gyro_g(iky,:,ivmu) &
+                     * (-0.5*aj1x(iky,:,iz,ivmu)/aj0x(iky,:,iz,ivmu)*(spec(is)%smz)**2 &
+                     * (kperp2(iky,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                     * (dkperp2dr(iky,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                     + dBdrho(iz)/bmag(ia,iz))
 
+               end do
                !g0k(1,1) = 0.
                call multiply_by_rho(g0k)
 
