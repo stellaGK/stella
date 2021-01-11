@@ -178,24 +178,8 @@ flow_shear.o: \
 	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-flow_shear1.o: \
-	 constants.o \
-	 fields.o \
-	 fields_arrays.o \
-	 file_utils.o \
-	 job_manage.o \
-	 kt_grids.o \
-	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 species.o \
-	 stella_geometry.o \
-	 stella_layouts.o \
-	 stella_time.o \
-	 stella_transforms.o \
-	 vpamu_grids.o \
-	 zgrid.o 
 full_xzgrid.o: \
+	 extended_zgrid.o \
 	 kt_grids.o \
 	 species.o \
 	 zgrid.o 
@@ -437,6 +421,7 @@ stella_diagnostics.o: \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 g_tofrom_h.o \
