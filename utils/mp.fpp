@@ -36,6 +36,7 @@ module mp
   public :: barrier
   public :: waitany
   public :: mp_abort
+  public :: mpireal, mpicmplx
 ! MAB> needed by Trinity
   public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs
   public :: all_to_group, group_to_all
@@ -78,6 +79,7 @@ module mp
 
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
+  integer :: mpireal, mpicmplx
 # endif
   integer, parameter :: allprocs = 0, sharedprocs = 1, subprocs = 2, crossdomprocs = 3
 
