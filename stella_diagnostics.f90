@@ -101,8 +101,8 @@ contains
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
 !         write_gvmus, write_gzvs, write_symmetry, write_moments)
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
-    call open_loop_ascii_files(restart)
 
+    if(proc0) call open_loop_ascii_files(restart)
     if(proc0) call get_nout(tstart,nout)
     call broadcast (nout)
   end subroutine init_stella_diagnostics
@@ -205,13 +205,17 @@ contains
 
     call open_output_file (stdout_unit,'.out',overwrite)
     call open_output_file (fluxes_unit,'.fluxes',overwrite)
-    write (nspec_str,'(i3)') nspec*12
-    str = trim('(2a12,2a'//trim(nspec_str)//')')
-    write (fluxes_unit,str) '#time', 'pflx', 'vflx', 'qflx'
+    if(overwrite) then
+      write (nspec_str,'(i3)') nspec*12
+      str = trim('(2a12,2a'//trim(nspec_str)//')')
+      write (fluxes_unit,str) '#time', 'pflx', 'vflx', 'qflx'
+    endif
     if (write_omega) then
        call open_output_file (omega_unit,'.omega',overwrite)
-       write (omega_unit,'(7a12)') '#time', 'ky', 'kx', &
-            'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
+       if(overwrite) then
+         write (omega_unit,'(7a12)') '#time', 'ky', 'kx', &
+              'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
+       endif
     end if
 
   end subroutine open_loop_ascii_files
