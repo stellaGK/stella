@@ -32,16 +32,17 @@ module mp
   public :: comm_split, comm_free
   public :: nproc, iproc, proc0, job
   public :: send, ssend, receive
+  public :: numnodes, inode
   public :: barrier
   public :: waitany
   public :: mp_abort
 ! MAB> needed by Trinity
-  public :: scope, allprocs, subprocs, crossdomprocs
+  public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB
   public :: init_job_topology
-  public :: mp_comm
+  public :: mp_comm, curr_focus
   public :: mp_info
   public :: mp_gather
 
@@ -50,18 +51,22 @@ module mp
 ! CMR: defined MPIINC for machines where need to include mpif.h
   include 'mpif.h'
 #endif
+  integer :: numnodes, inode
+
   integer, pointer :: nproc
-  integer, target :: ntot_proc, ngroup_proc, ndomain_proc
+  integer, target :: ntot_proc, nshared_proc, ngroup_proc, ndomain_proc
 
   integer, pointer :: iproc
-  integer, target :: aproc, gproc, cproc
+  integer, target :: aproc, sproc, gproc, cproc
 
   logical, pointer :: proc0
-  logical, target :: aproc0, gproc0
+  logical, target :: aproc0, sproc0, gproc0
 
   integer :: mpi_comm_world_private
   integer, pointer :: mp_comm
-  integer, target :: comm_all, comm_group, comm_cross
+  integer, target :: comm_all, comm_shared, comm_node, comm_group, comm_cross
+
+  integer :: curr_focus
 
   integer, parameter :: mp_info = MPI_INFO_NULL
 
@@ -74,7 +79,7 @@ module mp
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
 # endif
-  integer, parameter :: allprocs = 0, subprocs = 1, crossdomprocs = 2
+  integer, parameter :: allprocs = 0, sharedprocs = 1, subprocs = 2, crossdomprocs = 3
 
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
@@ -108,6 +113,7 @@ module mp
 
      module procedure bcastfrom_complex 
      module procedure bcastfrom_complex_array 
+     module procedure bcastfrom_complex_2array 
 
      module procedure bcastfrom_logical 
      module procedure bcastfrom_logical_array 
@@ -144,6 +150,7 @@ module mp
   interface sum_allreduce
      module procedure sum_allreduce_integer
      module procedure sum_allreduce_integer_array
+     module procedure sum_allreduce_integer_2array
 
      module procedure sum_allreduce_real
      module procedure sum_allreduce_real_array
@@ -284,6 +291,19 @@ contains
     call mpi_comm_rank (comm_all, aproc, ierror)
     aproc0 = aproc == 0
 
+    !the next communicator is between all cores on a given node (i.e. shared memory)
+    call mpi_comm_split_type(comm_all,mpi_comm_type_shared,aproc,mp_info,comm_shared,ierror)
+
+    call mpi_comm_size(comm_shared,nshared_proc,ierror)
+    call mpi_comm_rank(comm_shared,sproc,ierror)
+    sproc0 = sproc == 0
+
+    call mpi_comm_split(comm_all,sproc,aproc,comm_node,ierror)
+    call mpi_comm_size(comm_node,numnodes,ierror)
+    call mpi_comm_rank(comm_node,inode,ierror)
+
+    call scope (sharedprocs)
+    call broadcast(inode)
     call scope (allprocs)
 
     if ( (kind(pi)==kind_rs) .and. (kind_rs/=kind_rd) ) then
@@ -305,16 +325,25 @@ contains
 
 # ifdef MPI
     if (focus == allprocs) then
+       curr_focus = allprocs
        mp_comm => comm_all
        nproc => ntot_proc
        iproc => aproc
        proc0 => aproc0
+    else if (focus == sharedprocs) then
+       curr_focus = sharedprocs
+       mp_comm => comm_shared
+       nproc => nshared_proc
+       iproc => sproc
+       proc0 => sproc0
     else if(focus == subprocs) then
+       curr_focus = subprocs
        mp_comm => comm_group
        nproc => ngroup_proc
        iproc => gproc
        proc0 => gproc0
     else if(focus == crossdomprocs) then
+       curr_focus = crossdomprocs
        mp_comm => comm_cross
        nproc => ndomain_proc
        iproc => cproc
@@ -587,6 +616,18 @@ contains
     if (src /= 0) call error ("broadcast from")
 # endif
   end subroutine bcastfrom_complex_array
+
+  subroutine bcastfrom_complex_2array (z, src)
+    implicit none
+    complex, dimension (:,:), intent (in out) :: z
+    integer, intent (in) :: src
+# ifdef MPI
+    integer :: ierror
+    call mpi_bcast (z, size(z), mpicmplx, src, mp_comm, ierror)
+# else
+    if (src /= 0) call error ("broadcast from")
+# endif
+  end subroutine bcastfrom_complex_2array
 
 ! ************** reductions ***********************
 
@@ -894,6 +935,17 @@ contains
          (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_SUM, mp_comm, ierror)
 # endif
   end subroutine sum_allreduce_integer_array
+
+  subroutine sum_allreduce_integer_2array (i)
+    implicit none
+    integer, dimension (:,:), intent (in out) :: i
+# ifdef MPI
+    integer :: ierror
+    call mpi_allreduce &
+         (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_SUM, mp_comm, ierror)
+# endif
+  end subroutine sum_allreduce_integer_2array
+
 
   subroutine sum_allreduce_real (a)
     implicit none
