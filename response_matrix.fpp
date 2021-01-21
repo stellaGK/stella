@@ -267,7 +267,7 @@ contains
         
        end do
 
-       !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(2)%zloc(3,:)
+       !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
     end do
 
     if (mat_gen) then
@@ -909,7 +909,7 @@ contains
           eig_limits(j,ijob+1) = eig_limits(j-1,ijob+1)
         endif
       enddo
-    
+
       do ie = eig_limits(inode,ijob+1), eig_limits(inode+1,ijob+1)-1
         win_size = 0
         if(iproc.eq.jroot) then
@@ -965,16 +965,20 @@ contains
 
            !pivot if needed
            imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
-           if (j /= imax) then
-              dum = lu(imax,:)
-              lu(imax,:) = lu(j,:)
-              lu(j,:) = dum
-              vv(imax) = vv(j)
-           end if
-           if(job.eq.ijob) response_matrix(iky)%eigen(ie)%idx(j) = imax
+           response_matrix(iky)%eigen(ie)%idx(j) = imax
+           if(iproc.eq.jroot) then
+             if (j /= imax) then
+               dum = lu(imax,:)
+               lu(imax,:) = lu(j,:)
+               lu(j,:) = dum
+               vv(imax) = vv(j)
+             end if
+             if (lu(j,j)==0.0) lu(j,j) = zero
+           endif
+
+           call mpi_win_fence(0,win,ierr)
 
            !get the lead multiplier
-           if (lu(j,j)==0.0) lu(j,j) = zero
            do i = row_limits(iproc), row_limits(iproc+1)-1
              lu(i,j) = lu(i,j)/lu(j,j)
            enddo
@@ -1025,7 +1029,7 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: job, iproc, proc0, nproc
+    use mp, only: job, iproc, proc0, nproc, mpicmplx
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
     use mpi
@@ -1136,13 +1140,13 @@ contains
             call mpi_send(n_send,1,MPI_INT,eig_roots(j),j,mp_comm,ierr)
             !send matrix
             call mpi_send(response_matrix(iky)%eigen(ie)%zloc, &
-                          n_send*n_send,MPI_COMPLEX,eig_roots(j),nproc+j,mp_comm,ierr)
+                          n_send*n_send,mpicmplx,eig_roots(j),nproc+j,mp_comm,ierr)
           else if(iproc.eq.eig_roots(j)) then !subroot gets the data
             !receive size of matrix
             call mpi_recv(n,1,MPI_INT,job_roots(ijob),j,mp_comm,status, ierr)
             allocate(lu(n,n))
             !receive matrix
-            call mpi_recv(lu,n*n,MPI_COMPLEX,job_roots(ijob),nproc+j,mp_comm,status,ierr)
+            call mpi_recv(lu,n*n,mpicmplx,job_roots(ijob),nproc+j,mp_comm,status,ierr)
           endif
         enddo
 
@@ -1152,7 +1156,7 @@ contains
         call mpi_bcast(n,1,MPI_INT,0,eig_comm,ierr)
         if(.not.allocated(lu)) allocate (lu(n,n))
 
-        call mpi_bcast(lu,n*n,MPI_COMPLEX,0,eig_comm,ierr)
+        call mpi_bcast(lu,n*n,mpicmplx,0,eig_comm,ierr)
 
         allocate (dum(n))
         allocate (idx(n))
@@ -1206,11 +1210,14 @@ contains
            enddo
 
            do i=0,eig_cores-1
-            r_lo = row_limits(i)
-            r_hi = row_limits(i+1)-1
-            rsize = (r_hi-r_lo+1)*(n-j)
-            if(r_lo.gt.r_hi) cycle
-            call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,MPI_COMPLEX,i,eig_comm,ierr)
+             r_lo = row_limits(i)
+             r_hi = row_limits(i+1)-1
+             rsize = (r_hi-r_lo+1)*(n-j)
+             if(r_lo.gt.r_hi) cycle
+             !call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,mpicmplx,i,eig_comm,ierr)
+             do k=r_lo,r_hi
+               call mpi_bcast(lu(j+1:n,k),n-j,mpicmplx,i,eig_comm,ierr)
+             enddo
            enddo
         enddo
         !LU decomposition ends here
@@ -1229,14 +1236,14 @@ contains
             !send indices
             call mpi_send(idx,n,MPI_INT,job_roots(ijob),j,mp_comm,ierr)
             !send matrix
-            call mpi_send(lu,n*n,MPI_COMPLEX,job_roots(ijob),nproc+j,mp_comm,ierr)
+            call mpi_send(lu,n*n,mpicmplx,job_roots(ijob),nproc+j,mp_comm,ierr)
           else if(iproc.eq.job_roots(ijob)) then !receive data from subroot
             !receive size of matrix
             call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
                           n,MPI_INT,eig_roots(j),j,mp_comm,status,ierr)
             !receive matrix
             call mpi_recv(response_matrix(iky)%eigen(ie)%zloc, &
-                          n*n,MPI_COMPLEX,eig_roots(j),nproc+j,mp_comm,status,ierr)
+                          n*n,mpicmplx,eig_roots(j),nproc+j,mp_comm,status,ierr)
           endif
         enddo
         deallocate (lu, idx, dum)
