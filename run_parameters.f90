@@ -38,8 +38,11 @@ module run_parameters
   real :: avail_cpu_time
   integer :: nstep, ky_solve_radial
   integer :: rng_seed
-  integer, public :: delt_option_switch
+  integer, public :: delt_option_switch, lu_option_switch
   integer, public, parameter :: delt_option_hand = 1, delt_option_auto = 2
+  integer, public, parameter :: lu_option_none   = 1, &
+                                lu_option_local  = 2, &
+                                lu_option_global = 3
   logical :: initialized = .false.
   logical :: knexist
 
@@ -69,12 +72,18 @@ contains
          (/ text_option('default', delt_option_hand), &
             text_option('set_by_hand', delt_option_hand), &
             text_option('check_restart', delt_option_auto) /)
-    character(20) :: delt_option
+    type (text_option), dimension (4), parameter :: lu_opts = &
+         (/ text_option('default', lu_option_none), &
+            text_option('none',    lu_option_none), &
+            text_option('local',   lu_option_local), &
+            text_option('global',  lu_option_global) /)
+
+    character(20) :: delt_option, lu_option
 
     integer :: ierr, in_file
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
-         delt_option, &
+         delt_option, lu_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
@@ -96,6 +105,7 @@ contains
        mirror_linear_interp = .false.
        stream_matrix_inversion = .false.
        delt_option = 'default'
+       lu_option = 'default'
        zed_upwind = 0.02
        vpa_upwind = 0.02
        time_upwind = 0.02
@@ -116,11 +126,16 @@ contains
             (delt_option, deltopts, delt_option_switch, ierr, &
             "delt_option in knobs")
 
+       call get_option_value &
+            (lu_option, lu_opts, lu_option_switch, ierr, &
+            "lu_option in knobs")
+
     end if
 
     call broadcast (fields_kxkyz)
     call broadcast (delt_option_switch)
     call broadcast (delt)
+    call broadcast (lu_option_switch)
     call broadcast (cfl_cushion)
     call broadcast (delt_adjust)
     call broadcast (fphi)

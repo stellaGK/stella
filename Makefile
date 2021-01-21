@@ -69,6 +69,9 @@ USE_NAGLIB ?=
 USE_SFINCS ?=
 # Use LAPACK, needed for test particle collisions
 USE_LAPACK ?= on
+# does the compiler support the iso_c_binding features of Fortran? 
+# (needed for local parallel LU decomposition) 
+HAS_ISO_C_BINDING ?= on
 #
 # * Targets:
 #
@@ -174,6 +177,10 @@ endif
 ifndef USE_FFT
 $(warning USE_FFT is off)
 $(warning Be sure that nonlinear run makes no sense)
+endif
+
+ifdef HAS_ISO_C_BINDING
+	CPPFLAGS += -DISO_C_BINDING
 endif
 
 ifdef USE_MPI
