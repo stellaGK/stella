@@ -31,6 +31,7 @@ contains
     use mp, only: proc0, iproc, job, mp_abort
     use run_parameters, only: mat_gen, lu_option_switch
     use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+    use mp, only: sum_allreduce
 
     implicit none
 
@@ -170,6 +171,7 @@ contains
                 if (izl_offset == 0) izl_offset = 1
              end do
           end if
+          call sum_allreduce(response_matrix(iky)%eigen(ie)%zloc)
           deallocate (gext,phiext)
        enddo
        !DSO - This ends parallelization over velocity space.
@@ -676,6 +678,7 @@ contains
     use kt_grids, only: zonal_mode, akx
     use vpamu_grids, only: integrate_species
     use gyro_averages, only: gyro_average
+    use mp, only: sum_allreduce
 
     implicit none
 
@@ -705,7 +708,7 @@ contains
     do iz = iz_low(iseg), iz_up(iseg)
        idx = idx + 1
         call gyro_average (g(idx,:), iky, ikx, iz, g0)
-        call integrate_species (g0, iz, wgt, phi(idx))
+        call integrate_species (g0, iz, wgt, phi(idx),reduce_in=.false.)
     end do
     izl_offset = 1
     if (nsegments(ie,iky) > 1) then
@@ -714,11 +717,13 @@ contains
           do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
              idx = idx + 1
              call gyro_average (g(idx,:), iky, ikx, iz, g0)
-             call integrate_species (g0, iz, wgt, phi(idx))
+             call integrate_species (g0, iz, wgt, phi(idx),reduce_in=.false.)
           end do
           if (izl_offset == 0) izl_offset = 1
        end do
     end if
+
+    !call sum_allreduce(phi)
 
   end subroutine integrate_over_velocity
 
