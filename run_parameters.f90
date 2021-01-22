@@ -69,7 +69,7 @@ contains
     implicit none
 
     type (text_option), dimension (3), parameter :: deltopts = &
-         (/ text_option('default', delt_option_hand), &
+         (/ text_option('default', delt_option_auto), &
             text_option('set_by_hand', delt_option_hand), &
             text_option('check_restart', delt_option_auto) /)
     type (text_option), dimension (4), parameter :: lu_opts = &

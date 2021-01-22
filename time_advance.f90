@@ -75,7 +75,6 @@ contains
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
     use parallel_streaming, only: init_parallel_streaming
-    use dist_redistribute, only: init_redistribute
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
 
@@ -108,8 +107,6 @@ contains
     if (radial_variation) call init_radial_variation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
     call init_dissipation
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_redistribute'
-    call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
 
@@ -2497,14 +2494,12 @@ contains
     use parallel_streaming, only: finish_parallel_streaming
     use mirror_terms, only: finish_mirror
     use flow_shear, only : finish_flow_shear
-    use dist_redistribute, only: finish_redistribute
     use neoclassical_terms, only: finish_neoclassical_terms
     use dissipation, only: finish_dissipation
 
     implicit none
 
     if (full_flux_surface) call finish_transforms
-    call finish_redistribute
     call finish_dissipation
     call finish_parallel_nonlinearity
     call finish_wstar
