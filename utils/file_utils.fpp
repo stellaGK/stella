@@ -266,7 +266,7 @@ contains
     if(overwrite) then
       open (unit=unit, file=trim(hack), status="replace", action="write")
     else 
-      open (unit=unit, file=trim(hack), status="old", action="write", position="append")
+      open (unit=unit, file=trim(hack), status="unknown", action="write", position="append")
     endif
   end subroutine open_output_file
 
