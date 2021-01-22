@@ -32,7 +32,6 @@ program stella
   do istep = (istep0+1), nstep
      if (debug) write (*,*) 'istep = ', istep
      call advance_stella (istep)
-!     call advance_stella
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
@@ -88,6 +87,7 @@ contains
     use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gnew
     use dist_fn, only: init_gxyz, init_dist_fn
+    use dist_redistribute, only: init_redistribute
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
     use kt_grids, only: init_kt_grids, read_kt_grids_parameters
@@ -165,14 +165,6 @@ contains
     call init_init_g
     if (debug) write(6,*) "stella::init_stella::init_run_parameters"
     call init_run_parameters
-    if(delt_option_switch == delt_option_auto) then
-      delt_saved = delt
-      if (debug) write(6,*) "stella::init_stella::init_dt"
-      call init_dt(delt_saved, istatus)
-      if(istatus == 0) delt = delt_saved
-    endif
-    if (debug) write(6,*) "stella::init_stella::init_delt"
-    call init_delt(delt)
 
     if (debug) write(6,*) "stella::init_stella::init_ranf"
     n=get_rnd_seed_length()
@@ -222,15 +214,25 @@ contains
     call init_extended_zgrid
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"
     call init_dist_fn
+    if (debug) write(6,*) "stella::init_stella::init_redistribute"
+    call init_redistribute
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
-    if (debug) write (6,*) 'stella::init_stella::init_time_advance'
-    call init_time_advance
     if (debug) write(6,*) "stella::init_stella::ginit"
     call ginit (restarted,istep0)
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz (restarted)
-    !
+
+    if(restarted.and.delt_option_switch == delt_option_auto) then
+      delt_saved = delt
+      if (debug) write(6,*) "stella::init_stella::init_dt"
+      call init_dt(delt_saved, istatus)
+      if(istatus == 0) delt = delt_saved
+    endif
+    if (debug) write(6,*) "stella::init_stella::init_delt"
+    call init_delt(delt)
+    if (debug) write (6,*) 'stella::init_stella::init_time_advance'
+    call init_time_advance
     if (stream_implicit .or. driftkinetic_implicit) then
        if (mat_read) then
           if (debug) write (6,*) "stella::init_stella::read_response_matrix"
@@ -304,6 +306,7 @@ contains
     use dissipation, only: time_collisions
     use init_g, only: finish_init_g
     use dist_fn, only: finish_dist_fn
+    use dist_redistribute, only: finish_redistribute
     use fields, only: finish_fields
     use fields, only: time_field_solve
     use stella_diagnostics, only: finish_stella_diagnostics
@@ -329,6 +332,8 @@ contains
     call finish_extended_zgrid
     if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'
     call finish_dist_fn
+    if (debug) write (*,*) 'stella::finish_stella::finish_redistribute'
+    call finish_redistribute
     if (debug) write (*,*) 'stella::finish_stella::finish_init_g'
     call finish_init_g
     if (debug) write (*,*) 'stella::finish_stella::finish_vpamu_grids'
