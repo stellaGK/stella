@@ -1,5 +1,6 @@
 program stella
 
+  use mp, only: proc0
   use redistribute, only: scatter
   use job_manage, only: time_message, checkstop, job_fork
   use run_parameters, only: nstep, fphi, fapar
@@ -13,6 +14,10 @@ program stella
 
   implicit none
 
+  ! Add the version number and date of last change when uploading to github
+  character(len=4), parameter :: VERNUM = '0.2'
+  character(len=10), parameter :: VERDATE = '2021.01.25'
+
   logical :: debug = .false.
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
@@ -23,15 +28,28 @@ program stella
   real, dimension (2) :: time_diagnostics = 0.
   real, dimension (2) :: time_total = 0.
 
-  call init_stella(istep0)
+  ! Initiate stella
+  call init_stella(istep0, VERNUM, VERDATE)
 
-  if (debug) write (*,*) 'stella::diagnose_stella'
+  ! Add a header to the output file
+  if (proc0) then
+    write (*,'(A)') "############################################################"
+    write (*,'(A)') "                OVERVIEW OF THE SIMULATION"
+    write (*,'(A)') "############################################################"
+    write (*,'(A)') " "
+    write (*,'(A)') "    istep       time           dt         |phi|^2"
+    write (*,'(A)') "------------------------------------------------------------"
+  end if
+
+  ! Diagnose stella
+  if (debug) write(*,*) 'stella::diagnose_stella'
   if (istep0.eq.0) call diagnose_stella (istep0)
 
-  if (debug) write (*,*) 'stella::advance_stella'
+  ! Advance stella until istep=nstep
+  if (debug) write(*,*) 'stella::advance_stella'
   do istep = (istep0+1), nstep
-     if (debug) write (*,*) 'istep = ', istep
-     call advance_stella (istep)
+     if (debug) write(*,*) 'istep = ', istep
+     call advance_stella(istep)
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
@@ -46,14 +64,16 @@ program stella
      call flush_output_file (ierr)
   end do
 
-  if (debug) write (*,*) 'stella::finish_stella'
-
-  call finish_stella (last_call=.true.)
+  ! Finish stella
+  if (debug) write(*,*) 'stella::finish_stella'
+  call finish_stella(last_call=.true.)
 
 contains
 
-  subroutine init_stella(istep0)
-
+  !==============================================
+  !============ INITIATE STELLA =================
+  !==============================================
+  subroutine init_stella(istep0, VERNUM, VERDATE)
     use mp, only: init_mp, broadcast
     use mp, only: proc0,job
     use file_utils, only: init_file_utils
@@ -103,6 +123,8 @@ contains
     implicit none
 
     integer, intent (out) :: istep0
+    character(len=4), intent (in) :: VERNUM 
+    character(len=10), intent (in) :: VERDATE 
     logical :: exit, list, restarted, needs_transforms
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
@@ -113,18 +135,16 @@ contains
     if (.not.mpi_initialized) call init_mp
     mpi_initialized = .true.
 
-
-    if (debug) write (*,*) 'stella::init_stella::check_time'
     ! initialize timer
+    if (debug) write (*,*) 'stella::init_stella::check_time'
     call checktime(avail_cpu_time,exit)
 
     if (proc0) then
+       ! write message to screen with useful info regarding start of simulation
        if (debug) write (*,*) 'stella::init_stella::write_start_message'
-       ! write message to screen with useful info
-       ! regarding start of simulation
-       call write_start_message
-       if (debug) write (*,*) 'stella::init_stella::init_file_utils'
+       call write_start_message(VERNUM, VERDATE)
        ! initialize file i/o
+       if (debug) write (*,*) 'stella::init_stella::init_file_utils'
        call init_file_utils (list)
        call time_message(.false.,time_total,' Total')
        call time_message(.false.,time_init,' Initialization')
@@ -270,27 +290,62 @@ contains
 
   end subroutine init_stella
 
-  subroutine write_start_message
-
+  !==============================================
+  !============ WRITE START MESSAGE =============
+  !==============================================
+  subroutine write_start_message(VERNUM, VERDATE)
     use mp, only: proc0, nproc
 
     implicit none
 
+    character(len=23) :: str
+    character(len=4), intent (in) :: VERNUM 
+    character(len=10), intent (in) :: VERDATE 
+
     if (proc0) then
-       if (nproc==1) then
-          write (*,*) "Running on ", nproc, " processor"
-       else
-          write (*,*) "Running on ", nproc, " processors"
-       end if
-       write (*,*)
+      write (*,*) ' '
+      write (*,*) ' '
+      write (*,*) "            I8            ,dPYb, ,dPYb,            "
+      write (*,*) "            I8            IP'`Yb IP'`Yb            "
+      write (*,*) "         88888888         I8  8I I8  8I            "
+      write (*,*) "            I8            I8  8' I8  8'            "
+      write (*,*) "   ,g,      I8    ,ggg,   I8 dP  I8 dP    ,gggg,gg "
+      write (*,*) "  ,8'8,     I8   i8' '8i  I8dP   I8dP    dP'  'Y8I "
+      write (*,*) " ,8'  Yb   ,I8,  I8, ,8I  I8P    I8P    i8'    ,8I "
+      write (*,*) ",8'_   8) ,d88b, `YbadP' ,d8b,_ ,d8b,_ ,d8,   ,d8b,"
+      write (*,*) 'P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
+      write (*,*) ' '
+      write (*,*) ' '
+      write (*,*) '                       Version ', VERNUM
+      write (*,*) '                        ', VERDATE
+      write (*,*) ' '
+      write (*,*) '                   Add author names.,'
+      write (*,*) '                  More author names...,'
+      write (*,*) ' '
+      write (*,*) '                   Add institutions...'
+      write (*,*) ' '
+      write (*,*) ' '
+      write (*,'(A)') "############################################################"
+      write (*,'(A)') "                     PARALLEL COMPUTING"
+      write (*,'(A)') "############################################################"
+      if (nproc==1) then
+         write (str,'(I10, A)') nproc, " processor."
+         write (*,'(A,A,A)') " Running on ", adjustl(trim(str))
+      else
+         write (str,'(I10, A)') nproc, " processors."
+         write (*,'(A,A,A)') " Running on ", adjustl(trim(str))
+      end if
+      write(*,*)
     end if
 
   end subroutine write_start_message
 
+  !==============================================
+  !=============== FINISH STELLA ================
+  !==============================================
   subroutine finish_stella (last_call)
 
     use mp, only: finish_mp
-
     use mp, only: proc0
     use file_utils, only: finish_file_utils
     use job_manage, only: time_message
@@ -357,6 +412,9 @@ contains
        call finish_file_utils
        call time_message(.false.,time_total,' Total')
        write (*,*)
+       write (*,'(A)') "############################################################"
+       write (*,'(A)') "                        ELAPSED TIME"
+       write (*,'(A)') "############################################################"
        write (*,fmt=101) 'initialization:', time_init(1)/60., 'min'
        write (*,fmt=101) 'diagnostics:', time_diagnostics(1)/60., 'min'
        write (*,fmt=101) 'fields:', time_field_solve(1,1)/60., 'min'
