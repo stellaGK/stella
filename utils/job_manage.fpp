@@ -11,7 +11,7 @@ module job_manage
   public :: checktime
   public :: njobs
 
-  integer :: njobs
+  integer :: njobs = 1
 
 contains
 
@@ -53,7 +53,7 @@ contains
        targ(2) = tnew
     else
        targ(1)=targ(1)+tnew-targ(2)
-       if (lprint) print *, chmessage,': ',tnew-targ(2),' seconds'
+       if (lprint) write(*,'(A24,F7.2,A8)') chmessage, tnew-targ(2),' seconds'
        targ(2)=0.
     end if
 

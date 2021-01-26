@@ -75,7 +75,6 @@ contains
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
     use parallel_streaming, only: init_parallel_streaming
-    use dist_redistribute, only: init_redistribute
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
 
@@ -108,8 +107,6 @@ contains
     if (radial_variation) call init_radial_variation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
     call init_dissipation
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_redistribute'
-    call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
 
@@ -645,19 +642,25 @@ contains
     if(runtype_option_switch == runtype_multibox) call scope(subprocs)
     
     if (proc0) then
-       write (*,'(a16)') 'LINEAR CFL_DT: '
-       write (*,'(a9,e12.4)') 'wdriftx: ', cfl_dt_wdriftx
-       write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
-!       if (wdrifty_explicit) write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
-       if (.not.stream_implicit) write (*,'(a9,e12.4)') 'stream: ', cfl_dt_stream
-       if (.not.mirror_implicit) write (*,'(a9,e12.4)') 'mirror: ', cfl_dt_mirror
+       write (*,'(A)') "############################################################"
+       write (*,'(A)') "                        CFL CONDITION"
+       write (*,'(A)') "############################################################"
+       write (*,'(A16)') 'LINEAR CFL_DT: '
+       write (*,'(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
+       write (*,'(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
+       if (.not.stream_implicit) write (*,'(A12,ES12.4)') '   stream: ', cfl_dt_stream
+       if (.not.mirror_implicit) write (*,'(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
        write (*,*)
     end if
 
     if (abs(code_dt) > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,'(a21,e12.4,a35)') 'user-specified delt =', abs(code_dt), 'is larger than cfl_dt*cfl_cushion.'
-          write (*,'(a41,e12.4)') 'changing code_dt to cfl_dt*cfl_cushion =', cfl_dt*cfl_cushion
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt 
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A49,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion ='//REPEAT(' ',50), cfl_dt*cfl_cushion
        end if
        code_dt = sign(1.0,code_dt)*cfl_dt*cfl_cushion
        call reset_dt
@@ -1423,16 +1426,30 @@ contains
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
+          write (*,*) ' ' 
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt 
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' ' 
        end if
        code_dt = cfl_dt*cfl_cushion/delt_adjust
        call reset_dt
        restart_time_step = .true.
     else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
+          write (*,*) ' ' 
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt 
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' ' 
        end if
        code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
@@ -1693,16 +1710,30 @@ contains
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
+          write (*,*) ' ' 
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt 
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' ' 
        end if
        code_dt = cfl_dt*cfl_cushion/delt_adjust
        call reset_dt
        restart_time_step = .true.
     else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
+          write (*,*) ' ' 
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt 
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' ' 
        end if
        code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
@@ -2497,14 +2528,12 @@ contains
     use parallel_streaming, only: finish_parallel_streaming
     use mirror_terms, only: finish_mirror
     use flow_shear, only : finish_flow_shear
-    use dist_redistribute, only: finish_redistribute
     use neoclassical_terms, only: finish_neoclassical_terms
     use dissipation, only: finish_dissipation
 
     implicit none
 
     if (full_flux_surface) call finish_transforms
-    call finish_redistribute
     call finish_dissipation
     call finish_parallel_nonlinearity
     call finish_wstar
