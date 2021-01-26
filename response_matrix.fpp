@@ -400,7 +400,7 @@ contains
                *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
           
           ! In the following, gradpar and maxwell_mu are interpolated separately
-          ! to ensure consistency to what's done in parallel_streaming.f90
+          ! to ensure consistency to what is done in parallel_streaming.f90
 
           ! stream_sign < 0 corresponds to positive advection speed
           if (stream_sign(iv)<0) then

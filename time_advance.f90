@@ -1304,6 +1304,7 @@ contains
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
 
     integer :: ivmu, iz, it, ia, imu, is
+    logical :: yfirst 
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
@@ -1311,6 +1312,7 @@ contains
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
     restart_time_step = .false.
+    yfirst = .not.prp_shear_enabled
 
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
@@ -1319,7 +1321,7 @@ contains
     allocate (bracket(ny,nx))
     allocate (prefac(naky,nx))
 
-    if(full_flux_surface) then
+    if(yfirst) then
       allocate (g0k_swap(2*naky-1,ikx_max))
       allocate (g0kxy(ny,ikx_max))
     else
@@ -1389,10 +1391,15 @@ contains
 
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
-             if (full_flux_surface) then
+             if(yfirst) then
                 call transform_x2kx (bracket, g0kxy)
-                gout(:,:,iz,it,ivmu) = g0kxy
-             else
+                if (full_flux_surface) then
+                  gout(:,:,iz,it,ivmu) = g0kxy
+                else
+                  call transform_y2ky (g0kxy, g0k_swap)
+                  call swap_kxky_back (g0k_swap, gout(:,:,iz,it,ivmu))
+                endif
+             else 
                 call transform_y2ky_xfirst (bracket, g0xky)
                 g0xky = g0xky/prefac
                 call transform_x2kx_xfirst (g0xky, gout(:,:,iz,it,ivmu))
@@ -1453,7 +1460,7 @@ contains
       complex, dimension(:,:), intent (in) :: gk
       real, dimension(:,:), intent (out) :: gx
 
-      if(full_flux_surface) then
+      if(yfirst) then
         ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
         ! want to do 1D complex to complex transform in y
         ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
