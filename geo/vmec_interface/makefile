@@ -40,8 +40,8 @@ else ifeq ($(HOSTNAME), marconi)
 	export EXTRA_LINK_FLAGS = -qopenmp -L$(NETCDFF_HOME)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 else ifeq ($(HOSTNAME), dirac)
 	export FC = ifort
-	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp  -I$(NETCDF_INC_DIR) -I$(NETCDFF_INC_DIR)
-	export EXTRA_LINK_FLAGS = -qopenmp -L$(NETCDF_LIB_DIR) -L$(NETCDFF_LIB_DIR) -lnetcdf -lnetcdff
+	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp 
+	export EXTRA_LINK_FLAGS = -qopenmp -lnetcdf -lnetcdff
 else
 	FC = mpif90
 #	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
