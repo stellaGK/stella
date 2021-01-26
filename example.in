@@ -107,8 +107,7 @@
 
 &stella_diagnostics_knobs
  nwrite = 20
- nsave = 3000
- nmovie = 3000
+ nsave = 3000 
  save_for_restart = .false.
  write_omega = .true.
  write_phi_vs_time = .true.

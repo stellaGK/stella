@@ -25,7 +25,6 @@ module stella_io
 
 # ifdef NETCDF
   integer (kind_nf) :: ncid
-
   integer (kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim
   integer (kind_nf) :: nakx_dim, ntubes_dim, radgridvar_dim
   integer (kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
@@ -57,20 +56,23 @@ module stella_io
   integer :: grho_id, jacob_id, shat_id, drhodpsi_id, q_id, jtwist_id
   integer :: beta_id
   integer :: code_id
-
 # endif
+
   real :: zero
   
 !  include 'netcdf.inc'
   
 contains
 
+  !==============================================
+  !============ INITIATE STELLA IO ==============
+  !==============================================
   subroutine init_stella_io (restart, write_phi_vs_t, write_kspectra, write_gvmus, &
-!       write_gzvs, write_symmetry, write_moments)
        write_gzvs, write_moments, write_radial_fluxes)
 
     use mp, only: proc0
     use file_utils, only: run_name
+
 # ifdef NETCDF
     use netcdf, only: nf90_create, nf90_open, nf90_redef
     use netcdf, only: nf90_clobber, nf90_noclobber, nf90_write
@@ -91,10 +93,12 @@ contains
     if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
     status = nf90_noerr
 
+    ! The netcdf file has the extension ".out.nc"
     filename = trim(trim(run_name)//'.out.nc')
-    ! only proc0 opens the file:
+
+    ! Only the first processor (proc0) opens the file
     if (proc0) then
-       if(restart) then
+       if (restart) then
          status = nf90_create (trim(filename), nf90_noclobber, ncid) 
          if (status /= nf90_noerr) then
            status = nf90_open (trim(filename), nf90_write, ncid) 
@@ -107,7 +111,6 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, file=filename)
 
        call define_dims
-!       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_symmetry, write_moments)
        call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
        call nc_grids
        call nc_species
