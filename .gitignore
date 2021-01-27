@@ -19,3 +19,5 @@ sfincs_interface.f90
 spfunc.f90
 stella_io.f90
 stella_save.f90
+*.ini
+*.pickle
