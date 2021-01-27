@@ -1,1 +1,0 @@
-/home/jose/Computing/lab_python/pyvmec/read_wout.py
