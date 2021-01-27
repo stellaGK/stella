@@ -1,0 +1,344 @@
+
+####################################################################
+# System requirements
+####################################################################
+
+* python 3.6.2 (for configparser and PosixPath modules)
+* tkinter 8.5 (check with >>> python 3 >>> import tkinter >>> tkinter.TkVersion)
+* TCL 8.5 (check with >>> python 3 >>> import tkinter >>> tkinter.TclVersion)
+* Many other python packages which the command prompt should give you a warning for when
+  attempting to run the GUI, simply install the packages with pip. 
+* Dont forget to set up the stellapy/config/config.ini file which is generated 
+  after the first launch of the GUI. 
+
+####################################################################
+# Quick guide on how to use stella and the stellapy module
+####################################################################
+
+A. Run a simulation with stella from the supercomputer
+B. Run a simulation with stella from the local computer
+C. Restart a nonlinear run on marconi
+D. Diagnose the data with stellapy on the local computer
+E. Diagnose the data with stellapy on the supercomputer
+F. Update the stella or stellapy code on the supercomputer
+
+#========================================================
+  A. Run a simulation with stella from the supercomputer
+#========================================================
+
+1. Log onto the marconi supercomputer
+    >>> marconi
+2. Go to the run directory
+    >>> cd $RUNS
+3. Make a folder for the simulations; add the magnetic field file and the stella code
+    >>> mkdir w7xr169_0001
+    >>> ln -s /marconi_work/FUA33_EUCIEMAT/common/EQUIL/w7xr169/wout_w7x_ref_169_B+252.nc wout_w7xr169+252.nc
+    >>> ln -s ~/stella/stella
+4. Set up the file containing the input parameters and the file containing the simulation parameters
+    >>> emacs nl_s13_B348_rho0.5.in
+    >>> emacs eu.slurm
+5. Run the simulation, for linear simulations you can use kyscan (runs 45 ky values), otherwise use qsub eu.slurm to simulate a specific input file
+    >>> kyscan full                         
+    >>> qsub eu.slurm
+
+#========================================================
+  B. Run a simulation with stella from the local computer
+#========================================================
+
+1. Set up the files in a reference folder in the $NEWRUNS directory
+    >>> mkdir example_ref
+    --> add eu.slurm
+    --> add input_rho_kyscan_ad.in; input_rho_kyscan_kin; input_rho_nonlinear_ad; input_rho_nonlinear_kin; input_convdt_nonlinear_ad; ...
+    --> add the raw data of the profiles in case you want to change to SI units later on
+2. Copy the reference folder and make new folders to run specific simulations
+    >>> create_newSimulationFolder -r "rho_kyscan_ad" -s "[0.5, 0.6, 0,7]"
+    --> This will create a folder example_rho0.5; example_rho0.6 and example_rho0.7
+    --> The rho's will be adjustd automatically in the input file as well as the eu.slurm file
+    --> The raw data of the profiles will be converted in a txt file with the profiles and gradients at rho=[0.1, 0.2, 0.3, 0.4, 0.5, ...]
+3. Synchronize these new folders to marconi
+    >>> sync_newRunsToMarconi
+4. Log onto marconi and start the simulations
+    >>> marconi
+    >>> qsub eu.slurm
+
+#========================================================
+  C. Restart a nonlinear run on marconi
+#========================================================  
+
+1. Make sure the restart folder was present before launching the simulation
+    >>> mkdir restart
+2. Move all the files in to a folder "run1", "run2", "run3", ..
+    >>> move_to_subfolder
+
+#==========================================================
+  D. Diagnose the data with stellapy on the local computer
+#==========================================================
+
+1. Reduce the size of some files since the output of stella is generally a lot bigger than required to diagnose it
+    >>> reduce_size_netcdf      # Perform in the simulation folder, it will write a smaller output file "*.out.h5" based on ".out.nc"
+    >>> reduce_size_wout        # Perform in the simulation folder, it will write a smaller magnetic field file "wout*.h5 based on "wout*.nc"
+    >>> reduce_size_files       # Will perform the above 2 commands in each folder in $RUNS, add --dontwriteagain to not overwrite existing ".h5" files
+
+2. Download the files to the local computer
+    >>> sync_runsFromMarconi
+
+3. Either open the stella GUI or run the stellapy bash commands in the simulation folder
+    >>> stellaplotter           # Opens the GUI
+    >>> plot_omega_vs_t         # For example use this bash command in the simulation folder
+    >>> help_stellapy           # Lists all possible bash commands, use plot_omega_vs_t --help to see the options for a single command
+
+#========================================================
+  E. Diagnose the data with stellapy on the supercomputer        (note that this is a lot slower)
+#========================================================
+
+1. To use the stellapy module on a supercomputer, load the personal python environment
+    >>> my_pyth
+
+2. Either open the stella GUI or run the stellapy bash commands in the simulation folder
+    >>> stellaplotter           # Opens the GUI
+    >>> plot_omega_vs_t         # For example use this bash command in the simulation folder
+    >>> help_stellapy           # Lists all possible bash commands, use plot_omega_vs_t --help to see the options for a single command
+
+#============================================================
+  F. Update the stella or stellapy code on the supercomputer
+#============================================================
+
+1. Syncronize the new code to the supercomputer (for marconi)
+    >>> sync_stellaToMarconi
+
+2. Log onto the marconi supercomputer
+    >>> marconi
+
+3. Compile the stella code in case any modifications were made
+    >>> stella 		# Load modules
+    >>> make clean 		# Do this in the stella folder
+    >>> make		# Compile stella: creates stella file in stella folder
+
+
+####################################################################
+# The steps to make the stellapy module and appliciation work.
+####################################################################
+
+#==============================================
+Files required for stellapy
+#==============================================
+
+The following files should be set up to make the diagnostic tool work. The files and commands are explained in the following sections.
+Replace the paths with the appropriate paths set it up correctly on your computer.
+
+    "~/.alias" file on the local computer where the diagnostics stool is installed
+
+# Tell the terminal where to look for the python start up file
+export PYTHONSTARTUP=~/.python/startup.py
+
+# Make shortcuts to path folders
+export STELLA='/home/hanne/CIEMAT/stella'                                                                   ! UPDATE PATH
+export STELLAPY='/home/hanne/CIEMAT/stella/stellapy'                                                        ! UPDATE PATH
+export STELLA_MARCONI='hthienpo@login.marconi.cineca.it:/marconi/home/userexternal/hthienpo/stella/'        ! UPDATE PATH
+export COMMON='/marconi_work/FUA33_EUCIEMAT/common/'                                                        ! UPDATE PATH
+export RUNS='/home/hanne/CIEMAT/RUNS/'                                                                      ! UPDATE PATH
+export RUN='/home/hanne/CIEMAT/RUNS/'                                                                       ! UPDATE PATH
+export RUNS_MARCONI='hthienpo@login.marconi.cineca.it:/marconi_work/FUA34_KINCIEMA/hanne/RUNS/'             ! UPDATE PATH
+
+# Plotting tool
+alias stellaplotter='python3 $STELLAPY/GUI/stella_GUI.py' 
+
+# Load the source file with python commands
+source $STELLAPY/commands/source_commandsStellapy.sh 
+
+# Log on to the marconi supercomputer
+alias marconi='ssh -X hthienpo@login.marconi.cineca.it'
+
+# Log in to the XULA cluster of CIEMAT
+alias xula='ssh -X e5368@xula01.ciemat.es'
+
+
+
+    "~/.alias" on the supercomputer where the stella code is run; 
+    The "load.sh", "move_to_subfolder.sh" and "mycommands.sh" are in "$BASHCRIPTS/supercomputer_marconi/" and should be added to marconi
+
+# Set up some system environments
+export RUNS='/marconi_work/FUA34_KINCIEMA/hanne/RUNS'
+export RUNSS='/marconi_scratch/userexternal/hanne/RUNS'
+export COMMON='/marconi_work/FUA34_KINCIEMA/common'
+export RUNSOLD='/marconi_work/FUA33_EUCIEMAT/hanne/RUNS'
+export STELLA='/marconi/home/userexternal/hthienpo/stella'
+export STELLAPY='/marconi/home/userexternal/hthienpo/stella/stellapy'
+
+# Set up some shortcuts to work as batch commands                       
+alias cdn='cd /marconi_work/FUA34_KINCIEMA/hanne/RUNS'
+alias cdns='cd /marconi_scratch/userexternal/hanne/RUNS'
+alias my_pyth='source ~/my_pyth/bin/activate'                               # A personal python environment needs to be made on the supercomputer
+alias quota='saldo -b --skl && saldo -b --knl'
+alias quotau='saldo -ra FUA34_KINCIEMA --skl'
+alias emacs='emacs -nw'
+
+# Personal batch commands
+source ~/init/mycommands.sh
+alias touchall='find . -type f -exec touch {} \;'
+alias move_to_subfolder='/marconi/home/userexternal/hthienpo/init/move_to_subfolder.sh'
+alias stella="source ~/init/load.sh stella"                                 # Aliases for loading modules and eviroment variables for different codes.
+# Sumission aliases
+alias qsub='sbatch'
+alias qdel='scancel'
+alias run='squeue -u hthienpo'
+
+# Remove all files exept the reference and input files
+alias rms='rm *_ky_* .*in volcar_omega.sh slurm-* *.out *err *.error input_list.dat species.input *out.nc *.vmec_geo *.jacob *.omega *.final_fields *.fl\
+uxes'
+
+# Load the python startup file
+export PYTHONSTARTUP=~/.python/startup.py
+
+# Stellaplotter
+alias stellaplotter='python3 /marconi/home/userexternal/hthienpo/stella/stellapy/GUI/stella_GUI.py'
+
+# Load the source file with python commands
+source /marconi/home/userexternal/hthienpo/stella/stellapy/commands/source_commandsStellapy.sh
+
+
+
+
+
+    "~/.local/share/applications/stellaplotter.desktop" optional file if you want the GUI to be listed between the pc applications
+
+[Desktop Entry]
+Name=Stellapy
+Exec=/home/hanne/Dropbox/stella/stellapy/commands/run_GUIFromDesktop.sh          ! UPDATE PATH
+Path=/home/hanne/Dropbox/stella/stellapy/commands/                               ! UPDATE PATH
+Icon=/home/hanne/Dropbox/stella/stellapy/GUI/interface/stellarator_long.png      ! UPDATE PATH
+Terminal=false
+Type=Application
+Categories=Application;
+StartupNotify=true
+
+
+
+    "~/.python/startup.py" on local computer
+
+import sys, os
+sys.path.append(os.environ['STELLA'])
+import stellapy
+from imp import reload
+
+
+
+    "~/.python/startup.py" on supercomputer
+
+import sys
+sys.path.append('/marconi/home/userexternal/hthienpo/stella')
+import stellapy
+from imp import reload
+
+
+
+    "$STELLAPY/bashscripts/stella_GUI.sh" needed to make the desktop icon work
+
+#!/bin/sh
+
+# Make shortcuts to path folders
+export STELLA='/home/hanne/Dropbox/stella'                                          ! UPDATE PATH
+export STELLAPY='/home/hanne/Dropbox/stella/stellapy'                               ! UPDATE PATH
+
+# Run the script
+/usr/bin/python3 $STELLAPY/bashscripts/stella_GUI.py >> ./crash.log 2>&1
+
+
+
+####################################################################
+# Explanation of the commands in the required files
+####################################################################
+
+#====================================================================
+Set up system variables so the code knows where to find its own code
+#====================================================================
+
+Add to the .alias file, to initiate soms system variables when the PC starts up:            
+     
+        export STELLA='/home/hanne/CIEMAT/stella'
+        export STELLAPY='/home/hanne/CIEMAT/stella/stellapy'
+        export STELLA_MARCONI='hthienpo@login.marconi.cineca.it:/marconi/home/userexternal/hthienpo/stella/'
+
+#==============
+Stellapy GUI
+#==============
+
+Note that launching the GUI directly from the command prompt with "stellaplotter" is slightly faster than using it as a desktop application.
+
+    - Link the stellapy application to a bash command by adding the following line to the ".alias" file
+
+        alias stellaplotter='python3 /home/hanne/Dropbox/stella/stellapy/bashscripts/stella_GUI.py' 
+
+
+The GUI can be added to the applications of the PC by making a desktop icon and setting up the system variables. 
+
+    - Add the following file to ".local/share/applications/", change the locations appropriately, and save it as "stellaplotter.desktop"
+
+        [Desktop Entry]
+        Name=Stellapy
+        Exec=/home/hanne/Dropbox/stella/stellapy/bashscripts/stella_GUI.sh
+        Path=/home/hanne/Dropbox/stella/stellapy/bashscripts/
+        Icon=/home/hanne/Dropbox/stella/stellapy/GUI/interface/stellarator_long.png
+        Terminal=false
+        Type=Application
+        Categories=Application;
+        StartupNotify=true
+
+    - Add the system variables to $STELLAPY/bashscripts/stella_GUI.sh file: applications do not have access to the system variables in the .alias file
+
+        export STELLA='/home/hanne/Dropbox/stella'
+        export STELLAPY='/home/hanne/Dropbox/stella/stellapy'
+
+#===================================================
+Use the functions directly from the command prompt
+#====================================================
+
+All commands can be used from the command prompt through the following bash commands. 
+Some variables can be changed through the normal batch syntax, other variables can be set to a default value in the bash scripts.
+
+    - Source the file with python commands to make the diagnostics work from the command prompt by adding the following line to the ".alias" file
+
+        source $STELLAPY/bashscripts/source_python_functions.sh
+
+    - Add the location of the baschscripts to "$STELLAPY/bashscripts/source_python_functions.sh", this can be set for the local PC and the supercomputer
+
+        if [ $HOME = "/marconi/home/userexternal/hthienpo" ]; then
+        BASHSCRIPTS="/marconi/home/userexternal/hthienpo/stella/stellapy/bashscripts"
+        fi
+
+        if [ $HOME = "/home/hanne" ]; then
+        BASHSCRIPTS="$STELLAPY/bashscripts"
+        fi
+
+#===========================================
+Use the functions in python interactively
+#===========================================
+
+Add to the .alias file so the PC knows where to find the python startup file:
+
+    export PYTHONSTARTUP=~/.python/startup.py
+
+Add to the python start up file "=~/.python/startup.py", to work interactively:
+
+    import sys, os
+    sys.path.append(os.environ['STELLA'])
+    import stellapy
+    from imp import reload
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
