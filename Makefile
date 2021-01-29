@@ -339,7 +339,7 @@ sinclude Makefile.target_$(GK_PROJECT)
 #.PRECIOUS: $(F90FROMFPP)
 
 .INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
-		mp.f90 fft_work.f90
+		mp.f90 fft_work.f90 response_matrix.f90 multibox.f90
 
 ############################################################# MORE DIRECTIVES
 
