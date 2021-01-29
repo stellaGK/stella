@@ -40,7 +40,7 @@ module stella_save
      module procedure stella_restore_many
   end interface
 
-  logical :: read_many, save_many ! Read and write single or multiple restart files
+  logical :: read_many = .true., save_many = .true. ! Read and write single or multiple restart files
   
   private
   character (300), save :: restart_file
@@ -102,6 +102,7 @@ contains
     character (10) :: suffix
     integer :: i, n_elements, nvmulo_elements, ierr
     integer :: total_elements, total_vmulo_elements
+    logical :: has_vmulo
 # ifdef NETCDF_PARALLEL
     integer, dimension(3) :: start_pos, counts
 # endif
@@ -129,6 +130,8 @@ contains
     total_vmulo_elements = vmu_lo%ulim_world+1
 
     if (n_elements <= 0) return
+
+    has_vmulo = nvmulo_elements.gt.0.or..not.save_many
 
     if (.not.initialized) then
 
@@ -246,17 +249,24 @@ contains
 # ifdef NETCDF_PARALLEL                              
           if(save_many) then
 # endif
-             istatus = nf90_def_dim (ncid, "gvmulo", nvmulo_elements, gvmuloid)
+            if(nvmulo_elements.gt.0) then
+              istatus = nf90_def_dim (ncid, "gvmulo", nvmulo_elements, gvmuloid)
+              if (istatus /= NF90_NOERR) then
+                ierr = error_unit()
+                write(ierr,*) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
+                goto 1
+              endif 
+            endif
 # ifdef NETCDF_PARALLEL                    
           else        
-             istatus = nf90_def_dim (ncid, "gvmulo", total_vmulo_elements, gvmuloid)
+            istatus = nf90_def_dim (ncid, "gvmulo", total_vmulo_elements, gvmuloid)
+            if (istatus /= NF90_NOERR) then
+              ierr = error_unit()
+              write(ierr,*) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
+              goto 1
+            endif
           endif
 # endif
-          if (istatus /= NF90_NOERR) then
-             ierr = error_unit()
-             write(ierr,*) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
-             goto 1
-          end if
           
           istatus = nf90_def_dim (ncid, "aky", naky, kyid)
           if (istatus /= NF90_NOERR) then
@@ -313,7 +323,7 @@ contains
              goto 1
           end if
              
-          if (include_krook_operator) then
+          if (include_krook_operator.and.has_vmulo) then
              istatus = nf90_def_var (ncid, "intkrook", netcdf_real, intkrook_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
@@ -339,7 +349,7 @@ contains
 
           end if
 
-          if (remove_zero_projection) then
+          if (remove_zero_projection.and.has_vmulo) then
              istatus = nf90_def_var (ncid, "intproj", netcdf_real, intproj_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
@@ -680,11 +690,15 @@ contains
     character (306) :: file_proc
     character (10) :: suffix
     integer :: i, n_elements, nvmulo_elements, ierr
+    logical :: has_vmulo
     real :: fac
     
     n_elements = kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1
     nvmulo_elements = vmu_lo%ulim_proc-vmu_lo%llim_proc+1
+
     if (n_elements <= 0) return
+
+    has_vmulo = nvmulo_elements.gt.0.or.read_many
     
     if (.not.initialized) then
 !       initialized = .true.
@@ -724,8 +738,10 @@ contains
        istatus = nf90_inq_dimid (ncid, "glo", gloid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='glo')
 
-       istatus = nf90_inq_dimid (ncid, "gvmulo", gvmuloid)
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='gvmulo')
+       if(has_vmulo) then
+         istatus = nf90_inq_dimid (ncid, "gvmulo", gvmuloid)
+         if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='gvmulo')
+       endif
               
        istatus = nf90_inquire_dimension (ncid, tubeid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=tubeid)
@@ -748,25 +764,28 @@ contains
 #ifdef NETCDF_PARALLEL       
        if(read_many) then
 #endif
-          if (i /= kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
+          if (i /= n_elements) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
 #ifdef NETCDF_PARALLEL
        else
           if (i /= kxkyz_lo%ulim_world+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
        endif
 #endif
-       istatus = nf90_inquire_dimension (ncid, gvmuloid, len=i)
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=gvmuloid)
+
+       if(has_vmulo) then
+         istatus = nf90_inquire_dimension (ncid, gvmuloid, len=i)
+         if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=gvmuloid)
 #ifdef NETCDF_PARALLEL       
-       if(read_many) then
+         if(read_many) then
 #endif
-          if (i /= vmu_lo%ulim_proc-vmu_lo%llim_proc+1) write(*,*) 'Restart error: gvmulo=? ',i,' : ',iproc
+           if (i /= nvmulo_elements) write(*,*) 'Restart error: gvmulo=? ',i,' : ',iproc
 #ifdef NETCDF_PARALLEL
-       else
-          if (i /= vmu_lo%ulim_world+1) write(*,*) 'Restart error: gvmulo=? ',i,' : ',iproc
-       endif
+         else
+           if (i /= vmu_lo%ulim_world+1) write(*,*) 'Restart error: gvmulo=? ',i,' : ',iproc
+         endif
 #endif
+       endif
        
-       if(include_krook_operator) then
+       if(include_krook_operator.and.has_vmulo) then
           istatus = nf90_inq_varid (ncid, "intkrook", intkrook_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='intkrook')
 
@@ -778,7 +797,7 @@ contains
 
        endif
 
-       if(remove_zero_projection) then
+       if(remove_zero_projection.and.has_vmulo) then
           istatus = nf90_inq_varid (ncid, "intproj", intproj_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='intproj')
 
@@ -849,7 +868,7 @@ contains
     g = cmplx(tmpr, tmpi)
     
 
-    if(include_krook_operator) then
+    if(include_krook_operator.and.has_vmulo) then
       if (.not. allocated(ktmpr)) &
         allocate (ktmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(ktmpi)) &
@@ -889,7 +908,7 @@ contains
       
     endif
 
-    if(remove_zero_projection) then
+    if(remove_zero_projection.and.has_vmulo) then
       if (.not. allocated(ptmpr)) &
         allocate (ptmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(ptmpi)) &
