@@ -49,9 +49,7 @@ module stella_save
   real, allocatable, dimension (:,:,:) :: tmpr, tmpi
   real, allocatable, dimension (:,:,:) :: ktmpr, ktmpi
   real, allocatable, dimension (:,:,:)   :: ptmpr, ptmpi
-  real, allocatable, dimension (:,:,:,:) :: ftmpr, ftmpi
   integer (kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
-  integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id
   integer (kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
 !  integer (kind_nf) :: bparr_id, bpari_id
   integer (kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
@@ -70,10 +68,10 @@ contains
 !!----------------------------------------------------------------------!!
 
   subroutine stella_save_for_restart &
-       (g, istep0, t0, delt0, istatus, fphi, fapar, exit_in, fileopt)
+       (g, istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
-    use fields_arrays, only: phi, apar, shift_state
+    use fields_arrays, only: shift_state
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # else
@@ -95,7 +93,6 @@ contains
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, intent (in) :: t0, delt0
-    real, intent (in) :: fphi, fapar
     integer, intent (in) :: istep0
     integer, intent (out) :: istatus
     logical, intent (in), optional :: exit_in
@@ -316,42 +313,6 @@ contains
              goto 1
           end if
              
-          if (fphi > epsilon(0.)) then
-             istatus = nf90_def_var (ncid, "phi_r", netcdf_real, &
-                  (/ kyid, kxid, zedid, tubeid/), phir_id)
-             if (istatus /= NF90_NOERR) then
-                ierr = error_unit()
-                write(ierr,*) "nf90_def_var phi error: ", nf90_strerror(istatus)
-                goto 1
-             end if
-             
-             istatus = nf90_def_var (ncid, "phi_i", netcdf_real, &
-                  (/ kyid, kxid, zedid, tubeid /), phii_id)
-             if (istatus /= NF90_NOERR) then
-                ierr = error_unit()
-                write(ierr,*) "nf90_def_var phi error: ", nf90_strerror(istatus)
-                goto 1
-             end if
-          end if
-
-          if (fapar > epsilon(0.)) then
-             istatus = nf90_def_var (ncid, "apar_r", netcdf_real, &
-                  (/ kyid, kxid, zedid, tubeid /), aparr_id)
-             if (istatus /= NF90_NOERR) then
-                ierr = error_unit()
-                write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
-                goto 1
-             end if
-             
-             istatus = nf90_def_var (ncid, "apar_i", netcdf_real, &
-                  (/ kyid, kxid, zedid, tubeid /), apari_id)
-             if (istatus /= NF90_NOERR) then
-                ierr = error_unit()
-                write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
-                goto 1
-             end if
-          end if
-
           if (include_krook_operator) then
              istatus = nf90_def_var (ncid, "intkrook", netcdf_real, intkrook_id)
              if (istatus /= NF90_NOERR) then
@@ -541,47 +502,6 @@ contains
 
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, gi_id)
           
-# ifdef NETCDF_PARALLEL                    
-       if(save_many .or. iproc == 0) then
-# endif
-
-          if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1,ntubes))
-          if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1,ntubes))
-          
-          if (fphi > epsilon(0.)) then
-             ftmpr = real(phi)
-             istatus = nf90_put_var (ncid, phir_id, ftmpr)
-             if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phir_id)
-             
-             ftmpi = aimag(phi)
-             istatus = nf90_put_var (ncid, phii_id, ftmpi)
-             if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phii_id)
-          end if
-
-          if (fapar > epsilon(0.)) then
-             ftmpr = real(apar)
-             istatus = nf90_put_var (ncid, aparr_id, ftmpr)
-             if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, aparr_id)
-             
-             ftmpi = aimag(apar)
-             istatus = nf90_put_var (ncid, apari_id, ftmpi)
-             if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, apari_id)
-          end if
-
-!           if (fbpar > epsilon(0.)) then
-!              ftmpr = real(bparnew)
-!              istatus = nf90_put_var (ncid, bparr_id, ftmpr)
-!              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bparr_id)
-             
-!              ftmpi = aimag(bparnew)
-!              istatus = nf90_put_var (ncid, bpari_id, ftmpi)
-!              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bpari_id)
-!           end if
-
-# ifdef NETCDF_PARALLEL
-       end if
-# endif
-
        if (include_krook_operator) then
          if (.not. allocated(ktmpr)) &
            allocate (ktmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -717,8 +637,6 @@ contains
 
     if (allocated(tmpr))  deallocate (tmpr)
     if (allocated(tmpi))  deallocate (tmpi)
-    if (allocated(ftmpr)) deallocate (ftmpr)
-    if (allocated(ftmpi)) deallocate (ftmpi)
     if (allocated(ptmpr)) deallocate (ptmpr)
     if (allocated(ptmpi)) deallocate (ptmpi)
     if (allocated(ktmpr)) deallocate (ktmpr)
@@ -734,10 +652,10 @@ contains
 !!----------------------------------------------------------------------!!
 !!----------------------------------------------------------------------!!
 
-  subroutine stella_restore_many (g, scale, istatus, fphi, fapar)
+  subroutine stella_restore_many (g, scale, istatus)
 # ifdef NETCDF
     use mp, only: iproc
-    use fields_arrays, only: phi, apar, shift_state
+    use fields_arrays, only: shift_state
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # endif
@@ -755,7 +673,6 @@ contains
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (out) :: g
     real, intent (in) :: scale
     integer, intent (out) :: istatus
-    real, intent (in) :: fphi, fapar
 # ifdef NETCDF
 # ifdef NETCDF_PARALLEL
     integer, dimension(3) :: counts, start_pos
@@ -849,22 +766,6 @@ contains
        endif
 #endif
        
-       if (fphi > epsilon(0.)) then
-          istatus = nf90_inq_varid (ncid, "phi_r", phir_id)
-          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='phi_r')
-          
-          istatus = nf90_inq_varid (ncid, "phi_i", phii_id)
-          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='phi_i')
-       end if
-
-       if (fapar > epsilon(0.)) then
-          istatus = nf90_inq_varid (ncid, "apar_r", aparr_id)
-          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='apar_r')
-          
-          istatus = nf90_inq_varid (ncid, "apar_i", apari_id)
-          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='apar_i')
-       end if
-
        if(include_krook_operator) then
           istatus = nf90_inq_varid (ncid, "intkrook", intkrook_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='intkrook')
@@ -947,35 +848,6 @@ contains
 
     g = cmplx(tmpr, tmpi)
     
-    if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1,ntubes))
-    if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1,ntubes))
-
-!    if (allocated(kx_shift)) then   ! MR begin
-!       if (.not. allocated(stmp)) allocate (stmp(naky))   ! MR 
-!       istatus = nf90_get_var (ncid, kx_shift_id, stmp)
-!       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, kx_shift_id)
-!       kx_shift = stmp
-!    endif   ! MR end
-
-    if (fphi > epsilon(0.)) then
-       istatus = nf90_get_var (ncid, phir_id, ftmpr)
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phir_id)
-       
-       istatus = nf90_get_var (ncid, phii_id, ftmpi)
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phii_id)
-       
-       phi = cmplx(ftmpr, ftmpi)
-    end if
-
-    if (fapar > epsilon(0.)) then
-       istatus = nf90_get_var (ncid, aparr_id, ftmpr)
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, aparr_id)
-       
-       istatus = nf90_get_var (ncid, apari_id, ftmpi)
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, apari_id)
-       
-       apar = cmplx(ftmpr, ftmpi)
-    end if
 
     if(include_krook_operator) then
       if (.not. allocated(ktmpr)) &
@@ -1063,31 +935,12 @@ contains
     endif
 
 
-!     if (fbpar > epsilon(0.)) then
-!        istatus = nf90_get_var (ncid, bparr_id, ftmpr)
-!        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bparr_id)
-       
-!        istatus = nf90_get_var (ncid, bpari_id, ftmpi)
-!        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bpari_id)
-       
-!        bparold = 0.
-!        bparnew = cmplx(ftmpr, ftmpi)
-!     end if
 
     if (scale > 0.) then
        g = g*scale
-       phi = phi*scale
-       apar = apar*scale
        if(include_krook_operator) g_krook = g_krook*scale
        if(remove_zero_projection) g_proj = g_proj*scale
-    else
-       fac = - scale/(maxval(abs(phi)))
-       g = g*fac
-       phi = phi*fac
-       apar = apar*fac
-       if(include_krook_operator) g_krook = g_krook*fac
-       if(remove_zero_projection) g_proj = g_proj*fac
-    end if
+    endif
 
     ! RN 2008/05/23: this was commented out. why? HJL 2013/05/15 Because it stops future writing to the file
 !    istatus = nf90_close (ncid)
@@ -1105,8 +958,6 @@ contains
 
     if (allocated(tmpr))  deallocate (tmpr)
     if (allocated(tmpi))  deallocate (tmpi)
-    if (allocated(ftmpr)) deallocate (ftmpr)
-    if (allocated(ftmpi)) deallocate (ftmpi)
     if (allocated(ptmpr)) deallocate (ptmpr)
     if (allocated(ptmpi)) deallocate (ptmpi)
     if (allocated(ktmpr)) deallocate (ktmpr)
@@ -1237,8 +1088,6 @@ contains
     
     if (allocated(tmpr))  deallocate (tmpr)
     if (allocated(tmpi))  deallocate (tmpi)
-    if (allocated(ftmpr)) deallocate (ftmpr)
-    if (allocated(ftmpi)) deallocate (ftmpi)
 
   end subroutine finish_save
 

@@ -53,7 +53,7 @@ program stella
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus)
      end if
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
@@ -262,12 +262,10 @@ contains
           call init_response_matrix
        end if
     end if
-    !
-    if (.not.restarted) then
-       if (debug) write (6,*) 'stella::init_stella::get_fields'
-       ! get initial field from initial distribution function
-       call advance_fields (gnew, phi, apar, dist='gbar')
-    end if
+
+    if (debug) write (6,*) 'stella::init_stella::get_fields'
+    ! get initial field from initial distribution function
+    call advance_fields (gnew, phi, apar, dist='gbar')
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
     if(runtype_option_switch.eq.runtype_multibox) then

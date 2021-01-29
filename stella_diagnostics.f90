@@ -1358,7 +1358,7 @@ contains
     end if
     if (save_for_restart) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, .true.)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, .true.)
     end if
     call finish_stella_io
     call finish_averages

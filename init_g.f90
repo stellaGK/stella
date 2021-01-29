@@ -647,7 +647,7 @@ contains
 
     ! should really check if profile_variation=T here but need
     ! to move profile_variation to module that is accessible here
-    call stella_restore (gvmu, scale, istatus, fphi, fapar)
+    call stella_restore (gvmu, scale, istatus)
 
     if (istatus /= 0) then
        ierr = error_unit()
