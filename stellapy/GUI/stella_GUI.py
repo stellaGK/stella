@@ -132,11 +132,11 @@ tab_header = ttk.Notebook(root, style='header.TNotebook')
 # Add frames to the tab_header which are the tab windows
 root.tab1 = ttk.Frame(tab_header) 
 root.tab2 = ttk.Frame(tab_header) 
-root.tab3 = ttk.Frame(tab_header)  
-root.tab7 = ttk.Frame(tab_header) 
+root.tab3 = ttk.Frame(tab_header) 
 root.tab4 = ttk.Frame(tab_header)  
 root.tab5 = ttk.Frame(tab_header)   
-root.tab6 = ttk.Frame(tab_header)    
+root.tab6 = ttk.Frame(tab_header)   
+root.tab7 = ttk.Frame(tab_header)    
 
 # Make the root accessible for the tabs
 for tab in [root.tab1, root.tab2, root.tab3, root.tab4, root.tab5, root.tab6, root.tab7]:
@@ -145,10 +145,11 @@ for tab in [root.tab1, root.tab2, root.tab3, root.tab4, root.tab5, root.tab6, ro
 # Add the tabs to the tab header
 tab_header.add(root.tab1, text='Simulations')
 tab_header.add(root.tab2, text='Plasma profiles')
-tab_header.add(root.tab3, text='Linear convergence')
-tab_header.add(root.tab5, text='Linear analysis')
-tab_header.add(root.tab6, text='Nonlinear time traces')
-tab_header.add(root.tab7, text='Nonlinear surface plots')
+tab_header.add(root.tab3, text='Linear time traces')
+tab_header.add(root.tab4, text='Linear spectra')
+tab_header.add(root.tab5, text='Nonlinear time traces')
+tab_header.add(root.tab6, text='Nonlinear surface plots')
+tab_header.add(root.tab7, text='Videos')
 tab_header.pack(expand=1, fill='both')
 
 # Keep track of the plotting classes for the poppedout windows
@@ -159,8 +160,8 @@ root.canvasPoppedOut = [] # Keep track of the canvasses of the poppedout windows
 root.tab_Simulations = TabSelectedFiles(root.tab1) # Class TabSelectedFiles makes the window for tab1 
 root.tab_Profiles    = TabProfiles(root.tab2)      # Class TabProfiles makes the window for tab2
 root.tab_Convergence = TabConvergence(root.tab3)   # Class TabConvergence makes the window for tab3 
-root.tab_Linear      = TabLinear(root.tab5)        # Class tab_Linear makes the window for tab5  
-root.tab_Nonlinear   = TabNonlinear(root.tab6)     # Class tab_Nonlinear makes the window for tab6
+root.tab_Linear      = TabLinear(root.tab4)        # Class tab_Linear makes the window for tab5  
+root.tab_Nonlinear   = TabNonlinear(root.tab5)     # Class tab_Nonlinear makes the window for tab6  
 root.tab_Videos      = TabVideos(root.tab7)        # Class TabVideos makes the window for tab7    
 root.update_idletasks()
 

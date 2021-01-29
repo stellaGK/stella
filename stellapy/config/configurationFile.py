@@ -82,7 +82,7 @@ def create_defaultConfigurationFile():
         'TextEditor' : 'emacs'}
     
     CONFIG['COLORS AND FONTS'] = {
-        'Theme' : 'awdark'} 
+        'Theme' : 'awlight'} 
     
     CONFIG['PATHS'] = {
         'Stella' : path_currentFile.split("stellapy")[0],\

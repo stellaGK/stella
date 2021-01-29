@@ -1,5 +1,3 @@
-from stellapy.utils import initiate_nesteddict
-
 
 # TODO: Change "impurity x" to something that recognizes the impurity
 
@@ -19,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 # Personal modules
+from stellapy.utils import initiate_nesteddict
 from stellapy.GUI.graph_tools import Progress
 from stellapy.GUI.graph_tools import CanvasForGraphs, PoppedOutWindow
 from stellapy.GUI.graph_tools import PAD_TITLE2, PAD_LABEL2, PAD_ENTRY2 #@unusedimport 
@@ -26,6 +25,7 @@ from stellapy.GUI.graph_tools import PAD_TITLE2, PAD_LABEL2, PAD_ENTRY2 #@unused
 # Plots
 from stellapy.plot import plot_fluxesVsTime
 from stellapy.plot import plot_saturatedfluxVsRho
+from stellapy.plot import plot_potentialVsTime
 
 #################################################################
 #                   CLASS FOR THE FIRST TAB
@@ -83,6 +83,7 @@ class TabNonlinear:
         # Create the frames and add them to the tab3
         self.frame_graph1   = ttk.LabelFrame(self.window, text="   Fluxes versus time  ", **self.dict_awthemes['labelframe2'])
         self.frame_graph2   = ttk.LabelFrame(self.window, text="   Satured flux versus parameter  ", **self.dict_awthemes['labelframe2'])
+        self.frame_graph3   = ttk.LabelFrame(self.window, text="   Potential squared versus time  ", **self.dict_awthemes['labelframe2'])
         self.frame_options  = ttk.Frame(self.window) 
 
         # Configure the frames     
@@ -95,6 +96,8 @@ class TabNonlinear:
         self.frame_options.grid(in_=self.window, row=0, column=0, padx=(20,20), pady=(5,10),stick='NSEW', columnspan=2)
         self.frame_graph1.grid( in_=self.window, row=1, column=0, padx=(20,10), pady=(10,20),stick='NSEW')
         self.frame_graph2.grid( in_=self.window, row=1, column=1, padx=(10,20), pady=(10,20),stick='NSEW')
+        self.frame_graph3.grid( in_=self.window, row=1, column=0, padx=(20,10), pady=(10,20),stick='NSEW')
+        self.frame_graph3.grid_remove()
         
         # Initiate the widgets in the frame with the options
         self.initiate_frameOptions()
@@ -103,6 +106,7 @@ class TabNonlinear:
         # Bind focus on every click on a widget: this makes sure the entry widgets become unfocused
         self.frame_graph1.bind("<1>", lambda event: self.frame_graph1.focus_set())
         self.frame_graph2.bind("<1>", lambda event: self.frame_graph2.focus_set())
+        self.frame_graph3.bind("<1>", lambda event: self.frame_graph2.focus_set())
         self.frame_options.bind("<1>", lambda event: self.frame_options.focus_set()) 
         
         #=============
@@ -110,7 +114,7 @@ class TabNonlinear:
         #=============
         
         # When the tab is visible, make sure the correct figure is loaded
-        self.frame_graph1.bind("<Visibility>", self.load_figure)
+        self.frame_options.bind("<Visibility>", self.load_figure)
     
         # Prevent folding of header comment on next line
         if True: return
@@ -157,7 +161,7 @@ class TabNonlinear:
         self.options_experiment = ["First plot data"]
         self.options_simulation = ["First plot data"]
         self.options_simulationsids = []
-        self.options_fluxes  = ["Heat flux", "Momentum flux", "Particle flux"]     # Choices of the flux to be plotted
+        self.options_fluxes  = ["Heat flux", "Momentum flux", "Particle flux", "Potential squared"]     # Choices of the flux to be plotted
         self.options_species = ["Ions", "Electrons", "Impurity 1", "Impurity 2", "All species"]   # Choices of the flux to be plotted
         self.options_par1 = ["rho", "tiprim", "teprim", "fprim", "delta t", "nmu", "nvgrid"]
         self.options_par2 = ["-", "rho", "tiprim", "teprim", "fprim", "delta t", "nmu", "nvgrid"]
@@ -194,12 +198,19 @@ class TabNonlinear:
         self.var_par1.trace('w', update_parameter1) 
         self.var_par2.trace('w', update_parameter2) 
         
-        # Choose the fluxes: heat, momentum, particle
+        # Choose the fluxes: heat, momentum, particle or the potential
+        def update_yQuantity(*args): 
+            if self.var_norm.get()==0: self.normalizeBySaturation = False
+            if self.var_norm.get()==1: self.normalizeBySaturation = True
+            self.replot=True; self.plot_graph(1, None, "right")
+            self.replot=True; self.plot_graph(0, None, "left")
+            self.update_treeViewSaturatedFluxes()
         self.var_flux = tk.StringVar(value=self.options_fluxes[0])
         self.mnu_flux = ttk.OptionMenu(self.subframe_data, self.var_flux, self.options_fluxes[0], *self.options_fluxes, style='option.TMenubutton')
         self.mnu_flux["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_flux.config(width=width)
-        self.lbl_flux = ttk.Label(self.subframe_data, text="Fluxes: ")
+        self.mnu_flux.config(width=30)
+        self.lbl_flux = ttk.Label(self.subframe_data, text="Y-quantity: ")
+        self.var_flux.trace('w', update_yQuantity) 
         
         # Choose the species: ions, electrons, impurity 1, impurity 2, ...
         self.var_specie = tk.StringVar(value=self.options_species[0])
@@ -228,15 +239,13 @@ class TabNonlinear:
         self.mnu_specie.grid(    row=3, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=2, ipady=2)
         self.lbl_par1.grid(      row=4, column=0, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
         self.mnu_par1.grid(      row=4, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        #self.lbl_par2.grid(      row=5, column=0, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        #self.mnu_par2.grid(      row=5, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
         
     #------------------------------------------      
     def initiate_frameOptions_plotsFrame(self):
         
         # Initiate the attributes
         self.species = [0]
-        self.y_quantity = "omega"
+        self.y_quantity = "q_flux"
         
         # Set the default value of the plot out of range so we don't start with a plot
         self.var_plot  = tk.IntVar(value=0)
@@ -252,8 +261,11 @@ class TabNonlinear:
         def update_norm(): 
             if self.var_norm.get()==0: self.normalizeBySaturation = False
             if self.var_norm.get()==1: self.normalizeBySaturation = True
-            self.replot=True; self.plot_graph(1, None, "right")
-            self.replot=True; self.plot_graph(0, None, "left")
+            if self.var_flux.get() in ["Heat flux", "Momentum flux", "Particle flux"]:
+                self.replot=True; self.plot_graph(1, None, "right")
+                self.replot=True; self.plot_graph(0, None, "left")
+            if self.var_flux.get() in ["Potential squared"]:
+                self.replot=True; self.plot_graph(2, None, "left")
             self.update_treeViewSaturatedFluxes()
         self.var_norm  = tk.IntVar(value=0)
         self.chk_norm  = ttk.Checkbutton(self.subframe_plots, text=" Normalize by saturation", variable=self.var_norm, command=update_norm)
@@ -325,16 +337,19 @@ class TabNonlinear:
         
         # Create a list for the graph classes, create the figure for the canvas and initiate the canvas.
         self.initiated_canvas = True
-        self.Graph = [None, None]      
-        self.Canvas = [None, None]      
+        self.Graph = [None, None, None]      
+        self.Canvas = [None, None, None]      
         self.figure1 = plt.figure("nonlinear1")  
-        self.figure2 = plt.figure("nonlinear2")   
+        self.figure2 = plt.figure("nonlinear2")  
+        self.figure3 = plt.figure("nonlinear3")    
         self.figure1.set_tight_layout(False) 
         self.figure2.set_tight_layout(False)
+        self.figure3.set_tight_layout(False)
         
         # Put the canvasses on the screen: left canvas has axis_id=0; right canvas has axis_id=1
         CanvasForGraphs(self.root, self.frame_graph1, self.root.tab_Nonlinear, self.figure1, axis_id=0)
         CanvasForGraphs(self.root, self.frame_graph2, self.root.tab_Nonlinear, self.figure2, axis_id=1)
+        CanvasForGraphs(self.root, self.frame_graph3, self.root.tab_Nonlinear, self.figure3, axis_id=2)
 
         # Initiate the plotting class for the main window
         self.initiate_plottingClass()
@@ -347,6 +362,7 @@ class TabNonlinear:
         # Change the canvas color
         self.figure1.patch.set_facecolor(self.root.color['canvas']) 
         self.figure2.patch.set_facecolor(self.root.color['canvas']) 
+        self.figure3.patch.set_facecolor(self.root.color['canvas'])
         
         # Set the color of the axes, ticks and background
         plt.rcParams['text.color']       = self.root.color['fg']
@@ -362,9 +378,11 @@ class TabNonlinear:
             # Make the axis instance and the required attributes for the options window through the class <graph>
             self.Graph[0] = graph(self.figure1, self.var_plot, 0)
             self.Graph[1] = graph(self.figure2, self.var_plot, 1)
+            self.Graph[2] = graph(self.figure3, self.var_plot, 2)
             # Put the empty figure on the GUI
             self.Canvas[0].draw_idle(); self.root.update_idletasks()
             self.Canvas[1].draw_idle(); self.root.update_idletasks()
+            self.Canvas[2].draw_idle(); self.root.update_idletasks()
         
         # Initiate the plotting class for a popped out window
         if figure is not None:
@@ -534,8 +552,7 @@ class TabNonlinear:
 
     def load_figure(self, *args):
         '''  When the tab is visible, make sure the correct figure is loaded. 
-        If the simulations were changed, replot the graph. '''
-        
+        If the simulations were changed, replot the graph. '''        
         # If the canvas isn't loaded, load them
         if self.initiated_canvas==None:
             self.initiate_canvas()
@@ -769,7 +786,9 @@ class TabNonlinear:
                 self.show_progress("start", poppedout_id) 
                 
                 # Plot the heatflux versus time
-                if plot=='left':
+                if plot=='left' and self.var_flux.get() in ["Heat flux", "Momentum flux", "Particle flux"]:
+                    self.frame_graph1.grid()
+                    self.frame_graph3.grid_remove()
                     plot_fluxesVsTime(\
                             # Specify which simulations to plot
                                 research=self.root.Research,\
@@ -793,6 +812,30 @@ class TabNonlinear:
                             # Toggles
                                 show_vspan=self.show_vspan,\
                                 normalize=self.normalizeBySaturation,\
+                                log=False,\
+                                units="normalized")
+                    
+                # Plot the heatflux versus time
+                if plot=='left' and self.var_flux.get() in ["Potential squared"]:
+                    self.frame_graph3.grid()
+                    self.frame_graph1.grid_remove()
+                    plot_potentialVsTime(\
+                            # Specify which simulations to plot
+                                research=self.root.Research,\
+                                experiment_id=self.experiment_id,\
+                                simulation_id=self.simulation_id,\
+                            # Specify data range
+                                x_range=Graph.range["x"],\
+                                y_range=Graph.range["y"],\
+                            # Labels
+                                x_label=Graph.label["x"],\
+                                y_label=Graph.label["y"],\
+                                title=Graph.label["title"],\
+                            # For the GUI the figure object already exists 
+                                show_figure = False,\
+                                ax=Graph.ax,\
+                                Progress=self.class_progress,\
+                            # Toggles
                                 log=False,\
                                 units="normalized")
                         
@@ -823,18 +866,18 @@ class TabNonlinear:
                             # Toggles
                                 log=False,\
                                 units="normalized")
-                        
-                # Save the t_range to the simulation.ini files
-                for experiment in self.root.Research.experiments:
-                    for simulation in experiment.simulations: 
-                        if not 'TIME FRAME' in simulation.simulation_file:
-                            simulation.simulation_file['TIME FRAME'] = {}
-                        for specie in self.t_range[experiment.id][simulation.id].keys():
-                            time = self.t_range[experiment.id][simulation.id][specie]
-                            if specie != "time peak": time = "["+str(time[0])+", "+str(time[1])+"]"
-                            if specie == "time peak": time = str(time)
-                            simulation.simulation_file['TIME FRAME'][str(specie)] = time
-                        simulation.simulation_file.write(open(simulation.simulation_path, 'w'))
+
+                    # Save the t_range to the simulation.ini files
+                    for experiment in self.root.Research.experiments:
+                        for simulation in experiment.simulations: 
+                            if not 'TIME FRAME' in simulation.simulation_file:
+                                simulation.simulation_file['TIME FRAME'] = {}
+                            for specie in self.t_range[experiment.id][simulation.id].keys():
+                                time = self.t_range[experiment.id][simulation.id][specie]
+                                if specie != "time peak": time = "["+str(time[0])+", "+str(time[1])+"]"
+                                if specie == "time peak": time = str(time)
+                                simulation.simulation_file['TIME FRAME'][str(specie)] = time
+                            simulation.simulation_file.write(open(simulation.simulation_path, 'w'))
                             
                 # Update the plotted modes
                 self.display_plottedModesAndExperiments() 
@@ -940,9 +983,7 @@ class graph:
         return 
 
     #---------------
-    def load_defaults(self):       
-        self.kx = 0.0
-        self.ky = [0,100]
+    def load_defaults(self):     
         self.range["x"] = None
         self.range["y"] = None
         for key in self.label.keys(): 

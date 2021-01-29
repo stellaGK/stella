@@ -317,4 +317,3 @@ def get_netcdfDensity(self):
                 self.density_kxky[:, index_kx, index_ky] = netcdf_data['vec_density'][:, i_kx, i_ky]
         del netcdf_data
     return
-

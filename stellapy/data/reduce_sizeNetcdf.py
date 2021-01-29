@@ -31,7 +31,7 @@ def reduce_sizeNetcdf(folder, write_again=True):
     
                 # Add the netcdf vectors to the h5 file
                 for quant in ['vec_z', 'vec_time', 'vec_ky', 'vec_kx', 'vec_density', 'phi2_vs_kxky', \
-                              'qflx_kxky', 'pflx_kxky', 'vflx_kxky', 'phi_vs_t']:
+                              'qflx_kxky', 'pflx_kxky', 'vflx_kxky', 'phi_vs_t', 'phi2']:
                     try:    h5_netcdf.create_dataset(quant, data=netcdf_data[quant])	
                     except: pass 
     

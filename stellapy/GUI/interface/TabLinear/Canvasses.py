@@ -24,18 +24,14 @@ class Canvasses:
         # Create the figures for each canvas
         self.figure1 = plt.figure("linear1") 
         self.figure2 = plt.figure("linear2")   
-        self.figure3 = plt.figure("linear3")   
         self.figure1.set_tight_layout(False) 
         self.figure2.set_tight_layout(False)
-        self.figure3.set_tight_layout(False)
         self.figure1.patch.set_facecolor(self.root.color['canvas']) 
         self.figure2.patch.set_facecolor(self.root.color['canvas']) 
-        self.figure3.patch.set_facecolor(self.root.color['canvas']) 
         
         # Put the canvas on the screen
         CanvasForGraphs(self.root, self.tab.frame_graph1, self.root.tab_Linear, self.figure1, axis_id=0)
         CanvasForGraphs(self.root, self.tab.frame_graph2, self.root.tab_Linear, self.figure2, axis_id=1)
-        CanvasForGraphs(self.root, self.tab.frame_graph3, self.root.tab_Linear, self.figure3, axis_id=2)
 
         # Initiate the plotting class for the main window
         self.initiate_GraphClass()
@@ -57,11 +53,9 @@ class Canvasses:
             # Make the axis instance and the required attributes for the options window through the class <graph>
             self.tab.Graph[0] = Graph(self.tab, self.figure1, 0)
             self.tab.Graph[1] = Graph(self.tab, self.figure2, 1)
-            self.tab.Graph[2] = Graph(self.tab, self.figure3, 2)
             # Put the empty figure on the GUI
             self.tab.Canvas[0].draw_idle(); self.root.update_idletasks()
             self.tab.Canvas[1].draw_idle(); self.root.update_idletasks()
-            self.tab.Canvas[2].draw_idle(); self.root.update_idletasks()
         
         # Or initiate the plotting class for a popped out window
         if figure is not None:
@@ -102,7 +96,6 @@ class Canvasses:
         # Now plot the figure on the popped out canvas
         if axis_id==0: Plot = self.tab.PlotLinearSpectrum 
         if axis_id==1: Plot = self.tab.PlotParameterInfluence 
-        if axis_id==2: Plot = self.tab.PlotLinearMap 
         Plot.replot = True; Plot.plot_graph(poppedout_id)
         
         # Update screen
@@ -123,7 +116,6 @@ class Canvasses:
         # Now plot the graph 
         if axis_id==0: Plot = self.tab.PlotLinearSpectrum 
         if axis_id==1: Plot = self.tab.PlotParameterInfluence 
-        if axis_id==2: Plot = self.tab.PlotLinearMap 
         Plot.replot = True; Plot.plot_graph(None)
         return 
 

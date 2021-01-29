@@ -2,6 +2,7 @@
 #================================================================
 # Plot flux(t) for non-linear runs
 #================================================================
+# TODO: Fluxes aren't normalized.
  
 # Load the modules
 import numpy as np

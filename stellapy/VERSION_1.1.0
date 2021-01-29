@@ -110,8 +110,6 @@
 11-13/12/2020
   * STELLA: to unload module hfd5 add a --force flag
   * Remoddeled TBA4 to have one option frame for each of the three graphs to have it more organized.
-  * Reduce plotting time for linear maps by saving the linear map data into to the research object. (TAB4)
-  * Fixed the linear map to plot points from parameter=x to parameter=x+1. (TAB4)
   * Added the option to plot gamma/k_y**2 to TAB4
   * A folder can be deleted by pressing "delete" in the simulations list
   * Show the marker and line label for each input_file in the simulations list
