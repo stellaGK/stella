@@ -14,7 +14,8 @@ module stella_diagnostics
   end interface
 
   integer :: ntg_out
-  integer :: nwrite, nsave, nmovie, navg
+  integer :: nwrite, nsave, navg
+  integer :: stdout_unit, fluxes_unit, omega_unit
   logical :: save_for_restart
   logical :: write_omega
   logical :: write_moments
@@ -24,26 +25,29 @@ module stella_diagnostics
   logical :: write_kspectra
   logical :: write_radial_fluxes
   logical :: flux_norm
-!  logical :: write_symmetry
 
-  integer :: stdout_unit, fluxes_unit, omega_unit
-
-  ! arrays needed for averaging in x,y,z
+  ! Arrays needed for averaging in x,y,z
   real, dimension (:), allocatable :: fac
-
-  real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
   real, dimension (:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
+  real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
 
-  ! needed for calculating growth rates and frequencies
+  ! Needed for calculating growth rates and frequencies
   complex, dimension (:,:,:), allocatable :: omega_vs_time
 
+  ! Initialized variables
   integer :: nout = 1
   logical :: diagnostics_initialized = .false.
 
+  ! Debugging
   logical :: debug = .false.
 
 contains
 
+  !==============================================
+  !====== INITIATE STELLA DIAGNOSTICS ===========
+  !==============================================
+  ! Broadcast the parameters from the namelist "stella_diagnostics_knobs"
+  ! and open/append the netcdf file and the ascii files.
   subroutine init_stella_diagnostics (restart, nstep, tstart)
 
     use zgrid, only: init_zgrid
@@ -62,13 +66,14 @@ contains
     logical, intent (in) :: restart
     real, intent (in) :: tstart
 
-    integer :: nmovie_tot
-
+    ! Only initialize the diagnostics once
     if (diagnostics_initialized) return
     diagnostics_initialized = .true.
     
+    ! Only debug on the first processor
     debug = debug .and. proc0
     
+    ! Make sure the other routines are intialized
     call init_zgrid
     call init_physics_parameters
     call init_kt_grids
@@ -77,12 +82,13 @@ contains
     call init_init_g
     call init_dist_fn
     
+    ! Read the namelist "stella_diagnostics_knobs" in the input file
     call read_parameters
     call allocate_arrays
     
+    ! Broadcast the variables to all processors
     call broadcast (nwrite)
     call broadcast (navg)
-    call broadcast (nmovie)
     call broadcast (nsave)
     call broadcast (save_for_restart)
     call broadcast (write_omega)
@@ -93,20 +99,26 @@ contains
     call broadcast (write_gzvs)
     call broadcast (write_radial_fluxes)
     call broadcast (flux_norm)
-!    call broadcast (write_symmetry)
     
-    nmovie_tot = nstep/nmovie
-    
+    ! Initiate the averages
     call init_averages
+
+    ! Initiate the netcdf file with extension '.out.nc'
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
-!         write_gvmus, write_gzvs, write_symmetry, write_moments)
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
 
-    if(proc0) call open_loop_ascii_files(restart)
-    if(proc0) call get_nout(tstart,nout)
+    ! Open the '.out', '.fluxes' and '.omega' file
+    if (proc0) call open_loop_ascii_files (restart)
+
+    ! Get the final position [[nout]] of the time axis in the netcdf file
+    if (proc0) call get_nout (tstart,nout)
     call broadcast (nout)
+
   end subroutine init_stella_diagnostics
   
+  !==============================================
+  !============== READ PARAMETERS ===============
+  !==============================================
   subroutine read_parameters
 
     use mp, only: proc0
@@ -119,15 +131,13 @@ contains
     logical :: exist
     integer :: in_file
 
-    namelist /stella_diagnostics_knobs/ nwrite, navg, nmovie, nsave, &
+    namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-!         write_omega, write_kspectra, write_symmetry, write_moments
          write_omega, write_kspectra, write_moments, write_radial_fluxes, flux_norm
 
     if (proc0) then
        nwrite = 50
        navg = 50
-       nmovie = 10000
        nsave = -1
        save_for_restart = .false.
        write_omega = .false.
@@ -138,7 +148,6 @@ contains
        write_moments = .false.
        write_radial_fluxes = radial_variation
        flux_norm = .true.
-!       write_symmetry = .false.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
        if (exist) read (unit=in_file, nml=stella_diagnostics_knobs)
@@ -149,6 +158,9 @@ contains
 
   end subroutine read_parameters
 
+  !==============================================
+  !============== ALLOCATE ARRAYS ===============
+  !==============================================
   subroutine allocate_arrays
 
     use species, only: nspec
@@ -175,6 +187,9 @@ contains
 
   end subroutine allocate_arrays
 
+  !==============================================
+  !============ INITIATE AVERAGES ===============
+  !==============================================
   subroutine init_averages
 
     use kt_grids, only: aky, naky
@@ -188,6 +203,12 @@ contains
 
   end subroutine init_averages
 
+  !==============================================
+  !============= OPEN ASCII FILES ===============
+  !==============================================
+  ! Open the '.out' and the '.fluxes' file.
+  ! When running a new simulation, create a new file or replace an old file.
+  ! When restarting a simulation, append the old files.
   subroutine open_loop_ascii_files(restart)
 
     use file_utils, only: open_output_file
@@ -198,28 +219,39 @@ contains
     logical, intent (in) :: restart
     character (3) :: nspec_str
     character (100) :: str
-
     logical :: overwrite
 
+    ! Do not overwrite, but append files, when we restart the simulation.
     overwrite = .not.restart
 
+    ! Open the '.out' and the '.fluxes' files.
     call open_output_file (stdout_unit,'.out',overwrite)
     call open_output_file (fluxes_unit,'.fluxes',overwrite)
-    if(overwrite) then
+
+    ! Create the header for the .fluxes file.
+    ! Every column is made up of 12 spaces, so make sure the headers
+    ! are placed correctly since we have the following columns for nspec=3:
+    ! #time pflx1 pflx2 pflx3 vflx1 vflx2 vflx32 qflx1 qflx2 qflx3
+    if (.not.restart) then
       write (nspec_str,'(i3)') nspec*12
       str = trim('(2a12,2a'//trim(nspec_str)//')')
       write (fluxes_unit,str) '#time', 'pflx', 'vflx', 'qflx'
-    endif
+    end if
+
+    ! Open the '.omega' file and create its header.
     if (write_omega) then
        call open_output_file (omega_unit,'.omega',overwrite)
-       if(overwrite) then
+       if (.not.restart) then
          write (omega_unit,'(7a12)') '#time', 'ky', 'kx', &
-              'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
-       endif
+                'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
+       end if
     end if
 
   end subroutine open_loop_ascii_files
 
+  !==============================================
+  !============= CLOSE ASCII FILES ==============
+  !==============================================
   subroutine close_loop_ascii_files
     
     use file_utils, only: close_output_file
@@ -232,6 +264,9 @@ contains
 
   end subroutine close_loop_ascii_files
 
+  !==============================================
+  !============== DIAGNOSE STELLA ===============
+  !==============================================
   subroutine diagnose_stella (istep)
 
     use mp, only: proc0,job
@@ -342,8 +377,8 @@ contains
        endif
        call volume_average (phi_out, phi2)
        call volume_average (apar, apar2)
-       write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
-            'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, "job=", job
+       ! Print information to stella.out, the header is printed in stella.f90
+       write (*,'(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ",istep," ",code_time," ",code_dt," ", phi2
        call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
             omega_vs_time(mod(istep,navg)+1,:,:), omega_avg)
 
@@ -417,6 +452,9 @@ contains
 
   end subroutine diagnose_stella
 
+  !==============================================
+  !========= FIELD LINE AVERAGE: REAL ===========
+  !==============================================
   subroutine fieldline_average_real (unavg, avg)
 
     use zgrid, only: nzgrid, ntubes
@@ -440,6 +478,10 @@ contains
     
   end subroutine fieldline_average_real
 
+
+  !==============================================
+  !======== FIELD LINE AVERAGE: COMPLEX =========
+  !==============================================
   subroutine fieldline_average_complex (unavg, avg)
 
     use zgrid, only: nzgrid, ntubes
@@ -463,6 +505,9 @@ contains
 
   end subroutine fieldline_average_complex
 
+  !==============================================
+  !============== VOLUME AVERAGE ================
+  !==============================================
   subroutine volume_average (unavg, avg)
 
     use zgrid, only: nzgrid, ntubes
@@ -492,6 +537,9 @@ contains
 
   end subroutine volume_average
 
+  !==============================================
+  !=============== GET FLUXES ===================
+  !==============================================
   ! assumes that the non-Boltzmann part of df is passed in (aka h)
   subroutine get_fluxes (g, pflx, vflx, qflx)
 
@@ -620,6 +668,9 @@ contains
 
   end subroutine get_fluxes
 
+  !==============================================
+  !============ GET FLUXES VMULO ================
+  !==============================================
   subroutine get_fluxes_vmulo (g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x)
 
     use mp, only: sum_reduce
@@ -911,6 +962,9 @@ contains
 
   end subroutine get_fluxes_vmulo
 
+  !==============================================
+  !=============== GET ONE FLUX =================
+  !==============================================
   subroutine get_one_flux (iky, iz, norm, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
@@ -932,6 +986,9 @@ contains
 
   end subroutine get_one_flux
 
+  !==============================================
+  !============ GET ONE FLUX VMULO ==============
+  !==============================================
   subroutine get_one_flux_vmulo (norm, weights, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
@@ -970,6 +1027,9 @@ contains
 
   end subroutine get_one_flux_vmulo
 
+  !==============================================
+  !=========== GET ONE FLUX RADIAL ==============
+  !==============================================
   subroutine get_one_flux_radial (norm, weights, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
@@ -1017,44 +1077,9 @@ contains
 
   end subroutine get_one_flux_radial
 
-!   subroutine get_fluxes_vs_zvpa (g, pflx, vflx, qflx)
-
-!     use zgrid, only: nzgrid, delzed
-!     use stella_layouts, only: vmu_lo
-!     use stella_geometry, only: jacob, grho
-
-!     implicit none
-
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-!     real, dimension (-nzgrid:,:,:), intent (out) :: pflx, vflx, qflx
-
-!     real, dimension (:), allocatable :: flx_norm
-! !    real, dimension (:,:), allocatable :: gtmp
-
-! !    allocate (gtmp(-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-!     allocate (flx_norm(-nzgrid:nzgrid))
-
-! !    gtmp = 0.
-
-!     pflx = 0. ; vflx = 0. ; qflx = 0.
-
-!     flx_norm = jacob(1,:)*delzed
-!     flx_norm = flx_norm/sum(flx_norm*grho(1,:))
-
-! !     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-! !        do ikx = 1, nakx
-! !           do iky = 1, naky
-! !        = g(:,:,:,ivmu)*aj0x(:,:,:,ivmu)
-! !        integrate_mu (,pflx)
-! !        pflx(iky,ikx,iz) = pflx + 0.5*fac(iky)*aky(iky)*aimag(pflx*conjg(phi))*flx_norm(iz)
-! !     end do
-
-! !    deallocate (gtmp)
-!     deallocate (flx_norm)
-
-!   end subroutine get_fluxes_vs_zvpa
-
+  !==============================================
+  !=============== GET MOMENTS ==================
+  !==============================================
   subroutine get_moments (g, dens, upar, temp)
     
     use zgrid, only: nzgrid, ntubes
@@ -1087,7 +1112,7 @@ contains
       allocate (g0k(naky,nakx))
     endif
 
-    ! hack below. Works since J0^2 - 1 and its derivative are zero at the origin
+    ! Hack below. Works since J0^2 - 1 and its derivative are zero at the origin
     zero = 100.*epsilon(0.)
 
     ! h is gyrophase independent, but is in gyrocenter coordinates, 
@@ -1216,9 +1241,11 @@ contains
 
     if(allocated(g0k)) deallocate(g0k)
 
-
   end subroutine get_moments
 
+  !==============================================
+  !================ GET GVMUS ===================
+  !==============================================
   ! get_gvmus takes g(kx,ky,z) and returns average over z of int dxdy g(x,y,z)^2
   ! SHOULD MODIFY TO TAKE ADVANTAGE OF FACT THAT G(KY,KX,Z) LOCAL IS AVAILABLE
   subroutine get_gvmus (g, gv)
@@ -1260,6 +1287,9 @@ contains
 
   end subroutine get_gvmus
 
+  !==============================================
+  !================= GET GVZS ===================
+  !==============================================
   ! get_gzvs takes g(kx,ky,z,vpa,mu,s) and returns int dmudxdy g(x,y,z,vpa,mu,s)^2
   subroutine get_gzvs (g, gz)
 
@@ -1303,6 +1333,9 @@ contains
 
   end subroutine get_gzvs
 
+  !==============================================
+  !======== FINISH STELLA DIAGNOSTIC ============
+  !==============================================
   subroutine finish_stella_diagnostics(istep)
 
     use mp, only: proc0
@@ -1336,6 +1369,9 @@ contains
 
   end subroutine finish_stella_diagnostics
 
+  !==============================================
+  !========= WRITE LOOP ASCII FILES =============
+  !==============================================
   subroutine write_loop_ascii_files (istep, phi2, apar2, pflx, vflx, qflx, om, om_avg)
 
     use stella_time, only: code_time
@@ -1360,7 +1396,6 @@ contains
     call flush(stdout_unit)
 
     write (nspec_str,'(i3)') 3*nspec+1
-!    str = trim('('//trim(nspec_str)//'e12.4)')
     str = trim('('//trim(nspec_str)//'es15.4e3)')
     write (fluxes_unit,str) code_time, pflx, vflx, qflx
 
@@ -1382,6 +1417,9 @@ contains
 
   end subroutine write_loop_ascii_files
 
+  !==============================================
+  !========= WRITE FINAL ASCII FILES ============
+  !==============================================
   subroutine write_final_ascii_files
 
     use file_utils, only: open_output_file, close_output_file
@@ -1419,14 +1457,17 @@ contains
     
   end subroutine write_final_ascii_files
 
+  !==============================================
+  !============= FINISH AVERAGES ================
+  !==============================================
   subroutine finish_averages
-
     implicit none
-
     if (allocated(fac)) deallocate (fac)
-
   end subroutine finish_averages
 
+  !==============================================
+  !============ DEALLCOATE ARRAYS ===============
+  !==============================================
   subroutine deallocate_arrays
 
     implicit none
