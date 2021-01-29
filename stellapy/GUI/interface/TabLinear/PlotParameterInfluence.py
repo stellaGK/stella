@@ -75,10 +75,6 @@ class PlotParameterInfluence:
     #------------------- 
     def load_figure(self, event):
         
-        # Attach the correct frame to the GUI
-        self.tab.frame_graph2.grid()
-        self.tab.frame_graph3.grid_remove()
-        
         # Try to automatically detect the correct knob and key
         if self.knob == "-" and len(self.root.Research.experiments)!=0:
             if len(self.tab.Simulations.experiment.variedVariables)!=0:

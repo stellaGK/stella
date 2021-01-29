@@ -23,18 +23,25 @@ def create_research(\
     experiments = create_experiments(folders, input_files, ignore_resolution, number_variedVariables, \
                                      experiment_knob, experiment_key, folderIsExperiment)
     
+    # Sort the simulations in ascending order of the corresponding string variedValues
+    for experiment in experiments: 
+        try:
+            numbers = [ float(value.split("$")[-1]) for value in experiment.variedValues ] 
+            sorted_indexes = list(np.array(numbers).argsort()) 
+            experiment.simulations = [experiment.simulations[i] for i in sorted_indexes] 
+            experiment.variedValues = [experiment.variedValues[i] for i in sorted_indexes] 
+        except: 
+            sorted_indexes = list(np.array(experiment.variedValues).argsort())  
+            experiment.simulations = [experiment.simulations[i] for i in sorted_indexes] 
+            experiment.variedValues = [experiment.variedValues[i] for i in sorted_indexes] 
+    
     # Look for the total amount of varied values throughout the experiments
     # e.g. experiment 1 has variedValues = ["rho=0.5", "rho=0.6"] and 
     # e.g. experiment 2 has variedValues = ["rho=0.5", "rho=0.7"] then
     # we want in total 3 colors for the lines/markers based on varied values 
     all_variedValues = []
     for experiment in experiments: 
-        # Sort the simulations in ascending order of the corresponding string variedValues
-        numbers = [ float(value.split("$")[-1]) for value in experiment.variedValues ] 
-        sorted_indexes = list(np.array(numbers).argsort()) #sorted_indexes = np.array(experiment.variedValues).argsort()
-        experiment.simulations = [experiment.simulations[i] for i in sorted_indexes] 
-        experiment.variedValues = [experiment.variedValues[i] for i in sorted_indexes] 
-        all_variedValues = all_variedValues + experiment.variedValues
+            all_variedValues = all_variedValues + experiment.variedValues
 
     # Get the unique values
     all_variedValues = list(set(all_variedValues)) 

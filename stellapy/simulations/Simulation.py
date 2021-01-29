@@ -221,8 +221,10 @@ class Simulation:
         if self.Progress: self.Progress.move(0,"Reading the simulation file.")
         
         # Create a configuration object and read the simulation file
-        if len(self.input_files)>1:  parent = pathlib.Path(os.path.commonprefix(self.input_files))
-        if len(self.input_files)==1: parent = self.input_files[0].parent
+        if len(self.input_files)>1:  
+            parent = pathlib.Path("/".join(os.path.commonprefix(self.input_files).split('/')[0:-1]))
+        if len(self.input_files)==1: 
+            parent = self.input_files[0].parent
         self.simulation_file = configparser.ConfigParser() 
         self.simulation_path = parent / "simulation.ini"
         self.simulation_file.read(self.simulation_path)
@@ -589,13 +591,13 @@ class Simulation:
     @calculate_attributeWhenReadFirstTime 
     def ref_a(self):            get_vmecgeoData(self);          return self.ref_a
     @calculate_attributeWhenReadFirstTime 
-    def ref_B(self):            get_vmecgeoData(self);  	    return self.ref_B
+    def ref_B(self):            get_vmecgeoData(self);          return self.ref_B
         
 #=======================================
 #        DATA IN THE WOUT FILE
 #=======================================
     @calculate_attributeWhenReadFirstTime 
-    def sign_B(self):           get_woutData(self);     	    return self.sign_B    
+    def sign_B(self):           get_woutData(self);             return self.sign_B    
     @calculate_attributeWhenReadFirstTime 
     def iota(self):             get_woutData(self);             return self.iota
       
@@ -605,7 +607,7 @@ class Simulation:
     @calculate_attributeWhenReadFirstTime 
     def prof_n(self):           get_profileData(self);          return self.prof_n
     @calculate_attributeWhenReadFirstTime 
-    def prof_T(self):           get_profileData(self);  	    return self.prof_T
+    def prof_T(self):           get_profileData(self);          return self.prof_T
     
 #=======================================
 #        DATA IN THE FLUXES FILE

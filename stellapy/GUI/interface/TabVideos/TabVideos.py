@@ -85,7 +85,7 @@ class TabVideos:
 #         tree.insert(folder1, "end", text="photo3.png", values=("23-Jun-17 11:30","PNG file","3.1 KB"))
             
         # Add the widget to the tab
-        tree.pack(side=tk.TOP,fill=tk.X)
+        #tree.pack(side=tk.TOP,fill=tk.X)
 
     def deleterow(self, event):
         '''Delete selected row'''

@@ -7,7 +7,6 @@ from stellapy.GUI.interface.TabLinear.Canvasses import Canvasses
 from stellapy.GUI.interface.TabLinear.Simulations import Simulations
 from stellapy.GUI.interface.TabLinear.PlotLinearSpectrum import PlotLinearSpectrum
 from stellapy.GUI.interface.TabLinear.PlotParameterInfluence import PlotParameterInfluence    
-from stellapy.GUI.interface.TabLinear.PlotLinearMap import PlotLinearMap
 
 #################################################################
 #                   CLASS FOR THE TAB
@@ -33,8 +32,8 @@ class TabLinear:
         self.initiated_canvas = None
         
         # Store the Graph and Canvas objects in a list
-        self.Graph = [None, None, None]      
-        self.Canvas = [None, None, None]    
+        self.Graph = [None, None]      
+        self.Canvas = [None, None]    
 
         #=======================================
         # FRAMES FOR OPTIONS, PLOT 1 and PLOT 2
@@ -43,7 +42,6 @@ class TabLinear:
         # Create the frames and add them to the tab3
         self.frame_graph1   = ttk.LabelFrame(self.window, text="   Linear spectrum  ", **self.dict_awthemes['labelframe2'])
         self.frame_graph2   = ttk.LabelFrame(self.window, text="   Parameter influence  ", **self.dict_awthemes['labelframe2'])
-        self.frame_graph3   = ttk.LabelFrame(self.window, text="   Linear map  ", **self.dict_awthemes['labelframe2'])
         self.frame_options  = ttk.Frame(self.window) 
 
         # Configure the frames     
@@ -56,13 +54,10 @@ class TabLinear:
         self.frame_options.grid(in_=self.window, row=0, column=0, padx=(20,20), pady=(20,10),stick='NSEW', columnspan=2)
         self.frame_graph1.grid( in_=self.window, row=1, column=0, padx=(20,10), pady=(10,20),stick='NSEW')
         self.frame_graph2.grid( in_=self.window, row=1, column=1, padx=(10,20), pady=(10,20),stick='NSEW')
-        self.frame_graph3.grid( in_=self.window, row=1, column=1, padx=(10,20), pady=(10,20),stick='NSEW')
-        self.frame_graph3.grid_remove(); #self.frame_graph3.grid()
         
         # Bind focus on every click on a widget: this makes sure the entry widgets become unfocused
         self.frame_graph1.bind("<1>", lambda event: self.frame_graph1.focus_set())
         self.frame_graph2.bind("<1>", lambda event: self.frame_graph2.focus_set())
-        self.frame_graph3.bind("<1>", lambda event: self.frame_graph2.focus_set())
         self.frame_options.bind("<1>", lambda event: self.frame_options.focus_set()) 
         
         #========================
@@ -105,15 +100,12 @@ class TabLinear:
         # Create frames for each tab
         self.frame_plotOne   = ttk.Frame(self.tab_plots, padding=(0,0,0,0)) #(10,10,10,10)
         self.frame_plotTwo   = ttk.Frame(self.tab_plots, padding=(0,0,0,0)) #(10,10,10,10)
-        self.frame_plotThree = ttk.Frame(self.tab_plots, padding=(0,0,0,0)) #(10,10,10,10)
         self.tab_plots.add(self.frame_plotOne,   text="Linear spectrum") 
         self.tab_plots.add(self.frame_plotTwo,   text="Parameter influence") 
-        self.tab_plots.add(self.frame_plotThree, text="Parameter map") 
                
         # Fill the subframes with widgets
         self.PlotLinearSpectrum = PlotLinearSpectrum(self, self.frame_plotOne)
         self.PlotParameterInfluence = PlotParameterInfluence(self, self.frame_plotTwo)
-        self.PlotLinearMap = PlotLinearMap(self, self.frame_plotThree)
 
         #=============
         # LOAD FIGURE
@@ -156,34 +148,7 @@ class TabLinear:
                 Plot.knob = variable.split(":")[0]
                 Plot.key = variable.split(": ")[-1]
                 Plot.var_parameter.set(Plot.key)
-                
-        # Try to automatically detect the correct knob and key
-        Plot = self.PlotLinearMap
-        if Plot.knob1 == "-" and len(self.root.Research.experiments)!=0:
-            if len(self.Simulations.experiment.variedVariables)!=0:
-                try:
-                    variable1 = self.Simulations.experiment.variedVariables[0]
-                    variable2 = self.Simulations.experiment.variedVariables[1]
-                    Plot.knob1 = variable1.split(":")[0]
-                    Plot.key1  = variable1.split(": ")[-1]
-                    Plot.knob2 = variable2.split(":")[0]
-                    Plot.key2  = variable2.split(": ")[-1]
-                    if Plot.key1==Plot.key2: variable2 = self.Simulations.experiment.variedVariables[2]
-                    Plot.knob2 = variable2.split(":")[0]
-                    Plot.key2  = variable2.split(": ")[-1]
-                    Plot.var_parameter1.set(Plot.key1) 
-                    Plot.var_parameter2.set(Plot.key2) 
-                except:
-                    pass
            
-        # Make sure that the loaded research object had a linear_map object     
-        if 'linear_map' not in self.root.Research.data.keys():
-            self.root.Research.data['linear_map'] = {
-                'parameters1' : None,\
-                'parameters2' : None,\
-                'gamma' : None,\
-                'omega' : None,\
-                'ky' : None} 
         return
     
     #-------------------------------------  

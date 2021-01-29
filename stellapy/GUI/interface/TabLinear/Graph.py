@@ -19,7 +19,6 @@ class Graph:
         self.grid_specifications = gridspec.GridSpec(1, 1)
         if i==0: self.grid_specifications.update(top=0.95, left=0.15, right=0.95, bottom=0.15)
         if i==1: self.grid_specifications.update(top=0.95, left=0.15, right=0.95, bottom=0.15)
-        if i==2: self.grid_specifications.update(top=0.9, left=0.15, right=0.95,  bottom=0.15)
 
         # Create the axis object
         self.ax = plt.subplot(self.grid_specifications[0])
@@ -34,7 +33,6 @@ class Graph:
         # Set the names for the axis variables shown in the OptionsWindow
         if i==0: self.x_name = "Wavenumber";    self.y_name = "Growth rate"
         if i==1: self.x_name = "Parameter";     self.y_name = "Growth rate"
-        if i==2: self.x_name = "Parameter 1";   self.y_name = "Parameter 2"
         
         # Set the ranges and labels to None when the graph is reset, this will triger the defaults
         self.load_defaults()
@@ -65,13 +63,6 @@ class Graph:
             if y_quantity=="omega":         self.y_name = "Frequency" 
             if y_quantity=="gamma":         self.y_name = "Growth rate" 
             if y_quantity=="gamma/ky**2":   self.y_name = "Growthrate/ky**2 versus modes"
-        if self.id==2:
-            self.x_name = self.tab.PlotLinearMap.key1
-            self.y_name = self.tab.PlotLinearMap.key2 
-            z_quantity  = self.tab.PlotLinearMap.z_quantity
-            if z_quantity=="omega":         self.z_name = "Frequency" 
-            if z_quantity=="gamma":         self.z_name = "Growth rate" 
-            if z_quantity=="ky":            self.z_name = "Wavenumber"
         return
     
     #---------------

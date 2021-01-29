@@ -1,142 +1,187 @@
-
+ 
 #================================================================
-# Plot |phi^2(t)|
+# Plot flux(t) for non-linear runs
 #================================================================
+# TODO: the potential is not normalized if units="normalized"
 
-# Load the modules 
+# Load the modules
 import numpy as np
 import matplotlib.pyplot as plt
-# from .plotbox import plotbox_2d
-# import matplotlib.gridspec as gridspec
+
+# Personal modules
+from stellapy.plot.utils import load_plotbox2d  
 from stellapy.utils.decorators import verbose_wrapper
-# from stellapy.lineardata import calculate_lineardata_for_one_kx_ky
-# from stellapy.utils import get_NetcdfFilesOrReducedFilesInside, get_filesinfolder, initiate_nesteddict, get_fullpathoffolder
-
-@verbose_wrapper
-# stellapy.plt.phi2_vs_t
-def plot_potentialVsTime(folder, kmin=0, kmax=1000, thesis=True, plot_heatflux=False, input_file=None):
-    ''' Plot phi^2(t) with phi=sum(phi(kx,ky)) '''
-
-    linear_data = initiate_nesteddict()
-    plt.rc('font', size=22)
-    # Prepare the figure
-    if thesis==False:
-        fig = plt.figure(figsize=[16, 12])
-        gs1 = gridspec.GridSpec(1, 1)
-        gs1.update(wspace=0.025, hspace=0.00, top=0.92, right=0.7, bottom = 0.1)
-        ax = plt.subplot(gs1[0]) 
-        x_label = "$t\, v_{\mathrm{th}}/a$"
-        y_label = "$|\\varphi(t)|^2$"    if plot_heatflux==False else "$Q_s/Q_{gB}$"
-        plotbox_2d(x_label=x_label, y_label=y_label, title="", fig_size=(8.5, 7.5), ax=ax);
-    if thesis==True:
-        fig = plt.figure(figsize=[16, 6])
-        gs1 = gridspec.GridSpec(1, 1)
-        ax = plt.subplot(gs1[0]) 
-        x_label = "$t\, v_{\mathrm{th}}/a$"
-        y_label = "$|\\varphi|^2$"     if plot_heatflux==False else "$Q_s/Q_{gB}$"
-        plotbox_2d(x_label=x_label, y_label=y_label, fig_size=(8.5, 7.5), ax=ax);
-
-    # Two scanarios based on nonlinear = {True or False}
-    input_parameters = read.input_parameters(folder, get_filesinfolder(folder, end=".in")[0])
-    nonlinear_run = input_parameters['nonlinear']
-    ky_scan = not input_parameters['nonlinear']
-
-    # Read the netcdf files to get potential['time', 'phi2_vs_kxky', 'phi2'] or potential[ky]['time', 'phi2_vs_kxky', 'phi2']
-    potential = read.phi(folder, kmin, kmax, input_file)
-    keys_shot, keys_rho = read.sorted_shot_and_rho_keys(potential, return_type='keys')
-    
-    # CASE 1: Nonlinear runs with extra runs in run01, run02, ... folders    
-    if nonlinear_run == True:
-        for shot in keys_shot:
-            for rho in keys_rho[shot]:
-                for ky in potential[shot][rho].keys():
-
-                    # Read the data
-                    heat_flux   = np.abs(potential[shot][rho][ky]['qflx'])
-                    time_q      = potential[shot][rho][ky]['time_fluxes']
-                    phi         = potential[shot][rho][ky]['phi2']
-                    time        = potential[shot][rho][ky]['time'] 
-                    phi_log     = np.log10(np.abs(phi))
-
-                    # Plot phi^2(t)
-                    if '348' in folder: color='navy'
-                    if '169' in folder: color='crimson'
-                    ax.plot(time, phi, lw=3., color=color, label="$|\\varphi|^2$") # plot phi
-                    if plot_heatflux==True:     ax.plot(time_q, heat_flux, lw=3., color='black', label="$Q_s/Q_{gB}$") # plot heat_flux
-                    print(time_q)
-                    # Show phi(kx,ky) in the linear growth
-                    try: 
-                        index_start = list(phi_log).index( list(filter(lambda i: i > -5.0, phi_log))[0] )
-                        index_stop  = list(phi_log).index( list(filter(lambda i: i > -1.0, phi_log))[0] )
-                        ax.axvspan(time[index_start], time[index_stop], facecolor='crimson', alpha=0.4)
-                    except:
-                        print()
-
-                    # Show phi(kx,ky) on the stagnation
-                    try:
-                        index_start = list(phi_log).index( list(filter(lambda i: i > 1.0, phi_log))[0] )
-                        index_stop  = list(time).index( list(filter(lambda i: i > time[index_start]+20, time))[0] )                      
-                        ax.axvspan(time[index_start], time[index_stop], facecolor='navy', alpha=0.4)
-                    except:
-                        print()
-                    # Show phi(kx,ky) in steady-state
-                    ax.axvspan(400, time[-1], facecolor='green', alpha=0.4)
-                    if "004" in folder: ax.axvspan(200, time[-1], facecolor='green', alpha=0.4)
-
-    # CASE 2: kyscan with multiple files for different ky
-    if ky_scan == True:
-        for shot in keys_shot:
-            for rho in keys_rho[shot]:
-
-                # The number of lines defines the colors
-                ky_vec = list(potential[shot][rho].keys())
-                color  = plt.cm.jet(np.linspace(0,1,len(ky_vec)))
-                
-                # Plot phi(t)
-                for ky in ky_vec:
-                    ax.plot(potential[shot][rho][ky]['time'], potential[shot][rho][ky]['phi2'], lw=2, color=color[ky_vec.index(ky)],label=round(ky,1))
-
-                # Check the calculated growth rates
-                if input_file:
-                    if "348" in input_file: wout_file_path = get_fullpathoffolder(folder) + "/wout_w7xr348+252.h5"; B_field = "348"
-                    if "169" in input_file: wout_file_path = get_fullpathoffolder(folder) + "/wout_w7xr169+252.h5"; B_field = "169"
-                    wout_parameters = read.wout(wout_file_path)
-                    b0 = wout_parameters['b0']
-                    linear_data_one_kx_ky = calculate_lineardata_for_one_kx_ky(folder, input_file, b0=b0) 
-                    for index in range(len(linear_data_one_kx_ky["ky"][:])):
-                        ky    = linear_data_one_kx_ky["ky"][index]
-                        last_20percent = int(np.size(potential[shot][rho][ky]['time'])*8/10)
-                        gamma = linear_data_one_kx_ky["gamma_unstable"][index] 
-                        time  = potential[shot][rho][ky]['time'][last_20percent:-1]
-                        phi   = potential[shot][rho][ky]['phi2'][last_20percent:-1]
-                        if plot_heatflux==False: ax.plot([time[0], time[-1]], [phi[0], phi[-1]*10**gamma], lw=2, ls=':', color=color[ky_vec.index(ky)])
+from stellapy.simulations.utils.get_simulation import get_simulation
+from stellapy.simulations.utils.get_experiment import get_experiment 
  
-    # Finish the figure
+@verbose_wrapper 
+def plot_potentialVsTime(\
+            # Specify which simulations to plot
+                research=None,\
+                experiment_id="All experiments",\
+                simulation_id="All simulations",\
+            # Specify data range
+                x_range=None,\
+                y_range=None,\
+            # Labels
+                x_label=None,\
+                y_label=None,\
+                title=None,\
+            # For the GUI the figure object already exists 
+                show_figure = True,\
+                ax=None,\
+                Progress=None,\
+            # Toggles
+                log=False,\
+                units="normalized"):
+    
+    ''' Plot potential(t).  '''
+
+    # Update the progress bar of the GUI
+    if Progress: Progress.move(0,"Plot potential versus time.")
+     
+    # Set the labels, and change the standard labels depending on the units
+    label = determine_labels(x_label, y_label, title, units)
+    load_plotbox2d(x_label=label['x'], y_label=label["y"], title=label["title"], ax=ax) 
+
+    # Keep track of the labels that are already used and save the axis limits
+    labels = []; xlims=[0,0]; ylims=[0,0]; 
+    
+    # Get the total number of varied values, to determine whether we need to use markers
+    # to diferentiate between different simulations or whether the line colors are sufficient
+    number_ofVariedValues = 0
+    experiments = get_experiment(research, experiment_id)
+    for experiment in experiments:
+        number_ofVariedValues = np.max([number_ofVariedValues,len(experiment.variedValues)])
+     
+    # Iterate over the experiments
+    for experiment in experiments:
+                     
+        # First plot the lines with the same color for each experiment
+        if (len(experiments) > 1) or (number_ofVariedValues==1):
+            
+            # Iterate over the simulations
+            simulations = get_simulation(experiment, simulation_id)
+            for simulation in simulations:
+                         
+                # Get the data
+                vec_time = simulation.time
+                vec_phi2 = simulation.phi2
+                style    = '-'
+                
+                # Put time time axis in milliseconds if we plot in SI units
+                if units!="normalized": vec_time=vec_time*1000  
+                 
+                # Add a label to the legend for the first simulation of this experiment
+                label_exp = experiment.line_label if simulations.index(simulation) == 0 else ""
+
+                # Plot the data
+                ax.plot(vec_time, vec_phi2, lw=3, linestyle=style, color=experiment.line_color, label=label_exp) 
+ 
+    # Plot the data points with the same color for each varied_value
+    for experiment in experiments:
+        
+            # Iterate over the simulations
+            simulations = get_simulation(experiment, simulation_id)
+            for simulation in simulations:
+                     
+                # Get the data
+                vec_time = simulation.time
+                vec_phi2 = simulation.phi2
+                style    = '-'
+                
+                # Put time time axis in milliseconds if we plot in SI units
+                if units!="normalized": vec_time=vec_time*1000  
+                 
+                # Add a label to the legend for the first simulation of this experiment
+                label_var = simulation.marker_label
+                label_var = label_var.replace("_"," ") if "$" not in label_var else label_var
+                label_var = "" if (label_var in labels) else label_var; labels.append(label_var)
+                label_var1 = label_var if not ((len(experiments) > 1) or (number_ofVariedValues==1)) else ""
+                label_var2 = label_var if (len(experiments) > 1) or (number_ofVariedValues==1) else ""
+                marker_style = simulation.marker_style 
+                marker_color = simulation.marker_color 
+                 
+                # If there is only one experiment, add lines in the same color as the marker
+                if not( (len(experiments) > 1) or (number_ofVariedValues==1) ): lw = 2
+                if      (len(experiments) > 1) or (number_ofVariedValues==1)  : lw = 0
+ 
+                # First print the lines with the shot label: for ions and electrons
+                ax.plot(vec_time, vec_phi2, lw=lw, linestyle=style, color=marker_color, label=label_var1) 
+ 
+                # Keep track of the axis limits
+                xlims = [np.nanmin([np.nanmin(vec_time), xlims[0]]), np.nanmax([1.1*np.nanmax(vec_time), xlims[1]])]
+                ylims = [np.nanmin([np.nanmin(vec_phi2), ylims[0]]), np.nanmax([1.1*np.nanmax(vec_phi2), ylims[1]])]
+                
+                # Next print the symbols/markers with the rho label, print the markers differently for log and normal scales
+                if (len(experiments) > 1) or (number_ofVariedValues==1):
+                    vec_flux, vec_time = get_markerAtEveryXSteps(vec_phi2, vec_time, log, units)
+                    ax.plot(vec_time, vec_flux, lw=0, marker=marker_style, mec=marker_color, mfc=marker_color, label=label_var2) 
+ 
+    # Change appearance plot 
     ax.autoscale()
-    if plot_heatflux==True:     ax.set_xlim(xmin=0, xmax=time_q[-1]) 
-    ax.set_yscale("log")
-    #ax.set_ylim(ymax=100000000000000, ymin=1.E-1)
-    ax.set_xlim([0,600])
-    if "004" in folder: ax.set_xlim([0,400])
-    #ax.legend(loc='best', labelspacing=0.0, ncol=1, shadow=True, prop={'size':24})
-    if ky_scan == True:
-        ax.legend(loc='upper center', bbox_to_anchor=(1.25, 1), labelspacing=0.0, ncol=2, shadow=True, prop={'size':24},title='$k_y$')
-    plt.show()
+    ax.set_title(title)
+    ax.set_xlim(xmin=0)
+    ax.ticklabel_format(style='sci', scilimits=(0,0), axis='y')
+    ax.legend(labelspacing=0.0, prop={'size':20}, handlelength=1.5)
+    if log == True: ax.set_yscale('log')
+    
+    # Rescale the axis
+    if x_range==None: x_range = xlims
+    if y_range==None: y_range = ylims
+    ax.set_xlim(x_range) 
+    ax.set_ylim(y_range) 
+    
+    # Show the figure
+    if show_figure: plt.show()
+    if True: return
 
 
+#################################################################
+#                        METHODS
+#################################################################
 
+def determine_labels(x_label, y_label, title, units):
+    ''' Set the labels and titels for the potential versus time plot.'''
+    
+    # Save the labels in one dictionary
+    label = {'x' : x_label, 'y' : y_label, 'title' : title}
 
-
-
-
-
-
-
-
-
-
-
-
-
+    # Determine the label of the x-axis
+    label["x"] = "$t\, v_{\mathrm{th}}/a$" if units=="normalized" else "$t$ [ms]"
+    label["y"] = "$|\\phi^2|$" if units=="normalized" else "$|\\phi^2|$ ???"
+    return label
+ 
+ 
+#================================================================
+def get_markerAtEveryXSteps(vec_flux, vec_time, log, units):
+ 
+    # For normal scales, plot markers after the exponentional growth, for log scales, plot markers on the exponentional growth
+    if log == True:
+        if units=="normalized":  time_step = 15
+        if units!="normalized":  time_step = 0.05 
+        time_of_maximum = vec_time[np.argmax(vec_flux)]
+        vec_flux = vec_flux[vec_time <= time_of_maximum]
+        vec_time = vec_time[vec_time <= time_of_maximum]
+    if log == False:  
+        if units=="normalized":  time_step = 25
+        if units!="normalized":  time_step = 0.05 
+        time_of_maximum = vec_time[np.argmax(vec_flux)]
+        vec_flux = vec_flux[vec_time >= time_of_maximum]
+        vec_time = vec_time[vec_time >= time_of_maximum]
+ 
+    # Plot a marker at t=time_step, 2*time_step, ...
+    marker_times = np.arange(vec_time[0],vec_time[-1]+time_step, time_step)
+    marker_times[-1] = marker_times[-1] + 1000
+    temp_flux = []
+    temp_time = []
+    index = 0
+    for time in vec_time:
+        if time >= marker_times[index]:
+            temp_time.append(time)
+            temp_flux.append(vec_flux[list(vec_time).index(time)])
+            index = index + 1
+ 
+    return np.array(temp_flux), np.array(temp_time)
 
 
