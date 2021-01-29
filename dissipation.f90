@@ -53,6 +53,7 @@ contains
 
   subroutine init_dissipation
 
+    use mp, only: proc0
     use kt_grids, only: nakx
     use zgrid, only: ntubes
     use stella_layouts, only: vmu_lo
@@ -64,8 +65,13 @@ contains
     if (include_collisions) then
         call init_collisions
     else
-        write(*,*) 'Coll. model:     None'
-        write(*,*)
+        if (proc0) then
+           write (*,'(A)') "############################################################"
+           write (*,'(A)') "                         COLLISIONS"
+           write (*,'(A)') "############################################################"
+           write (*,*) 'Coll. model:     None'
+           write (*,*)
+        end if
     end if
 
     if(include_krook_operator.and..not.allocated(g_krook)) then

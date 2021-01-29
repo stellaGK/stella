@@ -91,11 +91,14 @@ contains
     ! Read in everything from the vmec wout file using libstell.
     !*********************************************************************
 
-    write (*,*) "About to read VMEC wout file ",trim(vmec_filename)
+    write (*,'(A)') "############################################################"
+    write (*,'(A)') "                       MAGNETIC FIELD"
+    write (*,'(A)') "############################################################"
+    write (*,*) "About to read VMEC wout file: '",trim(vmec_filename),"'."
     call read_wout_file(vmec_filename, ierr, iopen)
     if (iopen .ne. 0) stop 'error opening wout file'
     if (ierr .ne. 0) stop 'error reading wout file'
-    write (*,*) "  Successfully read VMEC data from ",trim(vmec_filename)
+    write (*,*) "Successfully read VMEC data from '",trim(vmec_filename),"'."
 
     nfp = nfp_vmec
     lasym = lasym_vmec
@@ -107,8 +110,10 @@ contains
     mpol = mpol_vmec
     ntor = ntor_vmec
 
-    write (*,*) "  Number of field periods (nfp):",nfp
-    write (*,*) "  Stellarator-asymmetric? (lasym):",lasym
+    write (*,*) " "
+    write (*,*) "  Characteristics of the magnetic field:"
+    write (*,'(A44, I1)') "      Number of field periods (nfp):"//REPEAT(' ',50),nfp
+    write (*,'(A44, L1)') "      Stellarator-asymmetric? (lasym):"//REPEAT(' ',50),lasym
 
     if (.not.allocated(rmnc)) then
        allocate (xm(mnmax)) ; xm = xm_vmec
@@ -225,7 +230,7 @@ contains
     ! Other values of vmec_surface_option will cause the program to abort with an error.
     integer, intent(in) :: vmec_surface_option
 
-    ! If verbose is .true., lots of diagnostic information is printed.
+    ! If verbose is .true. in the vmec_parameters namelist, lots of diagnostic information is printed.
     logical, intent(in) :: verbose
 
     !*********************************************************************
@@ -393,7 +398,7 @@ contains
     ! this gives the sign of the edge toroidal flux
     sign_toroidal_flux = int(sign(1.1,edge_toroidal_flux_over_2pi))
 
-    if (verbose) print *, "  Sign of the toroidal flux from VMEC:", sign_toroidal_flux
+    if (verbose) write (*,'(A43, I2)') "      Sign of the toroidal flux from VMEC:"//REPEAT(' ',50), sign_toroidal_flux
 
     ! Set reference length and magnetic field for stella's normalization, 
     ! using the choices made by Pavlos Xanthopoulos in GIST:
@@ -402,8 +407,10 @@ contains
     B_reference = 2 * abs(edge_toroidal_flux_over_2pi) / (L_reference * L_reference)
 
     if (verbose) then
-       print *,"  Reference length for stella normalization:",L_reference," meters."
-       print *,"  Reference magnetic field strength for stella normalization:",B_reference," Tesla."
+       write (*,*) "  "
+       write (*,*) "  Reference values for the stella normalization:"
+       write (*,'(A42, F15.12, A7)') "      Reference length (minor radius a):"//REPEAT(' ',50),L_reference," meters"
+       write (*,'(A42, F15.12, A6)') "      Reference magnetic field strength:"//REPEAT(' ',50),B_reference," Tesla"
     end if
 
     ! --------------------------------------------------------------------------------
@@ -618,22 +625,23 @@ contains
     ! Evaluate several radial-profile functions at the flux surface
     ! we ended up choosing.
     !*********************************************************************
-
+    if (verbose) write (*,*) " "
+    if (verbose) write (*,*) "  Radial-profile functions at the chosen flux surface:"
     iota = iotas(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + iotas(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
-    if (verbose) print *,"  iota =",iota
+    if (verbose) write (*,'(A21, F15.12)') "      iota:"//REPEAT(' ',50),iota
     safety_factor_q = 1/iota
 
     allocate(d_iota_d_s_on_half_grid(ns))
     d_iota_d_s_on_half_grid = 0
     ds = normalized_toroidal_flux_full_grid(2) - normalized_toroidal_flux_full_grid(1)
-    if (verbose) print *,"  ds =",ds
+    if (verbose) write (*,'(A21, ES20.12E3)') "      ds:"//REPEAT(' ',50),ds
     d_iota_d_s_on_half_grid(2:ns) = (iotaf(2:ns) - iotaf(1:ns-1)) / ds
     d_iota_d_s =  &
          d_iota_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + d_iota_d_s_on_half_grid(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
     deallocate(d_iota_d_s_on_half_grid)
-    if (verbose) print *,"  d iota / d s =",d_iota_d_s
+    if (verbose) write (*,'(A21, ES20.12E3)') "      diota/ds:"//REPEAT(' ',50),d_iota_d_s
     ! shat = (r/q)(dq/dr) where r = a sqrt(s).
     !      = - (r/iota) (d iota / d r) = -2 (s/iota) (d iota / d s)
     shat = (-2 * normalized_toroidal_flux_used / iota) * d_iota_d_s
@@ -646,7 +654,8 @@ contains
          d_pressure_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + d_pressure_d_s_on_half_grid(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
     deallocate(d_pressure_d_s_on_half_grid)
-    if (verbose) print *,"  d pressure / d s =",d_pressure_d_s
+    if (verbose) write (*,'(A21, ES20.12E3)') "      dpressure/ds:"//REPEAT(' ',50),d_pressure_d_s
+    if (verbose) write (*,*) " "
 
     !*********************************************************************
     ! Set up the coordinate grids.
@@ -663,7 +672,7 @@ contains
     number_of_field_periods_to_include_final = number_of_field_periods_to_include
     if (number_of_field_periods_to_include <= 0) then
        number_of_field_periods_to_include_final = nfp
-       if (verbose) print *,"  Since number_of_field_periods_to_include was <= 0, it is being reset to nfp =",nfp
+       if (verbose) print *,"   Since number_of_field_periods_to_include was <= 0, it is being reset to nfp =",nfp
     end if
 
     zeta = [( zeta_center + (pi*j*number_of_field_periods_to_include_final)/(nfp*nzgrid), j=-nzgrid, nzgrid )]
@@ -673,7 +682,7 @@ contains
     ! theta_vmec = theta_pest - Lambda.
     !*********************************************************************
 
-    if (verbose) print *,"  Beginning root solves to determine theta_vmec."
+    if (verbose) print *,"Beginning root solves to determine theta_vmec."
     do izeta = -nzgrid, nzgrid
        zeta0 = zeta(izeta)
        do ialpha = 1,nalpha

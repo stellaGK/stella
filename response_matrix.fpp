@@ -55,9 +55,15 @@ contains
     integer :: istatus
     istatus = 0
 
-    message_dgdphi = 'calculate dgdphi:'
-    message_QN     = 'calculate QN:    '
-    message_lu     = 'calculate LU:    ' 
+    if (proc0.and.debug) then
+      write (*,*) " "
+      write (*,'(A)') "    ############################################################"
+      write (*,'(A)') "                         RESPONSE MATRIX"
+      write (*,'(A)') "    ############################################################"
+    end if
+    message_dgdphi = '     calculate dgdphi: '
+    message_QN     = '     calculate QN:     '
+    message_lu     = '     calculate LU:     ' 
     time_response_matrix_dgdphi = 0
     time_response_matrix_QN     = 0
     time_response_matrix_lu     = 0
@@ -274,6 +280,11 @@ contains
 
     if (mat_gen) then
        close(unit=mat_unit)
+    end if
+
+    if (proc0.and.debug) then
+      write (*,'(A)') "    ############################################################"
+      write (*,'(A)') " "
     end if
 
   end subroutine init_response_matrix
