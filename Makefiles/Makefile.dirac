@@ -42,7 +42,7 @@ ifeq ($(USE_FFT),fftw3)
 	FFT_INC = 
 	FFT_DIR = $(FFTW_HOME)
 	FFT_LIB = -lfftw3 #-lfftw3_mpi
-        CPPFLAGS   += -I $(FFTW_INC_DIC)
+        #CPPFLAGS   += -I $(FFTW_INC_DIC)
 endif	
 
 USE_HDF5=
