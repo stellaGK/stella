@@ -2627,7 +2627,7 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use physics_flags, only: full_flux_surface
+    use physics_flags, only: full_flux_surface, radial_variation
     use zgrid, only: nzgrid, ntubes, nztot
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
@@ -2642,8 +2642,8 @@ contains
     integer :: ivmu
     real :: k2max
 
-    if (full_flux_surface) then
-       ! avoid alpha-dependent kperp
+    if (full_flux_surface.or.radial_variation) then
+       ! avoid spatially dependent kperp
        k2max = aky(nakx)**2 + aky(naky)**2
        ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
