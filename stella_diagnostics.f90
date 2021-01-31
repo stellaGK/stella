@@ -280,6 +280,7 @@ contains
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi2_nc
     use stella_io, only: write_phi_nc
+    use stella_io, only: write_heat_flux_t_nc ! JFP
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
@@ -391,6 +392,11 @@ contains
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
        call write_time_nc (nout, code_time)
        call write_phi2_nc (nout, phi2)
+
+       if(write_heat_flux_vs_t) then
+          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_heat_flux_t_nc'
+          call write_heat_flux_t_nc (nout, heat_flux) ! JFP, where to get heat_t? heat_flux
+       end if
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi_out)
