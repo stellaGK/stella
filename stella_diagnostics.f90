@@ -20,6 +20,7 @@ module stella_diagnostics
   logical :: write_omega
   logical :: write_moments
   logical :: write_phi_vs_time
+  logical :: write_heat_vs_time
   logical :: write_gvmus
   logical :: write_gzvs
   logical :: write_kspectra
@@ -95,6 +96,7 @@ contains
     call broadcast (write_kspectra)
     call broadcast (write_moments)
     call broadcast (write_phi_vs_time)
+    call broadcast (write_heat_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
     call broadcast (write_radial_fluxes)
@@ -104,7 +106,7 @@ contains
     call init_averages
 
     ! Initiate the netcdf file with extension '.out.nc'
-    call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
+    call init_stella_io (restart, write_phi_vs_time, write_heat_vs_time, write_kspectra, &
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
 
     ! Open the '.out', '.fluxes' and '.omega' file
@@ -132,7 +134,7 @@ contains
     integer :: in_file
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
-         save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
+         save_for_restart, write_phi_vs_time, write_heat_vs_time, write_gvmus, write_gzvs, &
          write_omega, write_kspectra, write_moments, write_radial_fluxes, flux_norm
 
     if (proc0) then
@@ -142,6 +144,7 @@ contains
        save_for_restart = .false.
        write_omega = .false.
        write_phi_vs_time = .false.
+       write_heat_vs_time = .false.
        write_gvmus = .false.
        write_gzvs = .false.
        write_kspectra = .false.
@@ -278,9 +281,9 @@ contains
     use dist_fn_arrays, only: gvmu, gnew
     use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
-    use stella_io, only: write_phi2_nc
+    use stella_io, only: write_phi2_nc, write_phi2_nc_debug
     use stella_io, only: write_phi_nc
-    use stella_io, only: write_heat_flux_t_nc ! JFP
+    use stella_io, only: write_heat_flux_t_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
@@ -307,6 +310,7 @@ contains
     real, dimension (:,:,:,:), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
+    real, dimension (:,:,:,:,:), allocatable :: heat_flux_full ! function of ky, kx, zed, tube, spec
     real, dimension (:,:), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
@@ -347,7 +351,8 @@ contains
 
     allocate (part_flux(nspec))
     allocate (mom_flux(nspec))
-    allocate (heat_flux(nspec))
+    allocate (heat_flux(nspec)) ! JFP: this heat flux is summed over all kx, ky, theta. Just a function of species! 
+    allocate(heat_flux_full(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
     if(write_radial_fluxes) then
       allocate (part_flux_x(nakx,nspec))
@@ -360,12 +365,12 @@ contains
 !     handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
 !     call g_to_h (gnew, phi, fphi, phi_corr_QN)
       call get_fluxes_vmulo (gnew, phi_out, part_flux, mom_flux, heat_flux, &
-                                            part_flux_x,mom_flux_x, heat_flux_x)
+                                            part_flux_x,mom_flux_x, heat_flux_x) ! JFP. This where fluxes calculated
 !     call g_to_h (gnew, phi, -fphi, phi_corr_QN)
     else
       call scatter (kxkyz2vmu, gnew, gvmu)
 !     call g_to_h (gvmu, phi, fphi)
-      call get_fluxes (gvmu, part_flux, mom_flux, heat_flux)
+      call get_fluxes (gvmu, part_flux, mom_flux, heat_flux, heat_flux_full) ! JFP. This where fluxes calculated
 !     call g_to_h (gvmu, phi, -fphi)
     endif
 
@@ -392,14 +397,15 @@ contains
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
        call write_time_nc (nout, code_time)
        call write_phi2_nc (nout, phi2)
-
-       if(write_heat_flux_vs_t) then
-          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_heat_flux_t_nc'
-          call write_heat_flux_t_nc (nout, heat_flux) ! JFP, where to get heat_t? heat_flux
-       end if
+       call write_phi2_nc_debug (nout, phi2) ! Just a debugging phi2
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi_out)
+       end if
+       if (write_heat_vs_time) then ! JFP
+          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_heat_flux_t_nc'
+          call write_heat_flux_t_nc (nout, heat_flux_full)
+          deallocate (heat_flux_full)
        end if
        if (write_kspectra) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
@@ -547,7 +553,7 @@ contains
   !=============== GET FLUXES ===================
   !==============================================
   ! assumes that the non-Boltzmann part of df is passed in (aka h)
-  subroutine get_fluxes (g, pflx, vflx, qflx)
+  subroutine get_fluxes_kxkyzlo (g, pflx, vflx, qflx, qflx_full)
 
     use mp, only: sum_reduce
     use constants, only: zi
@@ -569,6 +575,7 @@ contains
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (out) :: pflx, vflx, qflx
+    real, dimension (:,:,:,:), intent (out) :: qflx_full ! JFP
 
     integer :: ikxkyz, iky, ikx, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm
@@ -672,12 +679,12 @@ contains
     deallocate (gtmp1, gtmp2, gtmp3)
     deallocate (flx_norm)
 
-  end subroutine get_fluxes
+  end subroutine get_fluxes_kxkyzlo
 
   !==============================================
   !============ GET FLUXES VMULO ================
   !==============================================
-  subroutine get_fluxes_vmulo (g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x)
+  subroutine get_fluxes_vmulo (g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x, qflx_full)
 
     use mp, only: sum_reduce
     use constants, only: zi
@@ -706,6 +713,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     real, dimension (:), intent (out) :: pflx, vflx, qflx
     real, dimension (:,:), intent (out) :: pflx_x, vflx_x, qflx_x
+    real, dimension (:,:,:,:,:), intent (out) :: qflx_full ! JFP
 
     integer :: ivmu, imu, iv, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm, dflx_norm
@@ -716,6 +724,7 @@ contains
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
     pflx_x = 0. ; vflx_x = 0. ; qflx_x = 0.
+    qflx_full = 0.
 
     ia = 1
 
@@ -728,7 +737,6 @@ contains
       dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
       dflx_norm(nzgrid) = 0.
     endif
-
 
 
     ! FLAG - electrostatic for now
@@ -778,7 +786,7 @@ contains
             enddo
           enddo
        enddo
-       call get_one_flux_vmulo (flx_norm, spec%dens_psi0, g1, phi, pflx)
+       call get_one_flux_vmulo (flx_norm, spec%dens_psi0, g1, phi, pflx)   
 
        if(write_radial_fluxes) then
          call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, pflx_x)
@@ -833,6 +841,10 @@ contains
           enddo
        enddo
        call get_one_flux_vmulo (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
+
+       if(write_heat_vs_time) then
+         call get_one_flux_full (flx_norm, spec%dens_psi0, gtmp1, phi, qflx_full) ! JFP
+       endif
 
        if(write_radial_fluxes) then
          call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, qflx_x)
@@ -1081,7 +1093,37 @@ contains
 
     deallocate (totals)
 
-  end subroutine get_one_flux_radial
+
+  !==============================================
+  !=========== GET ONE FLUX FULL ==============
+  !==============================================
+  subroutine get_one_flux_full (norm, weights, gin, fld, flxout) ! JFP. calculates fluxs as a function of theta, ntube, ky, kx. Probably uses a lot of computing power. Sad face.
+
+    use vpamu_grids, only: integrate_vmu
+    use stella_layouts, only: vmu_lo
+    use kt_grids, only: aky, nakx, naky
+    use zgrid, only: nzgrid, ntubes
+    use species, only: nspec
+
+    implicit none
+
+    real, dimension (-nzgrid:), intent (in) :: norm
+    real, dimension (:), intent (in) :: weights
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
+    real, dimension (:,:,:,:,:), intent (in out) :: flxout ! JFP: ky, kx, zed, ntubes, nspec
+
+    complex, dimension (:,:,:,:,:), allocatable :: totals
+
+    allocate (totals(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
+
+    call integrate_vmu (gin,weights,totals)
+    flxout = flxout + 0.5*fac*aky*aimag(totals*conjg(fld)) & 
+                       * spread(spread(norm,nakx,2),naky,1)
+
+    deallocate (totals)
+
+  end subroutine get_one_flux_full
 
   !==============================================
   !=============== GET MOMENTS ==================

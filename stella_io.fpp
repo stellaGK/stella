@@ -15,6 +15,7 @@ module stella_io
   public :: write_time_nc
   public :: write_phi2_nc
   public :: write_phi_nc
+  public :: write_heat_flux_t_nc
   public :: write_gvmus_nc
   public :: write_gzvs_nc
   public :: write_kspectra_nc
@@ -31,7 +32,7 @@ module stella_io
   integer (kind_nf) :: nalpha_dim
 
   integer, dimension (7) :: moment_dim
-  integer, dimension (6) :: field_dim
+  integer, dimension (6) :: field_dim, flux_tszxy_dim
   integer, dimension (5) :: zvs_dim
   integer, dimension (4) :: vmus_dim
   integer, dimension (4) :: kykxaz_dim
@@ -42,8 +43,8 @@ module stella_io
   integer :: nakx_id, ntubes_id
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
-  integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
-  integer :: phi_vs_t_id, phi2_vs_kxky_id
+  integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id, phi2_id_debug
+  integer :: phi_vs_t_id, phi2_vs_kxky_id, heat_vs_t_id
   integer :: pflux_x_id, vflux_x_id, qflux_x_id
   integer :: density_id, upar_id, temperature_id
   integer :: gvmus_id, gzvs_id
@@ -67,8 +68,8 @@ contains
   !==============================================
   !============ INITIATE STELLA IO ==============
   !==============================================
-  subroutine init_stella_io (restart, write_phi_vs_t, write_kspectra, write_gvmus, &
-       write_gzvs, write_moments, write_radial_fluxes)
+  subroutine init_stella_io (restart, write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, &
+       write_gzvs, write_moments, write_radial_fluxes) ! JFP
 
     use mp, only: proc0
     use file_utils, only: run_name
@@ -82,7 +83,7 @@ contains
     implicit none
 
     logical, intent (in) :: restart
-    logical, intent (in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
+    logical, intent (in) :: write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs
     logical, intent (in) :: write_moments, write_radial_fluxes!, write_symmetry
 # ifdef NETCDF
     character (300) :: filename
@@ -111,7 +112,7 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, file=filename)
 
        call define_dims
-       call define_vars (write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
+       call define_vars (write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
        call nc_grids
        call nc_species
        call nc_geo
@@ -265,7 +266,7 @@ contains
 # endif
   end subroutine save_input
 
-  subroutine define_vars (write_phi_vs_t, write_kspectra, write_gvmus, &
+  subroutine define_vars (write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, &
 !       write_gzvs, write_symmetry, write_moments)
        write_gzvs, write_moments, write_radial_fluxes)
 
@@ -282,7 +283,7 @@ contains
 
     implicit none
 
-    logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
+    logical, intent(in) :: write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
     logical, intent (in) :: write_moments, write_radial_fluxes
 # ifdef NETCDF
     character (5) :: ci
@@ -351,7 +352,14 @@ contains
     zvs_dim (3) = nvtot_dim
     zvs_dim (4) = nspec_dim
     zvs_dim (5) = time_dim
-    
+
+    flux_tszxy_dim (1) = naky_dim ! JFP
+    flux_tszxy_dim (2) = nakx_dim 
+    flux_tszxy_dim (3) = ntubes_dim
+    flux_tszxy_dim (4) = ntubes_dim
+    flux_tszxy_dim (5) = nspec_dim
+    flux_tszxy_dim (6) = time_dim
+
     kykxz_dim (1) = naky_dim
     kykxz_dim (2) = nakx_dim
     kykxz_dim (3) = nttot_dim
@@ -737,6 +745,20 @@ contains
        if (status /= nf90_noerr) &
             call netcdf_error (status, ncid, phi2_id, att='units')
        
+
+! JFP debugging, delete once fixed
+       status = nf90_inq_varid(ncid,'phi2_debug',phi2_id_debug)
+       if(status /= nf90_noerr) then
+         status = nf90_def_var (ncid, 'phi2_debug', netcdf_real, time_dim, phi2_id_debug)
+         if (status /= nf90_noerr) call netcdf_error (status, var='phi2_debug')
+       endif
+       status = nf90_put_att (ncid, phi2_id_debug, 'long_name', '|Potential**2|')
+       if (status /= nf90_noerr) &
+            call netcdf_error (status, ncid, phi2_id_debug, att='long_name')
+       status = nf90_put_att (ncid, phi2_id_debug, 'units', '(T/q rho/L)**2')
+       if (status /= nf90_noerr) &
+            call netcdf_error (status, ncid, phi2_id_debug, att='units')
+
 !        status = nf90_def_var &
 !             (ncid, 'phi2_by_mode', netcdf_real, mode_dim, phi2_by_mode_id)
 !        if (status /= nf90_noerr) call netcdf_error (status, var='phi2_by_mode')
@@ -764,6 +786,18 @@ contains
           status = nf90_put_att (ncid, phi_vs_t_id, 'long_name', 'Electrostatic Potential vs time')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id, att='long_name')
        end if
+
+       if (write_heat_vs_t) then ! this writes heat flux as a function of ky, kx, zed, tube, spec
+          status = nf90_inq_varid(ncid,'heat_vs_t',heat_vs_t_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'heat_vs_t', netcdf_real, flux_tszxy_dim, heat_vs_t_id) ! maybe field_dim is the error... need to get dims right!
+            if (status /= nf90_noerr) call netcdf_error (status, var='heat_vs_t')
+          endif
+          status = nf90_put_att (ncid, heat_vs_t_id, 'long_name', 'Electrostatic heat flux vs time')
+          if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id, att='long_name')
+       end if
+
        if (write_radial_fluxes) then
           status = nf90_inq_varid(ncid,'pflux_x',pflux_x_id)
           if(status /= nf90_noerr) then
@@ -916,6 +950,75 @@ contains
 # endif
 
   end subroutine write_phi2_nc
+
+
+
+  subroutine write_phi2_nc_debug (nout, phi2) ! JFP, troubleshoot
+
+# ifdef NETCDF
+    use netcdf, only: nf90_put_var
+# endif
+
+    implicit none
+
+    integer, intent (in) :: nout
+    real, intent (in) :: phi2
+
+# ifdef NETCDF
+    integer :: status
+
+    status = nf90_put_var (ncid, phi2_id_debug, phi2, start=(/ nout /))
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, phi2_id_debug)
+# endif
+
+  end subroutine write_phi2_nc_debug
+
+
+
+  subroutine write_heat_flux_t_nc (nout, heat_t) ! JFP, heat_t is not a function of theta here. Just of ky, nx
+
+    !use convert, only: c2r
+    !use zgrid, only: nzgrid, ntubes
+    use species, only: nspec
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, naky
+    use netcdf, only: nf90_put_var, nf90_sync
+
+    implicit none
+
+    integer, intent (in) :: nout
+    !complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    complex, dimension (:,:,:,:,:), intent (in) :: heat_t
+
+    integer :: status
+    integer, dimension (6) :: start, count
+    !real, dimension (:,:,:,:,:), allocatable :: phi_ri
+    !real, dimension (:,:,:,:,:), allocatable :: heat_ri
+
+    start = 1
+    start(6) = nout
+    count(1) = ntubes
+    count(2) = 2*nzgrid+1
+    count(3) = nakx
+    count(4) = naky
+    count(5) = nspec
+    count(6) = 1
+
+    !allocate (phi_ri(2, naky, nakx, 2*nzgrid+1, ntubes))
+    !call c2r (phi, phi_ri)
+    !status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
+
+    status = nf90_put_var (ncid, heat_vs_t_id, heat_t, start=start, count=count)
+    !if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id)
+    !deallocate (phi_ri)
+
+  end subroutine write_heat_flux_t_nc
+
+
 
   subroutine write_phi_nc (nout, phi)
 
