@@ -13,7 +13,7 @@ module stella_io
 
   public :: init_stella_io, finish_stella_io
   public :: write_time_nc
-  public :: write_phi2_nc
+  public :: write_phi2_nc, write_phi2_nc_debug
   public :: write_phi_nc
   public :: write_heat_flux_t_nc
   public :: write_gvmus_nc
@@ -355,7 +355,7 @@ contains
 
     flux_tszxy_dim (1) = naky_dim ! JFP
     flux_tszxy_dim (2) = nakx_dim 
-    flux_tszxy_dim (3) = ntubes_dim
+    flux_tszxy_dim (3) = nttot_dim
     flux_tszxy_dim (4) = ntubes_dim
     flux_tszxy_dim (5) = nspec_dim
     flux_tszxy_dim (6) = time_dim
@@ -752,6 +752,7 @@ contains
          status = nf90_def_var (ncid, 'phi2_debug', netcdf_real, time_dim, phi2_id_debug)
          if (status /= nf90_noerr) call netcdf_error (status, var='phi2_debug')
        endif
+
        status = nf90_put_att (ncid, phi2_id_debug, 'long_name', '|Potential**2|')
        if (status /= nf90_noerr) &
             call netcdf_error (status, ncid, phi2_id_debug, att='long_name')
@@ -787,16 +788,18 @@ contains
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id, att='long_name')
        end if
 
-       if (write_heat_vs_t) then ! this writes heat flux as a function of ky, kx, zed, tube, spec
-          status = nf90_inq_varid(ncid,'heat_vs_t',heat_vs_t_id)
+
+       if (write_heat_vs_t) then ! JFP
+          status = nf90_inq_varid(ncid,'es_heat_vs_t',heat_vs_t_id)
           if(status /= nf90_noerr) then
             status = nf90_def_var &
-               (ncid, 'heat_vs_t', netcdf_real, flux_tszxy_dim, heat_vs_t_id) ! maybe field_dim is the error... need to get dims right!
-            if (status /= nf90_noerr) call netcdf_error (status, var='heat_vs_t')
+               (ncid, 'es_heat_vs_t', netcdf_real, flux_tszxy_dim, heat_vs_t_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='es_heat_vs_t')
           endif
-          status = nf90_put_att (ncid, heat_vs_t_id, 'long_name', 'Electrostatic heat flux vs time')
+          status = nf90_put_att (ncid, heat_vs_t_id, 'long_name', 'Electrostatic radial heat flux vs time')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id, att='long_name')
        end if
+
 
        if (write_radial_fluxes) then
           status = nf90_inq_varid(ncid,'pflux_x',pflux_x_id)
@@ -975,10 +978,9 @@ contains
 
 
 
-  subroutine write_heat_flux_t_nc (nout, heat_t) ! JFP, heat_t is not a function of theta here. Just of ky, nx
+  subroutine write_heat_flux_t_nc (nout, heat_t) ! JFP
 
     !use convert, only: c2r
-    !use zgrid, only: nzgrid, ntubes
     use species, only: nspec
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky
@@ -988,7 +990,7 @@ contains
 
     integer, intent (in) :: nout
     !complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
-    complex, dimension (:,:,:,:,:), intent (in) :: heat_t
+    real, dimension (:,:,:,:,:), intent (in) :: heat_t
 
     integer :: status
     integer, dimension (6) :: start, count
@@ -996,11 +998,12 @@ contains
     !real, dimension (:,:,:,:,:), allocatable :: heat_ri
 
     start = 1
+
     start(6) = nout
-    count(1) = ntubes
-    count(2) = 2*nzgrid+1
-    count(3) = nakx
-    count(4) = naky
+    count(1) = naky
+    count(2) = nakx
+    count(3) = 2*nzgrid+1
+    count(4) = ntubes
     count(5) = nspec
     count(6) = 1
 
@@ -1009,7 +1012,7 @@ contains
     !status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
 
     status = nf90_put_var (ncid, heat_vs_t_id, heat_t, start=start, count=count)
-    !if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id)
 
 !   Buffers to disk
     status = NF90_SYNC(ncid)

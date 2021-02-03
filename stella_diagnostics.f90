@@ -171,6 +171,7 @@ contains
 
     implicit none
 
+    !if (.not.allocated(qflux)) allocate(qflux_full (nakx,naky,,ntubes,nspec)) ; qflux_full = 0. ! JFP
     if (.not.allocated(pflux)) allocate(pflux (nakx,naky,nspec)) ; pflux = 0.
     if (.not.allocated(qflux)) allocate(qflux (nakx,naky,nspec)) ; qflux = 0.
     if (.not.allocated(vflux)) allocate(vflux (nakx,naky,nspec)) ; vflux = 0.
@@ -310,7 +311,7 @@ contains
     real, dimension (:,:,:,:), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
-    real, dimension (:,:,:,:,:), allocatable :: heat_flux_full ! function of ky, kx, zed, tube, spec
+    real, dimension (:,:,:,:,:), allocatable :: heat_flux_full ! JFP function of ky, kx, zed, tube, spec
     real, dimension (:,:), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
@@ -352,7 +353,10 @@ contains
     allocate (part_flux(nspec))
     allocate (mom_flux(nspec))
     allocate (heat_flux(nspec)) ! JFP: this heat flux is summed over all kx, ky, theta. Just a function of species! 
-    allocate(heat_flux_full(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
+
+    if (write_heat_vs_time) then ! JFPallocate
+      allocate (heat_flux_full(naky,nakx,-nzgrid:nzgrid,ntubes,nspec)) ! JFP this seems to be allocated just fine
+    endif
 
     if(write_radial_fluxes) then
       allocate (part_flux_x(nakx,nspec))
@@ -361,16 +365,16 @@ contains
     endif
 
     ! obtain turbulent fluxes
-    if(radial_variation.or.write_radial_fluxes) then
+    if(radial_variation.or.write_radial_fluxes.or.write_heat_vs_time) then ! JFP this or statement could be bad...
 !     handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
 !     call g_to_h (gnew, phi, fphi, phi_corr_QN)
       call get_fluxes_vmulo (gnew, phi_out, part_flux, mom_flux, heat_flux, &
-                                            part_flux_x,mom_flux_x, heat_flux_x) ! JFP. This where fluxes calculated
+                                            part_flux_x,mom_flux_x, heat_flux_x, heat_flux_full) ! JFP. This where fluxes calculated
 !     call g_to_h (gnew, phi, -fphi, phi_corr_QN)
     else
       call scatter (kxkyz2vmu, gnew, gvmu)
 !     call g_to_h (gvmu, phi, fphi)
-      call get_fluxes (gvmu, part_flux, mom_flux, heat_flux, heat_flux_full) ! JFP. This where fluxes calculated
+      call get_fluxes_kxkyzlo (gvmu, part_flux, mom_flux, heat_flux)
 !     call g_to_h (gvmu, phi, -fphi)
     endif
 
@@ -553,7 +557,7 @@ contains
   !=============== GET FLUXES ===================
   !==============================================
   ! assumes that the non-Boltzmann part of df is passed in (aka h)
-  subroutine get_fluxes_kxkyzlo (g, pflx, vflx, qflx, qflx_full)
+  subroutine get_fluxes_kxkyzlo (g, pflx, vflx, qflx)
 
     use mp, only: sum_reduce
     use constants, only: zi
@@ -575,7 +579,6 @@ contains
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (out) :: pflx, vflx, qflx
-    real, dimension (:,:,:,:), intent (out) :: qflx_full ! JFP
 
     integer :: ikxkyz, iky, ikx, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm
@@ -713,7 +716,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     real, dimension (:), intent (out) :: pflx, vflx, qflx
     real, dimension (:,:), intent (out) :: pflx_x, vflx_x, qflx_x
-    real, dimension (:,:,:,:,:), intent (out) :: qflx_full ! JFP
+    real, dimension (:,:,:,:,:), allocatable, intent (out) :: qflx_full ! JFP, is this correct? This is allocated earlier, remember
 
     integer :: ivmu, imu, iv, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm, dflx_norm
@@ -724,7 +727,7 @@ contains
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
     pflx_x = 0. ; vflx_x = 0. ; qflx_x = 0.
-    qflx_full = 0.
+    !qflx_full = 0.
 
     ia = 1
 
@@ -843,7 +846,7 @@ contains
        call get_one_flux_vmulo (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
 
        if(write_heat_vs_time) then
-         call get_one_flux_full (flx_norm, spec%dens_psi0, gtmp1, phi, qflx_full) ! JFP
+         call get_one_flux_full (flx_norm, spec%dens_psi0, g1, phi, qflx_full) ! JFP
        endif
 
        if(write_radial_fluxes) then
@@ -1093,11 +1096,12 @@ contains
 
     deallocate (totals)
 
+  end subroutine get_one_flux_radial
 
   !==============================================
   !=========== GET ONE FLUX FULL ==============
   !==============================================
-  subroutine get_one_flux_full (norm, weights, gin, fld, flxout) ! JFP. calculates fluxs as a function of theta, ntube, ky, kx. Probably uses a lot of computing power. Sad face.
+  subroutine get_one_flux_full (norm, weights, gin, fld, flxout) ! JFP
 
     use vpamu_grids, only: integrate_vmu
     use stella_layouts, only: vmu_lo
@@ -1110,8 +1114,8 @@ contains
     real, dimension (-nzgrid:), intent (in) :: norm
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
-    real, dimension (:,:,:,:,:), intent (in out) :: flxout ! JFP: ky, kx, zed, ntubes, nspec
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld ! This just specifies where the index begins. Not the size.
+    real, dimension (:,:,-nzgrid:,:,:), intent (in out) :: flxout ! JFP: ky, kx, zed, ntubes, nspec
 
     complex, dimension (:,:,:,:,:), allocatable :: totals
 
