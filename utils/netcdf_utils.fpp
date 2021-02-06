@@ -131,6 +131,7 @@ contains
        (istatus, ncid, varid, dimid, file, dim, var, att, message, abort)
 
     use file_utils, only: error_unit
+    use mp, only: proc0, finish_mp
 # ifdef NETCDF
     use netcdf, only: NF90_GLOBAL
 # endif
@@ -214,12 +215,11 @@ contains
     ! append line-break
     write(ierr,*)
 
-    ! maybe this switching is not necessary.
     ! if error is detected, the program should abort immediately
     if(present(abort)) then
        if(abort) then
-!          call finish_mp
-!          if(proc0) stop 'Aborted by netcdf_error'
+           call finish_mp
+           if(proc0) stop 'Aborted by netcdf_error'
           stop
        endif
     endif

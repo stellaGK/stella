@@ -43,7 +43,7 @@ contains
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: gext
-    logical :: debug = .true.
+    logical :: debug = .false.
     character(100) :: message_dgdphi, message_QN, message_lu
     real, dimension (2) :: time_response_matrix_dgdphi
     real, dimension (2) :: time_response_matrix_QN
