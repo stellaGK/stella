@@ -20,6 +20,7 @@ module dissipation
   logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation, remove_zero_projection
+  logical :: use_physical_ksqr
   logical :: krook_odd
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
   integer:: ikxmax_source
@@ -92,6 +93,7 @@ contains
   subroutine read_parameters
 
     use file_utils, only: input_unit_exist
+    use physics_flags, only: full_flux_surface, radial_variation
     use mp, only: proc0, broadcast
     use kt_grids, only: ikx_max
 
@@ -102,7 +104,7 @@ contains
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_source, cfac, krook_odd
+         ikxmax_source, cfac, krook_odd, use_physical_ksqr
 
     integer :: in_file
     logical :: dexist
@@ -117,6 +119,7 @@ contains
        vpa_operator = .true.
        mu_operator = .true.
        hyper_dissipation = .false.
+       use_physical_ksqr = .not.(full_flux_surface.or.radial_variation)
        remove_zero_projection = .false.
        D_hyper = 0.05
        nu_krook = 0.05
@@ -140,6 +143,7 @@ contains
     call broadcast (vpa_operator)
     call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
+    call broadcast (use_physical_ksqr)
     call broadcast (D_hyper)
     call broadcast (nu_krook)
     call broadcast (delay_krook)
@@ -2627,11 +2631,10 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use physics_flags, only: full_flux_surface, radial_variation
     use zgrid, only: nzgrid, ntubes, nztot
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: ikx_max, naky, nakx
     use kt_grids, only: aky, akx
 
     implicit none
@@ -2642,9 +2645,9 @@ contains
     integer :: ivmu
     real :: k2max
 
-    if (full_flux_surface.or.radial_variation) then
+    if (.not.use_physical_ksqr) then
        ! avoid spatially dependent kperp
-       k2max = aky(nakx)**2 + aky(naky)**2
+       k2max = akx(ikx_max)**2 + aky(naky)**2
        ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt &

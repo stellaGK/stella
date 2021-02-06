@@ -717,8 +717,10 @@ contains
        endif
 # endif
 
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, file=file_proc)
-       
+       if (istatus /= NF90_NOERR)  then 
+         call netcdf_error (istatus, file=file_proc)
+       endif
+
        ! check precision
        if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
        call check_netcdf_file_precision (ncid)
