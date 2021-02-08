@@ -691,7 +691,6 @@ contains
     character (10) :: suffix
     integer :: i, n_elements, nvmulo_elements, ierr
     logical :: has_vmulo
-    real :: fac
     
     n_elements = kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1
     nvmulo_elements = vmu_lo%ulim_proc-vmu_lo%llim_proc+1

@@ -2631,27 +2631,39 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use zgrid, only: nzgrid, ntubes, nztot
+    use zgrid, only: nzgrid, ntubes, nztot, zed
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
     use kt_grids, only: ikx_max, naky, nakx
-    use kt_grids, only: aky, akx
+    use kt_grids, only: aky, akx, theta0
+    use stella_geometry, only: geo_surf, q_as_x
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ia
-    integer :: ivmu
+    integer :: ia, ivmu, iz, it
+    real :: tfac
     real :: k2max
 
     if (.not.use_physical_ksqr) then
        ! avoid spatially dependent kperp
+       
+       !get k2max at outboard midplane
        k2max = akx(ikx_max)**2 + aky(naky)**2
+       tfac= geo_surf%shat**2
+       if(q_as_x) tfac = 1.0
+
        ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt &
-             * (spread(spread(spread(akx**2,1,naky)+spread(aky**2,2,nakx),3,nztot),4,ntubes)/k2max)**2*D_hyper)
+         do it = 1,ntubes
+           do iz = -nzgrid, nzgrid
+             g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu)/(1.+code_dt*(spread(aky,2,nakx)**2 &
+                                  * (1.0+ tfac*(zed(iz) - theta0)**2)/k2max)**2*D_hyper)
+           enddo
+         enddo
+!        g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt &
+!           * (spread(spread(spread(akx**2,1,naky)+spread(aky**2,2,nakx),3,nztot),4,ntubes)/k2max)**2*D_hyper)
        end do
     else
        k2max = maxval(kperp2)

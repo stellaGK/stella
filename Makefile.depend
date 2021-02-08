@@ -30,7 +30,6 @@ stella_mod = \
 	 millerlocal.o \
 	 mirror_terms.o \
 	 mp.o \
-	 mt19937.o \
 	 multibox.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
@@ -279,7 +278,6 @@ mirror_terms.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
-mt19937.o: 
 multibox.o: \
 	 constants.o \
 	 fft_work.o \
@@ -310,7 +308,8 @@ neoclassical_terms.o: \
 	 zgrid.o 
 netcdf_utils.o: \
 	 constants.o \
-	 file_utils.o 
+	 file_utils.o \
+	 mp.o 
 parallel_streaming.o: \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
@@ -337,8 +336,7 @@ physics_flags.o: \
 physics_parameters.o: \
 	 file_utils.o \
 	 mp.o 
-ran.o: \
-	 mt19937.o 
+ran.o: 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 

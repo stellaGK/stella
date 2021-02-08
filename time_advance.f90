@@ -2109,6 +2109,7 @@ contains
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: radial_variation, full_flux_surface
     use physics_flags, only: include_mirror, prp_shear_enabled
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: advance_parallel_streaming_implicit
@@ -2196,8 +2197,10 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
+       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
             call advance_parallel_streaming_implicit (g, phi, apar)
+            if(radial_variation.or.full_flux_surface) fields_updated = .false.
+       endif
 
     else
 

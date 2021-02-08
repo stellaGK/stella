@@ -31,6 +31,7 @@ module millerlocal
 
   real :: bi, dqdr, d2Idr2
   real, dimension (:), allocatable :: grho, bmag, grho_psi0, bmag_psi0, gradpar
+  real, dimension (:), allocatable :: gradpararc, arc
   real, dimension (:), allocatable :: gds2, gds21, gds22
   real, dimension (:), allocatable :: gds23, gds24
   real, dimension (:), allocatable :: gbdrift0, gbdrift
@@ -327,7 +328,7 @@ contains
 
   end subroutine communicate_parameters_multibox
 
-  subroutine get_local_geo (nzed, nzgrid, zed_in, &
+  subroutine get_local_geo (nzed, nzgrid, zed_in, zed_equal_arc, &
        dpsidrho_out, dpsidrho_psi0_out,dIdrho_out, grho_out, &
        bmag_out, bmag_psi0_out, &
        gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
@@ -347,6 +348,7 @@ contains
 
     integer, intent (in) :: nzed, nzgrid
     real, dimension (-nzgrid:), intent (in) :: zed_in
+    logical, intent (in) :: zed_equal_arc
     real, intent (out) :: dpsidrho_out, dpsidrho_psi0_out, dIdrho_out
     real, dimension (-nzgrid:), intent (out) :: grho_out, &
          bmag_out, bmag_psi0_out, &
@@ -363,8 +365,9 @@ contains
 
     integer :: nr, np
     integer :: i, j
-    real :: rmin
+    real :: rmin, dum
     real, dimension (3) :: dr
+    real, allocatable, dimension (:) :: zed_arc
     character(len=512) :: filename
 
     ! number of grid points used for radial derivatives
@@ -628,31 +631,70 @@ contains
 
 
     ! interpolate here
-    call geo_spline (theta, grho_psi0, zed_in, grho_out) !grho is used to normalize fluxes
-    call geo_spline (theta, bmag, zed_in, bmag_out)
-    call geo_spline (theta, bmag_psi0, zed_in, bmag_psi0_out)
-    call geo_spline (theta, gds2, zed_in, gds2_out)
-    call geo_spline (theta, gds21, zed_in, gds21_out)
-    call geo_spline (theta, gds22, zed_in, gds22_out)
-    call geo_spline (theta, gds21, zed_in, gds23_out)
-    call geo_spline (theta, gds21, zed_in, gds24_out)
-    call geo_spline (theta, gradpar, zed_in, gradpar_out)
-    call geo_spline (theta, gbdrift, zed_in, gbdrift_out)
-    call geo_spline (theta, gbdrift0, zed_in, gbdrift0_out)
-    call geo_spline (theta, cvdrift, zed_in, cvdrift_out)
-    call geo_spline (theta, cvdrift0, zed_in, cvdrift0_out)
-    call geo_spline (theta, dBdrho, zed_in, dBdrho_out)
-    call geo_spline (theta, d2Bdrdth, zed_in, d2Bdrdth_out)
-    call geo_spline (theta, dgradpardrho, zed_in, dgradpardrho_out)
-    call geo_spline (theta, Rr(2,:), zed_in, rmajor_out)
-    call geo_spline (theta, dcvdriftdrho,  zed_in, dcvdriftdrho_out)
-    call geo_spline (theta, dgbdriftdrho,  zed_in, dgbdriftdrho_out)
-    call geo_spline (theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
-    call geo_spline (theta, dgbdrift0drho, zed_in, dgbdrift0drho_out)
-    call geo_spline (theta, dgds2dr,  zed_in, dgds2dr_out)
-    call geo_spline (theta, dgds21dr, zed_in, dgds21dr_out)
-    call geo_spline (theta, dgds22dr, zed_in, dgds22dr_out)
-    call geo_spline (theta, djacdrho/dpsidrho, zed_in, djacdrho_out)
+    if(zed_equal_arc) then
+      call theta_integrate(1./gradpar,dum)
+      gradpararc = (theta(nz)-theta(-nz))/((2*np-1)*dum)
+      call theta_integrate_indef(gradpararc/gradpar,arc)
+
+      allocate(zed_arc(-nzgrid:nzgrid))
+
+      call geo_spline (arc, theta, zed_in, zed_arc)
+     
+      call geo_spline (theta, grho_psi0,    zed_arc, grho_out) !grho is used to normalize fluxes
+      call geo_spline (theta, bmag, zed_arc, bmag_out)
+      call geo_spline (theta, bmag_psi0, zed_arc, bmag_psi0_out)
+      call geo_spline (theta, gds2, zed_arc, gds2_out)
+      call geo_spline (theta, gds21, zed_arc, gds21_out)
+      call geo_spline (theta, gds22, zed_arc, gds22_out)
+      call geo_spline (theta, gds21, zed_arc, gds23_out)
+      call geo_spline (theta, gds21, zed_arc, gds24_out)
+      call geo_spline (theta, gradpararc, zed_arc, gradpar_out)
+      call geo_spline (theta, gbdrift, zed_arc, gbdrift_out)
+      call geo_spline (theta, gbdrift0, zed_arc, gbdrift0_out)
+      call geo_spline (theta, cvdrift, zed_arc, cvdrift_out)
+      call geo_spline (theta, cvdrift0, zed_arc, cvdrift0_out)
+      call geo_spline (theta, dBdrho, zed_arc, dBdrho_out)
+      call geo_spline (theta, d2Bdrdth, zed_arc, d2Bdrdth_out)
+      call geo_spline (theta, dgradpardrho, zed_arc, dgradpardrho_out)
+      call geo_spline (theta, Rr(2,:), zed_arc, rmajor_out)
+      call geo_spline (theta, dcvdriftdrho,  zed_arc, dcvdriftdrho_out)
+      call geo_spline (theta, dgbdriftdrho,  zed_arc, dgbdriftdrho_out)
+      call geo_spline (theta, dcvdrift0drho, zed_arc, dcvdrift0drho_out)
+      call geo_spline (theta, dgbdrift0drho, zed_arc, dgbdrift0drho_out)
+      call geo_spline (theta, dgds2dr,  zed_arc, dgds2dr_out)
+      call geo_spline (theta, dgds21dr, zed_arc, dgds21dr_out)
+      call geo_spline (theta, dgds22dr, zed_arc, dgds22dr_out)
+      call geo_spline (theta, djacdrho/dpsidrho, zed_arc, djacdrho_out)
+
+      deallocate(zed_arc)
+    else
+      call geo_spline (theta, grho_psi0, zed_in, grho_out) !grho is used to normalize fluxes
+      call geo_spline (theta, bmag, zed_in, bmag_out)
+      call geo_spline (theta, bmag_psi0, zed_in, bmag_psi0_out)
+      call geo_spline (theta, gds2, zed_in, gds2_out)
+      call geo_spline (theta, gds21, zed_in, gds21_out)
+      call geo_spline (theta, gds22, zed_in, gds22_out)
+      call geo_spline (theta, gds21, zed_in, gds23_out)
+      call geo_spline (theta, gds21, zed_in, gds24_out)
+      call geo_spline (theta, gradpar, zed_in, gradpar_out)
+      call geo_spline (theta, gbdrift, zed_in, gbdrift_out)
+      call geo_spline (theta, gbdrift0, zed_in, gbdrift0_out)
+      call geo_spline (theta, cvdrift, zed_in, cvdrift_out)
+      call geo_spline (theta, cvdrift0, zed_in, cvdrift0_out)
+      call geo_spline (theta, dBdrho, zed_in, dBdrho_out)
+      call geo_spline (theta, d2Bdrdth, zed_in, d2Bdrdth_out)
+      call geo_spline (theta, dgradpardrho, zed_in, dgradpardrho_out)
+      call geo_spline (theta, Rr(2,:), zed_in, rmajor_out)
+      call geo_spline (theta, dcvdriftdrho,  zed_in, dcvdriftdrho_out)
+      call geo_spline (theta, dgbdriftdrho,  zed_in, dgbdriftdrho_out)
+      call geo_spline (theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
+      call geo_spline (theta, dgbdrift0drho, zed_in, dgbdrift0drho_out)
+      call geo_spline (theta, dgds2dr,  zed_in, dgds2dr_out)
+      call geo_spline (theta, dgds21dr, zed_in, dgds21dr_out)
+      call geo_spline (theta, dgds22dr, zed_in, dgds22dr_out)
+      call geo_spline (theta, djacdrho/dpsidrho, zed_in, djacdrho_out)
+    endif
+
 
 
     ! get the toroidal component of the magnetic field
@@ -732,6 +774,8 @@ contains
     allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz), dBdth(-nz:nz), gradparb(-nz:nz))
     allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz))
     allocate (theta(-nz:nz))
+    allocate (gradpararc(-nz:nz))
+    allocate (arc(-nz:nz))
     allocate (dRdrho(-nz:nz), dZdrho(-nz:nz), dRdth(-nz:nz), dZdth(-nz:nz))
     allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz), dgr2dr(-nz:nz), dgpsi2dr(-nz:nz))
     allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz), dgagt(-nz:nz), dga2(-nz:nz))
@@ -747,6 +791,7 @@ contains
     allocate (cross(-nz:nz))
     allocate (dcrossdr(-nz:nz))
 
+
   end subroutine allocate_arrays
 
   subroutine deallocate_arrays
@@ -756,6 +801,8 @@ contains
     deallocate (grho)
     deallocate (bmag)
     deallocate (gradpar)
+
+
     deallocate (gds2)
     deallocate (gds21)
     deallocate (gds22)
@@ -772,6 +819,8 @@ contains
     deallocate (d2Bdrdth, dgradparBdrho, dBdth, gradparb)
     deallocate (dcvdrift0drho, dgbdrift0drho)
     deallocate (theta)
+    deallocate (gradpararc)
+    deallocate (arc)
     deallocate (dRdrho, dZdrho, dRdth, dZdth)
     deallocate (gradrho_gradthet, gradthet2, dgr2dr, dgpsi2dr)
     deallocate (dgrgt, dgt2, dgagr, dgagt, dga2)
