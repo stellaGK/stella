@@ -1094,6 +1094,9 @@ contains
     integer :: istage, nstage
     integer :: rdiv, rmod
     integer :: ediv, emod
+    integer :: irow, icol
+    integer :: nprow, npcol
+    integer :: ictxt
 
     prior_focus = curr_focus
 
@@ -1184,101 +1187,136 @@ contains
 
         if(istage.ge.(eig_limits(ceig_core+1)-eig_limits(ceig_core))) cycle !nothing for this communicator to do
 
-        !broadcast matrix and its size across the communicator
-        call mpi_bcast(n,1,MPI_INT,0,eig_comm,ierr)
-        if(.not.allocated(lu)) allocate (lu(n,n))
+        call blacs_get(eig_comm,10,ictxt)
+        call blacs_gridinit(ictxt,'Row',nprow,npcol)
+        call blacs_gridinfo(ictxt, nprow,npcol,irow, icol)
 
-        call mpi_bcast(lu,n*n,mpicmplx,0,eig_comm,ierr)
+        isRootNode = 0
+        if (myrow == 0 .and. mycol == 0) isRootNode = 1
 
-        allocate (dum(n))
-        allocate (idx(n))
+!
+! LOAD MATRIX ON ROOT NODE AND CREATE DESC FOR IT
+!
+        if (isRootNode) then
+          NRU = numroc( M, M, irow, 0, nprow )
+          CALL DESCINIT( descA0, M, N, M, N, 0, 0, rootNodeContext, max(1, NRU), INFO )
+        else
+          descA0(1:9) = 0
+          descA0(2) = -1
+        end if
+!
+!  CREATE DESC FOR DISTRIBUTED MATRIX
+!
+NRU = numroc( M, blockSize, MYROW, 0, NPROW )
+CALL DESCINIT( descA, M, N, blockSize, blockSize, 0, 0, &
+     ictxt, max(1, NRU), INFO )
 
-        ! All the processors have the matrix.
-        ! Now perform LU decomposition
-        vv = maxval(cabs(lu),dim=2)
-        if (any(vv==0.0)) &
-          write (*,*) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
-        vv = 1.0/vv
-        do j = 1, n
-          !divide up the work using row_limits
-          rdiv = (n-j)/eig_cores
-          rmod = mod(n-j,eig_cores)
-          row_limits(0) = j+1
-          if(rdiv.eq.0) then
-            row_limits(rmod+1:) = -1
-            do k=1,rmod
-              row_limits(k)  = row_limits(k-1) + 1
-            enddo
-          else
-            do k=1,eig_cores
-              row_limits(k) = row_limits(k-1) + rdiv
-              if(k.le.rmod) row_limits(k) = row_limits(k) + 1
-            enddo
-          endif
+!
+!  DISTRIBUTE DATA
+!
+if (debug) write(*,*) "node r=", myrow, "c=", mycol, "M=", M, "N=", N
+call PDGEMR2D( M, N, A0, 1, 1, descA0, A, 1, 1, descA, descA( 2 ) )
 
-          !pivot if needed
-          imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
-          if (j /= imax) then
-            dum = lu(imax,:)
-            lu(imax,:) = lu(j,:)
-            lu(j,:) = dum
-            vv(imax) = vv(j)
-          end if
-          if(ieig_core.eq.0) idx(j) = imax
+if (isRootNode) then
+   call blacs_gridexit( rootNodeContext )
+end if
 
-           !get the lead multiplier
-           if (lu(j,j)==0.0) lu(j,j) = zero
-           do i = j+1, n
-             lu(i,j) = lu(i,j)/lu(j,j)
-           enddo
 
-           r_lo = row_limits(ieig_core)
-           r_hi = row_limits(ieig_core+1)-1
+!       !broadcast matrix and its size across the communicator
+!       call mpi_bcast(n,1,MPI_INT,0,eig_comm,ierr)
+!       if(.not.allocated(lu)) allocate (lu(n,n))
 
-           do k=r_lo, r_hi
-             do i = j+1,n
-                lu(i,k) = lu(i,k) - lu(i,j)*lu(j,k)
-             enddo
-           enddo
+!       call mpi_bcast(lu,n*n,mpicmplx,0,eig_comm,ierr)
 
-           do i=0,eig_cores-1
-             r_lo = row_limits(i)
-             r_hi = row_limits(i+1)-1
-             rsize = (r_hi-r_lo+1)*(n-j)
-             if(r_lo.gt.r_hi) cycle
-             !call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,mpicmplx,i,eig_comm,ierr)
-             do k=r_lo,r_hi
-               call mpi_bcast(lu(j+1:n,k),n-j,mpicmplx,i,eig_comm,ierr)
-             enddo
-           enddo
-        enddo
-        !LU decomposition ends here
+!       allocate (dum(n))
+!       allocate (idx(n))
+
+!       ! All the processors have the matrix.
+!       ! Now perform LU decomposition
+!       vv = maxval(cabs(lu),dim=2)
+!       if (any(vv==0.0)) &
+!         write (*,*) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
+!       vv = 1.0/vv
+!       do j = 1, n
+!         !divide up the work using row_limits
+!         rdiv = (n-j)/eig_cores
+!         rmod = mod(n-j,eig_cores)
+!         row_limits(0) = j+1
+!         if(rdiv.eq.0) then
+!           row_limits(rmod+1:) = -1
+!           do k=1,rmod
+!             row_limits(k)  = row_limits(k-1) + 1
+!           enddo
+!         else
+!           do k=1,eig_cores
+!             row_limits(k) = row_limits(k-1) + rdiv
+!             if(k.le.rmod) row_limits(k) = row_limits(k) + 1
+!           enddo
+!         endif
+
+!         !pivot if needed
+!         imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
+!         if (j /= imax) then
+!           dum = lu(imax,:)
+!           lu(imax,:) = lu(j,:)
+!           lu(j,:) = dum
+!           vv(imax) = vv(j)
+!         end if
+!         if(ieig_core.eq.0) idx(j) = imax
+
+!          !get the lead multiplier
+!          if (lu(j,j)==0.0) lu(j,j) = zero
+!          do i = j+1, n
+!            lu(i,j) = lu(i,j)/lu(j,j)
+!          enddo
+
+!          r_lo = row_limits(ieig_core)
+!          r_hi = row_limits(ieig_core+1)-1
+
+!          do k=r_lo, r_hi
+!            do i = j+1,n
+!               lu(i,k) = lu(i,k) - lu(i,j)*lu(j,k)
+!            enddo
+!          enddo
+
+!          do i=0,eig_cores-1
+!            r_lo = row_limits(i)
+!            r_hi = row_limits(i+1)-1
+!            rsize = (r_hi-r_lo+1)*(n-j)
+!            if(r_lo.gt.r_hi) cycle
+!            !call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,mpicmplx,i,eig_comm,ierr)
+!            do k=r_lo,r_hi
+!              call mpi_bcast(lu(j+1:n,k),n-j,mpicmplx,i,eig_comm,ierr)
+!            enddo
+!          enddo
+!       enddo
+!       !LU decomposition ends here
 
         !copy the decomposed matrix over
-        do j = 0,ncomm-1
+!       do j = 0,ncomm-1
 
-          ie = eig_limits(j) + istage
-          ie_hi = eig_limits(j+1) - 1
-          if(ie.gt.ie_hi) cycle
+!         ie = eig_limits(j) + istage
+!         ie_hi = eig_limits(j+1) - 1
+!         if(ie.gt.ie_hi) cycle
 
-          if(iproc.eq.job_roots(ijob).and.iproc.eq.eig_roots(j)) then !no need for data transfer
-            response_matrix(iky)%eigen(ie)%zloc = lu
-            response_matrix(iky)%eigen(ie)%idx  = idx
-          else if(iproc.eq.eig_roots(j)) then !subroot sends the data
-            !send indices
-            call mpi_send(idx,n,MPI_INT,job_roots(ijob),j,mp_comm,ierr)
-            !send matrix
-            call mpi_send(lu,n*n,mpicmplx,job_roots(ijob),nproc+j,mp_comm,ierr)
-          else if(iproc.eq.job_roots(ijob)) then !receive data from subroot
-            !receive size of matrix
-            call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
-                          n,MPI_INT,eig_roots(j),j,mp_comm,status,ierr)
-            !receive matrix
-            call mpi_recv(response_matrix(iky)%eigen(ie)%zloc, &
-                          n*n,mpicmplx,eig_roots(j),nproc+j,mp_comm,status,ierr)
-          endif
-        enddo
-        deallocate (lu, idx, dum)
+!         if(iproc.eq.job_roots(ijob).and.iproc.eq.eig_roots(j)) then !no need for data transfer
+!           response_matrix(iky)%eigen(ie)%zloc = lu
+!           response_matrix(iky)%eigen(ie)%idx  = idx
+!         else if(iproc.eq.eig_roots(j)) then !subroot sends the data
+!           !send indices
+!           call mpi_send(idx,n,MPI_INT,job_roots(ijob),j,mp_comm,ierr)
+!           !send matrix
+!           call mpi_send(lu,n*n,mpicmplx,job_roots(ijob),nproc+j,mp_comm,ierr)
+!         else if(iproc.eq.job_roots(ijob)) then !receive data from subroot
+!           !receive size of matrix
+!           call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
+!                         n,MPI_INT,eig_roots(j),j,mp_comm,status,ierr)
+!           !receive matrix
+!           call mpi_recv(response_matrix(iky)%eigen(ie)%zloc, &
+!                         n*n,mpicmplx,eig_roots(j),nproc+j,mp_comm,status,ierr)
+!         endif
+!       enddo
+!       deallocate (lu, idx, dum)
       enddo
       deallocate (eig_roots, eig_limits, row_limits)
     enddo
