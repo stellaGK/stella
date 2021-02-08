@@ -15,7 +15,7 @@ module stella_io
   public :: write_time_nc
   public :: write_phi2_nc, write_phi2_nc_debug
   public :: write_phi_nc
-  public :: write_heat_flux_t_nc
+  public :: write_part_flux_t_nc, write_mom_flux_t_nc, write_heat_flux_t_nc
   public :: write_gvmus_nc
   public :: write_gzvs_nc
   public :: write_kspectra_nc
@@ -44,7 +44,7 @@ module stella_io
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
   integer :: nmu_id, nvtot_id, mu_id, vpa_id
   integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id, phi2_id_debug
-  integer :: phi_vs_t_id, phi2_vs_kxky_id, heat_vs_t_id
+  integer :: phi_vs_t_id, phi2_vs_kxky_id, part_vs_t_id, mom_vs_t_id, heat_vs_t_id
   integer :: pflux_x_id, vflux_x_id, qflux_x_id
   integer :: density_id, upar_id, temperature_id
   integer :: gvmus_id, gzvs_id
@@ -68,7 +68,7 @@ contains
   !==============================================
   !============ INITIATE STELLA IO ==============
   !==============================================
-  subroutine init_stella_io (restart, write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, &
+  subroutine init_stella_io (restart, write_phi_vs_t, write_part_vs_t, write_mom_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, &
        write_gzvs, write_moments, write_radial_fluxes) ! JFP
 
     use mp, only: proc0
@@ -83,7 +83,7 @@ contains
     implicit none
 
     logical, intent (in) :: restart
-    logical, intent (in) :: write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs
+    logical, intent (in) :: write_phi_vs_t, write_part_vs_t, write_mom_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs
     logical, intent (in) :: write_moments, write_radial_fluxes!, write_symmetry
 # ifdef NETCDF
     character (300) :: filename
@@ -112,7 +112,7 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, file=filename)
 
        call define_dims
-       call define_vars (write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
+       call define_vars (write_phi_vs_t, write_part_vs_t, write_mom_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
        call nc_grids
        call nc_species
        call nc_geo
@@ -266,7 +266,7 @@ contains
 # endif
   end subroutine save_input
 
-  subroutine define_vars (write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, &
+  subroutine define_vars (write_phi_vs_t, write_part_vs_t, write_mom_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, &
 !       write_gzvs, write_symmetry, write_moments)
        write_gzvs, write_moments, write_radial_fluxes)
 
@@ -283,7 +283,7 @@ contains
 
     implicit none
 
-    logical, intent(in) :: write_phi_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
+    logical, intent(in) :: write_phi_vs_t, write_part_vs_t, write_mom_vs_t, write_heat_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
     logical, intent (in) :: write_moments, write_radial_fluxes
 # ifdef NETCDF
     character (5) :: ci
@@ -788,6 +788,27 @@ contains
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id, att='long_name')
        end if
 
+       if (write_part_vs_t) then ! JFP
+          status = nf90_inq_varid(ncid,'es_part_vs_t',part_vs_t_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'es_part_vs_t', netcdf_real, flux_tszxy_dim, part_vs_t_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='es_part_vs_t')
+          endif
+          status = nf90_put_att (ncid, part_vs_t_id, 'long_name', 'Electrostatic radial particle flux vs time')
+          if (status /= nf90_noerr) call netcdf_error (status, ncid, part_vs_t_id, att='long_name')
+       end if
+
+       if (write_mom_vs_t) then ! JFP
+          status = nf90_inq_varid(ncid,'es_mom_vs_t',mom_vs_t_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'es_mom_vs_t', netcdf_real, flux_tszxy_dim, mom_vs_t_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='es_mom_vs_t')
+          endif
+          status = nf90_put_att (ncid, mom_vs_t_id, 'long_name', 'Electrostatic radial momentum flux vs time')
+          if (status /= nf90_noerr) call netcdf_error (status, ncid, mom_vs_t_id, att='long_name')
+       end if
 
        if (write_heat_vs_t) then ! JFP
           status = nf90_inq_varid(ncid,'es_heat_vs_t',heat_vs_t_id)
@@ -799,7 +820,6 @@ contains
           status = nf90_put_att (ncid, heat_vs_t_id, 'long_name', 'Electrostatic radial heat flux vs time')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, heat_vs_t_id, att='long_name')
        end if
-
 
        if (write_radial_fluxes) then
           status = nf90_inq_varid(ncid,'pflux_x',pflux_x_id)
@@ -977,6 +997,93 @@ contains
   end subroutine write_phi2_nc_debug
 
 
+  subroutine write_part_flux_t_nc (nout, part_t) ! JFP
+
+    !use convert, only: c2r
+    use species, only: nspec
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, naky
+    use netcdf, only: nf90_put_var, nf90_sync
+
+    implicit none
+
+    integer, intent (in) :: nout
+    !complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    real, dimension (:,:,-nzgrid:,:,:), intent (in) :: part_t
+
+    integer :: status
+    integer, dimension (6) :: start, count
+    !real, dimension (:,:,:,:,:), allocatable :: phi_ri
+    !real, dimension (:,:,:,:,:), allocatable :: heat_ri
+
+    start = 1
+
+    start(6) = nout
+    count(1) = naky
+    count(2) = nakx
+    count(3) = 2*nzgrid+1
+    count(4) = ntubes
+    count(5) = nspec
+    count(6) = 1
+
+    !allocate (phi_ri(2, naky, nakx, 2*nzgrid+1, ntubes))
+    !call c2r (phi, phi_ri)
+    !status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
+
+    status = nf90_put_var (ncid, part_vs_t_id, part_t, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, part_vs_t_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, part_vs_t_id)
+    !deallocate (phi_ri)
+
+  end subroutine write_part_flux_t_nc
+
+
+  subroutine write_mom_flux_t_nc (nout, mom_t) ! JFP
+
+    !use convert, only: c2r
+    use species, only: nspec
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx, naky
+    use netcdf, only: nf90_put_var, nf90_sync
+
+    implicit none
+
+    integer, intent (in) :: nout
+    !complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    real, dimension (:,:,-nzgrid:,:,:), intent (in) :: mom_t
+
+    integer :: status
+    integer, dimension (6) :: start, count
+    !real, dimension (:,:,:,:,:), allocatable :: phi_ri
+    !real, dimension (:,:,:,:,:), allocatable :: heat_ri
+
+    start = 1
+
+    start(6) = nout
+    count(1) = naky
+    count(2) = nakx
+    count(3) = 2*nzgrid+1
+    count(4) = ntubes
+    count(5) = nspec
+    count(6) = 1
+
+    !allocate (phi_ri(2, naky, nakx, 2*nzgrid+1, ntubes))
+    !call c2r (phi, phi_ri)
+    !status = nf90_put_var (ncid, phi_vs_t_id, phi_ri, start=start, count=count)
+
+    status = nf90_put_var (ncid, mom_vs_t_id, mom_t, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, mom_vs_t_id)
+
+!   Buffers to disk
+    status = NF90_SYNC(ncid)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, mom_vs_t_id)
+    !deallocate (phi_ri)
+
+  end subroutine write_mom_flux_t_nc
+
 
   subroutine write_heat_flux_t_nc (nout, heat_t) ! JFP
 
@@ -990,7 +1097,7 @@ contains
 
     integer, intent (in) :: nout
     !complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
-    real, dimension (:,:,:,:,:), intent (in) :: heat_t
+    real, dimension (:,:,-nzgrid:,:,:), intent (in) :: heat_t
 
     integer :: status
     integer, dimension (6) :: start, count
@@ -1020,6 +1127,8 @@ contains
     !deallocate (phi_ri)
 
   end subroutine write_heat_flux_t_nc
+
+
 
 
 
