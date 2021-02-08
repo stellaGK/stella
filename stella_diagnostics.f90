@@ -1143,7 +1143,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use stella_layouts, only: vmu_lo
     use kt_grids, only: aky, nakx, naky
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid, ntubes, nztot
     use species, only: nspec
 
     implicit none
@@ -1151,7 +1151,7 @@ contains
     real, dimension (-nzgrid:), intent (in) :: norm
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld ! This just specifies where the index begins. Not the size.
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld ! JFP: ky, kx, zed, ntubes
     real, dimension (:,:,-nzgrid:,:,:), intent (in out) :: flxout ! JFP: ky, kx, zed, ntubes, nspec
 
     complex, dimension (:,:,:,:,:), allocatable :: totals
@@ -1159,8 +1159,10 @@ contains
     allocate (totals(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
     call integrate_vmu (gin,weights,totals)
-    flxout = flxout + 0.5*fac*aky*aimag(totals*conjg(fld)) & 
-                       * spread(spread(norm,nakx,2),naky,1)
+    flxout = flxout + 0.5*spread(spread(spread(spread(fac*aky,2,nakx),3,nztot),4,ntubes),5,nspec)*aimag(totals*spread(conjg(fld),5,nspec)) & 
+                       * spread(spread(spread(spread(norm,1,naky),2,nakx),4,ntubes),5,nspec)
+
+    !spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)
 
     deallocate (totals)
 
