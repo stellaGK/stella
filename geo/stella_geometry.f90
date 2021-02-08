@@ -90,7 +90,7 @@ contains
     use inputprofiles_interface, only: read_inputprof_geo
     use zgrid, only: nzed, nzgrid
     use zgrid, only: zed, delzed
-    use zgrid, only: shat_zero
+    use zgrid, only: shat_zero, zed_equal_arc
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
     use file_utils, only: get_unused_unit
     use physics_parameters, only: rhostar
@@ -135,7 +135,7 @@ contains
           call allocate_arrays (nalpha, nzgrid)
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
-          call get_local_geo (nzed, nzgrid, zed, &
+          call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
                dpsidrho, dpsidrho_psi0,dIdrho, grho(1,:), &
                bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
@@ -181,7 +181,7 @@ contains
 
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
-          call get_local_geo (nzed, nzgrid, zed, &
+          call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
                dpsidrho, dpsidrho_psi0, dIdrho, grho(1,:), &
                bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
@@ -227,7 +227,7 @@ contains
           ! with those from input.profiles file
           ! use rhoc from input as surface
           call read_inputprof_geo (geo_surf)
-          call get_local_geo (nzed, nzgrid, zed, &
+          call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
                dpsidrho, dpsidrho_psi0,dIdrho, grho(1,:), &
                bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
