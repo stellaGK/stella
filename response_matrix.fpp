@@ -12,6 +12,7 @@ module response_matrix
 
   logical :: response_matrix_initialized = .false.
   integer, parameter :: mat_unit = 70
+  logical :: debug = .true.
 
 contains
 
@@ -43,7 +44,6 @@ contains
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: gext
-    logical :: debug = .true.
     character(100) :: message_dgdphi, message_QN, message_lu
     real, dimension (2) :: time_response_matrix_dgdphi
     real, dimension (2) :: time_response_matrix_QN
@@ -1079,7 +1079,7 @@ contains
     real, dimension (:), allocatable :: vv
     complex, dimension (:), allocatable :: dum
     integer, dimension (:), allocatable :: idx
-    complex, dimension (:,:), allocatable :: lu
+    complex, dimension (:,:), allocatable :: lu, A
 
     integer :: sproc
     logical :: sproc0
@@ -1096,7 +1096,13 @@ contains
     integer :: ediv, emod
     integer :: irow, icol
     integer :: nprow, npcol
-    integer :: ictxt
+    integer :: ictxt, rctxt
+    integer, parameter :: blocksize = 64
+
+    logical :: isRootNode
+    integer :: nru, info
+    integer, external :: numroc
+    integer, dimension(9) :: descA, descA0
 
     prior_focus = curr_focus
 
@@ -1187,19 +1193,25 @@ contains
 
         if(istage.ge.(eig_limits(ceig_core+1)-eig_limits(ceig_core))) cycle !nothing for this communicator to do
 
+        !broadcast matrix and its size across the communicator
+        call mpi_bcast(n,1,MPI_INT,0,eig_comm,ierr)
+        nprow =int(sqrt(1.0*eig_cores))
+        npcol = nprow
+
+        call sl_init(rctxt,1,1)
         call blacs_get(eig_comm,10,ictxt)
         call blacs_gridinit(ictxt,'Row',nprow,npcol)
-        call blacs_gridinfo(ictxt, nprow,npcol,irow, icol)
+        call blacs_gridinfo(ictxt, nprow,npcol,irow,icol)
 
-        isRootNode = 0
-        if (myrow == 0 .and. mycol == 0) isRootNode = 1
+        isRootNode = .false.
+        if (irow == 0 .and. icol == 0) isRootNode = .true.
 
 !
 ! LOAD MATRIX ON ROOT NODE AND CREATE DESC FOR IT
 !
         if (isRootNode) then
-          NRU = numroc( M, M, irow, 0, nprow )
-          CALL DESCINIT( descA0, M, N, M, N, 0, 0, rootNodeContext, max(1, NRU), INFO )
+          nru = numroc( n, n, irow, 0, nprow )
+          call  descinit( descA0, n, n, n, n, 0, 0, rctxt, max(1, nru), info )
         else
           descA0(1:9) = 0
           descA0(2) = -1
@@ -1207,19 +1219,26 @@ contains
 !
 !  CREATE DESC FOR DISTRIBUTED MATRIX
 !
-NRU = numroc( M, blockSize, MYROW, 0, NPROW )
-CALL DESCINIT( descA, M, N, blockSize, blockSize, 0, 0, &
-     ictxt, max(1, NRU), INFO )
+        nru = numroc( n, blockSize, irow, 0, nprow )
+  
+        allocate(A(numroc(n, blockSize, irow, 0, nprow), &
+                   numroc(n, blockSize, icol, 0, npcol)))
+
+
+        call descinit( descA, n, n, blockSize, blockSize, 0, 0, &
+            ictxt, max(1, nru), info )
 
 !
 !  DISTRIBUTE DATA
 !
-if (debug) write(*,*) "node r=", myrow, "c=", mycol, "M=", M, "N=", N
-call PDGEMR2D( M, N, A0, 1, 1, descA0, A, 1, 1, descA, descA( 2 ) )
+        if (debug) write(*,*) "node r=", irow, "c=", icol, "M=", n, "N=", n
+        call pdgemr2d(n,n,lu,1,1,descA0,A,1,1,descA,descA(2))
 
-if (isRootNode) then
-   call blacs_gridexit( rootNodeContext )
-end if
+        deallocate (A)
+
+! if (isRootNode) then
+!   call blacs_gridexit( rootNodeContext )
+!end if
 
 
 !       !broadcast matrix and its size across the communicator
