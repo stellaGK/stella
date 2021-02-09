@@ -2635,14 +2635,14 @@ contains
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
     use kt_grids, only: ikx_max, naky, nakx
-    use kt_grids, only: aky, akx, theta0
+    use kt_grids, only: aky, akx, theta0, zonal_mode
     use stella_geometry, only: geo_surf, q_as_x
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ia, ivmu, iz, it
+    integer :: ia, ivmu, iz, it, iky
     real :: tfac
     real :: k2max
 
@@ -2658,8 +2658,14 @@ contains
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1,ntubes
            do iz = -nzgrid, nzgrid
-             g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu)/(1.+code_dt*(spread(aky,2,nakx)**2 &
-                                  * (1.0+ tfac*(zed(iz) - theta0)**2)/k2max)**2*D_hyper)
+             do iky = 1, naky
+               if(zonal_mode(iky)) then
+                  g(iky,:,iz,it,ivmu) = g(iky,:,iz,it,ivmu)/(1.+code_dt*akx(:)**4*D_hyper)
+               else
+                  g(iky,:,iz,it,ivmu) = g(iky,:,iz,it,ivmu)/(1.+code_dt*(aky(iky)**2 &
+                                       * (1.0+ tfac*(zed(iz) - theta0(iky,:))**2)/k2max)**2*D_hyper)
+               endif
+             enddo
            enddo
          enddo
 !        g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt &
