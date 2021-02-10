@@ -2660,7 +2660,7 @@ contains
            do iz = -nzgrid, nzgrid
              do iky = 1, naky
                if(zonal_mode(iky)) then
-                  g(iky,:,iz,it,ivmu) = g(iky,:,iz,it,ivmu)/(1.+code_dt*akx(:)**4*D_hyper)
+                  g(iky,:,iz,it,ivmu) = g(iky,:,iz,it,ivmu)/(1.+code_dt*(akx(:)**2/k2max)**2*D_hyper)
                else
                   g(iky,:,iz,it,ivmu) = g(iky,:,iz,it,ivmu)/(1.+code_dt*(aky(iky)**2 &
                                        * (1.0+ tfac*(zed(iz) - theta0(iky,:))**2)/k2max)**2*D_hyper)
