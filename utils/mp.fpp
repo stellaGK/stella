@@ -328,7 +328,7 @@ contains
     gproc       = aproc
     gproc0      = aproc0
 
-    comm_sgroup  = comm_all    
+    comm_sgroup  = comm_shared
     nsgroup_proc = nshared_proc
     sgproc       = sproc
     sgproc0      = sproc0
