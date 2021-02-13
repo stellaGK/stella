@@ -1171,6 +1171,12 @@ contains
 
     call scope(prior_focus)
 
+    do ie = 1, neigen(iky)
+      call mpi_win_fence(0,windows(iky,ie,1),ierr)
+      call mpi_win_fence(0,windows(iky,ie,2),ierr)
+    enddo
+
+
     deallocate (node_jobs,job_list,row_limits,eig_limits)
   end subroutine parallel_LU_decomposition_local
 
