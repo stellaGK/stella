@@ -333,7 +333,9 @@ contains
     sgproc       = sproc
     sgproc0      = sproc0
     
-    comm_scross = comm_node
+    comm_scross  = comm_node
+    nscross_proc = numnodes
+    scproc       = inode
      
 
     call scope (sharedprocs)
