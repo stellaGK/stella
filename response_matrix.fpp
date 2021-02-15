@@ -49,9 +49,9 @@ contains
     integer :: idx
     integer :: izl_offset, izup
 #if defined MPI && defined ISO_C_BINDING
-    integer :: prior_focus, ierr
+    integer :: prior_focus, ierr, n
     integer :: disp_unit = 1
-    integer (kind=MPI_ADDRESS_KIND) :: win_size
+    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
     type(c_ptr) :: bptr
 #endif
     real :: dum
@@ -103,6 +103,10 @@ contains
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
 
 #if defined ISO_C_BINDING && defined MPI
+    inquire(iolength=n) dum
+    real_size = 8_MPI_ADDRESS_KIND
+    if(n.eq.4)  real_size = 4_MPI_ADDRESS_KIND
+
     if (.not.allocated(windows)) then
       allocate (windows(naky,maxval(neigen),2)) !one for zloc, one for idx
       windows = MPI_WIN_NULL
@@ -169,7 +173,7 @@ contains
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) then
             win_size = 0
             if(sgproc0) then
-              win_size = int(nresponse**2,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND !complex size
+              win_size = int(nresponse**2,MPI_ADDRESS_KIND)*2*real_size !complex size
             endif
             !allocate the window
             call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm, &
@@ -188,7 +192,7 @@ contains
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) then
             win_size = 0
             if(sgproc0) then
-              win_size = int(nresponse,MPI_ADDRESS_KIND)*8_MPI_ADDRESS_KIND !integer size
+              win_size = int(nresponse,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND !integer size
             endif
             !allocate the window
             call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm, & 
@@ -997,7 +1001,7 @@ contains
     integer :: prior_focus, nodes_on_job
     integer :: ijob, i,j,k,ie,n
     integer :: imax, jroot, neig, ierr, win, nroot
-    integer (kind=MPI_ADDRESS_KIND) :: win_size
+    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
     integer :: rdiv, rmod
     integer :: ediv, emod
     integer :: disp_unit = 1
@@ -1010,6 +1014,10 @@ contains
     allocate (job_list(nproc)); job_list = 0
     allocate (row_limits(0:nproc))
     allocate (eig_limits(0:numnodes,njobs)); eig_limits = 0
+
+    inquire(iolength=n) zero
+    real_size = 8_MPI_ADDRESS_KIND
+    if(n.eq.4)  real_size = 4_MPI_ADDRESS_KIND
 
     job_list(iproc+1) = job
     call sum_allreduce(job_list)
@@ -1065,7 +1073,7 @@ contains
         if(iproc.eq.jroot) then
           needs_send = .true.
           n = size(response_matrix(iky)%eigen(ie)%idx)
-          win_size = int(n*n,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND !complex size
+          win_size = int(n*n,MPI_ADDRESS_KIND)*2*real_size !complex size
         endif
 
         !broadcast size of matrix
