@@ -42,6 +42,10 @@ else ifeq ($(HOSTNAME), dirac)
 	export FC = ifort
 	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp 
 	export EXTRA_LINK_FLAGS = -qopenmp -lnetcdf -lnetcdff
+else ifeq ($(HOSTNAME), xula)
+	export FC =mpif90
+	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp -I$(NETCDF_HOME)/include/
+	export EXTRA_LINK_FLAGS = -qopenmp -L$(NETCDF_HOME)/lib/ -lnetcdff -lnetcdf
 else
 	FC = mpif90
 #	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
