@@ -24,6 +24,7 @@ module stella_diagnostics
   logical :: write_gzvs
   logical :: write_kspectra
   logical :: write_radial_fluxes
+  logical :: write_fluxes_kxky  
   logical :: flux_norm
 
   ! Arrays needed for averaging in x,y,z
@@ -98,6 +99,7 @@ contains
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
     call broadcast (write_radial_fluxes)
+    call broadcast (write_fluxes_kxky)    
     call broadcast (flux_norm)
     
     ! Initiate the averages
@@ -105,7 +107,8 @@ contains
 
     ! Initiate the netcdf file with extension '.out.nc'
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
-         write_gvmus, write_gzvs, write_moments, write_radial_fluxes)
+         write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
+         write_fluxes_kxky)
 
     ! Open the '.out', '.fluxes' and '.omega' file
     if (proc0) call open_loop_ascii_files (restart)
@@ -133,7 +136,8 @@ contains
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
          save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-         write_omega, write_kspectra, write_moments, write_radial_fluxes, flux_norm
+         write_omega, write_kspectra, write_moments, write_radial_fluxes, &
+         write_fluxes_kxky, flux_norm
 
     if (proc0) then
        nwrite = 50
@@ -147,6 +151,7 @@ contains
        write_kspectra = .false.
        write_moments = .false.
        write_radial_fluxes = radial_variation
+       write_fluxes_kxky = .false.
        flux_norm = .true.
 
        in_file = input_unit_exist ("stella_diagnostics_knobs", exist)
@@ -285,6 +290,7 @@ contains
     use stella_io, only: write_kspectra_nc
     use stella_io, only: write_moments_nc
     use stella_io, only: write_radial_fluxes_nc
+    USE stella_io, only: write_fluxes_kxky_nc
     use stella_io, only: sync_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
@@ -308,6 +314,7 @@ contains
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
     real, dimension (:,:), allocatable :: phi2_vs_kxky
+    REAL, DIMENSION (:,:,:), ALLOCATABLE :: pflx_kxky, vflx_kxky, qflx_kxky
     complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
 
     complex, dimension (:,:), allocatable :: omega_avg
@@ -348,6 +355,10 @@ contains
     allocate (mom_flux(nspec))
     allocate (heat_flux(nspec))
 
+    ALLOCATE (pflx_kxky(naky,nakx,nspec))
+    ALLOCATE (vflx_kxky(naky,nakx,nspec))
+    ALLOCATE (qflx_kxky(naky,nakx,nspec))
+
     if(write_radial_fluxes) then
       allocate (part_flux_x(nakx,nspec))
       allocate (mom_flux_x(nakx,nspec))
@@ -364,7 +375,8 @@ contains
     else
       call scatter (kxkyz2vmu, gnew, gvmu)
 !     call g_to_h (gvmu, phi, fphi)
-      call get_fluxes (gvmu, part_flux, mom_flux, heat_flux)
+      CALL get_fluxes (gvmu, part_flux, mom_flux, heat_flux, &
+           pflx_kxky, vflx_kxky, qflx_kxky)
 !     call g_to_h (gvmu, phi, -fphi)
     endif
 
@@ -415,6 +427,10 @@ contains
        if (proc0) call write_moments_nc (nout, density, upar, temperature)
        deallocate (density, upar, temperature)
     end if
+    IF (write_fluxes_kxky) THEN
+       IF (debug) WRITE (*,*) 'stella_diagnostics::diagnose_stella::write_fluxes_kxky'
+       IF (proc0) CALL write_fluxes_kxky_nc (nout, pflx_kxky, vflx_kxky, qflx_kxky)
+    ENDIF
     if (write_gvmus) then
        allocate (gvmus(nvpa,nmu,nspec))
        if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::get_gvmus'
@@ -541,7 +557,8 @@ contains
   !=============== GET FLUXES ===================
   !==============================================
   ! assumes that the non-Boltzmann part of df is passed in (aka h)
-  subroutine get_fluxes (g, pflx, vflx, qflx)
+  subroutine get_fluxes (g, pflx, vflx, qflx,&
+       pflx_vs_kxky, vflx_vs_kxky, qflx_vs_kxky)
 
     use mp, only: sum_reduce
     use constants, only: zi
@@ -556,6 +573,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
     use run_parameters, only: fphi, fapar
+    USE kt_grids, ONLY: nakx, naky
     use kt_grids, only: aky, theta0
     use gyro_averages, only: gyro_average, gyro_average_j1
 
@@ -563,6 +581,7 @@ contains
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, dimension (:), intent (out) :: pflx, vflx, qflx
+    REAL, DIMENSION (:,:,:), INTENT (out) :: pflx_vs_kxky, vflx_vs_kxky, qflx_vs_kxky
 
     integer :: ikxkyz, iky, ikx, iz, it, is, ia
     real, dimension (:), allocatable :: flx_norm
@@ -572,6 +591,7 @@ contains
     allocate (gtmp1(nvpa,nmu), gtmp2(nvpa,nmu), gtmp3(nvpa,nmu))
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
+    pflx_vs_kxky = 0. ; vflx_vs_kxky = 0. ; qflx_vs_kxky = 0.
 
     flx_norm = jacob(1,:)*delzed
 
@@ -596,11 +616,13 @@ contains
           ! get particle flux
           call gyro_average (g(:,:,ikxkyz), ikxkyz, gtmp1)
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx(is))
+          CALL get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx_vs_kxky(iky,ikx, is))
 
           ! get heat flux
           ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
           gtmp1 = gtmp1*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx(is))
+          CALL get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx_vs_kxky(iky,ikx, is))
 
           ! get momentum flux
           ! parallel component
@@ -613,6 +635,7 @@ contains
           gtmp1 = gtmp2 + gtmp3
 
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx(is))
+          CALL get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx_vs_kxky(iky,ikx, is)) 
        end do
     end if
 
@@ -662,6 +685,18 @@ contains
     pflx = pflx/real(ntubes)
     qflx = qflx/real(ntubes)
     vflx = vflx/real(ntubes)
+
+    CALL sum_reduce (pflx_vs_kxky, 0)
+    CALL sum_reduce (vflx_vs_kxky, 0)    
+    CALL sum_reduce (qflx_vs_kxky, 0)
+
+    DO iky = 1, naky
+       DO ikx = 1, nakx
+          pflx_vs_kxky(iky, ikx, :)  = pflx_vs_kxky(iky, ikx, :)*spec%dens/real(ntubes)
+          vflx_vs_kxky(iky, ikx, :)  = vflx_vs_kxky(iky, ikx, :)*spec%dens*sqrt(spec%mass*spec%temp)/real(ntubes)
+          qflx_vs_kxky(iky, ikx, :)  = qflx_vs_kxky(iky, ikx, :)*spec%dens*spec%temp/real(ntubes)
+       ENDDO
+    ENDDO 
 
     deallocate (gtmp1, gtmp2, gtmp3)
     deallocate (flx_norm)

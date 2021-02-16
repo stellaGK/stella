@@ -6,6 +6,7 @@ from struct import *
 from scipy import *
 from scipy.special import expit
 from matplotlib import *
+from scipy.optimize import curve_fit
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MultipleLocator
 from matplotlib.ticker import AutoMinorLocator
@@ -54,32 +55,95 @@ def kspectra_movie(case, ):
     movie_2d(phi2_vs_kx_ky, k_y, k_x, phi2min,\
              phi2max, n_time-1, movie_file, xlabel, ylabel, title,cmp='YlGnBu')
 
-def phi_t(case, kx_idx=None, ky_idx=None, t0=None, tube_idx=0, last=False):
+
+def phi_at_box(case, t0=None, tube_idx=0, last=False, trange=None, merged=False, iz=None):
     
-    k_x, nakx, nakx_mid  = kx(case)
-    k_y, naky            = ky(case)
     zeta, nzed, nzed_mid = zed(case)
-    time_trace           = time(case)[0]
+
+    k_x, nakx, nakx_mid = kx(case)
+    k_y, naky = ky(case)
     
-    phi_data = phi_vs_t(case)
+    if merged:
+        time_trace, phi_data = merge(case, 'phi_vs_t')
+    else:
+        time_trace = time(case)[0]
+        phi_data = phi_vs_t(case)
+   
+    n_time = size(time_trace)
+
+    if iz == None:
+        iz = nzed_mid
+
     phi_data = np.concatenate((phi_data[:,:,:,nakx_mid:,:,:],\
                                phi_data[:,:,:,:nakx_mid,:,:]),axis=3)
     
-    if kx_idx == None: kx_idx = 0
-    if ky_idx == None: ky_idx = 0
+    if trange != None:
+        phi_vs_z_time_real_to_avrg=phi_vs_z_time_real[(time_trace > trange[0]) & (time_trace < trange[1]),:]
+        phi_vs_z_time_imag_to_avrg=phi_vs_z_time_imag[(time_trace > trange[0]) & (time_trace < trange[1]),:]
+        phi_vs_z_real_to_plot=mean(phi_vs_z_time_real, axis=0)
+        phi_vs_z_imag_to_plot=mean(phi_vs_z_time_imag, axis=0)
+        
+    if last == True:        
+        phi_vs_z_real_to_plot = phi_vs_z_time_real[shape(phi_vs_z_time_real)[0]-1, :]
+        phi_vs_z_imag_to_plot = phi_vs_z_time_imag[shape(phi_vs_z_time_imag)[0]-1, :]
+        time0                 = time_trace[shape(time_trace)[0]-1]
 
-    # shape(phi_vs_t(case))=(N_time, N_tubes, N_zed, N_kx, N_ky, 2)
-    # Warning: check why the last dimension is 2, if phi[:,:,:,:,:,0]=0.0 !!!
-    phi_vs_z_time_real = phi_data[:,tube_idx, :, kx_idx, ky_idx, 0]
-    phi_vs_z_time_imag = phi_data[:,tube_idx, :, kx_idx, ky_idx, 1]
+    if t0 != None:
+        phi_vs_z_real_to_cut  = phi_vs_z_time_real[(time_trace >= t0),:]
+        phi_vs_z_imag_to_cut  = phi_vs_z_time_imag[(time_trace >= t0),:]
+        phi_vs_z_real_to_plot = phi_vs_z_real_to_cut[0,:]
+        phi_vs_z_imag_to_plot = phi_vs_z_imag_to_cut[0,:]
+        time_trace            = time_trace[(time_trace >= t0)]
+        time0                 = time_trace[0]
 
 
-    print("Getting phi(z,t) for (kx, ky) = (", k_x[kx_idx], ',', k_y[ky_idx], ')')
+
+
+def phi_t(case, kx_idx=None, ky_idx=None, t0=None, tube_idx=0, last=False, trange=None,
+          merged=True):
+
+    zeta, nzed, nzed_mid = zed(case)
+
+    k_x, nakx, nakx_mid = kx(case)
+    k_y, naky = ky(case)
     
-    # The index for the with the nearest kx and ky
-    if last == True:
-        phi_vs_z_real_to_plot = phi_vs_z_time_real[shape(phi_vs_z_time_real)[1]-1, :]
-        phi_vs_z_imag_to_plot = phi_vs_z_time_imag[shape(phi_vs_z_time_imag)[1]-1, :]
+    if merged:
+        time_trace, phi_data = merge(case, 'phi_vs_t')
+    else:
+        time_trace = time(case)[0]
+        phi_data = phi_vs_t(case)
+   
+    n_time = size(time_trace)
+
+
+    phi_data = np.concatenate((phi_data[:,:,:,nakx_mid:,:,:],\
+                               phi_data[:,:,:,:nakx_mid,:,:]),axis=3)
+
+    if kx_idx == None or ky_idx == None:
+        print('kx or ky unspecified ==> sum over kx and ky carried out.')
+        title='$\sum_{k_x,k_y}$'
+        phi_vs_z_time_real = sum(sum(phi_data[:,tube_idx, :, :, :, 0],axis=2),axis=2)
+        phi_vs_z_time_imag = sum(sum(phi_data[:,tube_idx, :, :, :, 1],axis=2),axis=2)
+
+        
+    elif ky_idx != None and ky_idx != None:
+        print("Getting phi(z,t) for (kx, ky) = (", k_x[kx_idx], ',', k_y[ky_idx], ')')
+        title = None#'t = '+str(time0) + ', (kx, ky) = (' +\
+        #                str(format3(k_x[kx_idx])) + ', ' + str(format3(k_y[ky_idx])) + ')'
+        # shape(phi_vs_t(case))=(N_time, N_tubes, N_zed, N_kx, N_ky, 2)
+        phi_vs_z_time_real = phi_data[:,tube_idx, :, kx_idx, ky_idx, 0]
+        phi_vs_z_time_imag = phi_data[:,tube_idx, :, kx_idx, ky_idx, 1]
+
+    
+    if trange != None:
+        phi_vs_z_time_real_to_avrg=phi_vs_z_time_real[(time_trace > trange[0]) & (time_trace < trange[1]),:]
+        phi_vs_z_time_imag_to_avrg=phi_vs_z_time_imag[(time_trace > trange[0]) & (time_trace < trange[1]),:]
+        phi_vs_z_real_to_plot=mean(phi_vs_z_time_real, axis=0)
+        phi_vs_z_imag_to_plot=mean(phi_vs_z_time_imag, axis=0)
+        
+    if last == True:        
+        phi_vs_z_real_to_plot = phi_vs_z_time_real[shape(phi_vs_z_time_real)[0]-1, :]
+        phi_vs_z_imag_to_plot = phi_vs_z_time_imag[shape(phi_vs_z_time_imag)[0]-1, :]
         time0                 = time_trace[shape(time_trace)[0]-1]
 
     if t0 != None:
@@ -98,18 +162,14 @@ def phi_t(case, kx_idx=None, ky_idx=None, t0=None, tube_idx=0, last=False):
 
     # Plotting |ph|
     
-    ax = pl2d(xrange=[-pi,pi], yrange=[-maxphi,maxphi], xlabel='$\\zeta$', ylabel='$\\varphi^2$',\
-         fig_size=(8.5, 7.5), title='t = '+str(time0) + ', (kx, ky) = (' +\
-              str(format3(k_x[kx_idx])) + ', ' + str(format3(k_y[ky_idx])) + ')', ax=None, log=False)
+    ax = pl2d(xrange=[-pi,pi], yrange=[0,(maxphi**2.0)*2.0], xlabel='$\\zeta$', ylabel='$\\varphi^2$',\
+         fig_size=(8.5, 7.5), title=title, ax=None, log=False)
     ax.plot(zeta, phi_vs_z_real_to_plot**2+phi_vs_z_imag_to_plot**2, '-',\
             color='black', linewidth=2, label='$\\varphi^2$')
-    ax.autoscale()
 
     # Plotting Re(phi), Im(phi)
     ax = pl2d(xrange=[-pi,pi], yrange=[-maxre,maxre], xlabel='$\\zeta$', ylabel='$\\Re(\\varphi), \\Im({\\varphi})$',\
-              fig_size=(8.5, 7.5), title='t = '+str(time0) + ', (kx, ky) = (' +\
-              str(format3(k_x[kx_idx])) + ', ' + str(format3(k_y[ky_idx])) + ')',\
-              ax=None, log=False)
+              fig_size=(8.5, 7.5), title=title,ax=None, log=False)
     ax.plot(zeta, phi_vs_z_real_to_plot, '-',\
             color='black', linewidth=2, label='$\\Re({\\varphi})$')
     ax.legend(loc=1,labelspacing=0.0, prop={'size':24})
@@ -117,26 +177,33 @@ def phi_t(case, kx_idx=None, ky_idx=None, t0=None, tube_idx=0, last=False):
     ax2 = ax.twinx()
     ax2.plot(zeta, phi_vs_z_imag_to_plot, '-', color='blue', linewidth=2, label='$\\Im(\\varphi)$')
     ax2.set_ylim([-maxim, maxim])
-    ax2.legend(loc=2,labelspacing=0.0, prop={'size':24}) 
+    ax2.legend(loc=2,labelspacing=0.0, prop={'size':24})
+#    ax.autoscale()
 #    ax2.autoscale()    
     show()
    
 
         
 
-def phi2_kx_ky(case, trange=None, crange=None, log=True,\
-               delta=1E-12, t0=None, last=False, movie=False):
+def phi2_kx_ky(case, trange=None, crange=[1E-3,10], log=True,\
+               delta=1E-12, t0=None, last=False, movie=False, merged=False,
+               cascade=True, save=False):
 
     from stella_plots import movie_2d
 
     k_x, nakx, nakx_mid = kx(case)
+
+    if merged:
+        time_trace, phi2_vs_kx_ky = merge(case, 'phi2_vs_kxky')
+    else:
+        time_trace = time(case)[0]
+        phi2_vs_kx_ky = phi2_vs_kxky(case)
+    k_y = ky(case)[0]
     
-    phi2_vs_kx_ky, k_y, n_time =\
-                  phi2_vs_kxky(case), ky(case)[0], time(case)[1]
+    n_time = size(time_trace)
 
     phi2_vs_kx_ky = np.concatenate((phi2_vs_kx_ky[:, nakx_mid:,:],\
                                     phi2_vs_kx_ky[:,:nakx_mid ,:]),axis=1)
-    time_trace = time(case)[0]
 
     if trange != None:
         # phi2_vs_kx_ky has dimensions (ntime, nakx, naky)
@@ -156,6 +223,11 @@ def phi2_kx_ky(case, trange=None, crange=None, log=True,\
         time_trace            = time_trace[(time_trace >= t0)]
         phi2_vs_kx_ky_avrg    = phi2_vs_kx_ky_to_avrg[0,:,:]
 
+
+    phi2_vs_ky = sum(phi2_vs_kx_ky_avrg[:,:],axis=0)
+        
+
+
     ylabel = '$k_x\\rho_r$'
     xlabel = '$k_y\\rho_r$'
     title  = '$\\left<\\varphi^{2}\\right>(k_x, k_y)$ ' + 't = ' + str(time_trace[0])
@@ -166,6 +238,21 @@ def phi2_kx_ky(case, trange=None, crange=None, log=True,\
     else:
         zmin = max(phi2_vs_kx_ky.min(), delta)
         zmax = phi2_vs_kx_ky.max()
+
+
+    if save == True:
+        fn = outdir(case) + '/phi2_vs_kx_ky.h5'
+        hf = h5py.File(fn, 'w')
+        if trange != None : hf.create_dataset('trange', data=trange)
+        if last != None : hf.create_dataset('last', data=last)
+        if t0 != None : hf.create_dataset('t0', data=t0)
+        hf.create_dataset('kx', data=k_x)
+        hf.create_dataset('ky', data=k_y)
+        hf.create_dataset('phi2_vs_kx_ky', data=phi2_vs_kx_ky_avrg)
+        hf.create_dataset('phi2_vs_ky', data=phi2_vs_ky)
+        hf.close()
+        print("File saved: ", fn)
+        
 
     if movie:
         outfile = outdir(case) + '/phi2_vs_kxky.mp4'
@@ -204,9 +291,464 @@ def phi2_kx_ky(case, trange=None, crange=None, log=True,\
         ax = cmap(xdata=k_y, ydata=k_x, zdata=phi2_vs_kx_ky_avrg,\
                   xlabel=xlabel, ylabel=ylabel, zlabel=title,\
                   ctics=False, contour=1, color=True, cmap='jet',\
-                  epsname=None, crange=crange, fig_size=(8.5, 7.5))
+                  epsname=None, crange=crange, fig_size=(8.5, 7.5), log=log)
+
+
+        ax = pl2d(xrange=[k_y.min(), k_y.max()], yrange=None,\
+                   xlabel='$k_y\\rho_r$', ylabel='$\\sum_{k_{x}}\left<\\varphi^{2}\\right>(k_x,k_y)$',\
+                   fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+
+        xran = [k_y[1]*0.5, k_y.max()*1.5]
+        yran = [0.001,20.0]
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlim(xran)
+        ax.set_ylim(yran)
+
+        xvec = linspace(xran[0], xran[1],50)
+        yvec = xvec**(-7./3.)
+
+        ax.plot(k_y[1:], phi2_vs_ky[1:], 's', linewidth=8, color='black', mfc='white', markersize=8)
+        ax.plot(xvec, yvec, '--', color='black')
+        
         show()
 
+
+def get_fluxes_ky(case, trange=None, t0=None, last=False,\
+                  crange=None, yrange=None, spec=0, movie=False,\
+                  plot=True, save=True, verbose=True, merged=False):
+    
+    from stella_plots import movie_2d
+
+    pflux_label='$\\Gamma_s/\\Gamma_{r}$' ; vflux_label='$U_{\\|,s}/U_{\\|, r}$' ; qflux_label='$Q_{s}/Q_{r}$'
+
+    k_x, nakx, nakx_mid = kx(case)
+    k_y = ky(case)[0]
+    
+    ns            = species(case)[1]
+
+    if merged:
+        time_trace, temp = merge(case, 'pflx_kxky')
+        pflux_vs_t_kx_ky = temp[:,spec,:,:]
+        dump, temp       = merge(case, 'qflx_kxky')
+        qflux_vs_t_kx_ky = temp[:,spec,:,:]
+        dump, temp       = merge(case, 'vflx_kxky')
+        vflux_vs_t_kx_ky = temp[:,spec,:,:]
+    else:
+        time_trace    = time(case)[0]
+        pflux_vs_t_kx_ky = pflux_vs_kxky(case)[:,spec,:,:]
+        qflux_vs_t_kx_ky = qflux_vs_kxky(case)[:,spec,:,:]
+        vflux_vs_t_kx_ky = vflux_vs_kxky(case)[:,spec,:,:]
+
+    if verbose: print('Time interval = ', time_trace[0], time_trace[size(time_trace)-1
+                                                                    ])
+    n_time = size(time_trace)
+    
+    pflux_vs_t_kx_ky = np.concatenate((pflux_vs_t_kx_ky[:, nakx_mid:,:],\
+                                       pflux_vs_t_kx_ky[:,:nakx_mid ,:]),axis=1)
+    qflux_vs_t_kx_ky = np.concatenate((qflux_vs_t_kx_ky[:, nakx_mid:,:],\
+                                       qflux_vs_t_kx_ky[:,:nakx_mid ,:]),axis=1)
+    vflux_vs_t_kx_ky = np.concatenate((vflux_vs_t_kx_ky[:, nakx_mid:,:],\
+                                       vflux_vs_t_kx_ky[:,:nakx_mid ,:]),axis=1)
+    
+    pflux_vs_t_ky    = sum(pflux_vs_t_kx_ky[:,:,:], axis=1)
+    qflux_vs_t_ky    = sum(qflux_vs_t_kx_ky[:,:,:], axis=1)
+    vflux_vs_t_ky    = sum(vflux_vs_t_kx_ky[:,:,:], axis=1)
+    
+    pflux_vs_t       = sum(pflux_vs_t_ky[:,:], axis=1)
+    qflux_vs_t       = sum(qflux_vs_t_ky[:,:], axis=1)
+    vflux_vs_t       = sum(vflux_vs_t_ky[:,:], axis=1)
+        
+    if trange != None:
+        pflux_vs_t_kx_ky_to_avrg = pflux_vs_t_kx_ky[(time_trace > trange[0]) & (time_trace < trange[1]),:,:]
+        pflux_vs_kx_ky_avrg      = mean(pflux_vs_t_kx_ky_to_avrg, axis=0)
+        pflux_vs_kx_ky_to_plot   = pflux_vs_kx_ky_avrg
+
+        qflux_vs_t_kx_ky_to_avrg = qflux_vs_t_kx_ky[(time_trace > trange[0]) & (time_trace < trange[1]),:,:]
+        qflux_vs_kx_ky_avrg      = mean(qflux_vs_t_kx_ky_to_avrg, axis=0)
+        qflux_vs_kx_ky_to_plot   = qflux_vs_kx_ky_avrg
+        
+        vflux_vs_t_kx_ky_to_avrg = vflux_vs_t_kx_ky[(time_trace > trange[0]) & (time_trace < trange[1]),:,:]
+        vflux_vs_kx_ky_avrg      = mean(vflux_vs_t_kx_ky_to_avrg, axis=0)
+        vflux_vs_kx_ky_to_plot   = vflux_vs_kx_ky_avrg
+     
+    elif trange == None and last == True:
+        pflux_vs_kx_ky_to_plot   = pflux_vs_t_kx_ky[shape(time_trace)[0]-1,:,:]
+        qflux_vs_kx_ky_to_plot   = qflux_vs_t_kx_ky[shape(time_trace)[0]-1,:,:]
+        vflux_vs_kx_ky_to_plot   = vflux_vs_t_kx_ky[shape(time_trace)[0]-1,:,:]
+                
+    elif trange == None and t0!= None:
+        pflux_vs_kx_ky_after_t0 = pflux_vs_t_kx_ky[(time_trace >= t0),:,:]
+        pflux_vs_kx_ky_to_plot  = pflux_vs_kx_ky_after_t0[0,:,:]
+
+        qflux_vs_kx_ky_after_t0 = qflux_vs_t_kx_ky[(time_trace >= t0),:,:]
+        qflux_vs_kx_ky_to_plot  = qflux_vs_kx_ky_after_t0[0,:,:]
+
+        vflux_vs_kx_ky_after_t0 = vflux_vs_t_kx_ky[(time_trace >= t0),:,:]
+        vflux_vs_kx_ky_to_plot  = vflux_vs_kx_ky_after_t0[0,:,:]
+
+    pflux_vs_ky_to_plot=sum(pflux_vs_kx_ky_to_plot, axis=0)
+    qflux_vs_ky_to_plot=sum(qflux_vs_kx_ky_to_plot, axis=0)
+    vflux_vs_ky_to_plot=sum(vflux_vs_kx_ky_to_plot, axis=0)
+        
+    if plot :
+        # Plot with flux vs t
+        xran = [time_trace.min(),time_trace.max()]
+
+        yran = [pflux_vs_t.min(),pflux_vs_t.max()]       
+        ax11 = pl2d(xrange=xran, yrange=yran,\
+                   xlabel='$t\ (a/v_{th,r})$', ylabel=pflux_label,\
+                   fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        ax11.plot(time_trace, pflux_vs_t, color='black')
+        
+        yran = [qflux_vs_t.min(),qflux_vs_t.max()]
+        ax12 = pl2d(xrange=xran, yrange=yran,\
+                   xlabel='$t\ (a/v_{th,r})$', ylabel=qflux_label,\
+                   fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        ax12.plot(time_trace, qflux_vs_t, color='black')
+
+        yran = [vflux_vs_t.min(),vflux_vs_t.max()]
+        ax13 = pl2d(xrange=xran, yrange=yran,\
+                   xlabel='$t\ (a/v_{th,r})$', ylabel=vflux_label,\
+                   fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        ax13.plot(time_trace, vflux_vs_t, color='black')
+
+
+        if trange!= None:
+            ax11.barh(y=yran[0], width=(trange[1]-trange[0]),\
+                     height=yran[1]-yran[0], \
+                     left=trange[0], align='edge', facecolor='yellow', alpha=0.3)
+            ax12.barh(y=yran[0], width=(trange[1]-trange[0]),\
+                     height=yran[1]-yran[0], \
+                     left=trange[0], align='edge', facecolor='yellow', alpha=0.3)
+            ax13.barh(y=yran[0], width=(trange[1]-trange[0]),\
+                      height=yran[1]-yran[0], \
+                      left=trange[0], align='edge', facecolor='yellow', alpha=0.3)
+                        
+        # Plot with flux vs kx ky
+        if crange == None:
+            c1range = [pflux_vs_kx_ky_to_plot.min(),pflux_vs_kx_ky_to_plot.max()]
+            c2range = [qflux_vs_kx_ky_to_plot.min(),qflux_vs_kx_ky_to_plot.max()]
+            c3range = [vflux_vs_kx_ky_to_plot.min(),vflux_vs_kx_ky_to_plot.max()]
+        else:
+            c1range = crange
+            c2range = crange
+            c3range = crange
+        
+        ax21 = cmap(k_y, k_x, pflux_vs_kx_ky_to_plot[:,:],\
+                    xlabel='$k_y\\rho_{r}$', ylabel='$k_x\\rho_{r}$',zlabel=pflux_label,\
+                    crange=c1range, log=False)
+        ax22 = cmap(k_y, k_x, qflux_vs_kx_ky_to_plot[:,:],\
+                    xlabel='$k_y\\rho_{r}$', ylabel='$k_x\\rho_{r}$',zlabel=qflux_label,\
+                    crange=c2range, log=False)
+        ax23 = cmap(k_y, k_x, vflux_vs_kx_ky_to_plot[:,:],\
+                    xlabel='$k_y\\rho_{r}$', ylabel='$k_x\\rho_{r}$',zlabel=vflux_label,\
+                    crange=c3range, log=False)
+                
+        # Plot with flux vs ky
+        ax31 = pl2d(xrange=[k_y.min(),k_y.max()],\
+                    yrange=[pflux_vs_ky_to_plot.min(), pflux_vs_ky_to_plot.max()],\
+                    xlabel='$k_{y}\\rho_{r}$', ylabel=pflux_label,\
+                    fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        
+        ax32 = pl2d(xrange=[k_y.min(),k_y.max()],\
+                    yrange=[qflux_vs_ky_to_plot.min(), qflux_vs_ky_to_plot.max()],\
+                    xlabel='$k_{y}\\rho_{r}$', ylabel=qflux_label,\
+                    fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        
+        ax33 = pl2d(xrange=[k_y.min(),k_y.max()],\
+                    yrange=[vflux_vs_ky_to_plot.min(), vflux_vs_ky_to_plot.max()],\
+                    xlabel='$k_{y}\\rho_{r}$', ylabel=vflux_label,\
+                    fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        
+        ax31.plot(k_y, pflux_vs_ky_to_plot, color='black')
+        ax32.plot(k_y, qflux_vs_ky_to_plot, color='red')
+        ax33.plot(k_y, vflux_vs_ky_to_plot, color='purple')
+                
+        show()
+
+    if save == True:
+        fn = outdir(case) + '/fluxes_spec_'+str(spec)+'_kx_ky.h5'
+        hf = h5py.File(fn, 'w')
+        if trange != None : hf.create_dataset('trange', data=trange)
+        if last != None : hf.create_dataset('last', data=last)
+        hf.create_dataset('spec', data=spec)
+        if t0 != None : hf.create_dataset('t0', data=t0)
+        hf.create_dataset('kx', data=k_x)
+        hf.create_dataset('ky', data=k_y)
+        hf.create_dataset('pflux_vs_kx_ky', data=pflux_vs_kx_ky_to_plot)
+        hf.create_dataset('pflux_vs_ky',    data=pflux_vs_ky_to_plot)
+        hf.create_dataset('qflux_vs_kx_ky', data=qflux_vs_kx_ky_to_plot)
+        hf.create_dataset('qflux_vs_ky',    data=qflux_vs_ky_to_plot)
+        hf.create_dataset('vflux_vs_kx_ky', data=vflux_vs_kx_ky_to_plot)
+        hf.create_dataset('vflux_vs_ky',    data=vflux_vs_ky_to_plot)
+        hf.close()
+        print("File saved: ", fn)
+
+        
+
+#def merge_fluxes(case):
+    # This function localizes recursively all the *fluxes files within
+    # a case directory.
+
+def density_kx_ky(case, trange=None, crange=[1E-3,10], log=True,\
+               delta=1E-12, t0=None, last=False, movie=False, merged=False,
+               cascade=True, save=False, spec=0, tube=0, zpos=0):
+
+    if merged:
+        time_trace, density = merge(case, 'density')
+    else:
+        time_trace = time(case)[0]
+        density = density_vs_kxky(case)
+    
+    dn_kx_ky = density[:,spec,tube,zpos,:,:,0]+\
+               density[:,spec,tube,zpos,:,:,1]*1j
+    dn2_kx_ky = abs(dn_kx_ky)**2.0
+    
+    k_x, nakx, nakx_mid = kx(case)
+    k_y = ky(case)[0]
+    n_time = size(time_trace)
+
+    dn2_vs_kx_ky = np.concatenate((dn2_kx_ky[:, nakx_mid:,:],\
+                                   dn2_kx_ky[:,:nakx_mid ,:]),axis=1)
+
+    if trange != None:
+        # dn2_vs_kx_ky has dimensions (ntime, nakx, naky)
+        # Here, we remove all values of dn2_vs_kx_ky of times out of the selected
+        # interval.
+        dn2_vs_kx_ky_to_avrg = dn2_vs_kx_ky[(time_trace > trange[0]) & (time_trace < trange[1]),:,:]
+    else:
+        dn2_vs_kx_ky_to_avrg = dn2_vs_kx_ky
+
+    if last == True:
+        dn2_vs_kx_ky_avrg = dn2_vs_kx_ky_to_avrg[shape(dn2_vs_kx_ky_to_avrg)[0]-1,:,:]
+    else:
+        dn2_vs_kx_ky_avrg = mean(dn2_vs_kx_ky_to_avrg, axis=0)
+
+    if t0 != None:
+        dn2_vs_kx_ky_to_avrg = dn2_vs_kx_ky[(time_trace >= t0),:,:]
+        time_trace           = time_trace[(time_trace >= t0)]
+        dn2_vs_kx_ky_avrg    = dn2_vs_kx_ky_to_avrg[0,:,:]
+
+
+    dn2_vs_ky = sum(dn2_vs_kx_ky_avrg[:,:],axis=0)
+        
+
+
+    ylabel = '$k_x\\rho_r$'
+    xlabel = '$k_y\\rho_r$'
+    title  = '$\\left|delta n(k_x, k_y)\\right|^2$'
+
+    if crange != None:
+        zmin = crange[0]
+        zmax = crange[1]
+    else:
+        zmin = max(dn2_vs_kx_ky.min(), delta)
+        zmax = dn2_vs_kx_ky.max()
+
+
+    if save == True:
+        fn = outdir(case) + '/dn2_vs_kx_ky.h5'
+        hf = h5py.File(fn, 'w')
+        if trange != None : hf.create_dataset('trange', data=trange)
+        if last != None : hf.create_dataset('last', data=last)
+        if t0 != None : hf.create_dataset('t0', data=t0)
+        hf.create_dataset('kx', data=k_x)
+        hf.create_dataset('ky', data=k_y)
+        hf.create_dataset('dn2_vs_kx_ky', data=dn2_vs_kx_ky_avrg)
+        hf.create_dataset('dn2_vs_ky', data=dn2_vs_ky)
+        hf.close()
+        print("File saved: ", fn)
+        
+
+    if plot:
+        yran = [dn2_vs_kx_ky_avrg.min(), dn2_vs_kx_ky_avrg.max()]
+        ax = cmap(xdata=k_y, ydata=k_x, zdata=dn2_vs_kx_ky_avrg,\
+                  xlabel=xlabel, ylabel=ylabel, zlabel=title,\
+                  ctics=False, contour=1, color=True, cmap='jet',\
+                  epsname=None, crange=crange, fig_size=(8.5, 7.5), log=log)
+
+
+        ax = pl2d(xrange=[k_y.min(), k_y.max()], yrange=None,\
+                   xlabel='$k_y\\rho_r$', ylabel='$\\sum_{k_{x}}\left<\\delta n^{2}\\right>(k_x,k_y)$',\
+                   fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+
+        xran = [k_y[1]*0.5, k_y.max()*1.5]
+        yran = [0.001,20.0]
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlim(xran)
+        ax.set_ylim(yran)
+
+        xvec = linspace(xran[0], xran[1],50)
+        yvec = xvec**(-7./3.)
+
+        ax.plot(k_y[1:], dn2_vs_ky[1:], 's', linewidth=8, color='black', mfc='white', markersize=8)
+        ax.plot(xvec, yvec, '--', color='black')
+        
+        show()
+
+
+
+    
+def get_density(case, trange=None, tposition=None, zposition=0,\
+                t0=None, last=False, crange=None, yrange=None, spec=0,\
+                movie=True, tube=0, ikx=None, iky=None, plot=True):
+    #
+    # ('density', <class 'netCDF4._netCDF4.Variable'>
+    #  float64 density(t, species, tube, zed, theta0, ky, ri)
+    #  long_name: perturbed density vs (ky,kx,z,t)
+    #  unlimited dimensions: t
+    #  current shape = (ntime,nspec, ntubes, nzed, nakx, naky, 2)
+    #
+    #  Note that: for even nzed, the code considers the next odd integer
+    #             for the dimention of zed.
+
+    Lx = lx(case)
+    Ly = ly(case)
+    kx_vec=kx_stella(case)
+    ky_vec=ky(case)[0]    
+    kx_min, ky_min = kx_vec[1], ky_vec[1]
+    
+    Nkx, Nky  = size(kx_vec), size(ky_vec)
+    
+    x = linspace(-Lx/2, Lx/2, Nkx)
+    y = linspace(-Ly/2, Ly/2, Nky)   
+    X, Y = meshgrid(x, y)
+
+    dn_x_y = empty((Nky,Nkx), dtype='cfloat')
+
+    f, ax = plt.subplots(figsize=(8.5, 7.5))
+    ax.set_ylabel('$x$ [$\\rho_\\mathrm{i}$]')
+    ax.set_xlabel('$y$ [$\\rho_\\mathrm{i}$]')
+    ax.axis([x[0], x[size(x)-1], y[0], y[size(y)-1]])
+    
+    for i in arange(0,time(case)[1]):
+
+        dn_kx_ky = density_vs_kxky(case)[i,spec,tube,zposition,:,:,0]+\
+                   density_vs_kxky(case)[i,spec,tube,zposition,:,:,1]*1j
+
+        dn_x_y=0
+
+        for i in arange(Nkx):
+            for j in arange(Nky):
+                dn_x_y = dn_x_y+dn_kx_ky[i,j]*exp(1j*kx_vec[i]*X+1j*ky_vec[j]*Y)
+                
+        ax.clear()
+#        cbar.clear()
+        ax.pcolor(x, y,real(dn_x_y), cmap='seismic', shading='auto')
+#        cbar = plt.colorbar(img) 
+#        cbar.set_label('$\\delta n$')
+        plt.pause(0.01)
+        draw()
+
+##    #
+##    # Thus, we have to transpose it as ifft2
+##    # gets as input F(S)(Nky, Nkx)
+##    #
+##    density_x_y   = ifft2(density_kx_ky.T)
+##    #
+##    # print(shape(density_x_y)) ==> (Ny=Nky, Nx=Nkx), OK!
+##    X, Y = meshgrid(linspace(-pi, pi), linspace(-2*pi, 2*pi))
+
+##    fig, ax1 = plt.subplots(figsize=(12, 6))
+##    pos = ax1.imshow(real(density_x_y), interpolation=None, cmap=cm.RdYlGn,
+##                     origin='lower', extent=[-Lx/2, Lx/2, -Ly/2, Ly/2])
+##    fig.colorbar(pos, ax=ax1, cmap='seismic')
+    show()
+
+
+
+def fft2prueba():
+    X, Y = meshgrid(linspace(-pi,pi,20), linspace(-2*pi,2*pi,30))
+
+    F = cos(2*X)+1
+
+    imshow(imag(fft2(F)))
+
+#    imshow(real(ifft2(fft2(F))))
+
+    show()
+
+
+def kx_min(case):
+    kx_mid = kx(case)[2]
+    return kx(case)[0][kx_mid]
+
+def ky_min(case):
+    return ky(case)[0][1]
+
+def ly(case):
+    return 2*pi/ky_min(case)
+
+def lx(case):
+    return 2*pi/kx_min(case)
+
+def get_moment(case, trange=None, t0=None, last=False,\
+               crange=None, yrange=None, moment='n', spec=0, movie=True,\
+               tube=0, ikx=None, iky=None, plot=True):
+
+    # Within *out.nc we have: density(t, nspec, ntubes, nztot, nakx, naky, 2==>complex)
+    #                         upar(t, nspec, ntubes, nztot, nakx, naky, 2==>complex)
+    #                         temperature(t, nspec, ntubes, nztot, nakx, naky, 2==>complex)
+    from stella_plots import movie_2d
+
+    if moment == 'n': moment_label='$\\delta{n}^2_s$'
+    if moment == 'u': moment_label='$\\delta{U}^2_{\\|,s}$'
+    if moment == 't': moment_label='$\\delta{T}^2_{s}$'
+
+    k_x, nakx, nakx_mid = kx(case)
+    k_y, n_time   = ky(case)[0], time(case)[1]
+    time_trace    = time(case)[0]
+    zeta          = zed(case)[0]
+
+    # We select the species and the tube ==> (t,nztot,nakx,naky, 2)
+    if moment == 'n': moment_vs_t_zeta_kx_ky = density_vs_kxky(case)[:,spec,tube, :,:,:]
+    if moment == 'u': moment_vs_t_zeta_kx_ky = upar_vs_kxky(case)[:,spec,tube, :,:,:]
+    if moment == 't': moment_vs_t_zeta_kx_ky = temperature_vs_kxky(case)[:,spec,tube,:,:,:]
+    
+    moment_vs_t_zeta_kx_ky = np.concatenate((moment_vs_t_zeta_kx_ky[:, nakx_mid:,:,:],\
+                                             moment_vs_t_zeta_kx_ky[:,:nakx_mid ,:,:]),axis=1)
+    if ikx == None and iky == None:
+        moment2_vs_t_zeta_kx_ky = moment_vs_t_zeta_kx_ky[:,:,:,:,0]**2.0+\
+                                  moment_vs_t_zeta_kx_ky[:,:,:,:,1]**2.0
+        moment2_vs_t_zeta_ky    = sum(moment2_vs_t_zeta_kx_ky[:,:,:,:], axis=2)
+        moment2_vs_t_zeta       = sum(moment2_vs_t_zeta_ky[:,:,:], axis=2)
+        mean_moment2_vs_zeta    = mean(moment2_vs_t_zeta[:,:], axis=0)
+
+    elif ikx != None and iky != None:
+        print('Selecting the mode with kx, ky =', k_x[ikx], k_y[iky])
+        moment2_vs_t_zeta  = moment_vs_t_zeta_kx_ky[:,:,ikx,iky,0]#**2.0+\
+        #                             moment_vs_t_zeta_kx_ky[:,:,ikx,iky,1]**2.0
+        moment2_vs_t_zeta  = moment_vs_t_zeta_kx_ky[:,:,ikx,iky,1]
+        
+        mean_moment2_vs_zeta    = mean(moment2_vs_t_zeta[:,:], axis=0)        
+
+    if trange != None:
+        moment2_vs_t_zeta_to_avrg = moment2_vs_t_zeta[(time_trace > trange[0]) & (time_trace < trange[1]),:]#-\
+#                                    mean_moment2_vs_zeta
+        moment2_vs_zeta_avrg      = mean(moment2_vs_t_zeta_to_avrg, axis=0)
+        moment2_vs_zeta_to_plot   = moment2_vs_zeta_avrg
+        
+    elif trange == None and last == True:
+        moment2_vs_zeta_to_plot = moment2_vs_t_zeta[shape(time_trace)[0]-1,:]
+        
+    elif trange == None and t0!= None:
+        moment2_vs_zeta_after_t0 = moment2_vs_t_zeta[(time_trace >= t0),:]
+        moment2_vs_zeta_to_plot  = moment2_vs_zeta_after_t0[0,:]
+
+    if plot:
+        xran = [zeta.min(), zeta.max()]
+        yran = [moment2_vs_zeta_to_plot.min(), moment2_vs_zeta_to_plot.max()]
+
+        ax1 = pl2d(xrange=xran, yrange=None, xlabel='$z$', ylabel=moment_label,\
+                   fig_size=(8.5, 7.5), title=None, ax=None, log=False)
+        ax1.autoscale()
+        ax1.plot(zeta, moment2_vs_zeta_to_plot, '-', color='navy',\
+                 linewidth=4, markerfacecolor='white')
+        show()
+        
+    return moment_vs_t_zeta_kx_ky
 
 def get_kperp2(case):
     # This function builds kperp2 as done internally by the code
@@ -400,16 +942,27 @@ def multi_lin_data(case=None, view=True, yrange=None, xrange=None, sort='ky',\
     # Columns will contain kxrhoi, kyrhoi, re(omega) im(omega) nspec*3 fluxes
     ncol = 7 + ns*3
     lin_data = empty((size(cases), ncol), dtype='float')
+    
+    zeta_norm, nzed, iz0 = zed(cases[0])
+    phi2data = empty((size(cases), nzed), dtype='float')
+
 
     for i in cases:
         # Analysis is performed only if *out.nc file is present
         print("ql_fluxes diagnostics running over case", i)
         lin_data[cases.index(i),:] = ql_fluxes(case=i, view=False, formula=ql)[1]
+        ntime                      = shape(phi_vs_t(i))[0]
+        phi2data[cases.index(i),:]  = phi_vs_t(i)[ntime-1,0,:,0,0,0]**2.0+\
+                                      phi_vs_t(i)[ntime-1,0,:,0,0,1]**2.0
+        phi2data[cases.index(i),:]  = phi2data[cases.index(i),:]/phi2data[cases.index(i),:].max()
+         
         if lin_data[cases.index(i),6] < 100:
             print("Warning! phi2 found too low: setting omega, gamma and fluxes to NaN.")
             lin_data[cases.index(i),3]  = NaN
             lin_data[cases.index(i),2]  = NaN
-            lin_data[cases.index(i),7:] = NaN            
+            lin_data[cases.index(i),7:] = NaN
+            phidata = NaN
+
 
     # We sort the data by increasing ky order
     olab   = '$\\omega a/v_{\\mathrm{th},i}$'
@@ -423,11 +976,13 @@ def multi_lin_data(case=None, view=True, yrange=None, xrange=None, sort='ky',\
         col = 1 ; xlab = '$k_{y}\\rho_i$'
     if sort == 'kx':
         col = 0 ; xlab = '$k_{x}\\rho_i$'
-        
-    lin_data = lin_data[lin_data[:,col].argsort()]
+
+    sort     = lin_data[:,col].argsort()
+    lin_data = lin_data[sort]
+    phi2data = phi2data[sort]
 
     if save == True:
-        fn = outdir(cases[0]) + '/multi_lin_data.h5'
+        fn = outdir(cases[0]) + '/multi_lin_data_'+ql+'.h5'
         hf = h5py.File(fn, 'w')
         hf.create_dataset('kx', data=lin_data[:,0])
         hf.create_dataset('ky', data=lin_data[:,1])
@@ -440,6 +995,7 @@ def multi_lin_data(case=None, view=True, yrange=None, xrange=None, sort='ky',\
         hf.create_dataset('qlvflx', data=lin_data[:,7+ns:7+2*ns])
         hf.create_dataset('qlqflx', data=lin_data[:,7+2*ns:7+3*ns])
         hf.create_dataset('vth_r', data=lin_data[:,7+2*ns:7+3*ns])
+        hf.create_dataset('phi2_vs_ky', data=phi2data)
         hf.close()
         print("File saved: ", fn)
 
@@ -467,7 +1023,7 @@ def multi_lin_data(case=None, view=True, yrange=None, xrange=None, sort='ky',\
             ax2.plot(lin_data[:,col], lin_data[:,5], 'o-', color='gray',\
                      linewidth=2, markerfacecolor='white')            
 
-    
+        
         for k in arange(0, ns):
             fig = plt.figure(figsize=(18, 9))
             fig.subplots_adjust(left=0.1, wspace=0.35)
@@ -493,6 +1049,13 @@ def multi_lin_data(case=None, view=True, yrange=None, xrange=None, sort='ky',\
             ax3.autoscale()
             ax3.plot(lin_data[:,col], lin_data[:,7+2*ns+k], 'o-', color='darkorange',\
                      linewidth=4, markerfacecolor='white')
+
+        
+        cmap(xdata=zeta_norm, ydata=lin_data[:,col], zdata=phi2data,\
+             xlabel='$z$', ylabel=xlab, zlabel='$\\varphi^2/\\varphi^{2}_{\\mathrm{max}}$',\
+             ctics=False, num=None, contour=1, color=True, cmap='jet', vfield=False, vxdata=None,\
+             vydata=None, cont2=None, epsname=None, crange=None, fig_size=(8.5, 7.5),\
+             log=False, ax=None)
             
         show()
 
@@ -506,25 +1069,54 @@ def multi_lin_data(case=None, view=True, yrange=None, xrange=None, sort='ky',\
 #            print(multi_lin_data)
 #            omega  = 
 
-def fluxes(case=None, plot=False, si=False, time_avrg=None, tref=None, sign=1):
+def fluxes(case=None, plot=False, si=False, trange=None, tref=None, sign=1, nref=None,\
+           merged=False, spec=0, save=True):
     i        = case
     fluxfile = outfile(i,'fluxes')
-    fluxdata = loadtxt(fluxfile, dtype='float')
+    
+    if (merged):
+        fluxdata = merge(case, quant='fluxes')[1]
+        #        fluxfile = fluxfile + '_merged'
+
+    else:
+        fluxdata = loadtxt(fluxfile, dtype='float')
+        
     nspecies = species(i)[1]
     
     if si:
         time_ref      = 1/ref_values(case, tref=tref)[5]
-        fluxes_ref    = array(ref_values(case, tref=tref)[9:12])
+        fluxes_ref    = array(ref_values(case, tref=tref, nref=nref)[9:12])
 
         # We undo the normalization to get SI units
         fluxdata[:,0]=fluxdata[:,0]*time_ref
         for j in arange(0,3):
-            for k in arange(nspecies):
-                fluxdata[:,j+1+k*3]=sign*fluxdata[:,j+1+k*3]*fluxes_ref[j]
+            #            for k in arange(0,nspecies):
+            #fluxdata[:,1+j*3+k]=sign*fluxdata[:,1+j*3+k]*fluxes_ref[j]
+            fluxdata[:,1+j*nspecies+spec]=sign*fluxdata[:,1+j*3+spec]*fluxes_ref[j]
+            #fluxdata[:,1+spec*3+j]=sign*fluxdata[:,1+spec*3+j]*fluxes_ref[j]
             
-    if time_avrg :
-        fluxes_avrg = time_average(fluxdata, interval=time_avrg)
-    
+    if trange :
+        flux_data_to_avrg     = fluxdata[(fluxdata[:,0]>trange[0]) & (fluxdata[:,0]< trange[1]) ,:]
+        
+#        flux_data[(flux_data[:,0]>t0) & (flux_data[:,0]< tf) ,:]
+        fluxes_avrg = mean(flux_data_to_avrg[:,:], axis=0)#time_average(fluxdata, interval=time_avrg)
+        fluxes_err  = std(flux_data_to_avrg[:,:], axis=0)
+
+
+    if save == True:
+        fn = outdir(case) + '/fluxes.h5'
+        hf = h5py.File(fn, 'w')
+        hf.create_dataset('nspec', data=nspec(case))
+        hf.create_dataset('fprim', data=nprim(case))
+        hf.create_dataset('tprim', data=tprim(case))
+        hf.create_dataset('ref_values', data=ref_values(case))
+        hf.create_dataset('fluxes', data=fluxdata)
+        if trange:
+            hf.create_dataset('trange', data=trange)
+            hf.create_dataset('fluxes_avrg', data=fluxes_avrg)
+            hf.create_dataset('fluxes_err', data=fluxes_err)
+        hf.close()
+        print("File saved: ", fn)
     if plot:
         if si:
             xlab, ylab = '$t$ [$s$]',\
@@ -538,28 +1130,29 @@ def fluxes(case=None, plot=False, si=False, time_avrg=None, tref=None, sign=1):
             ax = pl2d(xrange=None, yrange=None, xlabel=xlab, ylabel=ylab[j],\
                       fig_size=(8.5, 7.5))
             
-            for k in arange(nspecies):
-                xran = [min(fluxdata[:,0]), max(fluxdata[:,0])]
-                yran = [min(fluxdata[:,j+1+k*3])*1.05, max(fluxdata[:,j+1+k*3])*1.05]
-                
-                ax.plot(fluxdata[:,0], fluxdata[:,j+1+k*3],\
-                        '-', color='black', linewidth=3, label='species = ' + str(k))
-                ax.set_xlim(xran)
-                ax.set_ylim(yran)
-                ax.ticklabel_format(style='sci', scilimits=(0,0))
-                if time_avrg:
-                    ax.axhline(y=fluxes_avrg[j+1+k*3],\
-                               linestyle='--', linewidth=2, color='blue')
+            #for k in arange(nspecies):
+            xran = [min(fluxdata[:,0]), max(fluxdata[:,0])]
+            yran = [min(fluxdata[:,1+j*nspecies+spec])*1.05, max(fluxdata[:,1+j*nspecies+spec])*1.05]
 
-                    ax.barh(y=yran[0], width=(time_avrg[1]-time_avrg[0]),\
-                            height=yran[1]-yran[0], \
-                            left=time_avrg[0], align='edge', facecolor='yellow', alpha=0.3)
-                    
-            ax.legend(loc='best',labelspacing=0.0, prop={'size':26})
+            ax.plot(fluxdata[:,0], fluxdata[:,1+j*nspecies+spec],\
+                    '-', color='black', linewidth=3, label='species = ' + str(spec))
+            ax.set_xlim(xran)
+            ax.set_ylim(yran)
+            ax.ticklabel_format(style='sci', scilimits=(0,0))
+            
+            if trange:
+                ax.axhline(y=fluxes_avrg[j*3+spec],\
+                           linestyle='--', linewidth=2, color='blue')
+                
+                ax.barh(y=yran[0], width=(trange[1]-trange[0]),\
+                        height=yran[1]-yran[0], \
+                        left=trange[0], align='edge', facecolor='yellow', alpha=0.3)
+                
+        ax.legend(loc='best',labelspacing=0.0, prop={'size':26})
             
         show()
 
-    if time_avrg : return(fluxes_avrg)
+    if trange : return(fluxes_avrg, fluxes_err)
     else: return(fluxdata)
 
 
@@ -697,6 +1290,19 @@ def phi(case, yrange=None, xrange=None):
              key2='$\\Im(\\tilde{\\varphi})(\\zeta)$',\
              ax=None)        
         show()
+
+
+def get_final_fields_txt(case):
+    datafile=outfile(case, quant='final_fields')
+    vzed, nzed, iz0  = zed(case)[0], zed(case)[1], zed(case)[2]
+    n_ky        = ky(case)[1]
+    n_kx        = kx(case)[1]
+    data        = loadtxt(datafile, dtype='float').reshape(nzed, n_kx, n_ky, 11)
+    phi2     = data[:,:,:,4]**2.0+data[:,:,:,2]**2.0
+    phi2max  = phi2.max()
+    phi2norm = phi2/phi2max
+    
+    return(phi2norm)
 
 def phi_last(case, ikx=0, iky=0):
     phi                      = phi_vs_t(case)[0]
@@ -876,3 +1482,90 @@ def ktkn(hpc=None, equil=None, process=False):
                 #         xlabel='$-a/L_{n_i}$', ylabel='$-a/L_{T_i}$', zlabel='$\\Im(\\omega)/v_{t}$')
                 
         show()
+
+def rephi_vs_kxky(case):
+    # electrostatic real potential averaged as function of (ky,kx,t)
+    rephi_vs_kxky_stella = read_stella_float(case, 'phi_real')
+    return rephi_vs_kxky_stella
+
+def imphi_vs_kxky(case):
+    # electrostatic real potential averaged as function of (ky,kx,t)
+    imphi_vs_kxky_stella = read_stella_float(case, 'phi_imag')
+    return imphi_vs_kxky_stella
+
+def ZF(case, plot=False, verbose=True, fit=True):
+    #It computes the ZF response using <Re(phi)>:
+    t = time(case)[0]
+    re_phi_avg = rephi_vs_kxky(case)[:,0,0]
+    im_phi_avg = imphi_vs_kxky(case)[:,0,0]
+    re_phi_avg_norm = re_phi_avg/max([max(re_phi_avg), max(im_phi_avg)])
+    im_phi_avg_norm = im_phi_avg/max([max(re_phi_avg), max(im_phi_avg)])
+
+    if fit:
+        popt, _ = curve_fit(objective, t, re_phi_avg_norm)
+
+        if verbose:
+            print('A_ZF     [addim.]   = ', str(format2(popt[0])))
+            print('Omega_ZF [v_ref/a]  = ', str(format2(popt[1])))
+            print('gamma_ZF [v_ref/a]  = ', str(format2(popt[2])))
+            print('R_ZF     [adim.]    = ', str(format2(popt[3])))
+            print('c_1      [adim.]    = ', str(format2(popt[4])))
+            print('c_2      [adim.]    = ', str(format2(popt[5])))
+            print('c_3      [a.u.]     = ', str(format2(popt[6])))
+
+
+    # Writing out data to txt file ==============================================
+    outfile = runsdir() + '/' + case + '/ZF_stella.dat'
+    f = io.open(outfile, 'w')
+
+    f.write('# Fitting function for <Re[phi(t)]/Re[phi(t=0)]>:\n')
+    if fit:
+        f.write('# f(t)=A_ZF * cos(Omega_ZF*t) * exp(-gamma_ZF*t) + R_ZF + c_1/(c_2+t**c_3)\n')
+        f.write('# (0)A_ZF[addim.]\t (2)Omega_ZF[v_ref/a]\t (3)gamma_ZF[v_ref/a]\t (4)R_ZF[addim.]\t (4)c_1[addim.]\t (5)c_2[addim.]\t (6)c_3[a.u.]\n')
+        f.write('#'+str(format2(popt[0]))+'\t'+str(format2(popt[1]))+'\t'+str(format2(popt[2]))+'\t'+\
+                str(format2(popt[3]))+'\t'+str(format2(popt[4]))+'\t'+str(format2(popt[5]))+'\t'+\
+                str(format2(popt[6]))+'\n')
+    f.write('# (0) t [a/vref]   (1) <Re(phi)>/<Re(phi)>_max   (2) <Im(phi)>/<Im(phi)>_max' + '\n')
+    
+    for i in arange(0, size(t)):
+        f.write(str(format2(t[i]))+'\t'+str(format2(re_phi_avg_norm[i]))+'\t'+str(format2(im_phi_avg_norm[i]))+'\n')
+    f.close()
+    print("File saved: ", outfile)
+    
+    # Writing out data to h5 file ==============================================
+    outfile = runsdir() + '/' + case + '/ZF_stella.h5'
+    f = h5py.File(outfile, 'w')
+    f.create_dataset('time', data=t)
+    f.create_dataset('re_phi_avr_norm', data=re_phi_avg_norm)
+    f.create_dataset('im_phi_avg_norm', data=im_phi_avg_norm)
+    if fit:
+        f.create_dataset('Fit', data='A_ZF * cos(Omega_ZF*t) * exp(-gamma_ZF*t) + R_ZF + c_1/(c_2+t**c_3)')    
+        f.create_dataset('A_ZF', data=popt[0])
+        f.create_dataset('Omega_ZF', data=popt[1])
+        f.create_dataset('gamma_ZF', data=popt[2])
+        f.create_dataset('R_ZF',     data=popt[3])
+        f.create_dataset('c_1',      data=popt[4])
+        f.create_dataset('c_2',      data=popt[5])
+        f.create_dataset('c_3',      data=popt[6])    
+        f.close()
+    print("File saved: ", outfile)
+
+    if plot:
+        ax= pl2d(xlabel='$t v_{th}/\\rho_s$', xrange=[0,max(t)],\
+                 yrange=[-1,1],\
+                 ylabel='$\\langle\\Re(\\varphi)\\rangle/\\max(\\langle\\Re(\\varphi)\\rangle)$')
+        ax.plot(t,re_phi_avg_norm,linestyle='-', color='k', linewidth=2)
+        ax.plot(t,im_phi_avg_norm,linestyle='-', color='r', linewidth=1)        
+
+    show()
+
+
+    
+    return t, re_phi_avg_norm
+
+# Objective function
+
+def objective(t, A_ZF, Omega_ZF, gamma_ZF, R_ZF, c_1, c_2, c_3):
+
+    return A_ZF * cos(Omega_ZF*t) * exp(-gamma_ZF*t) + R_ZF + c_1/(c_2+t**c_3)
+    
