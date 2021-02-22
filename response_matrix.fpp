@@ -66,7 +66,7 @@ contains
     real, dimension (2) :: time_response_matrix_lu
 
     ! Related to the saving of the the matrices in netcdf format
-    character(len=15) :: fmt, proc_str, job_str
+    character(len=15) :: fmt, job_str
     character(len=100) :: file_name
     integer :: istatus
     istatus = 0
@@ -91,9 +91,8 @@ contains
     if (proc0.and.mat_gen) THEN
        call check_directories
 
-       write (proc_str, fmt) iproc
        write (job_str, '(I1.1)') job
-       file_name = './mat/response_mat_'//trim(job_str)//'.'//trim(proc_str)
+       file_name = './mat/response_mat_'//trim(job_str)
 
        open(unit=mat_unit, status='replace', file=file_name, &
             position='rewind', action='write', form='unformatted')
@@ -399,12 +398,16 @@ contains
   
     use fields_arrays, only: response_matrix
     use common_types, only: response_matrix_type
-    use mp, only: iproc, job
+    use kt_grids, only: naky, zonal_mode
+    use extended_zgrid, only: neigen
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
+    use mp, only: proc0, job, broadcast, mp_abort
 
     implicit none
 
-    integer :: iky, ie
-    integer :: iky_dump, neigen_dump, naky_dump
+    integer :: iky, ie, nz_ext
+    integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
     integer :: nresponse
     character(len=15) :: fmt, proc_str, job_str
     character(len=100) :: file_name
@@ -412,51 +415,83 @@ contains
     logical, parameter :: debug=.false.
     istatus = 0
 
-!   All matrices handled by the processor i_proc are read
-!   from a single file named: responst_mat.iproc
-    fmt = '(I5.5)'
-    write (proc_str, fmt) iproc
-    write (job_str, '(I1.1)') job
-    file_name = './mat/response_mat_'//trim(job_str)//'.'//trim(proc_str)
+!   All matrices handled for the job i_job are read
+!   from a single file named: responst_mat.ijob by that
+!   jobs root process
 
-    open(unit=mat_unit, status='old', file=file_name, &
+    if(proc0) then
+      fmt = '(I5.5)'
+      write (job_str, '(I1.1)') job
+      file_name = './mat/response_mat.'//trim(job_str)
+
+      open(unit=mat_unit, status='old', file=file_name, &
          action='read', form='unformatted', iostat=istat)
-    if (istat /= 0) then
-       print *, 'Error opening response_matrix by processor', proc_str
-    end if
-!
-    read(unit=mat_unit) naky_dump
-! 
-    if (response_matrix_initialized) return
-    response_matrix_initialized = .true.
-  
-    if (.not.allocated(response_matrix)) allocate (response_matrix(naky_dump))
-  
-    do iky = 1, naky_dump
-       read(unit=mat_unit) iky_dump, neigen_dump
-     
+      if (istat /= 0) then
+         print *, 'Error opening response_matrix by root processor for job ', job_str
+      end if
+
+      read(unit=mat_unit) naky_dump
+      if(naky.ne.naky_dump) call mp_abort('mismatch in naky and naky_dump')
+    endif
+
+    if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
+
+    do iky = 1, naky
+       if(proc0) then 
+         read(unit=mat_unit) iky_dump, neigen_dump
+         if(iky_dump.ne.iky.or.neigen_dump.ne.neigen(iky)) &
+           call mp_abort('mismatch in iky_dump/neigen_dump')
+       endif
+
        if (.not.associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen_dump))
-     
-       do ie = 1, neigen_dump
-          read(unit=mat_unit) ie_dump, nresponse
+            allocate (response_matrix(iky)%eigen(neigen(iky)))
+
+       ! loop over the sets of connected kx values
+       do ie = 1, neigen(iky)
+          ! number of zeds x number of segments
+          nz_ext = nsegments(ie,iky)*nzed_segment+1
         
+          ! treat zonal mode specially to avoid double counting
+          ! as it is periodic
+          if (zonal_mode(iky)) then
+             nresponse = nz_ext-1
+          else
+             nresponse = nz_ext
+          end if
+
+          if(proc0) then 
+            read(unit=mat_unit) ie_dump, nresponse
+            if(ie_dump.ne.ie.or.nresponse.ne.nresponse_dump) &
+              call mp_abort('mismatch in ie/nresponse_dump')
+          endif
+
+          ! for each ky and set of connected kx values,
+          ! must have a response matrix that is N x N
+          ! with N = number of zeds per 2pi segment x number of 2pi segments
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) &
                allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse,nresponse))
-        
+
+          ! response_matrix%idx is needed to keep track of permutations
+          ! to the response matrix made during LU decomposition
+          ! it will be input to LU back substitution during linear solve
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) &
                allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-        
-          read(unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
-          read(unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
-       end do
-    end do
-    close (mat_unit)
+          if(proc0) then
+            read(unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
+            read(unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
+          endif
+
+          call broadcast(response_matrix(iky)%eigen(ie)%idx)
+          call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+
+       enddo
+    enddo
+
+    if (proc0) close (mat_unit)
   
     if (debug) then
-       print *, 'File', file_name, ' successfully read by proc: ', proc_str
+       print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
     end if
-
   end subroutine read_response_matrix
 
   subroutine get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
@@ -982,7 +1017,7 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: scrossdomprocs, sgproc0
+    use mp, only: scrossdomprocs, sgproc0, mp_abort
     use mp, only: job, iproc, proc0, nproc, numnodes, inode
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
