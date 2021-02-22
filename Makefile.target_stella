@@ -1,4 +1,6 @@
-stella_all: vmec modules stella
+stella_all: 
+	$(MAKE) modules
+	$(MAKE) stella
 
 stella: $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -8,7 +10,7 @@ stella.x: $(stella_mod)
 
 .PHONY: modules utils_all geo_all vmec
 
-modules: utils.a geo.a
+modules: utils_all geo_all
 
 ### UTILS
 utils_all: utils.a
@@ -23,11 +25,12 @@ vmec:
 	$(MAKE) -C $(VMEC)
 
 ### GEO
-geo_all: vmec geo.a
+geo_all: vmec
+	$(MAKE) geo.a
 
 GEO_OBJ = stella_geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
 
-geo.a: $(GEO_OBJ)
+geo.a:  $(GEO_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^
 	$(RANLIB) $@
 
