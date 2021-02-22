@@ -347,8 +347,8 @@ contains
                                 gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
                                 gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
 
-                                bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(gam_mu*-1/dmu(imu) * dmu(imu)/2./mu(imu) &
-                                                                +(gam_mup*-1/dmu(imu) - gam_mu*-1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
+                                bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(-gam_mu*1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(-gam_mup*1/dmu(imu) + gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
                                 bb_blcs(iv,imu,imu+1,ikxkyz)= bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*(gam_mu * 1/dmu(imu) * dmu(imu)/2./mu(imu) &
                                                                 +(gam_mup*1/dmu(imu) - gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu+1,iz) / (dmu(imu)/2.+mu(imu))
                                 ! mixed derivative:
@@ -375,8 +375,8 @@ contains
 
                                 bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
                                                                 + (-gam_mu/dmu(imu-1))*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu,iz) / (dmu(imu-1)/2.+dmu(imu-1))
-                                bb_blcs(iv,imu,imu-1,ikxkyz)= bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) - gam_mum * -1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
-                                                                -gam_mu * -1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                bb_blcs(iv,imu,imu-1,ikxkyz)= bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) + gam_mum * 1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                +gam_mu * 1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
                                 ! mixed derivative:
                                 cc_blcs(iv,imu,imu,iz,is)   = cc_blcs(iv,imu,imu,iz,is) - code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv+1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
                                 cc_blcs(iv,imu,imu-1,iz,is) = cc_blcs(iv,imu,imu-1,iz,is) + code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv+1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
@@ -408,8 +408,8 @@ contains
 
                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
                                                                 +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz) * 2./(dmu(imu-1)+dmu(imu))
-                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) - gam_mum* -1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
-                                                                -gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu * 1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) + gam_mum * 1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
+                                                                +gam_mu * 1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
                                 bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*( gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) * dmu(imu)/dmu(imu-1) &
                                                                 + (gam_mup/dmu(imu) - gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu))) * dmu(imu-1)/dmu(imu)) / mw(iv,imu+1,iz) * 2/(dmu(imu-1)+dmu(imu))
                                 ! mixed derivative:
@@ -446,8 +446,8 @@ contains
                                 gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
                                 gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
 
-                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(gam_mu *-1/dmu(imu) * dmu(imu)/2./mu(imu) &
-                                                                +(gam_mup*-1/dmu(imu) - gam_mu*-1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
+                                bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(-gam_mu *1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(-gam_mup*1/dmu(imu) + gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
                                 bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*(gam_mu * 1/dmu(imu) * dmu(imu)/2./mu(imu) &
                                                                 +(gam_mup* 1/dmu(imu) - gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.))  / mw(iv,imu+1,iz) / (dmu(imu)/2.+mu(imu))
                                 ! mixed derivative:
@@ -474,8 +474,8 @@ contains
 
                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
                                                                 + (-gam_mu/dmu(imu-1))*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu,iz) / (dmu(imu-1)/2.+dmu(imu-1))
-                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) - gam_mum * -1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
-                                                                -gam_mu * -1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) + gam_mum * 1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                +gam_mu * 1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
                                 ! mixed derivative:
                                 aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
                                 aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv-1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
@@ -507,8 +507,8 @@ contains
 
                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
                                                                 +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz) * 2./(dmu(imu-1)+dmu(imu))
-                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) - gam_mum* -1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
-                                                                -gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu * 1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) + gam_mum * 1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
+                                                                +gam_mu * 1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
                                 bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*( gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) * dmu(imu)/dmu(imu-1) &
                                                                 + (gam_mup/dmu(imu) - gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu))) * dmu(imu-1)/dmu(imu)) / mw(iv,imu+1,iz) * 2/(dmu(imu-1)+dmu(imu))
                                 ! mixed derivative, one-sided difference in vpa at iv = nvpa:
@@ -550,8 +550,8 @@ contains
                                  gam_mu = 2*(nupa(iv,imu,iz)*mu(imu)**2+nuD(iv,imu,iz)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz)
                                  gam_mup = 2*(nupap*mup**2+nuDp*vpa(iv)**2/(2*bmag(ia,iz))*mup)*mwp
 
-                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(gam_mu *-1/dmu(imu) * dmu(imu)/2./mu(imu) &
-                                                                +(gam_mup*-1/dmu(imu) - gam_mu*-1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
+                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*(-gam_mu *1/dmu(imu) * dmu(imu)/2./mu(imu) &
+                                                                +(-gam_mup*1/dmu(imu) + gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.)) / mw(iv,imu,iz) / (dmu(imu)/2.+mu(imu))
                                  bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz)  - code_dt*(gam_mu * 1/dmu(imu) * dmu(imu)/2./mu(imu) &
                                                                 +(gam_mup* 1/dmu(imu) - gam_mu*1/dmu(imu)) * mu(imu)/(dmu(imu)/2.))  / mw(iv,imu+1,iz) / (dmu(imu)/2.+mu(imu))
                                  ! mixed derivative:
@@ -579,8 +579,8 @@ contains
 
                                  bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
                                                                 + (-gam_mu/dmu(imu-1))*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu,iz) / (dmu(imu-1)/2.+dmu(imu-1))
-                                 bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) - gam_mum * -1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
-                                                                -gam_mu * -1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
+                                 bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu/dmu(imu-1) + gam_mum * 1/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)/2.) &
+                                                                +gam_mu * 1/dmu(imu-1)*dmu(imu-1)/2./dmu(imu-1)) / mw(iv,imu-1,iz) / (dmu(imu-1)/2.+dmu(imu-1))
                                  ! mixed derivative:
                                  aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu,iz,is) + code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz)*1/mw(iv-1,imu,iz)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (2*dvpa)
                                  aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz)*mw(iv,imu-1,iz)*1/mw(iv-1,imu-1,iz)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (2*dvpa)
@@ -619,8 +619,8 @@ contains
                                 ! mu_operator (interior treatment):
                                 bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu,ikxkyz) - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
                                                                 +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz) * 2./(dmu(imu-1)+dmu(imu))
-                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) - gam_mum* -1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
-                                                                -gam_mu * -1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
+                                bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) - code_dt*((-gam_mu * 1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) + gam_mum* 1/dmu(imu-1)) * dmu(imu)/dmu(imu-1) &
+                                                                +gam_mu * 1*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) * dmu(imu-1)/dmu(imu)) / mw(iv,imu-1,iz) * 2./(dmu(imu-1)+dmu(imu))
                                 bb_blcs(iv,imu,imu+1,ikxkyz) = bb_blcs(iv,imu,imu+1,ikxkyz) - code_dt*( gam_mu * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) * dmu(imu)/dmu(imu-1) &
                                                                 + (gam_mup/dmu(imu) - gam_mu*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu))) * dmu(imu-1)/dmu(imu)) / mw(iv,imu+1,iz) * 2/(dmu(imu-1)+dmu(imu))
                                 ! mu operator, mixed (interior treatment):
@@ -1571,7 +1571,7 @@ contains
       enddo
     endif
 
-  end subroutine add_krook_operator 
+  end subroutine add_krook_operator
 
   subroutine update_delay_krook (g)
 
@@ -1594,7 +1594,7 @@ contains
     if(.not.zonal_mode(1)) return
 
     exp_fac = exp(-code_dt/delay_krook)
-    
+
     ia = 1
 
     int_krook_old = int_krook
@@ -2175,7 +2175,7 @@ contains
 
     u_fac = spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,ia,iz))*spec(is)%smz/bmag(ia,iz)
     call integrate_vmu (u_fac*h,iz,integral)
-    
+
     Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
 
     deallocate (u_fac)
@@ -2648,7 +2648,7 @@ contains
 
     if (.not.use_physical_ksqr) then
        ! avoid spatially dependent kperp
-       
+
        !get k2max at outboard midplane
        k2max = akx(ikx_max)**2 + aky(naky)**2
        tfac= geo_surf%shat**2
