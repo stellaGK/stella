@@ -931,8 +931,6 @@ contains
       ediv = neig/nodes_on_job
       emod = mod(neig,nodes_on_job)
       
-
-      write (*,*) 'hoho', nodes_on_job, neig, ediv, emod
       eig_limits(0,ijob+1) = 1
       do j = 1, numnodes
         if(node_jobs(j,ijob+1)) then
@@ -946,8 +944,6 @@ contains
         endif
       enddo
 
-      write (*,*) eig_limits
-
       do ie = eig_limits(inode,ijob+1), eig_limits(inode+1,ijob+1)-1
         win_size = 0
         if(iproc.eq.jroot) then
@@ -958,8 +954,6 @@ contains
 
         !broadcast size of matrix
         call broadcast(n, jroot)
-
-        write (*,*) iky, ie, n
 
         allocate (dum(n))
         allocate (vv(n))
