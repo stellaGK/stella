@@ -871,9 +871,10 @@ contains
     real, parameter :: zero = 1.0e-20
     real, dimension (:), allocatable :: vv
     complex, dimension (:), allocatable :: dum
+    complex, dimension (:,:), pointer :: lu
+
     type(c_ptr) :: bptr
 
-    complex, dimension (:,:), pointer :: lu
     logical :: needs_send = .false.
 
     integer :: prior_focus, nodes_on_job
@@ -883,6 +884,7 @@ contains
     integer :: rdiv, rmod
     integer :: ediv, emod
     integer :: disp_unit = 1
+    real :: dmax, tmp
 
     prior_focus = curr_focus
 
@@ -928,7 +930,9 @@ contains
       nodes_on_job = count(node_jobs(:,ijob+1))
       ediv = neig/nodes_on_job
       emod = mod(neig,nodes_on_job)
+      
 
+      write (*,*) 'hoho', nodes_on_job, neig, ediv, emod
       eig_limits(0,ijob+1) = 1
       do j = 1, numnodes
         if(node_jobs(j,ijob+1)) then
@@ -942,6 +946,8 @@ contains
         endif
       enddo
 
+      write (*,*) eig_limits
+
       do ie = eig_limits(inode,ijob+1), eig_limits(inode+1,ijob+1)-1
         win_size = 0
         if(iproc.eq.jroot) then
@@ -953,7 +959,10 @@ contains
         !broadcast size of matrix
         call broadcast(n, jroot)
 
+        write (*,*) iky, ie, n
+
         allocate (dum(n))
+        allocate (vv(n))
 
         !allocate the window
         call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm,bptr,win,ierr)
@@ -996,7 +1005,15 @@ contains
            endif
 
            !pivot if needed
-           imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
+           dmax = -1.0
+           do k = j, n
+             tmp = vv(k)*abs(lu(k,j))
+             if(tmp.gt.dmax) then 
+               dmax = tmp
+               imax = k
+             endif
+           enddo
+!          imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
            response_matrix(iky)%eigen(ie)%idx(j) = imax
            if(iproc.eq.jroot) then
              if (j /= imax) then
@@ -1006,6 +1023,8 @@ contains
                vv(imax) = vv(j)
              end if
              if (lu(j,j)==0.0) lu(j,j) = zero
+           else
+             if (j /= imax) vv(imax) = vv(j)
            endif
 
            call mpi_win_fence(0,win,ierr)
@@ -1031,7 +1050,7 @@ contains
         if(job.eq.ijob) response_matrix(iky)%eigen(ie)%zloc = lu
 
         call mpi_win_free(win,ierr)
-        deallocate (dum)
+        deallocate (vv,dum)
       enddo
     enddo
 
@@ -1094,6 +1113,8 @@ contains
     integer :: istage, nstage
     integer :: rdiv, rmod
     integer :: ediv, emod
+
+    real :: dmax, tmp
 
     prior_focus = curr_focus
 
@@ -1187,6 +1208,7 @@ contains
         !broadcast matrix and its size across the communicator
         call mpi_bcast(n,1,MPI_INT,0,eig_comm,ierr)
         if(.not.allocated(lu)) allocate (lu(n,n))
+        if(.not.allocated(vv)) allocate (vv(n))
 
         call mpi_bcast(lu,n*n,mpicmplx,0,eig_comm,ierr)
 
@@ -1217,7 +1239,15 @@ contains
           endif
 
           !pivot if needed
-          imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
+          dmax = -1.0
+          do k = j, n
+            tmp = vv(k)*abs(lu(k,j))
+            if(tmp.gt.dmax) then 
+              dmax = tmp
+              imax = k
+            endif
+          enddo
+!         imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
           if (j /= imax) then
             dum = lu(imax,:)
             lu(imax,:) = lu(j,:)
@@ -1278,7 +1308,7 @@ contains
                           n*n,mpicmplx,eig_roots(j),nproc+j,mp_comm,status,ierr)
           endif
         enddo
-        deallocate (lu, idx, dum)
+        deallocate (vv, lu, idx, dum)
       enddo
       deallocate (eig_roots, eig_limits, row_limits)
     enddo
@@ -1317,9 +1347,11 @@ contains
     inquire(file="./mat/.", exist=mat_exists)
 # endif
 
+#if !defined(__CRAY_COMPILER)
     if (.not. mat_exists) then
        ierr=system('mkdir -p mat')
     end if
+#endif
   end subroutine check_directories
 
 end module response_matrix

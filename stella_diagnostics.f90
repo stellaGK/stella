@@ -187,6 +187,7 @@ contains
           omega_vs_time = 0.
        else
           allocate (omega_vs_time(1,1,1))
+          navg=1
        end if
     end if
 

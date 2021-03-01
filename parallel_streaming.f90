@@ -81,6 +81,7 @@ contains
       endif
       if(.not.allocated(stream_rad_var2)) then 
         allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        stream_rad_var2 = 0.0
       endif
       ia=1
       stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &

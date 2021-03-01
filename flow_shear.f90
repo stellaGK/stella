@@ -78,8 +78,10 @@ contains
 
     allocate (energy(nalpha,-nzgrid:nzgrid))
 
-    if (.not.allocated(prl_shear)) &
+    if (.not.allocated(prl_shear)) then
       allocate (prl_shear(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      prl_shear = 0.0
+    endif
 
     if (radial_variation.and..not.allocated(prl_shear_p)) &
       allocate (prl_shear_p(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
