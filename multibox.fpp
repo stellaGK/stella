@@ -267,7 +267,10 @@ contains
 
     if(.not.allocated(krook_fac)) allocate (krook_fac(naky))
 
-    if(naky>1) krook_fac = (aky/aky(2))**krook_exponent
+    krook_fac = 1.0
+    do i = 2, naky
+      krook_fac(i) = (aky(i)/aky(2))**krook_exponent
+    enddo
 
 #ifdef MPI
     call scope(crossdomprocs)
