@@ -164,12 +164,12 @@ contains
 
     implicit none
 
-    real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr
+    real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr, bess_fac
     integer :: ierr, unit, is
     character(len=128) :: filename
 
     namelist /species_parameters/ z, mass, dens, temp, &
-         tprim, fprim, d2ndr2, d2Tdr2, type
+         tprim, fprim, d2ndr2, d2Tdr2, bess_fac, type
 
     character(20) :: type
     type (text_option), dimension (9), parameter :: typeopts = (/ &
@@ -193,6 +193,7 @@ contains
        fprim = -999.9
        d2ndr2 = 0.0
        d2Tdr2 = 0.0
+       bess_fac = 1.0
        type = "default"
        read (unit=unit, nml=species_parameters)
        close (unit=unit)
@@ -210,6 +211,8 @@ contains
 
        spec(is)%dens_psi0 = dens
        spec(is)%temp_psi0 = temp
+
+       spec(is)%bess_fac = bess_fac
 
        if(write_profile_variation) then
          write (filename,"(A,I1)") "specprof_", is
@@ -260,6 +263,7 @@ contains
        call broadcast (spec(is)%d2Tdr2)
        call broadcast (spec(is)%dens_psi0)
        call broadcast (spec(is)%temp_psi0)
+       call broadcast (spec(is)%bess_fac)
        call broadcast (spec(is)%type)
 
        spec(is)%stm  = sqrt(spec(is)%temp/spec(is)%mass)
@@ -303,14 +307,14 @@ contains
 
   end subroutine finish_species
 
-  subroutine reinit_species (ntspec, dens, temp, fprim, tprim)
+  subroutine reinit_species (ntspec, dens, temp, fprim, tprim, bess_fac)
 
    use mp, only: broadcast, proc0
 
      implicit none
 
      integer, intent (in) :: ntspec
-     real, dimension (:), intent (in) :: dens, fprim, temp, tprim
+     real, dimension (:), intent (in) :: dens, fprim, temp, tprim, bess_fac
 
 
      integer :: is
@@ -354,22 +358,26 @@ contains
             spec(1)%temp = temp(1)
             spec(1)%fprim = fprim(1)
             spec(1)%tprim = tprim(1)
+            spec(1)%bess_fac = bess_fac(1)
          else
             spec(ions)%dens = dens(1)
             spec(ions)%temp = temp(1)
             spec(ions)%fprim = fprim(1)
             spec(ions)%tprim = tprim(1)
+            spec(ions)%bess_fac = bess_fac(1)
 
             spec(electrons)%dens = dens(2)
             spec(electrons)%temp = temp(2)
             spec(electrons)%fprim = fprim(2)
             spec(electrons)%tprim = tprim(2)
+            spec(electrons)%bess_fac = bess_fac(2)
 
             if (nspec > 2) then
                spec(impurity)%dens = dens(3)
                spec(impurity)%temp = temp(3)
                spec(impurity)%fprim = fprim(3)
                spec(impurity)%tprim = tprim(3)
+               spec(impurity)%bess_fac = bess_fac(3)
             end if
          end if
 
@@ -397,6 +405,7 @@ contains
          call broadcast (spec(is)%temp)
          call broadcast (spec(is)%fprim)
          call broadcast (spec(is)%tprim)
+         call broadcast (spec(is)%bess_fac)
          call broadcast (spec(is)%stm)
          call broadcast (spec(is)%zstm)
          call broadcast (spec(is)%tz)
