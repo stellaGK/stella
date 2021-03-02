@@ -68,6 +68,7 @@ module common_types
      real :: vnew_ref
      real :: stm, zstm, tz, smz, zt
      real :: d2ndr2, d2Tdr2
+     real :: bess_fac ! 0 for argument of Bessel Functions equal to 0
      ! pre-2003 Fortran does not support
      ! allocatable arrays within derived types
      ! so set size large enough that it should be a problem
