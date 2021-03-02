@@ -19,40 +19,38 @@ ifeq ($(HOSTNAME),edison)
 	export FC = ftn
 	## NERSC documentation recommends against specifying -O3
 	## -mkl MUST APPEAR AT THE END!!
-	export EXTRA_COMPILE_FLAGS = -openmp -mkl
-	export EXTRA_LINK_FLAGS =  -openmp -mkl -Wl,-ydgemm_
+	export EXTRA_COMPILE_FLAGS = -mkl
+	export EXTRA_LINK_FLAGS =  -mkl -Wl,-ydgemm_
 	# Above, the link flag "-Wl,-ydgemm_" causes the linker to report which version of DGEMM (the BLAS3 matrix-matrix-multiplication subroutine) is used.
 
 else ifeq ($(HOSTNAME),cori)
 	export FC = ftn
 	## NERSC documentation recommends against specifying -O3
 	## -mkl MUST APPEAR AT THE END!!
-	export EXTRA_COMPILE_FLAGS = -qopenmp -mkl
-	export EXTRA_LINK_FLAGS =  -qopenmp -mkl -Wl,-ydgemm_
+	export EXTRA_COMPILE_FLAGS = -mkl
+	export EXTRA_LINK_FLAGS =  -mkl -Wl,-ydgemm_
 	# Above, the link flag "-Wl,-ydgemm_" causes the linker to report which version of DGEMM (the BLAS3 matrix-matrix-multiplication subroutine) is used.
 else ifeq ($(HOSTNAME),archer)
 	export FC = ftn
-	export EXTRA_COMPILE_FLAGS = -qopenmp
-	export EXTRA_LINK_FLAGS = -qopenmp -Wl,-ydgemm_
+	export EXTRA_COMPILE_FLAGS =
+	export EXTRA_LINK_FLAGS = -Wl,-ydgemm_
 else ifeq ($(HOSTNAME), marconi)
 	export FC = ifort
-	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp -I$(NETCDFF_HOME)/include/ -I$(NETCDF_INCLUDE)
-	export EXTRA_LINK_FLAGS = -qopenmp -L$(NETCDFF_HOME)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
+	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -I$(NETCDFF_HOME)/include/ -I$(NETCDF_INCLUDE)
+	export EXTRA_LINK_FLAGS = -L$(NETCDFF_HOME)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 else ifeq ($(HOSTNAME), dirac)
 	export FC = ifort
-	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp 
-	export EXTRA_LINK_FLAGS = -qopenmp -lnetcdf -lnetcdff
+	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128
+	export EXTRA_LINK_FLAGS = -lnetcdf -lnetcdff
 else ifeq ($(HOSTNAME), xula)
 	export FC =mpif90
-	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -qopenmp -I$(NETCDF_HOME)/include/
-	export EXTRA_LINK_FLAGS = -qopenmp -L$(NETCDF_HOME)/lib/ -lnetcdff -lnetcdf
+	export EXTRA_COMPILE_FLAGS = -r8 -double-size 128 -I$(NETCDF_HOME)/include/
+	export EXTRA_LINK_FLAGS = -L$(NETCDF_HOME)/lib/ -lnetcdff -lnetcdf
 else
 	FC = mpif90
-#	EXTRA_COMPILE_FLAGS = -fopenmp -I/opt/local/include -ffree-line-length-none
-	EXTRA_COMPILE_FLAGS = -fopenmp -I$(NETCDF_INC_DIR) -ffree-line-length-none
-	EXTRA_COMPILE_FLAGS += -fdefault-real-8 -fdefault-double-8
-#	EXTRA_LINK_FLAGS =  -fopenmp -L/opt/local/lib -lnetcdff  -lnetcdf
-	EXTRA_LINK_FLAGS =  -fopenmp -L$(NETCDF_LIB_DIR) -lnetcdff  -lnetcdf
+	EXTRA_COMPILE_FLAGS = -I$(NETCDF_INC_DIR) -ffree-line-length-none
+	EXTRA_COMPILE_FLAGS += -fdefault-real-8 -fdefault-double-8 -fallow-argument-mismatch
+	EXTRA_LINK_FLAGS = -L$(NETCDF_LIB_DIR) -lnetcdff  -lnetcdf
 endif
 
 
