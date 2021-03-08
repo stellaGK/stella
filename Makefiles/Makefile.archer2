@@ -24,7 +24,7 @@ PRGENV_CRAY=$(shell if module is-loaded cpe-cray; then echo true; else echo fals
 ifeq ($(PRGENV_CRAY),true)
       COMPILER=cray
 else
-      COMPILER=gcc
+      COMPILER=gnu-gfortran
 endif
 
 CHIP=ivy-bridge

@@ -96,7 +96,7 @@ export MPIFC	?= mpif90
 #export MPIFC	?= mpifort
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
-F90FLAGS	=
+F90FLAGS	= 
 F90OPTFLAGS	=
 CC		= cc
 #MPICC		?= mpicc-mpich-gcc48
@@ -156,6 +156,8 @@ sinclude Makefile.local
 
 #############################################################################
 
+export F90FLAGS
+export NETCDF_INC
 export UTILS=utils
 export GEO=geo
 export VMEC=$(GEO)/vmec_interface
@@ -213,9 +215,7 @@ ifdef USE_NETCDF
 	CPPFLAGS += -DNETCDF
 endif
 ifdef USE_LAPACK
-	ifeq ($(LAPACK_LIB),)
-  		LAPACK_LIB = -llapack
-        endif
+        LAPACK_LIB ?= -llapack
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
@@ -263,8 +263,8 @@ endif
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
 		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) \
 		$(LAPACK_LIB)
-F90FLAGS+= $(F90OPTFLAGS) \
-	   $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
+F90FLAGS+= $(F90OPTFLAGS)
+INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
 	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
 CFLAGS += $(COPTFLAGS)
 
@@ -307,7 +307,7 @@ F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 .SUFFIXES: .fpp .f90 .c .o
 
 .f90.o:
-	$(FC) $(F90FLAGS) -c $<
+	$(FC) $(F90FLAGS) $(INC_FLAGS) -c $<
 .fpp.f90:
 	$(CPP) $(CPPFLAGS) $< $@
 .c.o:
