@@ -24,6 +24,9 @@ utils.a: $(UTIL_OBJ)
 vmec:
 	$(MAKE) -C $(VMEC)
 
+mini_libstell.a:
+	$(MAKE) -C $(VMEC)/mini_libstell
+
 ### GEO
 geo_all: vmec
 	$(MAKE) geo.a
