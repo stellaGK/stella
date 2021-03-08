@@ -17,6 +17,7 @@ F90FLAGS ?= empty
 
 # Load up the compiler flags from the main Stella makefile. We need to include the NETCDF paths for mini_libstell 
 EXTRA_COMPILE_FLAGS=$(F90FLAGS) $(NETCDF_INC)
+EXTRA_LINK_FLAGS=$(NETCDF_LIB)
 
 export
 

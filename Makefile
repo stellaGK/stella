@@ -119,8 +119,6 @@ FFT_INC ?=
 FFT_LIB ?=
 NETCDF_INC ?=
 NETCDF_LIB ?=
-LAPACK_INC ?=
-LAPACK_LIB ?=
 HDF5_INC ?=
 HDF5_LIB ?=
 NAG_LIB ?=
@@ -158,6 +156,7 @@ sinclude Makefile.local
 
 export F90FLAGS
 export NETCDF_INC
+export NETCDF_LIB
 export UTILS=utils
 export GEO=geo
 export VMEC=$(GEO)/vmec_interface
