@@ -1,6 +1,7 @@
 module response_matrix
 
   use netcdf
+  use mpi
 
   implicit none
 
@@ -14,7 +15,7 @@ module response_matrix
   integer, parameter :: mat_unit = 70
 
 #if defined MPI && defined ISO_C_BINDING
-  integer, allocatable, dimension (:,:,:) :: windows
+  integer :: window = MPI_WIN_NULL
 #endif
 
 contains
@@ -49,22 +50,23 @@ contains
     integer :: idx
     integer :: izl_offset, izup
 #if defined MPI && defined ISO_C_BINDING
-    integer :: prior_focus, ierr
+    integer :: prior_focus, ierr, nbytes_real, rec_len
     integer :: disp_unit = 1
-    integer (kind=MPI_ADDRESS_KIND) :: win_size
-    type(c_ptr) :: bptr
+    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
+    integer*8 :: cur_pos
+    type(c_ptr) :: bptr, cptr
 #endif
     real :: dum
     complex, dimension (:), allocatable :: phiext
     complex, dimension (:,:), allocatable :: gext
-    logical :: debug = .true.
+    logical :: debug = .false.
     character(100) :: message_dgdphi, message_QN, message_lu
     real, dimension (2) :: time_response_matrix_dgdphi
     real, dimension (2) :: time_response_matrix_QN
     real, dimension (2) :: time_response_matrix_lu
 
     ! Related to the saving of the the matrices in netcdf format
-    character(len=15) :: fmt, proc_str, job_str
+    character(len=15) :: fmt, job_str
     character(len=100) :: file_name
     integer :: istatus
     istatus = 0
@@ -82,15 +84,15 @@ contains
     time_response_matrix_QN     = 0
     time_response_matrix_lu     = 0
 
+
 !   All matrices handled by processor i_proc and job are stored
 !   on a single file named: response_mat_job.iproc
     fmt = '(I5.5)'
     if (proc0.and.mat_gen) THEN
        call check_directories
 
-       write (proc_str, fmt) iproc
        write (job_str, '(I1.1)') job
-       file_name = './mat/response_mat_'//trim(job_str)//'.'//trim(proc_str)
+       file_name = './mat/response_mat_'//trim(job_str)
 
        open(unit=mat_unit, status='replace', file=file_name, &
             position='rewind', action='write', form='unformatted')
@@ -103,9 +105,53 @@ contains
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
 
 #if defined ISO_C_BINDING && defined MPI
-    if (.not.allocated(windows)) then
-      allocate (windows(naky,maxval(neigen),2)) !one for zloc, one for idx
-      windows = MPI_WIN_NULL
+    inquire(iolength=rec_len) dum !this will return 2 or 8 for double
+    if(rec_len.eq.1.or.rec_len.eq.4) then
+      nbytes_real = 4
+      real_size = 4_MPI_ADDRESS_KIND
+    else if (rec_len.eq.2.or.rec_len.eq.8) then
+      nbytes_real = 8
+      real_size = 8_MPI_ADDRESS_KIND
+    else
+      call mp_abort('failure retrieving the size of a real')
+    endif
+
+
+!   Create a single shared memory window for all the response matrices and 
+!   permutation arrays.
+!   Creating a window for each matrix/array would lead to performance
+!   degradation on some clusters
+    if(window.eq.MPI_WIN_NULL) then
+      prior_focus = curr_focus
+      call scope(sharedsubprocs)
+      win_size = 0
+      if(sgproc0) then
+        do iky = 1, naky
+          do ie = 1, neigen(iky)
+            if (zonal_mode(iky)) then
+               nresponse = nsegments(ie,iky)*nzed_segment
+            else
+               nresponse = nsegments(ie,iky)*nzed_segment+1
+            end if
+            win_size =   win_size &
+                       + int(nresponse,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND &
+                       + int(nresponse**2,MPI_ADDRESS_KIND)*2*real_size 
+          enddo
+        enddo
+      endif
+      call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm, &
+                                   bptr,window,ierr)
+
+      if(.not.sgproc0) then
+        !make sure all the procs have the right memory address
+        call mpi_win_shared_query(window, 0, win_size, disp_unit, bptr, ierr)
+      endif
+      call mpi_win_fence(0,window,ierr)
+      
+      !the following is a hack that allows us to perform pointer arithmetic in Fortran
+      cur_pos = transfer(bptr,cur_pos) 
+
+      call scope(prior_focus)
     endif
 #endif
   
@@ -163,48 +209,17 @@ contains
           !exploit MPIs shared memory framework to reduce memory consumption of 
           !response matrices
 
-          prior_focus = curr_focus
-          call scope(sharedsubprocs)
-
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) then
-            win_size = 0
-            if(sgproc0) then
-              win_size = int(nresponse**2,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND !complex size
-            endif
-            !allocate the window
-            call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm, &
-                                         bptr,windows(iky,ie,1),ierr)
-
-            if(.not.sgproc0) then
-              !make sure all the procs have the right memory address
-              call mpi_win_shared_query(windows(iky,ie,1), 0, win_size, disp_unit, bptr, ierr)
-            endif
-
-            ! bind this c_ptr to our fortran matrix
-            call c_f_pointer(bptr,response_matrix(iky)%eigen(ie)%zloc,(/nresponse,nresponse/))
-            call mpi_win_fence(0,windows(iky,ie,1),ierr)
+            cptr = transfer(cur_pos,cptr)
+            call c_f_pointer(cptr,response_matrix(iky)%eigen(ie)%zloc,(/nresponse,nresponse/))
+            cur_pos = cur_pos + nresponse**2*2*nbytes_real
           endif
 
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) then
-            win_size = 0
-            if(sgproc0) then
-              win_size = int(nresponse,MPI_ADDRESS_KIND)*8_MPI_ADDRESS_KIND !integer size
-            endif
-            !allocate the window
-            call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm, & 
-                                         bptr,windows(iky,ie,2),ierr)
-
-            if(.not.sgproc0) then
-              !make sure all the procs have the right memory address
-              call mpi_win_shared_query(windows(iky,ie,2), 0, win_size, disp_unit, bptr, ierr)
-            endif
-
-            ! bind this c_ptr to our fortran matrix
-            call c_f_pointer(bptr,response_matrix(iky)%eigen(ie)%idx,(/nresponse/))
-            call mpi_win_fence(0,windows(iky,ie,2),ierr)
+            cptr = transfer(cur_pos,cptr)
+            call c_f_pointer(cptr,response_matrix(iky)%eigen(ie)%idx,(/nresponse/))
+            cur_pos = cur_pos + nresponse*4
           endif
-
-          call scope (prior_focus)
 #endif
 
           allocate (gext(nz_ext,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -261,6 +276,9 @@ contains
          call time_message(.false., time_response_matrix_QN, message_QN)
        end if
 
+#ifdef ISO_C_BINDING 
+       call mpi_win_fence(0,window,ierr)
+#endif
 
        ! solve quasineutrality
        ! for local stella, this is a diagonal process, but global stella
@@ -300,9 +318,12 @@ contains
            deallocate (phiext)
 #if defined ISO_C_BINDING && defined MPI
          endif
-         call mpi_win_fence(0,windows(iky,ie,1),ierr)
 #endif
        enddo
+
+#ifdef ISO_C_BINDING       
+       call mpi_win_fence(0,window,ierr)
+#endif
 
        if(proc0.and.debug) then
          call time_message(.true. , time_response_matrix_QN, message_QN)
@@ -333,8 +354,6 @@ contains
         
 #ifdef ISO_C_BINDING       
            endif
-           call mpi_win_fence(0,windows(iky,ie,1),ierr)
-           call mpi_win_fence(0,windows(iky,ie,2),ierr)
 #endif
         enddo
 #ifdef MPI
@@ -360,6 +379,10 @@ contains
        !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
     end do
 
+#ifdef ISO_C_BINDING       
+    call mpi_win_fence(0,window,ierr)
+#endif
+
     if (proc0.and.mat_gen) then
        close(unit=mat_unit)
     end if
@@ -375,12 +398,16 @@ contains
   
     use fields_arrays, only: response_matrix
     use common_types, only: response_matrix_type
-    use mp, only: iproc, job
+    use kt_grids, only: naky, zonal_mode
+    use extended_zgrid, only: neigen
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
+    use mp, only: proc0, job, broadcast, mp_abort
 
     implicit none
 
-    integer :: iky, ie
-    integer :: iky_dump, neigen_dump, naky_dump
+    integer :: iky, ie, nz_ext
+    integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
     integer :: nresponse
     character(len=15) :: fmt, proc_str, job_str
     character(len=100) :: file_name
@@ -388,51 +415,83 @@ contains
     logical, parameter :: debug=.false.
     istatus = 0
 
-!   All matrices handled by the processor i_proc are read
-!   from a single file named: responst_mat.iproc
-    fmt = '(I5.5)'
-    write (proc_str, fmt) iproc
-    write (job_str, '(I1.1)') job
-    file_name = './mat/response_mat_'//trim(job_str)//'.'//trim(proc_str)
+!   All matrices handled for the job i_job are read
+!   from a single file named: responst_mat.ijob by that
+!   jobs root process
 
-    open(unit=mat_unit, status='old', file=file_name, &
+    if(proc0) then
+      fmt = '(I5.5)'
+      write (job_str, '(I1.1)') job
+      file_name = './mat/response_mat.'//trim(job_str)
+
+      open(unit=mat_unit, status='old', file=file_name, &
          action='read', form='unformatted', iostat=istat)
-    if (istat /= 0) then
-       print *, 'Error opening response_matrix by processor', proc_str
-    end if
-!
-    read(unit=mat_unit) naky_dump
-! 
-    if (response_matrix_initialized) return
-    response_matrix_initialized = .true.
-  
-    if (.not.allocated(response_matrix)) allocate (response_matrix(naky_dump))
-  
-    do iky = 1, naky_dump
-       read(unit=mat_unit) iky_dump, neigen_dump
-     
+      if (istat /= 0) then
+         print *, 'Error opening response_matrix by root processor for job ', job_str
+      end if
+
+      read(unit=mat_unit) naky_dump
+      if(naky.ne.naky_dump) call mp_abort('mismatch in naky and naky_dump')
+    endif
+
+    if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
+
+    do iky = 1, naky
+       if(proc0) then 
+         read(unit=mat_unit) iky_dump, neigen_dump
+         if(iky_dump.ne.iky.or.neigen_dump.ne.neigen(iky)) &
+           call mp_abort('mismatch in iky_dump/neigen_dump')
+       endif
+
        if (.not.associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen_dump))
-     
-       do ie = 1, neigen_dump
-          read(unit=mat_unit) ie_dump, nresponse
+            allocate (response_matrix(iky)%eigen(neigen(iky)))
+
+       ! loop over the sets of connected kx values
+       do ie = 1, neigen(iky)
+          ! number of zeds x number of segments
+          nz_ext = nsegments(ie,iky)*nzed_segment+1
         
+          ! treat zonal mode specially to avoid double counting
+          ! as it is periodic
+          if (zonal_mode(iky)) then
+             nresponse = nz_ext-1
+          else
+             nresponse = nz_ext
+          end if
+
+          if(proc0) then 
+            read(unit=mat_unit) ie_dump, nresponse
+            if(ie_dump.ne.ie.or.nresponse.ne.nresponse_dump) &
+              call mp_abort('mismatch in ie/nresponse_dump')
+          endif
+
+          ! for each ky and set of connected kx values,
+          ! must have a response matrix that is N x N
+          ! with N = number of zeds per 2pi segment x number of 2pi segments
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) &
                allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse,nresponse))
-        
+
+          ! response_matrix%idx is needed to keep track of permutations
+          ! to the response matrix made during LU decomposition
+          ! it will be input to LU back substitution during linear solve
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) &
                allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-        
-          read(unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
-          read(unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
-       end do
-    end do
-    close (mat_unit)
+          if(proc0) then
+            read(unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
+            read(unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
+          endif
+
+          call broadcast(response_matrix(iky)%eigen(ie)%idx)
+          call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+
+       enddo
+    enddo
+
+    if (proc0) close (mat_unit)
   
     if (debug) then
-       print *, 'File', file_name, ' successfully read by proc: ', proc_str
+       print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
     end if
-
   end subroutine read_response_matrix
 
   subroutine get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
@@ -741,7 +800,6 @@ contains
     response_matrix(iky)%eigen(ie)%zloc(:,idx) = phiext(:nresponse)
 #else
     if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(:,idx) = phiext(:nresponse)
-    call mpi_win_fence(0,windows(iky,ie,1),ierr)
 #endif
 
   end subroutine get_dgdphi_matrix_column
@@ -930,18 +988,7 @@ contains
 
     integer :: iky, ie, ierr
 
-    if (allocated(windows)) then
-      do iky = 1, naky
-        do ie = 1, maxval(neigen)
-          if(windows(iky,ie,1).ne.MPI_WIN_NULL) &
-              call mpi_win_free(windows(iky,ie,1),ierr)
-          if(windows(iky,ie,2).ne.MPI_WIN_NULL) &
-              call mpi_win_free(windows(iky,ie,2),ierr)
-
-        enddo
-      enddo
-      deallocate (windows)
-    endif
+    call mpi_win_free(window,ierr)
 #endif 
 
     if (allocated(response_matrix)) deallocate (response_matrix)
@@ -970,7 +1017,7 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: scrossdomprocs, sgproc0
+    use mp, only: scrossdomprocs, sgproc0, mp_abort
     use mp, only: job, iproc, proc0, nproc, numnodes, inode
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
@@ -995,9 +1042,9 @@ contains
     logical :: needs_send = .false.
 
     integer :: prior_focus, nodes_on_job
-    integer :: ijob, i,j,k,ie,n
+    integer :: ijob, i,j,k,ie,n, rec_len
     integer :: imax, jroot, neig, ierr, win, nroot
-    integer (kind=MPI_ADDRESS_KIND) :: win_size
+    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
     integer :: rdiv, rmod
     integer :: ediv, emod
     integer :: disp_unit = 1
@@ -1010,6 +1057,15 @@ contains
     allocate (job_list(nproc)); job_list = 0
     allocate (row_limits(0:nproc))
     allocate (eig_limits(0:numnodes,njobs)); eig_limits = 0
+
+    inquire(iolength=rec_len) zero !this will return 2 or 8 for double
+    if(rec_len.eq.1.or.rec_len.eq.4) then
+      real_size = 4_MPI_ADDRESS_KIND
+    else if (rec_len.eq.2.or.rec_len.eq.8) then
+      real_size = 8_MPI_ADDRESS_KIND
+    else
+      call mp_abort('failure retrieving the size of a real')
+    endif
 
     job_list(iproc+1) = job
     call sum_allreduce(job_list)
@@ -1065,7 +1121,7 @@ contains
         if(iproc.eq.jroot) then
           needs_send = .true.
           n = size(response_matrix(iky)%eigen(ie)%idx)
-          win_size = int(n*n,MPI_ADDRESS_KIND)*2*8_MPI_ADDRESS_KIND !complex size
+          win_size = int(n*n,MPI_ADDRESS_KIND)*2*real_size !complex size
         endif
 
         !broadcast size of matrix
