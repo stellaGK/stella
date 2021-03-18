@@ -595,6 +595,8 @@ contains
     pflx_vs_kxky = 0. ; vflx_vs_kxky = 0. ; qflx_vs_kxky = 0.
 
     flx_norm = jacob(1,:)*delzed
+    flx_norm(-nzgrid) = 0.5*flx_norm(-nzgrid)
+    flx_norm( nzgrid) = 0.5*flx_norm( nzgrid)
 
     IF (flux_norm) THEN
        ! Flux definition with an extra factor 1/<\nabla\rho> in front.
@@ -750,6 +752,9 @@ contains
     ia = 1
 
     flx_norm = jacob(1,:)*delzed
+    flx_norm(-nzgrid) = 0.5*flx_norm(-nzgrid)
+    flx_norm( nzgrid) = 0.5*flx_norm( nzgrid)
+
     flx_norm = flx_norm/sum(flx_norm*grho(1,:))
 
     allocate (g0k(naky,nakx))
@@ -865,7 +870,7 @@ contains
        call get_one_flux_vmulo (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
 
        if(write_radial_fluxes) then
-         call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, qflx_x)
+         call get_one_flux_radial (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx_x)
        endif
 
        ! get momentum flux
@@ -980,7 +985,7 @@ contains
       call get_one_flux_vmulo (flx_norm,spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx)
 
       if(write_radial_fluxes) then
-        call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, vflx_x)
+        call get_one_flux_radial (flx_norm, spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx_x)
       endif
 
     end if

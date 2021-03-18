@@ -30,14 +30,15 @@ static void usage(const char *arg);
 int main(int argc, char* argv[])
 {
   /* file variables */
-  FILE *fidin;
+  const char whitespace[] = " \f\n\r\t\v";
   char *in_name;
   char line[LENGTH];
+  FILE *fidin;
   /* data variables */
   float t,box_size, thres;
   float x0,y0,z0,x1,y1,z1;
   float times[MAX_LINES], last_good_time;
-  int i,expand = 0;
+  int i,expand = 0, first_char;
   long data_pos, nx=0,ny=0,nz=0,nlines=0;
 
   /* Read Arguments */
@@ -55,20 +56,23 @@ int main(int argc, char* argv[])
 /* Grab header and write into output */
  
   fgets(line,LENGTH,fidin);
+  first_char=strspn(line, whitespace);
   if(line[0] == '\0') exit(0);
 
-  while(line[0] != '\0' && line[0] == '#'){
+  while(line[0] != '\0' && line[first_char] == '#'){
     fprintf(stdout,"%s",line);
     data_pos=ftell(fidin); // This is position in the file where the data starts
     fgets(line,LENGTH,fidin);
+    first_char=strspn(line, whitespace);
   }
 
 /* if the run has been restarted, clean the extraneous times */
   while(line[0] != '\0' && !feof(fidin)){
-    if(line[0] != '#'){
+    if(line[first_char] != '#'){
       sscanf(line,"%f", &times[nlines++]);
     }
     fgets(line,LENGTH,fidin);
+    first_char=strspn(line, whitespace);
   }
 
   fseek(fidin,data_pos,SEEK_SET);
@@ -84,14 +88,16 @@ int main(int argc, char* argv[])
   i=0;
 
   fgets(line,LENGTH,fidin);
+  first_char=strspn(line, whitespace);
   while(line[0] != '\0' && !feof(fidin)){
-    if(line[0] != '#'){ 
+    if(line[first_char] != '#'){
       if(times[i] != -1){
         fprintf(stdout,"%s",line);
       }
       i++;
     }
     fgets(line,LENGTH,fidin);
+    first_char=strspn(line, whitespace);
   }
   return 0;
 }
