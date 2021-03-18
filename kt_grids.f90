@@ -17,6 +17,7 @@ module kt_grids
   public :: swap_kxky, swap_kxky_back
   public :: swap_kxky_ordered, swap_kxky_back_ordered
   public :: multiply_by_rho, centered_in_rho
+  public :: periodic_variation
 
   private
 

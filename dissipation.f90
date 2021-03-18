@@ -95,7 +95,7 @@ contains
     use file_utils, only: input_unit_exist
     use physics_flags, only: full_flux_surface, radial_variation
     use mp, only: proc0, broadcast
-    use kt_grids, only: ikx_max
+    use kt_grids, only: ikx_max, periodic_variation
 
     implicit none
 
@@ -124,7 +124,8 @@ contains
        D_hyper = 0.05
        nu_krook = 0.05
        delay_krook =0.02
-       ikxmax_source = 2 ! kx=0 and kx=1
+       ikxmax_source = 1 ! kx=0
+       if(periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
        krook_odd = .true. ! damp only the odd mode that can affect profiles
        cfac = 1
 
