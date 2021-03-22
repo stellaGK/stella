@@ -16,6 +16,8 @@ module gauss_quad
   logical :: debug=.false.
   logical :: weight_roundoff_correction=.false.
 
+  integer, parameter :: qp = selected_real_kind(33, 4931)
+
 contains
 
   subroutine get_legendre_grids_from_cheb (x1, x2, zero, wgt)
@@ -338,12 +340,16 @@ contains
     real, dimension (:), intent (out) :: wgt
     logical :: error=.false.
     integer :: i, j, n, nzero
-    double precision :: x, delx, pold, pnew
-    double precision, dimension (:), allocatable :: zz
+    real(kind=qp) :: x, delx, pold, pnew
+    !double precision, dimension (:), allocatable :: zz
+    real(kind=qp), dimension (:), allocatable :: zz
+    double precision :: eps
 
     n = size (zero)
     allocate (zz(n))
     zz = 0.0
+
+    eps = epsilon(zero(1))*dble(4.0)
 
     if (n > 180) then
        write (error_unit(),*) 'ERROR: can''t get so many laguerre grid points'
@@ -361,16 +367,16 @@ contains
     else
 
        nzero = 0
-       pold = laguerre_l(n,dble(0.0))
+       pold = real(laguerre_l(n,real(0.0,qp)),qp)
        delx = 0.001
        do i=1, 1000      ! up to x=1
           x = delx*i
 !          print*, x
-          pnew = laguerre_l(n,x)
+          pnew = real(laguerre_l(n,x),qp)
 !          if (pold*pnew < epsilon(0.0)) then
           if (pold*pnew < 0.0) then
              nzero = nzero+1
-             call find_zero (n, x-delx, x, pold, pnew, zz(nzero))
+             call find_zero (n, eps, x-delx, x, pold, pnew, zz(nzero))
           end if
           pold=pnew
        end do
@@ -383,7 +389,7 @@ contains
              pnew = laguerre_l(n,x)
              if (pold*pnew < 0.0) then
                 nzero = nzero+1
-                call find_zero (n, x-delx, x, pold, pnew, zz(nzero))
+                call find_zero (n, eps, x-delx, x, pold, pnew, zz(nzero))
              end if
              if (nzero == n) exit
              pold=pnew
@@ -393,8 +399,8 @@ contains
 
     end if
 
-    zero = zz
-    wgt = real(zz / (n+1)**2 / laguerre_l(n+1,zz)**2)
+    zero = real(zz,kind(zero(1)))
+    wgt = real(zz / (n+1)**2 / laguerre_l(n+1,zz)**2,kind(wgt(1)))
 
     deallocate (zz)
 
@@ -420,22 +426,22 @@ contains
 
   end subroutine get_laguerre_grids
 
-  subroutine find_zero (n, xold, xnew, pold, pnew, zz)
+  subroutine find_zero (n, eps, xold, xnew, pold, pnew, zz)
 
     use file_utils, only: error_unit
     integer, intent (in) :: n
-    double precision, intent (in) :: xold, xnew, pold, pnew
-    double precision, intent (out) :: zz
+    double precision, intent (in) :: eps
+    real(kind=qp), intent (in) :: xold, xnew, pold, pnew
+    !double precision, intent (out) :: zz
+    real(kind=qp), intent (out) :: zz
     integer :: i, maxit=100
-    double precision :: eps
-    double precision :: x1, x2, p1, p2, pz
+    real(kind=qp) :: x1, x2, p1, p2, pz
 
     ! <doc>
     !  eps is declared as real on purpose.
     !  [see comment in find_zero_bisect_newton above.]
     ! </doc>
 
-    eps = sqrt(epsilon(eps)*epsilon(x1)) * dble(4.0)
     x1 = xold
     x2 = xnew
     p1 = pold
@@ -445,15 +451,15 @@ contains
 
     ! bisection
     do i=1, maxit
-       zz = (x1+x2) * dble(.5)
+       zz = (x1+x2) * 0.5
        pz = laguerre_l(n,zz)
        if (abs(pz) <= eps) return
-       if (pz*p1 < dble(0.)) then
+       if (pz*p1 < 0.) then
           p2=pz ; x2=zz
        else
           p1=pz ; x1=zz
        end if
-       if (debug) write (*,'(a,6es15.5e3)') 'bisection ', x1, p1, x2, p2, pz, eps
+       if (debug) write (*,'(a,6es25.15e3)') 'bisection ', x1, p1, x2, p2, pz, eps
     end do
 
     if (i==maxit+1) then
@@ -461,10 +467,10 @@ contains
        if (zz==x1) x1 = x2
        do i=1, maxit
           x1 = zz
-          p1 = laguerre_l(n,x1)
-          zz = x1 - p1 / laguerre_lp(n,x1)
-          pz = laguerre_l(n,zz)
-          if (debug) write (*,'(a,5es15.5e3)') &
+          p1 = dble(laguerre_l(n,x1))
+          zz = x1 - p1 / dble(laguerre_lp(n,x1))
+          pz = dble(laguerre_l(n,zz))
+          if (debug) write (*,'(a,5es25.15e3)') &
                'newton ', zz, pz, x1, p1, eps
           if (min(abs(zz/x1-dble(1.0)), abs(pz)) < eps) exit
        end do
@@ -482,9 +488,10 @@ contains
   elemental function laguerre_l (n, x)
 
     integer, intent (in) :: n
-    double precision, intent (in) :: x
+    real(kind=qp), intent (in) :: x
     integer :: k
-    double precision :: laguerre_l, p, p1, p2
+!    double precision :: laguerre_l, p, p1, p2
+    real(kind=qp) :: laguerre_l, p, p1, p2
 
     p1 = dble(1.0) - x
     p2 = dble(1.0)
@@ -510,8 +517,8 @@ contains
   elemental function laguerre_lp (n, x)
 
     integer, intent (in) :: n
-    double precision, intent (in) :: x
-    double precision :: laguerre_lp
+    real(kind=qp), intent (in) :: x
+    real(kind=qp) :: laguerre_lp
 
     laguerre_lp = n * (laguerre_l(n,x) - laguerre_l(n-1,x)) / x
 
