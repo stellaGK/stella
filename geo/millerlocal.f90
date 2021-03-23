@@ -108,7 +108,8 @@ contains
     type (flux_surface_type), intent (out) :: local_out
     integer, intent (in) :: nzed, nzgrid
 
-    integer :: in_file, np
+    real :: dum
+    integer :: in_file, np,j 
     logical :: exist
 
     namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
@@ -151,7 +152,6 @@ contains
     local%qinp_psi0 = qinp
     local%shat_psi0 = shat
 
-    local_out = local
 
     ! first get nperiod corresponding to input number of grid points
     nz2pi = nzed/2
@@ -171,6 +171,31 @@ contains
     allocate(bmag_psi0(-nz:nz))
     allocate(grho_psi0(-nz:nz))
     d2R = 0. ; d2Z = 0. ; dI = 0.
+
+    if (read_profile_variation) then
+       open (1002,file='RZ.in',status='old')
+       read (1002,'(12e13.5)') rhoc0, dI, qinp, shat, d2qdr2, kappa, kapprim, tri, triprim, &
+                              betaprim, betadbprim, dpsidrho_psi0
+       do j=-nz,nz
+          read (1002,'(5e13.5)') dum, d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
+       end do
+       close (1002)
+       local%qinp     = qinp  + shat*qinp/rhoc0*(local%rhoc-rhoc0) &
+                              + 0.5*(local%rhoc-rhoc0)**2*d2qdr2
+       local%shat     = (local%rhoc/local%qinp) &
+                        * (shat*qinp/rhoc0 + (local%rhoc-rhoc0)*d2qdr2)
+       local%kappa    = kappa + kapprim*(local%rhoc-rhoc0)
+       local%tri      = tri   + triprim*(local%rhoc-rhoc0)
+       local%betaprim = betaprim +betadbprim*(local%rhoc-rhoc0)
+
+       local%rhoc_psi0 = rhoc0
+       local%qinp_psi0 = qinp
+       local%shat_psi0 = shat
+
+       load_psi0_variables = .false.
+    end if
+
+    local_out = local
 
   end subroutine read_local_parameters
 
@@ -385,28 +410,6 @@ contains
 
     call allocate_arrays (nr, nz)
 
-    if (read_profile_variation) then
-       open (1002,file='RZ.in',status='old')
-       read (1002,'(12e13.5)') rhoc0, dI, qinp, shat, d2qdr2, kappa, kapprim, tri, triprim, &
-                              betaprim, betadbprim, dpsidrho_psi0
-       do j=-nz,nz
-          read (1002,'(5e13.5)') theta(j), d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
-       end do
-       close (1002)
-       local%qinp     = qinp  + shat*qinp/rhoc0*(local%rhoc-rhoc0) &
-                              + 0.5*(local%rhoc-rhoc0)**2*d2qdr2
-       local%shat     = (local%rhoc/local%qinp) &
-                        * (shat*qinp/rhoc0 + (local%rhoc-rhoc0)*d2qdr2)
-       local%kappa    = kappa + kapprim*(local%rhoc-rhoc0)
-       local%tri      = tri   + triprim*(local%rhoc-rhoc0)
-       local%betaprim = betaprim +betadbprim*(local%rhoc-rhoc0)
-
-       local%rhoc_psi0 = rhoc0
-       local%qinp_psi0 = qinp
-       local%shat_psi0 = shat
-
-       load_psi0_variables = .false.
-    end if
     dqdr = local%shat*local%qinp/local%rhoc
 
     dr(1) = -local%dr
