@@ -566,7 +566,7 @@ contains
 
   subroutine get_fields_vmulo (g, phi, apar, dist)
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -620,10 +620,11 @@ contains
              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
 
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
+           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it),reduce_in=.false.)
          end do
        end do
        deallocate (gyro_g)
+       call sum_allreduce(phi)
 
        call get_phi(phi, dist)
 
@@ -909,7 +910,7 @@ contains
   ! the output, phi, 
   subroutine get_radial_correction (g, phi_in, dist)
 
-    use mp, only: proc0, mp_abort
+    use mp, only: proc0, mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
     use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
@@ -964,9 +965,10 @@ contains
 
              call gyro_average (g0k, iz, ivmu, gyro_g(:,:,ivmu))
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
+           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it),reduce_in=.false.)
          end do
        end do
+       call sum_allreduce(phi)
 
 
        if (dist == 'gbar') then
