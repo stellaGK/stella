@@ -1211,6 +1211,10 @@ contains
 
     call scope(scrossdomprocs)
 
+    do ie = 1, neigen(iky)
+      call mpi_win_fence(0,windows(iky,ie,1),ierr)
+    enddo
+
     !copy all the matrices across all nodes
     if(sgproc0) then
       do ie = 1, neigen(iky)
@@ -1224,6 +1228,10 @@ contains
         call broadcast(response_matrix(iky)%eigen(ie)%idx, nroot)
       enddo
     endif
+
+    do ie = 1, neigen(iky)
+      call mpi_win_fence(0,windows(iky,ie,1),ierr)
+    enddo
 
     call scope(prior_focus)
 
