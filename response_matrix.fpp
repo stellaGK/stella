@@ -1239,7 +1239,7 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: job, iproc, proc0, nproc, mpicmplx
+    use mp, only: job, iproc, proc0, nproc, mpicmplx, sgproc0, scrossdomprocs
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
     use mpi
@@ -1448,7 +1448,7 @@ contains
             !send matrix
             call mpi_send(lu,n*n,mpicmplx,job_roots(ijob),nproc+j,mp_comm,ierr)
           else if(iproc.eq.job_roots(ijob)) then !receive data from subroot
-            !receive size of matrix
+            !receive indices
             call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
                           n,MPI_INT,eig_roots(j),j,mp_comm,status,ierr)
             !receive matrix
@@ -1461,16 +1461,27 @@ contains
       deallocate (eig_roots, eig_limits, row_limits)
     enddo
 
-    call scope(prior_focus)
+#ifdef ISO_C_BINDING
+    if(sgproc0) then
+      call scope(scrossdomprocs)
+      !copy all the matrices across all nodes
+      do ie = 1, neigen(iky)
+        call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+        call broadcast(response_matrix(iky)%eigen(ie)%idx)
+      enddo
+    endif
 
+    call scope(prior_focus)
+#elif
+    call scope(prior_focus)
+    
     !copy all the matrices across all nodes
     do ie = 1, neigen(iky)
       call broadcast(response_matrix(iky)%eigen(ie)%zloc)
       call broadcast(response_matrix(iky)%eigen(ie)%idx)
     enddo
-
+#endif
     deallocate (job_roots)
-
   end subroutine parallel_LU_decomposition_global
 
 #endif /* MPI */
