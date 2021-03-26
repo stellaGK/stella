@@ -241,7 +241,6 @@ contains
     use species, only: spec
     use gyro_averages, only: gyro_average, gyro_average_j1
     use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
-    use run_parameters, only: driftkinetic_implicit
 
     implicit none
 

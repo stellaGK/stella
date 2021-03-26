@@ -273,8 +273,7 @@ contains
        write_gzvs, write_moments, write_radial_fluxes, write_fluxes_kxky)
 
     use mp, only: nproc
-    use species, only: nspec
-    use run_parameters, only: fphi, fapar, fbpar
+    use run_parameters, only: fphi!, fapar, fbpar
     use physics_flags, only: radial_variation
 # ifdef NETCDF
     use netcdf, only: nf90_char, nf90_int, nf90_global
@@ -1327,7 +1326,6 @@ contains
 
   subroutine nc_species
 
-    use physics_parameters, only: beta
     use species, only: spec, nspec
 # ifdef NETCDF
     use netcdf, only: nf90_put_var

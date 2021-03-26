@@ -26,7 +26,6 @@ contains
     use fields_arrays, only: response_matrix
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use species, only: nspec
     use kt_grids, only: naky, zonal_mode
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: neigen, ikxmod
@@ -907,7 +906,7 @@ contains
   subroutine get_fields_for_response_matrix (phi, iky, ie)
 
     use stella_layouts, only: vmu_lo
-    use species, only: nspec, spec
+    use species, only: spec
     use species, only: has_electron_species
     use stella_geometry, only: dl_over_b
     use extended_zgrid, only: iz_low, iz_up

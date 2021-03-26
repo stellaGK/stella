@@ -93,7 +93,6 @@ contains
     use zgrid, only: shat_zero, zed_equal_arc
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
     use file_utils, only: get_unused_unit
-    use physics_parameters, only: rhostar
     use physics_flags, only: include_geometric_variation
 
     implicit none

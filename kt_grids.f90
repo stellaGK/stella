@@ -185,8 +185,6 @@ contains
 
     use common_types, only: flux_surface_type
     use zgrid, only: init_zgrid
-    use zgrid, only: shat_zero
-    use physics_flags, only: full_flux_surface
 
     implicit none
 

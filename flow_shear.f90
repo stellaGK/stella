@@ -179,12 +179,11 @@ contains
 
     use stella_layouts, only: vmu_lo
     use constants, only: zi
-    use physics_parameters, only: g_exb, g_exbfac
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
     use fields_arrays, only: shift_state
-    use kt_grids, only: aky, nakx, naky, nx, ikx_max, zonal_mode
+    use kt_grids, only: aky, nakx, naky, ikx_max, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use stella_time, only: code_dt
 
