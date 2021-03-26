@@ -33,9 +33,10 @@ contains
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
     use job_manage, only: time_message
-    use mp, only: proc0, iproc, job, mp_abort
+    use mp, only: proc0, job, mp_abort
     use run_parameters, only: mat_gen, lu_option_switch
     use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+    use system_fortran, only: systemf
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
     use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
@@ -88,8 +89,9 @@ contains
 !   All matrices handled by processor i_proc and job are stored
 !   on a single file named: response_mat_job.iproc
     fmt = '(I5.5)'
-    if (proc0.and.mat_gen) THEN
-       call check_directories
+    if (proc0.and.mat_gen) then
+
+       call systemf('mkdir -p mat')
 
        write (job_str, '(I1.1)') job
        file_name = './mat/response_mat_'//trim(job_str)
@@ -409,7 +411,7 @@ contains
     integer :: iky, ie, nz_ext
     integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
     integer :: nresponse
-    character(len=15) :: fmt, proc_str, job_str
+    character(len=15) :: fmt, job_str
     character(len=100) :: file_name
     integer :: istatus, ie_dump, istat
     logical, parameter :: debug=.false.
@@ -460,7 +462,7 @@ contains
           end if
 
           if(proc0) then 
-            read(unit=mat_unit) ie_dump, nresponse
+            read(unit=mat_unit) ie_dump, nresponse_dump
             if(ie_dump.ne.ie.or.nresponse.ne.nresponse_dump) &
               call mp_abort('mismatch in ie/nresponse_dump')
           endif
@@ -526,9 +528,6 @@ contains
     integer :: izp, izm
     real :: mu_dbdzed_p, mu_dbdzed_m
     real :: fac, fac0, fac1, gyro_fac
-#if defined ISO_C_BINDING && defined MPI
-    integer :: ierr
-#endif
 
     ia = 1
 
@@ -979,14 +978,11 @@ contains
     implicit none
   
 #else
-
     use mpi
-    use kt_grids, only: naky
-    use extended_zgrid, only: neigen
 
     implicit none
 
-    integer :: iky, ie, ierr
+    integer :: ierr
 
     call mpi_win_free(window,ierr)
 #endif 
@@ -1253,7 +1249,10 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: job, iproc, proc0, nproc, mpicmplx, sgproc0, scrossdomprocs
+    use mp, only: job, iproc, proc0, nproc, mpicmplx
+#ifdef ISO_C_BINDING
+    use mp, only: sgproc0, scrossdomprocs
+#endif
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
     use mpi
@@ -1510,32 +1509,5 @@ contains
   end subroutine parallel_LU_decomposition_global
 
 #endif /* MPI */
-
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! !!!!!!!!!!!!!!!!!!!!!! CHECK_DIRECTORIES !!!!!!!!!!!!!!!!
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>if directories mat does not exist it is generated.
-  subroutine check_directories
-   
-# if defined(__INTEL_COMPILER)
-!   for system call with intel compiler
-    use ifport, only: system
-# endif
-   
-    integer :: ierr
-    logical :: mat_exists
-
-# if defined(__INTEL_COMPILER)
-    inquire(directory='mat', exist=mat_exists)
-# else
-    inquire(file="./mat/.", exist=mat_exists)
-# endif
-
-#if !defined(__CRAY_COMPILER)
-    if (.not. mat_exists) then
-       ierr=system('mkdir -p mat')
-    end if
-#endif
-  end subroutine check_directories
 
 end module response_matrix

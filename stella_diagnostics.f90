@@ -44,7 +44,7 @@ contains
   !==============================================
   ! Broadcast the parameters from the namelist "stella_diagnostics_knobs"
   ! and open/append the netcdf file and the ascii files.
-  subroutine init_stella_diagnostics (restart, nstep, tstart)
+  subroutine init_stella_diagnostics (restart, tstart)
 
     use zgrid, only: init_zgrid
     use kt_grids, only: init_kt_grids
@@ -58,7 +58,6 @@ contains
 
     implicit none
 
-    integer, intent (in) :: nstep
     logical, intent (in) :: restart
     real, intent (in) :: tstart
 
