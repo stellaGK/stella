@@ -15,8 +15,8 @@ program stella
   implicit none
 
   ! Add the version number and date of last change when uploading to github
-  character(len=4), parameter :: VERNUM = '0.2'
-  character(len=10), parameter :: VERDATE = '2021.01.25'
+  character(len=4), parameter :: VERNUM = '0.3'
+  character(len=10), parameter :: VERDATE = '2021.03.26'
 
   logical :: debug = .false.
   logical :: stop_stella = .false.
