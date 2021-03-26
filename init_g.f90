@@ -58,7 +58,7 @@ contains
     if(restart_dir(len_trim(restart_dir):) /= "/") &
          restart_dir=trim(restart_dir)//"/"
 
-    if (proc) call systemf('mkdir -p '//trim(restart_dir))
+    if (proc0) call systemf('mkdir -p '//trim(restart_dir))
 
     !Determine if restart file contains "/" if so split on this point to give DIR//FILE
     !so restart files are created in DIR//restart_dir//FILE
@@ -615,7 +615,6 @@ contains
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: nvpa, nmu
-    use kt_grids, only: nakx
 
     implicit none
 
@@ -647,7 +646,6 @@ contains
     use stella_save, only: stella_restore
     use mp, only: proc0
     use file_utils, only: error_unit
-    use run_parameters, only: fphi, fapar
     
     implicit none
 

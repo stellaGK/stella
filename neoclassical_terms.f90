@@ -370,7 +370,6 @@ contains
     use mp, only: proc0
     use mp, only: send, receive
     use file_utils, only: open_output_file, close_output_file
-    use species, only: nspec
     use zgrid, only: nzgrid, zed
     use vpamu_grids, only: vpa, mu
     use stella_layouts, only: vmu_lo

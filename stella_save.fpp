@@ -81,7 +81,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
-    use stella_layouts, only: kxkyz_lo, xyzs_layout, vms_layout, vmu_lo
+    use stella_layouts, only: kxkyz_lo, vmu_lo
     use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvpa, nmu
@@ -673,7 +673,6 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use file_utils, only: error_unit
-    use species, only: nspec
     use dissipation, only: include_krook_operator, int_krook
     use dissipation, only: remove_zero_projection, int_proj
     use physics_flags, only: prp_shear_enabled

@@ -69,9 +69,8 @@ contains
 
     use mp, only: proc0
     use stella_transforms, only: init_transforms
-    use physics_flags, only: full_flux_surface, radial_variation
+    use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
-    use physics_flags, only: nonlinear
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
     use parallel_streaming, only: init_parallel_streaming
@@ -422,7 +421,7 @@ contains
     use dist_fn_arrays, only: wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
-    use neoclassical_terms, only: include_neoclassical_terms
+!   use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
 
@@ -1005,7 +1004,6 @@ contains
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_parameters, only: g_exb
-    use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
     use run_parameters, only: stream_implicit, mirror_implicit
@@ -1768,7 +1766,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nakx, naky, multiply_by_rho
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -2108,7 +2106,6 @@ contains
 
     use mp, only: proc0
     use job_manage, only: time_message
-    use run_parameters, only: fphi, fapar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation

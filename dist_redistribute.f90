@@ -44,7 +44,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvpa, nmu
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -168,7 +168,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvpa, nmu
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -292,7 +292,7 @@ contains
     use redistribute, only: index_list_type, init_redist
     use redistribute, only: delete_list, set_redist_character_type
     use vpamu_grids, only: nvpa, nmu
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid
 
     implicit none
 

@@ -34,7 +34,7 @@ contains
     use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-    use kt_grids, only: nalpha, nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nalpha, nakx, naky, multiply_by_rho
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
     use species, only: spec, pfac
@@ -99,12 +99,7 @@ contains
 
     use mp, only: proc0
     use stella_layouts, only: init_dist_fn_layouts
-    use species, only: nspec
-    use zgrid, only: ntubes
     use gyro_averages, only: init_bessel
-    use physics_flags, only: full_flux_surface
-    use physics_flags, only: nonlinear
-    use physics_flags, only: include_parallel_nonlinearity
 
     implicit none
 

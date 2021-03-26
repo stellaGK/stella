@@ -42,7 +42,6 @@ contains
     use kt_grids, only: nakx, naky
     use kt_grids, only: jtwist, ikx_twist_shift
     use kt_grids, only: aky, ikx_max
-    use species, only: nspec
 
     implicit none
 

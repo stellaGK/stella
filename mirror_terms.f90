@@ -141,7 +141,7 @@ contains
     use vpamu_grids, only: dvpa, vpa, mu
     use vpamu_grids, only: nvpa, nmu
     use physics_flags, only: full_flux_surface
-    use species, only: spec, nspec
+    use species, only: spec
     use kt_grids, only: nalpha
     use stella_geometry, only: dbdzed
     use neoclassical_terms, only: include_neoclassical_terms

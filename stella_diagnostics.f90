@@ -270,7 +270,6 @@ contains
     use stella_io, only: sync_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
-    use run_parameters, only: fphi
     use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
@@ -465,7 +464,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
     use run_parameters, only: fphi, fapar
-    USE kt_grids, ONLY: nakx, naky
+    use kt_grids, ONLY: nakx, naky
     use kt_grids, only: aky, theta0
     use gyro_averages, only: gyro_average, gyro_average_j1
 
@@ -618,8 +617,8 @@ contains
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-    use run_parameters, only: fphi, fapar
-    use kt_grids, only: aky, theta0, naky, nakx, nx, multiply_by_rho
+    use run_parameters, only: fphi
+    use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
     use physics_flags, only: radial_variation
     use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
 
@@ -1022,7 +1021,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, vperp2, mu
     use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
-    use kt_grids, only: naky, nakx, nx, multiply_by_rho
+    use kt_grids, only: naky, nakx, multiply_by_rho
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
@@ -1278,7 +1277,6 @@ contains
     use mp, only: proc0
     use redistribute, only: scatter
     use stella_io, only: finish_stella_io
-    use run_parameters, only: fphi, fapar
     use stella_time, only: code_dt, code_time
     use stella_save, only: stella_save_for_restart
     use dist_redistribute, only: kxkyz2vmu

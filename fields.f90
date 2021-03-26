@@ -63,7 +63,7 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
-    use kt_grids, only: naky, nakx, akx, nx
+    use kt_grids, only: naky, nakx, akx
     use kt_grids, only: zonal_mode, rho_d_clamped
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
@@ -491,12 +491,10 @@ contains
     use gyro_averages, only: gyro_average
     use run_parameters, only: fphi, fapar
     use physics_parameters, only: beta
-    use physics_flags, only: radial_variation
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa
     use vpamu_grids, only: integrate_vmu
-    use kt_grids, only: nakx
     use species, only: spec
 
     implicit none
@@ -576,7 +574,7 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
-    use kt_grids, only: nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nakx, naky, multiply_by_rho
     use run_parameters, only: ky_solve_radial
     use species, only: spec
 
@@ -914,7 +912,7 @@ contains
     use stella_layouts, only: vmu_lo
     use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
-    use run_parameters, only: fphi, fapar, ky_solve_radial
+    use run_parameters, only: fphi, ky_solve_radial
     use stella_geometry, only: dl_over_b, bmag, dBdrho
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes

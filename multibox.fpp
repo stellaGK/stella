@@ -676,7 +676,7 @@ contains
 
   subroutine init_mb_get_phi(has_elec, adiabatic_elec,efac,efacp)
     use kt_grids, only:  nakx, naky
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid
     use physics_flags, only: radial_variation
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use run_parameters, only: ky_solve_radial
@@ -797,7 +797,6 @@ contains
     use kt_grids, only:  akx, nakx, naky, zonal_mode
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-    use physics_flags, only: radial_variation
     use run_parameters, only: ky_solve_radial
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
     use linear_solve, only: lu_back_substitution
@@ -1018,7 +1017,7 @@ contains
 
   subroutine transform_kx2x (gkx, gx)
 
-    use kt_grids, only: naky, ikx_max
+    use kt_grids, only: ikx_max
 
     implicit none
 
@@ -1039,7 +1038,7 @@ contains
 
   subroutine transform_x2kx (gx, gkx)
 
-    use kt_grids, only: naky, ikx_max
+    use kt_grids, only: ikx_max
 
     implicit none
 
