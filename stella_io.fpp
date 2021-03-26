@@ -813,7 +813,7 @@ contains
        if (status /= nf90_noerr) call netcdf_error (status, var='pflx_kxky')
        status = nf90_put_att (ncid, pflx_kxky_id, 'long_name', 'Particle flux vs (ky,kx,spec,t)')
        if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxky_id, att='long_name')
-!	          
+!               
        status = nf90_def_var &
             (ncid, 'vflx_kxky', netcdf_real, flx_dim, vflx_kxky_id)
        if (status /= nf90_noerr) call netcdf_error (status, var='vflx_kxky')
@@ -1088,7 +1088,7 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxky_id)
 !
     status = nf90_put_var (ncid, vflx_kxky_id, vflx_kxky, start=start, count=count)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxky_id)	
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxky_id)
 !
     status = nf90_put_var (ncid, qflx_kxky_id, qflx_kxky, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxky_id)

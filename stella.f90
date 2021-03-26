@@ -295,7 +295,7 @@ contains
     endif
 
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
-    call init_stella_diagnostics (restarted,nstep,tstart)
+    call init_stella_diagnostics (restarted,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
 
