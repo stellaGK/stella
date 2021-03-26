@@ -30,6 +30,7 @@ stella_mod = \
 	 millerlocal.o \
 	 mirror_terms.o \
 	 mp.o \
+	 mt19937.o \
 	 multibox.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
@@ -56,6 +57,7 @@ stella_mod = \
 	 time_advance.o \
 	 vmec_geo.o \
 	 vmec_to_stella_geometry_interface.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 
@@ -278,6 +280,7 @@ mirror_terms.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
+mt19937.o: 
 multibox.o: \
 	 constants.o \
 	 fft_work.o \
@@ -336,7 +339,8 @@ physics_flags.o: \
 physics_parameters.o: \
 	 file_utils.o \
 	 mp.o 
-ran.o: 
+ran.o: \
+	 mt19937.o 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 
@@ -412,6 +416,7 @@ stella.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 time_advance.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_diagnostics.o: \
@@ -438,6 +443,7 @@ stella_diagnostics.o: \
 	 stella_save.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_geometry.o: \
@@ -537,6 +543,10 @@ vmec_geo.o: \
 	 zgrid.o 
 vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
+volume_averages.o: \
+	 kt_grids.o \
+	 stella_geometry.o \
+	 zgrid.o 
 vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \
