@@ -174,6 +174,7 @@ contains
     implicit none
 
     integer, intent (in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec
+    integer :: imod
     logical, save :: initialized = .false.
 
     if (initialized) return
@@ -191,10 +192,16 @@ contains
     kxkyz_lo%nspec = nspec
     kxkyz_lo%llim_world = 0
     kxkyz_lo%ulim_world = naky*nakx*kxkyz_lo%nzed*ntubes*nspec - 1
-    kxkyz_lo%blocksize = kxkyz_lo%ulim_world/nproc + 1
-    kxkyz_lo%llim_proc = kxkyz_lo%blocksize*iproc
-    kxkyz_lo%ulim_proc = min(kxkyz_lo%ulim_world, kxkyz_lo%llim_proc + kxkyz_lo%blocksize - 1)
-    kxkyz_lo%ulim_alloc = max(kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc)
+    kxkyz_lo%blocksize = (kxkyz_lo%ulim_world+1)/nproc
+    kxkyz_lo%pmod = mod(kxkyz_lo%ulim_world+1,nproc)
+    kxkyz_lo%modcount = kxkyz_lo%pmod*(kxkyz_lo%blocksize+1)
+
+    imod=0
+    if(iproc.lt.kxkyz_lo%pmod) imod=1
+
+    kxkyz_lo%llim_proc  = kxkyz_lo%blocksize*iproc+min(kxkyz_lo%pmod,iproc)
+    kxkyz_lo%ulim_proc  = kxkyz_lo%llim_proc + kxkyz_lo%blocksize - 1 + imod
+    kxkyz_lo%ulim_alloc = kxkyz_lo%ulim_proc
 
   end subroutine init_kxkyz_layout
 
@@ -309,7 +316,11 @@ contains
     type (kxkyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
 
-    proc_id_kxkyz = i/lo%blocksize
+    if(i.lt.lo%modcount) then
+       proc_id_kxkyz = i/(lo%blocksize+1)
+    else
+       proc_id_kxkyz = (i-lo%modcount)/lo%blocksize+lo%pmod
+    endif
 
   end function proc_id_kxkyz
 
@@ -365,6 +376,7 @@ contains
     implicit none
 
     integer, intent (in) :: nzgrid, ntubes, ny, naky, nakx, nvgrid, nmu, nspec
+    integer :: imod
     logical, save :: initialized = .false.
 
     if (initialized) return
@@ -383,10 +395,16 @@ contains
     kxyz_lo%nspec = nspec
     kxyz_lo%llim_world = 0
     kxyz_lo%ulim_world = ny*nakx*kxyz_lo%nzed*ntubes*nspec - 1
-    kxyz_lo%blocksize = kxyz_lo%ulim_world/nproc + 1
-    kxyz_lo%llim_proc = kxyz_lo%blocksize*iproc
-    kxyz_lo%ulim_proc = min(kxyz_lo%ulim_world, kxyz_lo%llim_proc + kxyz_lo%blocksize - 1)
-    kxyz_lo%ulim_alloc = max(kxyz_lo%llim_proc, kxyz_lo%ulim_proc)
+    kxyz_lo%blocksize = (kxyz_lo%ulim_world+1)/nproc
+    kxyz_lo%pmod = mod(kxyz_lo%ulim_world+1,nproc)
+    kxyz_lo%modcount = kxyz_lo%pmod*(kxyz_lo%blocksize+1)
+
+    imod=0
+    if(iproc.lt.kxyz_lo%pmod) imod=1
+
+    kxyz_lo%llim_proc  = kxyz_lo%blocksize*iproc+min(kxyz_lo%pmod,iproc)
+    kxyz_lo%ulim_proc  = kxyz_lo%llim_proc + kxyz_lo%blocksize - 1 + imod
+    kxyz_lo%ulim_alloc = kxyz_lo%ulim_proc
 
   end subroutine init_kxyz_layout
 
@@ -501,7 +519,11 @@ contains
     type (kxyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
 
-    proc_id_kxyz = i/lo%blocksize
+    if(i.lt.lo%modcount) then
+       proc_id_kxyz = i/(lo%blocksize+1)
+    else
+       proc_id_kxyz = (i-lo%modcount)/lo%blocksize+lo%pmod
+    endif
 
   end function proc_id_kxyz
 
@@ -557,6 +579,7 @@ contains
     implicit none
 
     integer, intent (in) :: nzgrid, ntubes, ny, nx, naky, nakx, nvgrid, nmu, nspec
+    integer :: imod
     logical, save :: initialized = .false.
 
     if (initialized) return
@@ -576,10 +599,16 @@ contains
     xyz_lo%nspec = nspec
     xyz_lo%llim_world = 0
     xyz_lo%ulim_world = ny*nx*xyz_lo%nzed*xyz_lo%ntubes*nspec - 1
-    xyz_lo%blocksize = xyz_lo%ulim_world/nproc + 1
-    xyz_lo%llim_proc = xyz_lo%blocksize*iproc
-    xyz_lo%ulim_proc = min(xyz_lo%ulim_world, xyz_lo%llim_proc + xyz_lo%blocksize - 1)
-    xyz_lo%ulim_alloc = max(xyz_lo%llim_proc, xyz_lo%ulim_proc)
+    xyz_lo%blocksize = (xyz_lo%ulim_world+1)/nproc 
+    xyz_lo%pmod =  mod(xyz_lo%ulim_world+1,nproc)
+    xyz_lo%modcount = xyz_lo%pmod*(xyz_lo%blocksize+1)
+
+    imod=0
+    if(iproc.lt.xyz_lo%pmod) imod=1
+
+    xyz_lo%llim_proc  = xyz_lo%blocksize*iproc+min(xyz_lo%pmod,iproc)
+    xyz_lo%ulim_proc  = xyz_lo%llim_proc + xyz_lo%blocksize - 1 + imod
+    xyz_lo%ulim_alloc = xyz_lo%ulim_proc
 
   end subroutine init_xyz_layout
 
@@ -694,7 +723,11 @@ contains
     type (xyz_layout_type), intent (in) :: lo
     integer, intent (in) :: i
 
-    proc_id_xyz = i/lo%blocksize
+    if(i.lt.lo%modcount) then
+       proc_id_xyz = i/(lo%blocksize+1)
+    else
+       proc_id_xyz = (i-lo%modcount)/lo%blocksize+lo%pmod
+    endif
 
   end function proc_id_xyz
 
@@ -750,6 +783,7 @@ contains
     implicit none
 
     integer, intent (in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha
+    integer :: imod
     logical, save :: initialized = .false.
 
     if (initialized) return
@@ -771,11 +805,16 @@ contains
     vmu_lo%nspec = nspec
     vmu_lo%llim_world = 0
     vmu_lo%ulim_world = vmu_lo%nvpa*nmu*nspec - 1
-      
-    vmu_lo%blocksize = vmu_lo%ulim_world/nproc + 1
-    vmu_lo%llim_proc = vmu_lo%blocksize*iproc
-    vmu_lo%ulim_proc = min(vmu_lo%ulim_world, vmu_lo%llim_proc + vmu_lo%blocksize - 1)
-    vmu_lo%ulim_alloc = max(vmu_lo%llim_proc, vmu_lo%ulim_proc)
+    vmu_lo%blocksize = (vmu_lo%ulim_world+1)/nproc
+    vmu_lo%pmod = mod(vmu_lo%ulim_world+1,nproc)
+    vmu_lo%modcount = vmu_lo%pmod*(vmu_lo%blocksize+1)
+
+    imod=0
+    if(iproc.lt.vmu_lo%pmod) imod=1
+
+    vmu_lo%llim_proc  = vmu_lo%blocksize*iproc+min(vmu_lo%pmod,iproc)
+    vmu_lo%ulim_proc  = vmu_lo%llim_proc + vmu_lo%blocksize - 1 + imod
+    vmu_lo%ulim_alloc = vmu_lo%ulim_proc
 
   end subroutine init_vmu_layout
 
@@ -829,8 +868,12 @@ contains
     integer :: proc_id_vmu
     type (vmu_layout_type), intent (in) :: lo
     integer, intent (in) :: i
-
-    proc_id_vmu = i/lo%blocksize
+    
+    if(i.lt.lo%modcount) then
+       proc_id_vmu = i/(lo%blocksize+1)
+    else
+       proc_id_vmu = (i-lo%modcount)/lo%blocksize+lo%pmod
+    endif
 
   end function proc_id_vmu
 

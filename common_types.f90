@@ -6,21 +6,24 @@ module common_types
      sequence
      integer :: iproc
      integer :: nzgrid, nzed, ntubes, naky, nakx, nvgrid, nvpa, nmu, nspec
-     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc
+     integer :: blocksize, pmod, modcount
   end type kxkyz_layout_type
   
   type :: kxyz_layout_type
      sequence
      integer :: iproc
      integer :: nzgrid, nzed, ntubes, ny, naky, nakx, nvgrid, nvpa, nmu, nspec
-     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc
+     integer :: blocksize, pmod, modcount
   end type kxyz_layout_type
 
   type :: xyz_layout_type
      sequence
      integer :: iproc
      integer :: nzgrid, nzed, ntubes, ny, naky, nx, nakx, nvgrid, nvpa, nmu, nspec
-     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc
+     integer :: blocksize, pmod, modcount
   end type xyz_layout_type
   
   type :: vmu_layout_type
@@ -28,7 +31,8 @@ module common_types
      logical :: xyz
      integer :: iproc
      integer :: nzgrid, nzed, ntubes, nalpha, ny, naky, nx, nakx, nvgrid, nvpa, nmu, nspec
-     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+     integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc
+     integer :: blocksize, pmod, modcount
   end type vmu_layout_type
 
   type :: flux_surface_type
