@@ -8,10 +8,6 @@ module stella_diagnostics
 
   private
 
-  interface fieldline_average
-     module procedure fieldline_average_real
-     module procedure fieldline_average_complex
-  end interface
 
   integer :: ntg_out
   integer :: nwrite, nsave, navg
@@ -28,7 +24,6 @@ module stella_diagnostics
   logical :: flux_norm
 
   ! Arrays needed for averaging in x,y,z
-  real, dimension (:), allocatable :: fac
   real, dimension (:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
   real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
 
@@ -102,9 +97,6 @@ contains
     call broadcast (write_fluxes_kxky)    
     call broadcast (flux_norm)
     
-    ! Initiate the averages
-    call init_averages
-
     ! Initiate the netcdf file with extension '.out.nc'
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
@@ -194,22 +186,6 @@ contains
   end subroutine allocate_arrays
 
   !==============================================
-  !============ INITIATE AVERAGES ===============
-  !==============================================
-  subroutine init_averages
-
-    use kt_grids, only: aky, naky
-
-    implicit none
-
-    if (.not.allocated(fac)) then
-       allocate (fac(naky)) ; fac = 2.0
-       if (aky(1)<epsilon(0.)) fac(1) = 1.0
-    end if
-
-  end subroutine init_averages
-
-  !==============================================
   !============= OPEN ASCII FILES ===============
   !==============================================
   ! Open the '.out' and the '.fluxes' file.
@@ -275,7 +251,7 @@ contains
   !==============================================
   subroutine diagnose_stella (istep)
 
-    use mp, only: proc0,job
+    use mp, only: proc0
     use constants, only: zi
     use redistribute, only: scatter
     use fields_arrays, only: phi, apar
@@ -302,6 +278,7 @@ contains
     use kt_grids, only: naky, nakx
     use dist_redistribute, only: kxkyz2vmu
     use physics_flags, only: radial_variation
+    use volume_averages, only: volume_average, fieldline_average
 
     implicit none
 
@@ -356,9 +333,9 @@ contains
     allocate (mom_flux(nspec))
     allocate (heat_flux(nspec))
 
-    ALLOCATE (pflx_kxky(naky,nakx,nspec))
-    ALLOCATE (vflx_kxky(naky,nakx,nspec))
-    ALLOCATE (qflx_kxky(naky,nakx,nspec))
+    allocate (pflx_kxky(naky,nakx,nspec))
+    allocate (vflx_kxky(naky,nakx,nspec))
+    allocate (qflx_kxky(naky,nakx,nspec))
 
     if(write_radial_fluxes) then
       allocate (part_flux_x(nakx,nspec))
@@ -468,91 +445,6 @@ contains
     nout = nout + 1
 
   end subroutine diagnose_stella
-
-  !==============================================
-  !========= FIELD LINE AVERAGE: REAL ===========
-  !==============================================
-  subroutine fieldline_average_real (unavg, avg)
-
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky
-    use stella_geometry, only: dl_over_b
-
-    implicit none
-
-    real, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
-    real, dimension (:,:), intent (out) :: avg
-
-    integer :: it, ia
-
-    ia = 1
-
-    avg = 0.0
-    do it = 1, ntubes
-       avg = avg + sum(spread(spread(dl_over_b(ia,:),1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
-    end do
-    avg = avg/real(ntubes)
-    
-  end subroutine fieldline_average_real
-
-
-  !==============================================
-  !======== FIELD LINE AVERAGE: COMPLEX =========
-  !==============================================
-  subroutine fieldline_average_complex (unavg, avg)
-
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky
-    use stella_geometry, only: dl_over_b
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
-    complex, dimension (:,:), intent (out) :: avg
-
-    integer :: it, ia
-
-    ia = 1
-
-    avg = 0.0
-    do it = 1, ntubes
-       avg = avg + sum(spread(spread(dl_over_b(ia,:),1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
-    end do
-    avg = avg/real(ntubes)
-
-  end subroutine fieldline_average_complex
-
-  !==============================================
-  !============== VOLUME AVERAGE ================
-  !==============================================
-  subroutine volume_average (unavg, avg)
-
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
-    use stella_geometry, only: dl_over_b
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: unavg
-    real, intent (out) :: avg
-
-    integer :: iky, ikx, iz, it, ia
-
-    ia = 1
-
-    avg = 0.
-    do it = 1, ntubes
-       do iz = -nzgrid, nzgrid
-          do ikx = 1, nakx
-             do iky = 1, naky
-                avg = avg + real(unavg(iky,ikx,iz,it)*conjg(unavg(iky,ikx,iz,it)))*fac(iky)*dl_over_b(ia,iz)
-             end do
-          end do
-       end do
-    end do
-    avg = avg/real(ntubes)
-
-  end subroutine volume_average
 
   !==============================================
   !=============== GET FLUXES ===================
@@ -1009,6 +901,7 @@ contains
   subroutine get_one_flux (iky, iz, norm, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
+    use volume_averages, only: mode_fac
     use kt_grids, only: aky
 
     implicit none
@@ -1023,7 +916,7 @@ contains
 
     call integrate_vmu (gin,iz,flx)
     flxout = flxout &
-         + 0.5*fac(iky)*aky(iky)*aimag(flx*conjg(fld))*norm
+         + 0.5*mode_fac(iky)*aky(iky)*aimag(flx*conjg(fld))*norm
 
   end subroutine get_one_flux
 
@@ -1037,6 +930,7 @@ contains
     use kt_grids, only: aky, nakx, naky
     use zgrid, only: nzgrid, ntubes
     use species, only: nspec
+    use volume_averages, only: mode_fac
 
     implicit none
 
@@ -1058,7 +952,7 @@ contains
         do iz= -nzgrid, nzgrid
           do ikx = 1, nakx
             flxout(is) = flxout(is) &
-              + sum(0.5*fac*aky*aimag(totals(:,ikx,iz,it,is)*conjg(fld(:,ikx,iz,it)))*norm(iz))
+              + sum(0.5*mode_fac*aky*aimag(totals(:,ikx,iz,it,is)*conjg(fld(:,ikx,iz,it)))*norm(iz))
           enddo
         enddo
       enddo
@@ -1078,6 +972,7 @@ contains
     use kt_grids, only: aky, nakx, naky
     use zgrid, only: nzgrid, ntubes
     use species, only: nspec
+    use volume_averages, only: mode_fac
 
     use stella_transforms, only: transform_kx2x_unpadded
 
@@ -1108,7 +1003,7 @@ contains
           call transform_kx2x_unpadded(fld(:,:,iz,it)      ,g1x)
           do ikx = 1, nakx
             flxout(ikx,is) = flxout(ikx,is) &
-              + sum(0.5*fac*aky*aimag(g0x(:,ikx)*conjg(g1x(:,ikx)))*norm(iz))
+              + sum(0.5*mode_fac*aky*aimag(g0x(:,ikx)*conjg(g1x(:,ikx)))*norm(iz))
           enddo
         enddo
       enddo
@@ -1297,6 +1192,7 @@ contains
     use zgrid, only: ntubes
     use vpamu_grids, only: nvpa, nmu
     use stella_geometry, only: dl_over_b
+    use volume_averages, only: mode_fac
 
     implicit none
 
@@ -1318,7 +1214,7 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
           do iv = 1, nvpa
-             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*fac(iky)*dl_over_b(ia,iz)
+             gv(iv,imu,is) = gv(iv,imu,is) + real(g(iv,imu,ikxkyz)*conjg(g(iv,imu,ikxkyz)))*mode_fac(iky)*dl_over_b(ia,iz)
           end do
        end do
     end do
@@ -1338,6 +1234,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_mu
     use kt_grids, only: nakx, naky
+    use volume_averages, only: mode_fac
 
     implicit none
 
@@ -1352,13 +1249,13 @@ contains
 
     ! when doing volume averages, note the following:
     ! int dxdy g(x,y)^2 = sum_kx |g(kx,ky=0)|^2 + 2 * sum_{kx,ky} |g(kx,ky>0)|^2
-    ! factor of 2 accounted for in fac
+    ! factor of 2 accounted for in mode_fac
 
     gtmp = 0.
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        do ikx = 1, nakx
           do iky = 1, naky
-             gtmp(:,:,ivmu) = gtmp(:,:,ivmu) + real(g(iky,ikx,:,:,ivmu)*conjg(g(iky,ikx,:,:,ivmu)))*fac(iky)
+             gtmp(:,:,ivmu) = gtmp(:,:,ivmu) + real(g(iky,ikx,:,:,ivmu)*conjg(g(iky,ikx,:,:,ivmu)))*mode_fac(iky)
           end do
        end do
     end do
@@ -1402,7 +1299,6 @@ contains
         call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, .true.)
     end if
     call finish_stella_io
-    call finish_averages
     call deallocate_arrays
 
     nout = 1
@@ -1497,14 +1393,6 @@ contains
     call close_output_file (tmpunit)
     
   end subroutine write_final_ascii_files
-
-  !==============================================
-  !============= FINISH AVERAGES ================
-  !==============================================
-  subroutine finish_averages
-    implicit none
-    if (allocated(fac)) deallocate (fac)
-  end subroutine finish_averages
 
   !==============================================
   !============ DEALLCOATE ARRAYS ===============
