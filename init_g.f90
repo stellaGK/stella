@@ -7,6 +7,7 @@ module init_g
   public :: ginit
   public :: init_init_g, finish_init_g
   public :: width0
+  public :: scale_to_phiinit, phiinit
   public :: tstart
   public :: reset_init
 
@@ -25,7 +26,7 @@ module init_g
   real :: den1, upar1, tpar1, tperp1
   real :: den2, upar2, tpar2, tperp2
   real :: tstart, scale, kxmax, kxmin
-  logical :: chop_side, left, even
+  logical :: chop_side, left, even, scale_to_phiinit
   character(300), public :: restart_file
   character (len=150) :: restart_dir
 
@@ -38,6 +39,7 @@ contains
 
     use stella_save, only: init_save, read_many
     use stella_layouts, only: init_stella_layouts
+    use system_fortran, only: systemf
     use mp, only: proc0, broadcast
 
     implicit none
@@ -55,6 +57,9 @@ contains
     ! append trailing slash if not exists
     if(restart_dir(len_trim(restart_dir):) /= "/") &
          restart_dir=trim(restart_dir)//"/"
+
+    if (proc0) call systemf('mkdir -p '//trim(restart_dir))
+
     !Determine if restart file contains "/" if so split on this point to give DIR//FILE
     !so restart files are created in DIR//restart_dir//FILE
     ind_slash=index(restart_file,"/",.True.)
@@ -90,6 +95,7 @@ contains
     call broadcast (left)
     call broadcast (restart_file)
     call broadcast (read_many)
+    call broadcast (scale_to_phiinit)
     call broadcast (scale)
 
     call init_save (restart_file)
@@ -152,7 +158,7 @@ contains
          den0, upar0, tpar0, tperp0, imfac, refac, even, &
          den1, upar1, tpar1, tperp1, &
          den2, upar2, tpar2, tperp2, &
-         kxmax, kxmin
+         kxmax, kxmin, scale_to_phiinit
 
     integer :: ierr, in_file
 
@@ -179,6 +185,7 @@ contains
     kxmax = 1.e100
     kxmin = 0.
     chop_side = .false.
+    scale_to_phiinit = .false.
     left = .true.
     even = .true.
 
@@ -608,7 +615,6 @@ contains
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: nvpa, nmu
-    use kt_grids, only: nakx
 
     implicit none
 
@@ -625,7 +631,8 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
 
-       if((ikx.eq.15.and.iky.eq.5).or.((ikx-nakx).eq.-12.and.iky.eq.3)) then
+       !if((ikx.eq.15.and.iky.eq.5).or.((ikx-nakx).eq.-12.and.iky.eq.3)) then
+       if((ikx.eq.1.and.iky.eq.2)) then
          gvmu(:,:,ikxkyz) = spec(is)%z*phiinit &
             * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
        endif
@@ -639,7 +646,6 @@ contains
     use stella_save, only: stella_restore
     use mp, only: proc0
     use file_utils, only: error_unit
-    use run_parameters, only: fphi, fapar
     
     implicit none
 

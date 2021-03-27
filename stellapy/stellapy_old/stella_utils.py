@@ -13,6 +13,7 @@ from matplotlib.ticker import LinearLocator, FixedLocator, FormatStrFormatter
 import matplotlib.pyplot as plt
 import matplotlib.animation as manimation
 from scipy.io import netcdf
+import io
 plt.rcParams.update({'font.size': 28})
 plt.rcParams['lines.linewidth'] = 2
 
@@ -27,20 +28,20 @@ import time
 from stella_read import *
 
 
-def inputlist(case):
-    i      = 1
-    inlist = []
+##def inputlist(case):
+##    i      = 1
+##    inlist = []
+
+##    for f in listdir(outdir(case)):
+##        if f.endswith(".in"):
+##            inputname=f
+##            i = i +1
+##            inlist.append(f)
+##            print(os.path.join(outdir(case), f))
+
+##    if i > 1: morethanone = True
     
-    for f in listdir(outdir(case)):
-        if f.endswith(".in"):
-            inputname=f
-            i = i +1
-            inlist.append(f)
-            print(os.path.join(outdir(case), f))
-            
-    if i > 1: morethanone = True
-    
-    return inlist
+##    return inlist
 
 def interpol(vector_x, vector_y, value_x, der=0):
 
@@ -58,14 +59,14 @@ def nfield_periods(equil, svalue=None, dtheta=3, wrt=False):
     return nfp * dtheta / iota(equil, svalue)[1]
 
 
-def ref_values(case=None, verbose=False, code='stella', tref=-1.0, nref=-1.0):
-    if tref < 0.0:
+def ref_values(case=None, verbose=False, code='stella', tref=None, nref=None):
+    if tref == None:
         tref = temp(case)[0][0]   # in eV
     else:
         # For simplicity we introduce externally T in keV
         tref = tref * 1000.
         
-    if nref < 0.0:
+    if nref == None:
         nref = dens(case)[0][0]   # in eV
     else:
         # For simplicity we introduce externally T in units of 10^19 m^-3
@@ -82,10 +83,9 @@ def ref_values(case=None, verbose=False, code='stella', tref=-1.0, nref=-1.0):
     vmec_geo = geotxtfile(case)
     a = io.open(str(vmec_geo),"r")
     a.readline()
-    ref_geo_values = a.readline().strip().split(" ")
+    ref_geo_values = a.readline().split("#")[1].strip().split(" ")
     ref_geo_values = [float(value) for value in ref_geo_values if value != '']
-    rhotor, qinp, shat, lref, Bref, z_scalefac = ref_geo_values
-
+    rhoc, qinp, shat, rhotor, lref, Bref, dxdpsi, dydalpha = ref_geo_values
 
     vth_ref = sqrt(2*tref/mref)
     if code == 'gene': vth_ref = sqrt(tref/mref)
@@ -119,6 +119,48 @@ def ref_values(case=None, verbose=False, code='stella', tref=-1.0, nref=-1.0):
     return tref, nref, mref, zref, vth_ref, ome_ref, rho_ref,\
            lref, Bref, gamma_ref, mom_ref, heat_ref
 
+
+def merge(case, quant='phi2_vs_kxky'):
+    # This functions merge the different arrays of a certain
+    # quantity and retunrs it.
+    # It assumes that the input files that are present in
+    # outdir(case) and all its subdirectories correspond
+    # to a run with multiple restarts.
+    input_files = inputlist(case=case, recursive=True)
+    dim         = size(input_files)
+    time_merged = []
+    t0, tf      = empty(dim, dtype='float'), empty(dim, dtype='float')
+
+    for i in input_files:
+        t0[input_files.index(i)]=time(i)[0][0]
+        tf[input_files.index(i)]=time(i)[0][size(time(i)[0])-1]
+        
+    # We sort the arrays by increasing value of initial simulated time
+    inds               = t0.argsort()
+    input_files        = list(array(input_files)[inds])
+    t0                 = t0[inds]
+    tf                 = tf[inds]
+
+    time_merged = time(input_files[0])[0]
+    if quant == 'fluxes':
+        quantity_merged = loadtxt(fluxes_txt(input_files[0]))
+    else:
+        quantity_merged = read_stella_float(input_files[0], quant)
+        
+
+    for i in input_files[1:]:
+            #time_merged = concatenate(time_merged, time(i)[0] > tf[input_files.index(i)-1])
+            time_temp  = time(i)[0][time(i)[0] > tf[input_files.index(i)-1]]
+            time_merged = np.concatenate((time_merged, time_temp), axis=0)
+            
+            if quant == 'fluxes':
+                quantity_temp = loadtxt(fluxes_txt(i))[time(i)[0] > tf[input_files.index(i)-1],:]
+                quantity_merged = np.concatenate((quantity_merged, quantity_temp), axis=0)
+            else:
+                quantity_temp = read_stella_float(i, quant)[time(i)[0] > tf[input_files.index(i)-1],:,:]
+                quantity_merged = np.concatenate((quantity_merged, quantity_temp), axis=0)
+
+    return(time_merged, quantity_merged)
 
 def ngrid_to_nk(nx=20, ny=20):
     # This function answers:

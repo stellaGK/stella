@@ -15,8 +15,8 @@ program stella
   implicit none
 
   ! Add the version number and date of last change when uploading to github
-  character(len=4), parameter :: VERNUM = '0.2'
-  character(len=10), parameter :: VERDATE = '2021.01.25'
+  character(len=4), parameter :: VERNUM = '0.3'
+  character(len=10), parameter :: VERDATE = '2021.03.26'
 
   logical :: debug = .false.
   logical :: stop_stella = .false.
@@ -74,13 +74,13 @@ contains
   !============ INITIATE STELLA =================
   !==============================================
   subroutine init_stella(istep0, VERNUM, VERDATE)
-    use mp, only: init_mp, broadcast
-    use mp, only: proc0,job
+    use mp, only: init_mp, broadcast, sum_allreduce
+    use mp, only: proc0,job, scope, subprocs, crossdomprocs
     use file_utils, only: init_file_utils
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: run_name, init_job_name
     use file_utils, only: flush_output_file, error_unit
-    use job_manage, only: checktime, time_message
+    use job_manage, only: checktime, time_message, njobs
     use physics_parameters, only: init_physics_parameters, g_exb, g_exbfac
     use physics_flags, only: init_physics_flags
     use physics_flags, only: nonlinear, include_parallel_nonlinearity
@@ -99,13 +99,13 @@ contains
     use stella_geometry, only: finish_init_geometry
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix, read_response_matrix
-    use init_g, only: ginit, init_init_g
+    use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
     use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
     use stella_time, only: init_tstart, init_delt
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
     use fields_arrays, only: phi, apar
-    use dist_fn_arrays, only: gnew
+    use dist_fn_arrays, only: gnew, gvmu
     use dist_fn, only: init_gxyz, init_dist_fn
     use dist_redistribute, only: init_redistribute
     use time_advance, only: init_time_advance
@@ -119,6 +119,7 @@ contains
     use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
     use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
+    use volume_averages, only: init_volume_averages, volume_average
 
     implicit none
 
@@ -129,7 +130,7 @@ contains
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
     integer :: i, n, ierr
-    real :: delt_saved
+    real :: delt_saved, phi2, rescale
 
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
@@ -232,6 +233,8 @@ contains
     call init_vpamu_grids
     if (debug) write (6,*) 'stella::init_stella::init_extended_zgrid'
     call init_extended_zgrid
+    if (debug) write (6,*) 'stella::init_stella::init_volume_averages'
+    call init_volume_averages
     if (debug) write(6,*) "stella::init_stella::init_dist_fn"
     call init_dist_fn
     if (debug) write(6,*) "stella::init_stella::init_redistribute"
@@ -276,8 +279,23 @@ contains
       endif
     endif
 
+    ! FLAG - the following code should probably go elsewhere
+    if(.not.restarted.and.scale_to_phiinit) then
+      call volume_average(phi,phi2)
+      if(runtype_option_switch.eq.runtype_multibox) then
+        call scope(crossdomprocs)
+        call sum_allreduce(phi2)
+        call scope(subprocs)
+        phi2=phi2/njobs
+      endif
+      rescale=phiinit/sqrt(phi2)
+      phi  = rescale*phi
+      gnew = rescale*gnew
+      gvmu = rescale*gvmu
+    endif
+
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
-    call init_stella_diagnostics (restarted,nstep,tstart)
+    call init_stella_diagnostics (restarted,tstart)
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
 
@@ -368,6 +386,7 @@ contains
     use extended_zgrid, only: finish_extended_zgrid
     use vpamu_grids, only: finish_vpamu_grids
     use kt_grids, only: finish_kt_grids
+    use volume_averages, only: finish_volume_averages
 
     implicit none
 
@@ -381,6 +400,8 @@ contains
     call finish_fields
     if (debug) write (*,*) 'stella::finish_stella::finish_time_advance'
     call finish_time_advance
+    if (debug) write (*,*) 'stella::finish_stella::finish_volume_averages'
+    call finish_volume_averages
     if (debug) write (*,*) 'stella::finish_stella::finish_extended_zgrid'
     call finish_extended_zgrid
     if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'

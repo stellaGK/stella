@@ -8,6 +8,8 @@ from tabCompleter import *
 from plotbox import *
 from aux_functions import *
 from os import listdir
+from netCDF4 import *
+import glob 
 import os.path
 
 # ==============================================================
@@ -48,15 +50,24 @@ def casestr(case=None):
         elif size(inputlist(case) == 1):
             return inputlist(case)[0].split(".in")[0]
 
-def inputlist(case):
+def inputlist_r(case):
+    inputs_level_0 = glob.glob(outdir(case)+'/*.in', recursive = True)
+    inputs_level_1 = glob.glob(outdir(case)+'/*/*.in', recursive = True)
+    return (inputs_level_0+inputs_level_1)
+        
+def inputlist(case, recursive=False):
     # Function that returns all the input file names
     # with extention ".in"
-    inlist = []    
-    for f in listdir(outdir(case)):
-        if f.endswith(".in"):
-            if not f.startswith('.'):
-                inputname=f
-                inlist.append(f)
+    inlist = []
+    
+    if recursive:
+        inlist = inputlist_r(case=case)
+    else:
+        for f in listdir(outdir(case)):
+            if f.endswith('.in'):
+                if not f.startswith('.'):
+                    inputname=f
+                    inlist.append(f)
             
     return inlist
 
@@ -71,9 +82,9 @@ def geotxtfile(case=None):
     # It returns the full path of an output file, endind with
     # the string value of "quant".
     if os.path.isfile(case):
-        return case.split('.in')[0] + '.vmec_geo'
+        return case.split('.in')[0] + '.geometry'
     else:
-        return outdir(case) + '/' + casestr(case) + '.vmec_geo'
+        return outdir(case) + '/' + casestr(case) + '.geometry'
 
     
 def outfile(case=None, quant=None):
@@ -88,6 +99,10 @@ def infile(case=None):
     # infile = input("Path to netcdf file: ")
     return outfile(case, quant='out.nc')
 
+def fluxes_txt(case=None):
+    # infile = input("Path to netcdf file: ")
+    return outfile(case, quant='fluxes')
+
 # ==================================================================
 # Reading variables in the input *.in file
 
@@ -101,7 +116,7 @@ def torflux(case):
 # Translation of quantities in stella_data module by Michael into
 # functions with the run directory ("case") as single argument.
 def read_stella_float(case, var):
-    
+
     import numpy as np
    
     ncfile = netcdf.netcdf_file(infile(case),'r')
@@ -115,6 +130,12 @@ def read_stella_float(case, var):
         flag = False
         
     return arr
+
+
+def read_stella_value(case, var):
+    woutfile = infile(case)
+    d        = Dataset(woutfile, mode='r')
+    return d.variables[var][:]
 
 def kx(case):
     # get kx grid
@@ -162,6 +183,7 @@ def nspec(case):
 
 def geo(case):
     # get geometric quantities
+    d         = Dataset(infile(case), mode='r')
     ncfile    = netcdf.netcdf_file(infile(case),'r')
     bmag      = np.copy(ncfile.variables['bmag'][:])
     gradpar   = np.copy(ncfile.variables['gradpar'][:])
@@ -172,7 +194,9 @@ def geo(case):
     gds2      = np.copy(ncfile.variables['gds2'][:])
     gds21     = np.copy(ncfile.variables['gds21'][:])
     gds22     = np.copy(ncfile.variables['gds22'][:])
-    return bmag, gradpar, gbdrift, gbdrift0, cvdrift, cvdrift0, gds2, gds21, gds22
+    shat      = float(d.variables['shat'][:])
+    
+    return bmag, gradpar, gbdrift, gbdrift0, cvdrift, cvdrift0, gds2, gds21, gds22, shat
 
 def phi2_vs_kxky(case):
     # electrostatic potential averaged over z as function of (ky,kx,t)
@@ -182,6 +206,33 @@ def phi2_vs_kxky(case):
 #    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:, kx(case)[2]:,:],\
 #                                   phi2_vs_kxky_stella[:,:kx(case)[2] ,:]),axis=1)
     return phi2_vs_kxky_stella
+
+def pflux_vs_kxky(case):
+    pflux_vs_kxky_stella = read_stella_float(case, 'pflx_kxky')
+    
+    return pflux_vs_kxky_stella
+    
+def vflux_vs_kxky(case):
+    vflux_vs_kxky_stella = read_stella_float(case, 'vflx_kxky')
+    
+    return vflux_vs_kxky_stella
+
+def qflux_vs_kxky(case):
+    qflux_vs_kxky_stella = read_stella_float(case, 'qflx_kxky')
+    
+    return qflux_vs_kxky_stella
+
+def density_vs_kxky(case):
+    density_vs_kxky_stella = read_stella_float(case, 'density')
+    return density_vs_kxky_stella
+
+def upar_vs_kxky(case):
+    upar_vs_kxky_stella = read_stella_float(case, 'upar')
+    return upar_vs_kxky_stella
+
+def temperature_vs_kxky(case):
+    temperature_vs_kxky_stella = read_stella_float(case, 'temperature')
+    return temperature_vs_kxky_stella
 
 def phi_vs_t(case):
     # electrostatic potential as a function of (z,kx,ky,t)
@@ -199,6 +250,10 @@ def gzvs(case):
 def jacob(case):
     # jacobian for transformation to (rho,alpha,z) coordinates
     return read_stella_float(case, 'jacob')
+
+def jtwist(case):
+    # jtwist factor for twist-and-shift BC
+    return read_stella_value(case, 'jtwist')
 
 def grho(case):
     # gradient of normalized radial coordinate rho
@@ -290,7 +345,7 @@ def dens(case):
     dens_exp=factormult(dens,1e19)
     return dens_exp, size(dens)
 
-def ubar(case):
+def upar(case):
     # parallel flow fluctuation (kx,ky,z,t)
     return read_stella_float(case,'upar')
 

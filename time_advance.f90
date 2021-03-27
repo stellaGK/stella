@@ -69,9 +69,8 @@ contains
 
     use mp, only: proc0
     use stella_transforms, only: init_transforms
-    use physics_flags, only: full_flux_surface, radial_variation
+    use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
-    use physics_flags, only: nonlinear
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
     use parallel_streaming, only: init_parallel_streaming
@@ -233,14 +232,22 @@ contains
     if (wdriftinit) return
     wdriftinit = .true.
 
-    if (.not.allocated(wdriftx_phi)) &
-         allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdrifty_phi)) &
-         allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdriftx_g)) &
-         allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdrifty_g)) &
-         allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wdriftx_phi)) then
+      allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdriftx_phi = 0.0
+    endif
+    if (.not.allocated(wdrifty_phi)) then
+      allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdrifty_phi = 0.0
+    endif
+    if (.not.allocated(wdriftx_g)) then
+      allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdriftx_g = 0.0
+    endif
+    if (.not.allocated(wdrifty_g)) then
+      allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdrifty_g = 0.0
+    endif
 
     allocate (wcvdrifty(nalpha,-nzgrid:nzgrid))
     allocate (wgbdrifty(nalpha,-nzgrid:nzgrid))
@@ -414,7 +421,7 @@ contains
     use dist_fn_arrays, only: wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
-    use neoclassical_terms, only: include_neoclassical_terms
+!   use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
 
@@ -561,8 +568,8 @@ contains
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky, nx, rho
     use run_parameters, only: stream_implicit, mirror_implicit
-    use parallel_streaming, only: stream, stream_rad_var1
-    use parallel_streaming, only: stream_rad_var2
+    use parallel_streaming, only: stream
+    use parallel_streaming, only: stream_rad_var1, stream_rad_var2
     use mirror_terms, only: mirror
     use flow_shear, only: prl_shear, shift_times
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -583,9 +590,7 @@ contains
     wdriftx_max = maxval(abs(wdriftx_g))
     ! compare these max values across processors to get global max
     if (nproc > 1) then 
-      if(runtype_option_switch == runtype_multibox) call scope(allprocs)
       call max_allreduce (wdriftx_max)
-      if(runtype_option_switch == runtype_multibox) call scope(subprocs)
     endif
     ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
@@ -629,9 +634,7 @@ contains
     wdrifty_max = maxval(abs(wdrifty_g))
     ! compare these max values across processors to get global max
     if (nproc > 1) then
-      if(runtype_option_switch == runtype_multibox) call scope(allprocs)
       call max_allreduce (wdrifty_max)
-      if(runtype_option_switch == runtype_multibox) call scope(subprocs)
     endif
     ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
     cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
@@ -1001,7 +1004,6 @@ contains
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_parameters, only: g_exb
-    use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
     use run_parameters, only: stream_implicit, mirror_implicit
@@ -1764,7 +1766,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nakx, naky, multiply_by_rho
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -2104,11 +2106,11 @@ contains
 
     use mp, only: proc0
     use job_manage, only: time_message
-    use run_parameters, only: fphi, fapar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: radial_variation, full_flux_surface
     use physics_flags, only: include_mirror, prp_shear_enabled
     use run_parameters, only: stream_implicit, mirror_implicit
     use parallel_streaming, only: advance_parallel_streaming_implicit
@@ -2196,8 +2198,10 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
+       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
             call advance_parallel_streaming_implicit (g, phi, apar)
+            if(radial_variation.or.full_flux_surface) fields_updated = .false.
+       endif
 
     else
 

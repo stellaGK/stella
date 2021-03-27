@@ -53,10 +53,12 @@ stella_mod = \
 	 stella_save.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 system_fortran.o \
 	 text_options.o \
 	 time_advance.o \
 	 vmec_geo.o \
 	 vmec_to_stella_geometry_interface.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 
@@ -224,6 +226,7 @@ init_g.o: \
 	 species.o \
 	 stella_layouts.o \
 	 stella_save.o \
+	 system_fortran.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -310,7 +313,8 @@ neoclassical_terms.o: \
 	 zgrid.o 
 netcdf_utils.o: \
 	 constants.o \
-	 file_utils.o 
+	 file_utils.o \
+	 mp.o 
 parallel_streaming.o: \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
@@ -359,6 +363,7 @@ response_matrix.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 run_parameters.o: \
@@ -414,6 +419,7 @@ stella.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 time_advance.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_diagnostics.o: \
@@ -440,6 +446,7 @@ stella_diagnostics.o: \
 	 stella_save.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_geometry.o: \
@@ -492,6 +499,7 @@ stella_transforms.o: \
 	 fft_work.o \
 	 physics_flags.o \
 	 stella_layouts.o 
+system_fortran.o: 
 test_vmec_to_stella_geometry_interface.o: \
 	 vmec_to_stella_geometry_interface.o 
 text_options.o: 
@@ -539,6 +547,10 @@ vmec_geo.o: \
 	 zgrid.o 
 vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
+volume_averages.o: \
+	 kt_grids.o \
+	 stella_geometry.o \
+	 zgrid.o 
 vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \

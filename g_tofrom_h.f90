@@ -171,7 +171,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_geometry, only: bmag, dBdrho
     use dist_fn_arrays, only: kperp2, dkperp2dr
-    use kt_grids, only: naky, nakx, nx, multiply_by_rho
+    use kt_grids, only: naky, nakx, multiply_by_rho
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use gyro_averages, only: gyro_average, aj0x, aj1x

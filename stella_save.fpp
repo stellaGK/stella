@@ -81,7 +81,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
-    use stella_layouts, only: kxkyz_lo, xyzs_layout, vms_layout, vmu_lo
+    use stella_layouts, only: kxkyz_lo, vmu_lo
     use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvpa, nmu
@@ -673,7 +673,6 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use file_utils, only: error_unit
-    use species, only: nspec
     use dissipation, only: include_krook_operator, int_krook
     use dissipation, only: remove_zero_projection, int_proj
     use physics_flags, only: prp_shear_enabled
@@ -691,7 +690,6 @@ contains
     character (10) :: suffix
     integer :: i, n_elements, nvmulo_elements, ierr
     logical :: has_vmulo
-    real :: fac
     
     n_elements = kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1
     nvmulo_elements = vmu_lo%ulim_proc-vmu_lo%llim_proc+1
@@ -717,8 +715,10 @@ contains
        endif
 # endif
 
-       if (istatus /= NF90_NOERR) call netcdf_error (istatus, file=file_proc)
-       
+       if (istatus /= NF90_NOERR)  then 
+         call netcdf_error (istatus, file=file_proc)
+       endif
+
        ! check precision
        if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
        call check_netcdf_file_precision (ncid)
