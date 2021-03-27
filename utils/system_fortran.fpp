@@ -1,3 +1,5 @@
+# include "define.inc"
+
 module system_fortran
   implicit none
 
@@ -26,7 +28,7 @@ module system_fortran
     call call_system_c(command//c_null_char)
 
 #else
-# if defined(__INTEL_COMPILER)
+# if FCOMPILER == _INTEL_
 !   for system call with intel compiler
     use ifport, only: system
 # endif
@@ -34,14 +36,12 @@ module system_fortran
     implicit none
 
     character (*), intent (in) :: command
-#if !defined(__CRAY_COMPILER)
+# if FCOMPILER == _CRAY_
     integer :: ierr
     ierr=system(command)
 #endif
 #endif /* ISO_C_BINDING */
 
   end subroutine systemf
-
-
 
 end module system_fortran
