@@ -696,7 +696,7 @@ contains
 
     if (n_elements <= 0) return
 
-    has_vmulo = nvmulo_elements.gt.0.or.read_many
+    has_vmulo = nvmulo_elements.gt.0.or..not.read_many
     
     if (.not.initialized) then
 !       initialized = .true.
