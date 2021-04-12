@@ -13,6 +13,7 @@ module fields
   public :: time_field_solve
   public :: fields_updated
   public :: get_dchidy, get_dchidx
+  public :: efac, efacp
 
   private
 

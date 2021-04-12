@@ -290,7 +290,7 @@ contains
     real, dimension (:), allocatable :: part_flux, mom_flux, heat_flux
     real, dimension (:,:), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
     real, dimension (:,:), allocatable :: phi2_vs_kxky
-    REAL, DIMENSION (:,:,:), ALLOCATABLE :: pflx_kxky, vflx_kxky, qflx_kxky
+    real, dimension (:,:,:), allocatable :: pflx_kxky, vflx_kxky, qflx_kxky
     complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
 
     complex, dimension (:,:), allocatable :: omega_avg
@@ -509,13 +509,13 @@ contains
           ! get particle flux
           call gyro_average (g(:,:,ikxkyz), ikxkyz, gtmp1)
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx(is))
-          CALL get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx_vs_kxky(iky,ikx, is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx_vs_kxky(iky,ikx, is))
 
           ! get heat flux
           ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
           gtmp1 = gtmp1*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa))
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx(is))
-          CALL get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx_vs_kxky(iky,ikx, is))
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), qflx_vs_kxky(iky,ikx, is))
 
           ! get momentum flux
           ! parallel component
@@ -528,7 +528,7 @@ contains
           gtmp1 = gtmp2 + gtmp3
 
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx(is))
-          CALL get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx_vs_kxky(iky,ikx, is)) 
+          call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx_vs_kxky(iky,ikx, is)) 
        end do
     end if
 
