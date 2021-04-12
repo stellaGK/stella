@@ -263,6 +263,8 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
+       ! JFP: add a trapping condition. If a particle is trapped, then...
+
        fac = -ydriftknob*0.5*code_dt*spec(is)%tz_psi0
        ! this is the curvature drift piece of wdrifty with missing factor of vpa
        ! vpa factor is missing to avoid singularity when including 
