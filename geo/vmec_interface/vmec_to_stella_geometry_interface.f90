@@ -191,7 +191,7 @@ contains
        alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, &
        grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
        gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-       theta_vmec)
+       theta_vmec, B_sub_zeta, B_sub_theta_vmec)
 
     use fzero_mod, only: fzero
 
@@ -286,6 +286,8 @@ contains
 !    real, dimension (:,-nzgrid:), intent (out) :: gbdrift, gbdrift0, cvdrift, cvdrift0
     real, dimension (:,-nzgrid:), intent (out) :: gbdrift0_psi, cvdrift0_psi
 
+    real, dimension (:,-nzgrid:), intent (out) :: B_sub_theta_vmec, B_sub_zeta
+
     !*********************************************************************
     ! Variables used internally by this subroutine
     !*********************************************************************
@@ -312,7 +314,8 @@ contains
     real, dimension(:,:), allocatable :: d_X_d_theta_vmec, d_X_d_zeta, d_X_d_s
     real, dimension(:,:), allocatable :: d_Y_d_theta_vmec, d_Y_d_zeta, d_Y_d_s
     real, dimension(:,:), allocatable :: d_Lambda_d_theta_vmec, d_Lambda_d_zeta, d_Lambda_d_s
-    real, dimension(:,:), allocatable :: B_sub_s, B_sub_theta_vmec, B_sub_zeta
+    !real, dimension(:,:), allocatable :: B_sub_s, B_sub_theta_vmec, B_sub_zeta
+    real, dimension(:,:), allocatable :: B_sub_s
     real, dimension(:,:), allocatable :: B_sup_theta_vmec, B_sup_zeta
     real, dimension(:), allocatable :: d_B_d_s_mnc, d_B_d_s_mns
     real, dimension(:), allocatable :: d_R_d_s_mnc, d_R_d_s_mns
@@ -735,6 +738,8 @@ contains
     gbdrift0_psi = 0
     cvdrift_alpha = 0
     cvdrift0_psi = 0
+    B_sub_theta_vmec = 0
+    B_sub_zeta = 0
 
     allocate(B(nalpha,-nzgrid:nzgrid))
     allocate(temp2D(nalpha,-nzgrid:nzgrid))
@@ -753,8 +758,8 @@ contains
     allocate(d_Lambda_d_zeta(nalpha,-nzgrid:nzgrid))
     allocate(d_Lambda_d_s(nalpha,-nzgrid:nzgrid))
     allocate(B_sub_s(nalpha,-nzgrid:nzgrid))
-    allocate(B_sub_theta_vmec(nalpha,-nzgrid:nzgrid))
-    allocate(B_sub_zeta(nalpha,-nzgrid:nzgrid))
+    !allocate(B_sub_theta_vmec(nalpha,-nzgrid:nzgrid))
+    !allocate(B_sub_zeta(nalpha,-nzgrid:nzgrid))
     allocate(B_sup_theta_vmec(nalpha,-nzgrid:nzgrid))
     allocate(B_sup_zeta(nalpha,-nzgrid:nzgrid))
 
@@ -1452,8 +1457,8 @@ contains
     deallocate(d_Lambda_d_zeta)
     deallocate(d_Lambda_d_s)
     deallocate(B_sub_s)
-    deallocate(B_sub_theta_vmec)
-    deallocate(B_sub_zeta)
+    !deallocate(B_sub_theta_vmec)
+    !deallocate(B_sub_zeta)
     deallocate(B_sup_theta_vmec)
     deallocate(B_sup_zeta)
 

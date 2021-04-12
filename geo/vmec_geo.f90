@@ -105,7 +105,7 @@ contains
     real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, grad_alpha_grad_alpha, &
          grad_alpha_grad_psi, grad_psi_grad_psi, &
          gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
-         cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta
+         cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta ! JFP
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
@@ -120,6 +120,8 @@ contains
 
     real, dimension (:), allocatable :: zeta_vmec
     real, dimension (:,:), allocatable :: thetamod_vmec
+    real, dimension (nalpha,-nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta ! JFP
+    real, dimension (:,:), allocatable :: B_sub_theta_vmec_mod, B_sub_zeta_mod ! JFP
     real, dimension (:,:), allocatable :: bmag_vmec, gradpar_vmec, gradpar_zeta
     real, dimension (:,:), allocatable :: grad_alpha_grad_alpha_vmec
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi_vmec
@@ -160,6 +162,8 @@ contains
     ! allocate arrays of size 2*nzgrid_vmec+1
     allocate (zeta_vmec(-nzgrid_vmec:nzgrid_vmec))
     allocate (thetamod_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (B_sub_zeta_mod(nalpha,-nzgrid_vmec:nzgrid_vmec)) ! JFP
+    allocate (B_sub_theta_vmec_mod(nalpha,-nzgrid_vmec:nzgrid_vmec)) ! JFP
     allocate (bmag_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (gradpar_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (grad_alpha_grad_alpha_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
@@ -186,7 +190,7 @@ contains
          gds23_vmec, gds24_vmec, &
          gds25_vmec, gds26_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, &
          cvdrift_alpha_vmec, &
-         cvdrift0_psi_vmec, thetamod_vmec)
+         cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod)
     
     ! get ratio of number of simulated field periods to the number of field periods of the device
     field_period_ratio = nfield_periods / real(nfp)
@@ -243,6 +247,10 @@ contains
           call geo_spline (arc_length(ia,:), cvdrift_alpha_vmec(ia,:), zed, cvdrift_alpha(ia,:))
           call geo_spline (arc_length(ia,:), cvdrift0_psi_vmec(ia,:), zed, cvdrift0_psi(ia,:))
           call geo_spline (arc_length(ia,:), thetamod_vmec(ia,:), zed, theta_vmec(ia,:))
+          call geo_spline (arc_length(ia,:), B_sub_zeta_mod(ia,:), zed, B_sub_zeta(ia,:)) ! JFP
+          call geo_spline (arc_length(ia,:), B_sub_theta_vmec_mod(ia,:), zed, B_sub_theta_vmec(ia,:)) ! JFP
+          !B_sub_zeta = B_sub_zeta_mod
+          !B_sub_theta_vmec = B_sub_theta_vmec_mod
 
           ! gradpar at this point is b . grad zeta
           ! but want it to be b . grad z = b . grad zeta * dz/dzeta
@@ -294,6 +302,8 @@ contains
        cvdrift_alpha = cvdrift_alpha_vmec
        cvdrift0_psi = cvdrift0_psi_vmec
        theta_vmec = thetamod_vmec
+       B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
+       B_sub_zeta = B_sub_zeta_mod ! JFP
 
        ! scale zed so that it is zeta compressed (or expanded)
        ! to the range [-pi,pi]
@@ -311,6 +321,8 @@ contains
     deallocate (zed_domain_size)
     deallocate (zeta_vmec)
     deallocate (thetamod_vmec)
+    deallocate (B_sub_theta_vmec_mod)
+    deallocate (B_sub_zeta_mod)
     deallocate (bmag_vmec, gradpar_vmec)
     deallocate (gradpar_zeta)
     deallocate (grad_alpha_grad_alpha_vmec, grad_alpha_grad_psi_vmec, grad_psi_grad_psi_vmec)
@@ -362,15 +374,15 @@ contains
     write (2001,'(6a12)') 'rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
     write (2001,'(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, zed_scalefac
     write (2001,*)
-    write (2001,'(14a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'grad_alpha2',&
+    write (2001,'(16a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'grad_alpha2',&
          'gd_alph_psi', 'grad_psi2', 'gds23', 'gds24','gbdriftalph', 'gbdrift0psi', 'cvdriftalph',&
-         'cvdrift0psi', 'theta_vmec'
+         'cvdrift0psi', 'theta_vmec', 'B_sub_theta_vmec', 'B_sub_zeta' ! JFP adding B_poloidal and B_toroidal Apr21 
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
-          write (2001,'(14e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(j), &
+          write (2001,'(16e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(j), &
                grad_alpha_grad_alpha(i,j), grad_alpha_grad_psi(i,j), grad_psi_grad_psi(i,j), &
                gds23(i,j), gds24(i,j), &
-               gbdrift_alpha(i,j), gbdrift0_psi(i,j), cvdrift_alpha(i,j), cvdrift0_psi(i,j), theta_vmec(i,j)
+               gbdrift_alpha(i,j), gbdrift0_psi(i,j), cvdrift_alpha(i,j), cvdrift0_psi(i,j), theta_vmec(i,j), B_sub_theta_vmec(i,j), B_sub_zeta(i,j) ! JFP
        end do
     end do
     close (2001)
