@@ -387,7 +387,6 @@ contains
     use fields_arrays, only: gamtot
     use fields, only: efac
     use run_parameters, only: fphi, fapar, time_upwind
-    use stella_time, only: code_dt
     use species, only: spec, has_electron_species
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid
@@ -432,6 +431,7 @@ contains
             imu = imu_idx(vmu_lo,ivmu)
             is  = is_idx(vmu_lo,ivmu)
 
+            !there terms already contain a factor of code_dt
             wd_g   = zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
                        + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
 
@@ -440,8 +440,8 @@ contains
   
             wstr   = zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
-            g0(:,:,ivmu) = 0.5*(1.0+time_upwind)*code_dt*aj0x(:,:,iz,ivmu)**2 &
-                           *(wd_phi + wstr)/(1.0 + 0.5*(1.0+time_upwind)*code_dt*wd_g)
+            g0(:,:,ivmu) = 0.5*(1.0+time_upwind)*aj0x(:,:,iz,ivmu)**2 &
+                           *(wd_phi + wstr)/(1.0 + 0.5*(1.0+time_upwind)*wd_g)
           enddo
           call integrate_species (g0, iz, spec%z*spec%dens_psi0, gamtot_drifts(:,:,iz))
         enddo
@@ -2382,7 +2382,6 @@ contains
   subroutine advance_drifts_implicit (g, phi, apar)
 
     use constants, only: zi
-    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b
     use run_parameters, only: fphi, fapar, time_upwind
@@ -2431,10 +2430,10 @@ contains
   
           wstr   = zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
-          g1(:,:,iz,it,ivmu) = (g(:,:,iz,it,ivmu)*(1.0 - 0.5*(1.0 - time_upwind)*code_dt*wd_g) &
-                              - 0.5*(1.0 - time_upwind)*code_dt*(wd_phi + wstr) &
+          g1(:,:,iz,it,ivmu) = (g(:,:,iz,it,ivmu)*(1.0 - 0.5*(1.0 - time_upwind)*wd_g) &
+                              - 0.5*(1.0 - time_upwind)*(wd_phi + wstr) &
                                 *aj0x(:,:,iz,ivmu)*fphi*phi(:,:,iz,ia)) &
-                                /(1.0 + 0.5*(1.0 + time_upwind)*code_dt*wd_g) 
+                                /(1.0 + 0.5*(1.0 + time_upwind)*wd_g) 
         enddo
       enddo
     enddo
@@ -2471,6 +2470,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
+          !these terms already contain a factor of code_dt
           wd_g   = zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
                      + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
  
@@ -2480,9 +2480,9 @@ contains
           wstr   = zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
           g(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) &
-                              - 0.5*(1.0 + time_upwind)*code_dt*(wd_phi + wstr) &
+                              - 0.5*(1.0 + time_upwind)*(wd_phi + wstr) &
                               *aj0x(:,:,iz,ivmu)*fphi*phi(:,:,iz,it) &
-                             /(1.0 + 0.5*(1.0 + time_upwind)*code_dt*wd_g)
+                             /(1.0 + 0.5*(1.0 + time_upwind)*wd_g)
         enddo
       enddo
     enddo
