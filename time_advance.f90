@@ -1131,7 +1131,7 @@ contains
     use physics_parameters, only: g_exb
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
-    use run_parameters, only: stream_implicit, mirror_implicit
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use dissipation, only: include_krook_operator, add_krook_operator
     use parallel_streaming, only: advance_parallel_streaming_explicit
@@ -1187,14 +1187,16 @@ contains
           call advance_mirror_explicit (gin, rhs)
        end if
 
-       ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-       call advance_wdrifty_explicit (gin, phi, rhs)
+       if (.not.drifts_implicit) then
+         ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+         call advance_wdrifty_explicit (gin, phi, rhs)
 
-       ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-       call advance_wdriftx (gin, phi, rhs)
+         ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
+         call advance_wdriftx_explicit (gin, phi, rhs)
 
-       ! calculate and add omega_* term to RHS of GK eqn
-       call advance_wstar_explicit (rhs)
+         ! calculate and add omega_* term to RHS of GK eqn
+         call advance_wstar_explicit (rhs)
+       endif
 
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
        
@@ -1329,7 +1331,7 @@ contains
 
   end subroutine advance_wdrifty_explicit
 
-  subroutine advance_wdriftx (g, phi, gout)
+  subroutine advance_wdriftx_explicit (g, phi, gout)
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
@@ -1397,7 +1399,7 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
-  end subroutine advance_wdriftx
+  end subroutine advance_wdriftx_explicit
 
   subroutine advance_ExB_nonlinearity (g, gout, restart_time_step)
 
