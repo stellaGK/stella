@@ -19,9 +19,9 @@ module dissipation
   logical :: include_collisions, vpa_operator, mu_operator
   logical :: collisions_implicit, include_krook_operator
   logical :: momentum_conservation, energy_conservation
-  logical :: hyper_dissipation, remove_zero_projection
+  logical :: hyper_dissipation, remove_zero_projection, kx_ky_hyp_option
   logical :: krook_odd
-  real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
+  real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj, D_hyper_kx, D_hyper_ky
   integer:: ikxmax_source
 
   character(30) :: collision_model
@@ -102,7 +102,7 @@ contains
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_source, cfac, krook_odd
+         ikxmax_source, cfac, krook_odd, kx_ky_hyp_option, D_hyper_kx, D_hyper_ky
 
     integer :: in_file
     logical :: dexist
@@ -119,6 +119,9 @@ contains
        hyper_dissipation = .false.
        remove_zero_projection = .false.
        D_hyper = 0.05
+       kx_ky_hyp_option = .false.
+       D_hyper_kx = 0.00000001
+       D_hyper_ky = 0.00000001
        nu_krook = 0.05
        delay_krook =0.02
        ikxmax_source = 2 ! kx=0 and kx=1
@@ -140,7 +143,10 @@ contains
     call broadcast (vpa_operator)
     call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
+    call broadcast (kx_ky_hyp_option)
     call broadcast (D_hyper)
+    call broadcast (D_hyper_kx)
+    call broadcast (D_hyper_ky)
     call broadcast (nu_krook)
     call broadcast (delay_krook)
     call broadcast (ikxmax_source)
@@ -2436,7 +2442,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,it,:))
-       phi = flds(iky,ikx,iz,it,1)
+       phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
@@ -2627,7 +2633,7 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use physics_flags, only: full_flux_surface
+    use physics_flags, only: full_flux_surface, radial_variation
     use zgrid, only: nzgrid, ntubes, nztot
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
@@ -2642,8 +2648,12 @@ contains
     integer :: ivmu
     real :: k2max
 
-    if (full_flux_surface) then
-       ! avoid alpha-dependent kperp
+    if (kx_ky_hyp_option) then ! JFP: hyper-dissipation of form dg/dt = - (D_kx*k_x^4 + D_ky*k_y^4)*g. Note coefficients D_kx, D_ky typically 1e-10.
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+spread(spread(spread(akx**4,1,naky),3,nztot),4,ntubes)*code_dt*D_hyper_kx + spread(spread(spread(aky**4,2,nakx),3,nztot),4,ntubes)*code_dt*D_hyper_ky)
+       end do
+    else if (full_flux_surface.or.radial_variation) then
+       ! avoid spatially dependent kperp
        k2max = aky(nakx)**2 + aky(naky)**2
        ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -2656,7 +2666,7 @@ contains
        ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           g(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)/(1.+code_dt*(spread(kperp2(:,:,ia,:),4,ntubes)/k2max)**2*D_hyper)
-       end do
+       end do!
     end if
 
   end subroutine advance_hyper_dissipation
