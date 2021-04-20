@@ -2441,7 +2441,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,it,:))
-       phi = flds(iky,ikx,iz,it,1)
+       phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
@@ -2577,7 +2577,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (mudiff_response(:,:,ikxkyz), mudiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,it,:))
-       phi = flds(iky,ikx,iz,it,1)
+       phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
