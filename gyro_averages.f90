@@ -6,7 +6,7 @@ module gyro_averages
   public :: init_bessel, finish_bessel
   public :: gyro_average
   public :: gyro_average_j1
-  
+
   private
 
   interface gyro_average
@@ -77,8 +77,10 @@ contains
     real, dimension (:), allocatable :: gam0_alpha
     real, dimension (:,:,:), allocatable :: kperp2_swap
 
+    write (*,*) 'in init_bessel'
     if (bessinit) return
     bessinit = .true.
+    write (*,*) 'Passed the init Bessel check'
 
     if (.not.allocated(aj0v)) then
        allocate (aj0v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -88,7 +90,7 @@ contains
        allocate (aj1v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        aj1v = 0.
     end if
-    
+
     ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -98,7 +100,7 @@ contains
        do imu = 1, nmu
           arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
           aj0v(imu,ikxkyz) = j0(arg)
-          ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
+          ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),
           aj1v(imu,ikxkyz) = j1(arg)
        end do
     end do
@@ -123,7 +125,8 @@ contains
           allocate(lu_gam0a(naky,naky_all,ikx_max,-nzgrid:nzgrid)) ; lu_gam0a = 0.
 !          allocate(lu_gam0a_idx(naky,naky_all,ikx_max,-nzgrid:nzgrid)) ; lu_gam0a_idx = 0.
        end if
-       
+
+       write (*,*) 'About to work out j0'
        ia_max_aj0a_count = 0 ; ia_max_gam0a_count = 0
        do iz = -nzgrid, nzgrid
           do ia = 1, nalpha
@@ -222,6 +225,7 @@ contains
        deallocate (aj0_kalpha, gam0_kalpha)
        deallocate (kperp2_swap)
     else
+       write (*,*) 'Here we are'
        if (.not.allocated(aj0x)) then
           allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
           aj0x = 0.
@@ -241,7 +245,7 @@ contains
                 do iky = 1, naky
                    arg = spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
                    aj0x(iky,ikx,iz,ivmu) = j0(arg)
-                   ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)), 
+                   ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),
                    aj1x(iky,ikx,iz,ivmu) = j1(arg)
                 end do
              end do

@@ -66,9 +66,9 @@ contains
 
     if (diagnostics_initialized) return
     diagnostics_initialized = .true.
-    
+
     debug = debug .and. proc0
-    
+
     call init_zgrid
     call init_physics_parameters
     call init_kt_grids
@@ -76,10 +76,10 @@ contains
     call init_species
     call init_init_g
     call init_dist_fn
-    
+
     call read_parameters
     call allocate_arrays
-    
+
     call broadcast (nwrite)
     call broadcast (navg)
     call broadcast (nmovie)
@@ -94,9 +94,9 @@ contains
     call broadcast (write_radial_fluxes)
     call broadcast (flux_norm)
 !    call broadcast (write_symmetry)
-    
+
     nmovie_tot = nstep/nmovie
-    
+
     call init_averages
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
 !         write_gvmus, write_gzvs, write_symmetry, write_moments)
@@ -106,7 +106,7 @@ contains
     if(proc0) call get_nout(tstart,nout)
     call broadcast (nout)
   end subroutine init_stella_diagnostics
-  
+
   subroutine read_parameters
 
     use mp, only: proc0
@@ -217,11 +217,11 @@ contains
   end subroutine open_loop_ascii_files
 
   subroutine close_loop_ascii_files
-    
+
     use file_utils, only: close_output_file
-    
+
     implicit none
-    
+
     call close_output_file (stdout_unit)
     call close_output_file (fluxes_unit)
     if (write_omega) call close_output_file (omega_unit)
@@ -233,13 +233,14 @@ contains
     use mp, only: proc0,job
     use constants, only: zi
     use redistribute, only: scatter
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, bpar
     use fields_arrays, only: phi_old, phi_corr_QN
     use dist_fn_arrays, only: gvmu, gnew
     use g_tofrom_h, only: g_to_h
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi2_nc
     use stella_io, only: write_phi_nc
+    use stella_io, only: write_bpar2_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
@@ -248,7 +249,7 @@ contains
     use stella_io, only: sync_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
-    use run_parameters, only: fphi
+    use run_parameters, only: fphi, fbpar
     use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
@@ -259,8 +260,8 @@ contains
     implicit none
 
     integer, intent (in) :: istep
-    
-    real :: phi2, apar2
+
+    real :: phi2, apar2,  bpar2
     real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:,:), allocatable :: gzvs
@@ -333,9 +334,10 @@ contains
        endif
        call volume_average (phi_out, phi2)
        call volume_average (apar, apar2)
-       write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
-            'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, "job=", job
-       call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
+       call volume_average (bpar, bpar2)
+       write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
+            'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, '|bpar|^2= ', bpar2, "job=", job
+       call write_loop_ascii_files (istep, phi2, apar2, bpar2, part_flux, mom_flux, heat_flux, &
             omega_vs_time(mod(istep,navg)+1,:,:), omega_avg)
 
        ! do not need omega_avg again this time step
@@ -347,6 +349,10 @@ contains
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
        call write_time_nc (nout, code_time)
        call write_phi2_nc (nout, phi2)
+       if (fbpar > epsilon(0.)) then
+         write(*,*) "About to call write_bpar"
+         call write_bpar2_nc (nout, phi2)
+       end if
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi_out)
@@ -428,7 +434,7 @@ contains
        avg = avg + sum(spread(spread(dl_over_b(ia,:),1,naky),2,nakx)*unavg(:,:,:,it),dim=3)
     end do
     avg = avg/real(ntubes)
-    
+
   end subroutine fieldline_average_real
 
   subroutine fieldline_average_complex (unavg, avg)
@@ -488,7 +494,7 @@ contains
 
     use mp, only: sum_reduce
     use constants, only: zi
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, bpar
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use species, only: spec
@@ -498,7 +504,7 @@ contains
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
-    use run_parameters, only: fphi, fapar
+    use run_parameters, only: fphi, fapar, fbpar
     use kt_grids, only: aky, theta0
     use gyro_averages, only: gyro_average, gyro_average_j1
 
@@ -523,7 +529,7 @@ contains
        flx_norm = flx_norm/sum(flx_norm*grho(1,:))
     ELSE
        ! Flux definition witou the extra factor.
-       flx_norm = flx_norm/sum(flx_norm)       
+       flx_norm = flx_norm/sum(flx_norm)
     ENDIF
 
     ia = 1
@@ -535,7 +541,7 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          
+
           ! get particle flux
           call gyro_average (g(:,:,ikxkyz), ikxkyz, gtmp1)
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx(is))
@@ -567,16 +573,16 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          
+
           ! Apar contribution to particle flux
           gtmp1 = -g(:,:,ikxkyz)*spec(is)%stm*spread(vpa,2,nmu)
           call gyro_average (gtmp1, ikxkyz, gtmp2)
           call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), pflx(is))
-          
+
           ! Apar contribution to heat flux
           gtmp2 = gtmp2*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa))
           call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), qflx(is))
-          
+
           ! Apar contribution to momentum flux
           ! parallel component
           gtmp1 = -spread(vpa**2,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
@@ -680,11 +686,11 @@ contains
             do it = 1, ntubes
               do iz= -nzgrid, nzgrid
                 g0k = g1(:,:,iz,it,ivmu) &
-                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                   + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
-               
+
                 call multiply_by_rho(g0k)
 
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
@@ -711,8 +717,8 @@ contains
               g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))
 
               if(radial_variation) then
-                g0k = g1(:,:,iz,it,ivmu) & 
-                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                g0k = g1(:,:,iz,it,ivmu) &
+                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                      + dBdrho(iz)/bmag(ia,iz) &
@@ -745,10 +751,10 @@ contains
 
               if(radial_variation) then
                 g0k = g1(:,:,iz,it,ivmu) &
-                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dIdrho/(geo_surf%rmaj*btor(iz)) & 
+                  + dIdrho/(geo_surf%rmaj*btor(iz)) &
                   + dflx_norm(iz))
 
                 call multiply_by_rho(g0k)
@@ -819,7 +825,7 @@ contains
     complex, dimension (:,:), intent (in) :: gin
     complex, intent (in) :: fld
     real, intent (in out) :: flxout
-    
+
     complex :: flx
 
     call integrate_vmu (gin,iz,flx)
@@ -843,7 +849,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
     real, dimension (:), intent (in out) :: flxout
-    
+
     complex, dimension (:,:,:,:,:), allocatable :: totals
 
     integer :: is, it, iz, ikx
@@ -883,7 +889,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
     real, dimension (:,:), intent (in out) :: flxout
-    
+
     complex, dimension (:,:,:,:,:), allocatable :: totals
 
     complex, dimension (:,:), allocatable :: g0x, g1x
@@ -952,7 +958,7 @@ contains
 !   end subroutine get_fluxes_vs_zvpa
 
   subroutine get_moments (g, dens, upar, temp)
-    
+
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use vpamu_grids, only: integrate_vmu
@@ -986,7 +992,7 @@ contains
     ! hack below. Works since J0^2 - 1 and its derivative are zero at the origin
     zero = 100.*epsilon(0.)
 
-    ! h is gyrophase independent, but is in gyrocenter coordinates, 
+    ! h is gyrophase independent, but is in gyrocenter coordinates,
     ! so requires a J_0 to get to particle coordinates
     ! <f>_r = h J_0 - Ze*phi/T * F0
     ! g     = h     - Ze*<phi>_R/T * F0
@@ -1002,7 +1008,7 @@ contains
        g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
             * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
             * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*fphi*phi
- 
+
        if(radial_variation) then
          do it = 1, ntubes
            do iz= -nzgrid, nzgrid
@@ -1011,14 +1017,14 @@ contains
                 * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*fphi*phi(:,:,iz,it) &
                 *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                   -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                      /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
 
              !g
              g0k = g0k + g1(:,:,iz,it,ivmu) &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                + dBdrho(iz)/bmag(ia,iz))
@@ -1051,11 +1057,11 @@ contains
            do iz= -nzgrid, nzgrid
              !phi
              g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
-               *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
+               *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
                *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it)*fphi &
                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                 -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                 -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                     /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero) &
@@ -1063,8 +1069,8 @@ contains
 
 
              !g
-             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 & 
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 &
+               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                  + dBdrho(iz)/bmag(ia,iz) &
@@ -1074,7 +1080,7 @@ contains
 
              !phi QN
              g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
+               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
 
              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
@@ -1096,7 +1102,7 @@ contains
            do iz= -nzgrid, nzgrid
              !g
              g0k = vpa(iv)*g1(:,:,iz,it,ivmu) &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                + dBdrho(iz)/bmag(ia,iz))
@@ -1187,7 +1193,7 @@ contains
           end do
        end do
     end do
-    
+
     do it = 1, ntubes
        do iz = -nzgrid, nzgrid
           izp = iz+nzgrid+1
@@ -1204,7 +1210,7 @@ contains
     use mp, only: proc0
     use redistribute, only: scatter
     use stella_io, only: finish_stella_io
-    use run_parameters, only: fphi, fapar
+    use run_parameters, only: fphi, fapar, fbpar
     use stella_time, only: code_dt, code_time
     use stella_save, only: stella_save_for_restart
     use dist_redistribute, only: kxkyz2vmu
@@ -1221,7 +1227,7 @@ contains
     end if
     if (save_for_restart) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, .true.)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, fbpar, .true.)
     end if
     call finish_stella_io
     call finish_averages
@@ -1232,7 +1238,7 @@ contains
 
   end subroutine finish_stella_diagnostics
 
-  subroutine write_loop_ascii_files (istep, phi2, apar2, pflx, vflx, qflx, om, om_avg)
+  subroutine write_loop_ascii_files (istep, phi2, apar2, bpar2, pflx, vflx, qflx, om, om_avg)
 
     use stella_time, only: code_time
     use species, only: nspec
@@ -1240,9 +1246,9 @@ contains
     use kt_grids, only: aky, akx
 
     implicit none
-    
+
     integer, intent (in) :: istep
-    real, intent (in) :: phi2, apar2
+    real, intent (in) :: phi2, apar2, bpar2
     real, dimension (:), intent (in) :: pflx, vflx, qflx
     complex, dimension (:,:), intent (in) :: om, om_avg
 
@@ -1250,8 +1256,8 @@ contains
     character (100) :: str
     integer :: ikx, iky
 
-    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
-         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
+    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4,a11,e12.4)') 'istep=', istep, &
+         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2, '|bpar|^2= ', bpar2
 
     call flush(stdout_unit)
 
@@ -1281,7 +1287,7 @@ contains
   subroutine write_final_ascii_files
 
     use file_utils, only: open_output_file, close_output_file
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, bpar
     use zgrid, only: nzgrid, ntubes
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
@@ -1297,22 +1303,23 @@ contains
     call open_output_file (tmpunit,'.final_fields')
     write (tmpunit,'(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'z_eqarc-zed0', 'kperp2'
+         'z_eqarc-zed0', 'kperp2' ! Bob: Consider bpar
     do iky = 1, naky
        do ikx = 1, nakx
           do it = 1, ntubes
              do iz = -nzgrid, nzgrid
                 write (tmpunit,'(10es15.4e3,i3)') zed(iz), zed(iz)-zed0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it)), &
-                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-zed0(iky,ikx), &
-                  kperp2(iky,ikx,it,iz), it
+                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), &
+                  zed_eqarc(iz)-zed0(iky,ikx), &
+                  kperp2(iky,ikx,it,iz), it ! ! Bob: Consider bpar
              end do
              write (tmpunit,*)
           end do
        end do
     end do
     call close_output_file (tmpunit)
-    
+
   end subroutine write_final_ascii_files
 
   subroutine finish_averages

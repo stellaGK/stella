@@ -1,5 +1,5 @@
 !> This module is basically a store for the input parameters that are specified in the namelists \a knobs and \a parameters. In general, the names of the public variables in this module are the same as the name of the input parameter they correspond to.
- 
+
 module run_parameters
 
   implicit none
@@ -20,7 +20,7 @@ module run_parameters
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
-  
+
   private
 
   real :: cfl_cushion, delt_adjust
@@ -86,7 +86,7 @@ contains
     if (proc0) then
        fphi = 1.0
        fapar = 1.0
-       fbpar = -1.0
+       fbpar = 1.0
        fields_kxkyz = .false.
        stream_implicit = .true.
        mirror_implicit = .true.
@@ -143,7 +143,7 @@ contains
     call broadcast (ky_solve_real)
     call broadcast (mat_gen)
     call broadcast (mat_read)
-    
+
     if (.not.include_mirror) mirror_implicit = .false.
 
     code_delt_max = delt

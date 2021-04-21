@@ -19,7 +19,7 @@ module stella_save
   use netcdf, only: nf90_inq_dimid, nf90_inquire_dimension
   use netcdf, only: nf90_inq_varid, nf90_inquire_variable
   use netcdf, only: nf90_int
-  
+
   use netcdf_utils, only: get_netcdf_code_precision
   use netcdf_utils, only: check_netcdf_file_precision
   use netcdf_utils, only: netcdf_error
@@ -41,7 +41,7 @@ module stella_save
   end interface
 
   logical :: read_many, save_many ! Read and write single or multiple restart files
-  
+
   private
   character (300), save :: restart_file
 
@@ -51,9 +51,8 @@ module stella_save
   real, allocatable, dimension (:,:,:)   :: ptmpr, ptmpi
   real, allocatable, dimension (:,:,:,:) :: ftmpr, ftmpi
   integer (kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
-  integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id
+  integer (kind_nf) :: phir_id, phii_id, aparr_id, apari_id, bparr_id, bpari_id ! Bob: added here
   integer (kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
-!  integer (kind_nf) :: bparr_id, bpari_id
   integer (kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
   integer (kind_nf) :: intkrook_id, intproj_id;
   integer (kind_nf) :: shift_id
@@ -70,15 +69,15 @@ contains
 !!----------------------------------------------------------------------!!
 
   subroutine stella_save_for_restart &
-       (g, istep0, t0, delt0, istatus, fphi, fapar, exit_in, fileopt)
+       (g, istep0, t0, delt0, istatus, fphi, fapar, fbpar, exit_in, fileopt)
 
 # ifdef NETCDF
-    use fields_arrays, only: phi, apar, shift_state
+    use fields_arrays, only: phi, apar, bpar, shift_state
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # else
     use mp, only: proc0
-# endif    
+# endif
     use mp, only: iproc, barrier
     use zgrid, only: nzgrid, ntubes
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
@@ -95,7 +94,7 @@ contains
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     real, intent (in) :: t0, delt0
-    real, intent (in) :: fphi, fapar
+    real, intent (in) :: fphi, fapar, fbpar
     integer, intent (in) :: istep0
     integer, intent (out) :: istatus
     logical, intent (in), optional :: exit_in
@@ -136,16 +135,16 @@ contains
     if (.not.initialized) then
 
        initialized = .true.
-       
+
        file_proc = trim(restart_file)
-       
+
 !CMR, 5/4/2011: Add optional piece of filename
        IF (PRESENT(fileopt)) THEN
           file_proc=trim(file_proc)//trim(fileopt)
        END IF
-!CMRend 
+!CMRend
 
-!</HL>  The NETCDF_PARALLEL directives include code for parallel 
+!</HL>  The NETCDF_PARALLEL directives include code for parallel
 !       netcdf using HDF5 to write the output to a single restart file
 !       The read_many flag allows the old style multiple file output
 # ifdef NETCDF_PARALLEL
@@ -160,14 +159,14 @@ contains
 
        file_proc = trim(trim(file_proc)//adjustl(suffix))
 
-# ifdef NETCDF_PARALLEL       
+# ifdef NETCDF_PARALLEL
        if(save_many) then
 # endif
           istatus = nf90_create (file_proc, NF90_CLOBBER, ncid)
 # ifdef NETCDF_PARALLEL
        else
           call barrier
-          
+
           if(iproc .eq. 0) then
              open(unit=tmpunit, file=file_proc)
              close(unit=tmpunit, status='delete')
@@ -201,7 +200,7 @@ contains
           end if
        endif
 # endif
-       
+
        if (n_elements > 0) then
           istatus = nf90_def_dim (ncid, "tube", ntubes, tubeid)
           if (istatus /= NF90_NOERR) then
@@ -230,13 +229,13 @@ contains
              write(ierr,*) "nf90_def_dim mu error: ", nf90_strerror(istatus)
              goto 1
           end if
-   
-# ifdef NETCDF_PARALLEL                              
+
+# ifdef NETCDF_PARALLEL
           if(save_many) then
 # endif
              istatus = nf90_def_dim (ncid, "glo", n_elements, gloid)
-# ifdef NETCDF_PARALLEL                    
-          else        
+# ifdef NETCDF_PARALLEL
+          else
              istatus = nf90_def_dim (ncid, "glo", total_elements, gloid)
           endif
 # endif
@@ -246,12 +245,12 @@ contains
              goto 1
           end if
 
-# ifdef NETCDF_PARALLEL                              
+# ifdef NETCDF_PARALLEL
           if(save_many) then
 # endif
              istatus = nf90_def_dim (ncid, "gvmulo", nvmulo_elements, gvmuloid)
-# ifdef NETCDF_PARALLEL                    
-          else        
+# ifdef NETCDF_PARALLEL
+          else
              istatus = nf90_def_dim (ncid, "gvmulo", total_vmulo_elements, gvmuloid)
           endif
 # endif
@@ -260,14 +259,14 @@ contains
              write(ierr,*) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
              goto 1
           end if
-          
+
           istatus = nf90_def_dim (ncid, "aky", naky, kyid)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
              write(ierr,*) "nf90_def_dim aky error: ", nf90_strerror(istatus)
              goto 1
           end if
-          
+
           istatus = nf90_def_dim (ncid, "akx", nakx, kxid)
           if (istatus /= NF90_NOERR) then
              ierr = error_unit()
@@ -275,7 +274,7 @@ contains
              goto 1
           end if
        end if
-       
+
        if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
 
        istatus = nf90_def_var (ncid, "t0", netcdf_real, t0id)
@@ -291,14 +290,14 @@ contains
           write(ierr,*) "nf90_def_var istep0 error: ", nf90_strerror(istatus)
           goto 1
        end if
-       
+
        istatus = nf90_def_var (ncid, "delt0", netcdf_real, delt0id)
        if (istatus /= NF90_NOERR) then
           ierr = error_unit()
           write(ierr,*) "nf90_def_var delt0 error: ", nf90_strerror(istatus)
           goto 1
        end if
-       
+
        if (n_elements > 0) then
           istatus = nf90_def_var (ncid, "gr", netcdf_real, &
                (/ vpaid, muid, gloid /), gr_id)
@@ -307,7 +306,7 @@ contains
              write(ierr,*) "nf90_def_var g error: ", nf90_strerror(istatus)
              goto 1
           end if
-          
+
           istatus = nf90_def_var (ncid, "gi", netcdf_real, &
                (/ vpaid, muid, gloid /), gi_id)
           if (istatus /= NF90_NOERR) then
@@ -315,7 +314,7 @@ contains
              write(ierr,*) "nf90_def_var g error: ", nf90_strerror(istatus)
              goto 1
           end if
-             
+
           if (fphi > epsilon(0.)) then
              istatus = nf90_def_var (ncid, "phi_r", netcdf_real, &
                   (/ kyid, kxid, zedid, tubeid/), phir_id)
@@ -324,7 +323,7 @@ contains
                 write(ierr,*) "nf90_def_var phi error: ", nf90_strerror(istatus)
                 goto 1
              end if
-             
+
              istatus = nf90_def_var (ncid, "phi_i", netcdf_real, &
                   (/ kyid, kxid, zedid, tubeid /), phii_id)
              if (istatus /= NF90_NOERR) then
@@ -342,12 +341,33 @@ contains
                 write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
                 goto 1
              end if
-             
+
              istatus = nf90_def_var (ncid, "apar_i", netcdf_real, &
                   (/ kyid, kxid, zedid, tubeid /), apari_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
+                goto 1
+             end if
+          end if
+
+          write(*,*) "Maybe write bpar"
+          ! Bob: write bpar info to netcdf
+          if (fbpar > epsilon(0.)) then
+            write(*,*) "try to write bpar"
+             istatus = nf90_def_var (ncid, "bpar_r", netcdf_real, &
+                  (/ kyid, kxid, zedid, tubeid /), bparr_id)
+             if (istatus /= NF90_NOERR) then
+                ierr = error_unit()
+                write(ierr,*) "nf90_def_var bpar error: ", nf90_strerror(istatus)
+                goto 1
+             end if
+
+             istatus = nf90_def_var (ncid, "bpar_i", netcdf_real, &
+                  (/ kyid, kxid, zedid, tubeid /), bpari_id)
+             if (istatus /= NF90_NOERR) then
+                ierr = error_unit()
+                write(ierr,*) "nf90_def_var bpar error: ", nf90_strerror(istatus)
                 goto 1
              end if
           end if
@@ -367,7 +387,7 @@ contains
                 write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
                 goto 1
              end if
-             
+
              istatus = nf90_def_var (ncid, "krooki", netcdf_real, &
                   (/ kxid, tubeid, gvmuloid /), krooki_id)
              if (istatus /= NF90_NOERR) then
@@ -393,7 +413,7 @@ contains
                 write(ierr,*) "nf90_def_var projr error: ", nf90_strerror(istatus)
                 goto 1
              end if
-             
+
              istatus = nf90_def_var (ncid, "proji", netcdf_real, &
                   (/ tubeid, gvmuloid /), proji_id)
              if (istatus /= NF90_NOERR) then
@@ -431,7 +451,7 @@ contains
 !                 goto 1
 !              end if
 !           end if
-          
+
        end if
 
 ! remove allocated conditional because we want to be able to restart
@@ -446,14 +466,14 @@ contains
 !          write(ierr,*) "nf90_def_var kx_shift error: ", nf90_strerror(istatus)
 !          goto 1
 !       endif
-!       endif   ! MR end 
-        
+!       endif   ! MR end
+
 !    if (proc0) then
 !      write (*,*) "Finished definitions"
     !      write (*,*) "List restart files"
     !      call system("echo 'defs' >> filelist.txt; ls nc/* >> filelist.txt;  ")
 !    end if
-       
+
        istatus = nf90_enddef (ncid)
        if (istatus /= NF90_NOERR) then
           ierr = error_unit()
@@ -467,7 +487,7 @@ contains
     !!!-----------------------!!!
     !!!-----------------------!!!
 
-# ifdef NETCDF_PARALLEL                    
+# ifdef NETCDF_PARALLEL
     if(save_many .or. iproc == 0) then
 # endif
 
@@ -477,7 +497,7 @@ contains
           write (ierr,*) "nf90_put_var delt0 error: ", nf90_strerror(istatus)
           goto 1
        end if
- 
+
        istatus = nf90_put_var (ncid, t0id, t0)
        if (istatus /= NF90_NOERR) then
           ierr = error_unit()
@@ -507,7 +527,7 @@ contains
 
        if (.not. allocated(tmpr)) &
             allocate (tmpr(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-       
+
        tmpr = real(g)
 
 # ifdef NETCDF_PARALLEL
@@ -524,10 +544,10 @@ contains
 
           istatus = nf90_put_var (ncid, gr_id, tmpr, start=start_pos, count=counts)
        endif
-# endif     
-       
+# endif
+
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, gr_id)
-       
+
        tmpr = aimag(g)
 # ifdef NETCDF_PARALLEL
        if(save_many) then
@@ -537,22 +557,22 @@ contains
        else
           istatus = nf90_put_var (ncid, gi_id, tmpr, start=start_pos, count=counts)
        endif
-# endif     
+# endif
 
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, gi_id)
-          
-# ifdef NETCDF_PARALLEL                    
+
+# ifdef NETCDF_PARALLEL
        if(save_many .or. iproc == 0) then
 # endif
 
           if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1,ntubes))
           if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1,ntubes))
-          
+
           if (fphi > epsilon(0.)) then
              ftmpr = real(phi)
              istatus = nf90_put_var (ncid, phir_id, ftmpr)
              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phir_id)
-             
+
              ftmpi = aimag(phi)
              istatus = nf90_put_var (ncid, phii_id, ftmpi)
              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phii_id)
@@ -562,17 +582,19 @@ contains
              ftmpr = real(apar)
              istatus = nf90_put_var (ncid, aparr_id, ftmpr)
              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, aparr_id)
-             
+
              ftmpi = aimag(apar)
              istatus = nf90_put_var (ncid, apari_id, ftmpi)
              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, apari_id)
           end if
 
+          !!! Bob: Consider bpar
+
 !           if (fbpar > epsilon(0.)) then
 !              ftmpr = real(bparnew)
 !              istatus = nf90_put_var (ncid, bparr_id, ftmpr)
 !              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bparr_id)
-             
+
 !              ftmpi = aimag(bparnew)
 !              istatus = nf90_put_var (ncid, bpari_id, ftmpi)
 !              if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bpari_id)
@@ -588,7 +610,7 @@ contains
          if (.not. allocated(ktmpi)) &
            allocate (ktmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-# ifdef NETCDF_PARALLEL                    
+# ifdef NETCDF_PARALLEL
          if(save_many .or. iproc == 0) then
 # endif
 
@@ -605,7 +627,7 @@ contains
 
          ktmpr = real(g_krook)
          ktmpi = aimag(g_krook)
-         
+
 # ifdef NETCDF_PARALLEL
          if(save_many) then
 # endif
@@ -620,7 +642,7 @@ contains
 
            istatus = nf90_put_var (ncid, krookr_id, ktmpr, start=start_pos, count=counts)
          endif
-# endif     
+# endif
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, krookr_id)
 
 
@@ -633,9 +655,9 @@ contains
          else
            istatus = nf90_put_var (ncid, krooki_id, ktmpi, start=start_pos, count=counts)
          endif
-# endif     
+# endif
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, krooki_id)
-       
+
        end if
 
        if (remove_zero_projection) then
@@ -644,7 +666,7 @@ contains
          if (.not. allocated(ptmpi)) &
            allocate (ptmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-# ifdef NETCDF_PARALLEL                    
+# ifdef NETCDF_PARALLEL
          if(save_many .or. iproc == 0) then
 # endif
 
@@ -661,7 +683,7 @@ contains
 
          ptmpr = real(g_proj)
          ptmpi = aimag(g_proj)
-         
+
 # ifdef NETCDF_PARALLEL
          if(save_many) then
 # endif
@@ -676,7 +698,7 @@ contains
 
            istatus = nf90_put_var (ncid, projr_id, ptmpr, start=start_pos, count=counts)
          endif
-# endif     
+# endif
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, projr_id)
 
 # ifdef NETCDF_PARALLEL
@@ -687,9 +709,9 @@ contains
          else
            istatus = nf90_put_var (ncid, proji_id, ptmpi, start=start_pos, count=counts)
          endif
-# endif     
+# endif
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, proji_id)
-       
+
        end if
 
        if (prp_shear_enabled) then
@@ -697,7 +719,7 @@ contains
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, shift_id)
        end if
     end if
-       
+
     if (exit) then
        i = nf90_close (ncid)
        if (i /= NF90_NOERR) &
@@ -734,7 +756,7 @@ contains
 !!----------------------------------------------------------------------!!
 !!----------------------------------------------------------------------!!
 
-  subroutine stella_restore_many (g, scale, istatus, fphi, fapar)
+  subroutine stella_restore_many (g, scale, istatus, fphi, fapar) ! Bob: Consider bpar
 # ifdef NETCDF
     use mp, only: iproc
     use fields_arrays, only: phi, apar, shift_state
@@ -764,11 +786,11 @@ contains
     character (10) :: suffix
     integer :: i, n_elements, nvmulo_elements, ierr
     real :: fac
-    
+
     n_elements = kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1
     nvmulo_elements = vmu_lo%ulim_proc-vmu_lo%llim_proc+1
     if (n_elements <= 0) return
-    
+
     if (.not.initialized) then
 !       initialized = .true.
        file_proc = trim(restart_file)
@@ -777,7 +799,7 @@ contains
        if(read_many) then
 # endif
           write (suffix,'(a1,i0)') '.', iproc
-          file_proc = trim(trim(file_proc)//adjustl(suffix))       
+          file_proc = trim(trim(file_proc)//adjustl(suffix))
           istatus = nf90_open (file_proc, NF90_NOWRITE, ncid)
 # ifdef NETCDF_PARALLEL
        else
@@ -787,7 +809,7 @@ contains
 # endif
 
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, file=file_proc)
-       
+
        ! check precision
        if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
        call check_netcdf_file_precision (ncid)
@@ -797,19 +819,19 @@ contains
 
        istatus = nf90_inq_dimid (ncid, "zed", zedid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='zed')
-       
+
        istatus = nf90_inq_dimid (ncid, "aky", kyid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='aky')
-       
+
        istatus = nf90_inq_dimid (ncid, "akx", kxid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='akx')
-       
+
        istatus = nf90_inq_dimid (ncid, "glo", gloid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='glo')
 
        istatus = nf90_inq_dimid (ncid, "gvmulo", gvmuloid)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, dim='gvmulo')
-              
+
        istatus = nf90_inquire_dimension (ncid, tubeid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=tubeid)
        if (i /= ntubes) write(*,*) 'Restart error: ntubes=? ',i,' : ',ntubes,' : ',iproc
@@ -821,14 +843,14 @@ contains
        istatus = nf90_inquire_dimension (ncid, kyid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=kyid)
        if (i /= naky) write(*,*) 'Restart error: naky=? ',i,' : ',naky,' : ',iproc
-       
+
        istatus = nf90_inquire_dimension (ncid, kxid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=kxid)
        if (i /= nakx) write(*,*) 'Restart error: nakx=? ',i,' : ',nakx,' : ',iproc
-       
+
        istatus = nf90_inquire_dimension (ncid, gloid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=gloid)
-#ifdef NETCDF_PARALLEL       
+#ifdef NETCDF_PARALLEL
        if(read_many) then
 #endif
           if (i /= kxkyz_lo%ulim_proc-kxkyz_lo%llim_proc+1) write(*,*) 'Restart error: glo=? ',i,' : ',iproc
@@ -839,7 +861,7 @@ contains
 #endif
        istatus = nf90_inquire_dimension (ncid, gvmuloid, len=i)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, dimid=gvmuloid)
-#ifdef NETCDF_PARALLEL       
+#ifdef NETCDF_PARALLEL
        if(read_many) then
 #endif
           if (i /= vmu_lo%ulim_proc-vmu_lo%llim_proc+1) write(*,*) 'Restart error: gvmulo=? ',i,' : ',iproc
@@ -848,11 +870,11 @@ contains
           if (i /= vmu_lo%ulim_world+1) write(*,*) 'Restart error: gvmulo=? ',i,' : ',iproc
        endif
 #endif
-       
+
        if (fphi > epsilon(0.)) then
           istatus = nf90_inq_varid (ncid, "phi_r", phir_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='phi_r')
-          
+
           istatus = nf90_inq_varid (ncid, "phi_i", phii_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='phi_i')
        end if
@@ -860,7 +882,7 @@ contains
        if (fapar > epsilon(0.)) then
           istatus = nf90_inq_varid (ncid, "apar_r", aparr_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='apar_r')
-          
+
           istatus = nf90_inq_varid (ncid, "apar_i", apari_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='apar_i')
        end if
@@ -871,7 +893,7 @@ contains
 
           istatus = nf90_inq_varid (ncid, "krookr", krookr_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='krookr')
-          
+
           istatus = nf90_inq_varid (ncid, "krooki", krooki_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='krooki')
 
@@ -883,7 +905,7 @@ contains
 
           istatus = nf90_inq_varid (ncid, "projr", projr_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='projr')
-          
+
           istatus = nf90_inq_varid (ncid, "proji", proji_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='proji')
        endif
@@ -908,11 +930,11 @@ contains
 
        istatus = nf90_inq_varid (ncid, "gr", gr_id)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='gr')
-       
+
        istatus = nf90_inq_varid (ncid, "gi", gi_id)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='gi')
     end if
-    
+
     if (.not. allocated(tmpr)) &
          allocate (tmpr(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     if (.not. allocated(tmpi)) &
@@ -946,12 +968,12 @@ contains
     if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, gi_id)
 
     g = cmplx(tmpr, tmpi)
-    
+
     if (.not. allocated(ftmpr)) allocate (ftmpr(naky,nakx,2*nzgrid+1,ntubes))
     if (.not. allocated(ftmpi)) allocate (ftmpi(naky,nakx,2*nzgrid+1,ntubes))
 
 !    if (allocated(kx_shift)) then   ! MR begin
-!       if (.not. allocated(stmp)) allocate (stmp(naky))   ! MR 
+!       if (.not. allocated(stmp)) allocate (stmp(naky))   ! MR
 !       istatus = nf90_get_var (ncid, kx_shift_id, stmp)
 !       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, kx_shift_id)
 !       kx_shift = stmp
@@ -960,20 +982,20 @@ contains
     if (fphi > epsilon(0.)) then
        istatus = nf90_get_var (ncid, phir_id, ftmpr)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phir_id)
-       
+
        istatus = nf90_get_var (ncid, phii_id, ftmpi)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phii_id)
-       
+
        phi = cmplx(ftmpr, ftmpi)
     end if
 
     if (fapar > epsilon(0.)) then
        istatus = nf90_get_var (ncid, aparr_id, ftmpr)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, aparr_id)
-       
+
        istatus = nf90_get_var (ncid, apari_id, ftmpi)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, apari_id)
-       
+
        apar = cmplx(ftmpr, ftmpi)
     end if
 
@@ -1014,7 +1036,7 @@ contains
       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, krooki_id)
 
       g_krook = cmplx(ktmpr, ktmpi)
-      
+
     endif
 
     if(remove_zero_projection) then
@@ -1054,7 +1076,7 @@ contains
       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, proji_id)
 
       g_proj = cmplx(ptmpr, ptmpi)
-      
+
     endif
 
     if(prp_shear_enabled) then
@@ -1066,10 +1088,10 @@ contains
 !     if (fbpar > epsilon(0.)) then
 !        istatus = nf90_get_var (ncid, bparr_id, ftmpr)
 !        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bparr_id)
-       
+
 !        istatus = nf90_get_var (ncid, bpari_id, ftmpi)
 !        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, bpari_id)
-       
+
 !        bparold = 0.
 !        bparnew = cmplx(ftmpr, ftmpi)
 !     end if
@@ -1097,7 +1119,7 @@ contains
     end if
 
 # else
-    
+
     write (error_unit(),*) &
          'ERROR: stella_restore_many is called without netcdf'
 
@@ -1118,7 +1140,7 @@ contains
   subroutine init_save (file)
 
     character(300), intent (in) :: file
-    
+
     restart_file = file
 
   end subroutine init_save
@@ -1144,7 +1166,7 @@ contains
 # endif
              file_proc=trim(trim(restart_file)//'.0')
 # ifdef NETCDF_PARALLEL
-          else 
+          else
              file_proc=trim(trim(restart_file))
           end if
 # endif
@@ -1161,7 +1183,7 @@ contains
        if (istatus /= NF90_NOERR) then
           call netcdf_error (istatus, ncid, delt0id, message=' in init_dt')
           delt0 = -1.
-       endif           
+       endif
 
        if (.not.initialized) istatus = nf90_close (ncid)
     endif
@@ -1192,7 +1214,7 @@ contains
 # endif
           file_proc=trim(trim(restart_file)//'.0')
 # ifdef NETCDF_PARALLEL
-       else 
+       else
           file_proc=trim(trim(restart_file))
        end if
 # endif
@@ -1210,7 +1232,7 @@ contains
        if (istatus /= NF90_NOERR) then
           call netcdf_error (istatus, ncid, t0id, message=' in init_tstart')
           tstart = -1.
-       end if           
+       end if
 
        istatus = nf90_inq_varid (ncid, "istep0", istep0id)
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='istep0')
@@ -1219,10 +1241,10 @@ contains
        if (istatus /= NF90_NOERR) then
           call netcdf_error (istatus, ncid, istep0id, message=' in init_tstart')
           istep0 = -1
-       end if           
+       end if
 
        if (.not.initialized) istatus = nf90_close (ncid)
-          
+
     endif
 
     call broadcast (istatus)
@@ -1234,7 +1256,7 @@ contains
   end subroutine init_tstart
 
   subroutine finish_save
-    
+
     if (allocated(tmpr))  deallocate (tmpr)
     if (allocated(tmpi))  deallocate (tmpi)
     if (allocated(ftmpr)) deallocate (ftmpr)

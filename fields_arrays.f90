@@ -4,7 +4,7 @@ module fields_arrays
 
   implicit none
 
-  complex, dimension (:,:,:,:), allocatable :: phi, apar, phi_old
+  complex, dimension (:,:,:,:), allocatable :: phi, apar, bpar, phi_old
   ! (naky, nakx, -nzgrid:nzgrid, ntubes)
 
   ! radial corrections to phi and apar from quasineutrality/whatever controls apar
@@ -21,8 +21,9 @@ module fields_arrays
 
   real, dimension (:), allocatable :: shift_state
 
-  real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr
-  !real :: gamtot_h, gamtot3_h, efac, efacp
+  real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr, gamtot13, gamtot31, gamtot33 !, gamone
+
+  real :: gamtot_h, gamtot3_h, efac, efacp
 
   type (eigen_type), dimension (:,:), allocatable :: phi_solve
   type (eigen_type) :: phizf_solve

@@ -54,7 +54,7 @@ contains
     implicit none
 
     integer :: iv, imu, is, ivmu, ia
-    
+
     real, dimension (:), allocatable :: energy
 
     if (parallel_streaming_initialized) return
@@ -76,10 +76,10 @@ contains
     if(radial_variation) then
       allocate (energy(-nzgrid:nzgrid))
 
-      if(.not.allocated(stream_rad_var1)) then 
+      if(.not.allocated(stream_rad_var1)) then
         allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
       endif
-      if(.not.allocated(stream_rad_var2)) then 
+      if(.not.allocated(stream_rad_var2)) then
         allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       endif
       ia=1
@@ -92,7 +92,7 @@ contains
         energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
         stream_rad_var2(ia,:,ivmu) = &
                 +code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
-                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
+                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) &
                 *(  pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
                   + gfac*2*mu(imu)*dBdrho)
       enddo
@@ -247,7 +247,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    !the next input/output is for quasineutrality and gyroaveraging corrections 
+    !the next input/output is for quasineutrality and gyroaveraging corrections
     !that go directly in the RHS (since they don't require further FFTs)
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: rhs
 
@@ -287,7 +287,7 @@ contains
          do iz = -nzgrid,nzgrid
 
     !!#1 - variation in gradpar
-           g0k = g0(:,:,iz,it) & 
+           g0k = g0(:,:,iz,it) &
                + g1(:,:,iz,it)*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
 
            g0k = g0k*stream_rad_var1(iz,iv,is)
@@ -454,7 +454,7 @@ contains
 
   end subroutine add_stream_term
 
-  subroutine advance_parallel_streaming_implicit (g, phi, apar)
+  subroutine advance_parallel_streaming_implicit (g, phi, apar, bpar)
 
     use mp, only: proc0
     use job_manage, only: time_message
@@ -468,7 +468,7 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar, bpar
 
     integer :: ivmu, iv
     complex, dimension (:,:,:,:), allocatable :: phi1
@@ -485,8 +485,8 @@ contains
        iv = iv_idx(vmu_lo,ivmu)
 
        ! obtain RHS of inhomogeneous GK eqn;
-       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1} 
-       ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
+       ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
        ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
        call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='inhomogeneous')
 
@@ -503,7 +503,7 @@ contains
 
     ! we now have g_{inh}^{n+1}
     ! calculate associated fields (phi_{inh}^{n+1})
-    call advance_fields (g, phi, apar, dist='gbar')
+    call advance_fields (g, phi, apar, bpar, dist='gbar')
 
     ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
     ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
@@ -511,14 +511,14 @@ contains
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
-    
+
        ! now have phi^{n+1} for non-negative kx
-       ! obtain RHS of GK eqn; 
-       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
-       ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+       ! obtain RHS of GK eqn;
+       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
+       ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
        ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
        call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='full')
-    
+
        if (stream_matrix_inversion) then
           ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
           ! g = RHS is input and overwritten by g = g^{n+1}
@@ -582,9 +582,9 @@ contains
     end if
 
     ! now have phi^{n+1} for non-negative kx
-    ! obtain RHS of GK eqn; 
-    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} 
-    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n} 
+    ! obtain RHS of GK eqn;
+    ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
+    ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
     ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
     iv = iv_idx(vmu_lo,ivmu)
     imu = imu_idx(vmu_lo,ivmu)
@@ -598,7 +598,7 @@ contains
     allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
     ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
     field = tupwnd1*phiold+tupwnd2*phi
-    ! set g to be phi or <phi> depending on whether parallel streaming is 
+    ! set g to be phi or <phi> depending on whether parallel streaming is
     ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
     if (driftkinetic_implicit) then
        g = field
@@ -709,7 +709,7 @@ contains
           end do
        end if
     end do
-    
+
   end subroutine invert_parstream
 
   subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
@@ -787,7 +787,7 @@ contains
 
     integer, intent (in) :: ivmu
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
-    
+
     integer :: iv, is
     integer :: iky, ie, it
     integer :: ulim, sgn
@@ -878,7 +878,7 @@ contains
   end subroutine sweep_zed_zonal
 
   subroutine invert_parstream_response (phi)
- 
+
     use linear_solve, only: lu_back_substitution
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: neigen
@@ -897,7 +897,7 @@ contains
     integer :: iky, ie, it, ulim
     integer :: ikx
     complex, dimension (:), allocatable :: gext
-    
+
     ! need to put the fields into extended zed grid
     do iky = 1, naky
        ! avoid double counting of periodic endpoints for zonal modes
@@ -924,7 +924,7 @@ contains
           end do
        end if
     end do
-    
+
   end subroutine invert_parstream_response
 
   subroutine get_dzed (iv, g, dgdz)
@@ -993,7 +993,7 @@ contains
              do iseg = 1, nsegments(ie,iky)
                 ! first fill in ghost zones at boundaries in g(z)
                 call fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
-                ! get cell centres values 
+                ! get cell centres values
                 call cell_centres_zed (iz_low(iseg), &
                      g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
                      zed_upwind, stream_sign(iv), gleft(2), gright(1), &
@@ -1046,9 +1046,9 @@ contains
   end subroutine finish_parallel_streaming
 
   subroutine finish_invert_stream_operator
-    
+
     implicit none
-    
+
     if (allocated(stream_tri_a1)) then
        deallocate (stream_tri_a1)
        deallocate (stream_tri_a2)
@@ -1057,7 +1057,7 @@ contains
        deallocate (stream_tri_c1)
        deallocate (stream_tri_c2)
     end if
-    
+
   end subroutine finish_invert_stream_operator
 
 end module parallel_streaming

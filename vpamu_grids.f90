@@ -16,7 +16,7 @@ module vpamu_grids
   public :: set_vpa_weights
 
   logical :: vpamu_initialized = .false.
-  
+
   integer :: nvgrid, nvpa
   integer :: nmu
   real :: vpa_max, vperp_max
@@ -125,8 +125,9 @@ contains
 
     implicit none
 
-    integer :: iv, idx, iseg, nvpa_seg
+    integer :: iv, idx, iseg, nvpa_seg, is
     real :: del
+    real, dimension(:), allocatable :: integ_tot
 
     if (.not. allocated(vpa)) then
        ! vpa is the parallel velocity at grid points
@@ -138,6 +139,7 @@ contains
        ! this is the Maxwellian in vpa
        allocate (maxwell_vpa(nvpa,nspec)) ; maxwell_vpa = 0.0
        allocate (ztmax(nvpa,nspec)) ; ztmax = 0.0
+       allocate (integ_tot(nspec)) ; integ_tot = 0.0
     end if
 
     ! velocity grid goes from -vpa_max to vpa_max
@@ -158,7 +160,7 @@ contains
     ztmax = spread(spec%zt,1,nvpa)*maxwell_vpa
 
     ! get integration weights corresponding to vpa grid points
-    ! for now use Simpson's rule; 
+    ! for now use Simpson's rule;
     ! i.e. subdivide grid into 3-point segments, with each segment spanning vpa_low to vpa_up
     ! then the contribution of each segment to the integral is
     ! (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
@@ -201,6 +203,14 @@ contains
     wgts_vpa = 0.5*wgts_vpa
 
     wgts_vpa_default = wgts_vpa
+
+    do is = 1, nspec
+      do iv = 1, nvpa
+        integ_tot(is) = integ_tot(is) + wgts_vpa(iv) * maxwell_vpa(iv, is)
+      end do
+    end do
+
+    write(*,*) "integ_tot = ", integ_tot
 
   end subroutine init_vpa_grid
 
@@ -257,7 +267,7 @@ contains
     integer :: is, imu, iv, ivmu, ia
 
     total = 0.
-    
+
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
@@ -281,7 +291,7 @@ contains
     integer :: iv, imu, ia
 
     total = 0.
-    
+
     ia = 1
     do imu = 1, nmu
        do iv = 1, nvpa
@@ -302,7 +312,7 @@ contains
     integer :: iv, imu, ia
 
     total = 0.
-    
+
     ia = 1
     do imu = 1, nmu
        do iv = 1, nvpa
@@ -473,7 +483,7 @@ contains
     integer, intent (in), optional :: ia_in
 
     total = 0.
-    
+
     if (present(ia_in)) then
        ia = ia_in
     else
@@ -509,7 +519,7 @@ contains
     integer, intent (in), optional :: ia_in
 
     total = 0.
-    
+
     if (present(ia_in)) then
        ia = ia_in
     else
@@ -616,7 +626,7 @@ contains
     use kt_grids, only: nalpha
     use species, only: spec, nspec
     use stella_geometry, only: bmag, bmag_psi0
-    
+
     implicit none
 
     integer :: imu
@@ -653,20 +663,20 @@ contains
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
        call get_laguerre_grids (mu, wgts_mu_tmp)
        wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
-    
+
        !    mu = mu/(2.*bmag(1,0))
        mu = mu/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
 
        dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
-       ! leave dmu(nmu) uninitialized. should never be used, so want 
+       ! leave dmu(nmu) uninitialized. should never be used, so want
        ! valgrind or similar to return error if it is
     end if
 
     ! this is the mu part of the v-space Maxwellian
     maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu),4,nspec) &
                        *spread(spread(spread(spec%temp_psi0/spec%temp,1,nalpha),2,nztot),3,nmu))
-       
-    ! factor of 2./sqrt(pi) necessary to account for 2pi from 
+
+    ! factor of 2./sqrt(pi) necessary to account for 2pi from
     ! integration over gyro-angle and 1/pi^(3/2) normalization
     ! of velocity space Jacobian
     wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
@@ -690,7 +700,7 @@ contains
   subroutine finish_vpamu_grids
 
     implicit none
-    
+
     call finish_vpa_grid
     call finish_mu_grid
 

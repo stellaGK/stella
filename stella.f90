@@ -2,7 +2,7 @@ program stella
 
   use redistribute, only: scatter
   use job_manage, only: time_message, checkstop, job_fork
-  use run_parameters, only: nstep, fphi, fapar
+  use run_parameters, only: nstep, fphi, fapar, fbpar
   use stella_time, only: update_time, code_time, code_dt
   use dist_redistribute, only: kxkyz2vmu
   use time_advance, only: advance_stella
@@ -36,7 +36,7 @@ program stella
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, fbpar)
      end if
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
@@ -85,7 +85,7 @@ contains
     use stella_time, only: init_tstart, init_delt
     use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, bpar
     use dist_fn_arrays, only: gnew
     use dist_fn, only: init_gxyz, init_dist_fn
     use time_advance, only: init_time_advance
@@ -189,14 +189,14 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids
-    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
+    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity &
     !    .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
     !    runtype_option_switch.eq.runtype_multibox) then
     needs_transforms = .false.
     if(nonlinear.or.include_parallel_nonlinearity) needs_transforms = .true.
     if(radial_variation.or.full_flux_surface)      needs_transforms = .true.
     if(runtype_option_switch.eq.runtype_multibox)  needs_transforms = .true.
-    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) & 
+    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) &
       needs_transforms = .true.
     if (needs_transforms) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
@@ -244,7 +244,7 @@ contains
     if (.not.restarted) then
        if (debug) write (6,*) 'stella::init_stella::get_fields'
        ! get initial field from initial distribution function
-       call advance_fields (gnew, phi, apar, dist='gbar')
+       call advance_fields (gnew, phi, apar, bpar, dist='gbar')
     end if
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
@@ -252,7 +252,7 @@ contains
       call multibox_communicate (gnew)
       if(job.eq.1) then
         fields_updated=.false.
-        call advance_fields (gnew, phi, apar, dist='gbar')
+        call advance_fields (gnew, phi, apar, bpar, dist='gbar')
       endif
     endif
 

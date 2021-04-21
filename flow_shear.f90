@@ -51,12 +51,12 @@ contains
     flow_shear_initialized = .true.
 
     if(abs(g_exb*g_exbfac) > epsilon(0.)) prp_shear_enabled = .true.
-    if(runtype_option_switch .eq. runtype_multibox .and. job.eq.1) then 
+    if(runtype_option_switch .eq. runtype_multibox .and. job.eq.1) then
       hammett_flow_shear = .false.
     endif
 
 
-    if(runtype_option_switch .eq. runtype_multibox) then 
+    if(runtype_option_switch .eq. runtype_multibox) then
       call scope(crossdomprocs)
       if(job == 1) then
         call send(g_exbfac*g_exb*x(1) ,0,120)
@@ -92,7 +92,7 @@ contains
       do iz = -nzgrid,nzgrid
         prl_shear(ia,iz,ivmu) = -omprimfac*g_exb*code_dt*vpa(iv)*spec(is)%stm_psi0 &
                * dydalpha*drhodpsi  &
-               *(geo_surf%qinp_psi0/geo_surf%rhoc_psi0)  & 
+               *(geo_surf%qinp_psi0/geo_surf%rhoc_psi0)  &
                *(btor(iz)*rmajor(iz)/bmag(ia,iz))*(spec(is)%mass/spec(is)%temp) &
                * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
       enddo
@@ -111,11 +111,11 @@ contains
 
     !perpendicular flow shear
 
-    if (.not.allocated(shift_times)) allocate (shift_times(naky)) 
+    if (.not.allocated(shift_times)) allocate (shift_times(naky))
     if (.not.allocated(upwind_advect)) allocate (upwind_advect(naky,nakx))
 
     if (.not.allocated(shift_state)) then
-      allocate (shift_state(naky)) 
+      allocate (shift_state(naky))
       shift_state = 0.
     endif
 
@@ -142,12 +142,12 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky
     use fields, only: get_dchidy
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, bpar
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
-    
+
 
     complex, dimension (:,:), allocatable :: g0k
 
@@ -160,8 +160,8 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
-          call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-            
+          call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
+
           !parallel flow shear
           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k
 
@@ -235,7 +235,7 @@ contains
 
             call transform_kx2x_unpadded (g0k, g0x)
             g0x = upwind_advect*g0x
-         
+
             call transform_x2kx_unpadded (g0x, g0k)
 
             do iky = 1, naky
@@ -265,7 +265,7 @@ contains
     shift_state = shift_state + code_dt
     if(zonal_mode(1)) shift_state(1) = 0.
 
-    if(runtype_option_switch .eq. runtype_multibox) then 
+    if(runtype_option_switch .eq. runtype_multibox) then
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
