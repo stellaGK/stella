@@ -11,7 +11,7 @@ basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/T1/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/rho_scan2/r0.001/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/rhoscan_hr/0.002/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/0.001d/'
-basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001d_aht/'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001d_per/'
 #basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001t_2/'
 right_file  = basedir + 'left.out.nc'
 center_file = basedir + 'center.out.nc'
@@ -89,7 +89,6 @@ fac[0] = 1
 jacobl  = np.copy(  left_nc.variables['jacob'][:])
 jacobc  = np.copy(center_nc.variables['jacob'][:])
 jacobr  = np.copy( right_nc.variables['jacob'][:])
-# nalpha nzed
 
 print('1')
 
@@ -124,32 +123,6 @@ qfluxr  = np.copy( right_nc.variables['qflux_x'][:])
 
 print('3')
 
-densl_xky = mom_vs_t_to_x(left_nc,'density',naky,nakxc)
-uparl_xky = mom_vs_t_to_x(left_nc,'upar',naky,nakxc)
-templ_xky = mom_vs_t_to_x(left_nc,'temperature',naky,nakxc)
-densc_xky = mom_vs_t_to_x(center_nc,'density',naky,nakxc)
-uparc_xky = mom_vs_t_to_x(center_nc,'upar',naky,nakxc)
-tempc_xky = mom_vs_t_to_x(center_nc,'temperature',naky,nakxc)
-densr_xky = mom_vs_t_to_x(right_nc,'density',naky,nakxc)
-uparr_xky = mom_vs_t_to_x(right_nc,'upar',naky,nakxc)
-tempr_xky = mom_vs_t_to_x(right_nc,'temperature',naky,nakxc)
-
-
-dens_zf = np.real(np.sum(dobc[:,:,0]*densc_xky[:,:,:,0],1))
-upar_zf = np.real(np.sum(dobc[:,:,0]*uparc_xky[:,:,:,0],1))
-temp_zf = np.real(np.sum(dobc[:,:,0]*tempc_xky[:,:,:,0],1))
-densl_zf = np.real(np.sum(dobl[:,:,0]*densl_xky[:,:,:,0],1))
-uparl_zf = np.real(np.sum(dobl[:,:,0]*uparl_xky[:,:,:,0],1))
-templ_zf = np.real(np.sum(dobl[:,:,0]*templ_xky[:,:,:,0],1))
-densr_zf = np.real(np.sum(dobr[:,:,0]*densr_xky[:,:,:,0],1))
-uparr_zf = np.real(np.sum(dobr[:,:,0]*uparr_xky[:,:,:,0],1))
-tempr_zf = np.real(np.sum(dobr[:,:,0]*tempr_xky[:,:,:,0],1))
-
-dens_zero = np.mean(dens_zf,1)
-upar_zero = np.mean(upar_zf,1)
-temp_zero = np.mean(temp_zf,1)
-
-print('4')
 
 cout = open(basedir + 'left.fluxes_t','w')
 cout.write('[1] t     ')
@@ -157,9 +130,6 @@ cout.write('[2] x     ')
 cout.write('[3] flux_d')
 cout.write('[4] flux_u')
 cout.write('[5] flux_t')
-cout.write('[6] dens  ')
-cout.write('[7] upar  ')
-cout.write('[8] temp  ')
 cout.write('\n')
 print('5')
 for i in range (0, nt):
@@ -169,9 +139,6 @@ for i in range (0, nt):
     cout.write('%e ' % pfluxl[i,0,j])
     cout.write('%e ' % vfluxl[i,0,j])
     cout.write('%e ' % qfluxl[i,0,j])
-    cout.write('%e ' % densl_zf[i,j])
-    cout.write('%e ' % uparl_zf[i,j])
-    cout.write('%e ' % templ_zf[i,j])
     cout.write('\n')
   cout.write('\n')
 cout.close()
@@ -184,9 +151,6 @@ cout.write('[4] r     ')
 cout.write('[5] flux_d')
 cout.write('[6] flux_u')
 cout.write('[7] flux_t')
-cout.write('[8] dens ')
-cout.write('[9] upar ')
-cout.write('[10] temp')
 cout.write('\n')
 print('6')
 for i in range (0, nt):
@@ -198,9 +162,6 @@ for i in range (0, nt):
     cout.write('%e ' % pfluxc[i,0,j])
     cout.write('%e ' % vfluxc[i,0,j])
     cout.write('%e ' % qfluxc[i,0,j])
-    cout.write('%e ' % dens_zf[i,j])
-    cout.write('%e ' % upar_zf[i,j])
-    cout.write('%e ' % temp_zf[i,j])
     cout.write('\n')
   cout.write('\n')
 cout.close()
@@ -211,9 +172,6 @@ cout.write('[2] x     ')
 cout.write('[3] flux_d')
 cout.write('[4] flux_u')
 cout.write('[5] flux_t')
-cout.write('[6] dens  ')
-cout.write('[7] upar  ')
-cout.write('[8] temp  ')
 cout.write('\n')
 print('7')
 for i in range (0, nt):
@@ -223,9 +181,6 @@ for i in range (0, nt):
     cout.write('%e ' % pfluxr[i,0,j])
     cout.write('%e ' % vfluxr[i,0,j])
     cout.write('%e ' % qfluxr[i,0,j])
-    cout.write('%e ' % densr_zf[i,j])
-    cout.write('%e ' % uparr_zf[i,j])
-    cout.write('%e ' % tempr_zf[i,j])
     cout.write('\n')
   cout.write('\n')
 cout.close()
@@ -247,18 +202,6 @@ qlave = np.mean(qfluxl[tind:nt,0,:],0)
 pcave = np.mean(pfluxc[tind:nt,0,:],0)
 vcave = np.mean(vfluxc[tind:nt,0,:],0)
 qcave = np.mean(qfluxc[tind:nt,0,:],0)
-
-dlave = np.mean(densl_zf[tind:nt,:],0)
-ulave = np.mean(uparl_zf[tind:nt,:],0)
-tlave = np.mean(templ_zf[tind:nt,:],0)
-
-dcave = np.mean(dens_zf[tind:nt,:],0)
-ucave = np.mean(upar_zf[tind:nt,:],0)
-tcave = np.mean(temp_zf[tind:nt,:],0)
-
-drave = np.mean(densr_zf[tind:nt,:],0)
-urave = np.mean(uparr_zf[tind:nt,:],0)
-trave = np.mean(tempr_zf[tind:nt,:],0)
 
 prave = np.mean(pfluxr[tind:nt,0,:],0)
 vrave = np.mean(vfluxr[tind:nt,0,:],0)
@@ -287,9 +230,6 @@ for i in range (0, nakxc):
   cout.write('%e ' % pcave[i])
   cout.write('%e ' % vcave[i])
   cout.write('%e ' % qcave[i])
-  cout.write('%e ' % dcave[i])
-  cout.write('%e ' % ucave[i])
-  cout.write('%e ' % tcave[i])
   cout.write('\n')
 
 cout.close()
@@ -300,9 +240,6 @@ cout.write('[1] x       ')
 cout.write('[2] pflux   ')
 cout.write('[3] vflux   ')
 cout.write('[4] qflux   ')
-cout.write('[5] dens  ')
-cout.write('[7] upar  ')
-cout.write('[8] temp  ')
 cout.write('\n')
 
 for i in range (0, nakxl):
@@ -310,9 +247,6 @@ for i in range (0, nakxl):
   cout.write('%e ' % plave[i])
   cout.write('%e ' % vlave[i])
   cout.write('%e ' % qlave[i])
-  cout.write('%e ' % dlave[i])
-  cout.write('%e ' % ulave[i])
-  cout.write('%e ' % tlave[i])
   cout.write('\n')
 
 cout.close()
@@ -324,9 +258,6 @@ cout.write('[1] x       ')
 cout.write('[2] pflux   ')
 cout.write('[3] vflux   ')
 cout.write('[4] qflux   ')
-cout.write('[5] dens  ')
-cout.write('[7] upar  ')
-cout.write('[8] temp  ')
 cout.write('\n')
 
 for i in range (0, nakxr):
@@ -334,25 +265,6 @@ for i in range (0, nakxr):
   cout.write('%e ' % prave[i])
   cout.write('%e ' % vrave[i])
   cout.write('%e ' % qrave[i])
-  cout.write('%e ' % drave[i])
-  cout.write('%e ' % urave[i])
-  cout.write('%e ' % trave[i])
   cout.write('\n')
 
 cout.close()
-
-cout = open(basedir + 'center.zero_mode','w')
-cout.write('[1] t    ')
-cout.write('[2] dens ')
-cout.write('[3] upar ')
-cout.write('[4] temp ')
-cout.write('\n')
-print('4')
-for i in range (0, nt):
-  cout.write('%e ' % t[i])
-  cout.write('%e ' % dens_zero[i]) 
-  cout.write('%e ' % upar_zero[i])
-  cout.write('%e ' % temp_zero[i]) 
-  cout.write('\n')
-cout.close()
-exit()
