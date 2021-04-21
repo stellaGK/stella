@@ -2449,6 +2449,7 @@ contains
           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
         enddo
         phi(:,:,:,it) = phi(:,:,:,it) / gamtot_drifts
+        if(any(real(gamtot_drifts(1,1,:)).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
 
         if (.not.has_electron_species(spec)) then
           ! no need to do anything extra for ky /= 0 because
