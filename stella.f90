@@ -53,7 +53,7 @@ program stella
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, fbpar)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus)
      end if
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
