@@ -146,8 +146,6 @@ contains
        ydriftknob = 1.0
        wstarknob = 1.0
        flip_flop = .false.
-!       wdrifty_explicit = .true.
-!       wstar_explicit = .true.
 
        in_file = input_unit_exist("time_advance_knobs", taexist)
        if (taexist) read (unit=in_file, nml=time_advance_knobs)
@@ -163,8 +161,6 @@ contains
     call broadcast (ydriftknob)
     call broadcast (wstarknob)
     call broadcast (flip_flop)
-!    call broadcast (wdrifty_explicit)
-!    call broadcast (wstar_explicit)
 
     if (fully_explicit) flip_flop = .false.
 
@@ -431,14 +427,15 @@ contains
             imu = imu_idx(vmu_lo,ivmu)
             is  = is_idx(vmu_lo,ivmu)
 
-            !there terms already contain a factor of code_dt
-            wd_g   = zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
-                       + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
+            !there terms already contain a factor of code_dt as well as 
+            !a negative sign to account for RHS
+            wd_g   = -zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
+                        + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
 
-            wd_phi = zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
-                       + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
+            wd_phi = -zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
+                        + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
   
-            wstr   = zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
+            wstr   = -zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
             g0(:,:,ivmu) = 0.5*(1.0+time_upwind)*aj0x(:,:,iz,ivmu)**2 &
                            *(wd_phi + wstr)/(1.0 + 0.5*(1.0+time_upwind)*wd_g)
@@ -2422,13 +2419,13 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
-          wd_g   = zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
-                     + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
+          wd_g   = -zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
  
-          wd_phi = zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
-                     + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
-  
-          wstr   = zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
+          wd_phi = -zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
+   
+          wstr   = -zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
           g1(:,:,iz,it,ivmu) = (g(:,:,iz,it,ivmu)*(1.0 - 0.5*(1.0 - time_upwind)*wd_g) &
                               - 0.5*(1.0 - time_upwind)*(wd_phi + wstr) &
@@ -2449,7 +2446,7 @@ contains
           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
         enddo
         phi(:,:,:,it) = phi(:,:,:,it) / gamtot_drifts
-        if(any(real(gamtot_drifts(1,1,:)).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
+        if(any(real(gamtot_drifts(1,1,:)).lt.epsilon(0.))) phi(1,1,:,it) = 0.0
 
         if (.not.has_electron_species(spec)) then
           ! no need to do anything extra for ky /= 0 because
@@ -2471,14 +2468,15 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
-          !these terms already contain a factor of code_dt
-          wd_g   = zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
-                     + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
+          !these terms already contain a factor of code_dt and a
+          ! negative sign
+          wd_g   = -zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
  
-          wd_phi = zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
-                     + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
+          wd_phi = -zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
   
-          wstr   = zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
+          wstr   = -zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
           g(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) &
                               - 0.5*(1.0 + time_upwind)*(wd_phi + wstr) &
