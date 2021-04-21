@@ -171,7 +171,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_geometry, only: bmag, dBdrho
     use dist_fn_arrays, only: kperp2, dkperp2dr
-    use kt_grids, only: naky, nakx, nx, multiply_by_rho
+    use kt_grids, only: naky, nakx, multiply_by_rho
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -202,8 +202,6 @@ contains
           do iz = -nzgrid, nzgrid
              field = spec(is)%zt*facphi*phi(:,:,iz,it) &
                   *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
-             call gyro_average (field, iz, ivmu, adjust)
-             g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
              if(radial_variation.and.present(phi_corr)) then
                g0k = field*( -spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
                              -spec(is)%fprim - 2.0*dBdrho(iz)*mu(imu)  &
@@ -217,6 +215,8 @@ contains
                        + phi_corr(:,:,iz,it)*spec(is)%zt*facphi &
                          *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
              endif
+             call gyro_average (field, iz, ivmu, adjust)
+             g(:,:,iz,it,ivmu) = g(:,:,iz,it,ivmu) + adjust
           end do
        end do
     end do

@@ -13,6 +13,7 @@ module fields
   public :: time_field_solve
   public :: fields_updated
   public :: get_dchidy, get_dchidx
+  public :: efac, efacp
 
   private
 
@@ -63,8 +64,8 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: integrate_vmu
     use species, only: spec
-    use kt_grids, only: naky, nakx, akx, nx
-    use kt_grids, only: zonal_mode, rho_d
+    use kt_grids, only: naky, nakx, akx
+    use kt_grids, only: zonal_mode, rho_d_clamped
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use linear_solve, only: lu_decomposition, lu_inverse
@@ -254,7 +255,7 @@ contains
                  g0k(1,ikx) = dgamtotdr(iky,ikx,iz)
 
                  call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = rho_d*g0x(1,:)
+                 g0x(1,:) = rho_d_clamped*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
                  !column row
@@ -285,7 +286,7 @@ contains
                g0k(1,ikx) = 1.0
 
                call transform_kx2x_unpadded (g0k,g0x)
-               g0x(1,:) = (efac + efacp*rho_d)*g0x(1,:)
+               g0x(1,:) = (efac + efacp*rho_d_clamped)*g0x(1,:)
                call transform_x2kx_unpadded(g0x,g0k)
 
                !column row
@@ -304,7 +305,7 @@ contains
                  g0k(1,(1+zm):) = a_inv(:,ikx)
 
                  call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d)*g0x(1,:)
+                 g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
                  a_fsa(:,ikx) = a_fsa(:,ikx) + g0k(1,(1+zm):)
@@ -332,7 +333,7 @@ contains
        deallocate (g0)
     end if
 
-    ! Bob: Calculate gamtot13, gamtot31, gamtot33 
+    ! Bob: Calculate gamtot13, gamtot31, gamtot33
 
 
     ! Bob: gamone needed for calculation of bpar using distribution function g,
@@ -550,13 +551,10 @@ contains
     use gyro_averages, only: aj1v
     use run_parameters, only: fphi, fapar, fbpar
     use physics_parameters, only: beta
-    use physics_flags, only: radial_variation
-    use stella_geometry, only: bmag
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa, mu ! Bob: Need mu to integrate over
     use vpamu_grids, only: integrate_vmu
-    use kt_grids, only: nakx
     use species, only: spec
     use constants, only: pi
     use fields_arrays, only: ! gamone
@@ -753,7 +751,7 @@ contains
 
   subroutine get_fields_vmulo (g, phi, apar, bpar, dist)
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -763,7 +761,8 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
-    use kt_grids, only: nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nakx, naky, multiply_by_rho
+    use run_parameters, only: ky_solve_radial
     use species, only: spec
 
     implicit none
@@ -772,7 +771,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar, bpar
     character (*), intent (in) :: dist
 
-    integer :: ivmu, iz, it, ia, imu, is
+    integer :: ivmu, iz, it, ia, imu, is, iky
     complex, dimension (:,:,:), allocatable :: gyro_g
     complex, dimension (:,:), allocatable :: g0k
 
@@ -793,12 +792,14 @@ contains
              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
              g0k = 0.0
              if(radial_variation) then
-               g0k = gyro_g(:,:,ivmu) &
-                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
-                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                   + dBdrho(iz)/bmag(ia,iz))
+               do iky = 1, min(ky_solve_radial,naky)
+                 g0k(iky,:) = gyro_g(iky,:,ivmu) &
+                     * (-0.5*aj1x(iky,:,iz,ivmu)/aj0x(iky,:,iz,ivmu)*(spec(is)%smz)**2 &
+                     * (kperp2(iky,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                     * (dkperp2dr(iky,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                     + dBdrho(iz)/bmag(ia,iz))
 
+               end do
                !g0k(1,1) = 0.
                call multiply_by_rho(g0k)
 
@@ -807,10 +808,11 @@ contains
              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
 
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
+           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it),reduce_in=.false.)
          end do
        end do
        deallocate (gyro_g)
+       call sum_allreduce(phi)
 
        call get_phi(phi, dist)
 
@@ -929,7 +931,7 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d, zonal_mode
+    use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use linear_solve, only: lu_back_substitution
@@ -1051,7 +1053,7 @@ contains
               do iz = -nzgrid, nzgrid
                 g0k(1,:) = phi(1,:,iz,it)
                 call transform_kx2x_unpadded (g0k,g0x)
-                g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d)*g0x(1,:)
+                g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
                 call transform_x2kx_unpadded(g0x,g0k)
 
                 g_fsa = g_fsa + g0k(1,(1+zm):)
@@ -1107,11 +1109,11 @@ contains
   ! the output, phi,
   subroutine get_radial_correction (g, phi_in, dist)
 
-    use mp, only: proc0, mp_abort
+    use mp, only: proc0, mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
     use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
-    use run_parameters, only: fphi, fapar, ky_solve_radial
+    use run_parameters, only: fphi, ky_solve_radial
     use stella_geometry, only: dl_over_b, bmag, dBdrho
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
@@ -1162,9 +1164,10 @@ contains
 
              call gyro_average (g0k, iz, ivmu, gyro_g(:,:,ivmu))
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
+           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it),reduce_in=.false.)
          end do
        end do
+       call sum_allreduce(phi)
 
 
        if (dist == 'gbar') then

@@ -69,6 +69,9 @@ USE_NAGLIB ?=
 USE_SFINCS ?=
 # Use LAPACK, needed for test particle collisions
 USE_LAPACK ?= on
+# does the compiler support the iso_c_binding features of Fortran? 
+# (needed for local parallel LU decomposition) 
+HAS_ISO_C_BINDING ?= on
 #
 # * Targets:
 #
@@ -93,7 +96,7 @@ export MPIFC	?= mpif90
 #export MPIFC	?= mpifort
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
-F90FLAGS	=
+F90FLAGS	= 
 F90OPTFLAGS	=
 CC		= cc
 #MPICC		?= mpicc-mpich-gcc48
@@ -116,8 +119,6 @@ FFT_INC ?=
 FFT_LIB ?=
 NETCDF_INC ?=
 NETCDF_LIB ?=
-LAPACK_INC ?=
-LAPACK_LIB ?=
 HDF5_INC ?=
 HDF5_LIB ?=
 NAG_LIB ?=
@@ -153,6 +154,9 @@ sinclude Makefile.local
 
 #############################################################################
 
+export F90FLAGS
+export NETCDF_INC
+export NETCDF_LIB
 export UTILS=utils
 export GEO=geo
 export VMEC=$(GEO)/vmec_interface
@@ -174,6 +178,10 @@ endif
 ifndef USE_FFT
 $(warning USE_FFT is off)
 $(warning Be sure that nonlinear run makes no sense)
+endif
+
+ifdef HAS_ISO_C_BINDING
+	CPPFLAGS += -DISO_C_BINDING
 endif
 
 ifdef USE_MPI
@@ -206,9 +214,7 @@ ifdef USE_NETCDF
 	CPPFLAGS += -DNETCDF
 endif
 ifdef USE_LAPACK
-	ifeq ($(LAPACK_LIB),)
-  		LAPACK_LIB = -llapack
-        endif
+        LAPACK_LIB ?= -llapack
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
@@ -256,8 +262,8 @@ endif
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
 		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) \
 		$(LAPACK_LIB)
-F90FLAGS+= $(F90OPTFLAGS) \
-	   $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
+F90FLAGS+= $(F90OPTFLAGS)
+INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
 	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
 CFLAGS += $(COPTFLAGS)
 
@@ -300,7 +306,7 @@ F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 .SUFFIXES: .fpp .f90 .c .o
 
 .f90.o:
-	$(FC) $(F90FLAGS) -c $<
+	$(FC) $(F90FLAGS) $(INC_FLAGS) -c $<
 .fpp.f90:
 	$(CPP) $(CPPFLAGS) $< $@
 .c.o:
@@ -332,7 +338,7 @@ sinclude Makefile.target_$(GK_PROJECT)
 #.PRECIOUS: $(F90FROMFPP)
 
 .INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
-		mp.f90 fft_work.f90
+		mp.f90 fft_work.f90 response_matrix.f90 multibox.f90
 
 ############################################################# MORE DIRECTIVES
 

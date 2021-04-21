@@ -17,6 +17,7 @@ module kt_grids
   public :: swap_kxky, swap_kxky_back
   public :: swap_kxky_ordered, swap_kxky_back_ordered
   public :: multiply_by_rho, centered_in_rho
+  public :: periodic_variation
 
   private
 
@@ -184,8 +185,6 @@ contains
 
     use common_types, only: flux_surface_type
     use zgrid, only: init_zgrid
-    use zgrid, only: shat_zero
-    use physics_flags, only: full_flux_surface
 
     implicit none
 
@@ -210,20 +209,20 @@ contains
 
   subroutine init_kt_grids_box
 
-    use mp, only: mp_abort, job
+    use mp, only: mp_abort
     use common_types, only: flux_surface_type
     use constants, only: pi
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
     use stella_geometry, only: q_as_x, get_x_to_rho, dxdXcoord, drhodpsi
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface, radial_variation
-    use zgrid, only: shat_zero
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use zgrid, only: shat_zero
 
     implicit none
     
     integer :: ikx, iky
-    real :: x_shift, dqdrho
+    real :: x_shift, dqdrho, pfac
 
     box = .true.
 
@@ -318,24 +317,24 @@ contains
     dy = (2*pi*y0)/ny
 
     x_shift = pi*x0
+    pfac = 1.0
+    if (periodic_variation) pfac = 0.5
     if(centered_in_rho) then
       if(q_as_x) then
         dqdrho = geo_surf%shat*geo_surf%qinp/geo_surf%rhoc
         x_shift = pi*x0*(1.0 &
-                - 0.5*rhostar*pi*x0*geo_surf%d2qdr2/(dqdrho**2*dxdXcoord))
+                - 0.5*pfac*rhostar*pi*x0*geo_surf%d2qdr2/(dqdrho**2*dxdXcoord))
       else
         x_shift = pi*x0*(1.0 &
-                - 0.5*rhostar*pi*x0*geo_surf%d2psidr2*drhodpsi**2/dxdXcoord)
+                - 0.5*pfac*rhostar*pi*x0*geo_surf%d2psidr2*drhodpsi**2/dxdXcoord)
       endif
     endif
 
     do ikx = 1, nx
-      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
-        x(ikx) = (ikx-0.5)*dx - x_shift
-      elseif (runtype_option_switch.ne.runtype_multibox.and.radial_variation) then
+      if (radial_variation.or.runtype_option_switch.eq.runtype_multibox) then
         if(periodic_variation) then
-          if(ikx.lt.nx/2) then
-            x(ikx) = (ikx-0.5)*dx - 0.5*x_shift
+          if(ikx.le.nx/2) then
+            x(ikx) = (ikx-1)*dx - 0.5*x_shift
           else
             x(ikx) = x(nx-ikx+1)
           endif
@@ -349,12 +348,10 @@ contains
 
     dx_d = (2*pi*x0)/nakx
     do ikx = 1, nakx
-      if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1) then
-        x_d(ikx) = (ikx-0.5)*dx_d - x_shift
-      elseif(runtype_option_switch.ne.runtype_multibox.and.radial_variation) then
+      if (radial_variation.or.runtype_option_switch.eq.runtype_multibox) then
         if(periodic_variation) then
           if(ikx.le.(nakx+1)/2) then
-            x_d(ikx) = (ikx-0.5)*dx_d - 0.5*x_shift
+            x_d(ikx) = (ikx-1)*dx_d - 0.5*x_shift
           else
             x_d(ikx) = x_d(nakx-ikx+1)
           endif
@@ -745,7 +742,7 @@ contains
   subroutine multiply_by_rho (gin)
 
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-    !use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+!   use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
 
     implicit none
 
@@ -757,6 +754,13 @@ contains
     g0x = spread(rho_d_clamped,1,naky)*g0x
     if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))
     call transform_x2kx_unpadded(g0x,gin)
+
+!   if(.not.allocated(g0x)) allocate(g0x(naky,nx))
+
+!   call transform_kx2x_xfirst(gin,g0x)
+!   g0x = spread(rho_clamped,1,naky)*g0x
+!   if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))
+!   call transform_x2kx_xfirst(g0x,gin)
 
   end subroutine multiply_by_rho
 

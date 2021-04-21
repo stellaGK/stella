@@ -246,30 +246,49 @@ contains
     end do
   end subroutine get_unused_unit
 
+  !==============================================
+  !============= OPEN OUTPUT FILE ===============
+  !==============================================
+  ! Open an output file to write data (replacing or appending any existing)
+  ! The name is [[run_name]] + [[ext]], and set [[unit]] to the
+  ! unit number of that output file.
   subroutine open_output_file (unit, ext, overwrite_in)
-    ! open an output file to write (replacing any existing)
-    ! whose name is [[run_name]] + [[ext]], and set [[unit]] to the 
-    ! unit number of that output file.
+
     implicit none
+
     integer, intent (out) :: unit
     logical, intent (in), optional :: overwrite_in
     logical :: overwrite
     character (*), intent (in) :: ext
     character (500) :: hack
+
+    ! Initiate the optional argument
     if (present (overwrite_in)) then
        overwrite = overwrite_in
     else
        overwrite = .true.
     end if
+
+    ! Get a unit for the output file that is not currently in use
     call get_unused_unit (unit)
+
+    ! Create the name of the output file
     hack=trim(run_name)//ext
+
+    ! If overwrite==True: Create a new output file or replace the existing file
+    ! If overwrite==False: Append data to the already existing output file
     if(overwrite) then
       open (unit=unit, file=trim(hack), status="replace", action="write")
     else 
-      open (unit=unit, file=trim(hack), status="old", action="write", position="append")
+      open (unit=unit, file=trim(hack), status="unknown", action="write", position="append")
     endif
+
   end subroutine open_output_file
 
+  !==============================================
+  !============= CLOSE OUTPUT FILE ==============
+  !==============================================
+  ! Close the output file identified by [[unit]].
   subroutine close_output_file (unit)
     implicit none
     integer, intent (in) :: unit

@@ -78,8 +78,10 @@ contains
 
     allocate (energy(nalpha,-nzgrid:nzgrid))
 
-    if (.not.allocated(prl_shear)) &
+    if (.not.allocated(prl_shear)) then
       allocate (prl_shear(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      prl_shear = 0.0
+    endif
 
     if (radial_variation.and..not.allocated(prl_shear_p)) &
       allocate (prl_shear_p(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -119,7 +121,7 @@ contains
       shift_state = 0.
     endif
 
-    if(nakx.gt.1) then
+    if(nakx.gt.1.and.abs(g_exb*g_exbfac).gt.0) then
       shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
     endif
     if(zonal_mode(1)) shift_times(1) = huge(0.)
@@ -177,12 +179,11 @@ contains
 
     use stella_layouts, only: vmu_lo
     use constants, only: zi
-    use physics_parameters, only: g_exb, g_exbfac
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
     use fields_arrays, only: shift_state
-    use kt_grids, only: aky, nakx, naky, nx, ikx_max, zonal_mode
+    use kt_grids, only: aky, nakx, naky, ikx_max, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use stella_time, only: code_dt
 

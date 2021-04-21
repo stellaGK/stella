@@ -467,7 +467,7 @@ contains
 !   end subroutine integrate_species_vmu
 
   ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single (g, iz, weights, total, ia_in)
+  subroutine integrate_species_vmu_single (g, iz, weights, total, ia_in, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -475,12 +475,14 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     real, dimension (:), intent (in) :: weights
     complex, intent (out) :: total
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
 
     total = 0.
 
@@ -488,6 +490,11 @@ contains
        ia = ia_in
     else
        ia = 1
+    end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
     end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -498,12 +505,12 @@ contains
             wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
     end do
 
-    call sum_allreduce (total)
+    if (reduce) call sum_allreduce (total)
 
   end subroutine integrate_species_vmu_single
 
   ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single_real (g, iz, weights, total, ia_in)
+  subroutine integrate_species_vmu_single_real (g, iz, weights, total, ia_in,reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -511,12 +518,14 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     real, dimension (vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     real, dimension (:), intent (in) :: weights
     real, intent (out) :: total
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
 
     total = 0.
 
@@ -524,6 +533,11 @@ contains
        ia = ia_in
     else
        ia = 1
+    end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
     end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -534,11 +548,11 @@ contains
             wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
     end do
 
-    call sum_allreduce (total)
+    if (reduce) call sum_allreduce (total)
 
   end subroutine integrate_species_vmu_single_real
 
-  subroutine integrate_species_vmu_block_complex (g, iz, weights, pout, ia_in)
+  subroutine integrate_species_vmu_block_complex (g, iz, weights, pout, ia_in, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -546,10 +560,12 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:), intent (out) :: pout
 
@@ -560,6 +576,11 @@ contains
     else
        ia = 1
     end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
+    end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -568,11 +589,11 @@ contains
        pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
     end do
 
-    call sum_allreduce (pout)
+    if (reduce) call sum_allreduce (pout)
 
   end subroutine integrate_species_vmu_block_complex
 
-  subroutine integrate_species_vmu_block_real (g, iz, weights, pout, ia_in)
+  subroutine integrate_species_vmu_block_real (g, iz, weights, pout, ia_in,reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -580,10 +601,12 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     real, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
     real, dimension (:), intent (in) :: weights
     real, dimension (:,:), intent (out) :: pout
 
@@ -594,6 +617,11 @@ contains
     else
        ia = 1
     end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
+    end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -602,7 +630,7 @@ contains
        pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
     end do
 
-    call sum_allreduce (pout)
+    if (reduce) call sum_allreduce (pout)
 
   end subroutine integrate_species_vmu_block_real
 

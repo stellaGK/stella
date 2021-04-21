@@ -202,6 +202,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx,naky, akx, aky, nx,x, x_d, x0
     use kt_grids, only: centered_in_rho, rho_clamped, rho_d_clamped
+    use kt_grids, only: periodic_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
     use job_manage, only: njobs
     use physics_parameters, only: rhostar
@@ -213,7 +214,7 @@ contains
 
     integer :: g_buff_size
     integer :: phi_buff_size
-    integer :: i
+    integer :: i, pfac
 
     real, dimension (:), allocatable :: x_clamped, x_d_clamped, x_mb_clamped
 
@@ -224,7 +225,9 @@ contains
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
-    phi_buff_size = boundary_size*naky*ntubes*(2*nzgrid+1)
+    pfac = 1
+    if (periodic_variation) pfac = 2
+    phi_buff_size = pfac*boundary_size*naky*ntubes*(2*nzgrid+1)
     g_buff_size   = phi_buff_size*(vmu_lo%ulim_alloc-vmu_lo%llim_proc+1)
 
     if (.not.allocated(g_buffer0)) allocate(g_buffer0(g_buff_size))
@@ -234,10 +237,10 @@ contains
     if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
       allocate(fsa_x(nakx)); fsa_x=0.0
     endif
-    if (.not.allocated(copy_mask_left))  allocate(copy_mask_left(boundary_size));  copy_mask_left =1.0
-    if (.not.allocated(copy_mask_right)) allocate(copy_mask_right(boundary_size)); copy_mask_right=1.0
-    if (.not.allocated(krook_mask_left))  allocate(krook_mask_left(boundary_size));  krook_mask_left =0.0
-    if (.not.allocated(krook_mask_right)) allocate(krook_mask_right(boundary_size)); krook_mask_right=0.0
+    if (.not.allocated(copy_mask_left))   allocate(copy_mask_left(pfac*boundary_size));  copy_mask_left =1.0
+    if (.not.allocated(copy_mask_right))  allocate(copy_mask_right(pfac*boundary_size)); copy_mask_right=1.0
+    if (.not.allocated(krook_mask_left))  allocate(krook_mask_left(pfac*boundary_size));  krook_mask_left =0.0
+    if (.not.allocated(krook_mask_right)) allocate(krook_mask_right(pfac*boundary_size)); krook_mask_right=0.0
 
     select case (krook_option_switch)
     case (krook_option_linear)
@@ -260,14 +263,26 @@ contains
       enddo
     end select
 
-    do i = 1, boundary_size
-      copy_mask_left(i)  = copy_mask_right(boundary_size - i + 1)
-      krook_mask_left(i) = krook_mask_right(boundary_size - i + 1)
-    enddo
+    if (periodic_variation) then
+      do i = 1, boundary_size
+        copy_mask_right(i+boundary_size)  = copy_mask_right(boundary_size - i + 1)
+        krook_mask_right(i+boundary_size) = krook_mask_right(boundary_size - i + 1)
+      enddo
+      copy_mask_left  = copy_mask_right
+      krook_mask_left = krook_mask_right
+    else
+      do i = 1, boundary_size
+        copy_mask_left(i)  = copy_mask_right(boundary_size - i + 1)
+        krook_mask_left(i) = krook_mask_right(boundary_size - i + 1)
+      enddo
+    endif
 
     if(.not.allocated(krook_fac)) allocate (krook_fac(naky))
 
-    if(naky>1) krook_fac = (aky/aky(2))**krook_exponent
+    krook_fac = 1.0
+    do i = 2, naky
+      krook_fac(i) = (aky(i)/aky(2))**krook_exponent
+    enddo
 
 #ifdef MPI
     call scope(crossdomprocs)
@@ -283,21 +298,29 @@ contains
         if(q_as_x) then
           dqdrho = geo_surf%shat*geo_surf%qinp/geo_surf%rhoc
           x_shift = pi*x0*(1.0 &
-                  - 0.5*rhostar*pi*x0*geo_surf%d2qdr2/(dqdrho**2*dxdXcoord))
+                  - 0.5*rhostar*pi*x0*geo_surf%d2qdr2/(pfac*dqdrho**2*dxdXcoord))
         else
           x_shift = pi*x0*(1.0 &
-                  - 0.5*rhostar*pi*x0*geo_surf%d2psidr2*drhodpsi**2/dxdXcoord)
+                  - 0.5*rhostar*pi*x0*geo_surf%d2psidr2*drhodpsi**2/(pfac*dxdXcoord))
         endif
       endif
       do i = 1, x_fft_size
-        x_mb(i) = (i-0.5)*dx_mb - x_shift
+        if (periodic_variation) then
+          if (i.le.(x_fft_size/2)) then
+            x_mb(i) = (i-1)*dx_mb - 0.5*x_shift
+          else
+            x_mb(i) = x_mb(x_fft_size-i+1)
+          endif
+        else
+          x_mb(i) = (i-0.5)*dx_mb - x_shift
+        endif
       enddo
       call get_x_to_rho(1, x_mb, rho_mb)
 
       xL = x_mb(boundary_size)
-      xR = x_mb(x_fft_size-boundary_size+1)
+      xR = x_mb(x_fft_size/pfac-boundary_size+1)
       rhoL = rho_mb(boundary_size)
-      rhoR = rho_mb(x_fft_size-boundary_size+1)
+      rhoR = rho_mb(x_fft_size/pfac-boundary_size+1)
 
       allocate(x_clamped(nx))
       allocate(x_d_clamped(nakx))
@@ -328,7 +351,6 @@ contains
           if(x_d_clamped(i) > xR) x_d_clamped(i) = xR
         enddo
       endif
-
 
       call get_x_to_rho(1, x_clamped,    rho_clamped)
       call get_x_to_rho(1, x_d_clamped,  rho_d_clamped)
@@ -414,6 +436,7 @@ contains
 
     use constants, only: zi
     use kt_grids, only: nakx,naky,naky_all, akx, aky, nx,ny,dx,dy, zonal_mode
+    use kt_grids, only: periodic_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
     use fields_arrays, only: phi, phi_corr_QN, shift_state
@@ -429,8 +452,9 @@ contains
 
     implicit none
 
-    integer :: num,ia, ix,iky,iz,it,iv,offset
-    integer :: ii,jj, temp_unit
+    integer :: num,ia, ix,iix,iL,iR, iky,iz,it,iv
+    integer :: offset, offsetL, offsetR
+    integer :: ii,jj, temp_unit, pfac
     real :: afacx, afacy
     complex :: dzm,dzp
     character(len=512) :: filename
@@ -446,6 +470,9 @@ contains
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
     allocate (prefac(naky,x_fft_size)); prefac = 1.0
+    
+    pfac = 1
+    if (periodic_variation) pfac = 2
 
     if(prp_shear_enabled.and.hammett_flow_shear) then
       prefac = exp(-zi*g_exb*g_exbfac*spread(x_mb,1,naky)*spread(aky*shift_state,2,x_fft_size))
@@ -485,10 +512,14 @@ contains
     ia=1
 
     if(job==0 .or. job==(njobs-1)) then
-      offset=0;
-      ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
-      ! FLAG DSO - might do something weird with magnetic shear
-      if(job==njobs-1) offset=nakx-boundary_size
+      if (periodic_variation) then
+        offset=-boundary_size
+      else
+        offset=0;
+        ! DSO the next line might seem backwards, but this makes it easier to stitch together imaages
+        ! FLAG DSO - might do something weird with magnetic shear
+        if(job==njobs-1) offset=nakx-boundary_size
+      endif
       !first g
       num=1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -514,11 +545,13 @@ contains
 
             call transform_kx2x(fft_kxky,fft_xky)
             fft_xky = fft_xky*prefac
-            do ix=1,boundary_size
+            do ix=1,pfac*boundary_size
+              iix=ix + offset
+              if(iix.le.0) iix = iix + nakx
               do iky=1,naky
                 !DSO if in the future the grids can have different naky, one will
                 !have to divide by naky here, and multiply on the receiving end
-                g_buffer0(num) = fft_xky(iky,ix + offset)
+                g_buffer0(num) = fft_xky(iky,iix)
                 num=num+1
               enddo
             enddo
@@ -550,11 +583,12 @@ contains
 
           call transform_kx2x(fft_kxky,fft_xky)
           fft_xky = fft_xky*prefac
-          do ix=1,boundary_size
+          do ix=1,pfac*boundary_size
+            if(iix.le.0) iix = iix + nakx
             do iky=1,naky
               !DSO if in the future the grids can have different naky, one will
               !have to divide by naky here, and multiply on the receiving end
-              phi_buffer0(num) = fft_xky(iky,ix + offset)
+              phi_buffer0(num) = fft_xky(iky,iix)
               num=num+1
             enddo
           enddo
@@ -563,7 +597,12 @@ contains
 ! DSO - send data
       call send(phi_buffer0,1,143 + job)
     else
-      offset = x_fft_size - boundary_size
+      offsetL = 0
+      offsetR = x_fft_size - boundary_size
+      if (periodic_variation) then
+        offsetL = -boundary_size
+        offsetR = x_fft_size/2 - boundary_size + 1
+      endif
 ! DSO - receive the data
 
 ! left
@@ -578,22 +617,30 @@ contains
         do it = 1, vmu_lo%ntubes
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
             call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
-            do ix=1,boundary_size
+            do ix=1,pfac*boundary_size
+              iL = ix + offsetL
+              iR = ix + offsetR
+              if (iL.le.0) iL = iL + x_fft_size
+              if (iR.le.0) iR = iR + x_fft_size
               do iky=1,naky
-                fft_xky(iky,ix)        = fft_xky(iky,ix)*(1-copy_mask_left(ix)) &
-                                       + g_buffer0(num)*copy_mask_left(ix)
+                fft_xky(iky,iL) = fft_xky(iky,iL)*(1-copy_mask_left(ix)) &
+                                        + g_buffer0(num)*copy_mask_left(ix)
                                         
-                fft_xky(iky,ix+offset) = fft_xky(iky,ix+offset)*(1-copy_mask_right(ix)) &
-                                       + g_buffer1(num)*copy_mask_right(ix)
+                fft_xky(iky,iR) = fft_xky(iky,iR)*(1-copy_mask_right(ix)) &
+                                        + g_buffer1(num)*copy_mask_right(ix)
                 num=num+1
               enddo
             enddo
             if(smooth_ZFs) then
               dzm = fft_xky(1,boundary_size+1)            - fft_xky(1,boundary_size)
               dzp = fft_xky(1,x_fft_size-boundary_size+1) - fft_xky(1,x_fft_size-boundary_size)
-              do ix=1,boundary_size
-                fft_xky(1,ix)=fft_xky(1,ix) + dzm
-                fft_xky(1,ix+offset)=fft_xky(1,ix+offset) - dzp
+              do ix=1,pfac*boundary_size
+                iL = ix + offsetL
+                iR = ix + offsetR
+                if (iL.le.0) iL = iL + x_fft_size
+                if (iR.le.0) iR = iR + x_fft_size
+                fft_xky(1,iL) = fft_xky(1,iL) + dzm
+                fft_xky(1,iR) = fft_xky(1,iR) - dzp
               enddo
             endif
             if(zonal_mode(1)) fft_xky(1,:) = real(fft_xky(1,:))
@@ -606,12 +653,6 @@ contains
 ! DSO - change communicator
     call scope(subprocs)
 
-    !if(job==1) fields_updated = .false.
-    !if(job==1) then
-     ! fields_updated = .false.
-      !call advance_fields(gnew,phi,apar, dist='gbar')
-    !endif
-
     temp_ind=temp_ind+1
 
     deallocate (prefac)
@@ -623,14 +664,15 @@ contains
 
     use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
-    use kt_grids, only:  nakx, naky
+    use kt_grids, only:  nakx, naky, periodic_variation
     use zgrid, only: nzgrid, ntubes
     use mp, only: job
 
 
     implicit none
 
-    integer ::  iky, ix, iz, it, ivmu, num, offset
+    integer :: iky, ix, iL, iR, iz, it, ivmu, num, offsetL, offsetR
+    integer :: pfac
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: rhs
@@ -641,7 +683,16 @@ contains
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,x_fft_size))
     
-    offset = x_fft_size - boundary_size
+    if (periodic_variation) then 
+      offsetL = -boundary_size
+      offsetR = x_fft_size/2 - boundary_size + 1
+    else
+      offsetL = 0
+      offsetR = x_fft_size - boundary_size
+    endif
+
+    pfac = 1
+    if (periodic_variation) pfac = 2
 
     num=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -649,10 +700,14 @@ contains
         do iz = -nzgrid, nzgrid
           g0x = 0.0
           call transform_kx2x(g(:,:,iz,it,ivmu),fft_xky)  
-          do ix=1,boundary_size
+          do ix=1,pfac*boundary_size
+            iL = ix + offsetL
+            iR = ix + offsetR
+            if (iL.le.0) iL = iL + x_fft_size
+            if (iR.le.0) iR = iR + x_fft_size
             do iky=1,naky
-                g0x(iky,ix)        = (fft_xky(iky,ix)        - g_buffer0(num))*krook_mask_left(ix)
-                g0x(iky,ix+offset) = (fft_xky(iky,ix+offset) - g_buffer1(num))*krook_mask_right(ix)
+                g0x(iky,iL) = (fft_xky(iky,iL) - g_buffer0(num))*krook_mask_left(ix)
+                g0x(iky,iR) = (fft_xky(iky,iR) - g_buffer1(num))*krook_mask_right(ix)
                 num=num+1
             enddo
           enddo
@@ -673,7 +728,7 @@ contains
 
   subroutine init_mb_get_phi(has_elec, adiabatic_elec,efac,efacp)
     use kt_grids, only:  nakx, naky
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid
     use physics_flags, only: radial_variation
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use run_parameters, only: ky_solve_radial
@@ -794,7 +849,6 @@ contains
     use kt_grids, only:  akx, nakx, naky, zonal_mode
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-    use physics_flags, only: radial_variation
     use run_parameters, only: ky_solve_radial
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
     use linear_solve, only: lu_back_substitution
@@ -1015,7 +1069,7 @@ contains
 
   subroutine transform_kx2x (gkx, gx)
 
-    use kt_grids, only: naky, ikx_max
+    use kt_grids, only: ikx_max
 
     implicit none
 
@@ -1036,7 +1090,7 @@ contains
 
   subroutine transform_x2kx (gx, gkx)
 
-    use kt_grids, only: naky, ikx_max
+    use kt_grids, only: ikx_max
 
     implicit none
 
