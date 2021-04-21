@@ -716,7 +716,7 @@ contains
 # endif
 
        if (istatus /= NF90_NOERR)  then 
-         call netcdf_error (istatus, file=file_proc)
+         call netcdf_error (istatus, file=file_proc, abort=.true.)
        endif
 
        ! check precision

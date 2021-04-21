@@ -5,7 +5,7 @@ import numpy as np
 import numpy.matlib
 
 tave=20
-basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/RH/new_method/RH1_alt2d/'
+basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/RH/new_method/RH1_alt2/'
 right_file  = basedir + 'center.out.nc'
 center_file = basedir + 'center.out.nc'
 left_file   = basedir + 'center.out.nc'
@@ -93,9 +93,15 @@ jacobr  = np.copy( right_nc.variables['jacob'][:])
 
 print(ky)
 
-dl_over_bl = np.squeeze(delzed*jacobl/sum(delzed*jacobl))
-dl_over_bc = np.squeeze(delzed*jacobc/sum(delzed*jacobc))
-dl_over_br = np.squeeze(delzed*jacobr/sum(delzed*jacobr))
+dl_over_bl = np.squeeze(delzed*jacobl)
+dl_over_bc = np.squeeze(delzed*jacobc)
+dl_over_br = np.squeeze(delzed*jacobr)
+dl_over_bl[nzed-1] = 0.0
+dl_over_bc[nzed-1] = 0.0
+dl_over_br[nzed-1] = 0.0
+dl_over_bl = dl_over_bl/sum(dl_over_bl)
+dl_over_bc = dl_over_bc/sum(dl_over_bc)
+dl_over_br = dl_over_br/sum(dl_over_br)
 
 dobl = np.transpose(np.matlib.tile(dl_over_bl,(naky,nakxl,1)))
 dobc = np.transpose(np.matlib.tile(dl_over_bc,(naky,nakxc,1)))
