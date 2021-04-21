@@ -21,7 +21,7 @@ module fields_arrays
 
   real, dimension (:), allocatable :: shift_state
 
-  real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr, gamtot13, gamtot31, gamtot33 !, gamone
+  real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr, gamtot13, gamtot31, gamtot33, apar_denom !, gamone
 
   real :: gamtot_h, gamtot3_h, efac, efacp
 

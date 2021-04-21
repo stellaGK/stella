@@ -555,9 +555,10 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa, mu ! Bob: Need mu to integrate over
     use vpamu_grids, only: integrate_vmu
+    use kt_grids, only: nakx, naky ! Bob: Need this to allocate antot
     use species, only: spec
     use constants, only: pi
-    use fields_arrays, only: ! gamone
+    use fields_arrays, only: gamtot, gamtot13, gamtot31, gamtot33, apar_denom! gamone
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
@@ -606,7 +607,8 @@ contains
          antot1(iky,ikx,iz,it) = antot1(iky,ikx,iz,it) + wgt*tmp
 
          ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
-         wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%
+         ! Bob: not quite right! Need to multiply by vths
+         wgt = beta * spec(is)%z * spec(is)%dens_psi0 ! * spec(is)%
          ! Bob: We think g0 has dimensions (ivpa, imu)
          ! So want to multiply g0 by vpa, spread out nmu times over axis 1
          call integrate_vmu((g0*spread(vpa,2,nmu)), iz, tmp)
@@ -628,13 +630,14 @@ contains
       call sum_allreduce (antot3)
 
       ! The fields are a funcion of (ky, kx, z, itube).
-      ! antot variables are functions of XXXX
-      ! gamtot variables are functions of XXXXX
-
+      ! antot variables are functions of (iky,ikx,iz,it)
+      ! gamtot variables are functions of (iky, ikx, iz)
       ia = 1
-      phi = (antot1 - (gamtot13/gamtot33)*antot3 ) / (gamtot - (gamtot13*gamtot31/gamtot33))
-      apar =  antot2/apar_denom
-      bpar = (antot3 - (gamtot31/gamtot)*antot1) / (gamtot33 - (gamtot13*gamtot31)/gamtot)
+      phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
+            / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
+      apar =  antot2/spread(apar_denom,4,ntubes)
+      bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
+            / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
 
       deallocate(antot1)
       deallocate(antot2)

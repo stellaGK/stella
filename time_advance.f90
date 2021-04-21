@@ -2327,7 +2327,7 @@ contains
             if(radial_variation.or.full_flux_surface) fields_updated = .false.
        endif
 
-       call advance_fields (g, phi, apar, dist='gbar')
+       call advance_fields (g, phi, apar, bpar, dist='gbar')
        if (drifts_implicit) call advance_drifts_implicit (g, phi, apar, bpar)
 
     else
@@ -2337,7 +2337,7 @@ contains
        ! depended only on g and so did not need field update
        call advance_fields (g, phi, apar, bpar, dist='gbar')
 
-       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar)
+       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar, bpar)
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2376,7 +2376,7 @@ contains
 
   end subroutine advance_implicit
 
-  subroutine advance_drifts_implicit (g, phi, apar)
+  subroutine advance_drifts_implicit (g, phi, apar, bpar)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
@@ -2401,7 +2401,7 @@ contains
     complex :: tmp
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar, bpar
 
     complex, dimension (:,:), allocatable :: wd_g, wd_phi, wstr
     complex, dimension (:,:,:), allocatable :: gyro_g
@@ -2413,7 +2413,7 @@ contains
     allocate (wstr(naky,nakx))
 
     ! given g^{*}, obtain phi^{*} and apar^{*}
-    call advance_fields (g, phi, apar, dist='gbar')
+    call advance_fields (g, phi, apar, bpar, dist='gbar')
 
     ! solve for g^inh
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
