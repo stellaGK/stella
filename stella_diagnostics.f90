@@ -248,6 +248,7 @@ contains
   !==============================================
   !============== DIAGNOSE STELLA ===============
   !==============================================
+  !! Bob: Only partly implemented bpar
   subroutine diagnose_stella (istep)
 
     use mp, only: proc0
@@ -261,7 +262,6 @@ contains
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi2_nc
     use stella_io, only: write_phi_nc
-    use stella_io, only: write_bpar2_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
@@ -271,7 +271,6 @@ contains
     use stella_io, only: sync_nc
 !    use stella_io, only: write_symmetry_nc
     use stella_time, only: code_time, code_dt
-    use run_parameters, only: fphi, fbpar
     use zgrid, only: nztot, nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use species, only: nspec
@@ -284,7 +283,7 @@ contains
 
     integer, intent (in) :: istep
 
-    real :: phi2, apar2,  bpar2
+    real :: phi2, apar2
     real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
     real, dimension (:,:,:,:), allocatable :: gzvs
@@ -321,7 +320,7 @@ contains
     if (mod(istep,nwrite) /= 0) return
 
     if(radial_variation) fields_updated = .false.
-    call advance_fields(gnew, phi, apar, dist='gbar')
+    call advance_fields(gnew, phi, apar, bpar, dist='gbar')
 
     allocate(phi_out(naky,nakx,-nzgrid:nzgrid,ntubes))
     phi_out = phi
@@ -365,12 +364,12 @@ contains
        else
          allocate (omega_avg(1,1))
        endif
+       ! BOb: should do same for bpar 
        call volume_average (phi_out, phi2)
        call volume_average (apar, apar2)
-       call volume_average (bpar, bpar2)
-       write (*,'(a7,i7,a6,e12.4,a4,e12.4,a10,e12.4,a11,e12.4,a11,e12.4,a6,i3)') 'istep=', istep, &
-            'time=', code_time, 'dt=', code_dt, '|phi|^2=', phi2, '|apar|^2= ', apar2, '|bpar|^2= ', bpar2, "job=", job
-       call write_loop_ascii_files (istep, phi2, apar2, bpar2, part_flux, mom_flux, heat_flux, &
+       ! Print information to stella.out, the header is printed in stella.f90
+       write (*,'(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ",istep," ",code_time," ",code_dt," ", phi2
+       call write_loop_ascii_files (istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
             omega_vs_time(mod(istep,navg)+1,:,:), omega_avg)
 
        ! do not need omega_avg again this time step
@@ -382,10 +381,6 @@ contains
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
        call write_time_nc (nout, code_time)
        call write_phi2_nc (nout, phi2)
-       if (fbpar > epsilon(0.)) then
-         write(*,*) "About to call write_bpar"
-         call write_bpar2_nc (nout, phi2)
-       end if
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi_out)
@@ -460,7 +455,7 @@ contains
 
     use mp, only: sum_reduce
     use constants, only: zi
-    use fields_arrays, only: phi, apar, bpar
+    use fields_arrays, only: phi, apar
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use species, only: spec, nspec
@@ -470,7 +465,7 @@ contains
     use zgrid, only: delzed, nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vperp2, vpa
-    use run_parameters, only: fphi, fapar, fbpar
+    use run_parameters, only: fphi, fapar
     use kt_grids, ONLY: nakx, naky
     use kt_grids, only: aky, theta0
     use gyro_averages, only: gyro_average, gyro_average_j1
@@ -1286,7 +1281,6 @@ contains
     use mp, only: proc0
     use redistribute, only: scatter
     use stella_io, only: finish_stella_io
-    use run_parameters, only: fphi, fapar, fbpar
     use stella_time, only: code_dt, code_time
     use stella_save, only: stella_save_for_restart
     use dist_redistribute, only: kxkyz2vmu
@@ -1303,7 +1297,7 @@ contains
     end if
     if (save_for_restart) then
         call scatter (kxkyz2vmu, gnew, gvmu)
-        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, fphi, fapar, fbpar, .true.)
+        call stella_save_for_restart (gvmu, istep, code_time, code_dt, istatus, .true.)
     end if
     call finish_stella_io
     call deallocate_arrays
@@ -1313,7 +1307,10 @@ contains
 
   end subroutine finish_stella_diagnostics
 
-  subroutine write_loop_ascii_files (istep, phi2, apar2, bpar2, pflx, vflx, qflx, om, om_avg)
+  !==============================================
+  !========= WRITE LOOP ASCII FILES =============
+  !==============================================
+  subroutine write_loop_ascii_files (istep, phi2, apar2, pflx, vflx, qflx, om, om_avg)
 
     use stella_time, only: code_time
     use species, only: nspec
@@ -1323,7 +1320,7 @@ contains
     implicit none
 
     integer, intent (in) :: istep
-    real, intent (in) :: phi2, apar2, bpar2
+    real, intent (in) :: phi2, apar2
     real, dimension (:), intent (in) :: pflx, vflx, qflx
     complex, dimension (:,:), intent (in) :: om, om_avg
 
@@ -1331,8 +1328,8 @@ contains
     character (100) :: str
     integer :: ikx, iky
 
-    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4,a11,e12.4)') 'istep=', istep, &
-         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2, '|bpar|^2= ', bpar2
+    write (stdout_unit,'(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
+         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
 
     call flush(stdout_unit)
 
@@ -1364,7 +1361,7 @@ contains
   subroutine write_final_ascii_files
 
     use file_utils, only: open_output_file, close_output_file
-    use fields_arrays, only: phi, apar, bpar
+    use fields_arrays, only: phi, apar
     use zgrid, only: nzgrid, ntubes
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
@@ -1380,16 +1377,15 @@ contains
     call open_output_file (tmpunit,'.final_fields')
     write (tmpunit,'(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'z_eqarc-zed0', 'kperp2' ! Bob: Consider bpar
+         'z_eqarc-zed0', 'kperp2'
     do iky = 1, naky
        do ikx = 1, nakx
           do it = 1, ntubes
              do iz = -nzgrid, nzgrid
                 write (tmpunit,'(10es15.4e3,i3)') zed(iz), zed(iz)-zed0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it)), &
-                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), &
-                  zed_eqarc(iz)-zed0(iky,ikx), &
-                  kperp2(iky,ikx,it,iz), it ! ! Bob: Consider bpar
+                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-zed0(iky,ikx), &
+                  kperp2(iky,ikx,it,iz), it
              end do
              write (tmpunit,*)
           end do
