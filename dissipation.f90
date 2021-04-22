@@ -3,6 +3,7 @@ module dissipation
   implicit none
 
   public :: init_dissipation, finish_dissipation
+  public :: init_collisions, collisions_initialized
   public :: include_collisions
   public :: include_krook_operator, update_delay_krook
   public :: remove_zero_projection, project_out_zero
@@ -13,6 +14,8 @@ module dissipation
   public :: add_krook_operator
   public :: collisions_implicit
   public :: delay_krook, int_krook, int_proj
+  public :: vpa_operator, mu_operator
+  public :: cfl_dt_vpadiff, cfl_dt_mudiff
 
   private
 
@@ -23,6 +26,7 @@ module dissipation
   logical :: use_physical_ksqr
   logical :: krook_odd
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
+  real :: cfl_dt_vpadiff, cfl_dt_mudiff
   integer:: ikxmax_source
 
   character(30) :: collision_model
@@ -167,7 +171,6 @@ contains
     implicit none
 
     integer :: is
-    real :: cfl_dt_vpadiff, cfl_dt_mudiff
     real :: vnew_max
 
 
@@ -1717,8 +1720,6 @@ contains
     call scatter (kxkyz2vmu, tmp_vmulo, gvmu)
     if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
 
-    deallocate (tmp_vmulo)
-
     ia = 1
 
     ! take vpa derivatives
@@ -1734,6 +1735,8 @@ contains
               do imu = 1, nmu
                  call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
               end do
+           else
+              coll(:,:,ikxkyz) = 0.0
            end if
            if (mu_operator) then
               do iv = 1, nvpa
@@ -1749,7 +1752,6 @@ contains
        end do
        deallocate (coll, mucoll)
 
-       allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! remap so that (ky,kx,z,tube) local
        call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
@@ -1757,7 +1759,6 @@ contains
           is = is_idx(vmu_lo,ivmu)
           gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
        end do
-       deallocate (tmp_vmulo)
     end if
 
     if (collision_model=="fokker-planck") then
@@ -1783,14 +1784,14 @@ contains
         end do
         deallocate (coll_fp, mucoll_fp)
 
-        allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
         call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
            gke_rhs(:,:,:,:,ivmu) = gke_rhs(:,:,:,:,ivmu) + code_dt*tmp_vmulo(:,:,:,:,ivmu)
         end do
-        deallocate (tmp_vmulo)
     end if
+
+    deallocate (tmp_vmulo)
 
     ! reset to default integration wgts
     conservative_wgts = .false.
