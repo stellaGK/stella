@@ -809,32 +809,32 @@ contains
 !
 !
     if (write_fluxes_kxky) then
-      status = nf90_inq_varid(ncid,'pflx_kxky',pflx_kxky_id)
+      status = nf90_inq_varid(ncid,'pflx_kxky',pflx_kxkyz_id)
       if(status /= nf90_noerr) then
         status = nf90_def_var &
-          (ncid, 'pflx_kxky', netcdf_real, flx_dim, pflx_kxky_id)
+          (ncid, 'pflx_kxky', netcdf_real, flx_dim, pflx_kxkyz_id)
         if (status /= nf90_noerr) call netcdf_error (status, var='pflx_kxky')
       endif
-      status = nf90_put_att (ncid, pflx_kxky_id, 'long_name', 'Particle flux vs (ky,kx,spec,t)')
-      if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxky_id, att='long_name')
+      status = nf90_put_att (ncid, pflx_kxkyz_id, 'long_name', 'Particle flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxkyz_id, att='long_name')
 !         
-      status = nf90_inq_varid(ncid,'vflx_kxky',vflx_kxky_id)
+      status = nf90_inq_varid(ncid,'vflx_kxky',vflx_kxkyz_id)
       if(status /= nf90_noerr) then
         status = nf90_def_var &
-          (ncid, 'vflx_kxky', netcdf_real, flx_dim, vflx_kxky_id)
+          (ncid, 'vflx_kxky', netcdf_real, flx_dim, vflx_kxkyz_id)
         if (status /= nf90_noerr) call netcdf_error (status, var='vflx_kxky')
       endif
-      status = nf90_put_att (ncid, vflx_kxky_id, 'long_name', 'Momentum flux vs (ky,kx,spec,t)')
-      if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxky_id, att='long_name')
+      status = nf90_put_att (ncid, vflx_kxkyz_id, 'long_name', 'Momentum flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxkyz_id, att='long_name')
 !         
-      status = nf90_inq_varid(ncid,'qflx_kxky',qflx_kxky_id)
+      status = nf90_inq_varid(ncid,'qflx_kxky',qflx_kxkyz_id)
       if(status /= nf90_noerr) then
         status = nf90_def_var &
-          (ncid, 'qflx_kxky', netcdf_real, flx_dim, qflx_kxky_id)
+          (ncid, 'qflx_kxky', netcdf_real, flx_dim, qflx_kxkyz_id)
         if (status /= nf90_noerr) call netcdf_error (status, var='qflx_kxky')
       endif
-      status = nf90_put_att (ncid, qflx_kxky_id, 'long_name', 'Heat flux vs (ky,kx,spec,t)')
-      if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxky_id, att='long_name')
+      status = nf90_put_att (ncid, qflx_kxkyz_id, 'long_name', 'Heat flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxkyz_id, att='long_name')
    end if
 !      
 !
