@@ -692,6 +692,9 @@ contains
     use mirror_terms, only: mirror
     use flow_shear, only: prl_shear, shift_times
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use dissipation, only: include_collisions, collisions_implicit
+    use dissipation, only: vpa_operator, mu_operator
+    use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
 
     implicit none
     
@@ -753,6 +756,11 @@ contains
 
     end if
 
+    if (include_collisions.and..not.collisions_implicit) then
+      if (vpa_operator) cfl_dt = min(cfl_dt,cfl_dt_vpadiff)
+      if (mu_operator)  cfl_dt = min(cfl_dt,cfl_dt_mudiff)
+    endif
+
     if(.not.drifts_implicit) then
       ! get the local max value of wdrifty on each processor
       wdrifty_max = maxval(abs(wdrifty_g))
@@ -803,6 +811,7 @@ contains
 
     use parallel_streaming, only: parallel_streaming_initialized
     use parallel_streaming, only: init_parallel_streaming
+    use dissipation, only: init_collisions, collisions_initialized, include_collisions
     use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
     use response_matrix, only: response_matrix_initialized
     use response_matrix, only: init_response_matrix
@@ -831,6 +840,10 @@ contains
     call init_flow_shear
     if (radial_variation) call init_radial_variation
     if (drifts_implicit) call init_drifts_implicit
+    if (include_collisions) then
+      collisions_initialized = .false.
+      call init_collisions
+    endif
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
     if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then

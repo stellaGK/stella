@@ -194,7 +194,7 @@ contains
           if(radial_variation) dgamtotdr = dgamtotdr + efacp
           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
              if (zonal_mode(1)) then
-                gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
+                gamtot3_h = efac/(sum(spec%zt*spec%z*spec%dens))
                 do ikx = 1, nakx
                    ! avoid divide by zero for kx=ky=0 mode,
                    ! which we do not need anyway
