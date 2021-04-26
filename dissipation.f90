@@ -955,6 +955,8 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for upar equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
+    !!! FLAG DSO - The following lines are NOT appropriate for 
+    !!!            zonal modes with adianbatic electrons!
     call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1149,6 +1151,8 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for uperp equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
+    !!! FLAG DSO - The following lines are NOT appropriate 
+    !!!            for zonal modes with adianbatic electrons!
     call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -2324,6 +2328,7 @@ contains
     call get_fields (g, phi, apar, dist='h')
     flds(:,:,:,:,1) = phi
 
+    phi = 0.0
     ! AVB: obtain phi^{n+1} from response matrix
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -2432,6 +2437,7 @@ contains
     ! get temp_inh^{n+1}
     if (energy_conservation) call get_temp (g, flds(:,:,:,:,idx:idx+nspec-1))
 
+    phi = 0.0
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -2568,6 +2574,7 @@ contains
     ! get temp_inh^{n+1}
     if (energy_conservation) call get_temp_mu (g, flds(:,:,:,:,idx:idx+nspec-1))
 
+    phi = 0.0
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
