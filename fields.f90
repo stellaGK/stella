@@ -825,6 +825,8 @@ contains
       return 
     end if
 
+    if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
+
 
     if (adia_elec) then
       if (zonal_mode(1)) then
@@ -898,6 +900,7 @@ contains
           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
           call mp_abort ('unknown dist option in get_fields. aborting')
         end if
+        phi(1,1,:,:) = 0.0
       end if
     end if
     
