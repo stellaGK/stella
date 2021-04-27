@@ -476,7 +476,8 @@ contains
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
     allocate (phi1(naky,nakx,-nzgrid:nzgrid,ntubes))
-
+    ! Bob: To make electromagnetic, need to replace phi with chi. However, because
+    ! of how the gyroaverages are implemented, need to perform the replacement later.
     ! save the incoming g and phi, as they will be needed later
     g1 = g
     phi1 = phi

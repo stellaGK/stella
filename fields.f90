@@ -95,6 +95,9 @@ contains
 
     ! could move these array allocations to allocate_arrays to clean up code
     if (.not.allocated(gamtot)) allocate (gamtot(naky,nakx,-nzgrid:nzgrid)) ; gamtot = 0.
+    if (.not.allocated(gamtot13)) allocate (gamtot13(naky,nakx,-nzgrid:nzgrid)) ; gamtot13 = 0.
+    if (.not.allocated(gamtot31)) allocate (gamtot31(naky,nakx,-nzgrid:nzgrid)) ; gamtot31 = 0.
+    if (.not.allocated(gamtot33)) allocate (gamtot33(naky,nakx,-nzgrid:nzgrid)) ; gamtot33 = 0.
     ! Bob: gamone needed for calculation of bpar using distribution function g,
     ! but not currently implemented.
     !if (.not.allocated(gamone)) allocate (gamone(naky,nakx,-nzgrid:nzgrid)) ; gamone = 0.
@@ -142,7 +145,6 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          ! Bob: gamtot = (1 - J0) *
           g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
                * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
           wgt = spec(is)%z*spec(is)%z*spec(is)%dens_psi0/spec(is)%temp
@@ -333,11 +335,130 @@ contains
        deallocate (g0)
     end if
 
-    ! Bob: Calculate gamtot13, gamtot31, gamtot33
+    ! Bob: Calculate gamtot13, gamtot31, gamtot33. These are needed provided
+    ! fbpar != 0
+    if (fbpar > epsilon(0.0)) then
+       ! gamtot13
+       allocate (g0(nvpa,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          it = it_idx(kxkyz_lo,ikxkyz)
+          ! gamtot13 does not depend on flux tube index,
+          ! so only compute for one flux tube index
+          ! gamtot13 = 4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+          if (it /= 1) cycle
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          g0 = spread((mu(:) * aj0v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
+               * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+          wgt = 4*spec(is)%z*spec(is)%dens_psi0
+          call integrate_vmu (g0, iz, tmp)
+          gamtot13(iky,ikx,iz) = gamtot13(iky,ikx,iz) + tmp*wgt
+       end do
+       call sum_allreduce (gamtot13)
+       g0 = 0
 
+       ! gamtot31 = 2 * beta * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+       !          = gamtot13/2 * beta
+       gamtot31 = gamtot13/2 * beta
 
-    ! Bob: gamone needed for calculation of bpar using distribution function g,
-    ! but not currently implemented.
+       ! gamtot33
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          it = it_idx(kxkyz_lo,ikxkyz)
+          ! gamtot33 does not depend on flux tube index,
+          ! so only compute for one flux tube index
+          ! gamtot33 = 1 - 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+          if (it /= 1) cycle
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          g0 = spread((mu(:) * mu(:) * aj1v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
+               * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+          wgt = 4*spec(is)%z*spec(is)%dens_psi0
+          call integrate_vmu (g0, iz, tmp)
+          gamtot33(iky,ikx,iz) = gamtot33(iky,ikx,iz) + tmp*wgt
+       end do
+       call sum_allreduce (gamtot33)
+       deallocate (g0)
+       ! gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
+       !
+       ! if (radial_variation) then
+       !   allocate (g1(nmu))
+       !   do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       !     it = it_idx(kxkyz_lo,ikxkyz)
+       !     ! gamtot does not depend on flux tube index,
+       !     ! so only compute for one flux tube index
+       !     if (it /= 1) cycle
+       !     iky = iky_idx(kxkyz_lo,ikxkyz)
+       !     ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       !     iz = iz_idx(kxkyz_lo,ikxkyz)
+       !     is = is_idx(kxkyz_lo,ikxkyz)
+       !     g1 = aj0v(:,ikxkyz)*aj1v(:,ikxkyz)*(spec(is)%smz)**2 &
+       !        * (kperp2(iky,ikx,ia,iz)*vperp2(ia,iz,:)/bmag(ia,iz)**2) &
+       !        * (dkperp2dr(iky,ikx,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+       !        / (1.0 - aj0v(:,ikxkyz)**2 + 100.*epsilon(0.0))
+       !
+       !     g0 = spread((1.0 - aj0v(:,ikxkyz)**2),1,nvpa) &
+       !        * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is) &
+       !        * (-spec(is)%tprim*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa)-2.5) &
+       !           -spec(is)%fprim + (dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*spread(mu,1,nvpa)*bmag(ia,iz)) &
+       !           + spread(g1,1,nvpa))
+       !     wgt = spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%temp
+       !     call integrate_vmu (g0, iz, tmp)
+       !     dgamtotdr(iky,ikx,iz) = dgamtotdr(iky,ikx,iz) + tmp*wgt
+       !   end do
+       !   call sum_allreduce (dgamtotdr)
+       !
+       !   deallocate (g1)
+       !
+       ! endif
+       ! ! avoid divide by zero when kx=ky=0
+       ! ! do not evolve this mode, so value is irrelevant
+       ! if (zonal_mode(1).and.akx(1)<epsilon(0.).and.has_electron_species(spec)) then
+       !   gamtot(1,1,:)    = 0.0
+       !   dgamtotdr(1,1,:) = 0.0
+       !   zm = 1
+       ! endif
+       !
+       ! if (.not.has_electron_species(spec)) then
+       !    efac = tite/nine * (spec(ion_species)%dens/spec(ion_species)%temp)
+       !    efacp = efac*(spec(ion_species)%tprim - spec(ion_species)%fprim)
+       !    gamtot   = gamtot   + efac
+       !    gamtot_h = gamtot_h + efac
+       !    if(radial_variation) dgamtotdr = dgamtotdr + efacp
+       !    if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+       !       if (zonal_mode(1)) then
+       !          gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
+       !          do ikx = 1, nakx
+       !             ! avoid divide by zero for kx=ky=0 mode,
+       !             ! which we do not need anyway
+       !             !if (abs(akx(ikx)) < epsilon(0.)) cycle
+       !             tmp = 1./efac - sum(dl_over_b(ia,:)/gamtot(1,ikx,:))
+       !             gamtot3(ikx,:) = 1./(gamtot(1,ikx,:)*tmp)
+       !             if (radial_variation) then
+       !               tmp2 = (spec(ion_species)%tprim - spec(ion_species)%fprim)/efac &
+       !                      + sum(d_dl_over_b_drho(ia,:)/gamtot(1,ikx,:)) &
+       !                      - sum(dl_over_b(ia,:)*dgamtotdr(1,ikx,:) &
+       !                          / gamtot(1,ikx,:)**2)
+       !               dgamtot3dr(ikx,:)  = gamtot3(ikx,:) &
+       !                                  * (-dgamtotdr(1,ikx,:)/gamtot(1,ikx,:) + tmp2/tmp)
+       !             endif
+       !          end do
+       !          if(akx(1)<epsilon(0.)) then
+       !             gamtot3(1,:)    = 0.0
+       !             dgamtot3dr(1,:) = 0.0
+       !             zm = 1
+       !          endif
+       !       end if
+       !    end if
+         write(*,*) "gamtots calculated"
+         write(*,*) "gamtot = ", gamtot
+         write(*,*) "gamtot13 = ", gamtot13
+         write(*,*) "gamtot31 = ", gamtot31
+         write(*,*) "gamtot33 = ", gamtot33
+       end if
 
     ! Bob: Calculate gamone=Gamma1(b). We may want to put this in an if
     ! statment (do we need to calculate it if fapar=0, fbpar=0?). For now, let's
@@ -400,10 +521,9 @@ contains
        apar_denom = apar_denom + kperp2(:,:,ia,:)
 
        deallocate (g0)
+       write(*,*) "apar_denom calculated"
     end if
 
-    ! Bob: don't need to anything here, unless there's some constant which
-    ! we'll need every time we calculate bpar (akin to apar_denom)
 
 !    filename=trim(run_name)//".gamtot"
 !    open(3636,file=trim(filename),status='unknown')
@@ -577,39 +697,47 @@ contains
     !!! of the distribution function. Thus it makes sense to calculate the
     !!! 3 integrals first, before calculating the fields:
     !!!
-    !!! antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
-    !!! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
-    !!! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
+    !!! antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(gbar) )
+    !!! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(gbar) )
+    !!! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(gbar))
     !!!
     !!! "antot" variable name used because similar integrals with this name appear in GS2.
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    if (dist == 'ghat') then
-      antot1 = 0.
-      antot2 = 0.
-      antot3 = 0.
+    write(*,*) "In get_fields"
+    if (dist == 'gbar') then
       allocate (g0(nvpa,nmu))
       allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
+      antot1 = 0.
+      antot2 = 0.
+      antot3 = 0.
+      ! write(*,*) "g(:,:,-nzgrid) = ", g(:,:,0)
+      ! call gyro_average ( g(:,:,0), 0, g0)
+      ! write(*,*) "g0 = ", g0
+      ! ! wgt = spec(is)%z*spec(is)%dens_psi0
+      ! ! call integrate_vmu (g0, -36, tmp)
+      ! !write(*,*) "tmp = ", tmp
+
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo,ikxkyz)
          it = it_idx(kxkyz_lo,ikxkyz)
          ikx = ikx_idx(kxkyz_lo,ikxkyz)
          iky = iky_idx(kxkyz_lo,ikxkyz)
          is = is_idx(kxkyz_lo,ikxkyz)
+         ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
          call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
 
          ! Calculate antot1
          !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
          wgt = spec(is)%z*spec(is)%dens_psi0
          call integrate_vmu (g0, iz, tmp)
+         ! write(*,*) "tmp = ", tmp
          antot1(iky,ikx,iz,it) = antot1(iky,ikx,iz,it) + wgt*tmp
 
          ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
-         ! Bob: not quite right! Need to multiply by vths
-         wgt = beta * spec(is)%z * spec(is)%dens_psi0 ! * spec(is)%
-         ! Bob: We think g0 has dimensions (ivpa, imu)
+         wgt = beta * spec(is)%z * spec(is)%dens_psi0* spec(is)%stm_psi0
+         ! Bob: g0 has dimensions (ivpa, imu)
          ! So want to multiply g0 by vpa, spread out nmu times over axis 1
          call integrate_vmu((g0*spread(vpa,2,nmu)), iz, tmp)
          antot2(iky,ikx,iz,it) = antot2(iky,ikx,iz,it) + wgt*tmp
@@ -628,13 +756,16 @@ contains
       call sum_allreduce (antot1)
       call sum_allreduce (antot2)
       call sum_allreduce (antot3)
-
       ! The fields are a funcion of (ky, kx, z, itube).
       ! antot variables are functions of (iky,ikx,iz,it)
       ! gamtot variables are functions of (iky, ikx, iz)
       ia = 1
       phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
             / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
+      ! write(*,*) "antot1 = ", antot1
+      ! write(*,*) "antot3 = ", antot3
+      ! write(*,*) "phi_numerator = ", (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 )
+      write(*,*) "phi = ", phi
       apar =  antot2/spread(apar_denom,4,ntubes)
       bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
             / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
@@ -643,7 +774,7 @@ contains
       deallocate(antot2)
       deallocate(antot3)
     else
-
+      write(*,*) "dist != gbar"
       ia = 1
 
       phi = 0.
@@ -1347,7 +1478,7 @@ contains
     use fields_arrays, only: phi, phi_old
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
-    use fields_arrays, only: gamtot, dgamtotdr
+    use fields_arrays, only: gamtot, dgamtotdr, gamtot13, gamtot31, gamtot33
 
     implicit none
 
@@ -1359,6 +1490,9 @@ contains
     if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
     if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
     if (allocated(gamtot)) deallocate (gamtot)
+    if (allocated(gamtot13)) deallocate (gamtot13)
+    if (allocated(gamtot31)) deallocate (gamtot31)
+    if (allocated(gamtot33)) deallocate (gamtot33)
     if (allocated(gamtot3)) deallocate (gamtot3)
     if (allocated(dgamtotdr)) deallocate (dgamtotdr)
     if (allocated(dgamtot3dr)) deallocate (dgamtot3dr)

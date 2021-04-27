@@ -871,6 +871,7 @@ contains
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting
     ! this is needed to ensure 2nd order accuracy in time
+    write(*,*) "In advance_stella"
     if (mod(istep,2)==1 .or. .not.flip_flop) then
        ! advance the explicit parts of the GKE
        call advance_explicit (gnew)

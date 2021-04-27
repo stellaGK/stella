@@ -225,7 +225,6 @@ contains
        deallocate (aj0_kalpha, gam0_kalpha)
        deallocate (kperp2_swap)
     else
-       write (*,*) 'Here we are'
        if (.not.allocated(aj0x)) then
           allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
           aj0x = 0.
