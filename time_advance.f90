@@ -866,7 +866,7 @@ contains
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
     phi_old = phi
-
+    ! write(gold
 
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting
@@ -874,8 +874,10 @@ contains
     write(*,*) "In advance_stella"
     if (mod(istep,2)==1 .or. .not.flip_flop) then
        ! advance the explicit parts of the GKE
+       write(*,*) "About to do explicit"
        call advance_explicit (gnew)
-
+       ! write(*,*) "Adavance_explicit complete"
+       ! stop "Stopping"
        ! enforce periodicity for zonal mode
 !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
 
@@ -946,7 +948,6 @@ contains
 
     ! stop the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
-
   end subroutine advance_explicit
 
   ! strong stability-preserving RK2

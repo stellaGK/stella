@@ -709,70 +709,113 @@ contains
       allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
-      antot1 = 0.
-      antot2 = 0.
-      antot3 = 0.
-      ! write(*,*) "g(:,:,-nzgrid) = ", g(:,:,0)
+
+      ! write(*,*) "g(:,:,0) = ", g(:,:,0)
       ! call gyro_average ( g(:,:,0), 0, g0)
       ! write(*,*) "g0 = ", g0
       ! ! wgt = spec(is)%z*spec(is)%dens_psi0
       ! ! call integrate_vmu (g0, -36, tmp)
       ! !write(*,*) "tmp = ", tmp
 
-      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-         iz = iz_idx(kxkyz_lo,ikxkyz)
-         it = it_idx(kxkyz_lo,ikxkyz)
-         ikx = ikx_idx(kxkyz_lo,ikxkyz)
-         iky = iky_idx(kxkyz_lo,ikxkyz)
-         is = is_idx(kxkyz_lo,ikxkyz)
-         ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
-         call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
+      if (fphi > epsilon(0.0)) then
+        antot1 = 0.
 
-         ! Calculate antot1
-         !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
-         wgt = spec(is)%z*spec(is)%dens_psi0
-         call integrate_vmu (g0, iz, tmp)
-         ! write(*,*) "tmp = ", tmp
-         antot1(iky,ikx,iz,it) = antot1(iky,ikx,iz,it) + wgt*tmp
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+           iz = iz_idx(kxkyz_lo,ikxkyz)
+           it = it_idx(kxkyz_lo,ikxkyz)
+           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+           iky = iky_idx(kxkyz_lo,ikxkyz)
+           is = is_idx(kxkyz_lo,ikxkyz)
+           ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
+           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
 
-         ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
-         wgt = beta * spec(is)%z * spec(is)%dens_psi0* spec(is)%stm_psi0
-         ! Bob: g0 has dimensions (ivpa, imu)
-         ! So want to multiply g0 by vpa, spread out nmu times over axis 1
-         call integrate_vmu((g0*spread(vpa,2,nmu)), iz, tmp)
-         antot2(iky,ikx,iz,it) = antot2(iky,ikx,iz,it) + wgt*tmp
+           !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
+           wgt = spec(is)%z*spec(is)%dens_psi0
+           call integrate_vmu (g0, iz, tmp)
+           ! write(*,*) "tmp = ", tmp
+           antot1(iky,ikx,iz,it) = antot1(iky,ikx,iz,it) + wgt*tmp
 
-         ! antot3
-         ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
-         call gyro_average_j1 (g(:,:,ikxkyz), ikxkyz, g0)
-         wgt = -2 * beta * spec(is)%dens_psi0*spec(is)%temp_psi0
-         call integrate_vmu((g0**spread(mu,1,nvpa)), iz, tmp)
-         antot3(iky,ikx,iz,it) = antot3(iky,ikx,iz,it) + wgt*tmp
+        end do
+        call sum_allreduce (antot1)
+      end if
 
+      if (fbpar > epsilon(0.0)) then
+        antot3 = 0.
 
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+           iz = iz_idx(kxkyz_lo,ikxkyz)
+           it = it_idx(kxkyz_lo,ikxkyz)
+           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+           iky = iky_idx(kxkyz_lo,ikxkyz)
+           is = is_idx(kxkyz_lo,ikxkyz)
+           ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
+           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
 
-      end do
-      deallocate (g0)
-      call sum_allreduce (antot1)
-      call sum_allreduce (antot2)
-      call sum_allreduce (antot3)
+           ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
+           call gyro_average_j1 (g(:,:,ikxkyz), ikxkyz, g0)
+           wgt = -2 * beta * spec(is)%dens_psi0*spec(is)%temp_psi0
+           call integrate_vmu((g0**spread(mu,1,nvpa)), iz, tmp)
+           antot3(iky,ikx,iz,it) = antot3(iky,ikx,iz,it) + wgt*tmp
+
+        end do
+        call sum_allreduce (antot3)
+      end if
+
       ! The fields are a funcion of (ky, kx, z, itube).
       ! antot variables are functions of (iky,ikx,iz,it)
       ! gamtot variables are functions of (iky, ikx, iz)
-      ia = 1
-      phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
-            / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
-      ! write(*,*) "antot1 = ", antot1
-      ! write(*,*) "antot3 = ", antot3
-      ! write(*,*) "phi_numerator = ", (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 )
-      write(*,*) "phi = ", phi
-      apar =  antot2/spread(apar_denom,4,ntubes)
-      bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
-            / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
+      ! ia = 1
+
+      if (fphi > epsilon(0.0)) then
+        if (fbpar > epsilon(0.0)) then
+          phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
+                / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
+          ! write(*,*) "antot1 = ", antot1
+          ! write(*,*) "antot3 = ", antot3
+          ! write(*,*) "phi_numerator = ", (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 )
+          ! write(*,*) "phi = ", phi
+          bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
+                / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
+        else
+          phi = (antot1 / (spread(gamtot,4,ntubes) ))
+        end if
+
+      else
+        bpar = antot3 / (spread(gamtot33,4,ntubes))
+      end if
+
+
+      if (fapar > epsilon(0.0)) then
+        antot2 = 0.
+
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+           iz = iz_idx(kxkyz_lo,ikxkyz)
+           it = it_idx(kxkyz_lo,ikxkyz)
+           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+           iky = iky_idx(kxkyz_lo,ikxkyz)
+           is = is_idx(kxkyz_lo,ikxkyz)
+           ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
+           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
+
+           ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
+           wgt = beta * spec(is)%z * spec(is)%dens_psi0* spec(is)%stm_psi0
+           ! Bob: g0 has dimensions (ivpa, imu)
+           ! So want to multiply g0 by vpa, spread out nmu times over axis 1
+           call integrate_vmu((g0*spread(vpa,2,nmu)), iz, tmp)
+           antot2(iky,ikx,iz,it) = antot2(iky,ikx,iz,it) + wgt*tmp
+
+        end do
+
+        call sum_allreduce (antot2)
+        apar =  antot2/spread(apar_denom,4,ntubes)
+
+      end if
 
       deallocate(antot1)
       deallocate(antot2)
       deallocate(antot3)
+      deallocate (g0)
+
     else
       write(*,*) "dist != gbar"
       ia = 1
@@ -1476,6 +1519,7 @@ contains
   subroutine finish_fields
 
     use fields_arrays, only: phi, phi_old
+    use fields_arrays, only: apar, bpar
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
     use fields_arrays, only: gamtot, dgamtotdr, gamtot13, gamtot31, gamtot33
@@ -1483,6 +1527,8 @@ contains
     implicit none
 
     if (allocated(phi)) deallocate (phi)
+    if (allocated(apar)) deallocate (apar)
+    if (allocated(bpar)) deallocate (bpar)
     if (allocated(phi_old)) deallocate (phi_old)
     if (allocated(phi_corr_QN)) deallocate (phi_corr_QN)
     if (allocated(phi_corr_GA)) deallocate (phi_corr_GA)
