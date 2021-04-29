@@ -14,7 +14,8 @@ module fields
   public :: fields_updated
   public :: get_dchidy, get_dchidx
   public :: efac, efacp
-
+  public :: get_gyroaverage_chi
+  public :: get_chi
   private
 
   real, dimension (:,:,:), allocatable ::  apar_denom
@@ -1281,6 +1282,75 @@ contains
     !if(zm.eq.1) phi(1,zm,:,:) = 0.0
 
   end subroutine get_phi
+
+  ! Bob: The following subroutine takes the fields and returns
+  subroutine get_chi(phi, apar, bpar, ivmu, chi)
+
+    use species, only: spec
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: chi
+    integer, intent (in) :: ivmu
+
+    write(*,*) "Not currently supported!"
+    stop "Stopping"
+
+  end subroutine get_chi
+
+  ! Bob: The following subroutine takes the fields and returns
+  ! gyroaverage(chi) = (J0*phi - 2*vpa*vths*J0*apar - 4*mu*(T/Z)*(J1/gamma) * bpar)
+  subroutine get_gyroaverage_chi(phi, apar, bpar, ivmu, gyro_chi)
+
+    use gyro_averages, only: gyro_average, gyro_average_j1
+    use stella_layouts, only: vmu_lo
+    use vpamu_grids, only: vpa, mu
+    use stella_layouts, only: imu_idx, is_idx, iv_idx
+    use species, only: spec
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use run_parameters, only: fphi, fapar, fbpar
+    implicit none
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
+    integer, intent (in) :: ivmu
+    integer :: is, imu, iv
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_chi
+    complex, dimension (:,:,:,:), allocatable :: gyro_phi, gyro_apar, gyro_bpar
+
+    gyro_chi = 0.
+
+    ! Get vpa, mu and species from ivmu
+    is = is_idx(vmu_lo,ivmu)
+    imu = imu_idx(vmu_lo,ivmu)
+    iv = iv_idx(vmu_lo,ivmu)
+
+    if (fphi > epsilon(0.0)) then
+      ! Bob: I think z is local, so don't need to include iz as a coordinate.
+      ! If z isn't local always, need to re-think this.
+      allocate(gyro_phi(naky,nakx,-nzgrid:nzgrid,ntubes))
+      call gyro_average(phi, ivmu, gyro_phi)
+      gyro_chi = gyro_chi + gyro_phi
+      deallocate(gyro_phi)
+    end if
+
+    if (fapar > epsilon(0.0)) then
+      allocate(gyro_apar(naky,nakx,-nzgrid:nzgrid,ntubes))
+      call gyro_average(apar, ivmu, gyro_apar)
+      gyro_chi = gyro_chi -  2*vpa(iv)*spec(is)%stm*gyro_apar
+      deallocate(gyro_apar)
+    end if
+
+    if (fbpar > epsilon(0.0)) then
+      allocate(gyro_bpar(naky,nakx,-nzgrid:nzgrid,ntubes))
+      call gyro_average_j1(bpar, ivmu, gyro_bpar)
+      gyro_chi = gyro_chi -  4*mu(imu)*(spec(is)%dens/spec(is)%z)*gyro_bpar
+      deallocate(gyro_bpar)
+    end if
+
+  end subroutine get_gyroaverage_chi
 
   ! the following routine gets the correction in phi both from gyroaveraging and quasineutrality
   ! the output, phi,

@@ -471,16 +471,20 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar, bpar
 
     integer :: ivmu, iv
-    complex, dimension (:,:,:,:), allocatable :: phi1
+    complex, dimension (:,:,:,:), allocatable :: phi1, apar1, bpar1
 
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
     allocate (phi1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (apar1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (bpar1(naky,nakx,-nzgrid:nzgrid,ntubes))
     ! Bob: To make electromagnetic, need to replace phi with chi. However, because
     ! of how the gyroaverages are implemented, need to perform the replacement later.
     ! save the incoming g and phi, as they will be needed later
     g1 = g
     phi1 = phi
+    apar1 = apar
+    bpar1 = bpar
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -489,8 +493,10 @@ contains
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
        ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-       call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='inhomogeneous')
+       call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, apar1, apar, bpar1, bpar, g(:,:,:,:,ivmu), eqn='inhomogeneous')
 
+
+       !! Bob: Need to make electromagnetic.
        if (stream_matrix_inversion) then
           ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
           ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
@@ -518,7 +524,7 @@ contains
        ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
        ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
        ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-       call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, g(:,:,:,:,ivmu), eqn='full')
+       call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, apar1, apar, bpar1, bpar, g(:,:,:,:,ivmu), eqn='full')
 
        if (stream_matrix_inversion) then
           ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
@@ -535,7 +541,7 @@ contains
 
   end subroutine advance_parallel_streaming_implicit
 
-  subroutine get_gke_rhs (ivmu, gold, phiold, phi, g, eqn)
+  subroutine get_gke_rhs (ivmu, gold, phiold, phi, aparold, apar, bparold, bpar, g, eqn)
 
     use stella_time, only: code_dt
     use zgrid, only: nzgrid, ntubes
@@ -552,12 +558,14 @@ contains
     use run_parameters, only: time_upwind
     use run_parameters, only: driftkinetic_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
+    !! Bob: Need to compute chi & its gyroaverage
+    use fields, only: get_chi, get_gyroaverage_chi
 
     implicit none
 
     integer, intent (in) :: ivmu
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: gold
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phiold, phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phiold, phi, aparold, apar, bparold, bpar
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: g
     character (*), intent (in) :: eqn
 
@@ -566,7 +574,7 @@ contains
     real, dimension (:), allocatable :: vpadf0dE_fac
     real, dimension (:), allocatable :: gp
     complex, dimension (:,:,:,:), allocatable :: dgdz, dphidz
-    complex, dimension (:,:,:,:), allocatable :: field
+    complex, dimension (:,:,:,:), allocatable :: field1, field2, field3
 
     allocate (vpadf0dE_fac(-nzgrid:nzgrid))
     allocate (gp(-nzgrid:nzgrid))
@@ -596,21 +604,38 @@ contains
     ! as this was calculated previously
     call get_dzed (iv,gold,dgdz)
 
-    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
-    ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
-    field = tupwnd1*phiold+tupwnd2*phi
+    allocate (field1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (field2(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (field3(naky,nakx,-nzgrid:nzgrid,ntubes))
+    ! old: get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
+    field1 = tupwnd1*phiold+tupwnd2*phi
+    ! Bob: do same for apar, bpar.
+    field2 = tupwnd1*aparold+tupwnd2*apar
+    field3 = tupwnd1*bparold+tupwnd2*bpar
+
     ! set g to be phi or <phi> depending on whether parallel streaming is
     ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+    ! Bob: we want g to be chi or <chi>
     if (driftkinetic_implicit) then
-       g = field
+       !! Old:
+       !g = field
+       !! New:
+       call get_chi(field1, field2, field3, ivmu, g)
     else
-       call gyro_average (field, ivmu, g)
+      !! Old:
+      ! call gyro_average (field, ivmu, g)
+      !! New: Get gy_chi as a function of (kx, ky, z, tube), for a particular ivmu == a particular (iv, imu, is)
+      call get_gyroaverage_chi(field1, field2, field3, ivmu, g)
+
     end if
-    deallocate (field)
+    deallocate (field1)
+    deallocate (field2)
+    deallocate (field3)
 
     if (maxwellian_inside_zed_derivative) then
        ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
        g = g*spread(spread(spread(maxwell_mu(ia,:,imu,is)*maxwell_fac(is),1,naky),2,nakx),4,ntubes)
+       ! Bob: this is actually dchidz
        call get_dzed (iv,g,dphidz)
        ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
        g = g*spread(spread(spread(dbdzed(ia,:),1,naky),2,nakx),4,ntubes)
