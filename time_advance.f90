@@ -870,7 +870,6 @@ contains
 
     integer, intent (in) :: istep
     complex, allocatable, dimension (:,:,:,:) :: g1
-    complex, allocatable, dimension (:, :,:,:,:) :: g1bar
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -983,7 +982,7 @@ contains
     use physics_parameters, only: g_exb, g_exbfac
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-
+    use dist_fn_arrays, only: g1
     implicit none
 
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
@@ -992,7 +991,6 @@ contains
 
     logical  :: restart_time_step
     integer :: icnt
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:) :: rhs_ky ! Should generalise this to include full flux surface option
 
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
@@ -1010,7 +1008,7 @@ contains
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
     ! solve_gke returns rhs*dt
     do while (icnt <= 1)
-      call advance_ExB_nonlinearity (gout, rhs_ky, restart_time_step)
+      call advance_ExB_nonlinearity (gout, g1, restart_time_step)
       if (restart_time_step) then
           icnt = 1
       else
@@ -1020,7 +1018,7 @@ contains
 
 
     ! Multiply RHS by 2, because it's the nonlinearity applied for dt.
-    gout = golder+2*rhs_ky
+    gout = golder+2*g1
 
     !! Check CFL violation
 
@@ -2306,7 +2304,7 @@ contains
 
   end subroutine add_wstar_term
 
-  subroutine advance_implicit (istep, phi, apar, g, first_call)
+  subroutine advance_implicit (istep, phi, apar, g)
 !  subroutine advance_implicit (phi, apar, g)
 
     use mp, only: proc0
@@ -2330,7 +2328,6 @@ contains
     implicit none
 
     integer, intent (in) :: istep
-    logical, intent (in) :: first_call
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
@@ -2366,7 +2363,7 @@ contains
 
     if(RK_step) call mb_communicate (g)
 
-    if (first_call) then
+    if (mod(istep,2)==1 .or. .not.flip_flop) then
 
        if (prp_shear_enabled) then
           call advance_perp_flow_shear(g)
