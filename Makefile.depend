@@ -53,10 +53,12 @@ stella_mod = \
 	 stella_save.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 system_fortran.o \
 	 text_options.o \
 	 time_advance.o \
 	 vmec_geo.o \
 	 vmec_to_stella_geometry_interface.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 
@@ -133,15 +135,19 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 common_types.o \
 	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
+	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
@@ -173,6 +179,11 @@ flow_shear.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zgrid.o 
+full_xzgrid.o: \
+	 extended_zgrid.o \
+	 kt_grids.o \
+	 species.o \
 	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
@@ -215,6 +226,7 @@ init_g.o: \
 	 species.o \
 	 stella_layouts.o \
 	 stella_save.o \
+	 system_fortran.o \
 	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -237,6 +249,7 @@ kt_grids.o: \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 stella_geometry.o \
+	 stella_transforms.o \
 	 text_options.o \
 	 zgrid.o 
 linear_solve.o: 
@@ -273,15 +286,15 @@ mt19937.o:
 multibox.o: \
 	 constants.o \
 	 fft_work.o \
-	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
-	 flow_shear.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 run_parameters.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -300,7 +313,8 @@ neoclassical_terms.o: \
 	 zgrid.o 
 netcdf_utils.o: \
 	 constants.o \
-	 file_utils.o 
+	 file_utils.o \
+	 mp.o 
 parallel_streaming.o: \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
@@ -349,6 +363,7 @@ response_matrix.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 run_parameters.o: \
@@ -404,6 +419,7 @@ stella.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 time_advance.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_diagnostics.o: \
@@ -411,6 +427,7 @@ stella_diagnostics.o: \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 g_tofrom_h.o \
@@ -429,6 +446,7 @@ stella_diagnostics.o: \
 	 stella_save.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_geometry.o: \
@@ -468,7 +486,6 @@ stella_save.o: \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
-	 flow_shear.o \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
@@ -482,6 +499,7 @@ stella_transforms.o: \
 	 fft_work.o \
 	 physics_flags.o \
 	 stella_layouts.o 
+system_fortran.o: 
 test_vmec_to_stella_geometry_interface.o: \
 	 vmec_to_stella_geometry_interface.o 
 text_options.o: 
@@ -529,6 +547,10 @@ vmec_geo.o: \
 	 zgrid.o 
 vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
+volume_averages.o: \
+	 kt_grids.o \
+	 stella_geometry.o \
+	 zgrid.o 
 vpamu_grids.o: \
 	 constants.o \
 	 file_utils.o \

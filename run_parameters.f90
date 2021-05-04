@@ -11,9 +11,11 @@ module run_parameters
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
+  public :: drifts_implicit
   public :: driftkinetic_implicit
   public :: fully_explicit
   public :: use_leapfrog_splitting
+  public :: ky_solve_radial, ky_solve_real
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option  ! JFP adding mirror_semi_lagrange_non_interp
@@ -29,16 +31,21 @@ module run_parameters
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
-  logical :: fully_explicit
+  logical :: fully_explicit, drifts_implicit
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option
+  logical :: use_leapfrog_splitting
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
+  logical :: ky_solve_real
   real :: avail_cpu_time
-  integer :: nstep
+  integer :: nstep, ky_solve_radial
   integer :: rng_seed
-  integer, public :: delt_option_switch
+  integer, public :: delt_option_switch, lu_option_switch
   integer, public, parameter :: delt_option_hand = 1, delt_option_auto = 2
+  integer, public, parameter :: lu_option_none   = 1, &
+                                lu_option_local  = 2, &
+                                lu_option_global = 3
   logical :: initialized = .false.
   logical :: knexist
 
@@ -65,22 +72,29 @@ contains
     implicit none
 
     type (text_option), dimension (3), parameter :: deltopts = &
-         (/ text_option('default', delt_option_hand), &
+         (/ text_option('default', delt_option_auto), &
             text_option('set_by_hand', delt_option_hand), &
             text_option('check_restart', delt_option_auto) /)
-    character(20) :: delt_option
+    type (text_option), dimension (4), parameter :: lu_opts = &
+         (/ text_option('default', lu_option_none), &
+            text_option('none',    lu_option_none), &
+            text_option('local',   lu_option_local), &
+            text_option('global',  lu_option_global) /)
+
+    character(20) :: delt_option, lu_option
 
     integer :: ierr, in_file
 
     namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
-         delt_option, &
+         delt_option, lu_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
+         drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option, &
-         use_leapfrog_splitting
+         ky_solve_radial, ky_solve_real, use_leapfrog_splitting
 
     if (proc0) then
        fphi = 1.0
@@ -89,6 +103,7 @@ contains
        fields_kxkyz = .false.
        stream_implicit = .true.
        mirror_implicit = .true.
+       drifts_implicit = .false.
        driftkinetic_implicit = .false.
        maxwellian_inside_zed_derivative = .false.
        mirror_semi_lagrange = .true.
@@ -98,6 +113,7 @@ contains
        stream_matrix_inversion = .false.
        use_leapfrog_splitting = .false.
        delt_option = 'default'
+       lu_option = 'default'
        zed_upwind = 0.02
        vpa_upwind = 0.02
        time_upwind = 0.02
@@ -105,6 +121,8 @@ contains
        cfl_cushion = 0.5
        delt_adjust = 2.0
        rng_seed = -1 !negative values use current time as seed
+       ky_solve_radial = 0
+       ky_solve_real   = .false.
        mat_gen = .true.
        mat_read = .false.
 
@@ -123,11 +141,16 @@ contains
             (delt_option, deltopts, delt_option_switch, ierr, &
             "delt_option in knobs")
 
+       call get_option_value &
+            (lu_option, lu_opts, lu_option_switch, ierr, &
+            "lu_option in knobs")
+
     end if
 
     call broadcast (fields_kxkyz)
     call broadcast (delt_option_switch)
     call broadcast (delt)
+    call broadcast (lu_option_switch)
     call broadcast (cfl_cushion)
     call broadcast (delt_adjust)
     call broadcast (fphi)
@@ -135,6 +158,7 @@ contains
     call broadcast (fbpar)
     call broadcast (stream_implicit)
     call broadcast (mirror_implicit)
+    call broadcast (drifts_implicit)
     call broadcast (driftkinetic_implicit)
     call broadcast (maxwellian_inside_zed_derivative)
     call broadcast (mirror_semi_lagrange)
@@ -149,8 +173,10 @@ contains
     call broadcast (nstep)
     call broadcast (avail_cpu_time)
     call broadcast (rng_seed)
-    CALL broadcast (mat_gen)
-    CALL broadcast (mat_read)
+    call broadcast (ky_solve_radial)
+    call broadcast (ky_solve_real)
+    call broadcast (mat_gen)
+    call broadcast (mat_read)
 
     if (.not.include_mirror) mirror_implicit = .false.
 
@@ -162,7 +188,7 @@ contains
        stream_implicit = .false.
     end if
 
-    if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit) then
+    if (mirror_implicit.or.stream_implicit.or.driftkinetic_implicit.or.drifts_implicit) then
        fully_explicit = .false.
     else
        fully_explicit = .true.

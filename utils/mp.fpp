@@ -32,16 +32,19 @@ module mp
   public :: comm_split, comm_free
   public :: nproc, iproc, proc0, job
   public :: send, ssend, receive
+  public :: numnodes, inode
   public :: barrier
   public :: waitany
   public :: mp_abort
+  public :: mpireal, mpicmplx
+  public :: sgproc0
 ! MAB> needed by Trinity
-  public :: scope, allprocs, subprocs, crossdomprocs
+  public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs, sharedsubprocs, scrossdomprocs
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB
   public :: init_job_topology
-  public :: mp_comm
+  public :: mp_comm, curr_focus
   public :: mp_info
   public :: mp_gather
 
@@ -50,18 +53,34 @@ module mp
 ! CMR: defined MPIINC for machines where need to include mpif.h
   include 'mpif.h'
 #endif
+
+  !comm_all      - every processor
+  !comm_shared   - every processor on a node (shared memory)
+  !comm_group    - every processor on a given job
+  !comm_sgroup   - every processor on a node on a given job (shared memory)
+
+  !comm_node     - communicator that links procs of same rank across comm_shared
+  !comm_cross    - communicator that links procs of same rank across comm_group
+  !comm_scross   - communicator that links procs of same rank across comm_sgroup
+
   integer, pointer :: nproc
-  integer, target :: ntot_proc, ngroup_proc, ndomain_proc
+  integer, target :: ntot_proc, nshared_proc, ngroup_proc, ndomain_proc
+  integer, target :: nsgroup_proc, nscross_proc
+
+  integer :: numnodes, inode
 
   integer, pointer :: iproc
-  integer, target :: aproc, gproc, cproc
+  integer, target :: aproc, sproc, gproc, cproc, sgproc, scproc
 
   logical, pointer :: proc0
-  logical, target :: aproc0, gproc0
+  logical, target :: aproc0, sproc0, gproc0, sgproc0
 
   integer :: mpi_comm_world_private
   integer, pointer :: mp_comm
-  integer, target :: comm_all, comm_group, comm_cross
+  integer, target :: comm_all, comm_shared, comm_node, comm_group, comm_cross
+  integer, target :: comm_sgroup, comm_scross
+
+  integer :: curr_focus
 
   integer, parameter :: mp_info = MPI_INFO_NULL
 
@@ -73,8 +92,14 @@ module mp
 
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
+  integer :: mpireal, mpicmplx
 # endif
-  integer, parameter :: allprocs = 0, subprocs = 1, crossdomprocs = 2
+  integer, parameter ::      allprocs = 0, &
+                          sharedprocs = 1, & 
+                             subprocs = 2, &
+                        crossdomprocs = 3, &
+                       sharedsubprocs = 4, &
+                       scrossdomprocs = 5
 
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
@@ -108,6 +133,7 @@ module mp
 
      module procedure bcastfrom_complex 
      module procedure bcastfrom_complex_array 
+     module procedure bcastfrom_complex_2array 
 
      module procedure bcastfrom_logical 
      module procedure bcastfrom_logical_array 
@@ -144,6 +170,7 @@ module mp
   interface sum_allreduce
      module procedure sum_allreduce_integer
      module procedure sum_allreduce_integer_array
+     module procedure sum_allreduce_integer_2array
 
      module procedure sum_allreduce_real
      module procedure sum_allreduce_real_array
@@ -284,6 +311,35 @@ contains
     call mpi_comm_rank (comm_all, aproc, ierror)
     aproc0 = aproc == 0
 
+    !the next communicator is between all cores on a given node (i.e. shared memory)
+    call mpi_comm_split_type(comm_all,mpi_comm_type_shared,aproc,mp_info,comm_shared,ierror)
+
+    call mpi_comm_size(comm_shared,nshared_proc,ierror)
+    call mpi_comm_rank(comm_shared,sproc,ierror)
+    sproc0 = sproc == 0
+
+    call mpi_comm_split(comm_all,sproc,aproc,comm_node,ierror)
+    call mpi_comm_size(comm_node,numnodes,ierror)
+    call mpi_comm_rank(comm_node,inode,ierror)
+
+    !group communicator is global communicator unless changed by job fork
+    comm_group  = comm_all    
+    ngroup_proc = ntot_proc
+    gproc       = aproc
+    gproc0      = aproc0
+
+    comm_sgroup  = comm_shared
+    nsgroup_proc = nshared_proc
+    sgproc       = sproc
+    sgproc0      = sproc0
+    
+    comm_scross  = comm_node
+    nscross_proc = numnodes
+    scproc       = inode
+     
+
+    call scope (sharedprocs)
+    call broadcast(inode)
     call scope (allprocs)
 
     if ( (kind(pi)==kind_rs) .and. (kind_rs/=kind_rd) ) then
@@ -305,25 +361,175 @@ contains
 
 # ifdef MPI
     if (focus == allprocs) then
+       curr_focus = allprocs
        mp_comm => comm_all
        nproc => ntot_proc
        iproc => aproc
        proc0 => aproc0
+    else if (focus == sharedprocs) then
+       curr_focus = sharedprocs
+       mp_comm => comm_shared
+       nproc => nshared_proc
+       iproc => sproc
+       proc0 => sproc0
     else if(focus == subprocs) then
+       curr_focus = subprocs
        mp_comm => comm_group
        nproc => ngroup_proc
        iproc => gproc
        proc0 => gproc0
     else if(focus == crossdomprocs) then
+       curr_focus = crossdomprocs
        mp_comm => comm_cross
        nproc => ndomain_proc
        iproc => cproc
 !DSO - 'proc0' in this subgroup is meaningless... be careful
        proc0 => null()
+    else if (focus == sharedsubprocs) then
+       curr_focus = sharedsubprocs
+       mp_comm => comm_sgroup
+       nproc => nsgroup_proc
+       iproc => sgproc
+       proc0 => sgproc0
+    else if (focus == scrossdomprocs) then
+       curr_focus = scrossdomprocs
+       mp_comm => comm_scross
+       nproc => nscross_proc
+       iproc => scproc
+       proc0 => null()
     end if
 # endif
 
   end subroutine scope
+
+  subroutine init_job_topology (ncolumns, group0, ierr)
+
+    implicit none  
+# ifdef MPI
+!    integer, parameter :: reorder=1
+    ! TT: I changed variable definition by assuming integer 1 corresponds to
+    ! TT: logical .true. but I am not sure if reorder is needed.
+    ! TT: In any case this subroutine is only called when you use job fork.
+    logical, parameter :: reorder=.true.
+    integer :: ip, j, comm2d, id2d, ierr, nrows
+# endif
+    integer, intent(in) :: ncolumns
+    integer, dimension(0:), intent (out) :: group0
+# ifndef MPI
+    integer :: ierr
+    if (ncolumns /= 1) call error ("jobs")
+# else
+    integer, parameter :: ndim=2
+    integer, dimension(ndim) :: dims
+    integer, dimension(0:ndim-1) :: coords1d, coords2d
+    logical, dimension(0:ndim-1) :: belongs
+    logical, dimension(ndim) :: period
+    
+    logical :: isroot
+
+    if (.not. allocated(grp0)) allocate (grp0(0:size(group0)-1))
+    
+! calculate dimensions  mpi processor grid will have and check that 
+! ncolumns*nrows = number of processes
+
+! nrows is # of processors per job (or group)    
+    nrows = ntot_proc/ncolumns
+    dims=(/ ncolumns, nrows /)
+    if(ntot_proc /= ncolumns*nrows) then
+       ierr = 1
+       if(aproc0) write(*,*) 'Number of processes must be divisible by number of groups'
+       return
+    endif
+    ngroup_proc = nrows
+    ndomain_proc = ncolumns
+    
+    ! create 2d cartesian topology for processes
+    
+    period=(/ .false., .false. /)  !! no circular shift
+
+    call mpi_cart_create(comm_all, ndim, dims, period, reorder, comm2d, ierr)
+    call mpi_comm_rank(comm2d, id2d, ierr)
+    call mpi_cart_coords(comm2d, id2d, ndim, coords2d, ierr)
+    
+! each processor knows which subgrid it is in from variable mpi_group
+    job = coords2d(0)
+
+! create 1d subgrids from 2d processor grid, variable belongs denotes
+! whether processor grid is split by column or row
+
+! this group denotes processors on a single flux tube in a multi-tube
+! simulation (e.g. for Trinity)
+
+    belongs(1) = .true.    ! this dimension belongs to subgrid
+    belongs(0) = .false.  
+
+    call mpi_cart_sub(comm2d, belongs, comm_group, ierr)
+    call mpi_comm_rank(comm_group, gproc, ierr)     
+    call mpi_cart_coords(comm_group, gproc, 1, coords1d, ierr)
+    gproc0 = (gproc == 0)
+
+! this group denotes processor with different domains at shared
+! vpa_mu_s coordinates, with the intended purpose to couple separate
+! flux tubes radially
+
+    belongs(1) = .false.    ! this dimension belongs to subgrid
+    belongs(0) = .true.  
+
+    call mpi_cart_sub(comm2d, belongs, comm_cross, ierr)
+    call mpi_comm_rank(comm_cross, cproc, ierr)     
+    !call mpi_cart_coords(comm_cross, cproc, 1, crosscoords1d, ierr)
+
+    if (job /= cproc) call mp_abort("topology coordinates")
+
+    
+! find root process of each 1d subgrid and place in array group0 indexed 
+! from 0 to subgrids-1
+     
+! MAB> following two lines were incorrect
+!    j=1
+!    group0(0) = 0
+! replace with
+    j = 0
+    if (proc0 .and. gproc0) then
+       group0(0) = 0
+       j = 1
+    end if
+! <MAB
+    do ip = 1, ntot_proc-1
+       if (proc0) then
+          call receive (isroot, ip)
+          if (isroot) then
+             group0(j) = ip
+             j=j+1
+          end if
+       else if (ip == aproc) then
+          call send (gproc0, 0)
+       end if
+       call barrier
+    end do
+
+!the next communicator is between all cores on a given node for a given job(i.e. shared memory)
+    call mpi_comm_split_type(comm_group,mpi_comm_type_shared,aproc,mp_info,comm_sgroup,ierr)
+    call mpi_comm_size(comm_sgroup,nsgroup_proc,ierr)
+    call mpi_comm_rank(comm_sgroup,sgproc,ierr)
+    sgproc0 = sgproc == 0
+
+    call mpi_comm_split(comm_group,sgproc,gproc,comm_scross,ierr)
+    call mpi_comm_size(comm_scross,nscross_proc,ierr)
+    call mpi_comm_rank(comm_scross,scproc,ierr)
+
+!let all processors have the group0 array
+    call broadcast (group0)
+
+    grp0 = group0    
+
+! TT> brought down here from init_job_name in file_utils.fpp
+    call scope (subprocs)
+! <TT
+
+# endif
+  end subroutine init_job_topology
+
 
   subroutine finish_mp
 # ifdef MPI
@@ -587,6 +793,18 @@ contains
     if (src /= 0) call error ("broadcast from")
 # endif
   end subroutine bcastfrom_complex_array
+
+  subroutine bcastfrom_complex_2array (z, src)
+    implicit none
+    complex, dimension (:,:), intent (in out) :: z
+    integer, intent (in) :: src
+# ifdef MPI
+    integer :: ierror
+    call mpi_bcast (z, size(z), mpicmplx, src, mp_comm, ierror)
+# else
+    if (src /= 0) call error ("broadcast from")
+# endif
+  end subroutine bcastfrom_complex_2array
 
 ! ************** reductions ***********************
 
@@ -894,6 +1112,17 @@ contains
          (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_SUM, mp_comm, ierror)
 # endif
   end subroutine sum_allreduce_integer_array
+
+  subroutine sum_allreduce_integer_2array (i)
+    implicit none
+    integer, dimension (:,:), intent (in out) :: i
+# ifdef MPI
+    integer :: ierror
+    call mpi_allreduce &
+         (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_SUM, mp_comm, ierror)
+# endif
+  end subroutine sum_allreduce_integer_2array
+
 
   subroutine sum_allreduce_real (a)
     implicit none
@@ -1906,124 +2135,6 @@ contains
 # endif
 
   end subroutine waitany
-
-  subroutine init_job_topology (ncolumns, group0, ierr)
-
-    implicit none  
-# ifdef MPI
-!    integer, parameter :: reorder=1
-    ! TT: I changed variable definition by assuming integer 1 corresponds to
-    ! TT: logical .true. but I am not sure if reorder is needed.
-    ! TT: In any case this subroutine is only called when you use job fork.
-    logical, parameter :: reorder=.true.
-    integer :: ip, j, comm2d, id2d, ierr, nrows
-# endif
-    integer, intent(in) :: ncolumns
-    integer, dimension(0:), intent (out) :: group0
-# ifndef MPI
-    integer :: ierr
-    if (ncolumns /= 1) call error ("jobs")
-# else
-    integer, parameter :: ndim=2
-    integer, dimension(ndim) :: dims
-    integer, dimension(0:ndim-1) :: coords1d, coords2d
-    logical, dimension(0:ndim-1) :: belongs
-    logical, dimension(ndim) :: period
-    
-    logical :: isroot
-
-    if (.not. allocated(grp0)) allocate (grp0(0:size(group0)-1))
-    
-! calculate dimensions  mpi processor grid will have and check that 
-! ncolumns*nrows = number of processes
-
-! nrows is # of processors per job (or group)    
-    nrows = ntot_proc/ncolumns
-    dims=(/ ncolumns, nrows /)
-    if(ntot_proc /= ncolumns*nrows) then
-       ierr = 1
-       if(aproc0) write(*,*) 'Number of processes must be divisible by number of groups'
-       return
-    endif
-    ngroup_proc = nrows
-    ndomain_proc = ncolumns
-    
-    ! create 2d cartesian topology for processes
-    
-    period=(/ .false., .false. /)  !! no circular shift
-
-    call mpi_cart_create(comm_all, ndim, dims, period, reorder, comm2d, ierr)
-    call mpi_comm_rank(comm2d, id2d, ierr)
-    call mpi_cart_coords(comm2d, id2d, ndim, coords2d, ierr)
-    
-! each processor knows which subgrid it is in from variable mpi_group
-    job = coords2d(0)
-
-! create 1d subgrids from 2d processor grid, variable belongs denotes
-! whether processor grid is split by column or row
-
-! this group denotes processors on a single flux tube in a multi-tube
-! simulation (e.g. for Trinity)
-
-    belongs(1) = .true.    ! this dimension belongs to subgrid
-    belongs(0) = .false.  
-
-    call mpi_cart_sub(comm2d, belongs, comm_group, ierr)
-    call mpi_comm_rank(comm_group, gproc, ierr)     
-    call mpi_cart_coords(comm_group, gproc, 1, coords1d, ierr)
-    gproc0 = (gproc == 0)
-
-! this group denotes processor with different domains at shared
-! vpa_mu_s coordinates, with the intended purpose to couple separate
-! flux tubes radially
-
-    belongs(1) = .false.    ! this dimension belongs to subgrid
-    belongs(0) = .true.  
-
-    call mpi_cart_sub(comm2d, belongs, comm_cross, ierr)
-    call mpi_comm_rank(comm_cross, cproc, ierr)     
-    !call mpi_cart_coords(comm_cross, cproc, 1, crosscoords1d, ierr)
-
-    if (job /= cproc) call mp_abort("topology coordinates")
-
-    
-! find root process of each 1d subgrid and place in array group0 indexed 
-! from 0 to subgrids-1
-     
-! MAB> following two lines were incorrect
-!    j=1
-!    group0(0) = 0
-! replace with
-    j = 0
-    if (proc0 .and. gproc0) then
-       group0(0) = 0
-       j = 1
-    end if
-! <MAB
-    do ip = 1, ntot_proc-1
-       if (proc0) then
-          call receive (isroot, ip)
-          if (isroot) then
-             group0(j) = ip
-             j=j+1
-          end if
-       else if (ip == aproc) then
-          call send (gproc0, 0)
-       end if
-       call barrier
-    end do
-
-!let all processors have the group0 array
-    call broadcast (group0)
-
-    grp0 = group0    
-
-! TT> brought down here from init_job_name in file_utils.fpp
-    call scope (subprocs)
-! <TT
-
-# endif
-  end subroutine init_job_topology
 
   subroutine all_to_group_real (all, group, njobs)
     

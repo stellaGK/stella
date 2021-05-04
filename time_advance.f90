@@ -26,11 +26,12 @@ module time_advance
 
   logical :: time_advance_initialized = .false.
 
-  logical :: wdriftinit = .false.
-  logical :: wstarinit  = .false.
-  logical :: parnlinit  = .false.
-  logical :: readinit   = .false.
-  logical :: radialinit = .false.
+  logical :: wdriftinit   = .false.
+  logical :: wstarinit    = .false.
+  logical :: parnlinit    = .false.
+  logical :: readinit     = .false.
+  logical :: radialinit   = .false.
+  logical :: driftimpinit = .false.
 
   ! if .true., dist fn is represented on alpha grid
   ! if .false., dist fn is given on k-alpha grid
@@ -43,13 +44,11 @@ module time_advance
        explicit_option_rk2 = 2, &
        explicit_option_rk4 = 3
 
-!  logical :: wdrifty_explicit, wdrifty_implicit
-!  logical :: wstar_explicit, wstar_implicit
   real :: xdriftknob, ydriftknob, wstarknob
   logical :: flip_flop
 
-!  complex, dimension (:,:,:), allocatable :: gamtot_wstar, apar_denom_wstar
-!  complex, dimension (:,:), allocatable :: gamtot3_wstar
+  complex, dimension (:,:,:), allocatable :: gamtot_drifts!, apar_denom_drifts
+  complex, dimension (:,:), allocatable :: gamtot3_drifts
 
   ! factor multiplying parallel nonlinearity
   real, dimension (:,:), allocatable :: par_nl_fac
@@ -69,13 +68,12 @@ contains
 
     use mp, only: proc0
     use stella_transforms, only: init_transforms
-    use physics_flags, only: full_flux_surface, radial_variation
+    use run_parameters, only: drifts_implicit
+    use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
-    use physics_flags, only: nonlinear
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
     use parallel_streaming, only: init_parallel_streaming
-    use dist_redistribute, only: init_redistribute
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
 
@@ -106,10 +104,10 @@ contains
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
     if (radial_variation) call init_radial_variation
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_drifts_implicit'
+    if (drifts_implicit) call init_drifts_implicit
     if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
     call init_dissipation
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_redistribute'
-    call init_redistribute
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
 
@@ -148,8 +146,6 @@ contains
        ydriftknob = 1.0
        wstarknob = 1.0
        flip_flop = .false.
-!       wdrifty_explicit = .true.
-!       wstar_explicit = .true.
 
        in_file = input_unit_exist("time_advance_knobs", taexist)
        if (taexist) read (unit=in_file, nml=time_advance_knobs)
@@ -165,8 +161,6 @@ contains
     call broadcast (ydriftknob)
     call broadcast (wstarknob)
     call broadcast (flip_flop)
-!    call broadcast (wdrifty_explicit)
-!    call broadcast (wstar_explicit)
 
     if (fully_explicit) flip_flop = .false.
 
@@ -236,14 +230,22 @@ contains
     if (wdriftinit) return
     wdriftinit = .true.
 
-    if (.not.allocated(wdriftx_phi)) &
-         allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdrifty_phi)) &
-         allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdriftx_g)) &
-         allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(wdrifty_g)) &
-         allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(wdriftx_phi)) then
+      allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdriftx_phi = 0.0
+    endif
+    if (.not.allocated(wdrifty_phi)) then
+      allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdrifty_phi = 0.0
+    endif
+    if (.not.allocated(wdriftx_g)) then
+      allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdriftx_g = 0.0
+    endif
+    if (.not.allocated(wdrifty_g)) then
+      allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      wdrifty_g = 0.0
+    endif
 
     allocate (wcvdrifty(nalpha,-nzgrid:nzgrid))
     allocate (wgbdrifty(nalpha,-nzgrid:nzgrid))
@@ -368,6 +370,127 @@ contains
 
   end subroutine init_wstar
 
+  subroutine init_drifts_implicit
+
+    use constants, only: zi
+    use mp, only: sum_allreduce, mp_abort
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use gyro_averages, only: aj0x
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+    use dist_fn_arrays, only: wstar
+    use fields_arrays, only: gamtot
+    use fields, only: efac
+    use run_parameters, only: fphi, fapar, time_upwind
+    use species, only: spec, has_electron_species
+    use stella_geometry, only: dl_over_b
+    use zgrid, only: nzgrid
+    use vpamu_grids, only: integrate_species
+    use species, only: spec
+    use kt_grids, only: naky, nakx, aky, akx, zonal_mode
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+
+    implicit none
+
+      integer :: ivmu, iz, ikx, is, ia, iv, imu
+      complex :: tmps
+      complex, dimension (:,:,:), allocatable :: g0
+      complex, dimension (:,:), allocatable :: wd_g, wd_phi, wstr, tmp
+
+      if (driftimpinit) return
+      driftimpinit = .true.
+
+      ia = 1
+
+      allocate (wd_g(naky,nakx))
+      allocate (wd_phi(naky,nakx))
+      allocate (wstr(naky,nakx))
+      allocate (tmp(naky,nakx))
+
+      if (.not.allocated(gamtot_drifts)) &
+           allocate (gamtot_drifts(naky,nakx,-nzgrid:nzgrid))
+      gamtot_drifts = 0.
+      if (.not.allocated(gamtot3_drifts)) &
+           allocate (gamtot3_drifts(nakx,-nzgrid:nzgrid))
+      gamtot3_drifts = 0.
+!     if (.not.allocated(apar_denom_drifts)) &
+!          allocate (apar_denom_wstar(naky,nakx,-nzgrid:nzgrid))
+!     apar_denom_wstar = 0.
+
+      if (fphi > epsilon(0.0)) then
+        allocate (g0(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        do iz = -nzgrid, nzgrid
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv  = iv_idx(vmu_lo,ivmu)
+            imu = imu_idx(vmu_lo,ivmu)
+            is  = is_idx(vmu_lo,ivmu)
+
+            !there terms already contain a factor of code_dt as well as
+            !a negative sign to account for RHS
+            wd_g   = -zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
+                        + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
+
+            wd_phi = -zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
+                        + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
+
+            wstr   = -zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
+
+            g0(:,:,ivmu) = 0.5*(1.0+time_upwind)*aj0x(:,:,iz,ivmu)**2 &
+                           *(wd_phi + wstr)/(1.0 + 0.5*(1.0+time_upwind)*wd_g)
+          enddo
+          call integrate_species (g0, iz, spec%z*spec%dens_psi0, gamtot_drifts(:,:,iz))
+        enddo
+
+        gamtot_drifts = gamtot_drifts + gamtot
+
+        deallocate (g0)
+
+        if (.not.has_electron_species(spec)) then
+          ! no need to do anything extra for ky /= 0 because
+          ! already accounted for in gamtot_h
+          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+            if (zonal_mode(1)) then
+              do ikx = 1, nakx
+                ! do not need kx=ky=0 mode
+                if (abs(akx(ikx)) < epsilon(0.)) cycle
+                tmps = 1.0/efac - sum(dl_over_b(ia,:)/gamtot_drifts(1,ikx,:))
+                gamtot3_drifts(ikx,:) = 1./(gamtot_drifts(1,ikx,:)*tmps)
+              end do
+              if (akx(1) < epsilon(0.)) gamtot3_drifts(1,:) = 0.0
+            end if
+          end if
+        end if
+      end if
+
+      deallocate (wd_g, wd_phi, wstr, tmp)
+
+
+      ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
+       if (fapar > epsilon(0.)) then
+          write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
+          call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
+       end if
+
+  !        allocate (g0(-nvgrid:nvgrid,nmu))
+  !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+  !           iky = iky_idx(kxkyz_lo,ikxkyz)
+  !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+  !           ig = iz_idx(kxkyz_lo,ikxkyz)
+  !           is = is_idx(kxkyz_lo,ikxkyz)
+  !           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
+  !           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
+  !           call integrate_vmu (g0, ig, tmp)
+  !           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
+  !        end do
+  !        call sum_allreduce (apar_denom)
+  !        apar_denom = apar_denom + kperp2
+
+  !        deallocate (g0)
+  !     end if
+
+  end subroutine init_drifts_implicit
 
   subroutine init_parallel_nonlinearity
 
@@ -414,10 +537,10 @@ contains
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
-    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+    use dist_fn_arrays, only: wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
-    use neoclassical_terms, only: include_neoclassical_terms
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
+!   use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
 
@@ -442,6 +565,8 @@ contains
       allocate (wstarp(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstarp = 0.0
     if (.not.allocated(wdriftpx_phi)) &
        allocate (wdriftpx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    if (.not.allocated(adiabatic_phi)) &
+       allocate (adiabatic_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpy_phi)) &
       allocate (wdriftpy_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpx_g)) &
@@ -503,12 +628,18 @@ contains
        wcvdriftx = gfac*fac*dcvdrift0drho*vpa(iv)
        ! this is the grad-B drift piece of wdriftx
        wgbdriftx = gfac*fac*dgbdrift0drho*0.5*vperp2(:,:,imu)
-       wdriftpx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
+       wdriftpx_g(:,:,ivmu) = wgbdriftx + wcvdriftx*vpa(iv)
 
-       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
-            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is) &
-            - wdriftx_phi(:,:,ivmu)*(pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
-              + gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
+       !the next piece is everything under the x derivative, as this needs to be
+       !transformed separately
+       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv))  &
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
+
+       !this is variation in the Maxwellian part of the adiabatic response of phi,
+       !which needs to be transformed separately before differentiation wrt x
+       !the gyroaveraging and quasineutrality is already done in fields
+       adiabatic_phi(:,:,ivmu) = -(pfac*(spec(is)%fprim+spec(is)%tprim*(energy-2.5)) &
+                                  +gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
     end do
 
@@ -551,20 +682,23 @@ contains
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
-    use physics_flags, only: radial_variation
+    use physics_flags, only: radial_variation, prp_shear_enabled
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky, nx, rho
-    use run_parameters, only: stream_implicit, mirror_implicit
-    use parallel_streaming, only: stream, stream_rad_var1
-    use parallel_streaming, only: stream_rad_var2
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+    use parallel_streaming, only: stream
+    use parallel_streaming, only: stream_rad_var1, stream_rad_var2
     use mirror_terms, only: mirror
-    use flow_shear, only: prl_shear
+    use flow_shear, only: prl_shear, shift_times
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use dissipation, only: include_collisions, collisions_implicit
+    use dissipation, only: vpa_operator, mu_operator
+    use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
 
     implicit none
 
-    real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_prls
+    real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_shear
     real :: cfl_dt_wdriftx, cfl_dt_wdrifty
     real :: zero
     real :: wdriftx_max, wdrifty_max
@@ -574,20 +708,27 @@ contains
 
     ! FLAG -- assuming equal spacing in zed!
 
-    ! get the local max value of wdriftx on each processor
-    wdriftx_max = maxval(abs(wdriftx_g))
-    ! compare these max values across processors to get global max
-    if (nproc > 1) then
-      if(runtype_option_switch == runtype_multibox) call scope(allprocs)
-      call max_allreduce (wdriftx_max)
-      if(runtype_option_switch == runtype_multibox) call scope(subprocs)
-    endif
-    ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
-    cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
-    cfl_dt = cfl_dt_wdriftx
+    if (cfl_dt.lt.0) cfl_dt = code_dt/cfl_cushion
 
-    cfl_dt_prls = abs(code_dt)/max(maxval(abs(aky))*maxval(abs(prl_shear)),zero)
-    cfl_dt = min(cfl_dt,cfl_dt_prls)
+    if(.not.drifts_implicit) then
+      ! get the local max value of wdriftx on each processor
+      wdriftx_max = maxval(abs(wdriftx_g))
+      ! compare these max values across processors to get global max
+      if (nproc > 1) then
+        call max_allreduce (wdriftx_max)
+      endif
+      ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
+      cfl_dt_wdriftx = abs(code_dt)/max(maxval(abs(akx))*wdriftx_max,zero)
+      cfl_dt = cfl_dt_wdriftx
+    endif
+
+    cfl_dt_shear = abs(code_dt)/max(maxval(abs(aky))*maxval(abs(prl_shear)),zero)
+    cfl_dt = min(cfl_dt,cfl_dt_shear)
+
+    if(prp_shear_enabled) then
+      cfl_dt_shear = minval(shift_times)
+      cfl_dt = min(cfl_dt,cfl_dt_shear)
+    endif
 
 
     if (.not.stream_implicit) then
@@ -615,36 +756,47 @@ contains
 
     end if
 
-    ! get the local max value of wdrifty on each processor
-    wdrifty_max = maxval(abs(wdrifty_g))
-    ! compare these max values across processors to get global max
-    if (nproc > 1) then
-      if(runtype_option_switch == runtype_multibox) call scope(allprocs)
-      call max_allreduce (wdrifty_max)
-      if(runtype_option_switch == runtype_multibox) call scope(subprocs)
+    if (include_collisions.and..not.collisions_implicit) then
+      if (vpa_operator) cfl_dt = min(cfl_dt,cfl_dt_vpadiff)
+      if (mu_operator)  cfl_dt = min(cfl_dt,cfl_dt_mudiff)
     endif
-    ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
-    cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
-    cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
+
+    if(.not.drifts_implicit) then
+      ! get the local max value of wdrifty on each processor
+      wdrifty_max = maxval(abs(wdrifty_g))
+      ! compare these max values across processors to get global max
+      if (nproc > 1) then
+        call max_allreduce (wdrifty_max)
+      endif
+      ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
+      cfl_dt_wdrifty = abs(code_dt)/max(maxval(abs(aky))*wdrifty_max,zero)
+      cfl_dt = min(cfl_dt,cfl_dt_wdrifty)
+    endif
 
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
     call min_allreduce (cfl_dt)
     if(runtype_option_switch == runtype_multibox) call scope(subprocs)
 
     if (proc0) then
-       write (*,'(a16)') 'LINEAR CFL_DT: '
-       write (*,'(a9,e12.4)') 'wdriftx: ', cfl_dt_wdriftx
-       write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
-!       if (wdrifty_explicit) write (*,'(a9,e12.4)') 'wdrifty: ', cfl_dt_wdrifty
-       if (.not.stream_implicit) write (*,'(a9,e12.4)') 'stream: ', cfl_dt_stream
-       if (.not.mirror_implicit) write (*,'(a9,e12.4)') 'mirror: ', cfl_dt_mirror
+       write (*,'(A)') "############################################################"
+       write (*,'(A)') "                        CFL CONDITION"
+       write (*,'(A)') "############################################################"
+       write (*,'(A16)') 'LINEAR CFL_DT: '
+       if (.not.drifts_implicit) write (*,'(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
+       if (.not.drifts_implicit) write (*,'(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
+       if (.not.stream_implicit) write (*,'(A12,ES12.4)') '   stream: ', cfl_dt_stream
+       if (.not.mirror_implicit) write (*,'(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
        write (*,*)
     end if
 
     if (abs(code_dt) > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,'(a21,e12.4,a35)') 'user-specified delt =', abs(code_dt), 'is larger than cfl_dt*cfl_cushion.'
-          write (*,'(a41,e12.4)') 'changing code_dt to cfl_dt*cfl_cushion =', cfl_dt*cfl_cushion
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A49,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion ='//REPEAT(' ',50), cfl_dt*cfl_cushion
        end if
        code_dt = sign(1.0,code_dt)*cfl_dt*cfl_cushion
        call reset_dt
@@ -659,7 +811,8 @@ contains
 
     use parallel_streaming, only: parallel_streaming_initialized
     use parallel_streaming, only: init_parallel_streaming
-    use run_parameters, only: stream_implicit, driftkinetic_implicit
+    use dissipation, only: init_collisions, collisions_initialized, include_collisions
+    use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
     use response_matrix, only: response_matrix_initialized
     use response_matrix, only: init_response_matrix
     use mirror_terms, only: mirror_initialized
@@ -675,27 +828,28 @@ contains
     wdriftinit = .false.
     wstarinit = .false.
     radialinit = .false.
+    driftimpinit = .false.
     flow_shear_initialized = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
+
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
     call init_flow_shear
     if (radial_variation) call init_radial_variation
+    if (drifts_implicit) call init_drifts_implicit
+    if (include_collisions) then
+      collisions_initialized = .false.
+      call init_collisions
+    endif
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
     if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then
        response_matrix_initialized = .false.
        call init_response_matrix
     end if
-!     if (wstar_implicit) then
-!        get_fields_wstar_initialized = .false.
-!        ! call to init_get_fields only needed for initial step
-!        call init_get_fields
-!        call init_get_fields_wstar
-!     end if
 
   end subroutine reset_dt
 
@@ -720,7 +874,7 @@ contains
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
-      call multibox_communicate(gnew)
+      call mb_communicate(gnew)
     endif
 
     ! save value of phi
@@ -728,11 +882,11 @@ contains
     phi_old = phi
 
     if (use_leapfrog_splitting .and. istep > 1) then
-      ! Allocate g1bar
-      allocate(g1bar(naky, nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      call advance_explicit (gnew)
-      if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
-      call advance_leapfrog(golder, gout)
+      call advance_explicit (golder)
+      if (.not.fully_explicit) call advance_implicit (istep, phi, apar, golder)
+      ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
+      ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
+      call advance_leapfrog(golder, gnew)
       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
       call advance_explicit (gnew)
 
@@ -827,15 +981,19 @@ contains
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
     use physics_parameters, only: g_exb, g_exbfac
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
 
     implicit none
 
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
-    logical, intent (out) :: restart_time_step
 
-    implicit none
+    logical  :: restart_time_step
+    integer :: icnt
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:) :: rhs_ky ! Should generalise this to include full flux surface option
+
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
 
@@ -844,16 +1002,15 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate (golder)
-    if(RK_step) call multibox_communicate (gout)
+    ! Don't think this is needed, but need to check
+    ! if(RK_step) call multibox_communicate (golder)
+    ! if(RK_step) call multibox_communicate (gout)
 
-    g0 = g
     icnt = 1
-    ! SSP rk3 algorithm to advance explicit part of code
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
     ! solve_gke returns rhs*dt
     do while (icnt <= 1)
-      call advance_ExB_nonlinearity (gout, rhs, restart_time_step)
+      call advance_ExB_nonlinearity (gout, rhs_ky, restart_time_step)
       if (restart_time_step) then
           icnt = 1
       else
@@ -863,7 +1020,7 @@ contains
 
 
     ! Multiply RHS by 2, because it's the nonlinearity applied for dt.
-    gout = golder+2*rhs
+    gout = golder+2*rhs_ky
 
     !! Check CFL violation
 
@@ -876,7 +1033,7 @@ contains
     use dist_fn_arrays, only: g0, g1
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: RK_step,multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -890,7 +1047,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate (g)
+    if(RK_step) call mb_communicate (g)
 
     g0 = g
 
@@ -905,7 +1062,7 @@ contains
           call solve_gke (g0, g1, restart_time_step)
        case (2)
           g1 = g0 + g1
-          if(RK_step) call multibox_communicate (g1)
+          if(RK_step) call mb_communicate (g1)
           call solve_gke (g1, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -926,7 +1083,7 @@ contains
     use dist_fn_arrays, only: g0, g1, g2
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -940,7 +1097,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate (g)
+    if(RK_step) call mb_communicate (g)
 
     g0 = g
 
@@ -954,11 +1111,11 @@ contains
           call solve_gke (g0, g1, restart_time_step)
        case (2)
           g1 = g0 + g1
-          if(RK_step) call multibox_communicate (g1)
+          if(RK_step) call mb_communicate (g1)
           call solve_gke (g1, g2, restart_time_step)
        case (3)
           g2 = g1 + g2
-          if(RK_step) call multibox_communicate (g2)
+          if(RK_step) call mb_communicate (g2)
           call solve_gke (g2, g, restart_time_step)
        end select
        if (restart_time_step) then
@@ -978,7 +1135,7 @@ contains
     use dist_fn_arrays, only: g0, g1, g2, g3
     use zgrid, only: nzgrid
     use stella_layouts, only: vmu_lo
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -992,7 +1149,7 @@ contains
     ! assume false and test
     restart_time_step = .false.
 
-    if(RK_step) call multibox_communicate(g)
+    if(RK_step) call mb_communicate(g)
 
     g0 = g
 
@@ -1007,19 +1164,19 @@ contains
        case (2)
           ! g1 is h*k1
           g3 = g0 + 0.5*g1
-          if(RK_step) call multibox_communicate(g3)
+          if(RK_step) call mb_communicate(g3)
           call solve_gke (g3, g2, restart_time_step)
           g1 = g1 + 2.*g2
        case (3)
           ! g2 is h*k2
           g2 = g0+0.5*g2
-          if(RK_step) call multibox_communicate(g2)
+          if(RK_step) call mb_communicate(g2)
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
        case (4)
           ! g3 is h*k3
           g3 = g0+g3
-          if(RK_step) call multibox_communicate(g3)
+          if(RK_step) call mb_communicate(g3)
           call solve_gke (g3, g, restart_time_step)
           g1 = g1 + g
        end select
@@ -1049,10 +1206,9 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: use_leapfrog_splitting
     use physics_parameters, only: g_exb
-    use run_parameters, only: fphi, fapar
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
-    use run_parameters, only: stream_implicit, mirror_implicit
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use dissipation, only: include_krook_operator, add_krook_operator
     use parallel_streaming, only: advance_parallel_streaming_explicit
@@ -1109,14 +1265,16 @@ contains
           call advance_mirror_explicit (gin, rhs)
        end if
 
-       ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-       call advance_wdrifty_explicit (gin, phi, rhs)
+       if (.not.drifts_implicit) then
+         ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+         call advance_wdrifty_explicit (gin, phi, rhs)
 
-       ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-       call advance_wdriftx (gin, phi, rhs)
+         ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
+         call advance_wdriftx_explicit (gin, phi, rhs)
 
-       ! calculate and add omega_* term to RHS of GK eqn
-       call advance_wstar_explicit (rhs)
+         ! calculate and add omega_* term to RHS of GK eqn
+         call advance_wstar_explicit (rhs)
+       endif
 
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
 
@@ -1251,7 +1409,7 @@ contains
 
   end subroutine advance_wdrifty_explicit
 
-  subroutine advance_wdriftx (g, phi, gout)
+  subroutine advance_wdriftx_explicit (g, phi, gout)
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
@@ -1319,7 +1477,7 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
-  end subroutine advance_wdriftx
+  end subroutine advance_wdriftx_explicit
 
   subroutine advance_ExB_nonlinearity (g, gout, restart_time_step)
 
@@ -1329,7 +1487,7 @@ contains
     use job_manage, only: time_message
     use gyro_averages, only: gyro_average
     use fields, only: get_dchidx, get_dchidy
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, shift_state
     use fields_arrays, only: phi_corr_QN,   phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_transforms, only: transform_y2ky,transform_x2kx
@@ -1346,7 +1504,6 @@ contains
     use kt_grids, only: x, swap_kxky, swap_kxky_back
     use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use flow_shear, only: shift_state
 
     implicit none
 
@@ -1360,6 +1517,7 @@ contains
     real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
 
     integer :: ivmu, iz, it, ia, imu, is
+    logical :: yfirst
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
@@ -1367,6 +1525,7 @@ contains
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
     restart_time_step = .false.
+    yfirst = .not.prp_shear_enabled
 
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
@@ -1375,7 +1534,7 @@ contains
     allocate (bracket(ny,nx))
     allocate (prefac(naky,nx))
 
-    if(full_flux_surface) then
+    if(yfirst) then
       allocate (g0k_swap(2*naky-1,ikx_max))
       allocate (g0kxy(ny,ikx_max))
     else
@@ -1445,9 +1604,14 @@ contains
 
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
-             if (full_flux_surface) then
+             if(yfirst) then
                 call transform_x2kx (bracket, g0kxy)
-                gout(:,:,iz,it,ivmu) = g0kxy
+                if (full_flux_surface) then
+                  gout(:,:,iz,it,ivmu) = g0kxy
+                else
+                  call transform_y2ky (g0kxy, g0k_swap)
+                  call swap_kxky_back (g0k_swap, gout(:,:,iz,it,ivmu))
+                endif
              else
                 call transform_y2ky_xfirst (bracket, g0xky)
                 g0xky = g0xky/prefac
@@ -1476,16 +1640,30 @@ contains
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
+          write (*,*) ' '
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' '
        end if
        code_dt = cfl_dt*cfl_cushion/delt_adjust
        call reset_dt
        restart_time_step = .true.
     else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
+          write (*,*) ' '
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' '
        end if
        code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
@@ -1509,7 +1687,7 @@ contains
       complex, dimension(:,:), intent (in) :: gk
       real, dimension(:,:), intent (out) :: gx
 
-      if(full_flux_surface) then
+      if(yfirst) then
         ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
         ! want to do 1D complex to complex transform in y
         ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
@@ -1746,16 +1924,30 @@ contains
 
     if (code_dt > cfl_dt*cfl_cushion) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
+          write (*,*) ' '
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' '
        end if
        code_dt = cfl_dt*cfl_cushion/delt_adjust
        call reset_dt
        restart_time_step = .true.
     else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
        if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
+          write (*,*) ' '
+          write (*,*) 'CHANGING TIME STEP:'
+          write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+          write (*,'(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ',50),cfl_cushion
+          write (*,'(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ',50),delt_adjust
+          write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
+          write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
+          write(*,*) ' '
        end if
        code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
@@ -1779,14 +1971,14 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nakx, naky, multiply_by_rho
     use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
     use physics_flags, only: include_parallel_streaming, include_mirror
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
     use dist_fn_arrays, only: wstar, wstarp
     use mirror_terms, only: add_mirror_radial_variation
     use flow_shear, only: prl_shear, prl_shear_p
@@ -1873,6 +2065,7 @@ contains
             !inverse and forward transforms
             call multiply_by_rho(g0k)
 
+
             !
             !quasineutrality/gyroaveraging
             !
@@ -1890,6 +2083,13 @@ contains
             g0k = g0k + g1k*prl_shear(ia,iz,ivmu)
 
             !wdriftx gyroaverage/quasineutrality variation
+            call get_dgdx(g0a,g1k)
+            g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
+
+            !wdriftx F_M/T_s variation
+            call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
+            g0a = adiabatic_phi(ia,iz,ivmu)*g0a
+            call multiply_by_rho(g0a)
             call get_dgdx(g0a,g1k)
             g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
@@ -2111,13 +2311,13 @@ contains
 
     use mp, only: proc0
     use job_manage, only: time_message
-    use run_parameters, only: fphi, fapar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use physics_flags, only: include_parallel_streaming
-    use physics_flags, only: include_mirror
-    use run_parameters, only: stream_implicit, mirror_implicit
+    use physics_flags, only: radial_variation, full_flux_surface
+    use physics_flags, only: include_mirror, prp_shear_enabled
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use parallel_streaming, only: advance_parallel_streaming_implicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_implicit
@@ -2125,7 +2325,7 @@ contains
     use dissipation, only: advance_collisions_implicit
     use run_parameters, only: driftkinetic_implicit
     use flow_shear, only: advance_perp_flow_shear
-    use multibox, only: RK_step, multibox_communicate
+    use multibox, only: RK_step
 
     implicit none
 
@@ -2164,12 +2364,14 @@ contains
        ! g^{*} (coming from explicit solve) is input
        ! get g^{**}, with g^{**}-g^{*} due to mirror term
 
-    if(RK_step) call multibox_communicate (g)
+    if(RK_step) call mb_communicate (g)
 
     if (first_call) then
 
-       call advance_perp_flow_shear(g)
-       fields_updated = .false.
+       if (prp_shear_enabled) then
+          call advance_perp_flow_shear(g)
+          fields_updated = .false.
+       end if
 
        if (hyper_dissipation) then
 !          ! for hyper-dissipation, need to be in k-alpha space
@@ -2202,8 +2404,13 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
+       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
             call advance_parallel_streaming_implicit (g, phi, apar)
+            if(radial_variation.or.full_flux_surface) fields_updated = .false.
+       endif
+
+       call advance_fields (g, phi, apar, dist='gbar')
+       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar)
 
     else
 
@@ -2211,6 +2418,8 @@ contains
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update
        call advance_fields (g, phi, apar, dist='gbar')
+
+       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar)
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2233,8 +2442,10 @@ contains
           fields_updated = .false.
        end if
 
-       call advance_perp_flow_shear(g)
-       fields_updated = .false.
+       if (prp_shear_enabled) then
+          call advance_perp_flow_shear(g)
+          fields_updated = .false.
+       end if
 
     end if
 
@@ -2242,105 +2453,153 @@ contains
 !       call checksum (g, gtot)
 !       if (proc0) write (*,*) 'stream', phitot, gtot
 
-!!       if (wdrifty_implicit) then
-!!          call advance_wdrifty_implicit (g)
-!!          call advance_fields (g, phi, apar, dist='gbar')
-!!       end if
-!!    if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
-!    else
-!!       if (wdrifty_implicit) then
-!!          call advance_wdrifty_implicit (g)
-!!          call advance_fields (g, phi, apar, dist='gbar')
-!!       end if
-!!    if (wstar_implicit) call advance_wstar_implicit (g, phi, apar)
-
-!        ! g^{**} is input
-!        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-!        if (stream_implicit) call advance_parallel_streaming_implicit (g, phi, apar)
-
-!        ! g^{*} (coming from explicit solve) is input
-!        ! get g^{**}, with g^{**}-g^{*} due to mirror term
-!        if (mirror_implicit) then
-!           call advance_mirror_implicit (g)
-!           ! get updated fields corresponding to mirror-advanced g
-!           call advance_fields (g, phi, apar, dist='gbar')
-!        end if
-!     end if
-
     ! stop the timer for the implict part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
   end subroutine advance_implicit
 
-!   subroutine advance_wdrifty_implicit (g)
+  subroutine advance_drifts_implicit (g, phi, apar)
 
-!     use constants, only: zi
-!     use stella_layouts, only: vmu_lo
-!     use zgrid, only: nzgrid
-!     use kt_grids, only: aky, naky
-!     use dist_fn_arrays, only: wdrifty_g
+    use constants, only: zi
+    use stella_layouts, only: vmu_lo
+    use stella_geometry, only: dl_over_b
+    use run_parameters, only: fphi, fapar, time_upwind
+    use dist_fn_arrays, only: g1
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+    use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+    use dist_fn_arrays, only: wstar
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+    use gyro_averages, only: aj0x, gyro_average
+    use kt_grids, only: akx, aky, nakx, naky, zonal_mode
+    use zgrid, only: nzgrid, ntubes
+    use species, only: spec, has_electron_species
+    use fields, only: advance_fields
+    use vpamu_grids, only: integrate_species
 
-!     implicit none
+    implicit none
 
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
+    integer :: ivmu, iz, it, ia, ikx
+    complex :: tmp
 
-!     integer :: ivmu, iky, iz
-!     complex :: tmp
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
 
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        do iz = -nzgrid, nzgrid
-!           do iky = 1, naky
-!              tmp = 0.5*zi*aky(iky)*wdrifty_g(1,iz,ivmu)
-!              g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + tmp) / (1.0 - tmp)
-! !             g(iky,:,iz,ivmu) = g(iky,:,iz,ivmu) * (1.0 + 2.0*tmp)
-!           end do
-!        end do
-!     end do
+    complex, dimension (:,:), allocatable :: wd_g, wd_phi, wstr
+    complex, dimension (:,:,:), allocatable :: gyro_g
 
-!   end subroutine advance_wdrifty_implicit
+    ia = 1
 
-!   subroutine advance_wstar_implicit (g, phi, apar)
+    allocate (wd_g(naky,nakx))
+    allocate (wd_phi(naky,nakx))
+    allocate (wstr(naky,nakx))
 
-!     use constants, only: zi
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, is_idx
-!     use run_parameters, only: fphi, fapar
-!     use zgrid, only: nzgrid
-!     use dist_fn_arrays, only: gstar_to_g
+    ! given g^{*}, obtain phi^{*} and apar^{*}
+    call advance_fields (g, phi, apar, dist='gbar')
 
-!     implicit none
+    ! solve for g^inh
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          wd_g   = -zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
 
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+          wd_phi = -zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
 
-!     ! given g^{*}, obtain phi^{*} and apar^{*}
-! !    call advance_fields (g, phi, apar, dist='gbar')
+          wstr   = -zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
 
-!     ! solve g^{**} = g^{*}+i*wstar*ky*J0*(chi^{**}+chi^{*})/2
-!     ! define gstar^{**} = g^{**} - i*wstar*ky*J0*chi^{**}/2
-!     ! so that gstar^{**} = g^{*} + i*wstar*ky*J0*chi^{*}/2
+          g1(:,:,iz,it,ivmu) = (g(:,:,iz,it,ivmu)*(1.0 - 0.5*(1.0 - time_upwind)*wd_g) &
+                              - 0.5*(1.0 - time_upwind)*(wd_phi + wstr) &
+                                *aj0x(:,:,iz,ivmu)*fphi*phi(:,:,iz,ia)) &
+                                /(1.0 + 0.5*(1.0 + time_upwind)*wd_g)
+        enddo
+      enddo
+    enddo
 
-!     ! BACKWARDS DIFFERENCE FLAG
-! !     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-! !        iv = iv_idx(vmu_lo,ivmu)
-! !        is = is_idx(vmu_lo,ivmu)
-! !        do iz = -nzgrid, nzgrid
-! !           do ikx = 1, nakx
-! !              do iky = 1, naky
-! !                 g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) &
-! !                      + zi*aky(iky)*wstar(iz,ivmu)*aj0x(iky,ikx,iz,ivmu) &
-! !                      * (fphi*phi(iky,ikx,iz) - fapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz))
-! !              end do
-! !           end do
-! !        end do
-! !     end do
+    !we have g_inh, now get phi
+    if (fphi > epsilon(0.0)) then
+      allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call gyro_average (g1(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+          enddo
+          call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it))
+        enddo
+        phi(:,:,:,it) = phi(:,:,:,it) / gamtot_drifts
+        if(any(real(gamtot_drifts(1,1,:)).lt.epsilon(0.))) phi(1,1,:,it) = 0.0
 
-!     ! now that we have gstar^{**}=g^{*}, obtain corresponding fields, phi^{**} and apar^{**}
-!     call advance_fields (g, phi, apar, dist='gstar')
-!     ! convert from gstar^{**} to g^{**}
-!     call gstar_to_g (g, phi, apar, fphi, fapar)
+        if (.not.has_electron_species(spec)) then
+          ! no need to do anything extra for ky /= 0 because
+          ! already accounted for in gamtot_h
+          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+            if (zonal_mode(1)) then
+              do ikx = 1, nakx
+                tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_drifts(ikx,:)
+              enddo
+            endif
+          endif
+        endif
+      enddo
+      deallocate (gyro_g)
+    endif
 
-!   end subroutine advance_wstar_implicit
+    !finally, get g
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          !these terms already contain a factor of code_dt and a
+          ! negative sign
+          wd_g   = -zi*(spread(akx,1,naky)*wdriftx_g(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_g(ia,iz,ivmu))
+
+          wd_phi = -zi*(spread(akx,1,naky)*wdriftx_phi(ia,iz,ivmu) &
+                      + spread(aky,2,nakx)*wdrifty_phi(ia,iz,ivmu))
+
+          wstr   = -zi*spread(aky,2,nakx)*wstar(ia,iz,ivmu)
+
+          g(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) &
+                              - 0.5*(1.0 + time_upwind)*(wd_phi + wstr) &
+                              *aj0x(:,:,iz,ivmu)*fphi*phi(:,:,iz,it) &
+                             /(1.0 + 0.5*(1.0 + time_upwind)*wd_g)
+        enddo
+      enddo
+    enddo
+
+    deallocate (wd_g, wd_phi, wstr)
+
+  end subroutine advance_drifts_implicit
+
+  subroutine mb_communicate (g_in)
+
+    use mp, only: job
+    use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid
+    use multibox, only: multibox_communicate
+    use fields, only: fields_updated,advance_fields
+    use fields_arrays, only: phi, apar
+    use file_utils, only: runtype_option_switch, runtype_multibox
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g_in
+
+    if(runtype_option_switch.ne.runtype_multibox) return
+
+    if(job.ne.1) then
+      call advance_fields(g_in,phi,apar,dist='gbar')
+    endif
+
+    call multibox_communicate(g_in)
+
+    if(job.eq.1) then
+      fields_updated = .false.
+      call advance_fields(g_in,phi,apar,dist='gbar')
+    endif
+
+  end subroutine mb_communicate
 
   subroutine checksum_field (field, total)
 
@@ -2402,106 +2661,6 @@ contains
 
   end subroutine checksum_dist
 
-!   subroutine init_get_fields_wstar
-
-!     use constants, only: zi
-!     use mp, only: sum_allreduce, mp_abort
-!     use stella_layouts, only: kxkyz_lo
-!     use stella_layouts, onlY: iz_idx, ikx_idx, iky_idx, is_idx
-!     use dist_fn_arrays, only: aj0v
-!     use run_parameters, only: fphi, fapar
-!     use run_parameters, only: tite, nine, beta
-!     use stella_time, only: code_dt
-!     use species, only: spec, has_electron_species
-!     use stella_geometry, only: dl_over_b
-!     use zgrid, only: nzgrid
-!     use vpamu_grids, only: nvpa, nvgrid, nmu
-!     use vpamu_grids, only: energy
-!     use vpamu_grids, only: maxwell_vpa, integrate_vmu
-!     use species, only: spec
-!     use kt_grids, only: naky, nakx, aky, akx
-
-!     implicit none
-
-!     integer :: ikxkyz, ig, ikx, iky, is
-!     complex :: tmp
-!     complex, dimension (:,:), allocatable :: g0
-
-!     if (get_fields_wstar_initialized) return
-!     get_fields_wstar_initialized = .true.
-
-!     if (.not.allocated(gamtot_wstar)) &
-!          allocate (gamtot_wstar(naky,nakx,-nzgrid:nzgrid))
-!     gamtot_wstar = 0.
-!     if (.not.allocated(gamtot3_wstar)) &
-!          allocate (gamtot3_wstar(nakx,-nzgrid:nzgrid))
-!     gamtot3_wstar = 0.
-!     if (.not.allocated(apar_denom_wstar)) &
-!          allocate (apar_denom_wstar(naky,nakx,-nzgrid:nzgrid))
-!     apar_denom_wstar = 0.
-
-!     if (fphi > epsilon(0.0)) then
-!        allocate (g0(-nvgrid:nvgrid,nmu))
-!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!           iky = iky_idx(kxkyz_lo,ikxkyz)
-!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!           ig = iz_idx(kxkyz_lo,ikxkyz)
-!           is = is_idx(kxkyz_lo,ikxkyz)
-!           g0 = -zi*aky(iky)*spec(is)%z*spec(is)%dens*spread(aj0v(:,ikxkyz)**2,1,nvpa) &
-!                ! BACKWARDS DIFFERENCE FLAG
-! !               *anon(ig,:,:)*0.25*code_dt &
-!                *spread(maxwell_vpa,2,nmu)*0.5*code_dt &
-!                *(spec(is)%fprim+spec(is)%tprim*(energy(ig,:,:)-1.5))
-!           call integrate_vmu (g0, ig, tmp)
-!           gamtot_wstar(iky,ikx,ig) = gamtot_wstar(iky,ikx,ig) + tmp
-!        end do
-!        call sum_allreduce (gamtot_wstar)
-
-!        gamtot_wstar = gamtot_wstar + gamtot
-
-!        deallocate (g0)
-
-!        if (.not.has_electron_species(spec)) then
-!           ! no need to do anything extra for ky /= 0 because
-!           ! already accounted for in gamtot_h
-!           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-!              if (abs(aky(1)) < epsilon(0.)) then
-!                 do ikx = 1, nakx
-!                    ! do not need kx=ky=0 mode
-!                    if (abs(akx(ikx)) < epsilon(0.)) cycle
-!                    tmp = nine/tite-sum(dl_over_b/gamtot_wstar(1,ikx,:))
-!                    gamtot3_wstar(ikx,:) = 1./(gamtot_wstar(1,ikx,:)*tmp)
-!                 end do
-!              end if
-!           end if
-!        end if
-!     end if
-
-!     ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
-!      if (fapar > epsilon(0.)) then
-!         write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
-!         call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
-!      end if
-
-! !        allocate (g0(-nvgrid:nvgrid,nmu))
-! !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-! !           iky = iky_idx(kxkyz_lo,ikxkyz)
-! !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-! !           ig = iz_idx(kxkyz_lo,ikxkyz)
-! !           is = is_idx(kxkyz_lo,ikxkyz)
-! !           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
-! !           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
-! !           call integrate_vmu (g0, ig, tmp)
-! !           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
-! !        end do
-! !        call sum_allreduce (apar_denom)
-! !        apar_denom = apar_denom + kperp2
-
-! !        deallocate (g0)
-! !     end if
-
-!   end subroutine init_get_fields_wstar
-
   subroutine finish_time_advance
 
     use stella_transforms, only: finish_transforms
@@ -2510,18 +2669,17 @@ contains
     use parallel_streaming, only: finish_parallel_streaming
     use mirror_terms, only: finish_mirror
     use flow_shear, only : finish_flow_shear
-    use dist_redistribute, only: finish_redistribute
     use neoclassical_terms, only: finish_neoclassical_terms
     use dissipation, only: finish_dissipation
 
     implicit none
 
     if (full_flux_surface) call finish_transforms
-    call finish_redistribute
     call finish_dissipation
     call finish_parallel_nonlinearity
     call finish_wstar
     call finish_wdrift
+    call finish_drifts_implicit
     call finish_parallel_streaming
     call finish_flow_shear
     call finish_mirror
@@ -2552,6 +2710,7 @@ contains
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+    use dist_fn_arrays, only: adiabatic_phi
 
     implicit none
 
@@ -2563,6 +2722,7 @@ contains
     if (allocated(wdriftpy_g)) deallocate (wdriftpy_g)
     if (allocated(wdriftpx_phi)) deallocate (wdriftpx_phi)
     if (allocated(wdriftpy_phi)) deallocate (wdriftpy_phi)
+    if (allocated(adiabatic_phi)) deallocate (adiabatic_phi)
 
     wdriftinit = .false.
 
@@ -2580,6 +2740,17 @@ contains
     wstarinit = .false.
 
   end subroutine finish_wstar
+
+  subroutine finish_drifts_implicit
+
+    implicit none
+
+    if (allocated(gamtot_drifts)) deallocate (gamtot_drifts)
+    if (allocated(gamtot3_drifts)) deallocate (gamtot3_drifts)
+
+    driftimpinit = .false.
+
+  end subroutine finish_drifts_implicit
 
   subroutine deallocate_arrays
 

@@ -73,7 +73,9 @@ contains
   subroutine write_dt
 
     if (cfl_dt > 0. .and. cfl_dt < 1.e7) &
-         write(*,*) 'cfl_dt = ', cfl_dt,' : code_dt = ', code_dt
+         write (*,*) 'TIME STEP:'
+         write (*,'(A12, ES10.2E2)') "   cfl_dt:"//REPEAT(' ',50),cfl_dt
+         write (*,'(A12, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt 
        
   end subroutine write_dt
 

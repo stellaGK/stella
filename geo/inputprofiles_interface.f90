@@ -38,7 +38,6 @@ contains
     use finite_differences, only: fd3pt, d2_3pt
     use splines, only: geo_spline
     use millerlocal, only: local
-    use physics_parameters, only: rhostar
 
     implicit none
 
