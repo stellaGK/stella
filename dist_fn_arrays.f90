@@ -1,10 +1,10 @@
 !> A container for the arrays that are used to store the distribution function among other things.
 !!  These need to be accessible at a lower dependency level than the dist_fn module itself.
-!! These arrays are allocated in the function dist_fn::allocate_arrays. 
+!! These arrays are allocated in the function dist_fn::allocate_arrays.
 
 module dist_fn_arrays
 
-  public :: gnew, gold
+  public :: gnew, gold, golder
   public :: g0, g1, g2, g3
   public :: g_krook, g_proj
   public :: gvmu
@@ -16,7 +16,7 @@ module dist_fn_arrays
   public :: wdriftpx_phi, wdriftpy_phi
 
   ! dist fn
-  complex, dimension (:,:,:,:,:), allocatable :: gnew, gold
+  complex, dimension (:,:,:,:,:), allocatable :: gnew, gold, golder
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:,:,:), allocatable :: g0, g1, g2, g3

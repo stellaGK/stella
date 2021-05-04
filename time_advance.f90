@@ -701,7 +701,7 @@ contains
 
   subroutine advance_stella (istep)
 
-    use dist_fn_arrays, only: gold, gnew
+    use dist_fn_arrays, only: golder, gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit, use_leapfrog_splitting
@@ -727,12 +727,12 @@ contains
     ! for use in diagnostics (to obtain frequency)
     phi_old = phi
 
-    if (use_leapfrog_splitting) then
+    if (use_leapfrog_splitting .and. istep > 1) then
       ! Allocate g1bar
       allocate(g1bar(naky, nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       call advance_explicit (gnew)
       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
-      call advance_leapfrog(XXXX)
+      call advance_leapfrog(golder, gout)
       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
       call advance_explicit (gnew)
 
@@ -769,6 +769,7 @@ contains
     !update the delay parameters for the Krook operator
     if(include_krook_operator) call update_delay_krook(gnew)
 
+    golder = gold
     gold = gnew
 
   end subroutine advance_stella
@@ -819,247 +820,53 @@ contains
 
   end subroutine advance_explicit
 
-  subroutine advance_leapfrog (golder, g)
+  subroutine advance_leapfrog (golder, gout)
 
     use mp, only: proc0, min_allreduce
-    use mp, only: scope, allprocs, subprocs
-    use stella_layouts, only: vmu_lo, imu_idx, is_idx
     use job_manage, only: time_message
-    use kt_grids, only: zonal_mode
-    use gyro_averages, only: gyro_average
-    use fields, only: get_dchidx, get_dchidy
-    use fields_arrays, only: phi, apar
-    use fields_arrays, only: phi_corr_QN,   phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
-    use stella_transforms, only: transform_y2ky,transform_x2kx
-    use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
     use stella_time, only: cfl_dt, code_dt, code_dt_max
     use run_parameters, only: cfl_cushion, delt_adjust, fphi
     use physics_parameters, only: g_exb, g_exbfac
-    use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
-    use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: akx, aky, rho_clamped
-    use physics_flags, only: full_flux_surface, radial_variation
-    use physics_flags, only: prp_shear_enabled, hammett_flow_shear
-    use kt_grids, only: x, swap_kxky, swap_kxky_back
-    use constants, only: pi, zi
-    use file_utils, only: runtype_option_switch, runtype_multibox
-    use flow_shear, only: shift_state
-    
+
     implicit none
 
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-
-    integer :: ivmu, iv, sgn
-
-    ! start the timer for the explicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
-
-    !!! Update g here.
-
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
     logical, intent (out) :: restart_time_step
 
+    implicit none
+    ! start the timer for the explicit part of the solve
+    if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
 
-    complex, dimension (:,:), allocatable :: g0k, g0a, g0k_swap
-    complex, dimension (:,:), allocatable :: g0kxy, g0xky, prefac
-    real, dimension (:,:), allocatable :: g0xy, g1xy, bracket
-
-    integer :: ivmu, iz, it, ia, imu, is
-
-    ! alpha-component of magnetic drift (requires ky -> y)
-    if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
-
-    if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
-
+    ! if CFL condition is violated by nonlinear term
+    ! then must modify time step size and restart time step
+    ! assume false and test
     restart_time_step = .false.
 
-    allocate (g0k(naky,nakx))
-    allocate (g0a(naky,nakx))
-    allocate (g0xy(ny,nx))
-    allocate (g1xy(ny,nx))
-    allocate (bracket(ny,nx))
-    allocate (prefac(naky,nx))
+    if(RK_step) call multibox_communicate (golder)
+    if(RK_step) call multibox_communicate (gout)
 
-    if(full_flux_surface) then
-      allocate (g0k_swap(2*naky-1,ikx_max))
-      allocate (g0kxy(ny,ikx_max))
-    else
-      allocate (g0xky(naky,nx))
-    endif
-
-    prefac = 1.0
-    if(prp_shear_enabled.and.hammett_flow_shear) then
-      prefac = exp(-zi*g_exb*g_exbfac*spread(x,1,naky)*spread(aky*shift_state,2,nx))
-    endif
-
-    ia=1
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
-             call get_dgdy (g(:,:,iz,it,ivmu), g0k)
-             call forward_transform(g0k,g0xy)
-
-             call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-             if(prp_shear_enabled.and.hammett_flow_shear) then
-               call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0a)
-               g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
-             endif
-             call forward_transform(g0k,g1xy)
-
-             g1xy = g1xy*exb_nonlin_fac
-             bracket = g0xy*g1xy
-
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
-
-             if(radial_variation) then
-               bracket = bracket + gfac*g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
-               call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a)
-               g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
-               call get_dgdx(g0a,g0k)
-               call forward_transform(g0k,g1xy)
-               g1xy = g1xy*exb_nonlin_fac
-               bracket = bracket + g0xy*g1xy
-             endif
-
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
-
-             call get_dgdx (g(:,:,iz,it,ivmu), g0k)
-             if(prp_shear_enabled.and.hammett_flow_shear) then
-               call get_dgdy (g(:,:,iz,it,ivmu), g0a)
-               g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
-             endif
-             call forward_transform(g0k,g0xy)
-             call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-             call forward_transform(g0k,g1xy)
-             g1xy = g1xy*exb_nonlin_fac
-             bracket = bracket - g0xy*g1xy
-
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
-
-             if(radial_variation) then
-               bracket = bracket - gfac*g0xy*g1xy*exb_nonlin_fac_p*spread(rho_clamped,1,ny)
-               call gyro_average (phi_corr_QN(:,:,iz,it),iz,ivmu,g0a)
-               g0a = fphi*(g0a + phi_corr_GA(:,:,iz,it,ivmu))
-               call get_dgdy(g0a,g0k)
-               call forward_transform(g0k,g1xy)
-               g1xy = g1xy*exb_nonlin_fac
-               bracket = bracket - g0xy*g1xy
-             endif
-
-             cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
-
-             if (full_flux_surface) then
-                call transform_x2kx (bracket, g0kxy)
-                gout(:,:,iz,it,ivmu) = g0kxy
-             else
-                call transform_y2ky_xfirst (bracket, g0xky)
-                g0xky = g0xky/prefac
-                call transform_x2kx_xfirst (g0xky, gout(:,:,iz,it,ivmu))
-             end if
-          end do
-       end do
-       ! enforce periodicity for zonal mode
-       ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
-       ! AND MAY INDEED BE THE WRONG THING TO DO
-       gout(1,:,-nzgrid,:,ivmu) = 0.5*(gout(1,:,nzgrid,:,ivmu)+gout(1,:,-nzgrid,:,ivmu))
-       gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
+    g0 = g
+    icnt = 1
+    ! SSP rk3 algorithm to advance explicit part of code
+    ! if GK equation written as dg/dt = rhs - vpar . grad h,
+    ! solve_gke returns rhs*dt
+    do while (icnt <= 1)
+      call advance_ExB_nonlinearity (gout, rhs, restart_time_step)
+      if (restart_time_step) then
+          icnt = 1
+      else
+          icnt = icnt + 1
+      end if
     end do
 
-    deallocate (g0k, g0a, g0xy, g1xy, bracket)
-    if (allocated(g0k_swap)) deallocate(g0k_swap)
-    if (allocated(g0xky)) deallocate(g0xky)
-    if (allocated(g0kxy)) deallocate(g0kxy)
 
-    if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+    ! Multiply RHS by 2, because it's the nonlinearity applied for dt.
+    gout = golder+2*rhs
 
-    call min_allreduce (cfl_dt)
+    !! Check CFL violation
 
-    if(runtype_option_switch == runtype_multibox) call scope(subprocs)
-
-
-    if (code_dt > cfl_dt*cfl_cushion) then
-       if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'larger than cfl_dt*cfl_cushion= ', cfl_dt*cfl_cushion
-          write (*,*) 'setting code_dt=cfl_dt*cfl_cushion/delt_adjust and restarting time step'
-       end if
-       code_dt = cfl_dt*cfl_cushion/delt_adjust
-       call reset_dt
-       restart_time_step = .true.
-    else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
-       if (proc0) then
-          write (*,*) 'code_dt= ', code_dt, 'smaller than cfl_dt*cfl_cushion/delt_adjust= ', cfl_dt*cfl_cushion/delt_adjust
-          write (*,*) 'setting code_dt=min(cfl_dt*cfl_cushion/delt_adjust,delt) and restarting time step'
-       end if
-       code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
-       call reset_dt
-       ! FLAG -- NOT SURE THIS IS CORRECT
-       gout = code_dt*gout
-    else
-       gout = code_dt*gout
-    end if
-
-    if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
-
-    contains
-
-    subroutine forward_transform (gk,gx)
-
-      use stella_transforms, only: transform_ky2y, transform_kx2x
-      use stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
-
-      implicit none
-
-      complex, dimension(:,:), intent (in) :: gk
-      real, dimension(:,:), intent (out) :: gx
-
-      if(full_flux_surface) then
-        ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
-        ! want to do 1D complex to complex transform in y
-        ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
-        ! use g(kx,-ky) = conjg(g(-kx,ky))
-        ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
-        ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
-        ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
-        ! and i*kx*J0(kx,-ky)*phi(kx,-ky) = conjg(i*(-kx)*J0(-kx,ky)*phi(-kx,ky))
-        ! i.e., can calculate dg/dx, dg/dy, d<phi>/dx and d<phi>/dy
-        ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
-        ! NB: J0(kx,ky) = J0(-kx,-ky)
-        ! TODO DSO: coordinate change for shearing
-        call swap_kxky (gk, g0k_swap)
-        call transform_ky2y (g0k_swap, g0kxy)
-        call transform_kx2x (g0kxy, gx)
-      else
-        call transform_kx2x_xfirst(gk, g0xky)
-        g0xky = g0xky*prefac
-        call transform_ky2y_xfirst(g0xky, gx)
-      endif
-
-    end subroutine forward_transform
-
-
-
-    ! enforce periodicity for zonal modes
-    if (zonal_mode(1)) then
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          iv = iv_idx(vmu_lo,ivmu)
-          ! stream_sign > 0 corresponds to dz/dt < 0
-          sgn = stream_sign(iv)
-          g(1,:,sgn*nzgrid,:,ivmu) = g(1,:,-sgn*nzgrid,:,ivmu)
-       end do
-    end if
-
-    ! stop the timer for the explicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
   end subroutine advance_leapfrog
 

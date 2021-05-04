@@ -1,5 +1,5 @@
 !> This module is basically a store for the input parameters that are specified in the namelists \a knobs and \a parameters. In general, the names of the public variables in this module are the same as the name of the input parameter they correspond to.
- 
+
 module run_parameters
 
   implicit none
@@ -13,13 +13,14 @@ module run_parameters
   public :: stream_implicit, mirror_implicit
   public :: driftkinetic_implicit
   public :: fully_explicit
+  public :: use_leapfrog_splitting
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
   public :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option  ! JFP adding mirror_semi_lagrange_non_interp
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
-  
+
   private
 
   real :: cfl_cushion, delt_adjust
@@ -78,7 +79,8 @@ contains
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
-         fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option
+         fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option, &
+         use_leapfrog_splitting
 
     if (proc0) then
        fphi = 1.0
@@ -94,6 +96,7 @@ contains
        mirror_linear_interp = .false.
        no_advection_option = .false.
        stream_matrix_inversion = .false.
+       use_leapfrog_splitting = .false.
        delt_option = 'default'
        zed_upwind = 0.02
        vpa_upwind = 0.02
@@ -112,6 +115,9 @@ contains
            mirror_semi_lagrange = .false.
        end if
 
+       if (use_leapfrog_splitting) then
+         ! TODO: set other terms to .false.
+       end if
        ierr = error_unit()
        call get_option_value &
             (delt_option, deltopts, delt_option_switch, ierr, &
@@ -136,6 +142,7 @@ contains
     call broadcast (mirror_semi_lagrange_non_interp)
     call broadcast (no_advection_option)
     call broadcast (stream_matrix_inversion)
+    call broadcast (use_leapfrog_splitting)
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
     call broadcast (time_upwind)
@@ -144,7 +151,7 @@ contains
     call broadcast (rng_seed)
     CALL broadcast (mat_gen)
     CALL broadcast (mat_read)
-    
+
     if (.not.include_mirror) mirror_implicit = .false.
 
     code_delt_max = delt

@@ -8,7 +8,7 @@ module dist_fn
   public :: adiabatic_option_fieldlineavg
 
   private
-  
+
   logical :: dist_fn_initialized = .false.
   logical :: gxyz_initialized = .false.
   logical :: kp2init = .false.
@@ -76,7 +76,7 @@ contains
 
             corr = -( pfac*(spec(is)%fprim+spec(is)%tprim*(energy(ia,iz)-1.5)) &
                      + 2*gfac*mu(imu)*dBdrho(iz))
-         
+
             if(.not.restarted) then
               g0k = corr*gnew(:,:,iz,it,ivmu)
               call multiply_by_rho(g0k)
@@ -112,7 +112,7 @@ contains
     dist_fn_initialized = .true.
 
     debug = debug .and. proc0
-    
+
     if (debug) write (*,*) 'dist_fn::init_dist_fn::read_parameters'
     call read_parameters
     if (debug) write (*,*) 'dist_fn::init_dist_fn::allocate_arrays'
@@ -145,7 +145,7 @@ contains
             text_option('iphi00=2', adiabatic_option_fieldlineavg), &
             text_option('iphi00=3', adiabatic_option_yavg)/)
     character(30) :: adiabatic_option
-            
+
     namelist /dist_fn_knobs/ adiabatic_option
 
     integer :: ierr, in_file
@@ -167,7 +167,7 @@ contains
 
     call broadcast (adiabatic_option_switch)
 
-  end subroutine read_parameters 
+  end subroutine read_parameters
 
   subroutine init_kperp2
 
@@ -217,7 +217,7 @@ contains
           end do
        end if
     end do
-    
+
     call enforce_single_valued_kperp2
 
 !   filename=trim(run_name)//".kperp2"
@@ -232,7 +232,7 @@ contains
 !   enddo
 !   close (1232)
 
-    
+
   end subroutine init_kperp2
 
   subroutine enforce_single_valued_kperp2
@@ -271,7 +271,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use vpamu_grids, only: nvpa, nmu
-    use dist_fn_arrays, only: gnew, gold
+    use dist_fn_arrays, only: gnew, gold, golder
     use dist_fn_arrays, only: gvmu
 
     implicit none
@@ -282,6 +282,9 @@ contains
     if (.not.allocated(gold)) &
          allocate (gold(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     gold = 0.
+    if (.not.allocated(golder)) &
+         allocate (golder(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    golder = 0.
     if (.not.allocated(gvmu)) &
          allocate (gvmu(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     gvmu = 0.
@@ -300,12 +303,12 @@ contains
     implicit none
 
     integer :: imu
-    
+
     if (vp2init) return
     vp2init = .true.
 
     if (.not.allocated(vperp2)) allocate (vperp2(nalpha,-nzgrid:nzgrid,nmu)) ; vperp2 = 0.
-    
+
     do imu = 1, nmu
        vperp2(:,:,imu) = 2.0*mu(imu)*bmag
     end do
@@ -363,7 +366,7 @@ contains
     if (allocated(vperp2)) deallocate (vperp2)
 
     vp2init = .false.
-    
+
   end subroutine finish_vperp2
 
 end module dist_fn
