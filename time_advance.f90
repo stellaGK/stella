@@ -859,6 +859,7 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use run_parameters, only: fully_explicit, use_leapfrog_splitting
+    use physics_flags, only: nonlinear
     use multibox, only: RK_step, multibox_communicate
     use dissipation, only: include_krook_operator, update_delay_krook
     use dissipation, only: remove_zero_projection, project_out_zero
@@ -883,9 +884,13 @@ contains
     if (use_leapfrog_splitting .and. istep > 1) then
       call advance_explicit (golder)
       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, golder)
-      ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
-      ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
-      call advance_leapfrog(golder, gnew)
+      if (nonlinear) then
+        ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
+        ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
+        call advance_leapfrog(golder, gnew)
+      else
+        gnew = golder
+      end if
       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
       call advance_explicit (gnew)
 
