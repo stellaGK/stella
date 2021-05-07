@@ -858,7 +858,7 @@ contains
     use dist_fn_arrays, only: golder, gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
-    use run_parameters, only: fully_explicit, use_leapfrog_splitting
+    use run_parameters, only: fully_explicit, use_leapfrog_splitting, nisl_nonlinear
     use physics_flags, only: nonlinear
     use multibox, only: RK_step, multibox_communicate
     use dissipation, only: include_krook_operator, update_delay_krook
@@ -880,14 +880,18 @@ contains
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
     phi_old = phi
-
     if (use_leapfrog_splitting .and. istep > 1) then
       call advance_explicit (golder)
       if (.not.fully_explicit) call advance_implicit (istep, phi, apar, golder)
       if (nonlinear) then
-        ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
-        ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
-        call advance_leapfrog(golder, gnew)
+        if (nisl_nonlinear) then
+          call advance_nisl_leapfrog(golder, gnew)
+          stop "Stopping"
+        else
+          ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
+          ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
+          call advance_leapfrog(golder, gnew)
+        end if
       else
         gnew = golder
       end if
@@ -1025,10 +1029,44 @@ contains
     ! Multiply RHS by 2, because it's the nonlinearity applied for dt.
     gout = golder+2*g1
 
-    !! Check CFL violation
-
-
   end subroutine advance_leapfrog
+
+
+  subroutine advance_nisl_leapfrog (golder, gout)
+
+    use mp, only: proc0, min_allreduce
+    use job_manage, only: time_message
+    use stella_time, only: cfl_dt, code_dt, code_dt_max
+    use run_parameters, only: cfl_cushion, delt_adjust, fphi
+    use physics_parameters, only: g_exb, g_exbfac
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
+    use dist_fn_arrays, only: g1
+    implicit none
+
+!    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+
+    logical  :: restart_time_step
+    integer :: icnt
+
+    ! start the timer for the explicit part of the solve
+    if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
+    stop "Not implemented yet"
+
+    ! Don't think this is needed, but need to check
+    ! if(RK_step) call multibox_communicate (golder)
+    ! if(RK_step) call multibox_communicate (gout)
+
+    !! Begin by calculating <v_E> (kx, ky)
+
+    !! Calcalute p and q
+
+    !! We have the departure points -
+
+
+  end subroutine advance_nisl_leapfrog
 
   ! strong stability-preserving RK2
   subroutine advance_explicit_rk2 (g)

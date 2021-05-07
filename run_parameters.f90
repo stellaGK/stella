@@ -15,6 +15,7 @@ module run_parameters
   public :: driftkinetic_implicit
   public :: fully_explicit
   public :: use_leapfrog_splitting
+  public :: nisl_nonlinear
   public :: ky_solve_radial, ky_solve_real
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
@@ -36,6 +37,7 @@ module run_parameters
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option
   logical :: use_leapfrog_splitting
+  logical :: nisl_nonlinear
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
   logical :: ky_solve_real
   real :: avail_cpu_time
@@ -94,7 +96,7 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option, &
-         ky_solve_radial, ky_solve_real, use_leapfrog_splitting
+         ky_solve_radial, ky_solve_real, use_leapfrog_splitting, nisl_nonlinear
 
     if (proc0) then
        fphi = 1.0
@@ -112,6 +114,7 @@ contains
        no_advection_option = .false.
        stream_matrix_inversion = .false.
        use_leapfrog_splitting = .false.
+       nisl_nonlinear = .false.
        delt_option = 'default'
        lu_option = 'default'
        zed_upwind = 0.02
@@ -167,6 +170,7 @@ contains
     call broadcast (no_advection_option)
     call broadcast (stream_matrix_inversion)
     call broadcast (use_leapfrog_splitting)
+    call broadcast (nisl_nonlinear)
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
     call broadcast (time_upwind)
