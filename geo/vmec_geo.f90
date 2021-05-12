@@ -96,7 +96,8 @@ contains
     use vmec_to_stella_geometry_interface_mod, only: read_vmec_equilibrium
     use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
     use zgrid, only: zed
-
+    use file_utils, only: open_output_file
+    
     implicit none
 
     integer, intent (in) :: nzgrid, nalpha
@@ -113,6 +114,7 @@ contains
 
     logical, parameter :: debug = .false.
 
+    integer :: tmpunit
     integer :: i, j, ia, iz
     integer :: nzgrid_vmec
     integer :: zetamax_idx
@@ -358,22 +360,22 @@ contains
     ! scaled to run between -pi and pi
     theta_vmec = theta_vmec/nfp
 
-    open (2001,file='vmec.geo',status='unknown')
-    write (2001,'(6a12)') 'rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
-    write (2001,'(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, zed_scalefac
-    write (2001,*)
-    write (2001,'(14a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'grad_alpha2',&
+    call open_output_file (tmpunit,'.vmec.geo')
+    write (tmpunit,'(6a12)') 'rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
+    write (tmpunit,'(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, zed_scalefac
+    write (tmpunit,*)
+    write (tmpunit,'(14a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'grad_alpha2',&
          'gd_alph_psi', 'grad_psi2', 'gds23', 'gds24','gbdriftalph', 'gbdrift0psi', 'cvdriftalph',&
          'cvdrift0psi', 'theta_vmec'
     do j = -nzgrid, nzgrid
        do i = 1, nalpha
-          write (2001,'(14e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(j), &
+          write (tmpunit,'(14e12.4)') alpha(i), zeta(i,j), bmag(i,j), gradpar(j), &
                grad_alpha_grad_alpha(i,j), grad_alpha_grad_psi(i,j), grad_psi_grad_psi(i,j), &
                gds23(i,j), gds24(i,j), &
                gbdrift_alpha(i,j), gbdrift0_psi(i,j), cvdrift_alpha(i,j), cvdrift0_psi(i,j), theta_vmec(i,j)
        end do
     end do
-    close (2001)
+    close (tmpunit)
 
   end subroutine get_vmec_geo
 
