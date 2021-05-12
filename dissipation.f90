@@ -60,7 +60,7 @@ contains
 
     use mp, only: proc0
     use kt_grids, only: nakx
-    use zgrid, only: ntubes
+    use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: g_krook, g_proj
 
@@ -80,12 +80,12 @@ contains
     end if
 
     if(include_krook_operator.and..not.allocated(g_krook)) then
-      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_krook(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_krook = 0.
     endif
 
     if(remove_zero_projection.and..not.allocated(g_proj)) then
-      allocate (g_proj(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_proj(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_proj = 0.
     endif
     int_krook = 0.
@@ -1541,7 +1541,7 @@ contains
 
     real :: exp_fac
     complex :: tmp
-    integer :: ikx, it, ia, ivmu
+    integer :: ikx, iz, it, ia, ivmu
 
     !complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
@@ -1555,11 +1555,13 @@ contains
     if(delay_krook.le.epsilon(0.)) then
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
-          do ikx = 1, nakx
-            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
-            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook*tmp
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+              tmp = g(1,ikx,iz,it,ivmu)
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+              gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook*tmp
+            enddo
           enddo
         enddo
       enddo
@@ -1567,13 +1569,15 @@ contains
       exp_fac = exp(-code_dt/delay_krook)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
-          do ikx = 1, nakx
-            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
-            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
-                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+              tmp = g(1,ikx,iz,it,ivmu)
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+              gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
+                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
                                      / (code_dt     + exp_fac*int_krook)
+            enddo
           enddo
         enddo
       enddo
@@ -1595,7 +1599,7 @@ contains
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
 
-    integer :: ivmu, it, ikx, ia
+    integer :: ivmu, iz, it, ikx, ia
     real :: int_krook_old, exp_fac
     complex :: tmp
 
@@ -1610,10 +1614,12 @@ contains
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
         do ikx = 1, nakx
-          tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-          if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-          g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
+            tmp = g(1,ikx,iz,it,ivmu)
+            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+            g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu))/int_krook
+          enddo
         enddo
       enddo
     enddo
@@ -1636,7 +1642,7 @@ contains
 
     real :: exp_fac
     complex :: tmp
-    integer :: ikx, it, ia, ivmu
+    integer :: ikx, iz, it, ia, ivmu
 
     complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
 
@@ -1647,24 +1653,26 @@ contains
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
-        do ikx = 1, nakx
-          if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
-            g(ikx,:,it,ivmu) = 0.0
-          else
-            tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-            if(delay_krook.le.epsilon(0.)) then
-              g(ikx,:,it,ivmu) = tmp
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
+              g(ikx,iz,it,ivmu) = 0.0
             else
-              g(ikx,:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,it,ivmu)) &
-                               / (code_dt     + exp_fac*int_proj)
+              tmp = g(ikx,iz,it,ivmu)
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+              if(delay_krook.le.epsilon(0.)) then
+                g(ikx,iz,it,ivmu) = tmp
+              else
+                g(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &
+                                  / (code_dt     + exp_fac*int_proj)
+              endif
             endif
-          endif
-          if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
-            g_proj(ikx,it,ivmu) = zi*aimag(sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu)))
-          else
-            g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
-          endif
+            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
+              g_proj(ikx,iz,it,ivmu) = zi*aimag(sum(dl_over_b(ia,:)*g(ikx,iz,it,ivmu)))
+            else
+              g_proj(ikx,iz,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,iz,it,ivmu))
+            endif
+          enddo
         enddo
       enddo
     enddo
