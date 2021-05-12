@@ -858,6 +858,7 @@ contains
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
+    use fields, only: advance_fields, fields_updated
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
     use dissipation, only: include_krook_operator, update_delay_krook
@@ -878,6 +879,8 @@ contains
 
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
+    fields_updated = .false.
+    call advance_fields (gnew, phi, apar, dist='gbar')
     phi_old = phi
 
 
@@ -2349,13 +2352,14 @@ contains
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update
        call advance_fields (g, phi, apar, dist='gbar')
-
        if (drifts_implicit) call advance_drifts_implicit (g, phi, apar)
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
-            call advance_parallel_streaming_implicit (g, phi, apar)
+       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
+          call advance_parallel_streaming_implicit (g, phi, apar)
+          if(radial_variation.or.full_flux_surface) fields_updated = .false.
+       endif
        
        if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (collisions_implicit, g)
