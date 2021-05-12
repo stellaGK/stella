@@ -47,8 +47,8 @@ module stella_save
 
 # ifdef NETCDF
   real, allocatable, dimension (:,:,:) :: tmpr, tmpi
-  real, allocatable, dimension (:,:,:) :: ktmpr, ktmpi
-  real, allocatable, dimension (:,:,:)   :: ptmpr, ptmpi
+  real, allocatable, dimension (:,:,:,:) :: ktmpr, ktmpi
+  real, allocatable, dimension (:,:,:,:)   :: ptmpr, ptmpi
   integer (kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
   integer (kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
 !  integer (kind_nf) :: bparr_id, bpari_id
@@ -78,6 +78,9 @@ contains
     use mp, only: proc0
 # endif    
     use mp, only: iproc, barrier
+# ifdef NETCDF_PARALLEL
+    use zgrid, only: nztot
+# endif
     use zgrid, only: nzgrid, ntubes
     ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
     ! stella_diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
@@ -332,7 +335,7 @@ contains
              end if
 
              istatus = nf90_def_var (ncid, "krookr", netcdf_real, &
-                  (/ kxid, tubeid, gvmuloid /), krookr_id)
+                  (/ kxid, zedid, tubeid, gvmuloid /), krookr_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var apar error: ", nf90_strerror(istatus)
@@ -340,7 +343,7 @@ contains
              end if
              
              istatus = nf90_def_var (ncid, "krooki", netcdf_real, &
-                  (/ kxid, tubeid, gvmuloid /), krooki_id)
+                  (/ kxid, zedid, tubeid, gvmuloid /), krooki_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var krooki error: ", nf90_strerror(istatus)
@@ -358,7 +361,7 @@ contains
              end if
 
              istatus = nf90_def_var (ncid, "projr", netcdf_real, &
-                  (/ kxid, tubeid, gvmuloid /), projr_id)
+                  (/ kxid, zedid, tubeid, gvmuloid /), projr_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var projr error: ", nf90_strerror(istatus)
@@ -366,7 +369,7 @@ contains
              end if
              
              istatus = nf90_def_var (ncid, "proji", netcdf_real, &
-                  (/ kxid, tubeid, gvmuloid /), proji_id)
+                  (/ kxid, zedid, tubeid, gvmuloid /), proji_id)
              if (istatus /= NF90_NOERR) then
                 ierr = error_unit()
                 write(ierr,*) "nf90_def_var proji error: ", nf90_strerror(istatus)
@@ -514,9 +517,9 @@ contains
           
        if (include_krook_operator) then
          if (.not. allocated(ktmpr)) &
-           allocate (ktmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+           allocate (ktmpr(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ktmpi)) &
-           allocate (ktmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+           allocate (ktmpi(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
 # ifdef NETCDF_PARALLEL                    
          if(save_many .or. iproc == 0) then
@@ -545,8 +548,8 @@ contains
            istatus = nf90_var_par_access(ncid, krookr_id, NF90_COLLECTIVE)
            istatus = nf90_var_par_access(ncid, krooki_id, NF90_COLLECTIVE)
 
-           start_pos = (/1,1,vmu_lo%llim_proc+1/)
-           counts = (/nakx, ntubes, nvmulo_elements/)
+           start_pos = (/1,1,1,vmu_lo%llim_proc+1/)
+           counts = (/nakx, nztot, ntubes, nvmulo_elements/)
 
            istatus = nf90_put_var (ncid, krookr_id, ktmpr, start=start_pos, count=counts)
          endif
@@ -570,9 +573,9 @@ contains
 
        if (remove_zero_projection) then
          if (.not. allocated(ptmpr)) &
-           allocate (ptmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+           allocate (ptmpr(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ptmpi)) &
-           allocate (ptmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+           allocate (ptmpi(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
 # ifdef NETCDF_PARALLEL                    
          if(save_many .or. iproc == 0) then
@@ -601,8 +604,8 @@ contains
            istatus = nf90_var_par_access(ncid, projr_id, NF90_COLLECTIVE)
            istatus = nf90_var_par_access(ncid, proji_id, NF90_COLLECTIVE)
 
-           start_pos = (/1,1,vmu_lo%llim_proc+1/)
-           counts = (/nakx,ntubes, nvmulo_elements/)
+           start_pos = (/1,1,1,vmu_lo%llim_proc+1/)
+           counts = (/nakx, nztot, ntubes, nvmulo_elements/)
 
            istatus = nf90_put_var (ncid, projr_id, ptmpr, start=start_pos, count=counts)
          endif
@@ -668,6 +671,9 @@ contains
     use fields_arrays, only: shift_state
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
+# endif
+# ifdef NETCDF_PARALLEL
+    use zgrid, only: nztot
 # endif
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
@@ -870,9 +876,9 @@ contains
 
     if(include_krook_operator.and.has_vmulo) then
       if (.not. allocated(ktmpr)) &
-        allocate (ktmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (ktmpr(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(ktmpi)) &
-        allocate (ktmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (ktmpi(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       istatus = nf90_get_var (ncid, intkrook_id, int_krook)
       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, intkrook_id)
@@ -884,8 +890,8 @@ contains
         istatus = nf90_get_var (ncid, krookr_id, ktmpr)
 #ifdef NETCDF_PARALLEL
       else
-        start_pos = (/1,1,vmu_lo%llim_proc+1/)
-        counts = (/nakx, ntubes, nvmulo_elements/)
+        start_pos = (/1,1,1,vmu_lo%llim_proc+1/)
+        counts = (/nakx, nztot, ntubes, nvmulo_elements/)
         istatus = nf90_get_var (ncid, krookr_id, ktmpr, start=start_pos, count=counts)
       end if
 # endif
@@ -910,9 +916,9 @@ contains
 
     if(remove_zero_projection.and.has_vmulo) then
       if (.not. allocated(ptmpr)) &
-        allocate (ptmpr(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (ptmpr(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(ptmpi)) &
-        allocate (ptmpi(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (ptmpi(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       istatus = nf90_get_var (ncid, intproj_id, int_proj)
       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, intproj_id)
@@ -924,8 +930,8 @@ contains
         istatus = nf90_get_var (ncid, projr_id, ptmpr)
 #ifdef NETCDF_PARALLEL
       else
-        start_pos = (/1,1,vmu_lo%llim_proc+1/)
-        counts = (/nakx,ntubes, nvmulo_elements/)
+        start_pos = (/1,1,1,vmu_lo%llim_proc+1/)
+        counts = (/nakx, nztot, ntubes, nvmulo_elements/)
         istatus = nf90_get_var (ncid, projr_id, ptmpr, start=start_pos, count=counts)
       end if
 # endif

@@ -135,7 +135,7 @@ contains
           ! use Miller local parameters to get 
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
-               dpsidrho, dpsidrho_psi0,dIdrho, grho(1,:), &
+               dpsidrho, dpsidrho_psi0, dIdrho, grho(1,:), &
                bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
@@ -227,7 +227,7 @@ contains
           ! use rhoc from input as surface
           call read_inputprof_geo (geo_surf)
           call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
-               dpsidrho, dpsidrho_psi0,dIdrho, grho(1,:), &
+               dpsidrho, dpsidrho_psi0, dIdrho, grho(1,:), &
                bmag(1,:), bmag_psi0(1,:), &
                gds2(1,:), gds21(1,:), gds22(1,:), &
                gds23(1,:), gds24(1,:), gradpar, &
