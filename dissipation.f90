@@ -24,7 +24,7 @@ module dissipation
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation, remove_zero_projection
   logical :: use_physical_ksqr
-  logical :: krook_odd
+  logical :: krook_odd,exclude_boundary_regions
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
   real :: cfl_dt_vpadiff, cfl_dt_mudiff
   integer:: ikxmax_source
@@ -108,7 +108,8 @@ contains
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_source, cfac, krook_odd, use_physical_ksqr
+         ikxmax_source, cfac, krook_odd, use_physical_ksqr, &
+         exclude_boundary_regions
 
     integer :: in_file
     logical :: dexist
@@ -124,6 +125,7 @@ contains
        mu_operator = .true.
        hyper_dissipation = .false.
        use_physical_ksqr = .not.(full_flux_surface.or.radial_variation)
+       exclude_boundary_regions = radial_variation.and..not.periodic_variation
        remove_zero_projection = .false.
        D_hyper = 0.05
        nu_krook = 0.05
@@ -148,6 +150,7 @@ contains
     call broadcast (vpa_operator)
     call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
+    call broadcast (exclude_boundary_regions)
     call broadcast (use_physical_ksqr)
     call broadcast (D_hyper)
     call broadcast (nu_krook)
@@ -1535,7 +1538,6 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
-    use stella_geometry, only: dl_over_b
 
     implicit none
 
@@ -1592,7 +1594,6 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: dl_over_b
     use stella_time, only: code_dt
 
     implicit none
@@ -1636,7 +1637,8 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj
-    use stella_geometry, only: dl_over_b
+    use multibox, only: boundary_size
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
 
@@ -1644,6 +1646,7 @@ contains
     complex :: tmp
     integer :: ikx, iz, it, ia, ivmu
 
+    complex, dimension (:,:), allocatable :: g0k, g0x
     complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
 
     ia = 1
@@ -1651,31 +1654,57 @@ contains
 
     exp_fac = exp(-code_dt/delay_krook)
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      do it = 1, ntubes
-        do iz = -nzgrid, nzgrid
-          do ikx = 1, nakx
-            if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
-              g(ikx,iz,it,ivmu) = 0.0
+    if (exclude_boundary_regions) then !here we do not require ikxmax_source
+      allocate (g0k(1,nakx))
+      allocate (g0x(1,nakx))
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            g0k(1,:) = g(:,iz,it,ivmu)
+            call transform_kx2x_unpadded (g0k,g0x)
+            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
+            if(delay_krook.le.epsilon(0.)) then
+              g0x = tmp
             else
-              tmp = g(ikx,iz,it,ivmu)
-              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-              if(delay_krook.le.epsilon(0.)) then
-                g(ikx,iz,it,ivmu) = tmp
-              else
-                g(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &
-                                  / (code_dt     + exp_fac*int_proj)
-              endif
+              g0x = (code_dt*tmp + exp_fac*int_proj*g_proj(1,iz,it,ivmu)) &
+                  / (code_dt     + exp_fac*int_proj)
             endif
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
-              g_proj(ikx,iz,it,ivmu) = zi*aimag(sum(dl_over_b(ia,:)*g(ikx,iz,it,ivmu)))
-            else
-              g_proj(ikx,iz,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,iz,it,ivmu))
-            endif
+            g_proj(1,iz,it,ivmu) = g0x(1,1)
+            g0x(1,1:boundary_size) = 0.0
+            g0x(1,(nakx-boundary_size+1):nakx) = 0.0
+            call transform_x2kx_unpadded (g0x,g0k)
+            g(:,iz,it,ivmu) = g0k(1,:)
           enddo
         enddo
       enddo
-    enddo
+      deallocate (g0k, g0x)
+    else
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
+                g(ikx,iz,it,ivmu) = 0.0
+              else
+                tmp = g(ikx,iz,it,ivmu)
+                if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+                if(delay_krook.le.epsilon(0.)) then
+                  g(ikx,iz,it,ivmu) = tmp
+                else
+                  g(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &
+                                    / (code_dt     + exp_fac*int_proj)
+                endif
+              endif
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
+                g_proj(ikx,iz,it,ivmu) = zi*aimag(g(ikx,iz,it,ivmu))
+              else
+                g_proj(ikx,iz,it,ivmu) = g(ikx,iz,it,ivmu)
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
 
     int_proj = code_dt + exp_fac*int_proj
 
