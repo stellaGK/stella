@@ -2406,6 +2406,9 @@ contains
 
     if(RK_step) call mb_communicate (g)
 
+    ! Bob: would be good to update this; use_leapfrog_splitting means we want to
+    ! flip-flop the order, but this shoul be independent from flip_flop to avoid
+    ! confusion. 
     if (mod(istep,2)==1 .or. .not.flip_flop) then
 
        if (prp_shear_enabled) then
