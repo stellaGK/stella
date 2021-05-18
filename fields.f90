@@ -704,7 +704,6 @@ contains
     !!!
     !!! "antot" variable name used because similar integrals with this name appear in GS2.
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    write(*,*) "In get_fields"
     if (dist == 'gbar') then
       allocate (g0(nvpa,nmu))
       allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
@@ -818,7 +817,6 @@ contains
       deallocate (g0)
 
     else
-      write(*,*) "dist != gbar"
       ia = 1
 
       phi = 0.

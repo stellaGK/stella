@@ -21,7 +21,7 @@ module response_matrix
 contains
 
   subroutine init_response_matrix
-  
+
     use linear_solve, only: lu_decomposition
     use fields_arrays, only: response_matrix
     use stella_layouts, only: vmu_lo
@@ -35,6 +35,7 @@ contains
     use mp, only: proc0, job, mp_abort
     use run_parameters, only: mat_gen, lu_option_switch
     use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+    use run_parameters, only: fphi, fapar, fbpar
     use system_fortran, only: systemf
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
@@ -79,7 +80,7 @@ contains
     end if
     message_dgdphi = '     calculate dgdphi: '
     message_QN     = '     calculate QN:     '
-    message_lu     = '     calculate LU:     ' 
+    message_lu     = '     calculate LU:     '
     time_response_matrix_dgdphi = 0
     time_response_matrix_QN     = 0
     time_response_matrix_lu     = 0
@@ -102,7 +103,7 @@ contains
 
     if (response_matrix_initialized) return
     response_matrix_initialized = .true.
-  
+
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
 
 #if defined ISO_C_BINDING && defined MPI
@@ -118,7 +119,7 @@ contains
     endif
 
 
-!   Create a single shared memory window for all the response matrices and 
+!   Create a single shared memory window for all the response matrices and
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
 !   degradation on some clusters
@@ -136,7 +137,7 @@ contains
             end if
             win_size =   win_size &
                        + int(nresponse,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND &
-                       + int(nresponse**2,MPI_ADDRESS_KIND)*2*real_size 
+                       + int(nresponse**2,MPI_ADDRESS_KIND)*2*real_size
           enddo
         enddo
       endif
@@ -148,25 +149,25 @@ contains
         call mpi_win_shared_query(window, 0, win_size, disp_unit, bptr, ierr)
       endif
       call mpi_win_fence(0,window,ierr)
-      
+
       !the following is a hack that allows us to perform pointer arithmetic in Fortran
-      cur_pos = transfer(bptr,cur_pos) 
+      cur_pos = transfer(bptr,cur_pos)
 
       call scope(prior_focus)
     endif
 #endif
-  
+
     ! for a given ky and set of connected kx values
     ! give a unit impulse to phi at each zed location
     ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
 
-  
+
     do iky = 1, naky
-     
+
        if (proc0.and.mat_gen) THEN
           write(unit=mat_unit) iky, neigen(iky)
        end if
-     
+
        ! the response matrix for each ky has neigen(ky)
        ! independent sets of connected kx values
        if (.not.associated(response_matrix(iky)%eigen)) &
@@ -175,13 +176,13 @@ contains
        if(proc0.and.debug) then
          call time_message(.false., time_response_matrix_dgdphi, message_dgdphi)
        end if
-     
+
        ! loop over the sets of connected kx values
        do ie = 1, neigen(iky)
-        
+
           ! number of zeds x number of segments
           nz_ext = nsegments(ie,iky)*nzed_segment+1
-        
+
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
           if (zonal_mode(iky)) then
@@ -189,7 +190,12 @@ contains
           else
              nresponse = nz_ext
           end if
-        
+
+          ! The response matrix must be at least nfields*nz_ext (or nfields*(nz_ext-1))
+          ! in size. For now, (for simplicity of coding), accept  3 fields; NB leads
+          ! to unnecessary memory cost for <3 fields.
+          nresponse = nresponse*3
+
           if (proc0.and.mat_gen) then
              write(unit=mat_unit) ie, nresponse
           end if
@@ -197,7 +203,7 @@ contains
 #if !defined ISO_C_BINDING || !defined MPI
           ! for each ky and set of connected kx values,
           ! must have a response matrix that is N x N
-          ! with N = number of zeds per 2pi segment x number of 2pi segments
+          ! with N = number of zeds per 2pi segment x number of 2pi segments x nfield
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) &
                allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse,nresponse))
 
@@ -207,7 +213,7 @@ contains
           if (.not.associated(response_matrix(iky)%eigen(ie)%idx)) &
                allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
 #else
-          !exploit MPIs shared memory framework to reduce memory consumption of 
+          !exploit MPIs shared memory framework to reduce memory consumption of
           !response matrices
 
           if (.not.associated(response_matrix(iky)%eigen(ie)%zloc)) then
@@ -224,7 +230,7 @@ contains
 #endif
 
           allocate (gext(nz_ext,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-          allocate (phiext(nz_ext))
+          allocate (phiext(3*nz_ext)) ! Multiply by 3 because 3 fields
           ! idx is the index in the extended zed domain
           ! that we are giving a unit impulse
           idx = 0
@@ -247,17 +253,68 @@ contains
           ! no need to obtain response to impulses at negative kx values
           do iz = iz_low(iseg), izup
              idx = idx + 1
-             call get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+             if (fphi > epsilon(0.0)) then
+               ! Get the new field
+               call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field="phi")
+
+               ! we now have g on the extended zed domain at this ky and set of connected kx values
+               ! corresponding to a unit impulse in phi at this location
+               ! now integrate over velocities to get a square response matrix
+               ! (this ends the parallelization over velocity space, so every core should have a
+               !  copy of phiext)
+
+               !  call integrate_over_velocity (gext, phiext, iky, ie)
+               call get_fields_for_response_matrix_new(gext, phiext, iky, ie)
+               ! Put phiext in the relevant part of the response matrix
+#if !defined ISO_C_BINDING || !defined MPI
+               response_matrix(iky)%eigen(ie)%zloc(iphi_lower:iphi_upper,idx) = phiext(:nresponse)
+#else
+               if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(iphi_lower:iphi_upper,idx) = phiext(:nresponse)
+#endif
+             end if
+
+             ! Repeat for other fields
+             if (fapar > epsilon(0.0)) then
+               !
+               call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field="apar")
+
+               call integrate_over_velocity (gext, phiext, iky, ie)
+
+               ! Put phiext in the relevant part of the response matrix
+#if !defined ISO_C_BINDING || !defined MPI
+                response_matrix(iky)%eigen(ie)%zloc(iphi_lower:iphi_upper,idx) = phiext(:nresponse)
+#else
+                if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(iphi_lower:iphi_upper,idx) = phiext(:nresponse)
+#endif
+             end if
+
+             if (fbpar > epsilon(0.0)) then
+               !
+               call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field="bpar")
+
+
+               call integrate_over_velocity (gext, phiext, iky, ie)
+
+               ! Put phiext in the relevant part of the response matrix
+#if !defined ISO_C_BINDING || !defined MPI
+                response_matrix(iky)%eigen(ie)%zloc(iphi_lower:iphi_upper,idx) = phiext(:nresponse)
+#else
+                if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(iphi_lower:iphi_upper,idx) = phiext(:nresponse)
+#endif
+             end if
+
           end do
           ! once we have used one segments, remaining segments
           ! have one fewer unique zed point
+
+          !! TODO: Implement the electromagnetic calculations for these segments.
           izl_offset = 1
           if (nsegments(ie,iky) > 1) then
              do iseg = 2, nsegments(ie,iky)
                 ikx = ikxmod(iseg,ie,iky)
                 do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
                    idx = idx + 1
-                   call get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                   call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field="phi")
                 end do
                 if (izl_offset == 0) izl_offset = 1
              end do
@@ -277,10 +334,10 @@ contains
          call time_message(.false., time_response_matrix_QN, message_QN)
        end if
 
-#ifdef ISO_C_BINDING 
+#ifdef ISO_C_BINDING
        call mpi_win_fence(0,window,ierr)
 #endif
-
+       !! TODO: Make the remainder of this electromagnetic
        ! solve quasineutrality
        ! for local stella, this is a diagonal process, but global stella
        ! may require something more sophisticated
@@ -292,7 +349,7 @@ contains
 #endif
            ! number of zeds x number of segments
            nz_ext = nsegments(ie,iky)*nzed_segment+1
-        
+
            ! treat zonal mode specially to avoid double counting
            ! as it is periodic
            if (zonal_mode(iky)) then
@@ -322,7 +379,7 @@ contains
 #endif
        enddo
 
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
        call mpi_win_fence(0,window,ierr)
 #endif
 
@@ -337,7 +394,7 @@ contains
        case (lu_option_global)
         call parallel_LU_decomposition_global(iky)
        case (lu_option_local)
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
          call parallel_LU_decomposition_local(iky)
 #else
          call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
@@ -345,15 +402,15 @@ contains
        case default
 #endif
          do ie = 1, neigen(iky)
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
            if(sgproc0) then
 #endif
              ! now that we have the reponse matrix for this ky and set of connected kx values
              !get the LU decomposition so we are ready to solve the linear system
              call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc, &
                                     response_matrix(iky)%eigen(ie)%idx,dum)
-        
-#ifdef ISO_C_BINDING       
+
+#ifdef ISO_C_BINDING
            endif
 #endif
         enddo
@@ -361,7 +418,7 @@ contains
        end select
 #endif
 
-     
+
        if(proc0.and.debug) then
          call time_message(.true., time_response_matrix_lu, message_lu)
        end if
@@ -369,7 +426,7 @@ contains
        time_response_matrix_dgdphi = 0
        time_response_matrix_QN     = 0
        time_response_matrix_lu     = 0
-     
+
        do ie = 1, neigen(iky)
           if (proc0.and.mat_gen) then
              write(unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
@@ -380,7 +437,7 @@ contains
        !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
     end do
 
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
     call mpi_win_fence(0,window,ierr)
 #endif
 
@@ -396,7 +453,7 @@ contains
   end subroutine init_response_matrix
 
   subroutine read_response_matrix
-  
+
     use fields_arrays, only: response_matrix
     use common_types, only: response_matrix_type
     use kt_grids, only: naky, zonal_mode
@@ -438,7 +495,7 @@ contains
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
 
     do iky = 1, naky
-       if(proc0) then 
+       if(proc0) then
          read(unit=mat_unit) iky_dump, neigen_dump
          if(iky_dump.ne.iky.or.neigen_dump.ne.neigen(iky)) &
            call mp_abort('mismatch in iky_dump/neigen_dump')
@@ -451,7 +508,7 @@ contains
        do ie = 1, neigen(iky)
           ! number of zeds x number of segments
           nz_ext = nsegments(ie,iky)*nzed_segment+1
-        
+
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
           if (zonal_mode(iky)) then
@@ -460,7 +517,7 @@ contains
              nresponse = nz_ext
           end if
 
-          if(proc0) then 
+          if(proc0) then
             read(unit=mat_unit) ie_dump, nresponse_dump
             if(ie_dump.ne.ie.or.nresponse.ne.nresponse_dump) &
               call mp_abort('mismatch in ie/nresponse_dump')
@@ -489,13 +546,13 @@ contains
     enddo
 
     if (proc0) close (mat_unit)
-  
+
     if (debug) then
        print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
     end if
   end subroutine read_response_matrix
 
-  subroutine get_dgdphi_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+  subroutine subroutine get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -507,7 +564,7 @@ contains
     use vpamu_grids, only: vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use fields_arrays, only: response_matrix
-    use gyro_averages, only: aj0x
+    use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: driftkinetic_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
     use parallel_streaming, only: stream_tridiagonal_solve
@@ -520,6 +577,7 @@ contains
     implicit none
 
     integer, intent (in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
+    character (*), intent (in) :: field
     complex, dimension (:), intent (in out) :: phiext
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
@@ -531,30 +589,44 @@ contains
     ia = 1
 
     if (.not.maxwellian_inside_zed_derivative) then
-       ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
+       ! get -vpa*b.gradz*Ze/T*F0*d<chi>/dz corresponding to unit impulse in a field;
+       ! this could be phi, apar or bpar
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           ! initialize g to zero everywhere along extended zed domain
           gext(:,ivmu) = 0.0
           iv = iv_idx(vmu_lo,ivmu)
           imu = imu_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
-        
+
           ! give unit impulse to phi at this zed location
           ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
-        
+
           ! NB:  assuming equal spacing in zed below
-          ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
+          ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*(gyro_fac)/dz
           ! b.gradz left out because needs to be centred in zed
+          ! gyro_fac is a term corresponding to a gyroaveraged element of chi
           if (driftkinetic_implicit) then
              gyro_fac = 1.0
           else
-             gyro_fac = aj0x(iky,ikx,iz,ivmu)
+             ! Calculate the factor corresponding to a unit impulse in phi, apar
+             ! or bpar
+             ! <chi> = J0*phi - 2*vpa*vthermal*J0*apar - 4*mu*(T/Z)*aj1*bpar
+             if (field == 'phi') then
+               gyro_fac = aj0x(iky,ikx,iz,ivmu)
+             else if (field == 'apar') then
+               gyro_fac = -2*vpa(iv)*spec(is)%stm_psi0*aj0x(iky,ikx,iz,ivmu)
+             else if (field == 'bpar') then
+               gyro_fac = -4*mu(imu)*spec(is)%tz_psi0*aj1x(iky,ikx,iz,ivmu)
+             else
+               ! If this occurs, we've hit a problem - end gracefully
+               stop "Error in calculation of repsonse matrix"
+             end if
           end if
-        
+
           ! 0.125 to account for two linear interpolations
           fac = -0.125*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
                *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
-          
+
           ! In the following, gradpar and maxwell_mu are interpolated separately
           ! to ensure consistency to what is done in parallel_streaming.f90
 
@@ -676,10 +748,10 @@ contains
           iv = iv_idx(vmu_lo,ivmu)
           imu = imu_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
-        
+
           ! give unit impulse to phi at this zed location
           ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
-        
+
           ! NB:  assuming equal spacing in zed below
           ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
           ! b.gradz left out because needs to be centred in zed
@@ -688,13 +760,13 @@ contains
           else
              gyro_fac = aj0x(iky,ikx,iz,ivmu)
           end if
-        
+
           fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
                *gyro_fac*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
 
           mu_dbdzed_p = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.+zed_upwind)
           mu_dbdzed_m = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.-zed_upwind)
-        
+
           ! stream_sign < 0 corresponds to positive advection speed
           if (stream_sign(iv)<0) then
              if (iz > -nzgrid) then
@@ -783,24 +855,11 @@ contains
              ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
              call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
           end if
-        
+
        end do
     end if
 
-    ! we now have g on the extended zed domain at this ky and set of connected kx values
-    ! corresponding to a unit impulse in phi at this location
-    ! now integrate over velocities to get a square response matrix
-    ! (this ends the parallelization over velocity space, so every core should have a
-    !  copy of phiext)
-    call integrate_over_velocity (gext, phiext, iky, ie)
-
-#if !defined ISO_C_BINDING || !defined MPI
-    response_matrix(iky)%eigen(ie)%zloc(:,idx) = phiext(:nresponse)
-#else
-    if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(:,idx) = phiext(:nresponse)
-#endif
-
-  end subroutine get_dgdphi_matrix_column
+  end subroutine get_dgdfield_matrix_column
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
@@ -922,7 +981,7 @@ contains
 
     complex, dimension (:), intent (inout) :: phi
     integer, intent (in) :: iky, ie
-  
+
     integer :: idx, iseg, ikx, iz, ia
     integer :: izl_offset
     complex, dimension (:), allocatable :: g0
@@ -969,13 +1028,54 @@ contains
 
   end subroutine get_fields_for_response_matrix
 
+  !!! New subroutine to get fields for the electromagnetic
+  !!! response matrix. This essentially combines
+  !!! integrate_over_velocity and get_fields_for_response_matrix,
+  !!! taking g on the extended z grid and returning a 3Nz+ array
+  !!! of (phi, apar, bpar)
+  subroutine get_fields_for_response_matrix_new (gext, fields, iky, ie)
+
+    use stella_layouts, only: vmu_lo
+    use species, only: spec
+    use species, only: has_electron_species
+    use stella_geometry, only: dl_over_b
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: nsegments
+    use kt_grids, only: zonal_mode, akx
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+    use fields, only: gamtot3
+    use fields_arrays, only: gamtot
+
+    implicit none
+
+    complex, dimension (:), intent (inout) :: fields
+    integer, intent (in) :: iky, ie
+
+    integer :: idx, iseg, ikx, iz, ia
+    integer :: izl_offset
+    complex, dimension (:), allocatable :: g0
+    complex :: tmp
+
+    !To implement:
+
+    ! 1) Allocate phi, apar, bpar
+    ! 2) Perform the velocity-space integrals of gext to get antot1, antot2, antot3
+    ! 3) Calculate the fields phi, apar, bpar
+    ! 4) Condense the fields into the single "fields" variable
+
+
+
+  end subroutine get_fields_for_response_matrix_new
+
   subroutine finish_response_matrix
 
     use fields_arrays, only: response_matrix
-#if !defined ISO_C_BINDING 
+#if !defined ISO_C_BINDING
 
     implicit none
-  
+
 #else
     use mpi
 
@@ -984,7 +1084,7 @@ contains
     integer :: ierr
 
     call mpi_win_free(window,ierr)
-#endif 
+#endif
 
     if (allocated(response_matrix)) deallocate (response_matrix)
     response_matrix_initialized = .false.
@@ -1099,7 +1199,7 @@ contains
       nodes_on_job = count(node_jobs(:,ijob+1))
       ediv = neig/nodes_on_job
       emod = mod(neig,nodes_on_job)
-      
+
       eig_limits(0,ijob+1) = 1
       do j = 1, numnodes
         if(node_jobs(j,ijob+1)) then
@@ -1171,7 +1271,7 @@ contains
            dmax = -1.0
            do k = j, n
              tmp = vv(k)*abs(lu(k,j))
-             if(tmp.gt.dmax) then 
+             if(tmp.gt.dmax) then
                dmax = tmp
                imax = k
              endif
@@ -1197,7 +1297,7 @@ contains
            do i = row_limits(iproc), row_limits(iproc+1)-1
              lu(i,j) = lu(i,j)/lu(j,j)
            enddo
-         
+
            call mpi_win_fence(0,win,ierr)
 
            do k=row_limits(iproc), row_limits(iproc+1)-1
@@ -1256,7 +1356,7 @@ contains
     use extended_zgrid, only: neigen
     use mpi
     use linear_solve, only: imaxloc
-  
+
     implicit none
 
     integer, intent (in) :: iky
@@ -1273,7 +1373,7 @@ contains
 
     integer :: sproc
     logical :: sproc0
-  
+
     integer :: eig_comm, ceig_comm !c for 'cross'
     integer :: ieig_core, ceig_core, eig_cores
     integer :: ncomm
@@ -1299,12 +1399,12 @@ contains
     if(sproc0) job_roots(job) = iproc
 
     call sum_allreduce(job_roots)
-    
+
     do ijob = 0, njobs-1
       if(job.eq.ijob.and.sproc0) then
         neig = neigen(iky)
       endif
-    
+
       ! broadcast number of matrices for this job
       call broadcast(neig,job_roots(ijob))
 
@@ -1413,7 +1513,7 @@ contains
           dmax = -1.0
           do k = j, n
             tmp = vv(k)*abs(lu(k,j))
-            if(tmp.gt.dmax) then 
+            if(tmp.gt.dmax) then
               dmax = tmp
               imax = k
             endif
@@ -1497,7 +1597,7 @@ contains
     call scope(prior_focus)
 #else
     call scope(prior_focus)
-    
+
     !copy all the matrices across all nodes
     do ie = 1, neigen(iky)
       call broadcast(response_matrix(iky)%eigen(ie)%zloc)
