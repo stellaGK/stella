@@ -953,18 +953,14 @@ contains
 
     ia = 1
     phi = 0.
-    ! BOB: We're in this subroutine.
     if (fphi > epsilon(0.0)) then ! Normally, fphi = 1.0
        allocate (g0k(naky,nakx))
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       ! BOB: Loop over tubes, z and vmu
        do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-           ! BOB: Loop over vmu to find gyro_g(kx, ky, ivmu)
            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              is = is_idx(vmu_lo,ivmu)
              imu = imu_idx(vmu_lo,ivmu)
-             ! BOB: gyro_g doesn't know about z, or tubes.
              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
              g0k = 0.0
              if(radial_variation) then
@@ -976,7 +972,6 @@ contains
                      + dBdrho(iz)/bmag(ia,iz))
 
                end do
-               !g0k(1,1) = 0.
                call multiply_by_rho(g0k)
 
              endif
