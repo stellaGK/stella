@@ -6,6 +6,7 @@ module fields
 
   public :: init_fields, finish_fields
   public :: advance_fields, get_fields
+  public :: get_fields_vmulo_single
   public :: get_radial_correction
   public :: enforce_reality_field
   public :: get_fields_by_spec
@@ -918,7 +919,7 @@ contains
     use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
-    use gyro_averages, only: gyro_average, aj0x, aj1x
+    use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
     use run_parameters, only: fphi, fapar, fbpar
     use physics_parameters, only: beta
     use stella_geometry, only: dBdrho, bmag
@@ -1103,6 +1104,104 @@ contains
     end if
 
   end subroutine get_fields_vmulo
+
+
+
+  subroutine get_fields_vmulo_single (g, iky, ikx, iz, phi, apar, bpar, dist)
+
+    use mp, only: mp_abort, sum_allreduce
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, is_idx
+    use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+    use run_parameters, only: fphi, fapar, fbpar
+    use physics_parameters, only: beta
+    use stella_geometry, only: dBdrho, bmag
+    use physics_flags, only: radial_variation
+    use dist_fn_arrays, only: kperp2, dkperp2dr
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: integrate_species, vperp2
+    use kt_grids, only: nakx, naky, multiply_by_rho
+    use run_parameters, only: ky_solve_radial
+    use species, only: spec
+    use fields_arrays, only: gamtot, gamtot13, gamtot31, gamtot33, apar_denom
+
+
+    implicit none
+
+    complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent(in) :: iky, ikx, iz
+    complex, intent (out) :: phi, apar, bpar
+    character (*), intent (in) :: dist
+
+    integer :: ivmu
+    complex, dimension (:), allocatable :: gyro_g
+    complex :: antot1, antot2, antot3
+
+    ! Implement electromagnetic field calculations. Currently incompatible
+    ! with global stella, so if this occurs, abort.
+    if (dist == 'gbar') then
+      if (radial_variation) then
+        call mp_abort('radial_variation not supported for dist=gbar. Aborting.')
+      end if
+
+      allocate (gyro_g(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+
+      if (fphi > epsilon(0.0)) then
+        antot1 = 0.
+
+        call gyro_average (g, iky, ikx, iz, gyro_g)
+        !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
+        call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, antot1, reduce_in=.false.)
+        call sum_allreduce(antot1)
+      end if
+
+      if (fbpar > epsilon(0.0)) then
+        antot3 = 0.
+        call gyro_average_j1 (g, iky, ikx, iz, gyro_g)
+        ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
+        call integrate_species(gyro_g, iz, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3,reduce_in=.false.)
+        call sum_allreduce (antot3)
+      end if
+
+      ! The fields are a funcion of (ky, kx, z, itube).
+      ! antot variables are functions of (iky,ikx,iz,it)
+      ! gamtot variables are functions of (iky, ikx, iz)
+      ! ia = 1
+
+      if (fphi > epsilon(0.0)) then
+        if (fbpar > epsilon(0.0)) then
+          phi = (antot1 - gamtot13(iky, ikx, iz)/gamtot33(iky, ikx, iz)*antot3 ) &
+                / (gamtot(iky, ikx, iz) - (gamtot13(iky, ikx, iz)*gamtot31(iky, ikx, iz))/gamtot33(iky, ikx, iz))
+          bpar = (antot3 - gamtot31(iky, ikx, iz)/gamtot(iky, ikx, iz)*antot1) &
+                / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz)*gamtot31(iky, ikx, iz))/gamtot(iky, ikx, iz))
+        else
+          phi = antot1 / gamtot(iky, ikx, iz)
+        end if
+
+      else
+        bpar = antot3 / gamtot33(iky, ikx, iz)
+      end if
+
+      if (fapar > epsilon(0.0)) then
+        antot2 = 0.
+
+        call gyro_average(g, iky, ikx, iz, gyro_g)
+        ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
+        call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2,reduce_in=.false.)
+        call sum_allreduce (antot2)
+        apar =  antot2/apar_denom(iky, ikx, iz)
+      end if
+
+      deallocate(gyro_g)
+
+    else
+      ! No reason to be here - call abort
+      call mp_abort('get_fields_vmulo_single_kxkyz called with dist!=gbar (unexpected behaviour). Aborting.')
+
+    end if
+
+  end subroutine get_fields_vmulo_single
 
   subroutine get_fields_by_spec (g, fld)
 

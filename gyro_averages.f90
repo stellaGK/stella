@@ -20,6 +20,7 @@ module gyro_averages
      module procedure gyro_average_j1_kxky_local
      module procedure gyro_average_j1_kxkyz_local
      module procedure gyro_average_j1_vmu_local
+     module procedure gyro_average_j1_vmus_nonlocal
   end interface
 
   real, dimension (:,:,:,:), allocatable :: aj0x, aj1x
@@ -482,5 +483,19 @@ contains
     gyro_distfn = spread(aj1v(:,ikxkyz),1,nvpa)*distfn
 
   end subroutine gyro_average_j1_vmu_local
+
+  subroutine gyro_average_j1_vmus_nonlocal (field, iky, ikx, iz, gyro_field)
+
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    complex, dimension (vmu_lo%llim_proc:), intent (in) :: field
+    integer, intent (in) :: iky, ikx, iz
+    complex, dimension (vmu_lo%llim_proc:), intent (out) :: gyro_field
+
+    gyro_field = aj1x(iky,ikx,iz,:)*field
+
+  end subroutine gyro_average_j1_vmus_nonlocal
 
 end module gyro_averages
