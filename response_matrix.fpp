@@ -264,8 +264,8 @@ contains
                ! to this gbar, and store in the appropriate response_matrix column.
                ! (this ends the parallelization over velocity space, so every core should have a
                !  copy of fields_ext)
-
-               call get_em_fields_for_response_matrix(gext, iky, ikx, nresponse, fields_ext)
+               write(*,*) "About to call getfieldsforresponsematrix for first time"
+               call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
 
                ! We now have the fields - use to populate the column in response_matrix,
                ! which is actually (identity matrix - response matrix)
@@ -284,11 +284,11 @@ contains
                if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(:,idx) = -fields_ext(:nresponse)
 #endif
              end if
-
+             write(*,*) "Finished for phi"
              if (fapar > epsilon(0.0)) then
                ! Get the gext corresponding to a unit impulse in apar
                call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="apar")
-               call get_em_fields_for_response_matrix(gext, iky, ikx, nresponse, fields_ext)
+               call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
 
                ! Subtract identity matrix - because this is populating the
                ! (nresponse+idx)th column, identity matrix is 1 for (nresponse+idx),
@@ -304,7 +304,7 @@ contains
              if (fbpar > epsilon(0.0)) then
                ! Get the gext corresponding to a unit impulse in bpar
                call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="bpar")
-               call get_em_fields_for_response_matrix(gext, iky, ikx, nresponse, fields_ext)
+               call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
 
                ! Subtract identity matrix - because this is populating the
                ! (2nresponse+idx)th column, identity matrix is 1 for (2nresponse+idx),
@@ -331,8 +331,9 @@ contains
 
                    if (fphi > epsilon(0.0)) then
                      ! Get the gext corresponding to a unit impulse in phi
+                     write(*,*) "About to call getfieldsforresponsematrix again"
                      call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="phi")
-                     call get_em_fields_for_response_matrix(gext, iky, ikx, nresponse, fields_ext)
+                     call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
                      fields_ext(idx) = fields_ext(idx)-1.0
 #if !defined ISO_C_BINDING || !defined MPI
                      response_matrix(iky)%eigen(ie)%zloc(:,idx) = -fields_ext(:nresponse)
@@ -340,11 +341,11 @@ contains
                      if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(:,idx) = -fields_ext(:nresponse)
 #endif
                    end if
-
+                   write(*,*) "Success"
                    if (fapar > epsilon(0.0)) then
                      ! Get the gext corresponding to a unit impulse in apar
                      call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="apar")
-                     call get_em_fields_for_response_matrix(gext, iky, ikx, nresponse, fields_ext)
+                     call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
                      fields_ext(nresponse+idx) = fields_ext(nresponse+idx)-1.0
 
 #if !defined ISO_C_BINDING || !defined MPI
@@ -357,7 +358,7 @@ contains
                    if (fbpar > epsilon(0.0)) then
                      ! Get the gext corresponding to a unit impulse in bpar
                      call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="bpar")
-                     call get_em_fields_for_response_matrix(gext, iky, ikx, nresponse, fields_ext)
+                     call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
                      fields_ext(2*nresponse+idx) = fields_ext(2*nresponse+idx)-1.0
 
 #if !defined ISO_C_BINDING || !defined MPI
@@ -1042,40 +1043,75 @@ contains
 
   end subroutine get_fields_for_response_matrix
 
-  subroutine get_em_fields_for_response_matrix (gext, iky, ikx, nresponse, fields_ext)
+  ! Given gext == gbar on extended zgrid, calculate (phi, apar, bpar) on the
+  ! extended zgrid and return in a one-dimenstional array.
+  subroutine get_em_fields_for_response_matrix (gext, iky, ie, nresponse, fields_ext)
 
     use stella_layouts, only: vmu_lo
     use fields, only: get_fields_vmulo_single
     use mp, only: mp_abort
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: ikxmod
+    use extended_zgrid, only: nsegments
+    use kt_grids, only: zonal_mode, akx
 
     implicit none
 
     complex, dimension(:,vmu_lo%llim_proc:), intent(in) :: gext
-    integer, intent(in) :: iky, ikx, nresponse
+    integer, intent(in) :: iky, ie, nresponse
     complex, dimension(:), intent(inout) :: fields_ext
 
-    integer :: nz_unique, iz
+    integer :: nz_unique, ikx, iseg, iz, idx, izl_offset
     complex :: phi, apar, bpar
 
     ! Ensure that nresponse is divisible by 3 - if not, something's gone wrong
     ! and we should abort.
-
     if (mod(nresponse, 3) /= 0) then
       call mp_abort("Error in get_em_fields_for_response_matrix: nresponse not divisible by 3. Aborting.")
     end if
     nz_unique = nresponse/3
-
     ! nz_unique is nz_ext for non-zonal modes, (nz_ext-1) for zonal modes (periodic BCs).
     ! This means that for zonal modes, fields_ext is still nz_ext*3 in length,
     ! but the last 3 elements are not calculated here (and are subsequently ignored)
-    do iz = 1, nz_unique
-      ! Calcalate the
-      call get_fields_vmulo_single (gext(iz,:), iky, ikx, iz, phi, apar, bpar, dist="gbar")
-      fields_ext(iz) = phi
-      fields_ext(nz_unique+iz) = apar
-      fields_ext(2*nz_unique+iz) = bpar
+
+    ! Need to get (phi, apar, bpar) for the extended domain of connected kx
+    ! values; this means looping over each segment of the extended domain.
+    write(*,*) "In get_em_fields_for_response_matrix, iky, ie, nresponse, nz_unique = ", iky, ie, nresponse, nz_unique
+    idx = 0 ; izl_offset = 0
+    iseg = 1
+    ikx = ikxmod(iseg,ie,iky)
+    if(zonal_mode(iky).and.abs(akx(ikx)) < epsilon(0.)) then
+      fields_ext(:) = 0.0
+      return
+    endif
+    write(*,*) "Approaching first do loop"
+
+    do iz = iz_low(iseg), iz_up(iseg)
+      idx = idx+1
+      write(*,*) "idx = ", idx
+      call get_fields_vmulo_single (gext(idx,:), iky, ikx, iz, phi, apar, bpar, dist="gbar")
+      fields_ext(idx) = phi
+      fields_ext(nz_unique+idx) = apar
+      fields_ext(2*nz_unique+idx) = bpar
     end do
 
+    write(*,*) "Made past seg 1"
+    izl_offset = 1
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          ikx = ikxmod(iseg,ie,iky)
+          do iz = iz_low(iseg)+izl_offset, iz_up(iseg)
+            idx = idx+1
+            call get_fields_vmulo_single (gext(idx,:), iky, ikx, iz, phi, apar, bpar, dist="gbar")
+            fields_ext(idx) = phi
+            fields_ext(nz_unique+idx) = apar
+            fields_ext(2*nz_unique+idx) = bpar
+          end do
+          ! RJD: Don't know what the purpose of this line of code is,
+          ! but copying integrate_over_velocity
+          if (izl_offset == 0) izl_offset = 1
+       end do
+    end if
   end subroutine get_em_fields_for_response_matrix
 
 
