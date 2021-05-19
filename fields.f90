@@ -679,7 +679,7 @@ contains
     use kt_grids, only: nakx, naky ! Bob: Need this to allocate antot
     use species, only: spec
     use constants, only: pi
-    use fields_arrays, only: gamtot, gamtot13, gamtot31, gamtot33, apar_denom! gamone
+    use fields_arrays, only: gamtot, gamtot13, gamtot31, gamtot33, apar_denom
     implicit none
 
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
@@ -710,13 +710,6 @@ contains
       allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
 
-      ! write(*,*) "g(:,:,0) = ", g(:,:,0)
-      ! call gyro_average ( g(:,:,0), 0, g0)
-      ! write(*,*) "g0 = ", g0
-      ! ! wgt = spec(is)%z*spec(is)%dens_psi0
-      ! ! call integrate_vmu (g0, -36, tmp)
-      ! !write(*,*) "tmp = ", tmp
-
       if (fphi > epsilon(0.0)) then
         antot1 = 0.
 
@@ -726,13 +719,11 @@ contains
            ikx = ikx_idx(kxkyz_lo,ikxkyz)
            iky = iky_idx(kxkyz_lo,ikxkyz)
            is = is_idx(kxkyz_lo,ikxkyz)
-           ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
            call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
 
            !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
            wgt = spec(is)%z*spec(is)%dens_psi0
            call integrate_vmu (g0, iz, tmp)
-           ! write(*,*) "tmp = ", tmp
            antot1(iky,ikx,iz,it) = antot1(iky,ikx,iz,it) + wgt*tmp
 
         end do
@@ -748,10 +739,8 @@ contains
            ikx = ikx_idx(kxkyz_lo,ikxkyz)
            iky = iky_idx(kxkyz_lo,ikxkyz)
            is = is_idx(kxkyz_lo,ikxkyz)
-           ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
-           call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
 
-           ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
+           ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(gbar))
            call gyro_average_j1 (g(:,:,ikxkyz), ikxkyz, g0)
            wgt = -2 * beta * spec(is)%dens_psi0*spec(is)%temp_psi0
            call integrate_vmu((g0**spread(mu,1,nvpa)), iz, tmp)
@@ -770,10 +759,6 @@ contains
         if (fbpar > epsilon(0.0)) then
           phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
                 / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
-          ! write(*,*) "antot1 = ", antot1
-          ! write(*,*) "antot3 = ", antot3
-          ! write(*,*) "phi_numerator = ", (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 )
-          ! write(*,*) "phi = ", phi
           bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
                 / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
         else
@@ -925,6 +910,9 @@ contains
 
   end subroutine get_fields
 
+  !! Subroutine to calculate the fields for a single kx, ky, z point
+
+
   subroutine get_fields_vmulo (g, phi, apar, bpar, dist)
 
     use mp, only: mp_abort, sum_allreduce
@@ -932,6 +920,7 @@ contains
     use stella_layouts, only: imu_idx, is_idx
     use gyro_averages, only: gyro_average, aj0x, aj1x
     use run_parameters, only: fphi, fapar, fbpar
+    use physics_parameters, only: beta
     use stella_geometry, only: dBdrho, bmag
     use physics_flags, only: radial_variation
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -940,6 +929,8 @@ contains
     use kt_grids, only: nakx, naky, multiply_by_rho
     use run_parameters, only: ky_solve_radial
     use species, only: spec
+    use fields_arrays, only: gamtot, gamtot13, gamtot31, gamtot33, apar_denom
+
 
     implicit none
 
@@ -950,83 +941,166 @@ contains
     integer :: ivmu, iz, it, ia, imu, is, iky
     complex, dimension (:,:,:), allocatable :: gyro_g
     complex, dimension (:,:), allocatable :: g0k
+    complex, dimension (:,:,:,:), allocatable :: antot1, antot2, antot3
 
-    ia = 1
-    phi = 0.
-    if (fphi > epsilon(0.0)) then ! Normally, fphi = 1.0
-       allocate (g0k(naky,nakx))
-       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       do it = 1, ntubes
-         do iz = -nzgrid, nzgrid
-           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             is = is_idx(vmu_lo,ivmu)
-             imu = imu_idx(vmu_lo,ivmu)
-             call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
-             g0k = 0.0
-             if(radial_variation) then
-               do iky = 1, min(ky_solve_radial,naky)
-                 g0k(iky,:) = gyro_g(iky,:,ivmu) &
-                     * (-0.5*aj1x(iky,:,iz,ivmu)/aj0x(iky,:,iz,ivmu)*(spec(is)%smz)**2 &
-                     * (kperp2(iky,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                     * (dkperp2dr(iky,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                     + dBdrho(iz)/bmag(ia,iz))
+    ! Implement electromagnetic field calculations. Currently incompatible
+    ! with global stella, so if this occurs, abort.
+    if (dist == 'gbar') then
+      if (radial_variation) then
+        call mp_abort('radial_variation not supported for dist=gbar. Aborting.')
+      end if
 
-               end do
-               call multiply_by_rho(g0k)
+      allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
 
-             endif
+      if (fphi > epsilon(0.0)) then
+        antot1 = 0.
 
-             gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+              is = is_idx(vmu_lo,ivmu)
+              imu = imu_idx(vmu_lo,ivmu)
+              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+            end do
+            !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
+            call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, antot1(:,:,iz,it),reduce_in=.false.)
+          end do
+        end do
+        call sum_allreduce(antot1)
+      end if
 
+      if (fbpar > epsilon(0.0)) then
+        antot3 = 0.
+
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+              is = is_idx(vmu_lo,ivmu)
+              imu = imu_idx(vmu_lo,ivmu)
+              call gyro_average_j1 (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+            end do
+            ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
+            call integrate_species(gyro_g, iz, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3(:,:,iz,it),reduce_in=.false.)
+          end do
+        end do
+        call sum_allreduce (antot3)
+      end if
+
+      ! The fields are a funcion of (ky, kx, z, itube).
+      ! antot variables are functions of (iky,ikx,iz,it)
+      ! gamtot variables are functions of (iky, ikx, iz)
+      ! ia = 1
+
+      if (fphi > epsilon(0.0)) then
+        if (fbpar > epsilon(0.0)) then
+          phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
+                / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
+          bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
+                / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
+        else
+          phi = (antot1 / (spread(gamtot,4,ntubes) ))
+        end if
+
+      else
+        bpar = antot3 / (spread(gamtot33,4,ntubes))
+      end if
+
+      if (fapar > epsilon(0.0)) then
+        antot2 = 0.
+
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+              is = is_idx(vmu_lo,ivmu)
+              imu = imu_idx(vmu_lo,ivmu)
+              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+            end do
+            ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
+            call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2(:,:,iz,it),reduce_in=.false.)
+          end do
+        end do
+        call sum_allreduce (antot2)
+        apar =  antot2/spread(apar_denom,4,ntubes)
+      end if
+
+      deallocate(antot1)
+      deallocate(antot2)
+      deallocate(antot3)
+      deallocate(gyro_g)
+
+    else
+
+      ia = 1
+      phi = 0.
+      if (fphi > epsilon(0.0)) then ! Normally, fphi = 1.0
+         allocate (g0k(naky,nakx))
+         allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         do it = 1, ntubes
+           do iz = -nzgrid, nzgrid
+             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               is = is_idx(vmu_lo,ivmu)
+               imu = imu_idx(vmu_lo,ivmu)
+               call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+               g0k = 0.0
+               if(radial_variation) then
+                 do iky = 1, min(ky_solve_radial,naky)
+                   g0k(iky,:) = gyro_g(iky,:,ivmu) &
+                       * (-0.5*aj1x(iky,:,iz,ivmu)/aj0x(iky,:,iz,ivmu)*(spec(is)%smz)**2 &
+                       * (kperp2(iky,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                       * (dkperp2dr(iky,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                       + dBdrho(iz)/bmag(ia,iz))
+
+                 end do
+                 call multiply_by_rho(g0k)
+
+               endif
+
+               gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
+
+             end do
+             call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it),reduce_in=.false.)
            end do
-           call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, phi(:,:,iz,it),reduce_in=.false.)
          end do
-       end do
-       deallocate (gyro_g)
-       call sum_allreduce(phi)
+         deallocate (gyro_g)
+         call sum_allreduce(phi)
 
-       call get_phi(phi, dist)
+         call get_phi(phi, dist)
 
+      end if
+
+      apar = 0.
+      if (fapar > epsilon(0.0)) then
+         ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
+         call mp_abort ('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
+  !        allocate (g0(-nvgrid:nvgrid,nmu))
+  !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+  !           iz = iz_idx(kxkyz_lo,ikxkyz)
+  !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+  !           iky = iky_idx(kxkyz_lo,ikxkyz)
+  !           is = is_idx(kxkyz_lo,ikxkyz)
+  !           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
+  !           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
+  !           call integrate_vmu (g0, iz, tmp)
+  !           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
+  !        end do
+  !        call sum_allreduce (apar)
+  !        if (dist == 'h') then
+  !           apar = apar/kperp2
+  !        else if (dist == 'gbar') then
+  !           apar = apar/apar_denom
+  !        else if (dist == 'gstar') then
+  !           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
+  !           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
+  !        else
+  !           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+  !           call mp_abort ('unknown dist option in get_fields. aborting')
+  !        end if
+  !        deallocate (g0)
+      end if
     end if
-
-    apar = 0.
-    if (fapar > epsilon(0.0)) then
-       ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
-       call mp_abort ('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
-!        allocate (g0(-nvgrid:nvgrid,nmu))
-!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!           iz = iz_idx(kxkyz_lo,ikxkyz)
-!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!           iky = iky_idx(kxkyz_lo,ikxkyz)
-!           is = is_idx(kxkyz_lo,ikxkyz)
-!           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
-!           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
-!           call integrate_vmu (g0, iz, tmp)
-!           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
-!        end do
-!        call sum_allreduce (apar)
-!        if (dist == 'h') then
-!           apar = apar/kperp2
-!        else if (dist == 'gbar') then
-!           apar = apar/apar_denom
-!        else if (dist == 'gstar') then
-!           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
-!           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
-!        else
-!           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
-!           call mp_abort ('unknown dist option in get_fields. aborting')
-!        end if
-!        deallocate (g0)
-    end if
-
-    !! Bob: Not supported so far.
-    !! Calculate bpar
-    ! bpar = 0.
-    ! if (fbpar > epsilon(0.0)) then
-    !   write(*,*) "About to calcualte bpar"
-    ! end if
-    !
-    ! write(*,*) "bpar = ", bpar
 
   end subroutine get_fields_vmulo
 
