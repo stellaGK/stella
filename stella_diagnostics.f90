@@ -652,8 +652,11 @@ contains
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
     if(radial_variation) then
-      dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
-      dflx_norm(nzgrid) = 0.
+      where (dl_over_b(ia,:) .gt. epsilon(0.0))
+        dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
+      elsewhere
+        dflx_norm = 0.
+      endwhere
     endif
 
 
