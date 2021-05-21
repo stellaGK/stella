@@ -24,12 +24,12 @@ module dist_fn_arrays
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   ! needed to implement time-delayed source when using Krook operator
-  complex, dimension (:,:,:), allocatable :: g_krook
-  ! (nakx, ntubes, -vmu-layout-)
+  complex, dimension (:,:,:,:), allocatable :: g_krook
+  ! (nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   ! needed to implement time-delayed source when using projection method
-  complex, dimension (:,:,:), allocatable :: g_proj
-  ! (nakx, ntubes, -vmu-layout-)
+  complex, dimension (:,:,:,:), allocatable :: g_proj
+  ! (nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (nvpa, nmu, -kxkyz-layout-)

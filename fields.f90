@@ -13,6 +13,7 @@ module fields
   public :: time_field_solve
   public :: fields_updated
   public :: get_dchidy, get_dchidx
+  public :: efac, efacp
 
   private
 
@@ -193,7 +194,7 @@ contains
           if(radial_variation) dgamtotdr = dgamtotdr + efacp
           if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
              if (zonal_mode(1)) then
-                gamtot3_h = tite/(nine*sum(spec%zt*spec%z*spec%dens))
+                gamtot3_h = efac/(sum(spec%zt*spec%z*spec%dens))
                 do ikx = 1, nakx
                    ! avoid divide by zero for kx=ky=0 mode,
                    ! which we do not need anyway
@@ -252,7 +253,7 @@ contains
                  g0x(1,:) = rho_d_clamped*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
-                 !column row
+                 !row column
                  phi_solve(iky,iz)%zloc(:,ikx-zmi) = g0k(1,(1+zmi):)
                  phi_solve(iky,iz)%zloc(ikx-zmi,ikx-zmi) = phi_solve(iky,iz)%zloc(ikx-zmi,ikx-zmi) &
                                                          + gamtot(iky,ikx,iz)
@@ -283,7 +284,7 @@ contains
                g0x(1,:) = (efac + efacp*rho_d_clamped)*g0x(1,:)
                call transform_x2kx_unpadded(g0x,g0k)
 
-               !column row
+               !row column
                b_mat(:,ikx-zm) = g0k(1,(1+zm):) 
              enddo
 
@@ -824,6 +825,8 @@ contains
       return 
     end if
 
+    if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
+
 
     if (adia_elec) then
       if (zonal_mode(1)) then
@@ -897,6 +900,7 @@ contains
           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
           call mp_abort ('unknown dist option in get_fields. aborting')
         end if
+        phi(1,1,:,:) = 0.0
       end if
     end if
     

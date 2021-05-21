@@ -3,6 +3,7 @@ module dissipation
   implicit none
 
   public :: init_dissipation, finish_dissipation
+  public :: init_collisions, collisions_initialized
   public :: include_collisions
   public :: include_krook_operator, update_delay_krook
   public :: remove_zero_projection, project_out_zero
@@ -13,6 +14,8 @@ module dissipation
   public :: add_krook_operator
   public :: collisions_implicit
   public :: delay_krook, int_krook, int_proj
+  public :: vpa_operator, mu_operator
+  public :: cfl_dt_vpadiff, cfl_dt_mudiff
 
   private
 
@@ -21,8 +24,9 @@ module dissipation
   logical :: momentum_conservation, energy_conservation
   logical :: hyper_dissipation, remove_zero_projection
   logical :: use_physical_ksqr
-  logical :: krook_odd
+  logical :: krook_odd,exclude_boundary_regions
   real :: D_hyper, nu_krook, delay_krook, int_krook, int_proj
+  real :: cfl_dt_vpadiff, cfl_dt_mudiff
   integer:: ikxmax_source
 
   character(30) :: collision_model
@@ -56,7 +60,7 @@ contains
 
     use mp, only: proc0
     use kt_grids, only: nakx
-    use zgrid, only: ntubes
+    use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: g_krook, g_proj
 
@@ -76,12 +80,12 @@ contains
     end if
 
     if(include_krook_operator.and..not.allocated(g_krook)) then
-      allocate (g_krook(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_krook(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_krook = 0.
     endif
 
     if(remove_zero_projection.and..not.allocated(g_proj)) then
-      allocate (g_proj(nakx,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_proj(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_proj = 0.
     endif
     int_krook = 0.
@@ -104,7 +108,8 @@ contains
          momentum_conservation, energy_conservation, &
          vpa_operator, mu_operator, include_krook_operator, &
          nu_krook, delay_krook, remove_zero_projection, &
-         ikxmax_source, cfac, krook_odd, use_physical_ksqr
+         ikxmax_source, cfac, krook_odd, use_physical_ksqr, &
+         exclude_boundary_regions
 
     integer :: in_file
     logical :: dexist
@@ -120,6 +125,7 @@ contains
        mu_operator = .true.
        hyper_dissipation = .false.
        use_physical_ksqr = .not.(full_flux_surface.or.radial_variation)
+       exclude_boundary_regions = radial_variation.and..not.periodic_variation
        remove_zero_projection = .false.
        D_hyper = 0.05
        nu_krook = 0.05
@@ -144,6 +150,7 @@ contains
     call broadcast (vpa_operator)
     call broadcast (mu_operator)
     call broadcast (hyper_dissipation)
+    call broadcast (exclude_boundary_regions)
     call broadcast (use_physical_ksqr)
     call broadcast (D_hyper)
     call broadcast (nu_krook)
@@ -167,7 +174,6 @@ contains
     implicit none
 
     integer :: is
-    real :: cfl_dt_vpadiff, cfl_dt_mudiff
     real :: vnew_max
 
 
@@ -952,6 +958,8 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for upar equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
+    !!! FLAG DSO - The following lines are NOT appropriate for 
+    !!!            zonal modes with adianbatic electrons!
     call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1146,6 +1154,8 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for uperp equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
+    !!! FLAG DSO - The following lines are NOT appropriate 
+    !!!            for zonal modes with adianbatic electrons!
     call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1528,13 +1538,12 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
-    use stella_geometry, only: dl_over_b
 
     implicit none
 
     real :: exp_fac
     complex :: tmp
-    integer :: ikx, it, ia, ivmu
+    integer :: ikx, iz, it, ia, ivmu
 
     !complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
@@ -1548,11 +1557,13 @@ contains
     if(delay_krook.le.epsilon(0.)) then
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
-          do ikx = 1, nakx
-            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
-            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook*tmp
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+              tmp = g(1,ikx,iz,it,ivmu)
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+              gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook*tmp
+            enddo
           enddo
         enddo
       enddo
@@ -1560,13 +1571,15 @@ contains
       exp_fac = exp(-code_dt/delay_krook)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
-          do ikx = 1, nakx
-            if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
-            tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-            gke_rhs(1,ikx,:,it,ivmu) = gke_rhs(1,ikx,:,it,ivmu) - code_dt*nu_krook &
-                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,it,ivmu)) &
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
+              tmp = g(1,ikx,iz,it,ivmu)
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+              gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
+                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
                                      / (code_dt     + exp_fac*int_krook)
+            enddo
           enddo
         enddo
       enddo
@@ -1581,14 +1594,13 @@ contains
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
-    use stella_geometry, only: dl_over_b
     use stella_time, only: code_dt
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
 
-    integer :: ivmu, it, ikx, ia
+    integer :: ivmu, iz, it, ikx, ia
     real :: int_krook_old, exp_fac
     complex :: tmp
 
@@ -1603,10 +1615,12 @@ contains
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
         do ikx = 1, nakx
-          tmp = sum(dl_over_b(ia,:)*g(1,ikx,:,it,ivmu))
-          if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-          g_krook(ikx,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,it,ivmu))/int_krook
+            tmp = g(1,ikx,iz,it,ivmu)
+            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+            g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu))/int_krook
+          enddo
         enddo
       enddo
     enddo
@@ -1623,14 +1637,16 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj
-    use stella_geometry, only: dl_over_b
+    use multibox, only: boundary_size
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
 
     real :: exp_fac
     complex :: tmp
-    integer :: ikx, it, ia, ivmu
+    integer :: ikx, iz, it, ia, ivmu
 
+    complex, dimension (:,:), allocatable :: g0k, g0x
     complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
 
     ia = 1
@@ -1638,29 +1654,57 @@ contains
 
     exp_fac = exp(-code_dt/delay_krook)
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      do it = 1, ntubes
-        do ikx = 1, nakx
-          if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
-            g(ikx,:,it,ivmu) = 0.0
-          else
-            tmp = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+    if (exclude_boundary_regions) then !here we do not require ikxmax_source
+      allocate (g0k(1,nakx))
+      allocate (g0x(1,nakx))
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            g0k(1,:) = g(:,iz,it,ivmu)
+            call transform_kx2x_unpadded (g0k,g0x)
+            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
             if(delay_krook.le.epsilon(0.)) then
-              g(ikx,:,it,ivmu) = tmp
+              g0x = tmp
             else
-              g(ikx,:,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,it,ivmu)) &
-                               / (code_dt     + exp_fac*int_proj)
+              g0x = (code_dt*tmp + exp_fac*int_proj*g_proj(1,iz,it,ivmu)) &
+                  / (code_dt     + exp_fac*int_proj)
             endif
-          endif
-          if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
-            g_proj(ikx,it,ivmu) = zi*aimag(sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu)))
-          else
-            g_proj(ikx,it,ivmu) = sum(dl_over_b(ia,:)*g(ikx,:,it,ivmu))
-          endif
+            g_proj(1,iz,it,ivmu) = g0x(1,1)
+            g0x(1,1:boundary_size) = 0.0
+            g0x(1,(nakx-boundary_size+1):nakx) = 0.0
+            call transform_x2kx_unpadded (g0x,g0k)
+            g(:,iz,it,ivmu) = g0k(1,:)
+          enddo
         enddo
       enddo
-    enddo
+      deallocate (g0k, g0x)
+    else
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              if(abs(akx(ikx)).gt.akx(ikxmax_source)) then
+                g(ikx,iz,it,ivmu) = 0.0
+              else
+                tmp = g(ikx,iz,it,ivmu)
+                if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+                if(delay_krook.le.epsilon(0.)) then
+                  g(ikx,iz,it,ivmu) = tmp
+                else
+                  g(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &
+                                    / (code_dt     + exp_fac*int_proj)
+                endif
+              endif
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) then
+                g_proj(ikx,iz,it,ivmu) = zi*aimag(g(ikx,iz,it,ivmu))
+              else
+                g_proj(ikx,iz,it,ivmu) = g(ikx,iz,it,ivmu)
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
 
     int_proj = code_dt + exp_fac*int_proj
 
@@ -1717,8 +1761,6 @@ contains
     call scatter (kxkyz2vmu, tmp_vmulo, gvmu)
     if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
 
-    deallocate (tmp_vmulo)
-
     ia = 1
 
     ! take vpa derivatives
@@ -1734,6 +1776,8 @@ contains
               do imu = 1, nmu
                  call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
               end do
+           else
+              coll(:,:,ikxkyz) = 0.0
            end if
            if (mu_operator) then
               do iv = 1, nvpa
@@ -1749,7 +1793,6 @@ contains
        end do
        deallocate (coll, mucoll)
 
-       allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        ! remap so that (ky,kx,z,tube) local
        call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
@@ -1757,7 +1800,6 @@ contains
           is = is_idx(vmu_lo,ivmu)
           gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
        end do
-       deallocate (tmp_vmulo)
     end if
 
     if (collision_model=="fokker-planck") then
@@ -1783,14 +1825,14 @@ contains
         end do
         deallocate (coll_fp, mucoll_fp)
 
-        allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
         call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
            gke_rhs(:,:,:,:,ivmu) = gke_rhs(:,:,:,:,ivmu) + code_dt*tmp_vmulo(:,:,:,:,ivmu)
         end do
-        deallocate (tmp_vmulo)
     end if
+
+    deallocate (tmp_vmulo)
 
     ! reset to default integration wgts
     conservative_wgts = .false.
@@ -2323,6 +2365,7 @@ contains
     call get_fields (g, phi, apar, dist='h')
     flds(:,:,:,:,1) = phi
 
+    phi = 0.0
     ! AVB: obtain phi^{n+1} from response matrix
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -2431,6 +2474,7 @@ contains
     ! get temp_inh^{n+1}
     if (energy_conservation) call get_temp (g, flds(:,:,:,:,idx:idx+nspec-1))
 
+    phi = 0.0
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -2441,7 +2485,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,it,:))
-       phi = flds(iky,ikx,iz,it,1)
+       phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
@@ -2567,6 +2611,7 @@ contains
     ! get temp_inh^{n+1}
     if (energy_conservation) call get_temp_mu (g, flds(:,:,:,:,idx:idx+nspec-1))
 
+    phi = 0.0
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -2577,7 +2622,7 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (mudiff_response(:,:,ikxkyz), mudiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,it,:))
-       phi = flds(iky,ikx,iz,it,1)
+       phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
     call sum_allreduce (phi)
 
