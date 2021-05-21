@@ -136,6 +136,12 @@ contains
             else
                nresponse = nsegments(ie,iky)*nzed_segment+1
             end if
+
+            ! The response matrix must be at least nfields*nz_ext (or nfields*(nz_ext-1))
+            ! in size. For now, (for simplicity of coding), accept  3 fields; NB leads
+            ! to unnecessary memory cost for <3 fields.
+            nresponse = nresponse*3
+
             win_size =   win_size &
                        + int(nresponse,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND &
                        + int(nresponse**2,MPI_ADDRESS_KIND)*2*real_size
@@ -264,7 +270,6 @@ contains
                ! to this gbar, and store in the appropriate response_matrix column.
                ! (this ends the parallelization over velocity space, so every core should have a
                !  copy of fields_ext)
-               write(*,*) "About to call getfieldsforresponsematrix for first time"
                call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
 
                ! We now have the fields - use to populate the column in response_matrix,
@@ -284,7 +289,6 @@ contains
                if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(:,idx) = -fields_ext(:nresponse)
 #endif
              end if
-             write(*,*) "Finished for phi"
              if (fapar > epsilon(0.0)) then
                ! Get the gext corresponding to a unit impulse in apar
                call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="apar")
@@ -331,7 +335,6 @@ contains
 
                    if (fphi > epsilon(0.0)) then
                      ! Get the gext corresponding to a unit impulse in phi
-                     write(*,*) "About to call getfieldsforresponsematrix again"
                      call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="phi")
                      call get_em_fields_for_response_matrix(gext, iky, ie, nresponse, fields_ext)
                      fields_ext(idx) = fields_ext(idx)-1.0
@@ -341,7 +344,6 @@ contains
                      if(sgproc0) response_matrix(iky)%eigen(ie)%zloc(:,idx) = -fields_ext(:nresponse)
 #endif
                    end if
-                   write(*,*) "Success"
                    if (fapar > epsilon(0.0)) then
                      ! Get the gext corresponding to a unit impulse in apar
                      call get_dgdfield_matrix_column (iky, ikx, iz, ie, idx, nz_ext, gext, field="apar")
@@ -1076,7 +1078,6 @@ contains
 
     ! Need to get (phi, apar, bpar) for the extended domain of connected kx
     ! values; this means looping over each segment of the extended domain.
-    write(*,*) "In get_em_fields_for_response_matrix, iky, ie, nresponse, nz_unique = ", iky, ie, nresponse, nz_unique
     idx = 0 ; izl_offset = 0
     iseg = 1
     ikx = ikxmod(iseg,ie,iky)
@@ -1084,18 +1085,15 @@ contains
       fields_ext(:) = 0.0
       return
     endif
-    write(*,*) "Approaching first do loop"
 
     do iz = iz_low(iseg), iz_up(iseg)
       idx = idx+1
-      write(*,*) "idx = ", idx
       call get_fields_vmulo_single (gext(idx,:), iky, ikx, iz, phi, apar, bpar, dist="gbar")
       fields_ext(idx) = phi
       fields_ext(nz_unique+idx) = apar
       fields_ext(2*nz_unique+idx) = bpar
     end do
 
-    write(*,*) "Made past seg 1"
     izl_offset = 1
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)

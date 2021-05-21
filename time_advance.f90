@@ -871,13 +871,9 @@ contains
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting
     ! this is needed to ensure 2nd order accuracy in time
-    write(*,*) "In advance_stella"
     if (mod(istep,2)==1 .or. .not.flip_flop) then
        ! advance the explicit parts of the GKE
-       write(*,*) "About to do explicit"
        call advance_explicit (gnew)
-       ! write(*,*) "Adavance_explicit complete"
-       ! stop "Stopping"
        ! enforce periodicity for zonal mode
 !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
 

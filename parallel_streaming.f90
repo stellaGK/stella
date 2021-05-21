@@ -514,7 +514,7 @@ contains
 
     ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
     ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
-    call invert_parstream_response (phi)
+    call invert_parstream_response (phi, apar, bpar)
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -903,10 +903,10 @@ contains
 
   end subroutine sweep_zed_zonal
 
-  subroutine invert_parstream_response (phi)
+  subroutine invert_parstream_response (phi, apar, bpar)
 
     use linear_solve, only: lu_back_substitution
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid, ntubes, nztot
     use extended_zgrid, only: neigen
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
@@ -918,34 +918,53 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar, bpar
 
-    integer :: iky, ie, it, ulim
+    integer :: iky, ie, it, ulim, nz_segment
     integer :: ikx
-    complex, dimension (:), allocatable :: gext
+    complex, dimension (:), allocatable :: gext, fields
 
     ! need to put the fields into extended zed grid
     do iky = 1, naky
        ! avoid double counting of periodic endpoints for zonal modes
        if (zonal_mode(iky)) then
+          allocate(fields(3*(nztot-1)))
           do it = 1, ntubes
              do ie = 1, neigen(iky)
                 ikx = ikxmod(1,ie,iky)
+                ! Because we want to avoid double-counting the endpoints,
+                ! populate fields array ignoring the endpoint in
+                ! phi, apar, bpar.
+                fields(:nztot-1) = phi(iky,ikx,:nzgrid-1,it)
+                fields(nztot:2*nztot-2) = apar(iky,ikx,:nzgrid-1,it)
+                fields(2*nztot-1:3*nztot-3) = bpar(iky,ikx,:nzgrid-1,it)
                 call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
-                     response_matrix(iky)%eigen(ie)%idx, phi(iky,ikx,:nzgrid-1,it))
+                     response_matrix(iky)%eigen(ie)%idx, fields)
+                phi(iky,ikx,:nzgrid-1,it) = fields(:nztot-1)
                 phi(iky,ikx,nzgrid,it) = phi(iky,ikx,-nzgrid,it)
+                apar(iky,ikx,:nzgrid-1,it) = fields(nztot:2*nztot-2)
+                apar(iky,ikx,nzgrid,it) = apar(iky,ikx,-nzgrid,it)
+                bpar(iky,ikx,:nzgrid-1,it) = fields(2*nztot-1:3*nztot-3)
+                bpar(iky,ikx,nzgrid,it) = bpar(iky,ikx,-nzgrid,it)
              end do
           end do
+          deallocate(fields)
        else
           do it = 1, ntubes
              do ie = 1, neigen(iky)
                 ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-                allocate (gext(nsegments(ie,iky)*nzed_segment+1))
-                call map_to_extended_zgrid (it, ie, iky, phi(iky,:,:,:), gext, ulim)
+                nz_segment = (nsegments(ie,iky)*nzed_segment+1)
+                allocate (fields(3*nz_segment))
+                !allocate (gext(nsegments(ie,iky)*nzed_segment+1))
+                call map_to_extended_zgrid (it, ie, iky, phi(iky,:,:,:), fields(:nz_segment), ulim)
+                call map_to_extended_zgrid (it, ie, iky, apar(iky,:,:,:), fields(nz_segment+1:2*nz_segment), ulim)
+                call map_to_extended_zgrid (it, ie, iky, bpar(iky,:,:,:), fields(2*nz_segment+1:3*nz_segment), ulim)
                 call lu_back_substitution (response_matrix(iky)%eigen(ie)%zloc, &
-                     response_matrix(iky)%eigen(ie)%idx, gext)
-                call map_from_extended_zgrid (it, ie, iky, gext, phi(iky,:,:,:))
-                deallocate (gext)
+                     response_matrix(iky)%eigen(ie)%idx, fields)
+                call map_from_extended_zgrid (it, ie, iky, fields(:nz_segment), phi(iky,:,:,:))
+                call map_from_extended_zgrid (it, ie, iky, fields(nz_segment+1:2*nz_segment), apar(iky,:,:,:))
+                call map_from_extended_zgrid (it, ie, iky, fields(2*nz_segment+1:3*nz_segment), bpar(iky,:,:,:))
+                deallocate (fields)
              end do
           end do
        end if

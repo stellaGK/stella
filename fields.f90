@@ -455,11 +455,6 @@ contains
        !          endif
        !       end if
        !    end if
-         write(*,*) "gamtots calculated"
-         write(*,*) "gamtot = ", gamtot
-         write(*,*) "gamtot13 = ", gamtot13
-         write(*,*) "gamtot31 = ", gamtot31
-         write(*,*) "gamtot33 = ", gamtot33
        end if
 
     ! Bob: Calculate gamone=Gamma1(b). We may want to put this in an if
@@ -523,7 +518,6 @@ contains
        apar_denom = apar_denom + kperp2(:,:,ia,:)
 
        deallocate (g0)
-       write(*,*) "apar_denom calculated"
     end if
 
 
@@ -780,7 +774,6 @@ contains
            ikx = ikx_idx(kxkyz_lo,ikxkyz)
            iky = iky_idx(kxkyz_lo,ikxkyz)
            is = is_idx(kxkyz_lo,ikxkyz)
-           ! write(*,*) "ikxkyz, iz, is = ", ikxkyz, iz, is
            call gyro_average (g(:,:,ikxkyz), ikxkyz, g0)
 
            ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
@@ -806,7 +799,6 @@ contains
       ia = 1
 
       phi = 0.
-      ! write(*,*) "In get_fields. fphi = ", fphi
       if (fphi > epsilon(0.0)) then
          allocate (g0(nvpa,nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1145,7 +1137,7 @@ contains
       end if
 
       allocate (gyro_g(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
+      !write(*,*) "size(gyro_g) = ", size(gyro_g)
 
       if (fphi > epsilon(0.0)) then
         antot1 = 0.
@@ -1177,9 +1169,11 @@ contains
                 / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz)*gamtot31(iky, ikx, iz))/gamtot(iky, ikx, iz))
         else
           phi = antot1 / gamtot(iky, ikx, iz)
+          bpar = 0.
         end if
 
       else
+        phi = 0.
         bpar = antot3 / gamtot33(iky, ikx, iz)
       end if
 
@@ -1191,8 +1185,9 @@ contains
         call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2,reduce_in=.false.)
         call sum_allreduce (antot2)
         apar =  antot2/apar_denom(iky, ikx, iz)
+      else
+        apar = 0.
       end if
-
       deallocate(gyro_g)
 
     else
@@ -1333,7 +1328,6 @@ contains
          allocate (g0k(1,nakx))
          allocate (g0x(1,nakx))
          allocate (g0a(1,nakx))
-         write(*,*) "In the big one"
          do it = 1, ntubes
            do iz = -nzgrid, nzgrid
              do iky = 1, naky
@@ -1449,7 +1443,7 @@ contains
 
   end subroutine get_phi
 
-  ! Bob: The following subroutine takes the fields and returns
+  ! Bob: The following subroutine takes the fields and returns chi
   subroutine get_chi(phi, apar, bpar, ivmu, chi)
 
     use species, only: spec
