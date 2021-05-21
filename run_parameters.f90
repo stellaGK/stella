@@ -11,6 +11,7 @@ module run_parameters
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
+  public :: drifts_implicit
   public :: driftkinetic_implicit
   public :: fully_explicit
   public :: ky_solve_radial, ky_solve_real
@@ -29,7 +30,7 @@ module run_parameters
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
-  logical :: fully_explicit
+  logical :: fully_explicit, drifts_implicit
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
@@ -86,6 +87,7 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
+         drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -99,6 +101,7 @@ contains
        fields_kxkyz = .false.
        stream_implicit = .true.
        mirror_implicit = .true.
+       drifts_implicit = .false.
        driftkinetic_implicit = .false.
        maxwellian_inside_zed_derivative = .false.
        mirror_semi_lagrange = .true.
@@ -143,6 +146,7 @@ contains
     call broadcast (fbpar)
     call broadcast (stream_implicit)
     call broadcast (mirror_implicit)
+    call broadcast (drifts_implicit)
     call broadcast (driftkinetic_implicit)
     call broadcast (maxwellian_inside_zed_derivative)
     call broadcast (mirror_semi_lagrange)
@@ -169,7 +173,7 @@ contains
        stream_implicit = .false.
     end if
 
-    if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit) then
+    if (mirror_implicit.or.stream_implicit.or.driftkinetic_implicit.or.drifts_implicit) then
        fully_explicit = .false.
     else
        fully_explicit = .true.
