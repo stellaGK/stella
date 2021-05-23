@@ -625,7 +625,7 @@ contains
       !! Old:
       ! call gyro_average (field, ivmu, g)
       !! New: Get gy_chi as a function of (kx, ky, z, tube), for a particular ivmu == a particular (iv, imu, is)
-      call get_gyroaverage_chi(field1, field2, field3, ivmu, g)
+      call get_gyroaverage_chi(ivmu, field1, field2, field3, g)
 
     end if
     deallocate (field1)

@@ -42,6 +42,11 @@ module fields
      module procedure get_dchidy_2d
   end interface
 
+  interface get_gyroaverage_chi
+    module procedure get_gyroaverage_chi_4d
+    module procedure get_gyroaverage_chi_2d
+  end interface
+
 
 contains
 
@@ -704,7 +709,10 @@ contains
       allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
-
+      ! Initialise fields
+      phi = 0.
+      apar = 0.
+      bpar = 0.
       if (fphi > epsilon(0.0)) then
         antot1 = 0.
 
@@ -947,7 +955,10 @@ contains
       allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
       allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
-
+      ! Initialise fields
+      phi = 0.
+      apar = 0.
+      bpar = 0.
       if (fphi > epsilon(0.0)) then
         antot1 = 0.
 
@@ -1137,8 +1148,9 @@ contains
       end if
 
       allocate (gyro_g(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      !write(*,*) "size(gyro_g) = ", size(gyro_g)
-
+      phi = 0.
+      apar = 0.
+      bpar = 0.
       if (fphi > epsilon(0.0)) then
         antot1 = 0.
 
@@ -1169,11 +1181,9 @@ contains
                 / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz)*gamtot31(iky, ikx, iz))/gamtot(iky, ikx, iz))
         else
           phi = antot1 / gamtot(iky, ikx, iz)
-          bpar = 0.
         end if
 
       else
-        phi = 0.
         bpar = antot3 / gamtot33(iky, ikx, iz)
       end if
 
@@ -1185,8 +1195,6 @@ contains
         call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2,reduce_in=.false.)
         call sum_allreduce (antot2)
         apar =  antot2/apar_denom(iky, ikx, iz)
-      else
-        apar = 0.
       end if
       deallocate(gyro_g)
 
@@ -1461,9 +1469,10 @@ contains
 
   end subroutine get_chi
 
-  ! Bob: The following subroutine takes the fields and returns
-  ! gyroaverage(chi) = (J0*phi - 2*vpa*vths*J0*apar - 4*mu*(T/Z)*(J1/gamma) * bpar)
-  subroutine get_gyroaverage_chi(phi, apar, bpar, ivmu, gyro_chi)
+  ! The following subroutine takes the fields(ky,kx,z,tube) and returns
+  ! gyroaverage(chi)(ky,kx,z,tube) = (J0*phi - 2*vpa*vths*J0*apar - 4*mu*(T/Z)*(J1/gamma) * bpar)
+  !
+  subroutine get_gyroaverage_chi_4d(ivmu, phi, apar, bpar, gyro_chi)
 
     use gyro_averages, only: gyro_average, gyro_average_j1
     use stella_layouts, only: vmu_lo
@@ -1476,9 +1485,9 @@ contains
     implicit none
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
     integer, intent (in) :: ivmu
-    integer :: is, imu, iv
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_chi
-    complex, dimension (:,:,:,:), allocatable :: gyro_phi, gyro_apar, gyro_bpar
+    integer :: is, imu, iv
+    complex, dimension (:,:,:,:), allocatable :: gyro_field
 
     gyro_chi = 0.
 
@@ -1487,30 +1496,62 @@ contains
     imu = imu_idx(vmu_lo,ivmu)
     iv = iv_idx(vmu_lo,ivmu)
 
-    if (fphi > epsilon(0.0)) then
-      ! Bob: I think z is local, so don't need to include iz as a coordinate.
-      ! If z isn't local always, need to re-think this.
-      allocate(gyro_phi(naky,nakx,-nzgrid:nzgrid,ntubes))
-      call gyro_average(phi, ivmu, gyro_phi)
-      gyro_chi = gyro_chi + gyro_phi
-      deallocate(gyro_phi)
-    end if
+    allocate(gyro_field(naky,nakx,-nzgrid:nzgrid,ntubes))
 
-    if (fapar > epsilon(0.0)) then
-      allocate(gyro_apar(naky,nakx,-nzgrid:nzgrid,ntubes))
-      call gyro_average(apar, ivmu, gyro_apar)
-      gyro_chi = gyro_chi -  2*vpa(iv)*spec(is)%stm*gyro_apar
-      deallocate(gyro_apar)
-    end if
+    call gyro_average(phi, ivmu, gyro_field)
+    gyro_chi = gyro_chi + fphi*gyro_field
 
-    if (fbpar > epsilon(0.0)) then
-      allocate(gyro_bpar(naky,nakx,-nzgrid:nzgrid,ntubes))
-      call gyro_average_j1(bpar, ivmu, gyro_bpar)
-      gyro_chi = gyro_chi -  4*mu(imu)*(spec(is)%dens/spec(is)%z)*gyro_bpar
-      deallocate(gyro_bpar)
-    end if
+    call gyro_average(apar, ivmu, gyro_field)
+    gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
 
-  end subroutine get_gyroaverage_chi
+    call gyro_average_j1(bpar, ivmu, gyro_field)
+    gyro_chi = gyro_chi -  fbpar*4*mu(imu)*(spec(is)%dens/spec(is)%z)*gyro_field
+    deallocate(gyro_field)
+
+  end subroutine get_gyroaverage_chi_4d
+
+  ! The following subroutine takes the fields(ky,kx) and returns
+  ! gyroaverage(chi)(ky,kx) = (J0*phi - 2*vpa*vths*J0*apar - 4*mu*(T/Z)*(J1/gamma) * bpar)
+  subroutine get_gyroaverage_chi_2d(iz, ivmu, phi, apar, bpar, gyro_chi)
+
+    use gyro_averages, only: gyro_average, gyro_average_j1
+    use stella_layouts, only: vmu_lo
+    use vpamu_grids, only: vpa, mu
+    use stella_layouts, only: imu_idx, is_idx, iv_idx
+    use species, only: spec
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use run_parameters, only: fphi, fapar, fbpar
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: phi, apar, bpar
+    integer, intent (in) :: iz,ivmu
+    complex, dimension (:,:), intent (out) :: gyro_chi
+    integer :: is, imu, iv
+    complex, dimension (:,:), allocatable :: gyro_field
+
+    gyro_chi = 0.
+
+    ! Get vpa, mu and species from ivmu
+    is = is_idx(vmu_lo,ivmu)
+    imu = imu_idx(vmu_lo,ivmu)
+    iv = iv_idx(vmu_lo,ivmu)
+
+    allocate(gyro_field(naky,nakx))
+
+    call gyro_average(phi, ivmu, gyro_field)
+    gyro_chi = gyro_chi + fphi*gyro_field
+
+    call gyro_average(apar, ivmu, gyro_field)
+    gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+
+    call gyro_average_j1(bpar, ivmu, gyro_field)
+    gyro_chi = gyro_chi -  fbpar*4*mu(imu)*(spec(is)%dens/spec(is)%z)*gyro_field
+    deallocate(gyro_field)
+
+  end subroutine get_gyroaverage_chi_2d
+
 
   ! the following routine gets the correction in phi both from gyroaveraging and quasineutrality
   ! the output, phi,
@@ -1648,6 +1689,8 @@ contains
 
   end subroutine get_radial_correction
 
+  ! Take phi, apar, bpar(ky,kx,z,tube) and return
+  ! d<chi>/dx (ky,kx,z,tube,vmu)
   subroutine get_dchidy_4d (phi, apar, bpar, dchidy)
 
     use constants, only: zi
@@ -1666,22 +1709,22 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
 
     integer :: ivmu, iv, is
-    complex, dimension (:,:,:,:), allocatable :: field
+    complex, dimension (:,:,:,:), allocatable :: gyro_chi
 
-    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       is = is_idx(vmu_lo,ivmu)
-       iv = iv_idx(vmu_lo,ivmu)
-       field = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
-            * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-       call gyro_average (field, ivmu, dchidy(:,:,:,:,ivmu))
+       call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
+       dchidy(:,:,:,:,ivmu) = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
+            * gyro_chi
     end do
 
-    deallocate (field)
+    deallocate (gyro_chi)
 
   end subroutine get_dchidy_4d
 
+  ! Take phi, apar, bpar(ky, kx) and return
+  ! d<chi>/dy (ky,kx)
   subroutine get_dchidy_2d (iz, ivmu, phi, apar, bpar, dchidy)
 
     use constants, only: zi
@@ -1700,20 +1743,17 @@ contains
     complex, dimension (:,:), intent (out) :: dchidy
 
     integer :: iv, is
-    complex, dimension (:,:), allocatable :: field
+    complex, dimension (:,:), allocatable :: gyro_chi
 
-    allocate (field(naky,nakx))
-
-    is = is_idx(vmu_lo,ivmu)
-    iv = iv_idx(vmu_lo,ivmu)
-    field = zi*spread(aky,2,nakx) &
-         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-    call gyro_average (field, iz, ivmu, dchidy)
-
-    deallocate (field)
+    allocate (gyro_chi(naky,nakx))
+    call get_gyroaverage_chi(iz, ivmu, phi, apar, bpar, gyro_chi)
+    dchidy = zi*spread(aky,2,nakx) * gyro_chi
+    deallocate (gyro_chi)
 
   end subroutine get_dchidy_2d
 
+  ! Take phi, apar, bpar(ky, kx) and return
+  ! d<chi>/dx (ky,kx)
   subroutine get_dchidx (iz, ivmu, phi, apar, bpar, dchidx)
 
     use constants, only: zi
@@ -1732,17 +1772,12 @@ contains
     complex, dimension (:,:), intent (out) :: dchidx
 
     integer :: iv, is
-    complex, dimension (:,:), allocatable :: field
+    complex, dimension (:,:), allocatable :: gyro_chi
 
-    allocate (field(naky,nakx))
-
-    is = is_idx(vmu_lo,ivmu)
-    iv = iv_idx(vmu_lo,ivmu)
-    field = zi*spread(akx,1,naky) &
-         * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
-    call gyro_average (field, iz, ivmu, dchidx)
-
-    deallocate (field)
+    allocate (gyro_chi(naky,nakx))
+    call get_gyroaverage_chi(iz, ivmu, phi, apar, bpar, gyro_chi)
+    dchidx = zi*spread(akx,1,naky)*gyro_chi
+    deallocate (gyro_chi)
 
   end subroutine get_dchidx
 
