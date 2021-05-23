@@ -124,16 +124,16 @@ contains
          text_option('stella', species_option_stella), &
          text_option('input.profiles', species_option_inputprofs), &
          text_option('euterpe', species_option_euterpe) /)
-    
+
     if (proc0) then
        nspec = 2
        read_profile_variation  = .false.
        write_profile_variation = .false.
        species_option = 'stella'
-       
+
        in_file = input_unit_exist("species_knobs", exist)
        if (exist) read (unit=in_file, nml=species_knobs)
-       
+
        ierr = error_unit()
        call get_option_value (species_option, specopts, species_option_switch, &
             ierr, "species_option in species_knobs")
@@ -142,7 +142,7 @@ contains
          !will need to readjust the species parameters in the left/right boxes
          species_option_switch = species_option_multibox
        endif
-       
+
        if (nspec < 1) then
           ierr = error_unit()
           write (unit=ierr, &
@@ -270,6 +270,7 @@ contains
        spec(is)%zstm = spec(is)%z/sqrt(spec(is)%temp*spec(is)%mass)
        spec(is)%tz   = spec(is)%temp/spec(is)%z
        spec(is)%zt   = spec(is)%z/spec(is)%temp
+       spec(is)%zm   = spec(is)%z/spec(is)%mass
        spec(is)%smz  = abs(sqrt(spec(is)%temp*spec(is)%mass)/spec(is)%z)
 
        spec(is)%stm_psi0  = sqrt(spec(is)%temp_psi0/spec(is)%mass)
@@ -391,7 +392,7 @@ contains
   !          write (*,100) 'reinit_species', rhoc_ms, spec(is)%temp, spec(is)%fprim, &
   !               spec(is)%tprim, spec(is)%vnewk, real(is)
          end do
-         
+
          call dump_species_input
 
       end if
@@ -410,6 +411,7 @@ contains
          call broadcast (spec(is)%zstm)
          call broadcast (spec(is)%tz)
          call broadcast (spec(is)%zt)
+         call broadcast (spec(is)%zm)
          call broadcast (spec(is)%smz)
       end do
 

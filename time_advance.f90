@@ -469,7 +469,6 @@ contains
 
       ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
        if (fapar > epsilon(0.)) then
-          write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting'
           call mp_abort ('APAR NOT SETUP FOR GSTAR YET. aborting')
        end if
 
@@ -1176,10 +1175,9 @@ contains
     if (.not.restart_time_step) then
 
        if ((g_exb**2).gt.epsilon(0.0)) call advance_parallel_flow_shear (rhs)
-
        ! calculate and add mirror term to RHS of GK eqn
        if (include_mirror.and..not.mirror_implicit) then
-          call advance_mirror_explicit (gin, rhs)
+          call advance_mirror_explicit (gin, apar,rhs)
        end if
 
        if (.not.drifts_implicit) then
@@ -1650,6 +1648,7 @@ contains
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
     use physics_flags, only: full_flux_surface
+    use run_parameters, only: fapar, fbpar
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: zonal_mode
     use kt_grids, only: swap_kxky, swap_kxky_back
@@ -1685,6 +1684,9 @@ contains
 
     restart_time_step = .false.
 
+    if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+       call mp_abort ('Parallel nonlinearity not set up for apar, bpar. aborting')
+    end if
     ! overview:
     ! need g and d<phi>/dz in (x,y) space in
     ! order to upwind dg/dvpa

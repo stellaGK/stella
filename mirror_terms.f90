@@ -16,6 +16,7 @@ module mirror_terms
 
   integer, dimension (:,:), allocatable :: mirror_sign
   real, dimension (:,:,:,:), allocatable :: mirror
+  real, dimension (:,:,:), allocatable :: mirror_apar_fac
   real, dimension (:,:,:,:), allocatable :: mirror_rad_var
   real, dimension (:,:,:), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
   real, dimension (:,:,:), allocatable :: mirror_int_fac
@@ -30,26 +31,31 @@ contains
     use species, only: spec, nspec
     use vpamu_grids, only: nmu
     use vpamu_grids, only: mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
     use stella_geometry, only: dbdzed, gradpar, gfac
     use stella_geometry, only: d2Bdrdth, dgradpardrho
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
-    use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+    use run_parameters, only: mirror_implicit, mirror_semi_lagrange, fapar
     use physics_flags, only: include_mirror, radial_variation
 
     implicit none
 
-    integer :: iz, iy, imu
+    integer :: iz, iy, imu, iv, is, ivmu
     real, dimension (:,:), allocatable :: neoclassical_term
 
     if (mirror_initialized) return
     mirror_initialized = .true.
-    
+
     if (.not.allocated(mirror)) allocate (mirror(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
     if (.not.allocated(mirror_sign)) allocate (mirror_sign(nalpha,-nzgrid:nzgrid)) ; mirror_sign = 0
-    
+    if (.not.allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+    mirror_apar_fac = 0.
+
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
     if (include_neoclassical_terms) then
        neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt_psi0,1,nztot)*0.5
@@ -68,6 +74,25 @@ contains
              end do
           end do
        end do
+       if (fapar > epsilon(0.)) then
+         ! Using gbar, there's a term in the mirror equation which looks like
+         ! -2*Z/m * mu * (b.grad B) exp(-v^2) * gyro_average(apar)
+         ! Calculate (-2*Z/m * mu * (b.grad B) exp(-v^2))*dt here
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo,ivmu)
+            imu = imu_idx(vmu_lo,ivmu)
+            iv = imu_idx(vmu_lo,iv)
+            do iy = 1, nalpha
+               !do iz = -nzgrid, nzgrid
+               ! Check this - correct use of maxwell facs?
+               mirror_apar_fac(iy,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
+                     *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
+               !end do
+            end do
+         end do
+       else
+         mirror_apar_fac = 0.
+       end if
     else
        mirror = 0.
     end if
@@ -76,7 +101,7 @@ contains
 
     if(radial_variation) then
       if(.not.allocated(mirror_rad_var)) then
-        allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
+        allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec));
         mirror_rad_var = 0.
       endif
       !FLAG should include neoclassical corrections here?
@@ -213,7 +238,7 @@ contains
     ! with assumed zero BC at extremes in both +/- vpa
     b(1,1) = -1.0/dvpa
     c(1,1) = 1.0/dvpa
-       
+
     ! corresponds to sign of mirror term negative on RHS of equation
     a(2:nvpa-1,-1) = -0.5*(1.0+vpa_upwind)/dvpa
     b(:nvpa-1,-1) = vpa_upwind/dvpa
@@ -262,15 +287,16 @@ contains
 
   end subroutine init_invert_mirror_operator
 
-  subroutine advance_mirror_explicit (g, gout)
+  subroutine advance_mirror_explicit (g, apar, gout)
 
-    use mp, only: proc0
+    use mp, only: proc0, mp_abort
     use redistribute, only: gather, scatter
     use dist_fn_arrays, only: gvmu
     use job_manage, only: time_message
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
+    use run_parameters, only: fapar, fbpar
     use physics_flags, only: full_flux_surface
     use kt_grids, only: nakx, naky, ny
     use vpamu_grids, only: nvpa, nmu
@@ -281,6 +307,7 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:), allocatable :: g0v
@@ -292,6 +319,9 @@ contains
 
     ! the mirror term is most complicated of all when doing full flux surface
     if (full_flux_surface) then
+       if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+          call mp_abort ('full_flux_surface mirror term not set up for apar, bpar. aborting')
+       end if
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -330,7 +360,7 @@ contains
        call gather (kxkyz2vmu, g0v, g0x)
        if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
        ! get mirror term and add to source
-       call add_mirror_term (g0x, gout)
+       call add_mirror_term (g0x, apar, gout)
     end if
     deallocate (g0x, g0v)
 
@@ -370,7 +400,7 @@ contains
 
     ! the mirror term is most complicated of all when doing full flux surface
     if (full_flux_surface) then
-      ! FLAG DSO - Someday one should be able to do full global 
+      ! FLAG DSO - Someday one should be able to do full global
     else
        if (.not.fields_kxkyz) then
           if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
@@ -459,8 +489,9 @@ contains
 
   end subroutine get_dgdvpa_explicit
 
-  subroutine add_mirror_term (g, src)
+  subroutine add_mirror_term (g, apar, src)
 
+    use gyro_averages, only: gyro_average
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
@@ -469,15 +500,30 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
+    complex, dimension (:,:,:,:), allocatable :: gyro_apar
 
+    allocate(gyro_apar(naky,nakx,-nzgrid:nzgrid,ntubes))
+
+    write(*,*) "In add_mirror_term"
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(mirror(1,:,imu,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+       call gyro_average(apar, ivmu, gyro_apar)
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
+                           + spread(spread(spread(mirror(1,:,imu,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu) &
+                           + spread(spread(spread(mirror_apar_fac(1,:,ivmu),1,naky),2,nakx),4,ntubes) &
+                           *gyro_apar(:,:,:,:) ! May need to spread by 1 over column 5
+       ! mirror_apar_fac is a fn of (ia, iz, ivmu)
+       ! Want to get it as a function of (ky, kx, iz, tube, ivmu)
+       ! So take ia=1 and spread nky over 1, nkx over 2, ntubes over 4
+       ! gyro_apar a function of
     end do
+
+    deallocate(gyro_apar)
 
   end subroutine add_mirror_term
 
@@ -636,7 +682,7 @@ contains
                 ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
                 ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
                 g0v(:,imu,ikxkyz) = gvmu(:,imu,ikxkyz) + tupwnd*mirror(1,iz,imu,is)*g0v(:,imu,ikxkyz)
-                
+
                 ! invert_mirror_operator takes rhs of equation and
                 ! returns g^{n+1}
                 call invert_mirror_operator (imu, ikxkyz, g0v(:,imu,ikxkyz))
@@ -649,7 +695,7 @@ contains
        call gather (kxkyz2vmu, g0v, g)
        if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
     end if
-    
+
     deallocate (g0x,g0v)
 
     if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
@@ -711,7 +757,7 @@ contains
                 do iv = 1, -shift
                    interp(iv,imu,ikxkyz) = grid(1,imu,ikxkyz)*real(iv-1)/real(-shift)
                 end do
-                
+
              end if
           end do
        end do
@@ -815,6 +861,7 @@ contains
     if (allocated(mirror)) deallocate (mirror)
     if (allocated(mirror_sign)) deallocate (mirror_sign)
     if (allocated(mirror_rad_var)) deallocate (mirror_rad_var)
+    if (allocated(mirror_apar_fac)) deallocate (mirror_apar_fac)
 
     if (mirror_implicit) then
        if (mirror_semi_lagrange) then
@@ -831,7 +878,7 @@ contains
   subroutine finish_mirror_semi_lagrange
 
     implicit none
-    
+
     if (allocated(mirror_interp_loc)) deallocate (mirror_interp_loc)
     if (allocated(mirror_interp_idx_shift)) deallocate (mirror_interp_idx_shift)
 
