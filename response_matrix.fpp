@@ -1110,8 +1110,8 @@ contains
   subroutine finish_response_matrix
 
     use fields_arrays, only: response_matrix
+    use run_parameters, only: stream_implicit, driftkinetic_implicit
 #if !defined ISO_C_BINDING
-
     implicit none
 
 #else
@@ -1120,8 +1120,12 @@ contains
     implicit none
 
     integer :: ierr
-
-    call mpi_win_free(window,ierr)
+    ! Only try to free the window if the window was created
+    ! (i.e. if init_response_matrix was called.)
+    ! There's probably a better way of doing this.
+    if (stream_implicit .or. driftkinetic_implicit) then
+      call mpi_win_free(window,ierr)
+    end if
 #endif
 
     if (allocated(response_matrix)) deallocate (response_matrix)
