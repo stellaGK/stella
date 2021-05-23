@@ -42,6 +42,11 @@ module fields
      module procedure get_dchidy_2d
   end interface
 
+  interface get_dchidx
+     module procedure get_dchidx_4d
+     module procedure get_dchidx_2d
+  end interface
+
   interface get_gyroaverage_chi
     module procedure get_gyroaverage_chi_4d
     module procedure get_gyroaverage_chi_2d
@@ -1694,7 +1699,7 @@ contains
   end subroutine get_radial_correction
 
   ! Take phi, apar, bpar(ky,kx,z,tube) and return
-  ! d<chi>/dx (ky,kx,z,tube,vmu)
+  ! d<chi>/dy (ky,kx,z,tube,vmu)
   subroutine get_dchidy_4d (phi, apar, bpar, dchidy)
 
     use constants, only: zi
@@ -1756,9 +1761,43 @@ contains
 
   end subroutine get_dchidy_2d
 
+  ! Take phi, apar, bpar(ky,kx,z,tube) and return
+  ! d<chi>/dx (ky,kx,z,tube,vmu)
+  subroutine get_dchidx_4d (phi, apar, bpar, dchidx)
+
+    use constants, only: zi
+    use gyro_averages, only: gyro_average
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: is_idx, iv_idx
+    use run_parameters, only: fphi, fapar
+    use species, only: spec
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: vpa
+    use kt_grids, only: nakx, akx, naky
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidx
+
+    integer :: ivmu, iv, is
+    complex, dimension (:,:,:,:), allocatable :: gyro_chi
+
+    allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
+       dchidx(:,:,:,:,ivmu) = zi*spread(spread(spread(akx,1,naky),3,2*nzgrid+1),4,ntubes) &
+            * gyro_chi
+    end do
+
+    deallocate (gyro_chi)
+
+  end subroutine get_dchidx_4d
+
   ! Take phi, apar, bpar(ky, kx) and return
   ! d<chi>/dx (ky,kx)
-  subroutine get_dchidx (iz, ivmu, phi, apar, bpar, dchidx)
+  subroutine get_dchidx_2d (iz, ivmu, phi, apar, bpar, dchidx)
 
     use constants, only: zi
     use gyro_averages, only: gyro_average
@@ -1783,7 +1822,7 @@ contains
     dchidx = zi*spread(akx,1,naky)*gyro_chi
     deallocate (gyro_chi)
 
-  end subroutine get_dchidx
+  end subroutine get_dchidx_2d
 
   subroutine finish_fields
 

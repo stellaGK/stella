@@ -1182,10 +1182,10 @@ contains
 
        if (.not.drifts_implicit) then
          ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-         call advance_wdrifty_explicit (gin, phi, rhs)
+         call advance_wdrifty_explicit (gin, phi, apar, bpar, rhs)
 
          ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-         call advance_wdriftx_explicit (gin, phi, rhs)
+         call advance_wdriftx_explicit (gin, phi, apar, bpar, rhs)
 
          ! calculate and add omega_* term to RHS of GK eqn
          call advance_wstar_explicit (rhs)
@@ -1260,12 +1260,14 @@ contains
 
   end subroutine advance_wstar_explicit
 
-  subroutine advance_wdrifty_explicit (g, phi, gout)
+  subroutine advance_wdrifty_explicit (g, phi, apar, bpar, gout)
 
-    use mp, only: proc0
+    use mp, only: proc0, mp_abort
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
+    use run_parameters, only: fapar, fbpar
     use stella_transforms, only: transform_ky2y
+    use fields, only: get_dchidy
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, ny
     use physics_flags, only: full_flux_surface
@@ -1275,12 +1277,12 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     integer :: ivmu
     complex, dimension (:,:,:,:), allocatable :: dphidy
-    complex, dimension (:,:,:,:,:), allocatable :: g0k, g0y
+    complex, dimension (:,:,:,:,:), allocatable :: g0k, g0y, dchidy
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
@@ -1290,10 +1292,14 @@ contains
 
     if (debug) write (*,*) 'time_advance::solve_gke::get_dgdy'
     call get_dgdy (g, g0k)
-    call get_dgdy (phi, dphidy)
 
     if (full_flux_surface) then
+       if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+          call mp_abort ('get_radial_correction not set up for apar, bpar. aborting')
+       end if
+       allocate (dphidy(naky,nakx,-nzgrid:nzgrid,ntubes))
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       call get_dgdy (phi, dphidy)
        ! transform dg/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y dg/dy term to equation
@@ -1306,30 +1312,32 @@ contains
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y d<phi>/dy term to equation
        call add_dphi_term_global (g0y, wdrifty_phi, gout)
-       deallocate (g0y)
+       deallocate (g0y, dphidy)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdy_term'
+       allocate (dchidy(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! get <dchi/dy> in k-space
+       call get_dchidy (phi, apar, bpar, dchidy)
        ! add vM . grad y dg/dy term to equation
        call add_dg_term (g0k, wdrifty_g(1,:,:), gout)
-       ! get <dphi/dy> in k-space
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          call gyro_average (dphidy, ivmu, g0k(:,:,:,:,ivmu))
-       end do
        ! add vM . grad y d<phi>/dy term to equation
-       call add_dphi_term (g0k, wdrifty_phi(1,:,:), gout)
+       call add_dphi_term (dchidy, wdrifty_phi(1,:,:), gout)
+       deallocate(dchidy)
     end if
-    deallocate (g0k, dphidy)
+    deallocate (g0k)
 
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
   end subroutine advance_wdrifty_explicit
 
-  subroutine advance_wdriftx_explicit (g, phi, gout)
+  subroutine advance_wdriftx_explicit (g, phi, apar, bpar, gout)
 
-    use mp, only: proc0
+    use mp, only: proc0, mp_abort
     use stella_layouts, only: vmu_lo
     use job_manage, only: time_message
+    use run_parameters, only: fapar, fbpar
     use stella_transforms, only: transform_ky2y
+    use fields, only: get_dchidx
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, ny, akx
     use physics_flags, only: full_flux_surface
@@ -1339,12 +1347,12 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     integer :: ivmu
     complex, dimension (:,:,:,:), allocatable :: dphidx
-    complex, dimension (:,:,:,:,:), allocatable :: g0k, g0y
+    complex, dimension (:,:,:,:,:), allocatable :: g0k, g0y, dchidx
 
     ! psi-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
@@ -1355,15 +1363,18 @@ contains
        return
     end if
 
-    allocate (dphidx(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
     if (debug) write (*,*) 'time_advance::solve_gke::get_dgdx'
     call get_dgdx (g, g0k)
-    call get_dgdx (phi, dphidx)
 
     if (full_flux_surface) then
+       if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+          call mp_abort ('get_radial_correction not set up for apar, bpar. aborting')
+       end if
+       allocate (dphidx(naky,nakx,-nzgrid:nzgrid,ntubes))
        allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       call get_dgdx (phi, dphidx)
        ! transform dg/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x dg/dx term to equation
@@ -1376,19 +1387,23 @@ contains
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x d<phi>/dx term to equation
        call add_dphi_term_global (g0y, wdriftx_phi, gout)
-       deallocate (g0y)
+       deallocate (g0y, dphidx)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdx_term'
+       allocate (dchidx(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! get <dchi/dy> in k-space
+       call get_dchidx (phi, apar, bpar, dchidx)
        ! add vM . grad x dg/dx term to equation
        call add_dg_term (g0k, wdriftx_g(1,:,:), gout)
-       ! get <dphi/dx> in k-space
+       ! get <dchi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           call gyro_average (dphidx, ivmu, g0k(:,:,:,:,ivmu))
        end do
-       ! add vM . grad x d<phi>/dx term to equation
-       call add_dphi_term (g0k, wdriftx_phi(1,:,:), gout)
+       ! add vM . grad x d<chi>/dx term to equation
+       call add_dphi_term (dchidx, wdriftx_phi(1,:,:), gout)
+       deallocate(dchidx)
     end if
-    deallocate (g0k, dphidx)
+    deallocate (g0k)
 
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
@@ -2226,7 +2241,6 @@ contains
   end subroutine add_wstar_term
 
   subroutine advance_implicit (istep, phi, apar, bpar, g)
-!  subroutine advance_implicit (phi, apar, g)
 
     use mp, only: proc0
     use job_manage, only: time_message
