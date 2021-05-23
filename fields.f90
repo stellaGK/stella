@@ -1561,7 +1561,7 @@ contains
     use stella_layouts, only: vmu_lo
     use gyro_averages, only: gyro_average, gyro_average_j1
     use gyro_averages, only: aj0x, aj1x
-    use run_parameters, only: fphi, ky_solve_radial
+    use run_parameters, only: fphi, fapar, fbpar, ky_solve_radial
     use stella_geometry, only: dl_over_b, bmag, dBdrho
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
@@ -1588,6 +1588,10 @@ contains
     complex, dimension (:,:), allocatable :: g0k, g0x
 
     ia = 1
+
+    if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+       call mp_abort ('get_radial_correction not set up for apar, bpar. aborting')
+    end if
 
     if (fphi > epsilon(0.0)) then
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
