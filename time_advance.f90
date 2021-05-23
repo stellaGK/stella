@@ -1472,7 +1472,7 @@ contains
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
              call forward_transform(g0k,g0xy)
 
-             call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), apar(:,:,iz,it), g0k)
+             call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
              if(prp_shear_enabled.and.hammett_flow_shear) then
                call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0a)
                g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
