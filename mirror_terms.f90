@@ -508,7 +508,6 @@ contains
 
     allocate(gyro_apar(naky,nakx,-nzgrid:nzgrid,ntubes))
 
-    write(*,*) "In add_mirror_term"
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
