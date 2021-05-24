@@ -253,7 +253,7 @@ contains
                  g0x(1,:) = rho_d_clamped*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
-                 !column row
+                 !row column
                  phi_solve(iky,iz)%zloc(:,ikx-zmi) = g0k(1,(1+zmi):)
                  phi_solve(iky,iz)%zloc(ikx-zmi,ikx-zmi) = phi_solve(iky,iz)%zloc(ikx-zmi,ikx-zmi) &
                                                          + gamtot(iky,ikx,iz)
@@ -284,7 +284,7 @@ contains
                g0x(1,:) = (efac + efacp*rho_d_clamped)*g0x(1,:)
                call transform_x2kx_unpadded(g0x,g0k)
 
-               !column row
+               !row column
                b_mat(:,ikx-zm) = g0k(1,(1+zm):) 
              enddo
 
