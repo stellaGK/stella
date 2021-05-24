@@ -983,7 +983,7 @@ contains
 
     integer :: ierr
 
-    call mpi_win_free(window,ierr)
+    if(window.ne.MPI_WIN_NULL) call mpi_win_free(window,ierr)
 #endif 
 
     if (allocated(response_matrix)) deallocate (response_matrix)
