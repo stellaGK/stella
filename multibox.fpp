@@ -123,7 +123,7 @@ contains
     boundary_size = 4
     krook_size = 0
     phi_bound = 0
-    phi_pow = 2
+    phi_pow = 0
     krook_exponent = 0.0
     nu_krook_mb = 0.0
     mb_debug_step = 1000
@@ -242,26 +242,28 @@ contains
     if (.not.allocated(krook_mask_left))  allocate(krook_mask_left(pfac*boundary_size));  krook_mask_left =0.0
     if (.not.allocated(krook_mask_right)) allocate(krook_mask_right(pfac*boundary_size)); krook_mask_right=0.0
 
-    select case (krook_option_switch)
-    case (krook_option_linear)
-      db = 1.0/krook_size
-      do i = 1, krook_size
-        krook_mask_right(i) = i*db
-        copy_mask_right(i) = 0.0
-      enddo
-    case (krook_option_exp)
-      db = 3.0/krook_size
-      do i = 1, krook_size
-        krook_mask_right(i) = 1.0-(1.0-exp(-(krook_size-i)*db))/(1.0-exp(-3.0))
-        copy_mask_right(i) = 0.0
-      enddo
-    case (krook_option_exp_rev)
-      db = 3.0/krook_size
-      do i = 1, krook_size
-        krook_mask_right(i) = (1.0-exp(-i*db))/(1.0-exp(-3.0))
-        copy_mask_right(i) = 0.0
-      enddo
-    end select
+    if (krook_size .gt. 0) then
+      select case (krook_option_switch)
+      case (krook_option_linear)
+        db = 1.0/krook_size
+        do i = 1, krook_size
+          krook_mask_right(i) = i*db
+          copy_mask_right(i) = 0.0
+        enddo
+      case (krook_option_exp)
+        db = 3.0/krook_size
+        do i = 1, krook_size
+          krook_mask_right(i) = 1.0-(1.0-exp(-(krook_size-i)*db))/(1.0-exp(-3.0))
+          copy_mask_right(i) = 0.0
+        enddo
+      case (krook_option_exp_rev)
+        db = 3.0/krook_size
+        do i = 1, krook_size
+          krook_mask_right(i) = (1.0-exp(-i*db))/(1.0-exp(-3.0))
+          copy_mask_right(i) = 0.0
+        enddo
+      end select
+    end if
 
     if (periodic_variation) then
       do i = 1, boundary_size
@@ -583,9 +585,10 @@ contains
 
           call transform_kx2x(fft_kxky,fft_xky)
           fft_xky = fft_xky*prefac
-          do ix=1,pfac*boundary_size
-            if(iix.le.0) iix = iix + nakx
-            do iky=1,naky
+          do iky=1,naky
+            do ix=1,pfac*boundary_size
+              iix=ix + offset
+              if(iix.le.0) iix = iix + nakx
               !DSO if in the future the grids can have different naky, one will
               !have to divide by naky here, and multiply on the receiving end
               phi_buffer0(num) = fft_xky(iky,iix)
@@ -781,7 +784,7 @@ contains
           g1k(1,:) = g0k(1,:)*gamtot(iky,:,iz)
           call transform_kx2x (g1k,g0x)
 
-          !column row
+          !row column
           phi_solve(iky,iz)%zloc(:,ikx-b_solve) = g0x(1,(1+b_solve):(x_fft_size-b_solve))
 
           g1k(1,:) = g0k(1,:)*dgamtotdr(iky,:,iz)
@@ -800,7 +803,7 @@ contains
     if (.not.has_elec) then
       if(.not.allocated(b_mat)) allocate(b_mat(x_fft_size-2*b_solve)); b_mat = 0.0
       do ikx = 1+b_solve, x_fft_size-b_solve
-        !column row
+        !row column
         b_mat(ikx-b_solve) = efac + efacp*rho_mb_clamped(ikx)
       enddo
     endif
