@@ -173,7 +173,7 @@ contains
 
   subroutine advance_parallel_streaming_explicit (g, gout)
 
-    use mp, only: proc0
+    use mp, only: proc0, mp_abort
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
@@ -182,8 +182,9 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use species, only: spec
     use gyro_averages, only: gyro_average
-    use fields_arrays, only: phi
-    use run_parameters, only: driftkinetic_implicit
+    use fields, only: get_gyroaverage_chi
+    use fields_arrays, only: phi, apar, bpar
+    use run_parameters, only: driftkinetic_implicit, fapar, fbpar
 
     implicit none
 
@@ -200,9 +201,16 @@ contains
 
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-    ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-       call gyro_average (phi, ivmu, g0(:,:,:,:))
-       if (driftkinetic_implicit) g0(:,:,:,:) = g0(:,:,:,:) - phi
+    ! obtain <chi> (or <phi>-phi if driftkinetic_implicit=T)
+       if (driftkinetic_implicit) then
+         if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+            call mp_abort ('driftkinetic_implicit not set up for apar, bpar. aborting')
+         end if
+         call gyro_average (phi, ivmu, g0(:,:,:,:))
+         g0(:,:,:,:) = g0(:,:,:,:) - phi
+       else
+         call get_gyroaverage_chi(ivmu, phi, apar, bpar, g0)
+       end if
 
     ! get d<phi>/dz, with z the parallel coordinate and store in g1
        call get_dgdz (g0, ivmu, g1)
