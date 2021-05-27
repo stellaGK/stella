@@ -48,7 +48,6 @@ program stella
   ! Advance stella until istep=nstep
   if (debug) write(*,*) 'stella::advance_stella'
   do istep = (istep0+1), nstep
-     write(*,*) "istep  = ", istep
      if (debug) write(*,*) 'istep = ', istep
      call advance_stella(istep)
      call update_time
