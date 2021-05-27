@@ -923,7 +923,8 @@ contains
     use mp, only: proc0
     use job_manage, only: time_message
     use zgrid, only: nzgrid
-    use kt_grids, only: zonal_mode
+    use extended_zgrid, only: periodic
+    use kt_grids, only: naky
     use stella_layouts, only: vmu_lo, iv_idx
     use parallel_streaming, only: stream_sign
 
@@ -932,7 +933,7 @@ contains
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ivmu, iv, sgn
+    integer :: ivmu, iv, sgn, iky
 
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
@@ -949,15 +950,17 @@ contains
        call advance_explicit_rk4 (g)
     end select
 
-    ! enforce periodicity for zonal modes
-    if (zonal_mode(1)) then
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          iv = iv_idx(vmu_lo,ivmu)
-          ! stream_sign > 0 corresponds to dz/dt < 0
-          sgn = stream_sign(iv)
-          g(1,:,sgn*nzgrid,:,ivmu) = g(1,:,-sgn*nzgrid,:,ivmu)
-       end do
-    end if
+    ! enforce periodicity for periodic (including zonal) modes
+    do iky = 1, naky
+       if (periodic(iky)) then
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             iv = iv_idx(vmu_lo,ivmu)
+             ! stream_sign > 0 corresponds to dz/dt < 0
+             sgn = stream_sign(iv)
+             g(iky,:,sgn*nzgrid,:,ivmu) = g(iky,:,-sgn*nzgrid,:,ivmu)
+          end do
+       end if
+    end do
 
     ! stop the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
@@ -1667,9 +1670,9 @@ contains
     use zgrid, only: nzgrid, delzed, ntubes
     use extended_zgrid, only: neigen, nsegments, ikxmod
     use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: periodic
     use physics_flags, only: full_flux_surface
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
-    use kt_grids, only: zonal_mode
     use kt_grids, only: swap_kxky, swap_kxky_back
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: dvpa, vpa, mu
@@ -1741,7 +1744,7 @@ contains
                    ! now get d<phi>/dz
                    call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                         phi_gyro(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                        delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
+                        delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
                         dphi(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
                 end do
              end do
