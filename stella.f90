@@ -321,6 +321,7 @@ contains
     if (proc0) then
       write (*,*) ' '
       write (*,*) ' '
+      write (*,*) ''//achar(27)//'[32m'
       write (*,*) "            I8            ,dPYb, ,dPYb,            "
       write (*,*) "            I8            IP'`Yb IP'`Yb            "
       write (*,*) "         88888888         I8  8I I8  8I            "
@@ -330,6 +331,7 @@ contains
       write (*,*) " ,8'  Yb   ,I8,  I8, ,8I  I8P    I8P    i8'    ,8I "
       write (*,*) ",8'_   8) ,d88b, `YbadP' ,d8b,_ ,d8b,_ ,d8,   ,d8b,"
       write (*,*) 'P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
+      write (*,*) ''//achar(27)//'[0m'
       write (*,*) ' '
       write (*,*) ' '
       write (*,*) '                       Version ', VERNUM
