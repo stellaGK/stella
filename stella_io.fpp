@@ -34,8 +34,8 @@ module stella_io
   integer, dimension (7) :: moment_dim
   integer, dimension (6) :: field_dim
   integer, dimension (5) :: zvs_dim
-  integer, dimension (4) :: vmus_dim
-  integer, dimension (6) :: kykxaz_dim, flx_dim
+  integer, dimension (4) :: vmus_dim, kykxaz_dim
+  integer, dimension (6) :: flx_dim
   integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim, rad_grid_dim
@@ -668,7 +668,7 @@ contains
 
     status = nf90_inq_varid(ncid,'kperp2',kperp2_id)
     if(status /= nf90_noerr) then
-      status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxz_dim, kperp2_id)
+      status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxaz_dim, kperp2_id)
       if (status /= nf90_noerr) call netcdf_error (status, var='kperp2')
     endif
     status = nf90_inq_varid(ncid,'gds2',gds2_id)
