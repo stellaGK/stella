@@ -364,7 +364,7 @@ contains
        else
          allocate (omega_avg(1,1))
        endif
-       ! BOb: should do same for bpar 
+       ! BOb: should do same for bpar
        call volume_average (phi_out, phi2)
        call volume_average (apar, apar2)
        ! Print information to stella.out, the header is printed in stella.f90
@@ -1361,7 +1361,7 @@ contains
   subroutine write_final_ascii_files
 
     use file_utils, only: open_output_file, close_output_file
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi, apar, bpar
     use zgrid, only: nzgrid, ntubes
     use zgrid, only: zed
     use kt_grids, only: naky, nakx
@@ -1375,16 +1375,18 @@ contains
     integer :: iky, ikx, iz, it
 
     call open_output_file (tmpunit,'.final_fields')
-    write (tmpunit,'(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
+    write (tmpunit,'(12a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'z_eqarc-zed0', 'kperp2'
+         'real(bpar)', 'imag(bpar)', 'z_eqarc-zed0', 'kperp2'
     do iky = 1, naky
        do ikx = 1, nakx
           do it = 1, ntubes
              do iz = -nzgrid, nzgrid
-                write (tmpunit,'(10es15.4e3,i3)') zed(iz), zed(iz)-zed0(iky,ikx), aky(iky), akx(ikx), &
+                write (tmpunit,'(12es15.4e3,i3)') zed(iz), zed(iz)-zed0(iky,ikx), aky(iky), akx(ikx), &
                   real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it)), &
-                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-zed0(iky,ikx), &
+                  real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), &
+                  real(bpar(iky,ikx,iz,it)), aimag(bpar(iky,ikx,iz,it)), &
+                  zed_eqarc(iz)-zed0(iky,ikx), &
                   kperp2(iky,ikx,it,iz), it
              end do
              write (tmpunit,*)
