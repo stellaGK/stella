@@ -751,7 +751,7 @@ contains
            ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(gbar))
            call gyro_average_j1 (g(:,:,ikxkyz), ikxkyz, g0)
            wgt = -2 * beta * spec(is)%dens_psi0*spec(is)%temp_psi0
-           call integrate_vmu((g0**spread(mu,1,nvpa)), iz, tmp)
+           call integrate_vmu((g0*spread(mu,1,nvpa)), iz, tmp)
            antot3(iky,ikx,iz,it) = antot3(iky,ikx,iz,it) + wgt*tmp
 
         end do
@@ -923,7 +923,7 @@ contains
 
     use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: imu_idx, is_idx
+    use stella_layouts, only: imu_idx, is_idx, iv_idx
     use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
     use run_parameters, only: fphi, fapar, fbpar
     use physics_parameters, only: beta
@@ -932,6 +932,7 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
+    use vpamu_grids, only: vpa, mu
     use kt_grids, only: nakx, naky, multiply_by_rho
     use run_parameters, only: ky_solve_radial
     use species, only: spec
@@ -944,7 +945,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar, bpar
     character (*), intent (in) :: dist
 
-    integer :: ivmu, iz, it, ia, imu, is, iky
+    integer :: ivmu, iz, it, ia, imu, iv, is, iky
     complex, dimension (:,:,:), allocatable :: gyro_g
     complex, dimension (:,:), allocatable :: g0k
     complex, dimension (:,:,:,:), allocatable :: antot1, antot2, antot3
@@ -990,6 +991,7 @@ contains
               is = is_idx(vmu_lo,ivmu)
               imu = imu_idx(vmu_lo,ivmu)
               call gyro_average_j1 (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) * mu(imu)
             end do
             ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
             call integrate_species(gyro_g, iz, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3(:,:,iz,it),reduce_in=.false.)
@@ -1025,7 +1027,9 @@ contains
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
               is = is_idx(vmu_lo,ivmu)
               imu = imu_idx(vmu_lo,ivmu)
+              iv = iv_idx(vmu_lo,ivmu)
               call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) * vpa(iv)
             end do
             ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
             call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2(:,:,iz,it),reduce_in=.false.)
@@ -1119,7 +1123,7 @@ contains
 
     use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: imu_idx, is_idx
+    use stella_layouts, only: imu_idx, is_idx, iv_idx
     use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
     use run_parameters, only: fphi, fapar, fbpar
     use physics_parameters, only: beta
@@ -1128,6 +1132,7 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
+    use vpamu_grids, only: vpa, mu
     use kt_grids, only: nakx, naky, multiply_by_rho
     use run_parameters, only: ky_solve_radial
     use species, only: spec
@@ -1141,7 +1146,7 @@ contains
     complex, intent (out) :: phi, apar, bpar
     character (*), intent (in) :: dist
 
-    integer :: ivmu
+    integer :: ivmu, iv, imu
     complex, dimension (:), allocatable :: gyro_g
     complex :: antot1, antot2, antot3
 
@@ -1168,6 +1173,10 @@ contains
       if (fbpar > epsilon(0.0)) then
         antot3 = 0.
         call gyro_average_j1 (g, iky, ikx, iz, gyro_g)
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          imu = imu_idx(vmu_lo,ivmu)
+          gyro_g(ivmu) = gyro_g(ivmu) * mu(imu)
+        end do
         ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
         call integrate_species(gyro_g, iz, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3,reduce_in=.false.)
         call sum_allreduce (antot3)
@@ -1196,6 +1205,11 @@ contains
         antot2 = 0.
 
         call gyro_average(g, iky, ikx, iz, gyro_g)
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          gyro_g(ivmu) = gyro_g(ivmu) * vpa(iv)
+        end do
+
         ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
         call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2,reduce_in=.false.)
         call sum_allreduce (antot2)
@@ -1213,11 +1227,11 @@ contains
 
   subroutine get_fields_by_spec (g, fld)
 
-    use mp, only: sum_allreduce
+    use mp, only: sum_allreduce, mp_abort
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use gyro_averages, only: gyro_average
-    use run_parameters, only: fphi
+    use run_parameters, only: fphi, fapar, fbpar
     use stella_geometry, only: dl_over_b
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
@@ -1271,7 +1285,14 @@ contains
              end do
           end if
        end if
-
+       if (fapar > epsilon(0.0)) then
+         ! Abort
+         call mp_abort ('get_fields_by_spec currently doesn`t support apar. aborting')
+       end if
+       if (fbpar > epsilon(0.0)) then
+          ! Abort
+          call mp_abort ('get_fields_by_spec currently doesn`t support bpar. aborting')
+       end if
        deallocate (g0)
     end if
 
