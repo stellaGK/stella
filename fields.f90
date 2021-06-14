@@ -522,7 +522,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           ! apar_denom = kperp^2 + 2 beta * sum(Z^2  * n / m * integrate_vmu (vpa*vpa*exp(-v^2) J0^2) )
           g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu)*maxwell_fac(is) &
-               * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)**aj0v(:,ikxkyz),1,nvpa)
+               * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)*aj0v(:,ikxkyz),1,nvpa)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
           call integrate_vmu (g0, iz, tmp)
           apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
