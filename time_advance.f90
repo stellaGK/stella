@@ -1396,6 +1396,7 @@ contains
        ! add vM . grad x dg/dx term to equation
        call add_dg_term (g0k, wdriftx_g(1,:,:), gout)
        ! get <dchi/dx> in k-space
+       ! ?? RJD: Should this be here? What does it do?
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           call gyro_average (dphidx, ivmu, g0k(:,:,:,:,ivmu))
        end do

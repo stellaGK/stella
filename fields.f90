@@ -356,7 +356,7 @@ contains
           it = it_idx(kxkyz_lo,ikxkyz)
           ! gamtot13 does not depend on flux tube index,
           ! so only compute for one flux tube index
-          ! gamtot13 = 4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+          ! gamtot13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
           if (it /= 1) cycle
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -364,7 +364,7 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread((mu(:) * aj0v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
                * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
-          wgt = 4*spec(is)%z*spec(is)%dens_psi0
+          wgt = -4*spec(is)%z*spec(is)%dens_psi0
           call integrate_vmu (g0, iz, tmp)
           gamtot13(iky,ikx,iz) = gamtot13(iky,ikx,iz) + tmp*wgt
        end do
@@ -372,15 +372,15 @@ contains
        g0 = 0
 
        ! gamtot31 = 2 * beta * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
-       !          = gamtot13/2 * beta
-       gamtot31 = gamtot13/2 * beta
+       !          = -gamtot13/2 * beta
+       gamtot31 = -gamtot13/2 * beta
 
        ! gamtot33
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           it = it_idx(kxkyz_lo,ikxkyz)
           ! gamtot33 does not depend on flux tube index,
           ! so only compute for one flux tube index
-          ! gamtot33 = 1 - 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+          ! gamtot33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
           if (it /= 1) cycle
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -388,11 +388,13 @@ contains
           is = is_idx(kxkyz_lo,ikxkyz)
           g0 = spread((mu(:) * mu(:) * aj1v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
                * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
-          wgt = 4*spec(is)%z*spec(is)%dens_psi0
+          wgt = 8*spec(is)%temp*spec(is)%dens_psi0
           call integrate_vmu (g0, iz, tmp)
           gamtot33(iky,ikx,iz) = gamtot33(iky,ikx,iz) + tmp*wgt
        end do
        call sum_allreduce (gamtot33)
+
+       gamtot33 = 1.0+beta*gamtot33
        deallocate (g0)
        ! gamtot_h = sum(spec%z*spec%z*spec%dens/spec%temp)
        !
@@ -518,8 +520,9 @@ contains
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
           iz = iz_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
+          ! apar_denom = kperp^2 + 2 beta * sum(Z^2  * n / m * integrate_vmu (vpa*vpa*exp(-v^2) J0^2) )
           g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu)*maxwell_fac(is) &
-               * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)**2,1,nvpa)
+               * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)**aj0v(:,ikxkyz),1,nvpa)
           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
           call integrate_vmu (g0, iz, tmp)
           apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
@@ -774,7 +777,9 @@ contains
         end if
 
       else
-        bpar = antot3 / (spread(gamtot33,4,ntubes))
+        if (fbpar > epsilon(0.0)) then
+          bpar = antot3 / (spread(gamtot33,4,ntubes))
+        end if
       end if
 
 
@@ -1016,7 +1021,9 @@ contains
         end if
 
       else
-        bpar = antot3 / (spread(gamtot33,4,ntubes))
+        if (fbpar > epsilon(0.0)) then
+          bpar = antot3 / (spread(gamtot33,4,ntubes))
+        end if
       end if
 
       if (fapar > epsilon(0.0)) then
@@ -1496,7 +1503,7 @@ contains
   end subroutine get_chi
 
   ! The following subroutine takes the fields(ky,kx,z,tube) and returns
-  ! gyroaverage(chi)(ky,kx,z,tube) = (J0*phi - 2*vpa*vths*J0*apar - 4*mu*(T/Z)*(J1/gamma) * bpar)
+  ! gyroaverage(chi)(ky,kx,z,tube) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
   !
   subroutine get_gyroaverage_chi_4d(ivmu, phi, apar, bpar, gyro_chi)
 
@@ -1531,13 +1538,13 @@ contains
     gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
 
     call gyro_average_j1(bpar, ivmu, gyro_field)
-    gyro_chi = gyro_chi -  fbpar*4*mu(imu)*(spec(is)%dens/spec(is)%z)*gyro_field
+    gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
     deallocate(gyro_field)
 
   end subroutine get_gyroaverage_chi_4d
 
   ! The following subroutine takes the fields(ky,kx) and returns
-  ! gyroaverage(chi)(ky,kx) = (J0*phi - 2*vpa*vths*J0*apar - 4*mu*(T/Z)*(J1/gamma) * bpar)
+  ! gyroaverage(chi)(ky,kx) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
   subroutine get_gyroaverage_chi_2d(iz, ivmu, phi, apar, bpar, gyro_chi)
 
     use gyro_averages, only: gyro_average, gyro_average_j1
@@ -1573,7 +1580,7 @@ contains
     gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
 
     call gyro_average_j1(bpar, ivmu, gyro_field)
-    gyro_chi = gyro_chi -  fbpar*4*mu(imu)*(spec(is)%dens/spec(is)%z)*gyro_field
+    gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
     deallocate(gyro_field)
 
   end subroutine get_gyroaverage_chi_2d
