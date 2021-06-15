@@ -19,8 +19,7 @@ module dist_fn
   integer :: adiabatic_option_switch
   integer, parameter :: adiabatic_option_default = 1, &
        adiabatic_option_zero = 2, &
-       adiabatic_option_fieldlineavg = 3, &
-       adiabatic_option_yavg = 4
+       adiabatic_option_fieldlineavg = 3
 
   logical :: debug = .false.
 
@@ -131,14 +130,13 @@ contains
 
     logical :: dfexist
 
-    type (text_option), dimension (7), parameter :: adiabaticopts = &
+    type (text_option), dimension (6), parameter :: adiabaticopts = &
          (/ text_option('default', adiabatic_option_default), &
             text_option('no-field-line-average-term', adiabatic_option_default), &
             text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
             text_option('iphi00=0', adiabatic_option_default), &
             text_option('iphi00=1', adiabatic_option_default), &
-            text_option('iphi00=2', adiabatic_option_fieldlineavg), &
-            text_option('iphi00=3', adiabatic_option_yavg)/)
+            text_option('iphi00=2', adiabatic_option_fieldlineavg) /)
     character(30) :: adiabatic_option
             
     namelist /dist_fn_knobs/ adiabatic_option
