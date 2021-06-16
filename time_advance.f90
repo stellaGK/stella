@@ -1320,7 +1320,7 @@ contains
        call get_dchidy (phi, apar, bpar, dchidy)
        ! add vM . grad y dg/dy term to equation
        call add_dg_term (g0k, wdrifty_g(1,:,:), gout)
-       ! add vM . grad y d<phi>/dy term to equation
+       ! add vM . grad y d<chi>/dy term to equation
        call add_dphi_term (dchidy, wdrifty_phi(1,:,:), gout)
        deallocate(dchidy)
     end if
@@ -1391,15 +1391,10 @@ contains
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdx_term'
        allocate (dchidx(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       ! get <dchi/dy> in k-space
+       ! get <dchi/dx> in k-space
        call get_dchidx (phi, apar, bpar, dchidx)
        ! add vM . grad x dg/dx term to equation
        call add_dg_term (g0k, wdriftx_g(1,:,:), gout)
-       ! get <dchi/dx> in k-space
-       ! ?? RJD: Should this be here? What does it do?
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          call gyro_average (dphidx, ivmu, g0k(:,:,:,:,ivmu))
-       end do
        ! add vM . grad x d<chi>/dx term to equation
        call add_dphi_term (dchidx, wdriftx_phi(1,:,:), gout)
        deallocate(dchidx)
