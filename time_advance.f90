@@ -1120,6 +1120,7 @@ contains
     use physics_flags, only: include_parallel_nonlinearity
     use physics_flags, only: include_parallel_streaming
     use physics_flags, only: include_mirror
+    use physics_flags, only: include_magnetic_drifts
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_parameters, only: g_exb
@@ -1181,12 +1182,13 @@ contains
        end if
 
        if (.not.drifts_implicit) then
-         ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-         call advance_wdrifty_explicit (gin, phi, apar, bpar, rhs)
+         if (include_magnetic_drifts) then
+           ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+           call advance_wdrifty_explicit (gin, phi, apar, bpar, rhs)
 
-         ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-         call advance_wdriftx_explicit (gin, phi, apar, bpar, rhs)
-
+           ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
+           call advance_wdriftx_explicit (gin, phi, apar, bpar, rhs)
+         end if
          ! calculate and add omega_* term to RHS of GK eqn
          call advance_wstar_explicit (rhs)
        endif
@@ -1292,7 +1294,6 @@ contains
 
     if (debug) write (*,*) 'time_advance::solve_gke::get_dgdy'
     call get_dgdy (g, g0k)
-
     if (full_flux_surface) then
        if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
           call mp_abort ('get_radial_correction not set up for apar, bpar. aborting')

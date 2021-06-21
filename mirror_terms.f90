@@ -41,7 +41,7 @@ contains
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange, fapar
-    use physics_flags, only: include_mirror, radial_variation
+    use physics_flags, only: include_mirror, radial_variation, include_mirror_apar
 
     implicit none
 
@@ -74,7 +74,7 @@ contains
              end do
           end do
        end do
-       if (fapar > epsilon(0.)) then
+       if ((fapar > epsilon(0.)) .and. (include_mirror_apar)) then
          ! Using gbar, there's a term in the mirror equation which looks like
          ! -2*Z/m * mu * (b.grad B) exp(-v^2) * gyro_average(apar)
          ! Calculate (-2*Z/m * mu * (b.grad B) exp(-v^2))*dt here
