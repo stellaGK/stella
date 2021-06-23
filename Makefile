@@ -129,6 +129,14 @@ PETSC_LIB ?=
 PETSC_INC ?=
 LIBSTELL_LIB ?=
 
+# Record the top level path. Note we don't just use $(PWD) as this
+# resolves to the directory from which make was invoked. The approach
+# taken here ensures that GK_HEAD_DIR is the location of this
+# Makefile. Note the realpath call removes the trailing slash so
+# later we need to add a slash if we want to address subdirectories
+GK_THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
+GK_HEAD_DIR := $(realpath $(dir $(GK_THIS_MAKEFILE)))
+
 ######################################################### PLATFORM DEPENDENCE
 
 # compile mode switches (DEBUG, TEST, OPT, STATIC, DBLE)
@@ -153,14 +161,6 @@ include Makefile.$(GK_SYSTEM)
 sinclude Makefile.local
 
 #############################################################################
-
-# Record the top level path. Note we don't just use $(PWD) as this
-# resolves to the directory from which make was invoked. The approach
-# taken here ensures that GK_HEAD_DIR is the location of this
-# Makefile. Note the realpath call removes the trailing slash so
-# later we need to add a slash if we want to address subdirectories
-GK_THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
-GK_HEAD_DIR := $(realpath $(dir $(GK_THIS_MAKEFILE)))
 
 export F90FLAGS
 export NETCDF_INC
