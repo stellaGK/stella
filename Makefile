@@ -154,6 +154,14 @@ sinclude Makefile.local
 
 #############################################################################
 
+# Record the top level path. Note we don't just use $(PWD) as this
+# resolves to the directory from which make was invoked. The approach
+# taken here ensures that GK_HEAD_DIR is the location of this
+# Makefile. Note the realpath call removes the trailing slash so
+# later we need to add a slash if we want to address subdirectories
+GK_THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
+GK_HEAD_DIR := $(realpath $(dir $(GK_THIS_MAKEFILE)))
+
 export F90FLAGS
 export NETCDF_INC
 export NETCDF_LIB
@@ -309,6 +317,8 @@ F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 	$(FC) $(F90FLAGS) $(INC_FLAGS) -c $<
 .fpp.f90:
 	$(CPP) $(CPPFLAGS) $< $@
+.F90.o:
+	$(FC) $(F90FLAGS) $(CPPFLAGS) $(INC_FLAGS) -c $<
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
@@ -331,6 +341,13 @@ all: $(.DEFAULT_GOAL)
 include $(DEPEND)
 
 sinclude Makefile.target_$(GK_PROJECT)
+
+# Include unit test makefile, empty target so Make doesn't attempt to
+# build the file
+tests/unit/Makefile:
+include tests/unit/Makefile
+
+check: check-unit
 
 ############################################################### SPECIAL RULES
 

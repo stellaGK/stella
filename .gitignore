@@ -25,3 +25,5 @@ stella_save.f90
 *.py~
 
 externals/pFUnit_build
+unit_tests
+tests/unit/*.F90
