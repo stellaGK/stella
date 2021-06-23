@@ -17,9 +17,6 @@ PFUNIT_ERROR:=pfunit.error
 CPPFLAGS += -DPFUNIT_VERSION_MAJOR=$(PFUNIT_VERSION_MAJOR)
 
 ifeq ($(PFUNIT_VERSION_MAJOR),4)
-# Build pFUnit if we can't include the makefile
-$(PFUNIT_DIR)/include/PFUNIT.mk: build-pfunit-library
-
   sinclude $(PFUNIT_DIR)/include/PFUNIT.mk
   PFUNIT_MOD := pfunit
   PFUNIT_PREPROCESSOR ?= $(PFUNIT_BIN_DIR)/funitproc
