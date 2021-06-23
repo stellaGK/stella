@@ -23,3 +23,5 @@ stella_save.f90
 *.ini
 *.pickle
 *.py~
+
+externals/pFUnit_build
