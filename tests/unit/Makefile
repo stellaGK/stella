@@ -60,7 +60,7 @@ endif
 
 check-pfunit-install:
 ifeq ("$(wildcard $(PFUNIT_PREPROCESSOR))","")
-	$(error pFUnit files not found. Make sure pFUnit is installed and PFUNIT_DIR is set to its location)
+	$(error Could not find $(PFUNIT_PREPROCESSOR). Make sure pFUnit is installed and PFUNIT_DIR ($(PFUNIT_DIR)) is set to the current location)
 endif
 
 clean-pfunit-library:
