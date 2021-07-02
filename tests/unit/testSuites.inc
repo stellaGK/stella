@@ -1,1 +1,2 @@
 ADD_TEST_SUITE(test_simple_mod_suite)
+ADD_TEST_SUITE(test_volume_averages_mod_suite)

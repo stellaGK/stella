@@ -1,0 +1,57 @@
+! This is a very simple test module to demonstrate the test suite is
+! working. This will be removed as soon as we have some actually
+! useful tests
+module test_volume_averages_mod
+  use funit
+  use volume_averages, only : mode_fac
+  use zgrid, only: nzgrid, ntubes
+  use kt_grids, only: naky, nakx
+  use stella_geometry, only: dl_over_b
+
+  implicit none
+
+contains
+
+  @before
+  ! Set up some variables,
+  subroutine setup
+    ! Instantiate a very simple geometry
+    nzgrid = 1
+    ntubes = 1
+    naky = 1
+    nakx = 1
+    allocate (mode_fac(1)) ; mode_fac = 1.0
+    allocate (dl_over_b(1,-1:1)) ; dl_over_b = 1.0/3.0
+  end subroutine setup
+
+  @test
+  subroutine test_volume_average
+    use volume_averages, only : volume_average
+
+    complex, dimension (1,1,-1:1,1):: unavg_value
+    real :: avg_value
+
+
+    unavg_value(1,1,:,1) = (/1.0, 1.0, 1.0 /)
+    call volume_average(unavg_value, avg_value)
+    @assertEqual(1.0, avg_value)
+
+    unavg_value(1,1,:,1) = (/(1.0, 1.0), (1.0, 1.0), (1.0, 1.0) /)
+    call volume_average(unavg_value, avg_value)
+    @assertEqual(2.0, avg_value)
+
+    unavg_value(1,1,:,1) = (/(0.0, 1.0), (0.0, -1.0), (0.0, 1.0) /)
+    call volume_average(unavg_value, avg_value)
+    @assertEqual(1.0, avg_value)
+
+  end subroutine test_volume_average
+
+  @after
+  subroutine teardown
+
+    deallocate(mode_fac)
+    deallocate(dl_over_b)
+
+  end subroutine teardown
+
+end module test_volume_averages_mod
