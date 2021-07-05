@@ -1,6 +1,7 @@
-! This is a very simple test module to demonstrate the test suite is
-! working. This will be removed as soon as we have some actually
-! useful tests
+! Test module to for volume_averages module.
+! TODO: test init_volume_averages, finish_volume_averages.
+! TODO: Test for multiple kx, ky, tubes
+
 module test_volume_averages_mod
   use funit
   use volume_averages, only : mode_fac
@@ -13,7 +14,7 @@ module test_volume_averages_mod
 contains
 
   @before
-  ! Set up some variables,
+  ! Set up some variables
   subroutine setup
     ! Instantiate a very simple geometry
     nzgrid = 1
@@ -26,25 +27,91 @@ contains
 
   @test
   subroutine test_volume_average
+    ! volume_average takes a complex array X(ky, kx, z, tube)
+    ! and returns |X|^2 averaged over (ky, kx, z, tube)
+
     use volume_averages, only : volume_average
 
     complex, dimension (1,1,-1:1,1):: unavg_value
     real :: avg_value
 
-
+    ! Test for real, complex and imaginary numbers, with single kx, ky, tube
     unavg_value(1,1,:,1) = (/1.0, 1.0, 1.0 /)
     call volume_average(unavg_value, avg_value)
-    @assertEqual(1.0, avg_value)
+    @assertEqual(1.0, avg_value, tolerance=1e-12)
 
     unavg_value(1,1,:,1) = (/(1.0, 1.0), (1.0, 1.0), (1.0, 1.0) /)
     call volume_average(unavg_value, avg_value)
-    @assertEqual(2.0, avg_value)
+    @assertEqual(2.0, avg_value, tolerance=1e-12)
 
     unavg_value(1,1,:,1) = (/(0.0, 1.0), (0.0, -1.0), (0.0, 1.0) /)
     call volume_average(unavg_value, avg_value)
-    @assertEqual(1.0, avg_value)
+    @assertEqual(1.0, avg_value, tolerance=1e-12)
+
+    !TODO: Test for multiple kx, ky, tubes
 
   end subroutine test_volume_average
+
+  @test
+  subroutine test_fieldline_average_real
+    ! fieldline_average_real takes a real array X(ky, kx, z, tube)
+    ! and returns X(ky, kx) averaged over (z, tube)
+
+    use volume_averages, only : fieldline_average
+
+    real, dimension(1,1,-1:1,1) :: unavg_value
+    real, dimension(1, 1) :: avg_value
+
+    ! Test for positive numbers
+    unavg_value(1,1,:,1) = (/1.0, 1.0, 1.0 /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(1.0, avg_value, tolerance=1e-12)
+
+    ! Test for negative numbers
+    unavg_value(1,1,:,1) = (/-1.0, -1.0, -1.0 /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(-1.0, avg_value, tolerance=1e-12)
+
+    ! Test for mixed positive/negative numbers
+    unavg_value(1,1,:,1) = (/-1.0, 0.0, 1.0 /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(0.0, avg_value, tolerance=1e-12)
+
+  end subroutine test_fieldline_average_real
+
+  @test
+  subroutine test_fieldline_average_complex
+    ! fieldline_average_complex takes a complex array X(ky, kx, z, tube)
+    ! and returns X(ky, kx) averaged over (z, tube)
+
+    use volume_averages, only : fieldline_average
+
+    complex, dimension(1,1,-1:1,1) :: unavg_value
+    complex, dimension(1, 1) :: avg_value
+
+    ! Test for positive numbers
+    unavg_value(1,1,:,1) = (/1.0, 1.0, 1.0 /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(complex(1.0, 0.0), avg_value, tolerance=1e-12)
+
+    ! Test for negative numbers
+    unavg_value(1,1,:,1) = (/-1.0, -1.0, -1.0 /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(complex(-1.0, 0.0), avg_value, tolerance=1e-12)
+
+    ! Test for mixed positive/negative numbers
+    unavg_value(1,1,:,1) = (/-1.0, 0.0, 1.0 /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(complex(0.0, 0.0), avg_value, tolerance=1e-12)
+
+    ! Test for complex numbers
+    unavg_value(1,1,:,1) = (/(1.0, 1.0), (1.0, 1.0), (1.0, 1.0) /)
+    call fieldline_average(unavg_value, avg_value)
+    @assertEqual(complex(1.0, 1.0), avg_value, tolerance=1e-12)
+
+
+  end subroutine test_fieldline_average_complex
+
 
   @after
   subroutine teardown

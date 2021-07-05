@@ -1,0 +1,64 @@
+! Test module to for stella_layouts module.
+! TODO: Work out how to test private subroutines.
+
+module test_stella_layouts_mod
+  use funit
+
+
+  implicit none
+
+contains
+
+  @before
+  ! Set up some variables
+  subroutine setup
+
+    ! RJD: Do we need to initialise the mpi? Probably easier if we don't,
+    ! but manually set iproc, nproc as needed.
+    !use mp, only: init_mp
+    !call init_mp
+
+  end subroutine setup
+
+  @test
+  subroutine test_init_kxkyz_layout
+    ! init_kxkyz_layout populates various attributes of the kxkyz_lo object,
+    ! based on the number of gridpoints in each dimension and the number
+    ! of processes
+
+    use stella_layouts, only : init_dist_fn_layouts
+    use stella_layouts, only : kxkyz_lo
+    ! RJD: init_kxkyz_layout not found - possibly this is because it's not
+    ! a public subroutine?
+    ! use stella_layouts, only : init_kxkyz_layout
+    !use mp, only: iproc, nproc
+
+    integer :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, iproc, nproc
+
+    ! Specify grid parameters - begin with small values
+    nzgrid = 2
+    ntubes = 1
+    naky = 1
+    nakx = 1
+    nvgrid = 2
+    nmu = 2
+    nspec = 1
+
+    ! Set iproc, nproc
+    iproc = 0
+    nproc = 1
+
+    ! call test_init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+    ! @assertEqual(kxyz_lo%nzgrid, 2)
+
+  end subroutine test_init_kxkyz_layout
+
+  @after
+  subroutine teardown
+
+    !use mp, only: finish_mp
+    !call finish_mp
+
+  end subroutine teardown
+
+end module test_stella_layouts_mod

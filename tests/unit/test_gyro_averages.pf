@@ -1,0 +1,49 @@
+! Test module to for gyro_averages module.
+
+module test_gyro_averages_mod
+  use funit
+  use zgrid, only: nzgrid, ntubes
+  use kt_grids, only: naky, nakx
+  use physics_flags, only: full_flux_surface
+  use stella_layouts, only: kxkyz_lo, vmu_lo
+
+  implicit none
+
+contains
+
+  @before
+  ! Set up some variables
+  subroutine setup
+    ! Instantiate a very simple geometry
+    nzgrid = 1
+    ntubes = 1
+    naky = 1
+    nakx = 1
+    full_flux_surface = .false.
+
+    ! Create the velocity-space grid (vmu_lo)
+    ! This will actually be rather complicated . . .
+  end subroutine setup
+
+  @test
+  subroutine test_init_bessel
+    ! init_bessel allocates and calculates the Bessel functions of the first kind,
+    ! JO(x) and J1(x)/x (called aj0x, aj0v and aj1x, aj1v in the code.)
+    ! The suffix "x" and "v" corresponds to different layouts of the (ky,ky,z,vpa,mu)
+    ! grids on the processes.
+    ! The Bessel function calculations are different depending on whether
+    ! full_flux_surface = .true. or not; first test the full_flux_surface = .false.
+    ! case.
+
+    ! TODO: write the tests
+
+
+
+  end subroutine test_init_bessel
+
+  @after
+  subroutine teardown
+
+  end subroutine teardown
+
+end module test_gyro_averages_mod
