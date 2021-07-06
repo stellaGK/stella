@@ -9,7 +9,7 @@ module fields
   public :: get_radial_correction
   public :: enforce_reality_field
   public :: get_fields_by_spec
-  public :: gamtot3, dgamtot3dr
+  public :: gamtot_h, gamtot3_h, gamtot3, dgamtot3dr
   public :: time_field_solve
   public :: fields_updated
   public :: get_dchidy, get_dchidx
@@ -482,7 +482,7 @@ contains
 
   end subroutine advance_fields
 
-  subroutine get_fields (g, phi, apar, dist)
+  subroutine get_fields (g, phi, apar, dist, skip_fsa)
 
     use mp, only: proc0
     use mp, only: sum_allreduce, mp_abort
@@ -502,12 +502,17 @@ contains
     
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
+    logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
     complex :: tmp
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
+    logical :: skip_fsa_local
+
+    skip_fsa_local=.false.
+    if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
     ia = 1
 
@@ -528,7 +533,7 @@ contains
        deallocate (g0)
        call sum_allreduce (phi)
 
-       call get_phi (phi, dist)
+       call get_phi (phi, dist, skip_fsa_local)
 
     end if
 
@@ -563,7 +568,7 @@ contains
     
   end subroutine get_fields
 
-  subroutine get_fields_vmulo (g, phi, apar, dist)
+  subroutine get_fields_vmulo (g, phi, apar, dist,skip_fsa)
 
     use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
@@ -583,11 +588,16 @@ contains
     
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
+    logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
 
     integer :: ivmu, iz, it, ia, imu, is, iky
+    logical :: skip_fsa_local
     complex, dimension (:,:,:), allocatable :: gyro_g
     complex, dimension (:,:), allocatable :: g0k
+
+    skip_fsa_local=.false.
+    if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
     ia = 1
 
@@ -625,7 +635,7 @@ contains
        deallocate (gyro_g)
        call sum_allreduce(phi)
 
-       call get_phi(phi, dist)
+       call get_phi(phi, dist,skip_fsa_local)
 
     end if
     
@@ -661,7 +671,7 @@ contains
     
   end subroutine get_fields_vmulo
 
-  subroutine get_fields_by_spec (g, fld)
+  subroutine get_fields_by_spec (g, fld, skip_fsa)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: kxkyz_lo
@@ -682,11 +692,16 @@ contains
     
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
+    logical, optional, intent (in) :: skip_fsa
 
     real :: wgt
     complex, dimension (:,:), allocatable :: g0
     integer :: ikxkyz, iz, it, ikx, iky, is, ia
+    logical :: skip_fsa_local
     complex, dimension (nspec) :: tmp
+
+    skip_fsa_local=.false.
+    if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
     ia = 1
 
@@ -708,7 +723,7 @@ contains
 
        fld = fld/gamtot_h
 
-       if (.not.has_electron_species(spec) .and. &
+       if (.not.has_electron_species(spec).and.(.not.skip_fsa_local).and. &
             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
           if (zonal_mode(1)) then
              do ikx = 1, nakx
@@ -727,7 +742,7 @@ contains
 
   end subroutine get_fields_by_spec
 
-  subroutine get_phi (phi, dist)
+  subroutine get_phi (phi, dist, skip_fsa)
 
     use mp, only: proc0, mp_abort, job
     use physics_flags, only: full_flux_surface, radial_variation
@@ -747,13 +762,18 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
+    logical, optional, intent (in) :: skip_fsa
     integer :: ia, it, iz, ikx, iky, zmi
     complex, dimension (:,:), allocatable :: g0k, g0x, g0a
     complex, dimension (:), allocatable :: g_fsa
     complex :: tmp
+    logical :: skip_fsa_local
     logical :: has_elec, adia_elec
 
     character (*), intent (in) :: dist
+
+    skip_fsa_local=.false.
+    if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
     ia = 1
     has_elec  = has_electron_species(spec)
@@ -828,80 +848,78 @@ contains
     if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
 
 
-    if (adia_elec) then
-      if (zonal_mode(1)) then
-        if (dist == 'h') then
+    if (adia_elec.and.zonal_mode(1).and..not.skip_fsa_local) then
+      if (dist == 'h') then
+        do it = 1, ntubes
+          do ikx = 1, nakx
+            tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+            phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
+          end do
+        end do
+      else if (dist == 'gbar') then 
+        if(radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1 &
+            .and.runtype_option_switch.eq.runtype_multibox.and.ky_solve_real) then
+          !this is already taken care of in mb_get_phi
+        elseif((radial_variation.and.ky_solve_radial.gt.0               &
+                .and.runtype_option_switch.ne.runtype_multibox)         &
+                                       .or.                             &
+               (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1  &
+                .and.runtype_option_switch.eq.runtype_multibox          &
+                .and..not.ky_solve_real))  then
+          allocate (g0k(1,nakx))
+          allocate (g0x(1,nakx))
+          allocate (g_fsa(nakx-zm))
+
           do it = 1, ntubes
-            do ikx = 1, nakx
+            g_fsa = 0.0
+            do iz = -nzgrid, nzgrid
+              g0k(1,:) = phi(1,:,iz,it)
+              call transform_kx2x_unpadded (g0k,g0x)
+              g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+              call transform_x2kx_unpadded(g0x,g0k)
+
+              g_fsa = g_fsa + g0k(1,(1+zm):)
+            enddo
+        
+            call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, g_fsa)
+
+            do ikx = 1,nakx-zm
+              g0k(1,ikx+zm) = sum(b_mat(ikx,:)*g_fsa(:))
+            enddo
+
+            do iz = -nzgrid, nzgrid
+              g_fsa = g0k(1,(1+zm):)
+              call lu_back_substitution(phi_solve(1,iz)%zloc,phi_solve(1,iz)%idx, g_fsa)
+
+              phi(1,(1+zm):,iz,it) = phi(1,(1+zm):,iz,it) + g_fsa
+            enddo
+            if(zm.gt.0) phi(1,zm,:,it) = 0.0
+          enddo
+          deallocate(g0k,g0x,g_fsa)
+        else
+          if(radial_variation) then
+            do it = 1, ntubes
+              do ikx = 1, nakx
+                ! DSO - this is sort of hack in order to avoid extra communications
+                !       However, get_radial_correction should be called immediately 
+                !       after advance_fields, so it should be ok...
+                save1(ikx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
+                save2(ikx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
+              enddo
+            enddo
+          endif
+          do ikx = 1, nakx
+            do it = 1, ntubes
               tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-              phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3_h
+              phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:)
             end do
           end do
-        else if (dist == 'gbar') then 
-          if(radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1 &
-             .and.runtype_option_switch.eq.runtype_multibox.and.ky_solve_real) then
-            !this is already taken care of in mb_get_phi
-          elseif((radial_variation.and.ky_solve_radial.gt.0               &
-                  .and.runtype_option_switch.ne.runtype_multibox)         &
-                                         .or.                             &
-                 (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1  &
-                  .and.runtype_option_switch.eq.runtype_multibox          &
-                  .and..not.ky_solve_real))  then
-            allocate (g0k(1,nakx))
-            allocate (g0x(1,nakx))
-            allocate (g_fsa(nakx-zm))
-
-            do it = 1, ntubes
-              g_fsa = 0.0
-              do iz = -nzgrid, nzgrid
-                g0k(1,:) = phi(1,:,iz,it)
-                call transform_kx2x_unpadded (g0k,g0x)
-                g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-                call transform_x2kx_unpadded(g0x,g0k)
-
-                g_fsa = g_fsa + g0k(1,(1+zm):)
-              enddo
-        
-              call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, g_fsa)
-
-              do ikx = 1,nakx-zm
-                g0k(1,ikx+zm) = sum(b_mat(ikx,:)*g_fsa(:))
-              enddo
-
-              do iz = -nzgrid, nzgrid
-                g_fsa = g0k(1,(1+zm):)
-                call lu_back_substitution(phi_solve(1,iz)%zloc,phi_solve(1,iz)%idx, g_fsa)
-
-                phi(1,(1+zm):,iz,it) = phi(1,(1+zm):,iz,it) + g_fsa
-              enddo
-              if(zm.gt.0) phi(1,zm,:,it) = 0.0
-            enddo
-            deallocate(g0k,g0x,g_fsa)
-          else
-            if(radial_variation) then
-              do it = 1, ntubes
-                do ikx = 1, nakx
-                  ! DSO - this is sort of hack in order to avoid extra communications
-                  !       However, get_radial_correction should be called immediately 
-                  !       after advance_fields, so it should be ok...
-                  save1(ikx,it) = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-                  save2(ikx,it) = sum(d_dl_over_b_drho(ia,:)*phi(1,ikx,:,it))
-                enddo
-              enddo
-            endif
-            do ikx = 1, nakx
-              do it = 1, ntubes
-                tmp = sum(dl_over_b(ia,:)*phi(1,ikx,:,it))
-                phi(1,ikx,:,it) = phi(1,ikx,:,it) + tmp*gamtot3(ikx,:)
-              end do
-            end do
-          endif
-        else 
-          if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
-          call mp_abort ('unknown dist option in get_fields. aborting')
-        end if
-        phi(1,1,:,:) = 0.0
+        endif
+      else 
+        if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+        call mp_abort ('unknown dist option in get_fields. aborting')
       end if
+      phi(1,1,:,:) = 0.0
     end if
     
     !if(zm.eq.1) phi(1,zm,:,:) = 0.0

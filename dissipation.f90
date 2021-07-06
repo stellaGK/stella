@@ -42,6 +42,11 @@ module dissipation
   complex, dimension (:,:,:), allocatable :: mudiff_response
   integer, dimension (:,:), allocatable :: mudiff_idx
 
+  complex, dimension (:,:,:), allocatable :: vpadiff_zf_response
+  integer, dimension (:,:), allocatable :: vpadiff_zf_idx
+  complex, dimension (:,:,:), allocatable :: mudiff_zf_response
+  integer, dimension (:,:), allocatable :: mudiff_zf_idx
+
   complex, dimension (:,:,:,:,:), allocatable :: aa_blcs, cc_blcs
   complex, dimension (:,:,:,:), allocatable :: bb_blcs
   complex, dimension (:,:,:,:), allocatable :: dd_vecs
@@ -903,39 +908,56 @@ contains
 
   subroutine init_vpadiff_conserve
 
+    use mp, only: sum_allreduce
     use finite_differences, only: tridag
-    use linear_solve, only: lu_decomposition
+    use linear_solve, only: lu_decomposition, lu_inverse
     use stella_time, only: code_dt
-    use species, only: nspec, spec
+    use species, only: nspec, spec, has_electron_species
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nmu, vpa, vperp2
     use vpamu_grids, only: set_vpa_weights
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, zonal_mode
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+    use stella_geometry, only: dl_over_b
     use dist_fn_arrays, only: gvmu
     use gyro_averages, only: aj0v
-    use fields, only: get_fields, get_fields_by_spec
+    use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
 
     implicit none
 
-    integer :: ikxkyz, iky, ikx, iz, it, is
+    integer :: ikxkyz, iky, ikx, iz, it, is, ia
     integer :: imu
     integer :: idx
     logical :: conservative_wgts
     real :: dum2
     complex, dimension (:,:,:,:), allocatable :: dum1
     complex, dimension (:,:,:,:,:), allocatable :: field
+    complex, dimension (:,:), allocatable :: temp_mat
+
+    ia = 1
+    
+    nresponse_vpa = 1
+    if (momentum_conservation) nresponse_vpa = nresponse_vpa + nspec
+    if (energy_conservation) nresponse_vpa = nresponse_vpa + nspec
 
     if (.not.allocated(vpadiff_response)) then
-       nresponse_vpa = 1
-       if (momentum_conservation) nresponse_vpa = nresponse_vpa + nspec
-       if (energy_conservation) nresponse_vpa = nresponse_vpa + nspec
        allocate (vpadiff_response(nresponse_vpa,nresponse_vpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        vpadiff_response = 0.
        allocate (vpadiff_idx(nresponse_vpa,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     end if
+
+    if (.not.has_electron_species(spec).and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+      if(.not.allocated(vpadiff_zf_response)) then
+        allocate (vpadiff_zf_response(nresponse_vpa,nresponse_vpa,nakx))
+        vpadiff_zf_response = 0.
+        allocate (vpadiff_zf_idx(nresponse_vpa,nakx))
+      endif
+    endif
+
     allocate (dum1(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
@@ -958,9 +980,7 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for upar equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
-    !!! FLAG DSO - The following lines are NOT appropriate for 
-    !!!            zonal modes with adianbatic electrons!
-    call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
+    call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h', skip_fsa=.true.)
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -1006,7 +1026,7 @@ contains
        ! need to get -Ps[dhs/dupars] for phi equation
        ! need to get 1-Us[dhs/dupars] for momentum conservation
        ! need to get -Qs[dhs/dupars] for energy conservation
-       call get_fields_by_spec (gvmu, field)
+       call get_fields_by_spec (gvmu, field, skip_fsa=.true.)
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -1055,7 +1075,7 @@ contains
        ! need to get -Ps[dhs/dQs] for phi equation
        ! need to get 1-Us[dhs/dQs] for momentum conservation
        ! need to get -Qs[dhs/dQs] for energy conservation
-       call get_fields_by_spec (gvmu, field)
+       call get_fields_by_spec (gvmu, field, skip_fsa=.true.)
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -1094,6 +1114,43 @@ contains
        call lu_decomposition (vpadiff_response(:,:,ikxkyz),vpadiff_idx(:,ikxkyz),dum2)
     end do
 
+    ! if electrons are adiabatic, compute the matrices for the flux-surface-average
+    if (.not.has_electron_species(spec).and.zonal_mode(1) &
+        .and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+      allocate (temp_mat(nresponse_vpa,nresponse_vpa))
+      vpadiff_zf_response = 0.0
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+        iky = iky_idx(kxkyz_lo,ikxkyz)
+        ikx = ikx_idx(kxkyz_lo,ikxkyz)
+        iz = iz_idx(kxkyz_lo,ikxkyz)
+        it = it_idx(kxkyz_lo,ikxkyz)
+        if (iky.ne.1.or.it.ne.1) cycle
+
+        !calculate inverse of vpadiff_response
+        call lu_inverse (vpadiff_response(:,:,ikxkyz),vpadiff_idx(:,ikxkyz),temp_mat)
+
+        !calculate -inv(vpadiff_response).Q, where Q has a single entry
+        do idx = 1, nresponse_vpa
+          vpadiff_zf_response(idx,1,ikx) = vpadiff_zf_response(idx,1,ikx) &
+                                           - temp_mat(idx,1)*(efac/gamtot_h)*dl_over_b(ia,iz)
+        enddo
+      end do
+
+      !finish the flux surface average
+      call sum_allreduce(vpadiff_zf_response)
+
+      !calculate 1 - fsa(inv(vpadiff_response).Q)
+      do idx = 1, nresponse_vpa
+        vpadiff_zf_response(idx,idx,:) = vpadiff_zf_response(idx,idx,:) + 1.0
+      enddo
+
+      do ikx = 1,nakx
+         call lu_decomposition (vpadiff_zf_response(:,:,ikx),vpadiff_zf_idx(:,ikx),dum2)
+      end do
+
+      deallocate (temp_mat)
+    endif
+
     ! reset wgts to default setting
     conservative_wgts = .false.
     call set_vpa_weights (conservative_wgts)
@@ -1104,20 +1161,23 @@ contains
 
   subroutine init_mudiff_conserve
 
+    use mp, only: sum_allreduce
     use finite_differences, only: tridag
-    use linear_solve, only: lu_decomposition
+    use linear_solve, only: lu_decomposition, lu_inverse
     use stella_time, only: code_dt
-    use species, only: nspec, spec
+    use species, only: nspec, spec, has_electron_species
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
     use vpamu_grids, only: nvpa, vpa, vperp2
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, zonal_mode
+    use stella_geometry, only: dl_over_b, bmag
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use dist_fn_arrays, only: gvmu, kperp2
     use gyro_averages, only: aj0v, aj1v
-    use fields, only: get_fields, get_fields_by_spec
-    use stella_geometry, only: bmag
+    use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
 
     implicit none
 
@@ -1125,17 +1185,28 @@ contains
     integer :: iv
     integer :: idx
     real :: dum2
+    complex, dimension (:,:), allocatable :: temp_mat
     complex, dimension (:,:,:,:), allocatable :: dum1
     complex, dimension (:,:,:,:,:), allocatable :: field
 
+    nresponse_mu = 1
+    if (momentum_conservation) nresponse_mu = nresponse_mu + nspec
+    if (energy_conservation) nresponse_mu = nresponse_mu + nspec
+
     if (.not.allocated(mudiff_response)) then
-       nresponse_mu = 1
-       if (momentum_conservation) nresponse_mu = nresponse_mu + nspec
-       if (energy_conservation) nresponse_mu = nresponse_mu + nspec
        allocate (mudiff_response(nresponse_mu,nresponse_mu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        mudiff_response = 0.
        allocate (mudiff_idx(nresponse_mu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
     end if
+
+    if (.not.has_electron_species(spec).and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+      if(.not.allocated(mudiff_zf_response)) then
+        allocate (mudiff_zf_response(nresponse_mu,nresponse_mu,nakx))
+        mudiff_zf_response = 0.
+        allocate (mudiff_zf_idx(nresponse_mu,nakx))
+      endif
+    endif
+
     allocate (dum1(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
@@ -1154,9 +1225,7 @@ contains
     ! for phi equation, need 1-P[dhs/dphi]
     ! for uperp equations, need -Us[dhs/dphi]
     ! for energy conservation, need -Qs[dhs/dphi]
-    !!! FLAG DSO - The following lines are NOT appropriate 
-    !!!            for zonal modes with adianbatic electrons!
-    call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h')
+    call get_fields (gvmu, field(:,:,:,:,1), dum1, dist='h', skip_fsa =.true.)
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
@@ -1206,7 +1275,7 @@ contains
        ! need to get -Ps[dhs/dupars] for phi equation
        ! need to get 1-Us[dhs/dupars] for momentum conservation
        ! need to get -Qs[dhs/dupars] for energy conservation
-       call get_fields_by_spec (gvmu, field)
+       call get_fields_by_spec (gvmu, field, skip_fsa =.true.)
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -1255,7 +1324,7 @@ contains
        ! need to get -Ps[dhs/dQs] for phi equation
        ! need to get 1-Us[dhs/dQs] for momentum conservation
        ! need to get -Qs[dhs/dQs] for energy conservation
-       call get_fields_by_spec (gvmu, field)
+       call get_fields_by_spec (gvmu, field, skip_fsa=.true.)
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iky = iky_idx(kxkyz_lo,ikxkyz)
           ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -1293,6 +1362,43 @@ contains
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        call lu_decomposition (mudiff_response(:,:,ikxkyz),mudiff_idx(:,ikxkyz),dum2)
     end do
+
+    ! if electrons are adiabatic, compute the matrices for the flux-surface-average
+    if (.not.has_electron_species(spec).and.zonal_mode(1) &
+        .and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+      allocate (temp_mat(nresponse_mu,nresponse_mu))
+      mudiff_zf_response = 0.0
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+        iky = iky_idx(kxkyz_lo,ikxkyz)
+        ikx = ikx_idx(kxkyz_lo,ikxkyz)
+        iz = iz_idx(kxkyz_lo,ikxkyz)
+        it = it_idx(kxkyz_lo,ikxkyz)
+        if (iky.ne.1.or.it.ne.1) cycle
+
+        !calculate inverse of mudiff_response
+        call lu_inverse (mudiff_response(:,:,ikxkyz),mudiff_idx(:,ikxkyz),temp_mat)
+
+        !calculate -inv(mudiff_response).Q, where Q has a single entry
+        do idx = 1, nresponse_mu
+          mudiff_zf_response(idx,1,ikx) = mudiff_zf_response(idx,1,ikx) &
+                                           - temp_mat(idx,1)*(efac/gamtot_h)*dl_over_b(ia,iz)
+        enddo
+      end do
+
+      !finish the flux surface average
+      call sum_allreduce(mudiff_zf_response)
+
+      !calculate 1 - fsa(inv(mudiff_response).Q)
+      do idx = 1, nresponse_mu
+        mudiff_zf_response(idx,idx,:) = mudiff_zf_response(idx,idx,:) + 1.0
+      enddo
+
+      do ikx = 1,nakx
+         call lu_decomposition (mudiff_zf_response(:,:,ikx),mudiff_zf_idx(:,ikx),dum2)
+      end do
+
+      deallocate (temp_mat)
+    endif
 
     deallocate (dum1, field)
 
@@ -2455,29 +2561,35 @@ contains
     use linear_solve, only: lu_back_substitution
     use stella_time, only: code_dt
     use run_parameters, only: fphi
-    use species, only: nspec, spec
+    use species, only: nspec, spec, has_electron_species
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
     use vpamu_grids, only: set_vpa_weights
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, zonal_mode
+    use stella_geometry, only: dl_over_b
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use g_tofrom_h, only: g_to_h
     use gyro_averages, only: aj0v
-    use fields, only: get_fields
+    use fields, only: get_fields, efac, gamtot_h
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
 
-    integer :: ikxkyz, iky, ikx, iz, it, is
+    integer :: ikxkyz, iky, ikx, iz, it, is, ia
     integer :: imu
     integer :: idx
     real, dimension (:,:), allocatable :: tmp
     complex, dimension (:,:,:,:,:), allocatable :: flds
-    complex, dimension (:,:,:), allocatable :: g_in
+    complex, dimension (:), allocatable :: tmp2
+    complex, dimension (:,:,:), allocatable :: flds_zf, g_in
+
+    ia = 1
 
     ! store input g for use later, as g will be overwritten below
     allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -2493,10 +2605,11 @@ contains
     end do
 
     allocate (flds(naky,nakx,-nzgrid:nzgrid,ntubes,nresponse_vpa))
+    allocate (flds_zf(nakx,ntubes,nresponse_vpa)); flds_zf = 0.
 
     ! need to obtain phi^{n+1} and conservation terms using response matrix approach
     ! first get phi_inh^{n+1}
-    call get_fields (g, phi, apar, dist='h')
+    call get_fields (g, phi, apar, dist='h', skip_fsa=.true.)
     flds(:,:,:,:,1) = phi
 
     idx = 2
@@ -2519,9 +2632,48 @@ contains
        ! no need to compute multiple times
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
-            flds(iky,ikx,iz,it,:))
+                                  flds(iky,ikx,iz,it,:))
+       if (.not.has_electron_species(spec).and.zonal_mode(iky) &
+        .and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+          flds_zf(ikx,it,:) = flds_zf(ikx,it,:) + dl_over_b(ia,iz)*flds(iky,ikx,iz,it,:)
+       endif
        phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
+
+    if (.not.has_electron_species(spec).and.zonal_mode(1) &
+        .and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+      !complete flux-surface average
+      call sum_allreduce(flds_zf)
+      do it=1, ntubes
+        do ikx=1, nakx
+          call lu_back_substitution (vpadiff_zf_response(:,:,ikx), vpadiff_zf_idx(:,ikx), &
+                                     flds_zf(ikx,it,:))
+          !multiply by Q, which has a single non-zero component
+          flds_zf(ikx,it,1) = (efac/gamtot_h)*flds_zf(ikx,it,1)
+          flds_zf(ikx,it,2:) = 0.
+        enddo
+      enddo
+
+      allocate (tmp2(nresponse_vpa))
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+        iky = iky_idx(kxkyz_lo,ikxkyz)
+        ikx = ikx_idx(kxkyz_lo,ikxkyz)
+        iz = iz_idx(kxkyz_lo,ikxkyz)
+        it = it_idx(kxkyz_lo,ikxkyz)
+        is = is_idx(kxkyz_lo,ikxkyz)
+        
+        if(iky.ne.1.or.is.ne.1) cycle
+
+        tmp2 = flds_zf(ikx,it,:)
+        call lu_back_substitution (vpadiff_response(:,:,ikxkyz), vpadiff_idx(:,ikxkyz), &
+                                  tmp2)
+
+        phi(1,ikx,iz,it) = phi(1,ikx,iz,it) + tmp2(1)
+      enddo
+      deallocate (tmp2)
+
+    endif
+
     call sum_allreduce (phi)
 
     g = g_in
@@ -2549,7 +2701,7 @@ contains
        end do
     end if
 
-    deallocate (tmp, flds)
+    deallocate (tmp, flds, flds_zf)
 
     ! now invert system to get h^{n+1}
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -2573,19 +2725,21 @@ contains
     use linear_solve, only: lu_back_substitution
     use stella_time, only: code_dt
     use run_parameters, only: fphi
-    use species, only: nspec, spec
+    use species, only: nspec, spec, has_electron_species
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nmu, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
     use vpamu_grids, only: set_vpa_weights
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, zonal_mode
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
     use dist_fn_arrays, only: kperp2
     use gyro_averages, only: aj0v, aj1v
     use g_tofrom_h, only: g_to_h
-    use fields, only: get_fields
-    use stella_geometry, only: bmag
+    use fields, only: get_fields, efac, gamtot_h
+    use stella_geometry, only: bmag, dl_over_b
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
 
     ! TMP FOR TESTING
 !    use vpamu_grids, only: mu
@@ -2603,8 +2757,11 @@ contains
 !    integer :: imu
 
     real, dimension (:,:), allocatable :: tmp
+    complex, dimension (:), allocatable :: tmp2
     complex, dimension (:,:,:,:,:), allocatable :: flds
-    complex, dimension (:,:,:), allocatable :: g_in
+    complex, dimension (:,:,:), allocatable :: flds_zf, g_in
+
+    ia = 1
 
     ! store input g for use later, as g will be overwritten below
     allocate (g_in(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -2630,10 +2787,11 @@ contains
     end do
 
     allocate (flds(naky,nakx,-nzgrid:nzgrid,ntubes,nresponse_mu))
+    allocate (flds_zf(nakx,ntubes,nresponse_mu)); flds_zf = 0.
 
     ! need to obtain phi^{n+1} and conservation terms using response matrix approach
     ! first get phi_inh^{n+1}
-    call get_fields (g, phi, apar, dist='h')
+    call get_fields (g, phi, apar, dist='h', skip_fsa=.true.)
     flds(:,:,:,:,1) = phi
 
     idx = 2
@@ -2657,8 +2815,47 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz) ; if (is /= 1) cycle
        call lu_back_substitution (mudiff_response(:,:,ikxkyz), mudiff_idx(:,ikxkyz), &
             flds(iky,ikx,iz,it,:))
+       if (.not.has_electron_species(spec).and.zonal_mode(iky) &
+        .and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+          flds_zf(ikx,it,:) = flds_zf(ikx,it,:) + dl_over_b(ia,iz)*flds(iky,ikx,iz,it,:)
+       endif
        phi(iky,ikx,iz,it) = flds(iky,ikx,iz,it,1)
     end do
+
+    if (.not.has_electron_species(spec).and.zonal_mode(1) &
+        .and.adiabatic_option_switch==adiabatic_option_fieldlineavg) then
+      !complete flux-surface average
+      call sum_allreduce(flds_zf)
+      do it=1, ntubes
+        do ikx=1, nakx
+          call lu_back_substitution (mudiff_zf_response(:,:,ikx), mudiff_zf_idx(:,ikx), &
+                                     flds_zf(ikx,it,:))
+          !multiply by Q, which has a single non-zero component
+          flds_zf(ikx,it,1) = (efac/gamtot_h)*flds_zf(ikx,it,1)
+          flds_zf(ikx,it,2:) = 0.
+        enddo
+      enddo
+
+      allocate (tmp2(nresponse_mu))
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+        iky = iky_idx(kxkyz_lo,ikxkyz)
+        ikx = ikx_idx(kxkyz_lo,ikxkyz)
+        iz = iz_idx(kxkyz_lo,ikxkyz)
+        it = it_idx(kxkyz_lo,ikxkyz)
+        is = is_idx(kxkyz_lo,ikxkyz)
+        
+        if(iky.ne.1.or.is.ne.1) cycle
+
+        tmp2 = flds_zf(ikx,it,:)
+        call lu_back_substitution (mudiff_response(:,:,ikxkyz), mudiff_idx(:,ikxkyz), &
+                                  tmp2)
+
+        phi(1,ikx,iz,it) = phi(1,ikx,iz,it) + tmp2(1)
+      enddo
+      deallocate (tmp2)
+
+    endif
+
     call sum_allreduce (phi)
 
     g = g_in
@@ -2668,8 +2865,6 @@ contains
     call g_to_h (g, phi, fphi)
 
     allocate (tmp(nvpa,nmu))
-
-    ia = 1
 
     if (momentum_conservation .or. energy_conservation) then
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -2691,7 +2886,7 @@ contains
        end do
     end if
 
-    deallocate (tmp, flds)
+    deallocate (tmp, flds, flds_zf)
 
     ! now invert system to get h^{n+1}
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
