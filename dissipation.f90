@@ -1538,6 +1538,8 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
+    use multibox, only: boundary_size
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
 
@@ -1549,26 +1551,38 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
-    ia = 1
+    complex, dimension (:,:), allocatable :: g0k, g0x
 
+    ia = 1
     if(.not.zonal_mode(1)) return
 
+    exp_fac = exp(-code_dt/delay_krook)
+
     !TODO: add number and momentum conservation
-    if(delay_krook.le.epsilon(0.)) then
+    if (exclude_boundary_regions) then
+      allocate(g0k(1,nakx))
+      allocate(g0x(1,nakx))
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
-            do ikx = 1, nakx
-              if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
-              tmp = g(1,ikx,iz,it,ivmu)
-              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-              gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook*tmp
-            enddo
+            g0k(1,:) = g(1,:,iz,it,ivmu)
+            call transform_kx2x_unpadded(g0k,g0x)
+            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
+            if(delay_krook.le.epsilon(0.0)) then
+              g0x = tmp
+            else
+              g0x = (code_dt*tmp + exp_fac*int_krook*g_krook(1,iz,it,ivmu)) &
+                  / (code_dt     + exp_fac*int_krook)
+            endif
+            g0x(1,1:boundary_size) = 0.0
+            g0x(1,(nakx-boundary_size+1):nakx) = 0.0
+            call transform_x2kx_unpadded (g0x,g0k)
+            gke_rhs(1,:,iz,it,ivmu) = gke_rhs(1,:,iz,it,ivmu) - code_dt*nu_krook*g0k(1,:)
           enddo
         enddo
       enddo
+      deallocate(g0k, g0x)
     else
-      exp_fac = exp(-code_dt/delay_krook)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
@@ -1576,9 +1590,13 @@ contains
               if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
               tmp = g(1,ikx,iz,it,ivmu)
               if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-              gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
-                                     * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
-                                     / (code_dt     + exp_fac*int_krook)
+              if(delay_krook.le.epsilon(0.0)) then
+                gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook*tmp
+              else
+                gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
+                                          * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
+                                          / (code_dt     + exp_fac*int_krook)
+              endif
             enddo
           enddo
         enddo
@@ -1595,10 +1613,13 @@ contains
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
+    use multibox, only: boundary_size
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
+    complex, dimension (:,:), allocatable :: g0k, g0x
 
     integer :: ivmu, iz, it, ikx, ia
     real :: int_krook_old, exp_fac
@@ -1613,19 +1634,33 @@ contains
     int_krook_old = int_krook
     int_krook =  code_dt + exp_fac*int_krook_old
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      do it = 1, ntubes
-        do iz = -nzgrid, nzgrid
-        do ikx = 1, nakx
-            tmp = g(1,ikx,iz,it,ivmu)
-            if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-            g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu))/int_krook
+    if (exclude_boundary_regions) then
+      allocate(g0k(1,nakx))
+      allocate(g0x(1,nakx))
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            g0k(1,:) = g(1,:,iz,it,ivmu)
+            call transform_kx2x_unpadded(g0k,g0x)
+            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
+            g_krook(:,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(:,iz,it,ivmu))/int_krook
           enddo
         enddo
       enddo
-    enddo
-
-    !g_krook   = (code_dt*g + exp_fac*int_krook_old*g_krook)/int_krook
+      deallocate(g0k, g0x)
+    else
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+              tmp = g(1,ikx,iz,it,ivmu)
+              if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
+              g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu))/int_krook
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
 
   end subroutine update_delay_krook
 
