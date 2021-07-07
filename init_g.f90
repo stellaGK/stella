@@ -198,7 +198,7 @@ contains
     ierr = error_unit()
     call get_option_value &
          (ginit_option, ginitopts, ginitopt_switch, &
-         ierr, "ginit_option in ginit_knobs")
+         ierr, "ginit_option in ginit_knobs",stop_on_error=.true.)
   end subroutine read_parameters
 
   subroutine ginit_default
