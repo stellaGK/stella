@@ -15,7 +15,8 @@ pfunit_use_mpi="YES"
 
 # Which major version of pfunit are we using
 # Version 4+ needs very recent compilers
-pfunit_version_major=4
+# Defaults to version 4 is PFUNIT_VERSION_MAJOR is not set.
+pfunit_version_major=${PFUNIT_VERSION_MAJOR:-4}
 
 # Number of make jobs to use (i.e. argument to `make -j N`)
 make_jobs=1
