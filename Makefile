@@ -347,6 +347,9 @@ sinclude Makefile.target_$(GK_PROJECT)
 tests/unit/Makefile:
 include tests/unit/Makefile
 
+tests/integrated/Makefile:
+include tests/integrated/Makefile
+
 check: check-unit
 
 ############################################################### SPECIAL RULES
