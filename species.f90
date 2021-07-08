@@ -168,9 +168,6 @@ contains
     integer :: ierr, unit, is
     character(len=128) :: filename
 
-    namelist /species_parameters/ z, mass, dens, temp, &
-         tprim, fprim, d2ndr2, d2Tdr2, bess_fac, type
-
     character(20) :: type
     type (text_option), dimension (9), parameter :: typeopts = (/ &
          text_option('default', ion_species), &
@@ -182,6 +179,9 @@ contains
          text_option('alpha', slowing_down_species), &
          text_option('slowing-down', slowing_down_species), &
          text_option('trace', tracer_species) /)
+
+    namelist /species_parameters/ z, mass, dens, temp, &
+         tprim, fprim, d2ndr2, d2Tdr2, bess_fac, type
 
     do is = 1, nspec
        call get_indexed_namelist_unit (unit, "species_parameters", is)
