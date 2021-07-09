@@ -160,11 +160,6 @@ contains
       status = nf90_def_dim (ncid, 'tube', ntubes, ntubes_dim)
       if (status /= nf90_noerr) call netcdf_error (status, dim='tube')
     endif
-    status = nf90_inq_dimid(ncid,'theta0',nakx_dim)
-    if (status /= nf90_noerr) then
-      status = nf90_def_dim (ncid, 'theta0', nakx, nakx_dim)
-      if (status /= nf90_noerr) call netcdf_error (status, dim='theta0')
-    endif
     status = nf90_inq_dimid(ncid,'zed',nttot_dim)
     if (status /= nf90_noerr) then
       status = nf90_def_dim (ncid, 'zed', 2*nzgrid+1, nttot_dim)

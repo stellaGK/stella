@@ -73,7 +73,7 @@ contains
     use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
     use neoclassical_terms, only: init_neoclassical_terms
-    use dissipation, only: init_dissipation
+    use dissipation, only: init_collisions, include_collisions
     use parallel_streaming, only: init_parallel_streaming
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
@@ -107,8 +107,10 @@ contains
     if (radial_variation) call init_radial_variation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_drifts_implicit'
     if (drifts_implicit) call init_drifts_implicit
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
-    call init_dissipation
+    if (include_collisions) then
+      if (debug) write (6,*) 'time_advance::init_time_advance::init_collisions'
+      call init_collisions
+    endif
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
 

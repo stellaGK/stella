@@ -73,7 +73,25 @@ contains
 
     call read_parameters
     if (include_collisions) then
-        call init_collisions
+      if (collision_model == "dougherty") then
+        write(*,*)
+        write(*,*) 'Coll. model:     Dougherty'
+        if (collisions_implicit) then
+          write(*,*) 'Coll. algorithm: implicit'
+        else
+          write(*,*) 'Coll. algorithm: explicit'
+        end if
+      end if
+      if (collision_model == "fokker-planck") then
+        write(*,*) 'Coll. model:     linearized Fokker-Planck'
+        write(*,*) 'Note:            tested for linear CBC w. adiabatic e-'
+        if (collisions_implicit) then
+          write(*,*) 'Coll. algorithm: implicit'
+        else
+          write(*,*) 'Coll. algorithm: explicit'
+        end if
+      end if
+      write(*,*)
     else
         if (proc0) then
            write (*,'(A)') "############################################################"
@@ -186,10 +204,7 @@ contains
     collisions_initialized = .true.
 
     if (collision_model == "dougherty") then
-        write(*,*)
-        write(*,*) 'Coll. model:     Dougherty'
         if (collisions_implicit) then
-            write(*,*) 'Coll. algorithm: implicit'
            if (vpa_operator) then
               call init_vpadiff_matrix
               call init_vpadiff_conserve
@@ -199,7 +214,6 @@ contains
               call init_mudiff_conserve
            end if
         else
-            write(*,*) 'Coll. algorithm: explicit'
            vnew_max = 0.0
            do is = 1, nspec
               vnew_max = max(vnew_max,maxval(spec(is)%vnew))
@@ -210,15 +224,11 @@ contains
     end if
 
     if (collision_model == "fokker-planck") then
-        write(*,*) 'Coll. model:     linearized Fokker-Planck'
-        write(*,*) 'Note:            tested for linear CBC w. adiabatic e-'
         call init_nusDpa
         if (collisions_implicit) then
-            write(*,*) 'Coll. algorithm: implicit'
            call init_fp_diffmatrix
            call init_fp_conserve
         else
-            write(*,*) 'Coll. algorithm: explicit'
            vnew_max = 0.0
            do is = 1, nspec
               vnew_max = max(vnew_max,maxval(spec(is)%vnew))
@@ -227,7 +237,6 @@ contains
            cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
         end if
     end if
-    write(*,*)
   end subroutine init_collisions
 
   subroutine init_nusDpa

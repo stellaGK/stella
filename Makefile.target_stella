@@ -1,6 +1,4 @@
-stella_all: 
-	$(MAKE) modules
-	$(MAKE) stella
+stella_all: modules stella
 
 stella: $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -28,8 +26,7 @@ mini_libstell.a:
 	$(MAKE) -C $(VMEC)/mini_libstell
 
 ### GEO
-geo_all: vmec
-	$(MAKE) geo.a
+geo_all: vmec geo.a
 
 GEO_OBJ = stella_geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
 
@@ -39,3 +36,5 @@ geo.a:  $(GEO_OBJ)
 
 distclean:
 	-rm -f stella stella.x
+
+vmec_to_stella_geometry_interface.o: | vmec
