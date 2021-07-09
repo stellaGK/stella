@@ -40,4 +40,4 @@ geo.a:  $(GEO_OBJ)
 distclean:
 	-rm -f stella stella.x
 
-vmec_to_stella_geometry_interface.o: vmec
+vmec_to_stella_geometry_interface.o: | vmec
