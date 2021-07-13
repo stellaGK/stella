@@ -749,11 +749,12 @@ contains
 
   subroutine get_rhs_homogenoues_equation()
 
+    use constants, only: zi
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use zgrid, only: delzed, nzgrid
-    use kt_grids, only: zonal_mode
+    use kt_grids, only: zonal_mode, nakx, naky, aky, naky
     use species, only: spec
     use stella_geometry, only: gradpar, dbdzed
     use vpamu_grids, only: vpa, mu
@@ -765,6 +766,7 @@ contains
     use parallel_streaming, only: stream_tridiagonal_solve
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
+    use dist_fn_arrays, only: wstar, wdrifty_phi, wdriftx_phi
 #if defined ISO_C_BINDING && defined MPI
     use mp, only: sgproc0, mp_abort
 #endif
@@ -794,6 +796,7 @@ contains
     ! b.gradz left out because needs to be centred in zed
     ! gyro_fac is a term corresponding to a gyroaveraged element of chi
     if (driftkinetic_implicit) then
+       call mp_abort("driftkinetic_implicit not supported electromagnetically")
        gyro_fac = 1.0
     else
        ! Calculate the factor corresponding to a unit impulse in phi, apar
@@ -815,6 +818,10 @@ contains
     stream_fac = -0.125*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
          *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
 
+    wdrift_fac = -0.125*(1+time_upwind)
+
+    wstar_fac = XXXXX
+
     ! In the following, gradpar and maxwell_mu are interpolated separately
     ! to ensure consistency to what is done in parallel_streaming.f90
 
@@ -823,55 +830,116 @@ contains
        if (iz > -nzgrid) then
           ! fac0 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at this zed index
-          fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
+          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
                       + (1.-zed_upwind)*gradpar(iz-1)) &
                     *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
                       + (1.-zed_upwind)*maxwell_mu(ia,iz-1,imu,is))
+
+          if wdrift_implicit then
+            wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*((zi*ky &
+                       *((1.+zed_upwind)*wdrifty_phi(iz)+ (1.-zed_upwind)*wdrifty_phi(iz-1)) &
+                       + zi*kx*((1.+zed_upwind)*wdriftx_phi(iz) &
+                       + (1.-zed_upwind)*wdriftx_phi(iz-1))) )
+          else
+            wdrift_fac0 = 0.
+          end if
+
+          if wstar_implicit then
+            wstar_fac0 = wstar_fac*XXXX*XXXX
+
+          else
+            wstar_fac0 = 0.
+          end if
+
           ! fac1 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at the zed index to the right of
           ! this one
           if (iz < nzgrid) then
-             fac1 = fac*((1.+zed_upwind)*gradpar(iz+1) &
+             stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz+1) &
                          + (1.-zed_upwind)*gradpar(iz)) &
                        *((1.+zed_upwind)*maxwell_mu(ia,iz+1,imu,is) &
                          + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
+            if wdrift_implicit then
+            ! wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*((zi*ky &
+            !            *((1.+zed_upwind)*wdrifty_phi(iz)+ (1.-zed_upwind)*wdrifty_phi(iz-1)) &
+            !            + zi*kx*((1.+zed_upwind)*wdriftx_phi(iz) &
+            !            + (1.-zed_upwind)*wdriftx_phi(iz-1))) )
+            else
+              wdrift_fac0 = 0.
+            end if
+
+            if wstar_implicit then
+              wstar_fac0 = wstar_fac*XXXX*XXXX
+            else
+              wstar_fac0 = 0.
+            end if
+
           else
-             fac1 = fac*((1.+zed_upwind)*gradpar(-nzgrid+1) &
+             stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(-nzgrid+1) &
                          + (1.-zed_upwind)*gradpar(nzgrid)) &
                        *((1.+zed_upwind)*maxwell_mu(ia,-nzgrid+1,imu,is) &
                          + (1.-zed_upwind)*maxwell_mu(ia,nzgrid,imu,is))
+             if wdrift_implicit then
+             ! wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*((zi*ky &
+             !            *((1.+zed_upwind)*wdrifty_phi(iz)+ (1.-zed_upwind)*wdrifty_phi(iz-1)) &
+             !            + zi*kx*((1.+zed_upwind)*wdriftx_phi(iz) &
+             !            + (1.-zed_upwind)*wdriftx_phi(iz-1))) )
+             else
+               wdrift_fac0 = 0.
+             end if
+
+             if wstar_implicit then
+               wstar_fac0 = wstar_fac*XXXX*XXXX
+             else
+               wstar_fac0 = 0.
+             end if
           end if
        else
           ! fac0 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at this zed index
-          fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
+          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
                       + (1.-zed_upwind)*gradpar(nzgrid-1)) &
                     *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
                       + (1.-zed_upwind)*maxwell_mu(ia,nzgrid-1,imu,is))
           ! fac1 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at the zed index to the right of
           ! this one
-          fac1 = fac*((1.+zed_upwind)*gradpar(iz+1)  &
+          stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz+1)  &
                       + (1.-zed_upwind)*gradpar(iz)) &
                     *((1.+zed_upwind)*maxwell_mu(ia,iz+1,imu,is) &
                       + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
+          if wdrift_implicit then
+          ! wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*((zi*ky &
+          !            *((1.+zed_upwind)*wdrifty_phi(iz)+ (1.-zed_upwind)*wdrifty_phi(iz-1)) &
+          !            + zi*kx*((1.+zed_upwind)*wdriftx_phi(iz) &
+          !            + (1.-zed_upwind)*wdriftx_phi(iz-1))) )
+          else
+            wdrift_fac0 = 0.
+          end if
+
+          if wstar_implicit then
+            wstar_fac0 = wstar_fac*XXXX*XXXX
+          else
+            wstar_fac0 = 0.
+          end if
        end if
-       gext(idx,ivmu) = fac0
-       if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
+
+       gext(idx,ivmu) = stream_fac0 + wdrift_fac0 + wstar_fac0
+       if (idx < nz_ext) gext(idx+1,ivmu) = -(stream_fac1 + wdrift_fac1 + wstar_drift1)
        ! zonal mode BC is periodic instead of zero, so must
        ! treat specially
        if (zonal_mode(iky)) then
           if (idx == 1) then
-             gext(nz_ext,ivmu) = fac0
+             gext(nz_ext,ivmu) = stream_fac0 + wdrift_fac0 + wstar_fac0
           else if (idx == nz_ext-1) then
-             gext(1,ivmu) = -fac1
+             gext(1,ivmu) = -(stream_fac1 + wdrift_fac1 + wstar_drift1)
           end if
        end if
     else
        if (iz < nzgrid) then
           ! fac0 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at this zed index
-          fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
+          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
                       + (1.-zed_upwind)*gradpar(iz+1)) &
                     *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
                       + (1.-zed_upwind)*maxwell_mu(ia,iz+1,imu,is))
@@ -879,12 +947,12 @@ contains
           ! of the homogeneous GKE at the zed index to the left of
           ! this one
           if (iz > -nzgrid) then
-             fac1 = fac*((1.+zed_upwind)*gradpar(iz-1) &
+             stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz-1) &
                          + (1.-zed_upwind)*gradpar(iz)) &
                        *((1.+zed_upwind)*maxwell_mu(ia,iz-1,imu,is) &
                          + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
           else
-             fac1 = fac*((1.+zed_upwind)*gradpar(nzgrid-1) &
+             stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(nzgrid-1) &
                          + (1.-zed_upwind)*gradpar(iz)) &
                        *((1.+zed_upwind)*maxwell_mu(ia,nzgrid-1,imu,is) &
                          + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
@@ -892,28 +960,28 @@ contains
        else
           ! fac0 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at this zed index
-          fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
+          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
                       + (1.-zed_upwind)*gradpar(-nzgrid+1)) &
                     *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
                       + (1.-zed_upwind)*maxwell_mu(ia,-nzgrid+1,imu,is))
           ! fac1 is the factor multiplying delphi on the RHS
           ! of the homogeneous GKE at the zed index to the left of
           ! this one
-          fac1 = fac*((1.+zed_upwind)*gradpar(iz-1) &
+          stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz-1) &
                       + (1.-zed_upwind)*gradpar(iz)) &
                     *((1.+zed_upwind)*maxwell_mu(ia,iz-1,imu,is) &
                       + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
        end if
-       gext(idx,ivmu) = -fac0
-       if (idx > 1) gext(idx-1,ivmu) = fac1
+       gext(idx,ivmu) = -stream_fac0
+       if (idx > 1) gext(idx-1,ivmu) = stream_fac1
        ! zonal mode BC is periodic instead of zero, so must
        ! treat specially
        if (zonal_mode(iky)) then
           if (idx == 1) then
-             gext(nz_ext,ivmu) = -fac0
-             gext(nz_ext-1,ivmu) = fac1
+             gext(nz_ext,ivmu) = -stream_fac0
+             gext(nz_ext-1,ivmu) = stream_fac1
           else if (idx == 2) then
-             gext(nz_ext,ivmu) = fac1
+             gext(nz_ext,ivmu) = stream_fac1
           end if
        end if
     end if
