@@ -1878,6 +1878,7 @@ contains
     use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
     use dist_redistribute, only: kxkyz2vmu
     use dist_fn_arrays, only: gvmu, kperp2, dkperp2dr
+    use fields_arrays, only: phi_corr_QN
     use g_tofrom_h, only: g_to_h
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -1919,7 +1920,7 @@ contains
       if (collision_model=="dougherty") then
         ! switch from g = <f> to h = f + Z*e*phi/T * F0
         tmp_vmulo = g
-        call g_to_h (tmp_vmulo, phi, fphi)
+        call g_to_h (tmp_vmulo, phi, fphi, phi_corr_QN)
 
         !handle gyroviscous term
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1965,24 +1966,24 @@ contains
            iz = iz_idx(kxkyz_lo,ikxkyz)
            is = is_idx(kxkyz_lo,ikxkyz)
 
-           !fix the temperature term
-           tfac = (spec(is)%temp*spec(is)%temp_psi0)*(1.0 - rho_d_clamped(ikx)*spec(is)%tprim)
            if (vpa_operator) then
-              do imu = 1, nmu
-                 call vpa_differential_operator (tfac, gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
-              end do
+             !fix the temperature term
+             tfac = (spec(is)%temp/spec(is)%temp_psi0)*(1.0 - rho_d_clamped(ikx)*spec(is)%tprim)
+             do imu = 1, nmu
+                call vpa_differential_operator (tfac, gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
+             end do
            else
-              coll(:,:,ikxkyz) = 0.0
+             coll(:,:,ikxkyz) = 0.0
            end if
 
-           !fix the temperature/bmag term
-           tfac = (spec(is)%temp*spec(is)%temp_psi0) & 
-                  * (1.0 - rho_d_clamped(ikx)*(spec(is)%tprim + dBdrho(iz)/bmag(ia,iz)))
            if (mu_operator) then
-              do iv = 1, nvpa
-                 call mu_differential_operator (tfac, iz, ia, gvmu(iv,:,ikxkyz), mucoll)
-                 coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
-              end do
+             !fix the temperature/bmag term
+             tfac = (spec(is)%temp/spec(is)%temp_psi0) & 
+                    * (1.0 - rho_d_clamped(ikx)*(spec(is)%tprim + dBdrho(iz)/bmag(ia,iz)))
+             do iv = 1, nvpa
+                call mu_differential_operator (tfac, iz, ia, gvmu(iv,:,ikxkyz), mucoll)
+                coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
+             end do
            end if
            gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz)
         end do
@@ -2630,17 +2631,17 @@ contains
           if(radial_variation) then
             energy = (vpa(iv)**2 + vperp2(ia,iz,imu))*(spec(is)%temp_psi0/spec(is)%temp)
 
-            g1k = field1(:,:,iz,it)*(-0.5*aj1x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+            g1k = field1(:,:,iz,it)*vpa(iv)*(-0.5*aj1x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                    * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                    * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))) &
                 + field2(:,:,iz,it)*spec(is)%smz_psi0*vperp2(ia,iz,imu)/bmag(ia,iz)*sqrt(kperp2(:,:,ia,iz)) &
-                   * (aj1x(:,:,iz,ivmu)*dkperp2dr(:,:,ia,iz) + (0.5*aj0x(:,:,iz,ivmu) - aj1x(:,:,iz,ivmu))  &
+                   * (0.5*aj1x(:,:,iz,ivmu)*dkperp2dr(:,:,ia,iz) + (0.5*aj0x(:,:,iz,ivmu) - aj1x(:,:,iz,ivmu))  &
                        *(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)))
             g1k = g1k + g0k*(spec(is)%tprim*(energy-2.5) + 2*mu(imu)*dBdrho(iz))
 
             call multiply_by_rho(g1k)
 
-            gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g0k
+            gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g1k
           endif 
         enddo
       end do
@@ -2730,7 +2731,7 @@ contains
                     * maxwell_mu(ia,iz,imu,is)*maxwell_vpa(iv,is)*maxwell_fac(is)
 
           g0k = aj0x(:,:,iz,ivmu)*field(:,:,iz,it) & 
-                  *(vpa(iv)**2 + vperp2(ia,iz,imu)-1.5*spec(is)%temp/spec(is)%temp_psi0)
+                  *(vpa(iv)**2 + vperp2(ia,iz,imu) - 1.5*spec(is)%temp/spec(is)%temp_psi0)
       
           gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g0k
 
@@ -2743,11 +2744,11 @@ contains
                 + field(:,:,iz,it)*aj0x(:,:,iz,ivmu)*(vperp2(ia,iz,imu)*dBdrho(iz)/bmag(ia,iz) + 1.5*spec(is)%tprim)
 
 
-            g1k = g1k + g0k*(spec(is)%tprim*(energy-2.5) + 2*mu(imu)*dBdrho(iz))
+            g1k = g1k + g0k*(spec(is)%tprim*(energy-3.5) + 2*mu(imu)*dBdrho(iz))
 
             call multiply_by_rho(g1k)
 
-            gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g0k
+            gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g1k
           endif 
         enddo
       end do
