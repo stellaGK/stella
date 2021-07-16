@@ -4,10 +4,7 @@
 
 module test_volume_averages_mod
   use funit
-  use volume_averages, only : mode_fac
-  use zgrid, only: nzgrid, ntubes
-  use kt_grids, only: naky, nakx
-  use stella_geometry, only: dl_over_b
+
 
   implicit none
 
@@ -16,6 +13,10 @@ contains
   @before
   ! Set up some variables
   subroutine setup
+    use volume_averages, only : mode_fac
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use stella_geometry, only: dl_over_b
     ! Instantiate a very simple geometry
     nzgrid = 1
     ntubes = 1
@@ -29,7 +30,10 @@ contains
   subroutine test_volume_average
     ! volume_average takes a complex array X(ky, kx, z, tube)
     ! and returns |X|^2 averaged over (ky, kx, z, tube)
-
+    use volume_averages, only : mode_fac
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use stella_geometry, only: dl_over_b
     use volume_averages, only : volume_average
 
     complex, dimension (1,1,-1:1,1):: unavg_value
@@ -56,7 +60,10 @@ contains
   subroutine test_fieldline_average_real
     ! fieldline_average_real takes a real array X(ky, kx, z, tube)
     ! and returns X(ky, kx) averaged over (z, tube)
-
+    use volume_averages, only : mode_fac
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use stella_geometry, only: dl_over_b
     use volume_averages, only : fieldline_average
 
     real, dimension(1,1,-1:1,1) :: unavg_value
@@ -83,7 +90,10 @@ contains
   subroutine test_fieldline_average_complex
     ! fieldline_average_complex takes a complex array X(ky, kx, z, tube)
     ! and returns X(ky, kx) averaged over (z, tube)
-
+    use volume_averages, only : mode_fac
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+    use stella_geometry, only: dl_over_b
     use volume_averages, only : fieldline_average
 
     complex, dimension(1,1,-1:1,1) :: unavg_value
@@ -115,7 +125,8 @@ contains
 
   @after
   subroutine teardown
-
+    use volume_averages, only : mode_fac
+    use stella_geometry, only: dl_over_b
     deallocate(mode_fac)
     deallocate(dl_over_b)
 
