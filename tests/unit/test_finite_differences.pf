@@ -1,0 +1,43 @@
+! Test module to for finite_differences module.
+
+
+module test_finite_differences_mod
+  use funit
+
+  implicit none
+
+contains
+
+  @before
+  ! Set up some variables
+  subroutine setup
+
+
+  end subroutine setup
+
+  @test
+  subroutine test_first_order_upwind_real
+
+    use finite_differences, only : first_order_upwind
+
+    complex, dimension (1,1,-1:1,1):: unavg_value
+    real :: avg_value
+
+    !> Test that this sheme can calculate df/dz with first order accuracy.
+
+    unavg_value(1,1,:,1) = (/(0.0, 1.0), (0.0, -1.0), (0.0, 1.0) /)
+    call volume_average(unavg_value, avg_value)
+    @assertEqual(1.0, avg_value, tolerance=1e-12)
+
+    !TODO: Test for multiple kx, ky, tubes
+
+  end subroutine test_first_order_upwind_real
+
+
+  @after
+  subroutine teardown
+
+
+  end subroutine teardown
+
+end module test_volume_averages_mod
