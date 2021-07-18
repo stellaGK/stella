@@ -608,7 +608,7 @@ contains
              df(i) = -((1.+upwnd)*fr(2) - (8.+4.*upwnd)*fr(1) + 6.*upwnd*f(i) &
                       + (8.-4.*upwnd)*f(i-1) - (1.-upwnd)*f(i-2))/(12.*del)
              i = ulim-1
-             df(i) = -((1.0+upwnd)*fr(1) - (8.+4.*upwnd)*f(i+1) + 6.*upwnd*f(i) &
+             df(i) = -((1.+upwnd)*fr(1) - (8.+4.*upwnd)*f(i+1) + 6.*upwnd*f(i) &
                       + (8.-4.*upwnd)*f(i-1) - (1.-upwnd)*f(i-2))/(12.*del)
           end if
           if (iseg == 1.and..not.periodic) then
