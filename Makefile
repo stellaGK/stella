@@ -39,7 +39,7 @@ GK_PROJECT ?= stella
 # Be careful that DEBUG=off means DEBUG=on.
 #
 # turns on debug mode (bin)
-DEBUG ?=
+DEBUG ?= on
 # turns on test mode (bin)
 TEST ?=
 # optimization (on,aggressive,undefined)

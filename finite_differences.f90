@@ -585,6 +585,8 @@ contains
 
     integer :: i, istart, iend, ulim
 
+    ! variable fourth-order centering and third-order upwinding
+
     ! if upwnd is zero or if vpa=0, then use centered differences
     if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
        call second_order_centered_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
@@ -600,41 +602,64 @@ contains
              df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i))/del
              !3upwind-2center
              i = ulim-1
-             df(i) = -(2.*f(i-1)+3.*f(i)-6.*f(i+1)+fr(1))/(6.*del)
+             df(i) = -((3.-upwnd)*f(i-1)+3.*upwnd*f(i)-3.*(1.+upwnd)*f(i+1))/(6.*del)
           else
              i = ulim
-             df(i) = (0.5*(upwnd-1.)*f(i-1)-upwnd*f(i)+0.5*(1.+upwnd)*fr(1))/del
-             df(i) = ((1.0+upwnd)*fr(2) - (8.+4.*upwnd)*fr(1) + 6.0*upwnd*f(i) &
-                     + (8.-2.*upwnd)*f(i-1) - (1.-upwnd)*f(i-2))/(12.0*del)
-             i = ulim - 1
-             df(i) = ((1.0+upwnd)*fr(1) - (8.+4.*upwnd)*f(i+1) + 6.0*upwnd*f(i) &
-                     + (8.-2.*upwnd)*f(i-1) - (1.-upwnd)*f(i-2))/(12.0*del)
+             df(i) = -((1.+upwnd)*fr(2) - (8.+4.*upwnd)*fr(1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*f(i-1) - (1.-upwnd)*f(i-2))/(12.*del)
+             i = ulim-1
+             df(i) = -((1.0+upwnd)*fr(1) - (8.+4.*upwnd)*f(i+1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*f(i-1) - (1.-upwnd)*f(i-2))/(12.*del)
           end if
           if (iseg == 1.and..not.periodic) then
              i = llim
              ! at left boundary, must upwind fully as no info for f(i-1)
              df(i) = (f(i+1)-f(i))/del
+             !3upwind-2center
+             i = llim+1
+             df(i) = -((3.-upwnd)*f(i-1)+3.*upwnd*f(i) & 
+                        -3.*(1.+upwnd)*f(i+1)+upwnd*f(i+2))/(6.*del)
           else
              i = llim
-             df(i) = (0.5*(1.+upwnd)*f(i+1)-upwnd*f(i)+0.5*(upwnd-1.)*fl(2))/del
+             df(i) = -((1.+upwnd)*f(i+2) - (8.+4.*upwnd)*f(i+1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*fl(2) - (1.-upwnd)*fl(1))/(12.*del)
+             i = llim+1
+             df(i) = -((1.+upwnd)*f(i+2) - (8.+4.*upwnd)*f(i+1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*f(i-1) - (1.-upwnd)*fl(2))/(12.*del)
           end if
           istart = ulim
           iend = llim
        else
           if (iseg == 1.and..not.periodic) then
              i = llim
+             !1upwind-2center
              df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i))/del
+             !3upwind-2center
+             i = llim+1
+             df(i) = ((3.-upwnd)*f(i+1)+3.*upwnd*f(i)-3.*(1.+upwnd)*f(i-1))/(6.*del)
           else
              i = llim
-             df(i) = (0.5*(1.-upwnd)*f(i+1)+upwnd*f(i)-0.5*(1.+upwnd)*fl(2))/del
+             df(i) = ((1.+upwnd)*fl(1) - (8.+4.*upwnd)*fl(2) + 6.*upwnd*f(i) &
+                     + (8.-4.*upwnd)*f(i+1) - (1.-upwnd)*f(i+2))/(12.*del)
+             i = llim+1
+             df(i) = ((1.+upwnd)*fl(2) - (8.+4.*upwnd)*f(i-1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*f(i+1) - (1.-upwnd)*f(i+2))/(12.*del)
           end if
           if (iseg == nseg.and..not.periodic) then
              i = ulim
              ! if at rightmost zed, have no info for f(i+1) so must fully upwind
              df(i) = (f(i)-f(i-1))/del
+             !3upwind-2center
+             i = ulim-1
+             df(i) = ((3.-upwnd)*f(i+1)+3.*upwnd*f(i) & 
+                      -3.*(1.+upwnd)*f(i-1)+upwnd*f(i-2))/(6.*del)
           else
              i = ulim
-             df(i) = (0.5*(1.-upwnd)*fr(1)+upwnd*f(i)-0.5*(1.+upwnd)*f(i-1))/del
+             df(i) = ((1.+upwnd)*f(i-2) - (8.+4.*upwnd)*f(i-1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*fr(1) - (1.-upwnd)*fr(2))/(12.*del)
+             i = ulim-1
+             df(i) = ((1.+upwnd)*f(i-2) - (8.+4.*upwnd)*f(i-1) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*f(i+1) - (1.-upwnd)*fr(1))/(12.*del)
           end if
           istart = llim
           iend = ulim
@@ -642,8 +667,8 @@ contains
 
        ! mixed 4th order centered and 3rd order upwind scheme
        do i = istart-2*sgn, iend+2*sgn, -sgn
-          df(i) = sgn*((1.0+upwnd)*f(i+2*sgn) - (8.+4.*upwnd)*f(i+sgn) + 6.0*upwnd*f(i) &
-                     + (8.-2.*upwnd)*f(i-sgn) - (1.-upwnd)*f(i-2*sgn))/(12.0*del)
+          df(i) = -sgn*((1.+upwnd)*f(i+2*sgn) - (8.+4.*upwnd)*f(i+sgn) + 6.*upwnd*f(i) &
+                      + (8.-4.*upwnd)*f(i-sgn) - (1.-upwnd)*f(i-2*sgn))/(12.*del)
        end do
 
     end if

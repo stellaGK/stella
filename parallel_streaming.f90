@@ -394,7 +394,7 @@ contains
 
   subroutine get_dgdz_variable (g, ivmu, dgdz)
 
-     use finite_differences, only: fd_variable_upwinding_zed
+     use finite_differences, only: fd_variable_third_order_upwinding_zed
      use stella_layouts, only: vmu_lo
      use stella_layouts, only: iv_idx
      use zgrid, only: nzgrid, delzed, ntubes
@@ -423,7 +423,7 @@ contains
                ! first fill in ghost zones at boundaries in g(z)
                call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
                ! now get dg/dz
-               call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+               call fd_variable_third_order_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
                     delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &
                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
