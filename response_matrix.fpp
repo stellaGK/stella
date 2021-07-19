@@ -336,7 +336,11 @@ contains
 #ifdef MPI
        select case (lu_option_switch)
        case (lu_option_global)
+#ifdef SCALAPACK
         call parallel_LU_decomposition_global(iky)
+#else
+         call mp_abort('Stella must be built with USE_SCALAPACK in order to use global parallel LU decomposition.')
+#endif
        case (lu_option_local)
 #ifdef ISO_C_BINDING       
          call parallel_LU_decomposition_local(iky)
@@ -1242,6 +1246,8 @@ contains
 
 #endif /* ISO_C_BINDING */
 
+#ifdef SCALAPACK
+
   !this subroutine parallelizes the LU decomposition across
   !all cores. Ideal speed up: ncores
   subroutine parallel_LU_decomposition_global (iky)
@@ -1503,6 +1509,8 @@ contains
 #endif
     deallocate (job_roots)
   end subroutine parallel_LU_decomposition_global
+
+#endif /* SCALAPACK */
 
 #endif /* MPI */
 

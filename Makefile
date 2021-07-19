@@ -72,6 +72,8 @@ USE_LAPACK ?= on
 # does the compiler support the iso_c_binding features of Fortran? 
 # (needed for local parallel LU decomposition) 
 HAS_ISO_C_BINDING ?= on
+# Use SCALAPACK, needed for global parallel LU decomposition
+USE_SCALAPACK ?= on
 #
 # * Targets:
 #
@@ -225,6 +227,10 @@ ifdef USE_LAPACK
         LAPACK_LIB ?= -llapack
 	CPPFLAGS += -DLAPACK
 endif
+ifdef USE_SCALAPACK
+        SCALAPACK_LIB ?= -lscalapack
+	CPPFLAGS += -DSCALAPACK
+endif
 ifdef USE_HDF5
 	ifdef USE_MPI
 		FC = $(H5FC_par)
@@ -269,7 +275,7 @@ endif
 
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
 		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) \
-		$(LAPACK_LIB)
+		$(LAPACK_LIB) $(SCALAPACK_LIB)
 F90FLAGS+= $(F90OPTFLAGS)
 INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
 	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
