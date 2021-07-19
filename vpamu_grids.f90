@@ -680,6 +680,7 @@ contains
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
        call get_laguerre_grids (mu, wgts_mu_tmp)
+       if(vperp_max.lt.0) vperp_max = sqrt(mu(nmu))
        wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
