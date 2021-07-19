@@ -1,4 +1,8 @@
-## Welcome to GitHub Pages
+## Welcome to the `stella` user/developer site
+
+`stella` is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma.
+
+The aspiration is for this site to include instructions for how to download and compile the code, as well as code documentation, input options, and diagnostic information.
 
 You can use the [editor on GitHub](https://github.com/stellaGK/stella/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 
