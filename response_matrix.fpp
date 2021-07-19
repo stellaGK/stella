@@ -1430,8 +1430,6 @@ contains
 
           allocate (ipvt(numroc(n, blocksize, irow, 0, nprow)))
 
-          call blacs_gridinfo(ictxt, nprow,npcol,irow,icol)
-
           call descinit(descA, n, n, blocksize, blocksize, 0, 0, ictxt, max(1, nru), info)
 
 !
