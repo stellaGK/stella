@@ -1404,11 +1404,9 @@ contains
         ictxt=eig_comm
         rctxt=0
 
-        if (isRootNode) rctxt = iproc
+        if (isRootNode) rctxt = eig_comm
 
-        !icall sl_init(rctxt,1,1)
         call blacs_gridinit(rctxt,'Row',1,1)
-        !call blacs_get(eig_comm,10,ictxt)
         call blacs_gridinit(ictxt,'Row',nprow,npcol)
         call blacs_gridinfo(ictxt, nprow,npcol,irow,icol)
 
@@ -1434,7 +1432,7 @@ contains
           allocate (A(numroc(n, blocksize, irow, 0, nprow), &
                     numroc(n, blocksize, icol, 0, npcol)))
 
-          allocate (ipvt(numroc(n, blocksize, irow, 0, nprow)))
+          allocate (ipvt(n))
 
           call descinit(descA, n, n, blocksize, blocksize, 0, 0, ictxt, max(1, nru), info)
 
