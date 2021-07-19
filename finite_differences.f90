@@ -10,6 +10,7 @@ module finite_differences
   public :: first_order_upwind_zed
   public :: third_order_upwind_zed
   public :: second_order_centered_zed
+  public :: fourth_order_centered_zed
   public :: fd_variable_upwinding_zed
   public :: four_point_triangle
   public :: fd3pt, fd5pt
@@ -66,6 +67,11 @@ module finite_differences
   interface second_order_centered_zed
      module procedure second_order_centered_zed_real
      module procedure second_order_centered_zed_complex
+  end interface
+
+  interface fourth_order_centered_zed
+     module procedure fourth_order_centered_zed_real
+     module procedure fourth_order_centered_zed_complex
   end interface
 
   interface d2_3pt
@@ -502,6 +508,106 @@ contains
 
   end subroutine second_order_centered_zed_complex
 
+  subroutine fourth_order_centered_zed_real (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
+
+    implicit none
+
+    integer, intent (in) :: llim, iseg, nseg
+    real, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    real, dimension (:), intent (in) :: fl, fr
+    logical, intent (in) :: periodic
+    real, dimension (llim:), intent (out) :: df
+
+    integer :: i, ulim
+
+    ulim = size(f)+llim-1    
+
+    i = llim
+    if (iseg == 1 .and. sgn>0 .and..not.periodic) then
+       ! sgn > 0 corresponds to negative advection speed
+       ! upwind at boundary requires taking information from right
+       df(i) = (f(i+1)-f(i))/del
+       i = llim+1
+       ! second order centering 
+       df(i) = 0.5*(f(i+1)-f(i-1))/del
+    else
+       df(i) = (-f(i+2) + 8.*f(i+1) - 8.*fl(2) + fl(1))/(12.*del)
+       i = llim+1
+       df(i) = (-f(i+2) + 8.*f(i+1) - 8.*f(i-1) + fl(2))/(12.*del)
+    end if
+
+    i = ulim
+    if (iseg == nseg .and. sgn<0 .and..not.periodic) then
+       ! sgn < 0 corresponds to positive advection speed
+       ! upwind at boundary requires taking information from left
+       df(i) = (f(i)-f(i-1))/del
+       i = ulim-1
+       ! second order centering 
+       df(i) = 0.5*(f(i+1)-f(i-1))/del
+    else
+       df(i) = (-fr(2) + 8.*fr(1) - 8.*f(i-1) + f(i-2))/(12.*del)
+       i = ulim-1
+       df(i) = (-fr(1) + 8.*f(i+1) - 8.*f(i-1) + f(i-2))/(12.*del)
+    end if
+    
+    do i = llim+2, ulim-2
+       df(i) = (-f(i+2) + 8.*f(i+1) - 8.*f(i-1) + f(i-2))/(12.*del)
+    end do
+
+  end subroutine fourth_order_centered_zed_real
+
+  subroutine fourth_order_centered_zed_complex (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
+
+    implicit none
+
+    integer, intent (in) :: llim, iseg, nseg
+    complex, dimension (llim:), intent (in) :: f
+    real, intent (in) :: del
+    integer, intent (in) :: sgn
+    complex, dimension (:), intent (in) :: fl, fr
+    logical, intent (in) :: periodic
+    complex, dimension (llim:), intent (out) :: df
+
+    integer :: i, ulim
+
+    ulim = size(f)+llim-1    
+
+    i = llim
+    if (iseg == 1 .and. sgn>0 .and..not.periodic) then
+       ! sgn > 0 corresponds to negative advection speed
+       ! upwind at boundary requires taking information from right
+       df(i) = (f(i+1)-f(i))/del
+       i = llim+1
+       ! second order centering 
+       df(i) = 0.5*(f(i+1)-f(i-1))/del
+    else
+       df(i) = (-f(i+2) + 8.*f(i+1) - 8.*fl(2) + fl(1))/(12.*del)
+       i = llim+1
+       df(i) = (-f(i+2) + 8.*f(i+1) - 8.*f(i-1) + fl(2))/(12.*del)
+    end if
+
+    i = ulim
+    if (iseg == nseg .and. sgn<0 .and..not.periodic) then
+       ! sgn < 0 corresponds to positive advection speed
+       ! upwind at boundary requires taking information from left
+       df(i) = (f(i)-f(i-1))/del
+       i = ulim-1
+       ! second order centering 
+       df(i) = 0.5*(f(i+1)-f(i-1))/del
+    else
+       df(i) = (-fr(2) + 8.*fr(1) - 8.*f(i-1) + f(i-2))/(12.*del)
+       i = ulim-1
+       df(i) = (-fr(1) + 8.*f(i+1) - 8.*f(i-1) + f(i-2))/(12.*del)
+    end if
+    
+    do i = llim+2, ulim-2
+       df(i) = (-f(i+2) + 8.*f(i+1) - 8.*f(i-1) + f(i-2))/(12.*del)
+    end do
+
+  end subroutine fourth_order_centered_zed_complex
+
   subroutine fd_variable_upwinding_zed (llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, periodic, df)
 
     implicit none
@@ -518,7 +624,7 @@ contains
 
     ! if upwnd is zero or if vpa=0, then use centered differences
     if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
-       call second_order_centered_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
+       call fourth_order_centered_zed (llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
     else
        ulim = size(f)+llim-1
        
