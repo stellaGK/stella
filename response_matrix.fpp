@@ -27,11 +27,12 @@ contains
     use fields_arrays, only: response_matrix
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use kt_grids, only: naky, zonal_mode
+    use kt_grids, only: naky
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: neigen, ikxmod
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: periodic
     use job_manage, only: time_message
     use mp, only: proc0, job, mp_abort
     use run_parameters, only: mat_gen, lu_option_switch
@@ -129,7 +130,7 @@ contains
       if(sgproc0) then
         do iky = 1, naky
           do ie = 1, neigen(iky)
-            if (zonal_mode(iky)) then
+            if (periodic(iky)) then
                nresponse = nsegments(ie,iky)*nzed_segment
             else
                nresponse = nsegments(ie,iky)*nzed_segment+1
@@ -184,7 +185,7 @@ contains
         
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
-          if (zonal_mode(iky)) then
+          if (periodic(iky)) then
              nresponse = nz_ext-1
           else
              nresponse = nz_ext
@@ -238,8 +239,8 @@ contains
           ! ikxmod gives the kx corresponding to iseg,ie,iky
           ikx = ikxmod(iseg,ie,iky)
           izl_offset = 0
-          ! avoid double-counting of periodic points for zonal mode
-          if (zonal_mode(iky)) then
+          ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
+          if (periodic(iky)) then
              izup = iz_up(iseg)-1
           else
              izup = iz_up(iseg)
@@ -295,7 +296,7 @@ contains
         
            ! treat zonal mode specially to avoid double counting
            ! as it is periodic
-           if (zonal_mode(iky)) then
+           if (periodic(iky)) then
              nresponse = nz_ext-1
            else
              nresponse = nz_ext
@@ -398,10 +399,11 @@ contains
   
     use fields_arrays, only: response_matrix
     use common_types, only: response_matrix_type
-    use kt_grids, only: naky, zonal_mode
+    use kt_grids, only: naky
     use extended_zgrid, only: neigen
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: periodic
     use mp, only: proc0, job, broadcast, mp_abort
 
     implicit none
@@ -453,7 +455,7 @@ contains
         
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
-          if (zonal_mode(iky)) then
+          if (periodic(iky)) then
              nresponse = nz_ext-1
           else
              nresponse = nz_ext
@@ -500,7 +502,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use zgrid, only: delzed, nzgrid
-    use kt_grids, only: zonal_mode
+    use extended_zgrid, only: periodic
     use species, only: spec
     use stella_geometry, only: gradpar, dbdzed
     use vpamu_grids, only: vpa, mu
@@ -599,7 +601,7 @@ contains
              if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
              ! zonal mode BC is periodic instead of zero, so must
              ! treat specially
-             if (zonal_mode(iky)) then
+             if (periodic(iky)) then
                 if (idx == 1) then
                    gext(nz_ext,ivmu) = fac0
                 else if (idx == nz_ext-1) then
@@ -647,7 +649,7 @@ contains
              if (idx > 1) gext(idx-1,ivmu) = fac1
              ! zonal mode BC is periodic instead of zero, so must
              ! treat specially
-             if (zonal_mode(iky)) then
+             if (periodic(iky)) then
                 if (idx == 1) then
                    gext(nz_ext,ivmu) = -fac0
                    gext(nz_ext-1,ivmu) = fac1
@@ -658,7 +660,7 @@ contains
           end if
 
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
-          if (zonal_mode(iky)) then
+          if (periodic(iky)) then
              call sweep_zed_zonal_response (iv, is, stream_sign(iv), gext(:,ivmu))
           else
              ! invert parallel streaming equation to get g^{n+1} on extended zed grid
@@ -726,7 +728,7 @@ contains
              if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
              ! zonal mode BC is periodic instead of zero, so must
              ! treat specially
-             if (zonal_mode(iky)) then
+             if (periodic(iky)) then
                 if (idx == 1) then
                    gext(nz_ext,ivmu) = fac0
                 else if (idx == nz_ext-1) then
@@ -764,7 +766,7 @@ contains
              if (idx > 1) gext(idx-1,ivmu) = fac1
              ! zonal mode BC is periodic instead of zero, so must
              ! treat specially
-             if (zonal_mode(iky)) then
+             if (periodic(iky)) then
                 if (idx == 1) then
                    gext(nz_ext,ivmu) = -fac0
                    gext(nz_ext-1,ivmu) = fac1
@@ -775,7 +777,7 @@ contains
           end if
 
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
-          if (zonal_mode(iky)) then
+          if (periodic(iky)) then
              call sweep_zed_zonal_response (iv, is, stream_sign(iv), gext(:,ivmu))
           else
              ! invert parallel streaming equation to get g^{n+1} on extended zed grid
@@ -982,7 +984,7 @@ contains
 
     integer :: ierr
 
-    call mpi_win_free(window,ierr)
+    if (window.ne.MPI_WIN_NULL) call mpi_win_free(window,ierr)
 #endif 
 
     if (allocated(response_matrix)) deallocate (response_matrix)

@@ -100,9 +100,9 @@ contains
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix, read_response_matrix
     use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
+    use init_g, only: tstart
     use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
     use stella_time, only: init_tstart, init_delt
-    use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
     use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gnew, gvmu
@@ -119,6 +119,7 @@ contains
     use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
     use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
+    use dissipation, only: init_dissipation
     use volume_averages, only: init_volume_averages, volume_average
 
     implicit none
@@ -239,6 +240,8 @@ contains
     call init_dist_fn
     if (debug) write(6,*) "stella::init_stella::init_redistribute"
     call init_redistribute
+    if (debug) write (6,*) 'stella::init_stella::init_dissipation'
+    call init_dissipation
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
     if (debug) write(6,*) "stella::init_stella::ginit"
@@ -321,6 +324,7 @@ contains
     if (proc0) then
       write (*,*) ' '
       write (*,*) ' '
+      write (*,*) ''//achar(27)//'[32m'
       write (*,*) "            I8            ,dPYb, ,dPYb,            "
       write (*,*) "            I8            IP'`Yb IP'`Yb            "
       write (*,*) "         88888888         I8  8I I8  8I            "
@@ -330,6 +334,7 @@ contains
       write (*,*) " ,8'  Yb   ,I8,  I8, ,8I  I8P    I8P    i8'    ,8I "
       write (*,*) ",8'_   8) ,d88b, `YbadP' ,d8b,_ ,d8b,_ ,d8,   ,d8b,"
       write (*,*) 'P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
+      write (*,*) ''//achar(27)//'[0m'
       write (*,*) ' '
       write (*,*) ' '
       write (*,*) '                       Version ', VERNUM

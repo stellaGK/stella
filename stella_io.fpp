@@ -20,7 +20,7 @@ module stella_io
   public :: write_kspectra_nc
   public :: write_moments_nc
   public :: write_radial_fluxes_nc
-  public :: write_fluxes_kxky_nc
+  public :: write_fluxes_kxkyz_nc
   public :: get_nout
   public :: sync_nc
 
@@ -34,8 +34,8 @@ module stella_io
   integer, dimension (7) :: moment_dim
   integer, dimension (6) :: field_dim
   integer, dimension (5) :: zvs_dim
-  integer, dimension (4) :: vmus_dim
-  integer, dimension (4) :: kykxaz_dim, flx_dim
+  integer, dimension (4) :: vmus_dim, kykxaz_dim
+  integer, dimension (6) :: flx_dim
   integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim, rad_grid_dim
@@ -46,7 +46,7 @@ module stella_io
   integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
   integer :: phi_vs_t_id, phi2_vs_kxky_id
   integer :: pflux_x_id, vflux_x_id, qflux_x_id
-  integer :: pflx_kxky_id, vflx_kxky_id, qflx_kxky_id
+  integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
   integer :: density_id, upar_id, temperature_id
   integer :: gvmus_id, gzvs_id
   integer :: input_id
@@ -155,11 +155,6 @@ contains
     if (status /= nf90_noerr) then
       status = nf90_def_dim (ncid, 'tube', ntubes, ntubes_dim)
       if (status /= nf90_noerr) call netcdf_error (status, dim='tube')
-    endif
-    status = nf90_inq_dimid(ncid,'theta0',nakx_dim)
-    if (status /= nf90_noerr) then
-      status = nf90_def_dim (ncid, 'theta0', nakx, nakx_dim)
-      if (status /= nf90_noerr) call netcdf_error (status, dim='theta0')
     endif
     status = nf90_inq_dimid(ncid,'zed',nttot_dim)
     if (status /= nf90_noerr) then
@@ -305,8 +300,10 @@ contains
 
     flx_dim (1) = naky_dim
     flx_dim (2) = nakx_dim
-    flx_dim (3) = nspec_dim
-    flx_dim (4) = time_dim    
+    flx_dim (3) = nttot_dim
+    flx_dim (4) = ntubes_dim
+    flx_dim (5) = nspec_dim
+    flx_dim (6) = time_dim    
 
     kx_dim (1) = nakx_dim
     kx_dim (2) = time_dim
@@ -807,25 +804,34 @@ contains
 !
 !
     if (write_fluxes_kxky) then
-       status = nf90_def_var &
-            (ncid, 'pflx_kxky', netcdf_real, flx_dim, pflx_kxky_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='pflx_kxky')
-       status = nf90_put_att (ncid, pflx_kxky_id, 'long_name', 'Particle flux vs (ky,kx,spec,t)')
-       if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxky_id, att='long_name')
-!               
-       status = nf90_def_var &
-            (ncid, 'vflx_kxky', netcdf_real, flx_dim, vflx_kxky_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='vflx_kxky')
-       status = nf90_put_att (ncid, vflx_kxky_id, 'long_name', 'Momentum flux vs (ky,kx,spec,t)')
-       if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxky_id, att='long_name')
-!
-       status = nf90_def_var &
-            (ncid, 'qflx_kxky', netcdf_real, flx_dim, qflx_kxky_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='qflx_kxky')
-       status = nf90_put_att (ncid, qflx_kxky_id, 'long_name', 'Heat flux vs (ky,kx,spec,t)')
-       if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxky_id, att='long_name')
-    endif
-!
+      status = nf90_inq_varid(ncid,'pflx_kxky',pflx_kxkyz_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'pflx_kxky', netcdf_real, flx_dim, pflx_kxkyz_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='pflx_kxky')
+      endif
+      status = nf90_put_att (ncid, pflx_kxkyz_id, 'long_name', 'Particle flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxkyz_id, att='long_name')
+!         
+      status = nf90_inq_varid(ncid,'vflx_kxky',vflx_kxkyz_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'vflx_kxky', netcdf_real, flx_dim, vflx_kxkyz_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='vflx_kxky')
+      endif
+      status = nf90_put_att (ncid, vflx_kxkyz_id, 'long_name', 'Momentum flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxkyz_id, att='long_name')
+!         
+      status = nf90_inq_varid(ncid,'qflx_kxky',qflx_kxkyz_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'qflx_kxky', netcdf_real, flx_dim, qflx_kxkyz_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='qflx_kxky')
+      endif
+      status = nf90_put_att (ncid, qflx_kxkyz_id, 'long_name', 'Heat flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxkyz_id, att='long_name')
+   end if
+!      
 !
 !
     if (write_moments) then
@@ -1059,9 +1065,10 @@ contains
 !
 !
 !
-  subroutine write_fluxes_kxky_nc (nout, pflx_kxky, vflx_kxky, qflx_kxky)
+  subroutine write_fluxes_kxkyz_nc (nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
 
     use kt_grids, only: nakx, naky
+    use zgrid, only: nztot, ntubes
     use species, only: nspec
 # ifdef NETCDF
     use netcdf, only: nf90_put_var, nf90_sync
@@ -1070,41 +1077,43 @@ contains
     implicit none
 
     integer, intent (in) :: nout
-    real, dimension (:,:,:), intent (in) :: pflx_kxky, vflx_kxky, qflx_kxky
+    real, dimension (:,:,:,:,:), intent (in) :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
 
 # ifdef NETCDF
     integer :: status
-    integer, dimension (4) :: start, count
+    integer, dimension (6) :: start, count
 
     start = 1
-    start(4) = nout
+    start(6) = nout
     count(1) = naky
     count(2) = nakx
-    count(3) = nspec
-    count(4) = 1
+    count(3) = nztot
+    count(4) = ntubes
+    count(5) = nspec
+    count(6) = 1
 !
-    status = nf90_put_var (ncid, pflx_kxky_id, pflx_kxky, start=start, count=count)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxky_id)
+    status = nf90_put_var (ncid, pflx_kxkyz_id, pflx_kxkyz, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxkyz_id)
 !
-    status = nf90_put_var (ncid, vflx_kxky_id, vflx_kxky, start=start, count=count)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxky_id)
+    status = nf90_put_var (ncid, vflx_kxkyz_id, vflx_kxkyz, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxkyz_id)
 !
-    status = nf90_put_var (ncid, qflx_kxky_id, qflx_kxky, start=start, count=count)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxky_id)
+    status = nf90_put_var (ncid, qflx_kxkyz_id, qflx_kxkyz, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxkyz_id)
 !
 !   Buffers to disk
 !
     status = NF90_SYNC(ncid)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxky_id)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxkyz_id)
 !
     status = NF90_SYNC(ncid)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxky_id)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxkyz_id)
 !
     status = NF90_SYNC(ncid)
-    if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxky_id)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxkyz_id)
 # endif
 
-  end subroutine write_fluxes_kxky_nc
+  end subroutine write_fluxes_kxkyz_nc
 !
   subroutine write_moments_nc (nout, density, upar, temperature)
 

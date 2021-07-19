@@ -1,0 +1,2 @@
+ADD_TEST_SUITE(test_simple_mod_suite)
+ADD_TEST_SUITE(test_utils_convert_mod_suite)

@@ -73,6 +73,7 @@ constants.o:
 convert.o: 
 dissipation.o: \
 	 constants.o \
+	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
@@ -84,6 +85,7 @@ dissipation.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 multibox.o \
 	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -92,6 +94,7 @@ dissipation.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 dist_fn.o: \
@@ -129,7 +132,6 @@ euterpe_interface.o: \
 	 stella_geometry.o 
 extended_zgrid.o: \
 	 kt_grids.o \
-	 species.o \
 	 zgrid.o 
 fft_work.o: \
 	 constants.o \
@@ -222,7 +224,6 @@ init_g.o: \
 	 kt_grids.o \
 	 mp.o \
 	 ran.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_save.o \
@@ -490,7 +491,6 @@ stella_save.o: \
 	 mp.o \
 	 netcdf_utils.o \
 	 physics_flags.o \
-	 species.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -506,6 +506,7 @@ text_options.o:
 time_advance.o: \
 	 constants.o \
 	 dissipation.o \
+	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \

@@ -26,7 +26,6 @@ module extended_zgrid
   ! pre-compute to avoid conditionals in loops
   integer, dimension (:), allocatable :: it_left, it_right
 
-  ! FLAG -- NEED TO IMPLEMENT PERIODIC FOR ZONAL FLOW
   logical, dimension (:), allocatable :: periodic
 
   logical :: extended_zgrid_initialized = .false.
@@ -67,15 +66,14 @@ contains
     select case (boundary_option_switch)
     case (boundary_option_linked)
 
-       ! if linked BC, then iky=1 corresponds to ky=0 which has no connections
-       neigen(1) = nakx
-       if (naky > 1) then
-          do iky = 2, naky
-             ! must link different kx values at theta = +/- pi
-             ! neigen is the number of independent eigenfunctions along the field line
+       ! all periodic modes (e.g., the zonal mode) have no connections
+       do iky = 1, naky
+          if (periodic(iky)) then
+             neigen(iky) = nakx
+          else
              neigen(iky) = min((iky-1)*jtwist,nakx)
-          end do
-       end if
+          end if
+       end do
 
        neigen_max = maxval(neigen)
 
@@ -260,7 +258,7 @@ contains
           end if
        end do
     end do
-
+    
     if (allocated(ikx_shift_end)) deallocate (ikx_shift_end)
     if (allocated(ikx_shift)) deallocate (ikx_shift)
 
@@ -291,7 +289,6 @@ contains
   subroutine fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
-    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -302,8 +299,7 @@ contains
     ! stream_sign > 0 --> stream speed < 0
 
     if (iseg == 1) then
-       ! if zonal mode, then periodic BC instead of zero BC
-       if (zonal_mode(iky)) then
+       if (periodic(iky)) then
           gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1,it)
        else
           gleft = 0.0
@@ -316,8 +312,8 @@ contains
        ! connect to segment with larger theta-theta0 (on right)
        gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))
     else
-       ! apply periodic BC to zonal mode and zero BC otherwise
-       if (zonal_mode(iky)) then
+       ! apply periodic BC where necessary and zero BC otherwise
+       if (periodic(iky)) then
           gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2,it)
        else
           gright = 0.0

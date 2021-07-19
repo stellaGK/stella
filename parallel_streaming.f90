@@ -205,14 +205,12 @@ contains
        if (driftkinetic_implicit) g0(:,:,:,:) = g0(:,:,:,:) - phi
 
     ! get d<phi>/dz, with z the parallel coordinate and store in g1
-       call get_dgdz (g0, ivmu, g1)
-    !    call get_dgdz_centered (g0, ivmu, g1)
+       call get_dgdz_variable (g0, ivmu, g1)
     ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
        if (driftkinetic_implicit) then
          g0 = 0.
        else
-         call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
-         !call get_dgdz_centered (g(:,:,:,:,ivmu), ivmu, g0)
+         call get_dgdz_variable (g(:,:,:,:,ivmu), ivmu, g0)
        end if
 
        iv = iv_idx(vmu_lo,ivmu)
@@ -312,46 +310,47 @@ contains
 
   end subroutine add_parallel_streaming_radial_variation
 
-  subroutine get_dgdz (g, ivmu, dgdz)
+! subroutine get_dgdz (g, ivmu, dgdz)
 
-    use finite_differences, only: third_order_upwind_zed
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx
-    use zgrid, only: nzgrid, delzed, ntubes
-    use extended_zgrid, only: neigen, nsegments
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: ikxmod
-    use extended_zgrid, only: fill_zed_ghost_zones
-    use kt_grids, only: naky, zonal_mode
+!   use finite_differences, only: third_order_upwind_zed
+!   use stella_layouts, only: vmu_lo
+!   use stella_layouts, only: iv_idx
+!   use zgrid, only: nzgrid, delzed, ntubes
+!   use extended_zgrid, only: neigen, nsegments
+!   use extended_zgrid, only: iz_low, iz_up
+!   use extended_zgrid, only: ikxmod
+!   use extended_zgrid, only: fill_zed_ghost_zones
+!   use extended_zgrid, only: periodic
+!   use kt_grids, only: naky
 
-    implicit none
+!   implicit none
 
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
-    integer, intent (in) :: ivmu
+!   complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+!   complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+!   integer, intent (in) :: ivmu
 
-    integer :: iseg, ie, it, iky, iv
-    complex, dimension (2) :: gleft, gright
+!   integer :: iseg, ie, it, iky, iv
+!   complex, dimension (2) :: gleft, gright
 
-    ! FLAG -- assuming delta zed is equally spaced below!
-    iv = iv_idx(vmu_lo,ivmu)
-    do iky = 1, naky
-      do it = 1, ntubes
-        do ie = 1, neigen(iky)
-          do iseg = 1, nsegments(ie,iky)
-            ! first fill in ghost zones at boundaries in g(z)
-            call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
-            ! now get dg/dz
-            call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                 g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                 delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
-                 dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-            end do
-          end do
-      end do
-    end do
+!   ! FLAG -- assuming delta zed is equally spaced below!
+!   iv = iv_idx(vmu_lo,ivmu)
+!   do iky = 1, naky
+!     do it = 1, ntubes
+!       do ie = 1, neigen(iky)
+!         do iseg = 1, nsegments(ie,iky)
+!           ! first fill in ghost zones at boundaries in g(z)
+!           call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+!           ! now get dg/dz
+!           call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+!                g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+!                delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
+!                dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+!           end do
+!         end do
+!     end do
+!   end do
 
-  end subroutine get_dgdz
+! end subroutine get_dgdz
 
 ! subroutine get_dgdz_centered (g, ivmu, dgdz)
 
@@ -363,7 +362,8 @@ contains
 !    use extended_zgrid, only: iz_low, iz_up
 !    use extended_zgrid, only: ikxmod
 !    use extended_zgrid, only: fill_zed_ghost_zones
-!    use kt_grids, only: naky, zonal_mode
+!    use extended_zgrid, only: periodic
+!    use kt_grids, only: naky
 
 !    implicit none
 
@@ -384,7 +384,7 @@ contains
 !              ! now get dg/dz
 !              call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
 !                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-!                   delzed(0), stream_sign(iv), gleft, gright, zonal_mode(iky), &
+!                   delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
 !                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
 !           end do
 !         end do
@@ -402,8 +402,9 @@ contains
      use extended_zgrid, only: iz_low, iz_up
      use extended_zgrid, only: ikxmod
      use extended_zgrid, only: fill_zed_ghost_zones
+     use extended_zgrid, only: periodic
      use run_parameters, only: zed_upwind
-     use kt_grids, only: naky, zonal_mode
+     use kt_grids, only: naky
 
      implicit none
 
@@ -424,7 +425,7 @@ contains
                ! now get dg/dz
                call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                    delzed(0), stream_sign(iv), zed_upwind,gleft, gright, zonal_mode(iky), &
+                    delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &
                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
             end do
           end do
@@ -437,7 +438,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx!, zonal_mode
+    use kt_grids, only: naky, nakx
 
     implicit none
 
@@ -450,7 +451,6 @@ contains
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
     src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
-  !  if (zonal_mode(1)) src(1,:,-nzgrid,:) = src(1,:,nzgrid,:)
 
   end subroutine add_stream_term
 
@@ -672,10 +672,10 @@ contains
     use extended_zgrid, only: nzed_segment
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
+    use extended_zgrid, only: periodic
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use kt_grids, only: naky
-    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -692,7 +692,7 @@ contains
     sgn = stream_sign(iv)
 
     do iky = 1, naky
-       if (zonal_mode(iky)) then
+       if (periodic(iky)) then
           call sweep_zed_zonal (iv, is, sgn, g(iky,:,:,:))
        else
           do it = 1, ntubes
@@ -777,8 +777,8 @@ contains
     use extended_zgrid, only: neigen, nsegments, nzed_segment
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
+    use extended_zgrid, only: periodic
     use kt_grids, only: naky
-    use kt_grids, only: zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use run_parameters, only: zed_upwind, time_upwind
@@ -801,7 +801,7 @@ contains
     ! will sweep to right (positive vpa) or left (negative vpa)
     ! and solve for g on the extended z-grid
     do iky = 1, naky
-       if (zonal_mode(iky)) then
+       if (periodic(iky)) then
           call sweep_zed_zonal (iv, is, sgn, g(iky,:,:,:))
        else
           do it = 1, ntubes
@@ -887,7 +887,8 @@ contains
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
     use extended_zgrid, only: ikxmod
-    use kt_grids, only: naky, zonal_mode
+    use extended_zgrid, only: periodic
+    use kt_grids, only: naky
     use fields_arrays, only: response_matrix
 
     implicit none
@@ -900,8 +901,8 @@ contains
     
     ! need to put the fields into extended zed grid
     do iky = 1, naky
-       ! avoid double counting of periodic endpoints for zonal modes
-       if (zonal_mode(iky)) then
+       ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes
+       if (periodic(iky)) then
           do it = 1, ntubes
              do ie = 1, neigen(iky)
                 ikx = ikxmod(1,ie,iky)

@@ -198,7 +198,7 @@ contains
     ierr = error_unit()
     call get_option_value &
          (ginit_option, ginitopts, ginitopt_switch, &
-         ierr, "ginit_option in ginit_knobs")
+         ierr, "ginit_option in ginit_knobs",stop_on_error=.true.)
   end subroutine read_parameters
 
   subroutine ginit_default
@@ -374,6 +374,7 @@ contains
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: ikxmod, nsegments, neigen
     use extended_zgrid, only: it_right
+    use extended_zgrid, only: periodic
     use kt_grids, only: naky, nakx, reality, zonal_mode
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -444,11 +445,16 @@ contains
           end do
        end do
 
-       !Sort out the zonal/self-periodic modes
+       ! enforce periodicity where required
+       do iky = 1, naky
+          if (periodic(iky)) then
+             phi(1,:,nzgrid,:) = phi(1,:,-nzgrid,:)
+          end if
+       end do
+
+       ! zero out the kx=ky=0 mode and apply optional
+       ! scaliing factor to all zonal modes
        if (zonal_mode(1)) then
-          ! ensure that the zonal modes are periodic
-          phi(1,:,nzgrid,:) = phi(1,:,-nzgrid,:)
-          
           !Apply scaling factor
           phi(1,:,:,:) = phi(1,:,:,:)*zf_init
           
@@ -467,8 +473,8 @@ contains
 
     do iky = 1, naky
        do ie = 1, neigen(iky)
-          ! enforce zero BC at ends of domain
-          if (.not.zonal_mode(iky)) then
+          ! enforce zero BC at ends of domain, unless periodic
+          if (.not.periodic(iky)) then
              phi(iky,ikxmod(1,ie,iky),-nzgrid,:) = 0.0
              phi(iky,ikxmod(nsegments(ie,iky),ie,iky),nzgrid,:) = 0.0
           end if
