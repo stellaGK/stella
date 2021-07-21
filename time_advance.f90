@@ -1482,9 +1482,9 @@ contains
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
              call forward_transform(g0k,g0xy)
 
-             call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
+             call get_dchidx (ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
              if(prp_shear_enabled.and.hammett_flow_shear) then
-               call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0a)
+               call get_dchidy (ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0a)
                g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
              endif
              call forward_transform(g0k,g1xy)
@@ -1512,7 +1512,7 @@ contains
                g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
              endif
              call forward_transform(g0k,g0xy)
-             call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
+             call get_dchidy (ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
              call forward_transform(g0k,g1xy)
              g1xy = g1xy*exb_nonlin_fac
              bracket = bracket - g0xy*g1xy
@@ -1961,7 +1961,7 @@ contains
             g0k = 0.
 
             !wstar variation
-            call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0a)
+            call get_dchidy (ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0a)
             g0k = g0k + g0a*wstarp(ia,iz,ivmu)
 
             !radial variation in ExB nonlinearity is handled in advance_ExB_nonlinearity

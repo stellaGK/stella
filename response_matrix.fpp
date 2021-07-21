@@ -573,7 +573,6 @@ contains
     use stella_geometry, only: gradpar, dbdzed
     use vpamu_grids, only: vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-    use fields_arrays, only: response_matrix
     use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: driftkinetic_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
@@ -581,7 +580,7 @@ contains
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
 #if defined ISO_C_BINDING && defined MPI
-    use mp, only: sgproc0, mp_abort
+    use mp, only: mp_abort
 #endif
 
     implicit none
@@ -603,7 +602,7 @@ contains
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           iv = iv_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
-          call get_rhs_homogenoues_equation(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gext, field)
+          call get_rhs_homogenoues_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
 
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
           if (zonal_mode(iky)) then
@@ -749,32 +748,26 @@ contains
 
   end subroutine get_dgdfield_matrix_column
 
-  subroutine get_rhs_homogenoues_equation(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gext, field)
+  subroutine get_rhs_homogenoues_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_time, only: code_dt
-    use zgrid, only: delzed, nzgrid
-    use kt_grids, only: zonal_mode, nakx, naky, aky, akx
+    use kt_grids, only: zonal_mode, nakx, naky!, aky, akx
     use species, only: spec
-    use stella_geometry, only: gradpar, dbdzed
     use vpamu_grids, only: vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-    use fields_arrays, only: response_matrix
     use gyro_averages, only: aj0x, aj1x
     use run_parameters, only: driftkinetic_implicit, wdrift_implicit, wstar_implicit, stream_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
-    use dist_fn_arrays, only: wstar, wdrifty_phi, wdriftx_phi
 #if defined ISO_C_BINDING && defined MPI
-    use mp, only: sgproc0, mp_abort
+    use mp, only: mp_abort
 #endif
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    integer, intent (in) :: iky, ikx, iz, ia, idx, nz_ext, ivmu
     character (*), intent (in) :: field
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
@@ -816,21 +809,21 @@ contains
     end if
 
     if (stream_implicit) then
-      call get_rhs_streaming_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, stream_fac0, stream_fac1)
+      call get_rhs_streaming_term(iz, ia, ivmu, gyro_fac, stream_fac0, stream_fac1)
     else
       stream_fac0 = 0.
       stream_fac1 = 0.
     end if
 
     if (wdrift_implicit) then
-      call get_rhs_wdrift_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
+      call get_rhs_wdrift_term(iky, ikx, iz, ia, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
     else
       wdrift_fac0 = 0.
       wdrift_fac1 = 0.
     end if
 
     if (wstar_implicit) then
-      call get_rhs_wstar_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
+      call get_rhs_wstar_term(iky, iz, ia, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
     else
       wstar_fac0 = 0.
       wstar_fac1 = 0.
@@ -874,22 +867,22 @@ contains
   end subroutine get_rhs_homogenoues_equation
 
 
-  subroutine get_rhs_streaming_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, stream_fac0, stream_fac1)
+  subroutine get_rhs_streaming_term(iz, ia, ivmu, gyro_fac, stream_fac0, stream_fac1)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_time, only: code_dt
     use zgrid, only: delzed, nzgrid
     use species, only: spec
-    use stella_geometry, only: gradpar, dbdzed
-    use vpamu_grids, only: vpa, mu
+    use stella_geometry, only: gradpar
+    use vpamu_grids, only: vpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    integer, intent (in) :: iz, ia, ivmu
     real, intent(in) :: gyro_fac
     real, intent (in out) :: stream_fac0, stream_fac1
 
@@ -958,24 +951,20 @@ contains
 
   end subroutine get_rhs_streaming_term
 
-  subroutine get_rhs_wdrift_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
+  subroutine get_rhs_wdrift_term(iky, ikx, iz, ia, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
 
     use constants, only: zi
     use kt_grids, only: aky, akx
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use stella_time, only: code_dt
-    use zgrid, only: delzed, nzgrid
-    use species, only: spec
-    use stella_geometry, only: gradpar, dbdzed
-    use vpamu_grids, only: vpa, mu
+    use zgrid, only: nzgrid
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
     use dist_fn_arrays, only: wdrifty_phi, wdriftx_phi
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    integer, intent (in) :: iky, ikx, iz, ia, ivmu
     real, intent(in) :: gyro_fac
     complex, intent(in out) :: wdrift_fac0, wdrift_fac1
 
@@ -985,7 +974,7 @@ contains
 
     ! 0.125 to account for one linear interpolation (wdriftx,y_phi), a
     ! (1+time_upwind)/2 factor and a (1+/-zed_upwind)/2 factor
-    wdrift_fac = 0.125*(1+time_upwind)
+    wdrift_fac = 0.125*(1+time_upwind)*gyro_fac
 
     ! Because our discretisation couples neighboring z gridpoints, we
     ! need to find quantities (gradpar, maxwell_mu) at the gridpoint to the
@@ -1047,24 +1036,20 @@ contains
   end subroutine get_rhs_wdrift_term
 
 
-  subroutine get_rhs_wstar_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
+  subroutine get_rhs_wstar_term(iky, iz, ia, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
 
     use constants, only: zi
     use kt_grids, only: aky
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx
-    use stella_time, only: code_dt
-    use zgrid, only: delzed, nzgrid
-    use species, only: spec
-    use stella_geometry, only: gradpar, dbdzed
-    use vpamu_grids, only: vpa, mu
+    use zgrid, only: nzgrid
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
     use dist_fn_arrays, only: wstar
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    integer, intent (in) :: iky, iz, ia, ivmu
     real, intent(in) :: gyro_fac
     complex, intent(in out) :: wstar_fac0, wstar_fac1
 
@@ -1075,7 +1060,7 @@ contains
 
     ! 0.125 to account for one linear interpolation (wstar), a
     ! (1+time_upwind)/2 factor and a (1+/-zed_upwind)/2 factor
-    wstar_fac = 0.125*(1+time_upwind)
+    wstar_fac = 0.125*(1+time_upwind)*gyro_fac
 
     ! Because our discretisation couples neighboring z gridpoints, we
     ! need to find quantities (gradpar, maxwell_mu) at the gridpoint to the

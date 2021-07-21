@@ -677,14 +677,13 @@ contains
     use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2
     use gyro_averages, only: gyro_average, gyro_average_j1
-    use gyro_averages, only: aj1v
     use run_parameters, only: fphi, fapar, fbpar
     use physics_parameters, only: beta
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa, mu ! Bob: Need mu to integrate over
+    use vpamu_grids, only: vpa, mu
     use vpamu_grids, only: integrate_vmu
-    use kt_grids, only: nakx, naky ! Bob: Need this to allocate antot
+    use kt_grids, only: nakx, naky
     use species, only: spec
     use constants, only: pi
     use fields_arrays, only: gamtot, gamtot13, gamtot31, gamtot33, apar_denom
@@ -1131,14 +1130,12 @@ contains
     use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx, iv_idx
-    use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+    use gyro_averages, only: gyro_average, gyro_average_j1
     use run_parameters, only: fphi, fapar, fbpar
     use physics_parameters, only: beta
-    use stella_geometry, only: dBdrho, bmag
     use physics_flags, only: radial_variation
-    use dist_fn_arrays, only: kperp2, dkperp2dr
-    use zgrid, only: nzgrid, ntubes
-    use vpamu_grids, only: integrate_species, vperp2
+    use zgrid, only: ntubes
+    use vpamu_grids, only: integrate_species
     use vpamu_grids, only: vpa, mu
     use kt_grids, only: nakx, naky, multiply_by_rho
     use run_parameters, only: ky_solve_radial
@@ -1545,21 +1542,20 @@ contains
 
   ! The following subroutine takes the fields(ky,kx) and returns
   ! gyroaverage(chi)(ky,kx) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
-  subroutine get_gyroaverage_chi_2d(iz, ivmu, phi, apar, bpar, gyro_chi)
+  subroutine get_gyroaverage_chi_2d(ivmu, phi, apar, bpar, gyro_chi)
 
     use gyro_averages, only: gyro_average, gyro_average_j1
     use stella_layouts, only: vmu_lo
     use vpamu_grids, only: vpa, mu
     use stella_layouts, only: imu_idx, is_idx, iv_idx
     use species, only: spec
-    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
     use run_parameters, only: fphi, fapar, fbpar
 
     implicit none
 
     complex, dimension (:,:), intent (in) :: phi, apar, bpar
-    integer, intent (in) :: iz,ivmu
+    integer, intent (in) :: ivmu
     complex, dimension (:,:), intent (out) :: gyro_chi
     integer :: is, imu, iv
     complex, dimension (:,:), allocatable :: gyro_field
@@ -1731,13 +1727,9 @@ contains
   subroutine get_dchidy_4d (phi, apar, bpar, dchidy)
 
     use constants, only: zi
-    use gyro_averages, only: gyro_average
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
     use run_parameters, only: fphi, fapar
-    use species, only: spec
     use zgrid, only: nzgrid, ntubes
-    use vpamu_grids, only: vpa
     use kt_grids, only: nakx, aky, naky
 
     implicit none
@@ -1745,7 +1737,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
 
-    integer :: ivmu, iv, is
+    integer :: ivmu
     complex, dimension (:,:,:,:), allocatable :: gyro_chi
 
     allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
@@ -1762,28 +1754,22 @@ contains
 
   ! Take phi, apar, bpar(ky, kx) and return
   ! d<chi>/dy (ky,kx)
-  subroutine get_dchidy_2d (iz, ivmu, phi, apar, bpar, dchidy)
+  subroutine get_dchidy_2d (ivmu, phi, apar, bpar, dchidy)
 
     use constants, only: zi
-    use gyro_averages, only: gyro_average
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use vpamu_grids, only: vpa
     use kt_grids, only: nakx, aky, naky
 
     implicit none
 
-    integer, intent (in) :: ivmu, iz
+    integer, intent (in) :: ivmu
     complex, dimension (:,:), intent (in) :: phi, apar, bpar
     complex, dimension (:,:), intent (out) :: dchidy
 
-    integer :: iv, is
+    !integer :: iv, is
     complex, dimension (:,:), allocatable :: gyro_chi
 
     allocate (gyro_chi(naky,nakx))
-    call get_gyroaverage_chi(iz, ivmu, phi, apar, bpar, gyro_chi)
+    call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
     dchidy = zi*spread(aky,2,nakx) * gyro_chi
     deallocate (gyro_chi)
 
@@ -1794,13 +1780,8 @@ contains
   subroutine get_dchidx_4d (phi, apar, bpar, dchidx)
 
     use constants, only: zi
-    use gyro_averages, only: gyro_average
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
     use zgrid, only: nzgrid, ntubes
-    use vpamu_grids, only: vpa
     use kt_grids, only: nakx, akx, naky
 
     implicit none
@@ -1808,7 +1789,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidx
 
-    integer :: ivmu, iv, is
+    integer :: ivmu
     complex, dimension (:,:,:,:), allocatable :: gyro_chi
 
     allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
@@ -1825,28 +1806,21 @@ contains
 
   ! Take phi, apar, bpar(ky, kx) and return
   ! d<chi>/dx (ky,kx)
-  subroutine get_dchidx_2d (iz, ivmu, phi, apar, bpar, dchidx)
+  subroutine get_dchidx_2d (ivmu, phi, apar, bpar, dchidx)
 
     use constants, only: zi
-    use gyro_averages, only: gyro_average
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, iv_idx
-    use run_parameters, only: fphi, fapar
-    use species, only: spec
-    use vpamu_grids, only: vpa
     use kt_grids, only: akx, naky, nakx
 
     implicit none
 
-    integer, intent (in) :: ivmu, iz
+    integer, intent (in) :: ivmu
     complex, dimension (:,:), intent (in) :: phi, apar, bpar
     complex, dimension (:,:), intent (out) :: dchidx
 
-    integer :: iv, is
     complex, dimension (:,:), allocatable :: gyro_chi
 
     allocate (gyro_chi(naky,nakx))
-    call get_gyroaverage_chi(iz, ivmu, phi, apar, bpar, gyro_chi)
+    call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
     dchidx = zi*spread(akx,1,naky)*gyro_chi
     deallocate (gyro_chi)
 

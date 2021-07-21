@@ -162,7 +162,7 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
-          call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
+          call get_dchidy (ivmu, phi(:,:,iz,it), apar(:,:,iz,it), bpar(:,:,iz,it), g0k)
 
           !parallel flow shear
           gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + prl_shear(ia,iz,ivmu)*g0k

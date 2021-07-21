@@ -930,7 +930,7 @@ contains
 
     integer :: iky, ie, it, ulim, nz_segment
     integer :: ikx
-    complex, dimension (:), allocatable :: gext, fields
+    complex, dimension (:), allocatable :: fields
 
     ! need to put the fields into extended zed grid
     do iky = 1, naky
@@ -963,7 +963,6 @@ contains
                 ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
                 nz_segment = (nsegments(ie,iky)*nzed_segment+1)
                 allocate (fields(3*nz_segment))
-                !allocate (gext(nsegments(ie,iky)*nzed_segment+1))
                 call map_to_extended_zgrid (it, ie, iky, phi(iky,:,:,:), fields(:nz_segment), ulim)
                 call map_to_extended_zgrid (it, ie, iky, apar(iky,:,:,:), fields(nz_segment+1:2*nz_segment), ulim)
                 call map_to_extended_zgrid (it, ie, iky, bpar(iky,:,:,:), fields(2*nz_segment+1:3*nz_segment), ulim)
