@@ -601,7 +601,9 @@ contains
        ! get -vpa*b.gradz*Ze/T*F0*d<chi>/dz corresponding to unit impulse in a field;
        ! this could be phi, apar or bpar
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          call get_rhs_homogenoues_equation(iky, ikx, iz, ie, idx, nz_ext, gext, field)
+          iv = iv_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          call get_rhs_homogenoues_equation(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gext, field)
 
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
           if (zonal_mode(iky)) then
@@ -747,7 +749,7 @@ contains
 
   end subroutine get_dgdfield_matrix_column
 
-  subroutine get_rhs_homogenoues_equation(iky, ikx, iz, ie, idx, nz_ext, gext, field)
+  subroutine get_rhs_homogenoues_equation(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gext, field)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
@@ -761,7 +763,7 @@ contains
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use fields_arrays, only: response_matrix
     use gyro_averages, only: aj0x, aj1x
-    use run_parameters, only: driftkinetic_implicit, wdrift_implicit, wstar_implicit
+    use run_parameters, only: driftkinetic_implicit, wdrift_implicit, wstar_implicit, stream_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
@@ -772,15 +774,14 @@ contains
 
     implicit none
 
-    integer, intent (in) :: iky, ikx, iz, ie, idx, nz_ext
+    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
     character (*), intent (in) :: field
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
-    integer :: ivmu, iv, imu, is, ia
-    integer :: izp, izm
-    real :: mu_dbdzed_p, mu_dbdzed_m
-    real :: stream_fac, stream_fac0, stream_fac1, wdrift_fac, wstar_fac, gyro_fac
+    integer :: iv, imu, is
+    real :: stream_fac0, stream_fac1
     complex :: wdrift_fac0, wdrift_fac1, wstar_fac0, wstar_fac1
+    real :: gyro_fac
 
     ! initialize g to zero everywhere along extended zed domain
     gext(:,ivmu) = 0.0
@@ -815,29 +816,34 @@ contains
     end if
 
     if (stream_implicit) then
-      call get_rhs_streaming_term()
+      call get_rhs_streaming_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, stream_fac0, stream_fac1)
     else
       stream_fac0 = 0.
       stream_fac1 = 0.
     end if
 
-    if (stream_implicit) then
-      call get_rhs_wdrift_term()
+    if (wdrift_implicit) then
+      call get_rhs_wdrift_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
     else
       wdrift_fac0 = 0.
       wdrift_fac1 = 0.
     end if
 
-    if (stream_implicit) then
-      call get_rhs_wstar_term()
+    if (wstar_implicit) then
+      call get_rhs_wstar_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
     else
       wstar_fac0 = 0.
       wstar_fac1 = 0.
     end if
 
+    ! fac0 is the factor multiplying delphi on the RHS
+    ! of the homogeneous GKE at this zed index
     gext(idx,ivmu) = stream_fac0 + wdrift_fac0 + wstar_fac0
 
     if (stream_sign(iv)<0) then
+      ! XXX_fac1 is the factor multiplying delphi on the RHS
+      ! of the homogeneous GKE at the zed index to the right of
+      ! this one
       if (idx < nz_ext) gext(idx+1,ivmu) = stream_fac1 + wdrift_fac1 + wstar_fac1
       ! zonal mode BC is periodic instead of zero, so must
       ! treat specially
@@ -849,280 +855,269 @@ contains
          end if
       end if
     else
-      gext(idx,ivmu) = stream_fac0
-      if (idx > 1) gext(idx-1,ivmu) = stream_fac1
+      ! XXX_fac1 is the factor multiplying delphi on the RHS
+      ! of the homogeneous GKE at the zed index to the left of
+      ! this one
+      if (idx > 1) gext(idx-1,ivmu) = stream_fac1 + wdrift_fac1 + wstar_fac1
       ! zonal mode BC is periodic instead of zero, so must
       ! treat specially
       if (zonal_mode(iky)) then
          if (idx == 1) then
-            gext(nz_ext,ivmu) = stream_fac0
-            gext(nz_ext-1,ivmu) = stream_fac1
+            gext(nz_ext,ivmu) = stream_fac0 + wdrift_fac0 + wstar_fac0
+            gext(nz_ext-1,ivmu) = stream_fac1 + wdrift_fac1 + wstar_fac1
          else if (idx == 2) then
-            gext(nz_ext,ivmu) = stream_fac1
+            gext(nz_ext,ivmu) = stream_fac1 + wdrift_fac1 + wstar_fac1
          end if
       end if
     end if
 
-    stop "stopping"
+  end subroutine get_rhs_homogenoues_equation
+
+
+  subroutine get_rhs_streaming_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, stream_fac0, stream_fac1)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_time, only: code_dt
+    use zgrid, only: delzed, nzgrid
+    use species, only: spec
+    use stella_geometry, only: gradpar, dbdzed
+    use vpamu_grids, only: vpa, mu
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use parallel_streaming, only: stream_sign
+    use run_parameters, only: zed_upwind, time_upwind
+
+    implicit none
+
+    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    real, intent(in) :: gyro_fac
+    real, intent (in out) :: stream_fac0, stream_fac1
+
+    integer :: iv, imu, is
+    real :: stream_fac, gradpar_left, gradpar_right
+    real :: maxwell_mu_left, maxwell_mu_right
+
+
+    iv = iv_idx(vmu_lo,ivmu)
+    imu = imu_idx(vmu_lo,ivmu)
+    is = is_idx(vmu_lo,ivmu)
 
     ! 0.125 to account for two linear interpolations (gradpar and maxwell_mu)
     ! (each contributing a factor of 1/2) and the (1+time_upwind)/2 factor
     stream_fac = -0.125*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
-         *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
+       *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
+
+    ! Because our discretisation couples neighboring z gridpoints, we
+    ! need to find quantities (gradpar, maxwell_mu) at the gridpoint to the
+    ! left and right of this gridpoint. If this gridpoint is the
+    ! leftmost/rightmost point of end of the extended z grid, we need tp get the
+    ! data point from beyond our extended z-grid. Since (gradpar, maxwell_mu)
+    ! are periodic, this is fairly straightforward.
+
+    ! Get quantities on gridpoint to the right.
+    if (iz < nzgrid) then
+      gradpar_right = gradpar(iz+1)
+      maxwell_mu_right = maxwell_mu(ia,iz+1,imu,is)
+    else
+      ! periodic - take from the left
+      gradpar_right = gradpar(-nzgrid+1)
+      maxwell_mu_right = maxwell_mu(ia,-nzgrid+1,imu,is)
+    end if
+
+    ! Get quantities on gridpoint to the left.
+    if (iz > -nzgrid) then
+      gradpar_left= gradpar(iz-1)
+      maxwell_mu_left = maxwell_mu(ia,iz-1,imu,is)
+    else
+      ! periodic - take from the right
+      gradpar_left= gradpar(nzgrid-1)
+      maxwell_mu_left = maxwell_mu(ia,nzgrid-1,imu,is)
+    end if
+
+    ! In the following, gradpar and maxwell_mu are interpolated separately
+    ! to ensure consistency to what is done in parallel_streaming.f90
+    if (stream_sign(iv)<0) then
+      stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
+               + (1.-zed_upwind)*gradpar_left) &
+             *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
+               + (1.-zed_upwind)*maxwell_mu_left)
+      stream_fac1 = -stream_fac*((1.+zed_upwind)*gradpar_right &
+                  + (1.-zed_upwind)*gradpar(iz)) &
+                *((1.+zed_upwind)*maxwell_mu_right &
+                  + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
+    else
+      stream_fac0 = -stream_fac*((1.+zed_upwind)*gradpar(iz) &
+                + (1.-zed_upwind)*gradpar_right) &
+              *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
+                + (1.-zed_upwind)*maxwell_mu_right)
+      stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar_left &
+               + (1.-zed_upwind)*gradpar(iz)) &
+             *((1.+zed_upwind)*maxwell_mu_left &
+               + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
+    end if
+
+  end subroutine get_rhs_streaming_term
+
+  subroutine get_rhs_wdrift_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
+
+    use constants, only: zi
+    use kt_grids, only: aky, akx
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx
+    use stella_time, only: code_dt
+    use zgrid, only: delzed, nzgrid
+    use species, only: spec
+    use stella_geometry, only: gradpar, dbdzed
+    use vpamu_grids, only: vpa, mu
+    use parallel_streaming, only: stream_sign
+    use run_parameters, only: zed_upwind, time_upwind
+    use dist_fn_arrays, only: wdrifty_phi, wdriftx_phi
+
+    implicit none
+
+    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    real, intent(in) :: gyro_fac
+    complex, intent(in out) :: wdrift_fac0, wdrift_fac1
+
+    integer :: iv
+    real :: wdrift_fac
+    complex :: wdrifty_phi_left, wdrifty_phi_right, wdriftx_phi_left, wdriftx_phi_right
 
     ! 0.125 to account for one linear interpolation (wdriftx,y_phi), a
     ! (1+time_upwind)/2 factor and a (1+/-zed_upwind)/2 factor
     wdrift_fac = 0.125*(1+time_upwind)
 
-    ! 0.125 to account for one linear interpolation (wdriftx,y_phi), a
+    ! Because our discretisation couples neighboring z gridpoints, we
+    ! need to find quantities (gradpar, maxwell_mu) at the gridpoint to the
+    ! left and right of this gridpoint. If this gridpoint is the
+    ! leftmost/rightmost point of end of the extended z grid, we need tp get the
+    ! data point from beyond our extended z-grid. Since (gradpar, maxwell_mu)
+    ! are periodic, this is fairly straightforward.
+
+    ! RJD: We're inconsistenly applying BCs here - we can't use
+    ! periodicity to get wdrifty_phi(iz+1), because wdrifty_phi
+    ! not periodic. Instead assume wdrifty_phi(iz+1)=wdrifty_phi(iz);
+    ! not correct but hopefully won't cause any problems (expect
+    ! distribution function to be small here.)
+    ! I belive wdriftx_phi is periodic, but use the same BC
+    ! as wdrifty_phi until we can prove this.
+
+    ! Get quantities on gridpoint to the right.
+    if (iz < nzgrid) then
+      wdrifty_phi_right = wdrifty_phi(ia,iz+1,ivmu)
+      wdriftx_phi_right = wdriftx_phi(ia,iz+1,ivmu)
+    else
+      ! periodic - take from the left
+      wdrifty_phi_right = wdrifty_phi(ia,nzgrid,ivmu)
+      wdriftx_phi_right = wdriftx_phi(ia,nzgrid,ivmu)
+    end if
+
+    ! Get quantities on gridpoint to the left.
+    if (iz > -nzgrid) then
+      wdrifty_phi_left= wdrifty_phi(ia,iz-1,ivmu)
+      wdriftx_phi_left = wdriftx_phi(ia,iz-1,ivmu)
+    else
+      ! periodic - take from the right
+      wdrifty_phi_left = wdrifty_phi(ia,-nzgrid,ivmu)
+      wdriftx_phi_left = wdriftx_phi(ia,-nzgrid,ivmu)
+    end if
+
+    iv = iv_idx(vmu_lo,ivmu)
+    if (stream_sign(iv)<0) then
+      wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*(zi*aky(iky) &
+                   *((1.+zed_upwind)*wdrifty_phi(ia,iz,ivmu)+ (1.-zed_upwind)*wdrifty_phi_left) &
+                   + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi(ia,iz,ivmu) &
+                   + (1.-zed_upwind)*wdriftx_phi_left) )
+      wdrift_fac1 = wdrift_fac*(1.-zed_upwind)*((zi*aky(iky) &
+                  *((1.+zed_upwind)*wdrifty_phi_right+ (1.-zed_upwind)*wdrifty_phi(ia, iz, ivmu)) &
+                  + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi_right &
+                  + (1.-zed_upwind)*wdriftx_phi(ia, iz, ivmu))) )
+    else
+      wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*(zi*aky(iky) &
+                   *((1.-zed_upwind)*wdrifty_phi_right+ (1.+zed_upwind)*wdrifty_phi(ia,iz,ivmu)) &
+                   + zi*akx(ikx)*((1.-zed_upwind)*wdrifty_phi_right  &
+                   + (1.+zed_upwind)*wdriftx_phi(ia,iz,ivmu)) )
+      wdrift_fac1 = wdrift_fac*(1.-zed_upwind)*(zi*aky(iky) &
+                   *((1.-zed_upwind)*wdrifty_phi(ia,iz,ivmu)+ (1.+zed_upwind)*wdrifty_phi_left) &
+                   + zi*akx(ikx)*((1.-zed_upwind)*wdriftx_phi(ia,iz,ivmu) &
+                   + (1.+zed_upwind)*wdriftx_phi_left) )
+    end if
+
+
+  end subroutine get_rhs_wdrift_term
+
+
+  subroutine get_rhs_wstar_term(iky, ikx, iz, ie, ia, idx, nz_ext, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
+
+    use constants, only: zi
+    use kt_grids, only: aky
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx
+    use stella_time, only: code_dt
+    use zgrid, only: delzed, nzgrid
+    use species, only: spec
+    use stella_geometry, only: gradpar, dbdzed
+    use vpamu_grids, only: vpa, mu
+    use parallel_streaming, only: stream_sign
+    use run_parameters, only: zed_upwind, time_upwind
+    use dist_fn_arrays, only: wstar
+
+    implicit none
+
+    integer, intent (in) :: iky, ikx, iz, ie, ia, idx, nz_ext, ivmu
+    real, intent(in) :: gyro_fac
+    complex, intent(in out) :: wstar_fac0, wstar_fac1
+
+    integer :: iv
+    real :: wstar_fac
+    complex :: wstar_left, wstar_right
+
+
+    ! 0.125 to account for one linear interpolation (wstar), a
     ! (1+time_upwind)/2 factor and a (1+/-zed_upwind)/2 factor
     wstar_fac = 0.125*(1+time_upwind)
 
-    ! In the following, gradpar and maxwell_mu are interpolated separately
-    ! to ensure consistency to what is done in parallel_streaming.f90
+    ! Because our discretisation couples neighboring z gridpoints, we
+    ! need to find quantities (gradpar, maxwell_mu) at the gridpoint to the
+    ! left and right of this gridpoint. If this gridpoint is the
+    ! leftmost/rightmost point of end of the extended z grid, we need tp get the
+    ! data point from beyond our extended z-grid. Since (gradpar, maxwell_mu)
+    ! are periodic, this is fairly straightforward.
+    ! As above - can we show wstar periodic? Until then, set
+    ! wstar(iz+1) = wstar(iz)
 
-    ! stream_sign < 0 corresponds to positive advection speed
-    if (stream_sign(iv)<0) then
-       if (iz > -nzgrid) then
-          ! fac0 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at this zed index
-          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
-                      + (1.-zed_upwind)*gradpar(iz-1)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,iz-1,imu,is))
-
-          if (wdrift_implicit) then
-            wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*(zi*aky(iky) &
-                       *((1.+zed_upwind)*wdrifty_phi(ia,iz,ivmu)+ (1.-zed_upwind)*wdrifty_phi(ia,iz-1,ivmu)) &
-                       + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi(ia,iz,ivmu) &
-                       + (1.-zed_upwind)*wdriftx_phi(ia,iz-1, ivmu)) )
-          else
-            wdrift_fac0 = 0.
-          end if
-
-          if (wstar_implicit) then
-            wstar_fac0 = wstar_fac*(1.+zed_upwind)*(zi*akx(ikx) &
-                        * ((1.+zed_upwind)*wstar(ia,iz,ivmu) + (1.-zed_upwind)*wstar(ia,iz-1,ivmu)))
-          else
-            wstar_fac0 = 0.
-          end if
-
-          ! fac1 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at the zed index to the right of
-          ! this one
-          if (iz < nzgrid) then
-             stream_fac1 = -stream_fac*((1.+zed_upwind)*gradpar(iz+1) &
-                         + (1.-zed_upwind)*gradpar(iz)) &
-                       *((1.+zed_upwind)*maxwell_mu(ia,iz+1,imu,is) &
-                         + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-            if (wdrift_implicit) then
-              wdrift_fac1 = wdrift_fac*(1.-zed_upwind)*((zi*aky(iky) &
-                       *((1.+zed_upwind)*wdrifty_phi(ia, iz+1, ivmu)+ (1.-zed_upwind)*wdrifty_phi(ia, iz, ivmu)) &
-                       + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi(ia,iz+1,ivmu) &
-                       + (1.-zed_upwind)*wdriftx_phi(ia, iz, ivmu))) )
-            else
-              wdrift_fac1 = 0.
-            end if
-
-            if (wstar_implicit) then
-              wstar_fac1 = wstar_fac*(1.-zed_upwind)*(zi*akx(ikx) &
-                          * ((1.+zed_upwind)*wstar(ia,iz+1,ivmu) + (1.-zed_upwind)*wstar(ia,iz,ivmu)))
-            else
-              wstar_fac1 = 0.
-            end if
-
-          else
-             ! RJD: iz=nzgrid, i.e. we're applying an impulse at the rightmost gridpoint.
-             ! To get quantities at (iz+1), use quantities from (-nzgrid+1)
-             ! (periodic geometry)
-             stream_fac1 = -stream_fac*((1.+zed_upwind)*gradpar(-nzgrid+1) &
-                         + (1.-zed_upwind)*gradpar(nzgrid)) &
-                       *((1.+zed_upwind)*maxwell_mu(ia,-nzgrid+1,imu,is) &
-                         + (1.-zed_upwind)*maxwell_mu(ia,nzgrid,imu,is))
-             if (wdrift_implicit) then
-               ! RJD: We're inconsistenly applying BCs here - we can't use
-               ! periodicity to get wdrifty_phi(iz+1), because wdrifty_phi
-               ! not periodic. Instead assume wdrifty_phi(iz+1)=wdrifty_phi(iz);
-               ! not correct but hopefully won't cause any problems (expect
-               ! distribution function to be small here.)
-               ! I belive wdriftx_phi is periodic, but use the same BC
-               ! as wdrifty_phi until we can prove this.
-               wdrift_fac1 = wdrift_fac*(1.-zed_upwind)*((zi*aky(iky) &
-                          *((1.+zed_upwind)*wdrifty_phi(ia, iz, ivmu)+ (1.-zed_upwind)*wdrifty_phi(ia,iz,ivmu)) &
-                          + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi(ia,iz,ivmu) &
-                          + (1.-zed_upwind)*wdriftx_phi(ia,iz,ivmu))) )
-             else
-               wdrift_fac1 = 0.
-             end if
-
-             if (wstar_implicit) then
-               ! As above - can we show wstar periodic? Until then, set
-               ! wstar(iz+1) = wstar(iz)
-               wstar_fac1 = wstar_fac*(1.-zed_upwind)*(zi*akx(ikx) &
-                           * ((1.+zed_upwind)*wstar(ia,iz,ivmu) + (1.-zed_upwind)*wstar(ia,iz,ivmu)))
-             else
-               wstar_fac1 = 0.
-             end if
-          end if
-       else
-          ! iz=-nzgrid, i.e. we're applying an impulse at the rightmost gridpoint.
-          ! To get quantities at (iz-1), use quantities from (nzgrid-1)
-          ! (periodic geometry)
-          ! fac0 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at this zed index
-          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
-                      + (1.-zed_upwind)*gradpar(nzgrid-1)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,nzgrid-1,imu,is))
-          ! fac1 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at the zed index to the right of
-          ! this one
-          stream_fac1 = -stream_fac*((1.+zed_upwind)*gradpar(iz+1)  &
-                      + (1.-zed_upwind)*gradpar(iz)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz+1,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-          if (wdrift_implicit) then
-            ! RJD: We're inconsistenly applying BCs here - we can't use
-            ! periodicity to get wdrifty_phi(iz-1), because wdrifty_phi
-            ! not periodic. Instead assume wdrifty_phi(iz-1)=wdrifty_phi(iz);
-            ! not correct but hopefully won't cause any problems (expect
-            ! distribution function to be small here.)
-            ! I belive wdriftx_phi is periodic, but use the same BC
-            ! as wdrifty_phi until we can prove this.
-            wdrift_fac0 = wdrift_fac*(1.+zed_upwind)*(zi*aky(iky) &
-                       *((1.+zed_upwind)*wdrifty_phi(ia,iz,ivmu)+ (1.-zed_upwind)*wdrifty_phi(ia,iz,ivmu)) &
-                       + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi(ia,iz,ivmu) &
-                       + (1.-zed_upwind)*wdriftx_phi(ia,iz,ivmu)) )
-            wdrift_fac1 = wdrift_fac*(1.-zed_upwind)*((zi*aky(iky) &
-                        *((1.+zed_upwind)*wdrifty_phi(ia,iz+1,ivmu)+ (1.-zed_upwind)*wdrifty_phi(ia,iz,ivmu)) &
-                        + zi*akx(ikx)*((1.+zed_upwind)*wdriftx_phi(ia,iz+1,ivmu) &
-                        + (1.-zed_upwind)*wdriftx_phi(ia,iz,ivmu))) )
-          else
-            wdrift_fac0 = 0.
-            wdrift_fac1 = 0.
-          end if
-
-          if (wstar_implicit) then
-            ! As above - can we show wstar periodic? Until then, set
-            ! wstar(iz-1) = wstar(iz)
-            wstar_fac0 = wstar_fac*(1.+zed_upwind)*(zi*akx(ikx) &
-                        * ((1.+zed_upwind)*wstar(ia,iz,ivmu) + (1.-zed_upwind)*wstar(ia,iz,ivmu)))
-            wstar_fac1 = wstar_fac*(1.-zed_upwind)*(zi*akx(ikx) &
-                        * ((1.+zed_upwind)*wstar(ia,iz+1,ivmu) + (1.-zed_upwind)*wstar(ia,iz,ivmu)))
-          else
-            wstar_fac0 = 0.
-            wstar_fac1 = 0.
-          end if
-       end if
-
-       gext(idx,ivmu) = stream_fac0 + wdrift_fac0 + wstar_fac0
-       if (idx < nz_ext) gext(idx+1,ivmu) = stream_fac1 + wdrift_fac1 + wstar_fac1
-       ! zonal mode BC is periodic instead of zero, so must
-       ! treat specially
-       if (zonal_mode(iky)) then
-          if (idx == 1) then
-             gext(nz_ext,ivmu) = stream_fac0 + wdrift_fac0 + wstar_fac0
-          else if (idx == nz_ext-1) then
-             gext(1,ivmu) = stream_fac1 + wdrift_fac1 + wstar_fac1
-          end if
-       end if
+    ! Get quantities on gridpoint to the right.
+    if (iz < nzgrid) then
+      wstar_right = wstar(ia,iz+1,ivmu)
     else
-       if (iz < nzgrid) then
-          ! fac0 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at this zed index
-          stream_fac0 = -stream_fac*((1.+zed_upwind)*gradpar(iz) &
-                      + (1.-zed_upwind)*gradpar(iz+1)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,iz+1,imu,is))
-          ! fac1 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at the zed index to the left of
-          ! this one
-          if (iz > -nzgrid) then
-             stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz-1) &
-                         + (1.-zed_upwind)*gradpar(iz)) &
-                       *((1.+zed_upwind)*maxwell_mu(ia,iz-1,imu,is) &
-                         + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-          else
-             stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(nzgrid-1) &
-                         + (1.-zed_upwind)*gradpar(iz)) &
-                       *((1.+zed_upwind)*maxwell_mu(ia,nzgrid-1,imu,is) &
-                         + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-          end if
-       else
-          ! fac0 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at this zed index
-          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
-                      + (1.-zed_upwind)*gradpar(-nzgrid+1)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,-nzgrid+1,imu,is))
-          ! fac1 is the factor multiplying delphi on the RHS
-          ! of the homogeneous GKE at the zed index to the left of
-          ! this one
-          stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz-1) &
-                      + (1.-zed_upwind)*gradpar(iz)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz-1,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-       end if
-       gext(idx,ivmu) = stream_fac0
-       if (idx > 1) gext(idx-1,ivmu) = stream_fac1
-       ! zonal mode BC is periodic instead of zero, so must
-       ! treat specially
-       if (zonal_mode(iky)) then
-          if (idx == 1) then
-             gext(nz_ext,ivmu) = stream_fac0
-             gext(nz_ext-1,ivmu) = stream_fac1
-          else if (idx == 2) then
-             gext(nz_ext,ivmu) = stream_fac1
-          end if
-       end if
+      ! periodic - take from the left
+      wstar_right = wstar(ia,nzgrid,ivmu)
     end if
 
-end subroutine get_rhs_homogenoues_equation
+    ! Get quantities on gridpoint to the left.
+    if (iz > -nzgrid) then
+      wstar_left = wstar(ia,iz-1,ivmu)
+    else
+      ! periodic - take from the right
+      wstar_left = wstar(ia,-nzgrid,ivmu)
+    end if
+
+    iv = iv_idx(vmu_lo,ivmu)
+    if (stream_sign(iv)<0) then
+      wstar_fac0 = wstar_fac*(1.+zed_upwind)*(zi*aky(iky) &
+                  * ((1.+zed_upwind)*wstar(ia,iz,ivmu) + (1.-zed_upwind)*wstar_left))
+      wstar_fac1 = wstar_fac*(1.-zed_upwind)*(zi*aky(iky) &
+                  * ((1.+zed_upwind)*wstar_right + (1.-zed_upwind)*wstar(ia,iz,ivmu)))
+    else
+      wstar_fac0 = wstar_fac*(1.+zed_upwind)*(zi*aky(iky) &
+                  * ((1.-zed_upwind)*wstar_right + (1.+zed_upwind)*wstar(ia,iz,ivmu)))
+      wstar_fac1 = wstar_fac*(1.-zed_upwind)*(zi*aky(iky) &
+                  * ((1.-zed_upwind)*wstar(ia,iz,ivmu) + (1.+zed_upwind)*wstar_left))
+    end if
+
+  end subroutine get_rhs_wstar_term
 
 
-subroutine get_rhs_streaming_term()
-
-  ! 0.125 to account for two linear interpolations (gradpar and maxwell_mu)
-  ! (each contributing a factor of 1/2) and the (1+time_upwind)/2 factor
-  stream_fac = -0.125*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
-       *gyro_fac*spec(is)%zt/delzed(0)*maxwell_vpa(iv,is)*maxwell_fac(is)
-
-       if (iz > -nzgrid) then
-         ! Get the ghost cell data
-       else
-         !!
-       end if
-
-       if (iz > -nzgrid) then
-         ! Get the ghost cell data
-       else
-         !!
-       end if
-
-       if (stream_sign(iv)<0) then
-          stream_fac0 = stream_fac*((1.+zed_upwind)*gradpar(iz) &
-                     + (1.-zed_upwind)*gradpar(iz-1)) &
-                   *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
-                     + (1.-zed_upwind)*maxwell_mu(ia,iz-1,imu,is))
-          stream_fac1 = -stream_fac*((1.+zed_upwind)*gradpar(iz+1) &
-                        + (1.-zed_upwind)*gradpar(iz)) &
-                      *((1.+zed_upwind)*maxwell_mu(ia,iz+1,imu,is) &
-                        + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-        else
-          stream_fac0 = -stream_fac*((1.+zed_upwind)*gradpar(iz) &
-                      + (1.-zed_upwind)*gradpar(iz+1)) &
-                    *((1.+zed_upwind)*maxwell_mu(ia,iz,imu,is) &
-                      + (1.-zed_upwind)*maxwell_mu(ia,iz+1,imu,is))
-          stream_fac1 = stream_fac*((1.+zed_upwind)*gradpar(iz-1) &
-                     + (1.-zed_upwind)*gradpar(iz)) &
-                   *((1.+zed_upwind)*maxwell_mu(ia,iz-1,imu,is) &
-                     + (1.-zed_upwind)*maxwell_mu(ia,iz,imu,is))
-        end if
-
-
-
-
-end subroutine get_rhs_streaming_term()
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
