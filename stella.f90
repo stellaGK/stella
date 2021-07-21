@@ -70,9 +70,10 @@ program stella
 
 contains
 
-  !==============================================
-  !============ INITIATE STELLA =================
-  !==============================================
+  !> Initialise stella
+  !>
+  !> Calls the initialisation routines for all the geometry, physics, and
+  !> diagnostic modules
   subroutine init_stella(istep0, VERNUM, VERDATE)
     use mp, only: init_mp, broadcast, sum_allreduce
     use mp, only: proc0,job, scope, subprocs, crossdomprocs
@@ -124,9 +125,12 @@ contains
 
     implicit none
 
+    !> Starting timestep: zero unless the simulation has been restarted
     integer, intent (out) :: istep0
-    character(len=4), intent (in) :: VERNUM 
-    character(len=10), intent (in) :: VERDATE 
+    !> stella version number
+    character(len=4), intent (in) :: VERNUM
+    !> Release date
+    character(len=10), intent (in) :: VERDATE
     logical :: exit, list, restarted, needs_transforms
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
@@ -309,17 +313,17 @@ contains
 
   end subroutine init_stella
 
-  !==============================================
-  !============ WRITE START MESSAGE =============
-  !==============================================
+  !> Write the start message to screen
   subroutine write_start_message(VERNUM, VERDATE)
     use mp, only: proc0, nproc
 
     implicit none
 
+    !> stella version number
+    character(len=4), intent (in) :: VERNUM
+    !> Release date
+    character(len=10), intent (in) :: VERDATE
     character(len=23) :: str
-    character(len=4), intent (in) :: VERNUM 
-    character(len=10), intent (in) :: VERDATE 
 
     if (proc0) then
       write (*,*) ' '
@@ -361,9 +365,7 @@ contains
 
   end subroutine write_start_message
 
-  !==============================================
-  !=============== FINISH STELLA ================
-  !==============================================
+  !> Finish a simulation, call the finialisation routines of all modules
   subroutine finish_stella (last_call)
 
     use mp, only: finish_mp
