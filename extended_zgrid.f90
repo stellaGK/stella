@@ -289,6 +289,7 @@ contains
   subroutine fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
+    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -296,11 +297,15 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:), intent (out) :: gleft, gright
 
+    integer :: nseg
+
     ! stream_sign > 0 --> stream speed < 0
+
+    nseg = nsegments(ie,iky)
 
     if (iseg == 1) then
        if (periodic(iky)) then
-          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1,it)
+          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(nseg)-2:iz_up(nseg)-1,it)
        else
           gleft = 0.0
        end if
@@ -308,13 +313,13 @@ contains
        gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
     end if
     
-    if (nsegments(ie,iky) > iseg) then
+    if (nseg > iseg) then
        ! connect to segment with larger theta-theta0 (on right)
        gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))
     else
        ! apply periodic BC where necessary and zero BC otherwise
        if (periodic(iky)) then
-          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2,it)
+          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(1)+1:iz_low(1)+2,it)
        else
           gright = 0.0
        end if
