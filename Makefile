@@ -112,6 +112,7 @@ ARCHFLAGS 	= cr
 RANLIB		= ranlib
 AWK 		= awk
 PERL		= perl
+FORD       ?= ford
 
 MPI_INC	?=
 MPI_LIB ?=
@@ -434,3 +435,20 @@ revision:
 
 TAGS:	*.f90 *.fpp */*.f90 */*.fpp
 	etags $^
+
+############################################################# Documentation
+
+ifneq ("$(wildcard $(shell which $(FORD) 2>/dev/null))","")
+check_ford_install:
+	@echo "Using ford at $(shell which $(FORD))"
+else
+check_ford_install:
+	@echo "Ford command $(FORD) not in path -- is it installed?\\n\\tConsider installing with 'pip install --user ford' and add ${HOME}/.local/bin to PATH" ; which $(FORD)
+endif
+
+doc: docs/stella_docs.md check_ford_install
+	$(FORD) $(INC_FLAGS) $<
+
+cleandoc:
+	@echo "FORD docs"
+	-rm -rf docs/html
