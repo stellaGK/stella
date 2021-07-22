@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+   <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>kt_grids &ndash; stella</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">stella </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+               
+        
+        
+            </ul>
+        
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>kt_grids 
+    <small>Module</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 1.4% of total for modules and submodules.">501 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/kt_grids.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/kt_grids.f90.html'>kt_grids.f90</a></li>
+    
+  
+     <li class="active">kt_grids</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-theta0">theta0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-zed0">zed0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-aky">aky</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-akx">akx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-x~47">x</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-x_d">x_d</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho">rho</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho_d">rho_d</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho_clamped">rho_clamped</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho_d_clamped">rho_d_clamped</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-g0x">g0x</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dx">dx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dy">dy</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dkx">dkx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dky">dky</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dx_d">dx_d</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-jtwistfac">jtwistfac</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-naky~10">naky</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-nakx~10">nakx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-nx~6">nx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-ny~8">ny</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-nalpha~10">nalpha</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-jtwist">jtwist</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-ikx_twist_shift">ikx_twist_shift</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-ikx_max">ikx_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-naky_all">naky_all</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-reality">reality</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-centered_in_rho">centered_in_rho</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-periodic_variation">periodic_variation</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-grid_option">grid_option</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-zonal_mode">zonal_mode</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_switch">gridopt_switch</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_range">gridopt_range</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_box">gridopt_box</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-aky_min">aky_min</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-aky_max">aky_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-akx_min">akx_min</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-akx_max">akx_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-theta0_min">theta0_min</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-theta0_max">theta0_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-x0~2">x0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-y0">y0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-read_kt_grids_initialized">read_kt_grids_initialized</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-init_kt_grids_initialized">init_kt_grids_initialized</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-box">box</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-0">Interfaces</a></h3></div>
+  <div id="inters-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/kt_grids.html#interface-swap_kxky">swap_kxky</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-0" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_kt_grids_parameters">read_kt_grids_parameters</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_grid_option">read_grid_option</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_kt_grids_box">read_kt_grids_box</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_kt_grids_range">read_kt_grids_range</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids">init_kt_grids</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids_box">init_kt_grids_box</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids_range">init_kt_grids_range</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-broadcast_input">broadcast_input</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-dump_radial_grid">dump_radial_grid</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-allocate_arrays~5">allocate_arrays</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_complex">swap_kxky_complex</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_real">swap_kxky_real</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_ordered">swap_kxky_ordered</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back">swap_kxky_back</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back_ordered">swap_kxky_back_ordered</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-finish_kt_grids">finish_kt_grids</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-multiply_by_rho">multiply_by_rho</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    
+      
+    
+  
+
+    
+    
+
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-theta0">theta0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-zed0">zed0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-aky">aky</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-akx">akx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-x~47">x</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-x_d">x_d</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho">rho</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho_d">rho_d</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho_clamped">rho_clamped</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-rho_d_clamped">rho_d_clamped</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-g0x">g0x</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dx">dx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dy">dy</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dkx">dkx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dky">dky</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-dx_d">dx_d</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-jtwistfac">jtwistfac</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-naky~10">naky</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-nakx~10">nakx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-nx~6">nx</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-ny~8">ny</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-nalpha~10">nalpha</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-jtwist">jtwist</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-ikx_twist_shift">ikx_twist_shift</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-ikx_max">ikx_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-naky_all">naky_all</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-reality">reality</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-centered_in_rho">centered_in_rho</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-periodic_variation">periodic_variation</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-grid_option">grid_option</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-zonal_mode">zonal_mode</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_switch">gridopt_switch</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_range">gridopt_range</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_box">gridopt_box</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-aky_min">aky_min</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-aky_max">aky_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-akx_min">akx_min</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-akx_max">akx_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-theta0_min">theta0_min</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-theta0_max">theta0_max</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-x0~2">x0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-y0">y0</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-read_kt_grids_initialized">read_kt_grids_initialized</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-init_kt_grids_initialized">init_kt_grids_initialized</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-box">box</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-1">Interfaces</a></h3></div>
+  <div id="inters-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/kt_grids.html#interface-swap_kxky">swap_kxky</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-1" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_kt_grids_parameters">read_kt_grids_parameters</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_grid_option">read_grid_option</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_kt_grids_box">read_kt_grids_box</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-read_kt_grids_range">read_kt_grids_range</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids">init_kt_grids</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids_box">init_kt_grids_box</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids_range">init_kt_grids_range</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-broadcast_input">broadcast_input</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-dump_radial_grid">dump_radial_grid</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-allocate_arrays~5">allocate_arrays</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_complex">swap_kxky_complex</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_real">swap_kxky_real</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_ordered">swap_kxky_ordered</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back">swap_kxky_back</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back_ordered">swap_kxky_back_ordered</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-finish_kt_grids">finish_kt_grids</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-multiply_by_rho">multiply_by_rho</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    <section>
+    <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-theta0"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>theta0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-zed0"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>zed0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-aky"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>aky</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-akx"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>akx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-x~47"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>x</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-x_d"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>x_d</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-rho"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>rho</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-rho_d"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>rho_d</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-rho_clamped"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>rho_clamped</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-rho_d_clamped"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>rho_d_clamped</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-g0x"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>g0x</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dx"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>dx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dy"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>dy</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dkx"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>dkx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dky"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>dky</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dx_d"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>dx_d</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-jtwistfac"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>jtwistfac</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-naky~10"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>naky</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nakx~10"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nakx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nx~6"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ny~8"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ny</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nalpha~10"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nalpha</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-jtwist"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>jtwist</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ikx_twist_shift"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ikx_twist_shift</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ikx_max"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ikx_max</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-naky_all"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>naky_all</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-reality"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>reality</strong></td><td> =</td><td>.false.</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-centered_in_rho"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>centered_in_rho</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-periodic_variation"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>periodic_variation</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-grid_option"></span>character(len=20),</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>grid_option</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-zonal_mode"></span>logical,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>zonal_mode</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gridopt_switch"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>gridopt_switch</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gridopt_range"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>gridopt_range</strong></td><td> =</td><td>1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gridopt_box"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>gridopt_box</strong></td><td> =</td><td>2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-aky_min"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>aky_min</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-aky_max"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>aky_max</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-akx_min"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>akx_min</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-akx_max"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>akx_max</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-theta0_min"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>theta0_min</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-theta0_max"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>theta0_max</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-x0~2"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>x0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-y0"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>y0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-read_kt_grids_initialized"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>read_kt_grids_initialized</strong></td><td> =</td><td>.false.</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-init_kt_grids_initialized"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>init_kt_grids_initialized</strong></td><td> =</td><td>.false.</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-box"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>box</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
+    
+    
+    
+    
+    <section>
+   <h2>Interfaces</h2>
+   
+     
+<div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="interface-swap_kxky"></span><h3>public interface <a href='../interface/swap_kxky.html'>swap_kxky</a>
+    
+  </h3></div>
+  
+  <ul class="list-group">
+  
+  
+  
+    <li class="list-group-item">
+    
+    
+    <h3>
+private subroutine <a href='../proc/swap_kxky_real.html'>swap_kxky_real</a>(gin, gout)
+    
+    
+   
+</h3>
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+    </li>
+  
+    <li class="list-group-item">
+    
+    
+    <h3>
+private subroutine <a href='../proc/swap_kxky_complex.html'>swap_kxky_complex</a>(gin, gout)
+    
+    
+   
+</h3>
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+    </li>
+  
+  
+  </ul>
+</div>
+
+    
+    </section>
+  <br>
+    
+
+    
+    
+    
+    
+    
+
+    
+    <section>
+    <h2>Subroutines</h2>
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_kt_grids_parameters"></span><h3>
+public subroutine <a href='../proc/read_kt_grids_parameters.html'>read_kt_grids_parameters</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_grid_option"></span><h3>
+private subroutine <a href='../proc/read_grid_option.html'>read_grid_option</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_kt_grids_box"></span><h3>
+private subroutine <a href='../proc/read_kt_grids_box.html'>read_kt_grids_box</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_kt_grids_range"></span><h3>
+private subroutine <a href='../proc/read_kt_grids_range.html'>read_kt_grids_range</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_kt_grids"></span><h3>
+public subroutine <a href='../proc/init_kt_grids.html'>init_kt_grids</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_kt_grids_box"></span><h3>
+private subroutine <a href='../proc/init_kt_grids_box.html'>init_kt_grids_box</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_kt_grids_range"></span><h3>
+private subroutine <a href='../proc/init_kt_grids_range.html'>init_kt_grids_range</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-broadcast_input"></span><h3>
+private subroutine <a href='../proc/broadcast_input.html'>broadcast_input</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-dump_radial_grid"></span><h3>
+private subroutine <a href='../proc/dump_radial_grid.html'>dump_radial_grid</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~5"></span><h3>
+private subroutine <a href='../proc/allocate_arrays~5.html'>allocate_arrays</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-swap_kxky_complex"></span><h3>
+private subroutine <a href='../proc/swap_kxky_complex.html'>swap_kxky_complex</a>(gin, gout)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-swap_kxky_real"></span><h3>
+private subroutine <a href='../proc/swap_kxky_real.html'>swap_kxky_real</a>(gin, gout)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-swap_kxky_ordered"></span><h3>
+public subroutine <a href='../proc/swap_kxky_ordered.html'>swap_kxky_ordered</a>(gin, gout)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-swap_kxky_back"></span><h3>
+public subroutine <a href='../proc/swap_kxky_back.html'>swap_kxky_back</a>(gin, gout)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-swap_kxky_back_ordered"></span><h3>
+public subroutine <a href='../proc/swap_kxky_back_ordered.html'>swap_kxky_back_ordered</a>(gin, gout)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gout</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_kt_grids"></span><h3>
+public subroutine <a href='../proc/finish_kt_grids.html'>finish_kt_grids</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-multiply_by_rho"></span><h3>
+public subroutine <a href='../proc/multiply_by_rho.html'>multiply_by_rho</a>(gin)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    </section>    
+    <br>
+    
+    
+    
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
+                                          <br /><small>v0.3-48-gc2b82a8</small></p>
+        </div>
+        <div class="col-xs-6 col-md-6">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+             on 2021-07-22T08:20:30.078452 
+            
+          </p>
+        </div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+   <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>FZERO &ndash; stella</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">stella </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+               
+        
+        
+            </ul>
+        
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>FZERO
+      <small>Subroutine</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 0.3% of total for procedures.">83 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/fzero.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/fzero.f90.html'>fzero.f90</a></li>
+    
+     <li><a href='../module/fzero_mod.html'>fzero_mod</a></li>
+    
+  
+     <li class="active">FZERO</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<em>None</em>
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>
+public subroutine FZERO(F, B, C, R, RE, AE, IFLAG)
+    
+    
+   
+</h2>
+    
+  
+
+
+    
+    <p><strong>BEGIN PROLOGUE  FZERO
+</strong>PURPOSE  Search for a zero of a function F(X) in a given interval
+            (B,C).  It is designed primarily for problems where F(B)
+            and F(C) have opposite signs.
+<strong>LIBRARY   SLATEC
+</strong>CATEGORY  F1B
+<strong>TYPE      SINGLE PRECISION (FZERO-S, DFZERO-D)
+</strong>KEYWORDS  BISECTION, NONLINEAR EQUATIONS, ROOTS, ZEROS
+<strong>AUTHOR  Shampine, L. F., (SNLA)
+           Watts, H. A., (SNLA)
+</strong>DESCRIPTION</p>
+<div class="codehilite"><pre><span></span> FZERO searches for a zero of a REAL function F(X) between the
+ given REAL values B and C until the width of the interval (B,C)
+ has collapsed to within a tolerance specified by the stopping
+ criterion,
+    ABS(B-C) .LE. 2.*(RW*ABS(B)+AE).
+ The method used is an efficient combination of bisection and the
+ secant rule and is due to T. J. Dekker.
+
+ Description Of Arguments
+</pre></div>
+
+<p>F     :EXT   - Name of the REAL external function.  This name must
+                  be in an EXTERNAL statement in the calling program.
+                  F must be a function of one REAL argument.</p>
+<p>B     :INOUT - One end of the REAL interval (B,C).  The value
+                  returned for B usually is the better approximation
+                  to a zero of F.</p>
+<p>C     :INOUT - The other end of the REAL interval (B,C)</p>
+<p>R     :IN    - A (better) REAL guess of a zero of F which could help
+                  in speeding up convergence.  If F(B) and F(R) have
+                  opposite signs, a root will be found in the interval
+                  (B,R); if not, but F(R) and F(C) have opposite signs,
+                  a root will be found in the interval (R,C);
+                  otherwise, the interval (B,C) will be searched for a
+                  possible root.  When no better guess is known, it is
+                  recommended that r be set to B or C, since if R is
+                  not interior to the interval (B,C), it will be
+                  ignored.</p>
+<p>RE    :IN    - Relative error used for RW in the stopping criterion.
+                  If the requested RE is less than machine precision,
+                  then RW is set to approximately machine precision.</p>
+<p>AE    :IN    - Absolute error used in the stopping criterion.  If
+                  the given interval (B,C) contains the origin, then a
+                  nonzero value should be chosen for AE.</p>
+<p>IFLAG :OUT   - A status code.  User must check IFLAG after each
+                  call.  Control returns to the user from FZERO in all
+                  cases.</p>
+<div class="codehilite"><pre><span></span>            1  B is within the requested tolerance of a zero.
+               The interval (B,C) collapsed to the requested
+               tolerance, the function changes sign in (B,C), and
+               F(X) decreased in magnitude as (B,C) collapsed.
+
+            2  F(B) = 0.  However, the interval (B,C) may not have
+               collapsed to the requested tolerance.
+
+            3  B may be near a singular point of F(X).
+               The interval (B,C) collapsed to the requested tol-
+               erance and the function changes sign in (B,C), but
+               F(X) increased in magnitude as (B,C) collapsed, i.e.
+                 ABS(F(B out)) .GT. MAX(ABS(F(B in)),ABS(F(C in)))
+
+            4  No change in sign of F(X) was found although the
+               interval (B,C) collapsed to the requested tolerance.
+               The user must examine this case and decide whether
+               B is near a local minimum of F(X), or B is near a
+               zero of even multiplicity, or neither of these.
+
+            5  Too many (.GT. 500) function evaluations used.
+</pre></div>
+
+<p><strong>REFERENCES  L. F. Shampine and H. A. Watts, FZERO, a root-solving
+                 code, Report SC-TM-70-631, Sandia Laboratories,
+                 September 1970.
+               T. J. Dekker, Finding a zero by means of successive
+                 linear interpolation, Constructive Aspects of the
+                 Fundamental Theorem of Algebra, edited by B. Dejon
+                 and P. Henrici, Wiley-Interscience, 1969.
+</strong>ROUTINES CALLED  R1MACH
+<strong>REVISION HISTORY  (YYMMDD)
+   700901  DATE WRITTEN
+   890531  Changed all specific intrinsics to generic.  (WRB)
+   890531  REVISION DATE from Version 3.2
+   891214  Prologue converted to Version 4.0 format.  (BAB)
+   920501  Reformatted the REFERENCES section.  (WRB)
+</strong>END PROLOGUE  FZERO
+      USE stel_kinds
+**FIRST EXECUTABLE STATEMENT  FZERO</p>
+<p>ER is two times the computer unit roundoff value which is defined
+   here by the function EPSILON.</p>
+    
+
+    <h3>Arguments</h3>
+    
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f"></span>real</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>F</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-b"></span>real</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>B</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-c"></span>real</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>C</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-r"></span>real</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>R</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-re"></span>real</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>RE</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ae"></span>real</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>AE</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-iflag"></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>IFLAG</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    
+    
+    
+    
+     
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<em>None</em>
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+    
+    
+    
+    
+    </div>
+  </div>
+
+
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
+                                          <br /><small>v0.3-48-gc2b82a8</small></p>
+        </div>
+        <div class="col-xs-6 col-md-6">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+             on 2021-07-22T08:20:30.078452 
+            
+          </p>
+        </div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

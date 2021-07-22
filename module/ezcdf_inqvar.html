@@ -1,0 +1,4968 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+   <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>ezcdf_inqvar &ndash; stella</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">stella </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+               
+        
+        
+            </ul>
+        
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>ezcdf_inqvar 
+    <small>Module</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 3.0% of total for modules and submodules.">1037 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/ezcdf_inqvar.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/ezcdf_inqvar.f90.html'>ezcdf_inqvar.f90</a></li>
+    
+  
+     <li class="active">ezcdf_inqvar</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_byte">nf_byte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int1">nf_int1</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_char">nf_char</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_short">nf_short</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int2">nf_int2</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int">nf_int</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_float">nf_float</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_real">nf_real</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_double">nf_double</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ubyte">nf_ubyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ushort">nf_ushort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_uint">nf_uint</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int64">nf_int64</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_uint64">nf_uint64</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_byte">nf_fill_byte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_int1">nf_fill_int1</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_char">nf_fill_char</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_short">nf_fill_short</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_int2">nf_fill_int2</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_int">nf_fill_int</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_float">nf_fill_float</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_real">nf_fill_real</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_double">nf_fill_double</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_nowrite">nf_nowrite</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_write">nf_write</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_clobber">nf_clobber</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_noclobber">nf_noclobber</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill">nf_fill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_nofill">nf_nofill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_lock">nf_lock</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_share">nf_share</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_64bit_offset">nf_64bit_offset</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_64bit_data">nf_64bit_data</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_cdf5">nf_cdf5</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_sizehint_default">nf_sizehint_default</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_align_chunk">nf_align_chunk</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_classic">nf_format_classic</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_64bit">nf_format_64bit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_64bit_offset">nf_format_64bit_offset</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_64bit_data">nf_format_64bit_data</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_cdf5">nf_format_cdf5</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_diskless">nf_diskless</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_mmap">nf_mmap</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_unlimited">nf_unlimited</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_global">nf_global</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_dims">nf_max_dims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_attrs">nf_max_attrs</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_vars">nf_max_vars</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_name">nf_max_name</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_var_dims">nf_max_var_dims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_noerr">nf_noerr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadid">nf_ebadid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eexist">nf_eexist</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_einval">nf_einval</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eperm">nf_eperm</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotindefine">nf_enotindefine</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eindefine">nf_eindefine</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_einvalcoords">nf_einvalcoords</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxdims">nf_emaxdims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enameinuse">nf_enameinuse</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotatt">nf_enotatt</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxatts">nf_emaxatts</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadtype">nf_ebadtype</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebaddim">nf_ebaddim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eunlimpos">nf_eunlimpos</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxvars">nf_emaxvars</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotvar">nf_enotvar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eglobal">nf_eglobal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotnc">nf_enotnc</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ests">nf_ests</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxname">nf_emaxname</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eunlimit">nf_eunlimit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enorecvars">nf_enorecvars</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_echar">nf_echar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eedge">nf_eedge</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_estride">nf_estride</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadname">nf_ebadname</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_erange">nf_erange</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enomem">nf_enomem</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_evarsize">nf_evarsize</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_edimsize">nf_edimsize</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_etrunc">nf_etrunc</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fatal">nf_fatal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_verbose">nf_verbose</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_string">nf_string</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_vlen">nf_vlen</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_opaque">nf_opaque</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enum">nf_enum</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_compound">nf_compound</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_ubyte">nf_fill_ubyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_ushort">nf_fill_ushort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_netcdf4">nf_format_netcdf4</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_netcdf4_classic">nf_format_netcdf4_classic</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_netcdf4">nf_netcdf4</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_classic_model">nf_classic_model</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunk_seq">nf_chunk_seq</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunk_sub">nf_chunk_sub</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunk_sizes">nf_chunk_sizes</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_endian_native">nf_endian_native</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_endian_little">nf_endian_little</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_endian_big">nf_endian_big</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunked">nf_chunked</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_contiguous">nf_contiguous</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_nochecksum">nf_nochecksum</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fletcher32">nf_fletcher32</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_noshuffle">nf_noshuffle</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_shuffle">nf_shuffle</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_szip_ec_option_mask">nf_szip_ec_option_mask</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_szip_nn_option_mask">nf_szip_nn_option_mask</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_mpiio">nf_mpiio</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_mpiposix">nf_mpiposix</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_pnetcdf">nf_pnetcdf</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_independent">nf_independent</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_collective">nf_collective</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ehdferr">nf_ehdferr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ecantread">nf_ecantread</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ecantwrite">nf_ecantwrite</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ecantcreate">nf_ecantcreate</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_efilemeta">nf_efilemeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_edimmeta">nf_edimmeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eattmeta">nf_eattmeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_evarmeta">nf_evarmeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enocompound">nf_enocompound</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eattexists">nf_eattexists</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotnc4">nf_enotnc4</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_estrictnc3">nf_estrictnc3</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotnc3">nf_enotnc3</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enopar">nf_enopar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eparinit">nf_eparinit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadgrpid">nf_ebadgrpid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadtypid">nf_ebadtypid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_etypdefined">nf_etypdefined</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadfield">nf_ebadfield</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadclass">nf_ebadclass</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaptype">nf_emaptype</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_elatefill">nf_elatefill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_elatedef">nf_elatedef</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_edimscale">nf_edimscale</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enogrp">nf_enogrp</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncrdwr">ncrdwr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nccreat">nccreat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncexcl">ncexcl</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncindef">ncindef</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnsync">ncnsync</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nchsync">nchsync</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncndirty">ncndirty</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nchdirty">nchdirty</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nclink">nclink</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnowrit">ncnowrit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncwrite">ncwrite</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncclob">ncclob</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnoclob">ncnoclob</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncglobal">ncglobal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfill">ncfill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnofill">ncnofill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncop">maxncop</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncdim">maxncdim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncatt">maxncatt</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncvar">maxncvar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncnam">maxncnam</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxvdims">maxvdims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnoerr">ncnoerr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncebadid">ncebadid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenfile">ncenfile</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceexist">nceexist</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceinval">nceinval</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceperm">nceperm</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenotin">ncenotin</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceindef">nceindef</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncecoord">ncecoord</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncemaxds">ncemaxds</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncename">ncename</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenoatt">ncenoatt</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncemaxat">ncemaxat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncebadty">ncebadty</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncebadd">ncebadd</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncests">ncests</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceunlim">nceunlim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncemaxvs">ncemaxvs</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenotvr">ncenotvr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceglob">nceglob</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenotnc">ncenotnc</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfoobar">ncfoobar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncsyserr">ncsyserr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfatal">ncfatal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncverbos">ncverbos</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncentool">ncentool</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncbyte">ncbyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncchar">ncchar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncshort">ncshort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nclong">nclong</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfloat">ncfloat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncdouble">ncdouble</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncunlim">ncunlim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filbyte">filbyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filchar">filchar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filshort">filshort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-fillong">fillong</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filfloat">filfloat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-fildoub">fildoub</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-varnam_noalpha">varnam_noalpha</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-0">Interfaces</a></h3></div>
+  <div id="inters-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#interface-cdfinqvardim">cdfInqVarDim</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-0" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdfinqvar">cdfInqVar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdfgv">cdfgv</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdfinqv">cdfInqV</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdf_inquire">cdf_inquire</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-alpha_numeric">alpha_numeric</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    
+      
+    
+  
+
+    
+    
+
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_byte">nf_byte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int1">nf_int1</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_char">nf_char</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_short">nf_short</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int2">nf_int2</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int">nf_int</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_float">nf_float</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_real">nf_real</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_double">nf_double</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ubyte">nf_ubyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ushort">nf_ushort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_uint">nf_uint</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_int64">nf_int64</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_uint64">nf_uint64</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_byte">nf_fill_byte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_int1">nf_fill_int1</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_char">nf_fill_char</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_short">nf_fill_short</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_int2">nf_fill_int2</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_int">nf_fill_int</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_float">nf_fill_float</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_real">nf_fill_real</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_double">nf_fill_double</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_nowrite">nf_nowrite</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_write">nf_write</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_clobber">nf_clobber</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_noclobber">nf_noclobber</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill">nf_fill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_nofill">nf_nofill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_lock">nf_lock</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_share">nf_share</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_64bit_offset">nf_64bit_offset</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_64bit_data">nf_64bit_data</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_cdf5">nf_cdf5</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_sizehint_default">nf_sizehint_default</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_align_chunk">nf_align_chunk</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_classic">nf_format_classic</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_64bit">nf_format_64bit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_64bit_offset">nf_format_64bit_offset</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_64bit_data">nf_format_64bit_data</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_cdf5">nf_format_cdf5</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_diskless">nf_diskless</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_mmap">nf_mmap</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_unlimited">nf_unlimited</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_global">nf_global</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_dims">nf_max_dims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_attrs">nf_max_attrs</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_vars">nf_max_vars</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_name">nf_max_name</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_max_var_dims">nf_max_var_dims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_noerr">nf_noerr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadid">nf_ebadid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eexist">nf_eexist</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_einval">nf_einval</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eperm">nf_eperm</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotindefine">nf_enotindefine</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eindefine">nf_eindefine</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_einvalcoords">nf_einvalcoords</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxdims">nf_emaxdims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enameinuse">nf_enameinuse</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotatt">nf_enotatt</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxatts">nf_emaxatts</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadtype">nf_ebadtype</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebaddim">nf_ebaddim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eunlimpos">nf_eunlimpos</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxvars">nf_emaxvars</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotvar">nf_enotvar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eglobal">nf_eglobal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotnc">nf_enotnc</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ests">nf_ests</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaxname">nf_emaxname</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eunlimit">nf_eunlimit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enorecvars">nf_enorecvars</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_echar">nf_echar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eedge">nf_eedge</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_estride">nf_estride</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadname">nf_ebadname</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_erange">nf_erange</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enomem">nf_enomem</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_evarsize">nf_evarsize</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_edimsize">nf_edimsize</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_etrunc">nf_etrunc</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fatal">nf_fatal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_verbose">nf_verbose</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_string">nf_string</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_vlen">nf_vlen</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_opaque">nf_opaque</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enum">nf_enum</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_compound">nf_compound</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_ubyte">nf_fill_ubyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fill_ushort">nf_fill_ushort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_netcdf4">nf_format_netcdf4</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_format_netcdf4_classic">nf_format_netcdf4_classic</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_netcdf4">nf_netcdf4</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_classic_model">nf_classic_model</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunk_seq">nf_chunk_seq</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunk_sub">nf_chunk_sub</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunk_sizes">nf_chunk_sizes</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_endian_native">nf_endian_native</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_endian_little">nf_endian_little</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_endian_big">nf_endian_big</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_chunked">nf_chunked</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_contiguous">nf_contiguous</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_nochecksum">nf_nochecksum</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_fletcher32">nf_fletcher32</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_noshuffle">nf_noshuffle</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_shuffle">nf_shuffle</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_szip_ec_option_mask">nf_szip_ec_option_mask</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_szip_nn_option_mask">nf_szip_nn_option_mask</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_mpiio">nf_mpiio</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_mpiposix">nf_mpiposix</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_pnetcdf">nf_pnetcdf</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_independent">nf_independent</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_collective">nf_collective</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ehdferr">nf_ehdferr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ecantread">nf_ecantread</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ecantwrite">nf_ecantwrite</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ecantcreate">nf_ecantcreate</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_efilemeta">nf_efilemeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_edimmeta">nf_edimmeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eattmeta">nf_eattmeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_evarmeta">nf_evarmeta</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enocompound">nf_enocompound</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eattexists">nf_eattexists</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotnc4">nf_enotnc4</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_estrictnc3">nf_estrictnc3</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enotnc3">nf_enotnc3</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enopar">nf_enopar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_eparinit">nf_eparinit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadgrpid">nf_ebadgrpid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadtypid">nf_ebadtypid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_etypdefined">nf_etypdefined</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadfield">nf_ebadfield</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_ebadclass">nf_ebadclass</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_emaptype">nf_emaptype</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_elatefill">nf_elatefill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_elatedef">nf_elatedef</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_edimscale">nf_edimscale</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nf_enogrp">nf_enogrp</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncrdwr">ncrdwr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nccreat">nccreat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncexcl">ncexcl</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncindef">ncindef</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnsync">ncnsync</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nchsync">nchsync</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncndirty">ncndirty</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nchdirty">nchdirty</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nclink">nclink</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnowrit">ncnowrit</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncwrite">ncwrite</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncclob">ncclob</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnoclob">ncnoclob</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncglobal">ncglobal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfill">ncfill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnofill">ncnofill</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncop">maxncop</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncdim">maxncdim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncatt">maxncatt</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncvar">maxncvar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxncnam">maxncnam</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-maxvdims">maxvdims</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncnoerr">ncnoerr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncebadid">ncebadid</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenfile">ncenfile</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceexist">nceexist</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceinval">nceinval</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceperm">nceperm</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenotin">ncenotin</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceindef">nceindef</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncecoord">ncecoord</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncemaxds">ncemaxds</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncename">ncename</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenoatt">ncenoatt</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncemaxat">ncemaxat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncebadty">ncebadty</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncebadd">ncebadd</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncests">ncests</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceunlim">nceunlim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncemaxvs">ncemaxvs</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenotvr">ncenotvr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nceglob">nceglob</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncenotnc">ncenotnc</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfoobar">ncfoobar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncsyserr">ncsyserr</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfatal">ncfatal</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncverbos">ncverbos</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncentool">ncentool</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncbyte">ncbyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncchar">ncchar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncshort">ncshort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-nclong">nclong</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncfloat">ncfloat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncdouble">ncdouble</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-ncunlim">ncunlim</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filbyte">filbyte</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filchar">filchar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filshort">filshort</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-fillong">fillong</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-filfloat">filfloat</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-fildoub">fildoub</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#variable-varnam_noalpha">varnam_noalpha</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-1">Interfaces</a></h3></div>
+  <div id="inters-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#interface-cdfinqvardim">cdfInqVarDim</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-1" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdfinqvar">cdfInqVar</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdfgv">cdfgv</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdfinqv">cdfInqV</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-cdf_inquire">cdf_inquire</a>
+      
+      <a class="list-group-item" href="../module/ezcdf_inqvar.html#proc-alpha_numeric">alpha_numeric</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    <section>
+    <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_byte"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_byte</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_int1"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_int1</strong></td><td> =</td><td> nf_byte</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_char"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_char</strong></td><td> =</td><td> 2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_short"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_short</strong></td><td> =</td><td> 3</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_int2"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_int2</strong></td><td> =</td><td> nf_short</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_int"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_int</strong></td><td> =</td><td> 4</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_float"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_float</strong></td><td> =</td><td> 5</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_real"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_real</strong></td><td> =</td><td> nf_float</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_double"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_double</strong></td><td> =</td><td> 6</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ubyte"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ubyte</strong></td><td> =</td><td> 7</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ushort"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ushort</strong></td><td> =</td><td> 8</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_uint"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_uint</strong></td><td> =</td><td> 9</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_int64"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_int64</strong></td><td> =</td><td> 10</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_uint64"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_uint64</strong></td><td> =</td><td> 11</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_byte"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_byte</strong></td><td> =</td><td> -127</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_int1"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_int1</strong></td><td> =</td><td> nf_fill_byte</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_char"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_char</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_short"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_short</strong></td><td> =</td><td> -32767</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_int2"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_int2</strong></td><td> =</td><td> nf_fill_short</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_int"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_int</strong></td><td> =</td><td> -2147483647</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_float"></span>real,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_float</strong></td><td> =</td><td> 9.9692099683868690e+36</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_real"></span>real,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_real</strong></td><td> =</td><td> nf_fill_float</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_double"></span>doubleprecision,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_double</strong></td><td> =</td><td> 9.9692099683868690d+36</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_nowrite"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_nowrite</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_write"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_write</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_clobber"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_clobber</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_noclobber"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_noclobber</strong></td><td> =</td><td> 4</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_nofill"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_nofill</strong></td><td> =</td><td> 256</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_lock"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_lock</strong></td><td> =</td><td> 1024</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_share"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_share</strong></td><td> =</td><td> 2048</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_64bit_offset"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_64bit_offset</strong></td><td> =</td><td> 512</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_64bit_data"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_64bit_data</strong></td><td> =</td><td> 32</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_cdf5"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_cdf5</strong></td><td> =</td><td> nf_64bit_data</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_sizehint_default"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_sizehint_default</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_align_chunk"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_align_chunk</strong></td><td> =</td><td> -1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_classic"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_classic</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_64bit"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_64bit</strong></td><td> =</td><td> 2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_64bit_offset"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_64bit_offset</strong></td><td> =</td><td> nf_format_64bit</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_64bit_data"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_64bit_data</strong></td><td> =</td><td> 5</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_cdf5"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_cdf5</strong></td><td> =</td><td> nf_format_64bit_data</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_diskless"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_diskless</strong></td><td> =</td><td> 8</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_mmap"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_mmap</strong></td><td> =</td><td> 16</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_unlimited"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_unlimited</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_global"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_global</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_max_dims"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_max_dims</strong></td><td> =</td><td> 1024</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_max_attrs"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_max_attrs</strong></td><td> =</td><td> 8192</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_max_vars"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_max_vars</strong></td><td> =</td><td> 8192</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_max_name"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_max_name</strong></td><td> =</td><td> 256</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_max_var_dims"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_max_var_dims</strong></td><td> =</td><td> nf_max_dims</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_noerr"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_noerr</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadid"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadid</strong></td><td> =</td><td> -33</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eexist"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eexist</strong></td><td> =</td><td> -35</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_einval"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_einval</strong></td><td> =</td><td> -36</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eperm"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eperm</strong></td><td> =</td><td> -37</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enotindefine"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enotindefine</strong></td><td> =</td><td> -38</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eindefine"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eindefine</strong></td><td> =</td><td> -39</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_einvalcoords"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_einvalcoords</strong></td><td> =</td><td> -40</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_emaxdims"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_emaxdims</strong></td><td> =</td><td> -41</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enameinuse"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enameinuse</strong></td><td> =</td><td> -42</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enotatt"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enotatt</strong></td><td> =</td><td> -43</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_emaxatts"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_emaxatts</strong></td><td> =</td><td> -44</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadtype"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadtype</strong></td><td> =</td><td> -45</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebaddim"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebaddim</strong></td><td> =</td><td> -46</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eunlimpos"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eunlimpos</strong></td><td> =</td><td> -47</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_emaxvars"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_emaxvars</strong></td><td> =</td><td> -48</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enotvar"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enotvar</strong></td><td> =</td><td> -49</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eglobal"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eglobal</strong></td><td> =</td><td> -50</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enotnc"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enotnc</strong></td><td> =</td><td> -51</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ests"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ests</strong></td><td> =</td><td> -52</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_emaxname"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_emaxname</strong></td><td> =</td><td> -53</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eunlimit"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eunlimit</strong></td><td> =</td><td> -54</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enorecvars"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enorecvars</strong></td><td> =</td><td> -55</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_echar"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_echar</strong></td><td> =</td><td> -56</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eedge"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eedge</strong></td><td> =</td><td> -57</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_estride"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_estride</strong></td><td> =</td><td> -58</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadname"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadname</strong></td><td> =</td><td> -59</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_erange"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_erange</strong></td><td> =</td><td> -60</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enomem"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enomem</strong></td><td> =</td><td> -61</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_evarsize"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_evarsize</strong></td><td> =</td><td> -62</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_edimsize"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_edimsize</strong></td><td> =</td><td> -63</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_etrunc"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_etrunc</strong></td><td> =</td><td> -64</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fatal"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fatal</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_verbose"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_verbose</strong></td><td> =</td><td> 2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_string"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_string</strong></td><td> =</td><td> 12</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_vlen"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_vlen</strong></td><td> =</td><td> 13</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_opaque"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_opaque</strong></td><td> =</td><td> 14</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enum"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enum</strong></td><td> =</td><td> 15</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_compound"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_compound</strong></td><td> =</td><td> 16</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_ubyte"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_ubyte</strong></td><td> =</td><td> 255</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fill_ushort"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fill_ushort</strong></td><td> =</td><td> 65535</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_netcdf4"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_netcdf4</strong></td><td> =</td><td> 3</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_format_netcdf4_classic"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_format_netcdf4_classic</strong></td><td> =</td><td> 4</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_netcdf4"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_netcdf4</strong></td><td> =</td><td> 4096</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_classic_model"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_classic_model</strong></td><td> =</td><td> 256</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_chunk_seq"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_chunk_seq</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_chunk_sub"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_chunk_sub</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_chunk_sizes"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_chunk_sizes</strong></td><td> =</td><td> 2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_endian_native"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_endian_native</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_endian_little"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_endian_little</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_endian_big"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_endian_big</strong></td><td> =</td><td> 2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_chunked"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_chunked</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_contiguous"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_contiguous</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_nochecksum"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_nochecksum</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_fletcher32"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_fletcher32</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_noshuffle"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_noshuffle</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_shuffle"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_shuffle</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_szip_ec_option_mask"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_szip_ec_option_mask</strong></td><td> =</td><td> 4</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_szip_nn_option_mask"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_szip_nn_option_mask</strong></td><td> =</td><td> 32</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_mpiio"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_mpiio</strong></td><td> =</td><td> 8192</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_mpiposix"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_mpiposix</strong></td><td> =</td><td> 16384</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_pnetcdf"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_pnetcdf</strong></td><td> =</td><td> 32768</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_independent"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_independent</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_collective"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_collective</strong></td><td> =</td><td> 1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ehdferr"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ehdferr</strong></td><td> =</td><td> -101</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ecantread"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ecantread</strong></td><td> =</td><td> -102</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ecantwrite"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ecantwrite</strong></td><td> =</td><td> -103</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ecantcreate"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ecantcreate</strong></td><td> =</td><td> -104</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_efilemeta"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_efilemeta</strong></td><td> =</td><td> -105</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_edimmeta"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_edimmeta</strong></td><td> =</td><td> -106</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eattmeta"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eattmeta</strong></td><td> =</td><td> -107</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_evarmeta"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_evarmeta</strong></td><td> =</td><td> -108</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enocompound"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enocompound</strong></td><td> =</td><td> -109</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eattexists"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eattexists</strong></td><td> =</td><td> -110</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enotnc4"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enotnc4</strong></td><td> =</td><td> -111</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_estrictnc3"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_estrictnc3</strong></td><td> =</td><td> -112</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enotnc3"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enotnc3</strong></td><td> =</td><td> -113</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enopar"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enopar</strong></td><td> =</td><td> -114</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_eparinit"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_eparinit</strong></td><td> =</td><td> -115</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadgrpid"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadgrpid</strong></td><td> =</td><td> -116</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadtypid"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadtypid</strong></td><td> =</td><td> -117</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_etypdefined"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_etypdefined</strong></td><td> =</td><td> -118</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadfield"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadfield</strong></td><td> =</td><td> -119</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_ebadclass"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_ebadclass</strong></td><td> =</td><td> -120</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_emaptype"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_emaptype</strong></td><td> =</td><td> -121</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_elatefill"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_elatefill</strong></td><td> =</td><td> -122</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_elatedef"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_elatedef</strong></td><td> =</td><td> -123</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_edimscale"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_edimscale</strong></td><td> =</td><td> -124</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf_enogrp"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>nf_enogrp</strong></td><td> =</td><td> -125</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncrdwr"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncrdwr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nccreat"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nccreat</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncexcl"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncexcl</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncindef"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncindef</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncnsync"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncnsync</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nchsync"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nchsync</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncndirty"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncndirty</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nchdirty"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nchdirty</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nclink"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nclink</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncnowrit"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncnowrit</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncwrite"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncwrite</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncclob"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncclob</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncnoclob"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncnoclob</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncglobal"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncglobal</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncfill"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncfill</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncnofill"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncnofill</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxncop"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>maxncop</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxncdim"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>maxncdim</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxncatt"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>maxncatt</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxncvar"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>maxncvar</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxncnam"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>maxncnam</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxvdims"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>maxvdims</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncnoerr"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncnoerr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncebadid"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncebadid</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncenfile"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncenfile</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nceexist"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nceexist</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nceinval"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nceinval</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nceperm"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nceperm</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncenotin"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncenotin</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nceindef"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nceindef</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncecoord"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncecoord</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncemaxds"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncemaxds</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncename"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncename</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncenoatt"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncenoatt</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncemaxat"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncemaxat</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncebadty"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncebadty</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncebadd"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncebadd</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncests"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncests</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nceunlim"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nceunlim</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncemaxvs"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncemaxvs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncenotvr"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncenotvr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nceglob"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nceglob</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncenotnc"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncenotnc</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncfoobar"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncfoobar</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncsyserr"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncsyserr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncfatal"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncfatal</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncverbos"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncverbos</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncentool"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>ncentool</strong></td><td> =</td><td> nf_emaxname</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncbyte"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncbyte</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncchar"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncchar</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncshort"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncshort</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nclong"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nclong</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncfloat"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncfloat</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncdouble"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncdouble</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ncunlim"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ncunlim</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-filbyte"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>filbyte</strong></td><td> =</td><td> -127</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-filchar"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>filchar</strong></td><td> =</td><td> 0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-filshort"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>filshort</strong></td><td> =</td><td> -32767</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fillong"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>fillong</strong></td><td> =</td><td> -2147483647</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-filfloat"></span>real,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>filfloat</strong></td><td> =</td><td> 9.9692099683868690e+36</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fildoub"></span>doubleprecision,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>fildoub</strong></td><td> =</td><td> 9.9692099683868690e+36</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-varnam_noalpha"></span>character(len=nf_max_name),</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>varnam_noalpha</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
+    
+    
+    
+    
+    <section>
+   <h2>Interfaces</h2>
+   
+     
+<div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="interface-cdfinqvardim"></span><h3>public interface <a href='../interface/cdfinqvardim.html'>cdfInqVarDim</a>
+    
+  </h3></div>
+  
+  <ul class="list-group">
+  
+  
+  
+    <li class="list-group-item">
+    
+    
+    <h3>
+public subroutine <a href='../proc/cdfinqv.html'>cdfInqV</a>(ncid, varnam, varid, dimlens, ndims, status)
+    
+    
+   
+</h3>
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ndims</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>status</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+    </li>
+  
+    <li class="list-group-item">
+    
+    
+    <h3>
+public subroutine <a href='../proc/cdfgv.html'>cdfgv</a>(ncid, varnam, varid, dimlens, sizes, xtype, status)
+    
+    
+   
+</h3>
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td></td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td></td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>sizes</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=1)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>xtype</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>status</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+    </li>
+  
+    <li class="list-group-item">
+    
+    
+    <h3>
+public subroutine <a href='../proc/cdf_inquire.html'>cdf_inquire</a>(ncid, varnam, dimlens, xtype, ier)
+    
+    
+   
+</h3>
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(out),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>xtype</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>ier</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+    </li>
+  
+  
+  </ul>
+</div>
+
+    
+    </section>
+  <br>
+    
+
+    
+    
+    
+    
+    
+
+    
+    <section>
+    <h2>Subroutines</h2>
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfinqvar"></span><h3>
+public subroutine <a href='../proc/cdfinqvar.html'>cdfInqVar</a>(ncid, varnam, dimlens, eztype, ier)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>eztype</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>ier</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfgv"></span><h3>
+public subroutine <a href='../proc/cdfgv.html'>cdfgv</a>(ncid, varnam, varid, dimlens, sizes, xtype, status)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td></td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td></td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>sizes</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=1)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>xtype</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>status</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfinqv"></span><h3>
+public subroutine <a href='../proc/cdfinqv.html'>cdfInqV</a>(ncid, varnam, varid, dimlens, ndims, status)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ndims</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>status</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdf_inquire"></span><h3>
+public subroutine <a href='../proc/cdf_inquire.html'>cdf_inquire</a>(ncid, varnam, dimlens, xtype, ier)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ncid</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>varnam</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>dimlens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(out),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>xtype</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>ier</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-alpha_numeric"></span><h3>
+public subroutine <a href='../proc/alpha_numeric.html'>alpha_numeric</a>(string)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>string</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    </section>    
+    <br>
+    
+    
+    
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
+                                          <br /><small>v0.3-48-gc2b82a8</small></p>
+        </div>
+        <div class="col-xs-6 col-md-6">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+             on 2021-07-22T08:20:30.078452 
+            
+          </p>
+        </div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

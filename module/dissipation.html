@@ -1,0 +1,3658 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+   <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>dissipation &ndash; stella</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">stella </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+               
+        
+        
+            </ul>
+        
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>dissipation 
+    <small>Module</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title=" 7.0% of total for modules and submodules.">2409 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/dissipation.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/dissipation.f90.html'>dissipation.f90</a></li>
+    
+  
+     <li class="active">dissipation</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-include_collisions">include_collisions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpa_operator">vpa_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mu_operator">mu_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-collisions_implicit~2">collisions_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-include_krook_operator">include_krook_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-momentum_conservation">momentum_conservation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-energy_conservation">energy_conservation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-hyper_dissipation">hyper_dissipation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-remove_zero_projection">remove_zero_projection</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-use_physical_ksqr">use_physical_ksqr</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-krook_odd">krook_odd</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-d_hyper">D_hyper</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nu_krook">nu_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-delay_krook">delay_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-int_krook">int_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-int_proj">int_proj</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cfl_dt_vpadiff">cfl_dt_vpadiff</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cfl_dt_mudiff">cfl_dt_mudiff</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-ikxmax_source">ikxmax_source</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-collision_model">collision_model</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nresponse_vpa">nresponse_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nresponse_mu">nresponse_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cfac~2">cfac</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-aa_vpa">aa_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-bb_vpa">bb_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cc_vpa">cc_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-aa_mu">aa_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cc_mu">cc_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-bb_mu">bb_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_response">vpadiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_idx">vpadiff_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_response">mudiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_idx">mudiff_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_zf_response">vpadiff_zf_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_zf_idx">vpadiff_zf_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_zf_response">mudiff_zf_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_zf_idx">mudiff_zf_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-aa_blcs">aa_blcs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cc_blcs">cc_blcs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-bb_blcs">bb_blcs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-dd_vecs">dd_vecs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cdiffmat_band">cdiffmat_band</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-blockmatrix">blockmatrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-ipiv">ipiv</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nus">nus</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nud">nuD</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nupa">nupa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nux">nux</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mw">mw</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-info">info</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-collisions_initialized">collisions_initialized</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-time_collisions">time_collisions</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-0" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_dissipation">init_dissipation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-read_parameters~2">read_parameters</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_collisions">init_collisions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_nusdpa">init_nusDpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_nusdpa">finish_nusDpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_fp_diffmatrix">init_fp_diffmatrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_fp_conserve">init_fp_conserve</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_vpadiff_matrix">init_vpadiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_mudiff_matrix">init_mudiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_vpadiff_conserve">init_vpadiff_conserve</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_mudiff_conserve">init_mudiff_conserve</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_upar">get_upar</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_uperp">get_uperp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_temp">get_temp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_temp_mu">get_temp_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_dissipation">finish_dissipation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_collisions">finish_collisions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_fp_diffmatrix">finish_fp_diffmatrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_vpadiff_matrix">finish_vpadiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_mudiff_matrix">finish_mudiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_vpadiff_response">finish_vpadiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_mudiff_response">finish_mudiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-add_krook_operator">add_krook_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-update_delay_krook">update_delay_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-project_out_zero">project_out_zero</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_collisions_explicit">advance_collisions_explicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-vpa_differential_operator_fp">vpa_differential_operator_fp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-mu_differential_operator_fp">mu_differential_operator_fp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-vpa_differential_operator">vpa_differential_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-mu_differential_operator">mu_differential_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_momentum">conserve_momentum</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_energy">conserve_energy</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_momentum_vmulo">conserve_momentum_vmulo</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_energy_vmulo">conserve_energy_vmulo</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_collisions_implicit">advance_collisions_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_implicit_fp">advance_implicit_fp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_vpadiff_implicit">advance_vpadiff_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_mudiff_implicit">advance_mudiff_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_hyper_dissipation">advance_hyper_dissipation</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    
+      
+    
+  
+
+    
+    
+
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-include_collisions">include_collisions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpa_operator">vpa_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mu_operator">mu_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-collisions_implicit~2">collisions_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-include_krook_operator">include_krook_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-momentum_conservation">momentum_conservation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-energy_conservation">energy_conservation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-hyper_dissipation">hyper_dissipation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-remove_zero_projection">remove_zero_projection</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-use_physical_ksqr">use_physical_ksqr</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-krook_odd">krook_odd</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-d_hyper">D_hyper</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nu_krook">nu_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-delay_krook">delay_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-int_krook">int_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-int_proj">int_proj</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cfl_dt_vpadiff">cfl_dt_vpadiff</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cfl_dt_mudiff">cfl_dt_mudiff</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-ikxmax_source">ikxmax_source</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-collision_model">collision_model</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nresponse_vpa">nresponse_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nresponse_mu">nresponse_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cfac~2">cfac</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-aa_vpa">aa_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-bb_vpa">bb_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cc_vpa">cc_vpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-aa_mu">aa_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cc_mu">cc_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-bb_mu">bb_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_response">vpadiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_idx">vpadiff_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_response">mudiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_idx">mudiff_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_zf_response">vpadiff_zf_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-vpadiff_zf_idx">vpadiff_zf_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_zf_response">mudiff_zf_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mudiff_zf_idx">mudiff_zf_idx</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-aa_blcs">aa_blcs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cc_blcs">cc_blcs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-bb_blcs">bb_blcs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-dd_vecs">dd_vecs</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-cdiffmat_band">cdiffmat_band</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-blockmatrix">blockmatrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-ipiv">ipiv</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nus">nus</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nud">nuD</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nupa">nupa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-nux">nux</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-mw">mw</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-info">info</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-collisions_initialized">collisions_initialized</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#variable-time_collisions">time_collisions</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-1" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_dissipation">init_dissipation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-read_parameters~2">read_parameters</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_collisions">init_collisions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_nusdpa">init_nusDpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_nusdpa">finish_nusDpa</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_fp_diffmatrix">init_fp_diffmatrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_fp_conserve">init_fp_conserve</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_vpadiff_matrix">init_vpadiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_mudiff_matrix">init_mudiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_vpadiff_conserve">init_vpadiff_conserve</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-init_mudiff_conserve">init_mudiff_conserve</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_upar">get_upar</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_uperp">get_uperp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_temp">get_temp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-get_temp_mu">get_temp_mu</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_dissipation">finish_dissipation</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_collisions">finish_collisions</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_fp_diffmatrix">finish_fp_diffmatrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_vpadiff_matrix">finish_vpadiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_mudiff_matrix">finish_mudiff_matrix</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_vpadiff_response">finish_vpadiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-finish_mudiff_response">finish_mudiff_response</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-add_krook_operator">add_krook_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-update_delay_krook">update_delay_krook</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-project_out_zero">project_out_zero</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_collisions_explicit">advance_collisions_explicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-vpa_differential_operator_fp">vpa_differential_operator_fp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-mu_differential_operator_fp">mu_differential_operator_fp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-vpa_differential_operator">vpa_differential_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-mu_differential_operator">mu_differential_operator</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_momentum">conserve_momentum</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_energy">conserve_energy</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_momentum_vmulo">conserve_momentum_vmulo</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-conserve_energy_vmulo">conserve_energy_vmulo</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_collisions_implicit">advance_collisions_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_implicit_fp">advance_implicit_fp</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_vpadiff_implicit">advance_vpadiff_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_mudiff_implicit">advance_mudiff_implicit</a>
+      
+      <a class="list-group-item" href="../module/dissipation.html#proc-advance_hyper_dissipation">advance_hyper_dissipation</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    <section>
+    <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-include_collisions"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>include_collisions</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vpa_operator"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>vpa_operator</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mu_operator"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>mu_operator</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-collisions_implicit~2"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>collisions_implicit</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-include_krook_operator"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>include_krook_operator</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-momentum_conservation"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>momentum_conservation</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-energy_conservation"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>energy_conservation</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-hyper_dissipation"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>hyper_dissipation</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-remove_zero_projection"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>remove_zero_projection</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-use_physical_ksqr"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>use_physical_ksqr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-krook_odd"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>krook_odd</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exclude_boundary_regions"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>exclude_boundary_regions</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-d_hyper"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>D_hyper</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nu_krook"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nu_krook</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-delay_krook"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>delay_krook</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-int_krook"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>int_krook</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-int_proj"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>int_proj</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cfl_dt_vpadiff"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>cfl_dt_vpadiff</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cfl_dt_mudiff"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>cfl_dt_mudiff</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ikxmax_source"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ikxmax_source</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-collision_model"></span>character(len=30),</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>collision_model</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nresponse_vpa"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nresponse_vpa</strong></td><td> =</td><td>1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nresponse_mu"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nresponse_mu</strong></td><td> =</td><td>1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cfac~2"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>cfac</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-aa_vpa"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>aa_vpa</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bb_vpa"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>bb_vpa</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cc_vpa"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>cc_vpa</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-aa_mu"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>aa_mu</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cc_mu"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>cc_mu</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bb_mu"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>bb_mu</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vpadiff_response"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>vpadiff_response</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vpadiff_idx"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>vpadiff_idx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mudiff_response"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>mudiff_response</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mudiff_idx"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>mudiff_idx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vpadiff_zf_response"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>vpadiff_zf_response</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vpadiff_zf_idx"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>vpadiff_zf_idx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mudiff_zf_response"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>mudiff_zf_response</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mudiff_zf_idx"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>mudiff_zf_idx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-aa_blcs"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:,:,:), allocatable</td><td>::</td>
+  <td><strong>aa_blcs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cc_blcs"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:,:,:), allocatable</td><td>::</td>
+  <td><strong>cc_blcs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bb_blcs"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td><strong>bb_blcs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dd_vecs"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td><strong>dd_vecs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cdiffmat_band"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>cdiffmat_band</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-blockmatrix"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>blockmatrix</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ipiv"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>ipiv</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nus"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>nus</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nud"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>nuD</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nupa"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>nupa</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nux"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>nux</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mw"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>mw</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-info"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>info</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-collisions_initialized"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>collisions_initialized</strong></td><td> =</td><td>.false.</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-time_collisions"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (2,2)</td><td>::</td>
+  <td><strong>time_collisions</strong></td><td> =</td><td>0.</td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    <section>
+    <h2>Subroutines</h2>
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_dissipation"></span><h3>
+public subroutine <a href='../proc/init_dissipation.html'>init_dissipation</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~2"></span><h3>
+private subroutine <a href='../proc/read_parameters~2.html'>read_parameters</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_collisions"></span><h3>
+public subroutine <a href='../proc/init_collisions.html'>init_collisions</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_nusdpa"></span><h3>
+private subroutine <a href='../proc/init_nusdpa.html'>init_nusDpa</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_nusdpa"></span><h3>
+private subroutine <a href='../proc/finish_nusdpa.html'>finish_nusDpa</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_fp_diffmatrix"></span><h3>
+private subroutine <a href='../proc/init_fp_diffmatrix.html'>init_fp_diffmatrix</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_fp_conserve"></span><h3>
+private subroutine <a href='../proc/init_fp_conserve.html'>init_fp_conserve</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_vpadiff_matrix"></span><h3>
+private subroutine <a href='../proc/init_vpadiff_matrix.html'>init_vpadiff_matrix</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_mudiff_matrix"></span><h3>
+private subroutine <a href='../proc/init_mudiff_matrix.html'>init_mudiff_matrix</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_vpadiff_conserve"></span><h3>
+private subroutine <a href='../proc/init_vpadiff_conserve.html'>init_vpadiff_conserve</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_mudiff_conserve"></span><h3>
+private subroutine <a href='../proc/init_mudiff_conserve.html'>init_mudiff_conserve</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_upar"></span><h3>
+private subroutine <a href='../proc/get_upar.html'>get_upar</a>(g, fld)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_uperp"></span><h3>
+private subroutine <a href='../proc/get_uperp.html'>get_uperp</a>(g, fld)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_temp"></span><h3>
+private subroutine <a href='../proc/get_temp.html'>get_temp</a>(g, fld)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_temp_mu"></span><h3>
+private subroutine <a href='../proc/get_temp_mu.html'>get_temp_mu</a>(g, fld)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_dissipation"></span><h3>
+public subroutine <a href='../proc/finish_dissipation.html'>finish_dissipation</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_collisions"></span><h3>
+private subroutine <a href='../proc/finish_collisions.html'>finish_collisions</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_fp_diffmatrix"></span><h3>
+private subroutine <a href='../proc/finish_fp_diffmatrix.html'>finish_fp_diffmatrix</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_vpadiff_matrix"></span><h3>
+private subroutine <a href='../proc/finish_vpadiff_matrix.html'>finish_vpadiff_matrix</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_mudiff_matrix"></span><h3>
+private subroutine <a href='../proc/finish_mudiff_matrix.html'>finish_mudiff_matrix</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_vpadiff_response"></span><h3>
+private subroutine <a href='../proc/finish_vpadiff_response.html'>finish_vpadiff_response</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_mudiff_response"></span><h3>
+private subroutine <a href='../proc/finish_mudiff_response.html'>finish_mudiff_response</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-add_krook_operator"></span><h3>
+public subroutine <a href='../proc/add_krook_operator.html'>add_krook_operator</a>(g, gke_rhs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gke_rhs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-update_delay_krook"></span><h3>
+public subroutine <a href='../proc/update_delay_krook.html'>update_delay_krook</a>(g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-project_out_zero"></span><h3>
+public subroutine <a href='../proc/project_out_zero.html'>project_out_zero</a>(g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_collisions_explicit"></span><h3>
+public subroutine <a href='../proc/advance_collisions_explicit.html'>advance_collisions_explicit</a>(g, phi, gke_rhs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gke_rhs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-vpa_differential_operator_fp"></span><h3>
+private subroutine <a href='../proc/vpa_differential_operator_fp.html'>vpa_differential_operator_fp</a>(h, Dh, imu, iz, is, ia)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>Dh</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>imu</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>is</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ia</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-mu_differential_operator_fp"></span><h3>
+private subroutine <a href='../proc/mu_differential_operator_fp.html'>mu_differential_operator_fp</a>(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>Dh</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iv</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>is</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ia</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iky</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ikx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>cfac</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-vpa_differential_operator"></span><h3>
+private subroutine <a href='../proc/vpa_differential_operator.html'>vpa_differential_operator</a>(tfac, h, Dh)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>tfac</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>Dh</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-mu_differential_operator"></span><h3>
+private subroutine <a href='../proc/mu_differential_operator.html'>mu_differential_operator</a>(tfac, iz, ia, h, Dh)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>tfac</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ia</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>Dh</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-conserve_momentum"></span><h3>
+private subroutine <a href='../proc/conserve_momentum.html'>conserve_momentum</a>(iky, ikx, iz, is, ikxkyz, h, Ch)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iky</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ikx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>is</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ikxkyz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>Ch</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-conserve_energy"></span><h3>
+private subroutine <a href='../proc/conserve_energy.html'>conserve_energy</a>(iz, is, ikxkyz, h, Ch)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>is</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ikxkyz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>Ch</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-conserve_momentum_vmulo"></span><h3>
+private subroutine <a href='../proc/conserve_momentum_vmulo.html'>conserve_momentum_vmulo</a>(h, gke_rhs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gke_rhs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-conserve_energy_vmulo"></span><h3>
+private subroutine <a href='../proc/conserve_energy_vmulo.html'>conserve_energy_vmulo</a>(h, gke_rhs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>h</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gke_rhs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_collisions_implicit"></span><h3>
+public subroutine <a href='../proc/advance_collisions_implicit.html'>advance_collisions_implicit</a>(mirror_implicit, phi, apar, g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>mirror_implicit</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>apar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_implicit_fp"></span><h3>
+private subroutine <a href='../proc/advance_implicit_fp.html'>advance_implicit_fp</a>(phi, apar, g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>apar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_vpadiff_implicit"></span><h3>
+private subroutine <a href='../proc/advance_vpadiff_implicit.html'>advance_vpadiff_implicit</a>(phi, apar, g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>apar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_mudiff_implicit"></span><h3>
+private subroutine <a href='../proc/advance_mudiff_implicit.html'>advance_mudiff_implicit</a>(phi, apar, g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td><strong>apar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_hyper_dissipation"></span><h3>
+public subroutine <a href='../proc/advance_hyper_dissipation.html'>advance_hyper_dissipation</a>(g)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    </section>    
+    <br>
+    
+    
+    
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
+                                          <br /><small>v0.3-48-gc2b82a8</small></p>
+        </div>
+        <div class="col-xs-6 col-md-6">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+             on 2021-07-22T08:20:30.078452 
+            
+          </p>
+        </div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>
