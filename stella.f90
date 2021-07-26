@@ -456,6 +456,7 @@ contains
        write (*,fmt=101) 'ExB nonlin:', time_gke(1,7)/60., 'min'
        write (*,fmt=101) 'parallel nonlin:', time_parallel_nl(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_parallel_nl(1,2)/60., 'min'
+       write (*,fmt=101) 'radial var:', time_gke(1,10)/60., 'min'
        write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'
        write (*,fmt=101) 'total explicit: ', time_gke(1,8)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'

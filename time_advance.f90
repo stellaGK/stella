@@ -58,7 +58,7 @@ module time_advance
   real, dimension (:), allocatable :: d_par_nl_driftx_dr, d_par_nl_drifty_dr
 
   ! needed for timing various pieces of gke solve
-  real, dimension (2,9) :: time_gke = 0.
+  real, dimension (2,10) :: time_gke = 0.
   real, dimension (2,2) :: time_parallel_nl = 0.
 
   logical :: debug = .false.
@@ -1971,7 +1971,7 @@ contains
 
   subroutine advance_radial_variation (g, gout)
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, proc0
     use job_manage, only: time_message
     use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
@@ -2005,11 +2005,14 @@ contains
     complex, dimension (:,:,:,:,:), allocatable :: g_corr
 
     allocate (g0k(naky,nakx))
+
     allocate (g1k(naky,nakx))
     allocate (g0a(naky,nakx))
 
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_radial_variation'
+
+    if (proc0) call time_message(.false.,time_gke(:,10),' radial variation advance')
 
     if(include_mirror .or. include_parallel_streaming) then
       allocate (g_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -2110,6 +2113,8 @@ contains
 
     deallocate (g0k, g1k, g0a)
     if(allocated(g_corr)) deallocate(g_corr)
+
+    if (proc0) call time_message(.false.,time_gke(:,10),' radial variation advance')
 
   end subroutine advance_radial_variation
 
