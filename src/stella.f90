@@ -111,7 +111,7 @@ contains
     use dist_redistribute, only: init_redistribute
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
-    use kt_grids, only: init_kt_grids, read_kt_grids_parameters
+    use kt_grids, only: init_kt_grids, read_kt_grids_parameters, communicate_ktgrids_multibox
     use kt_grids, only: naky, nakx, ny, nx, nalpha
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
@@ -231,6 +231,10 @@ contains
     endif
     if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1)) then
       call communicate_multibox_parameters
+    endif
+    if (runtype_option_switch.eq.runtype_multibox.and.radial_variation) then
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_ktgrid'
+      call communicate_ktgrids_multibox
     endif
     if (debug) write (6,*) 'stella::init_stella::finish_init_geometry'
     call finish_init_geometry
@@ -456,6 +460,7 @@ contains
        write (*,fmt=101) 'ExB nonlin:', time_gke(1,7)/60., 'min'
        write (*,fmt=101) 'parallel nonlin:', time_parallel_nl(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_parallel_nl(1,2)/60., 'min'
+       write (*,fmt=101) 'radial var:', time_gke(1,10)/60., 'min'
        write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'
        write (*,fmt=101) 'total explicit: ', time_gke(1,8)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'

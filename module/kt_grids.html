@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.4% of total for modules and submodules.">501 statements</a>
+    title=" 1.5% of total for modules and submodules.">533 statements</a>
      </li> 
      
      
@@ -213,6 +213,8 @@
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-jtwistfac">jtwistfac</a>
       
+      <a class="list-group-item" href="../module/kt_grids.html#variable-phase_shift_fac">phase_shift_fac</a>
+      
       <a class="list-group-item" href="../module/kt_grids.html#variable-naky~10">naky</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-nakx~10">nakx</a>
@@ -236,6 +238,8 @@
       <a class="list-group-item" href="../module/kt_grids.html#variable-centered_in_rho">centered_in_rho</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-periodic_variation">periodic_variation</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-randomize_phase_shift">randomize_phase_shift</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-grid_option">grid_option</a>
       
@@ -332,6 +336,8 @@
       
       <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back_ordered">swap_kxky_back_ordered</a>
       
+      <a class="list-group-item" href="../module/kt_grids.html#proc-communicate_ktgrids_multibox">communicate_ktgrids_multibox</a>
+      
       <a class="list-group-item" href="../module/kt_grids.html#proc-finish_kt_grids">finish_kt_grids</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#proc-multiply_by_rho">multiply_by_rho</a>
@@ -410,6 +416,8 @@
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-jtwistfac">jtwistfac</a>
       
+      <a class="list-group-item" href="../module/kt_grids.html#variable-phase_shift_fac">phase_shift_fac</a>
+      
       <a class="list-group-item" href="../module/kt_grids.html#variable-naky~10">naky</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-nakx~10">nakx</a>
@@ -433,6 +441,8 @@
       <a class="list-group-item" href="../module/kt_grids.html#variable-centered_in_rho">centered_in_rho</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-periodic_variation">periodic_variation</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#variable-randomize_phase_shift">randomize_phase_shift</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#variable-grid_option">grid_option</a>
       
@@ -528,6 +538,8 @@
       <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back">swap_kxky_back</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_back_ordered">swap_kxky_back_ordered</a>
+      
+      <a class="list-group-item" href="../module/kt_grids.html#proc-communicate_ktgrids_multibox">communicate_ktgrids_multibox</a>
       
       <a class="list-group-item" href="../module/kt_grids.html#proc-finish_kt_grids">finish_kt_grids</a>
       
@@ -808,6 +820,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-phase_shift_fac"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>phase_shift_fac</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-naky~10"></span>integer,</td>
   
   <td>public</td>
@@ -967,6 +993,20 @@
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>periodic_variation</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-randomize_phase_shift"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>randomize_phase_shift</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -1914,6 +1954,28 @@ public subroutine <a href='../proc/swap_kxky_back_ordered.html'>swap_kxky_back_o
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-communicate_ktgrids_multibox"></span><h3>
+public subroutine <a href='../proc/communicate_ktgrids_multibox.html'>communicate_ktgrids_multibox</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-finish_kt_grids"></span><h3>
 public subroutine <a href='../proc/finish_kt_grids.html'>finish_kt_grids</a>()
     
@@ -2000,13 +2062,13 @@ public subroutine <a href='../proc/multiply_by_rho.html'>multiply_by_rho</a>(gin
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-48-gc2b82a8</small></p>
+                                          <br /><small>v0.3-51-gf1cc086</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-07-22T08:20:30.078452 
+             on 2021-07-27T13:58:25.072682 
             
           </p>
         </div>
