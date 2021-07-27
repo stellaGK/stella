@@ -77,6 +77,7 @@ dissipation.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
+	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
@@ -131,6 +132,7 @@ euterpe_interface.o: \
 	 spl.o \
 	 stella_geometry.o 
 extended_zgrid.o: \
+	 constants.o \
 	 kt_grids.o \
 	 zgrid.o 
 fft_work.o: \
@@ -181,11 +183,6 @@ flow_shear.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
-	 zgrid.o 
-full_xzgrid.o: \
-	 extended_zgrid.o \
-	 kt_grids.o \
-	 species.o \
 	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
@@ -246,9 +243,11 @@ kt_grids.o: \
 	 common_types.o \
 	 constants.o \
 	 file_utils.o \
+	 job_manage.o \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 ran.o \
 	 stella_geometry.o \
 	 stella_transforms.o \
 	 text_options.o \

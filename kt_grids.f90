@@ -34,13 +34,12 @@ module kt_grids
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
   complex, dimension (:,:), allocatable :: g0x
   real :: dx, dy, dkx, dky, dx_d
-  real :: jtwistfac
-  complex :: phase_shift_fac
+  real :: jtwistfac, phase_shift_fac
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
   logical :: reality = .false.
-  logical :: centered_in_rho, periodic_variation
+  logical :: centered_in_rho, periodic_variation, randomize_phase_shift
   character(20) :: grid_option
   logical, dimension (:), allocatable :: zonal_mode
 
@@ -124,7 +123,8 @@ contains
     logical :: exist
 
     namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0, &
-                                       centered_in_rho, periodic_variation
+                                       centered_in_rho, periodic_variation, &
+                                       randomize_phase_shift, phase_shift_fac
 
     ! note that jtwist and y0 will possibly be modified
     ! later in init_kt_grids_box if they make it out
@@ -141,6 +141,7 @@ contains
     y0 = -1.0
     nalpha = 1
     centered_in_rho = .true.
+    randomize_phase_shift = .false.
     periodic_variation = .false.
 
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
@@ -214,7 +215,7 @@ contains
 
   subroutine init_kt_grids_box
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, proc0, broadcast
     use common_types, only: flux_surface_type
     use constants, only: pi, zi
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
@@ -223,11 +224,12 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
     use zgrid, only: shat_zero, nperiod
+    use ran, only: ranf
 
     implicit none
     
     integer :: ikx, iky
-    real :: x_shift, dqdrho, pfac
+    real :: x_shift, dqdrho, pfac, norm
 
     box = .true.
 
@@ -309,9 +311,17 @@ contains
        end do
     end if
 
-    if (radial_variation.and.rhostar.gt.0.) then
-      phase_shift_fac =-2.*pi*zi*(2*nperiod-1)*geo_surf%qinp_psi0*dydalpha/rhostar
+    norm = 1.
+    if (nakx.gt.1) norm = aky(2)
+    if (rhostar.gt.0.) then
+      phase_shift_fac =-2.*pi*(2*nperiod-1)*geo_surf%qinp_psi0*dydalpha/rhostar
+    else if (randomize_phase_shift) then
+      if (proc0) phase_shift_fac = 2.*pi*ranf()/norm
+      call broadcast (phase_shift_fac)
+    else
+      phase_shift_fac = phase_shift_fac/norm
     endif
+
 
     ! for radial variation
     if(.not.allocated(x)) allocate (x(nx))
@@ -508,6 +518,8 @@ contains
     call broadcast (akx_max)
     call broadcast (theta0_min)
     call broadcast (theta0_max)
+    call broadcast (randomize_phase_shift)
+    call broadcast (phase_shift_fac)
 
   end subroutine broadcast_input
 

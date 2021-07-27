@@ -42,6 +42,7 @@ contains
     use kt_grids, only: nakx, naky
     use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_fac
     use kt_grids, only: aky, ikx_max
+    use constants, only: zi
 
     implicit none
 
@@ -50,8 +51,6 @@ contains
     integer, dimension (:), allocatable :: ikx_shift_end
     integer, dimension (:,:), allocatable :: ikx_shift
 
-
-    write (*,*) phase_shift_fac
 
     if (extended_zgrid_initialized) return
     extended_zgrid_initialized = .true.
@@ -204,7 +203,7 @@ contains
           allocate (iz_up(nseg_max)) ; iz_up = nzgrid
        end if
 
-       phase_shift = exp(aky*phase_shift_fac)
+       phase_shift = exp(zi*aky*phase_shift_fac)
        
     case default
        
@@ -347,20 +346,24 @@ contains
 
     integer :: iseg, ikx, itmod
     integer :: llim
+    complex :: curr_shift
+
 
     ! avoid double-counting at boundaries between 2pi segments
     iseg = 1
+    curr_shift = 1.
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
-    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg),it)
+    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg),it)*curr_shift
     if (nsegments(ie,iky) > 1) then
        itmod = it
        do iseg = 2, nsegments(ie,iky)
+          curr_shift = curr_shift/phase_shift(iky)
           ikx = ikxmod(iseg,ie,iky)
           itmod = it_right(itmod)
           llim = ulim+1
           ulim = llim+nzed_segment-1
-          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)
+          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)*curr_shift
        end do
     end if
 
@@ -378,20 +381,23 @@ contains
 
     integer :: iseg, ikx, itmod
     integer :: llim, ulim
+    complex :: curr_shift
 
     iseg = 1
+    curr_shift = 1.
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
     g(ikx,iz_low(iseg):iz_up(iseg),it) = gext(llim:ulim)
     if (nsegments(ie,iky) > 1) then
        itmod = it
        do iseg = 2, nsegments(ie,iky)
+          curr_shift = curr_shift*phase_shift(iky)
           llim = ulim+1
           ulim = llim+nzed_segment-1
           ikx = ikxmod(iseg,ie,iky)
           itmod = it_right(itmod)
-          g(ikx,iz_low(iseg),itmod) = gext(llim-1)
-          g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod) = gext(llim:ulim)
+          g(ikx,iz_low(iseg),itmod) = gext(llim-1)*curr_shift
+          g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod) = gext(llim:ulim)*curr_shift
        end do
     end if
 
