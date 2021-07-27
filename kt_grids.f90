@@ -13,11 +13,13 @@ module kt_grids
   public :: rho, rho_d, rho_clamped, rho_d_clamped
   public :: nalpha
   public :: ikx_max, naky_all
+  public :: phase_shift_fac
   public :: zonal_mode
   public :: swap_kxky, swap_kxky_back
   public :: swap_kxky_ordered, swap_kxky_back_ordered
   public :: multiply_by_rho, centered_in_rho
   public :: periodic_variation
+  public :: communicate_ktgrids_multibox
 
   private
 
@@ -30,9 +32,10 @@ module kt_grids
   real, dimension (:), allocatable :: aky, akx
   real, dimension (:), allocatable :: x, x_d
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
-  complex, dimension (:,:), allocatable:: g0x
+  complex, dimension (:,:), allocatable :: g0x
   real :: dx, dy, dkx, dky, dx_d
   real :: jtwistfac
+  complex :: phase_shift_fac
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
@@ -133,7 +136,8 @@ contains
     nx = 1
     ny = 1
     jtwist = -1
-    jtwistfac = 1.0
+    jtwistfac = 1.
+    phase_shift_fac = 0.
     y0 = -1.0
     nalpha = 1
     centered_in_rho = .true.
@@ -205,19 +209,20 @@ contains
     zonal_mode = .false.
     if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
 
+
   end subroutine init_kt_grids
 
   subroutine init_kt_grids_box
 
     use mp, only: mp_abort
     use common_types, only: flux_surface_type
-    use constants, only: pi
-    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac
+    use constants, only: pi, zi
+    use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
     use stella_geometry, only: q_as_x, get_x_to_rho, dxdXcoord, drhodpsi
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface, radial_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use zgrid, only: shat_zero
+    use zgrid, only: shat_zero, nperiod
 
     implicit none
     
@@ -265,7 +270,6 @@ contains
 
     x0 = 1./dkx
 
-
     ! ky goes from zero to ky_max
     do iky = 1, naky
        aky(iky) = real(iky-1)*dky
@@ -304,6 +308,10 @@ contains
           theta0(2:,ikx) = - akx(ikx)/aky(2:)
        end do
     end if
+
+    if (radial_variation.and.rhostar.gt.0.) then
+      phase_shift_fac =-2.*pi*zi*(2*nperiod-1)*geo_surf%qinp_psi0*dydalpha/rhostar
+    endif
 
     ! for radial variation
     if(.not.allocated(x)) allocate (x(nx))
@@ -714,6 +722,29 @@ contains
     end do
 
   end subroutine swap_kxky_back_ordered
+  
+  subroutine communicate_ktgrids_multibox
+      use job_manage, only: njobs
+      use mp, only: job, scope, &
+                  crossdomprocs, subprocs,  &
+                  send, receive
+
+    implicit none
+
+    call scope(crossdomprocs)
+
+    if(job==1) then
+      call send(phase_shift_fac, 0, 120)
+      call send(phase_shift_fac, njobs-1, 130)
+    elseif(job == 0) then
+      call receive(phase_shift_fac, 1, 120)
+    elseif(job == njobs-1) then
+      call receive(phase_shift_fac, 1, 130)
+    endif
+
+    call scope(subprocs)
+
+  end subroutine communicate_ktgrids_multibox
 
   subroutine finish_kt_grids
 

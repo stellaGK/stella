@@ -25,6 +25,7 @@ module extended_zgrid
   ! as a function of current flux tube index
   ! pre-compute to avoid conditionals in loops
   integer, dimension (:), allocatable :: it_left, it_right
+  complex, dimension (:), allocatable :: phase_shift
 
   logical, dimension (:), allocatable :: periodic
 
@@ -39,7 +40,7 @@ contains
     use zgrid, only: boundary_option_linked
     use zgrid, only: nperiod, nzgrid, nzed, ntubes
     use kt_grids, only: nakx, naky
-    use kt_grids, only: jtwist, ikx_twist_shift
+    use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_fac
     use kt_grids, only: aky, ikx_max
 
     implicit none
@@ -49,6 +50,9 @@ contains
     integer, dimension (:), allocatable :: ikx_shift_end
     integer, dimension (:,:), allocatable :: ikx_shift
 
+
+    write (*,*) phase_shift_fac
+
     if (extended_zgrid_initialized) return
     extended_zgrid_initialized = .true.
     
@@ -56,6 +60,7 @@ contains
 
     if (.not. allocated(neigen)) allocate (neigen(naky))
     if (.not. allocated(periodic)) allocate (periodic(naky)) ; periodic = .false.
+    if (.not. allocated(phase_shift)) allocate (phase_shift(naky)); phase_shift = 1.
 
     if (boundary_option_switch==boundary_option_self_periodic) then
        periodic = .true.
@@ -198,6 +203,8 @@ contains
           allocate (iz_mid(nseg_max)) ; iz_mid = 0
           allocate (iz_up(nseg_max)) ; iz_up = nzgrid
        end if
+
+       phase_shift = exp(aky*phase_shift_fac)
        
     case default
        
@@ -305,21 +312,21 @@ contains
 
     if (iseg == 1) then
        if (periodic(iky)) then
-          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(nseg)-2:iz_up(nseg)-1,it)
+          gleft = phase_shift(iky)*g(iky,ikxmod(iseg,ie,iky),iz_up(nseg)-2:iz_up(nseg)-1,it)
        else
           gleft = 0.0
        end if
     else
-       gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
+       gleft = phase_shift(iky)*g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
     end if
     
     if (nseg > iseg) then
        ! connect to segment with larger theta-theta0 (on right)
-       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))
+       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))/phase_shift(iky)
     else
        ! apply periodic BC where necessary and zero BC otherwise
        if (periodic(iky)) then
-          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(1)+1:iz_low(1)+2,it)
+          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(1)+1:iz_low(1)+2,it)/phase_shift(iky)
        else
           gright = 0.0
        end if
@@ -401,6 +408,7 @@ contains
     if (allocated(ikxmod)) deallocate (ikxmod)
     if (allocated(it_right)) deallocate (it_right)
     if (allocated(it_left)) deallocate (it_left)
+    if (allocated(phase_shift)) deallocate (phase_shift)
 
     extended_zgrid_initialized = .false.
 
