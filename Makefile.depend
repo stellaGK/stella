@@ -501,7 +501,8 @@ stella_transforms.o: \
 system_fortran.o: 
 test_vmec_to_stella_geometry_interface.o: \
 	 vmec_to_stella_geometry_interface.o 
-text_options.o: 
+text_options.o: \
+	 mp.o 
 time_advance.o: \
 	 constants.o \
 	 dissipation.o \
