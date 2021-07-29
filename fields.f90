@@ -18,11 +18,12 @@ module fields
   private
 
   real, dimension (:,:,:), allocatable ::  apar_denom
-  real, dimension (:,:), allocatable :: gamtot3
+  real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
-  complex, dimension (:,:), allocatable :: b_mat
-
-  real, dimension (:,:), allocatable :: dgamtot3dr
+  complex, dimension (:,:,:), allocatable :: binv_thet
+  complex, dimension (:,:), allocatable :: b_mat, binv_fmax
+  integer, dimension (:), allocatable :: b_idx
+  complex :: k0_Binv_fmax
 
   complex, dimension (:,:), allocatable :: save1, save2
 
@@ -58,17 +59,17 @@ contains
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid, ntubes, nztot
     use vpamu_grids, only: nvpa, nmu, mu
     use vpamu_grids, only: vpa, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: integrate_vmu
-    use species, only: spec
+    use species, only: spec, nspec
     use kt_grids, only: naky, nakx, akx
     use kt_grids, only: zonal_mode, rho_d_clamped
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
-    use linear_solve, only: lu_decomposition, lu_inverse
+    use linear_solve, only: lu_decomposition, lu_back_substitution, lu_inverse
     use multibox, only: init_mb_get_phi
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -76,13 +77,15 @@ contains
 
     implicit none
 
-    integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi, jkx
-    real :: tmp, tmp2, wgt, dum
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi, jkx, jz
+    integer :: inmat, jnmat, nmat_zf, idx
+    real :: tmp, tmp2, wgt, dum, total
+    complex :: tmpc
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
     logical :: has_elec, adia_elec
 
-    complex, dimension (:,:), allocatable :: g0k, g0x, a_inv, a_fsa
+    complex, dimension (:,:), allocatable :: g0k, g0x, g1k, thet_zf
 
     ia = 1
 
@@ -213,7 +216,6 @@ contains
                 if(akx(1)<epsilon(0.)) then 
                    gamtot3(1,:)    = 0.0
                    dgamtot3dr(1,:) = 0.0
-                   zm = 1
                 endif
              end if
           end if
@@ -260,23 +262,26 @@ contains
                enddo
 
                call lu_decomposition(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, dum)
-               !call zgetrf(nakx-zmi,nakx-zmi,phi_solve(iky,iz)%zloc,nakx-zmi,phi_solve(iky,iz)%idx,info)
              enddo
            enddo
 
            if (adia_elec) then
-             if(.not.allocated(b_mat)) allocate(b_mat(nakx-zm,nakx-zm));
+             nmat_zf = (nakx-1)*(nztot-1)
+
+             if(.not.allocated(b_mat)) allocate(b_mat(nakx,nakx));
+             if(.not.allocated(b_idx)) allocate(b_idx(nakx));
            
-             allocate(a_inv(nakx-zm,nakx-zm))
-             allocate(a_fsa(nakx-zm,nakx-zm)); a_fsa = 0.0
+             if(.not.allocated(binv_fmax)) allocate(binv_fmax(nakx,-nzgrid:nzgrid));
+             if(.not.allocated(binv_thet)) allocate(binv_thet(nakx, nakx,-nzgrid:nzgrid));
 
-             if(.not.associated(phizf_solve%zloc)) &
-               allocate(phizf_solve%zloc(nakx-zm,nakx-zm));
-             phizf_solve%zloc = 0.0
+             if(.not.associated(phizf_solve%zloc)) allocate(phizf_solve%zloc(nmat_zf,nmat_zf))
+             if(.not.associated(phizf_solve%idx))  allocate(phizf_solve%idx(nmat_zf))
 
-             if(.not.associated(phizf_solve%idx)) allocate(phizf_solve%idx(nakx-zm));
 
-             do ikx = 1+zm, nakx
+             allocate (g1k(1,nakx))
+
+             !get B and perform LU decomposition
+             do ikx = 1, nakx
                g0k(1,:) = 0.0
                g0k(1,ikx) = 1.0
 
@@ -285,41 +290,126 @@ contains
                call transform_x2kx_unpadded(g0x,g0k)
 
                !row column
-               b_mat(:,ikx-zm) = g0k(1,(1+zm):) 
+               b_mat(:,ikx) = g0k(1,:) 
+             enddo
+             call lu_decomposition(b_mat, b_idx, dum)
+
+
+             !get Binv.fmax
+             !note that k = 0 means J_0 = 1, J_1 = 0
+             do iz = -nzgrid, nzgrid
+               total = 0.0
+               do is = 1, nspec
+                 g0 = spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)
+                 call integrate_vmu (g0,iz,tmp)
+                 total = total + tmp
+               enddo
+
+               g0k = 0.
+               g0k(1,1) = total
+               if(radial_variation) then
+                 call transform_kx2x_unpadded (g0k,g0x)
+                 g0x(1,:) = (1. + dBdrho(iz)/bmag(ia,iz)*rho_d_clamped)*g0x(1,:)
+                 call transform_x2kx_unpadded(g0x,g0k)
+               endif
+               call lu_back_substitution(b_mat, b_idx, g0k(1,:))
+               binv_fmax(:,iz) = g0k(1,:)
              enddo
 
-             !get inverse of A
+             !get k0.<Binv.fmax>_\psi
+             k0_Binv_fmax = 0.
+             do iz = -nzgrid, nzgrid
+               g0k(1,:) = binv_fmax(:,iz) 
+               call transform_kx2x_unpadded (g0k,g0x)
+               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+               call transform_x2kx_unpadded(g0x,g0k)
+
+               k0_Binv_fmax = k0_Binv_fmax + g0k(1,1) 
+             enddo
+
+             !get Binv.Theta
+             allocate (thet_zf(nakx,nakx))
              do iz = -nzgrid, nzgrid
 
-               call lu_inverse(phi_solve(1,iz)%zloc, phi_solve(1,iz)%idx, &
-                               a_inv)
-
-               !flux surface average it
-               do ikx = 1, nakx-zm
-                 g0k(1,1) = 0
-                 g0k(1,(1+zm):) = a_inv(:,ikx)
+               !get Theta
+               do ikx = 1, nakx
+                 g0k(1,:) = 0.0
+                 g0k(1,ikx) = dgamtotdr(1,ikx,iz) - efacp
 
                  call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+                 g0x(1,:) = rho_d_clamped*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
-                 a_fsa(:,ikx) = a_fsa(:,ikx) + g0k(1,(1+zm):) 
+                 !row column
+                 thet_zf(:,ikx)   = g0k(1,:)
+                 thet_zf(ikx,ikx) = thet_zf(ikx,ikx) + gamtot(1,ikx,iz) - efac
+               enddo
+
+               call lu_back_substitution(b_mat, b_idx, thet_zf)
+               !store Binv.Theta
+               binv_thet(:,:,iz) = thet_zf 
+             enddo
+             deallocate (thet_zf)
+
+
+             !get the big matrix
+
+             !phi
+             do idx = 1, nmat_zf
+               phizf_solve%zloc(idx,idx) = 1.0
+             enddo
+        
+             do jz = -nzgrid, nzgrid-1
+               do jkx = 2, nakx
+                 jnmat = (jkx-1) + (nakx-1)*(jz+nzgrid)
+
+                 ! -<phi>_\psi
+                 g0k = 0.0
+                 g0k(1,jkx) = 1.0
+                 call transform_kx2x_unpadded (g0k,g0x)
+                 g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
+                 call transform_x2kx_unpadded(g0x,g0k)
+
+                 do iz = -nzgrid, nzgrid-1
+                   do ikx = 2, nakx
+                     inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g0k(1,ikx)
+                   enddo
+                 enddo
+
+                 ! get Binv.theta.phi
+                 g0k = 0.0
+                 g0k(1,jkx) = 1.0
+                 do ikx = 1, nakx
+                   g1k(1,ikx) = sum(binv_thet(ikx,:,jz)*g0k(1,:)) 
+                 enddo
+
+                 ! +Binv.thet.phi
+                 do ikx = 2, nakx
+                   inmat = (ikx-1) + (nakx-1)*(jz+nzgrid)
+                   phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + g1k(1,ikx)
+                 enddo
+
+
+                 ! -Binv.f (k0.<Binv.phi>_psi)/(k0.<Binv.f>_psi)
+                 call transform_kx2x_unpadded (g1k, g0x)
+                 g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
+                 call transform_x2kx_unpadded(g0x,g0k)
+                 tmpc = g0k(1,1)/k0_Binv_fmax
+
+                 do iz = -nzgrid, nzgrid-1
+                   do ikx = 2, nakx
+                     inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) &
+                                                     - binv_fmax(ikx,iz)*tmpc
+                   enddo
+                 enddo
                enddo
              enddo
 
-             ! calculate I - <A^-1>B
-             do ikx = 1, nakx-zm
-               do jkx = 1, nakx-zm
-                 phizf_solve%zloc(ikx,jkx) = -sum(a_fsa(ikx,:)*b_mat(:,jkx))
-               enddo
-             enddo
-             do ikx = 1, nakx-zm
-               phizf_solve%zloc(ikx,ikx) = 1.0 + phizf_solve%zloc(ikx,ikx)
-             enddo
+             call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
 
-             call lu_decomposition(phizf_solve%zloc,phizf_solve%idx, dum)
-
-             deallocate(a_inv,a_fsa)
+             deallocate (g1k)
            endif
 
            deallocate(g0k,g0x)
@@ -452,7 +542,7 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
@@ -500,7 +590,7 @@ contains
 
     implicit none
     
-    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
@@ -586,7 +676,7 @@ contains
 
     implicit none
     
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
@@ -635,7 +725,7 @@ contains
        deallocate (gyro_g)
        call sum_allreduce(phi)
 
-       call get_phi(phi, dist,skip_fsa_local)
+       call get_phi(phi, dist,skip_fsa_local,g)
 
     end if
     
@@ -742,12 +832,14 @@ contains
 
   end subroutine get_fields_by_spec
 
-  subroutine get_phi (phi, dist, skip_fsa)
+  subroutine get_phi (phi, dist, skip_fsa, g)
 
     use mp, only: proc0, mp_abort, job
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, is_idx, iv_idx
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid, ntubes, nztot
     use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
@@ -755,18 +847,21 @@ contains
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use multibox, only: mb_get_phi
     use fields_arrays, only: gamtot, phi_solve, phizf_solve
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
 
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
     logical, optional, intent (in) :: skip_fsa
     integer :: ia, it, iz, ikx, iky, zmi
-    complex, dimension (:,:), allocatable :: g0k, g0x, g0a
-    complex, dimension (:), allocatable :: g_fsa
-    complex :: tmp
+    integer :: imu, iv, is, ivmu, inmat
+    complex, dimension (:,:), allocatable :: g0k, g1k, g0x, g0a
+    complex, dimension (:), allocatable :: phiext
+    complex :: tmp, g_fsa, correction
     logical :: skip_fsa_local
     logical :: has_elec, adia_elec
 
@@ -815,11 +910,11 @@ contains
          do it = 1, ntubes
            do iz = -nzgrid, nzgrid
              do iky = 1, naky
-               zmi = 0
-               if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
                if(iky > ky_solve_radial) then
                  phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
-               else
+               elseif (.not.(adia_elec.and.zonal_mode(iky))) then
+                 zmi = 0
+                 if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
                  call lu_back_substitution(phi_solve(iky,iz)%zloc, &
                                            phi_solve(iky,iz)%idx, phi(iky,(1+zmi):,iz,it))
                  if(zmi.gt.0) phi(iky,zmi,iz,it) = 0.0
@@ -867,10 +962,18 @@ contains
                 .and.runtype_option_switch.eq.runtype_multibox          &
                 .and..not.ky_solve_real))  then
           allocate (g0k(1,nakx))
+          allocate (g1k(1,nakx))
           allocate (g0x(1,nakx))
-          allocate (g_fsa(nakx-zm))
+          allocate (phiext((nakx-1)*(nztot-1)))
 
           do it = 1, ntubes
+
+            !calculate Binv.g'
+            do iz = -nzgrid, nzgrid
+              call lu_back_substitution (b_mat,b_idx,phi(1,:,iz,it))
+            enddo
+
+            ! calculate k0.<Binv.g>_psi/k0.<Bimnv.fmax>_psi
             g_fsa = 0.0
             do iz = -nzgrid, nzgrid
               g0k(1,:) = phi(1,:,iz,it)
@@ -878,24 +981,77 @@ contains
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
               call transform_x2kx_unpadded(g0x,g0k)
 
-              g_fsa = g_fsa + g0k(1,(1+zm):)
+              g_fsa = g_fsa + g0k(1,1)/k0_Binv_fmax
+            enddo
+
+            correction = g_fsa
+            
+            phi(1,:,:,it) = phi(1,:,:,it) - binv_fmax*g_fsa
+     
+            do iz = -nzgrid, nzgrid-1
+              do ikx = 2, nakx
+                inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+                phiext(inmat) = phi(1,ikx,iz,it)
+              enddo
             enddo
         
-            call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, g_fsa)
+            call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, phiext)
 
-            do ikx = 1,nakx-zm
-              g0k(1,ikx+zm) = sum(b_mat(ikx,:)*g_fsa(:))
+            do iz = -nzgrid, nzgrid-1
+              do ikx = 2, nakx
+                inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+                phi(1,ikx,iz,it) = phiext(inmat)
+              enddo
             enddo
 
-            do iz = -nzgrid, nzgrid
-              g_fsa = g0k(1,(1+zm):)
-              call lu_back_substitution(phi_solve(1,iz)%zloc,phi_solve(1,iz)%idx, g_fsa)
+            !enforce periodicity
+            phi(1,:,nzgrid,it) = phi(1,:,-nzgrid,it)
+        
+            ! calculate k0.<phi>_psi
+            tmp = 0.
+            do iz = -nzgrid, nzgrid-1
+              g0k(1,1) = 0.0
+              g0k(1,2:) = phi(1,2:,iz,it) 
 
-              phi(1,(1+zm):,iz,it) = phi(1,(1+zm):,iz,it) + g_fsa
+              call transform_kx2x_unpadded (g0k,g0x)
+              g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+              call transform_x2kx_unpadded(g0x,g0k)
+              tmp = tmp + g0k(1,1)
+
             enddo
-            if(zm.gt.0) phi(1,zm,:,it) = 0.0
+            phi(1,1,:,it) = phi(1,1,:,it) + tmp
+
+            ! calculate Binv.Theta.phi
+            tmp = 0.
+            do iz = -nzgrid, nzgrid-1
+              g0k(1,1) = 0.0
+              g0k(1,2:) = phi(1,2:,iz,it) 
+              do ikx = 1, nakx
+                g1k(1,ikx) = sum(binv_thet(ikx,:,iz)*g0k(1,:)) 
+              enddo
+              phi(1,1,iz,it) = phi(1,1,iz,it) - g1k(1,1)
+
+              call transform_kx2x_unpadded (g1k,g0x)
+              g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+              call transform_x2kx_unpadded(g0x,g1k)
+              tmp = tmp + g1k(1,1)/k0_Binv_fmax
+
+            enddo
+            phi(1,1,:,it) = phi(1,1,:,it) - binv_fmax(1,:)*tmp
+
+            correction = correction - tmp
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+              is = is_idx(vmu_lo,ivmu)
+              imu = imu_idx(vmu_lo,ivmu)
+              iv = iv_idx(vmu_lo,ivmu)
+
+              g(1,1,:,it,ivmu) = g(1,1,:,it,ivmu) - correction &
+                                *maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)
+            enddo
+
+
           enddo
-          deallocate(g0k,g0x,g_fsa)
+          deallocate(g0k,g1k,g0x,phiext)
         else
           if(radial_variation) then
             do it = 1, ntubes
@@ -919,11 +1075,8 @@ contains
         if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
         call mp_abort ('unknown dist option in get_fields. aborting')
       end if
-      phi(1,1,:,:) = 0.0
     end if
     
-    !if(zm.eq.1) phi(1,zm,:,:) = 0.0
-
   end subroutine get_phi
 
   ! the following routine gets the correction in phi both from gyroaveraging and quasineutrality
@@ -1165,7 +1318,7 @@ contains
     use fields_arrays, only: phi, phi_old
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
-    use fields_arrays, only: gamtot, dgamtotdr
+    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
 
     implicit none
 
@@ -1183,6 +1336,14 @@ contains
     if (allocated(apar_denom)) deallocate (apar_denom)
     if (allocated(save1)) deallocate(save1)
     if (allocated(save2)) deallocate(save2)
+
+    if (allocated(phi_solve)) deallocate(phi_solve)
+    if (associated(phizf_solve%zloc)) deallocate(phizf_solve%zloc)
+    if (associated(phizf_solve%idx))  deallocate(phizf_solve%idx)
+    if (allocated(b_mat)) deallocate(b_mat)
+    if (allocated(b_idx)) deallocate(b_idx)
+    if (allocated(binv_fmax)) deallocate(binv_fmax)
+    if (allocated(binv_thet)) deallocate(binv_thet)
 
     fields_initialized = .false.
 
