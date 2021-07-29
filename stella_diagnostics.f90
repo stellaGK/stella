@@ -1039,7 +1039,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, vperp2, mu
     use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
-    use kt_grids, only: naky, nakx, multiply_by_rho, rho_clamped
+    use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
@@ -1133,7 +1133,7 @@ contains
             g1k(1,:) = dens(1,:,iz,it,is)
             call transform_kx2x_unpadded(g1k,g1x)
             dens_x(:,is) = dens_x(:,is) &
-                          + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_clamped*d_dl_over_b_drho(ia,iz)))
+                          + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_d_clamped*d_dl_over_b_drho(ia,iz)))
           enddo
         enddo
       enddo
@@ -1195,7 +1195,7 @@ contains
             g1k(1,:) = temp(1,:,iz,it,is)
             call transform_kx2x_unpadded(g1k,g1x)
             temp_x(:,is) = temp_x(:,is) & 
-                          + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_clamped*d_dl_over_b_drho(ia,iz)))
+                          + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_d_clamped*d_dl_over_b_drho(ia,iz)))
           enddo
         enddo
       enddo
@@ -1233,7 +1233,7 @@ contains
             g1k(1,:) = upar(1,:,iz,it,is)
             call transform_kx2x_unpadded(g1k,g1x)
             upar_x(:,is) = upar_x(:,is) &
-                          + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_clamped*d_dl_over_b_drho(ia,iz)))
+                          + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_d_clamped*d_dl_over_b_drho(ia,iz)))
           enddo
         enddo
       enddo

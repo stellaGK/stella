@@ -1037,7 +1037,7 @@ contains
               tmp = tmp + g1k(1,1)/k0_Binv_fmax
 
             enddo
-            phi(1,1,:,it) = phi(1,1,:,it) - binv_fmax(1,:)*tmp
+            phi(1,1,:,it) = phi(1,1,:,it) + binv_fmax(1,:)*tmp
 
             correction = correction - tmp
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
