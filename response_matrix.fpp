@@ -566,19 +566,12 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use stella_time, only: code_dt
-    use zgrid, only: delzed, nzgrid
     use kt_grids, only: zonal_mode
-    use species, only: spec
-    use stella_geometry, only: gradpar, dbdzed
-    use vpamu_grids, only: vpa, mu
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-    use gyro_averages, only: aj0x, aj1x
-    use run_parameters, only: driftkinetic_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
     use parallel_streaming, only: stream_tridiagonal_solve
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
+    use finite_differences, only : tridag
 #if defined ISO_C_BINDING && defined MPI
     use mp, only: mp_abort
 #endif
@@ -589,12 +582,15 @@ contains
     character (*), intent (in) :: field
     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
 
-    integer :: ivmu, iv, imu, is, ia
-    integer :: izp, izm
-    real :: mu_dbdzed_p, mu_dbdzed_m
-    real :: fac, fac0, fac1, gyro_fac
+    integer :: ivmu, iv, is, ia
+    complex, dimension(:), allocatable :: a, b, c
 
     ia = 1
+
+    ! a, b, c represent entries on the LHS of the matrix equation.
+    allocate(a(1:nz_ext))
+    allocate(b(1:nz_ext))
+    allocate(c(1:nz_ext))
 
     if (.not.maxwellian_inside_zed_derivative) then
        ! get -vpa*b.gradz*Ze/T*F0*d<chi>/dz corresponding to unit impulse in a field;
@@ -603,9 +599,11 @@ contains
           iv = iv_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
           call get_rhs_homogenoues_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
-
+          call get_lhs_homogenous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
+          call tridag (1, a, b, c, gext(:,ivmu))
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
           if (zonal_mode(iky)) then
+             call mp_abort("Not set up the zonal flow calculation of ghom in response_matrix")
              call sweep_zed_zonal_response (iv, is, stream_sign(iv), gext(:,ivmu))
           else
              ! invert parallel streaming equation to get g^{n+1} on extended zed grid
@@ -615,138 +613,77 @@ contains
 
        end do
     else
-      call mp_abort("Not currently supported")
-       ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          ! initialize g to zero everywhere along extended zed domain
-          gext(:,ivmu) = 0.0
-          iv = iv_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          is = is_idx(vmu_lo,ivmu)
-
-          ! give unit impulse to phi at this zed location
-          ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
-
-          ! NB:  assuming equal spacing in zed below
-          ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
-          ! b.gradz left out because needs to be centred in zed
-          if (driftkinetic_implicit) then
-             gyro_fac = 1.0
-          else
-            ! Calculate the factor corresponding to a unit impulse in phi, apar
-            ! or bpar
-            ! <chi> = J0*phi - 2*vpa*vthermal*J0*apar - 4*mu*(T/Z)*aj1*bpar
-            if (field == 'phi') then
-              gyro_fac = aj0x(iky,ikx,iz,ivmu)
-            else if (field == 'apar') then
-              gyro_fac = -2*vpa(iv)*spec(is)%stm_psi0*aj0x(iky,ikx,iz,ivmu)
-            else if (field == 'bpar') then
-              gyro_fac = -4*mu(imu)*spec(is)%tz_psi0*aj1x(iky,ikx,iz,ivmu)
-            else
-              ! If this occurs, we've hit a problem - end gracefully
-              stop "Error in calculation of repsonse matrix"
-            end if
-          end if
-
-          fac = -0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0 &
-               *gyro_fac*spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
-
-          mu_dbdzed_p = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.+zed_upwind)
-          mu_dbdzed_m = 1./delzed(0)+mu(imu)*dbdzed(ia,iz)*(1.-zed_upwind)
-
-          ! stream_sign < 0 corresponds to positive advection speed
-          if (stream_sign(iv)<0) then
-             if (iz > -nzgrid) then
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
-                     + (1.-zed_upwind)*gradpar(iz-1))*mu_dbdzed_p
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the right of
-                ! this one
-                if (iz < nzgrid) then
-                   izp = iz+1
-                else
-                   izp = -nzgrid+1
-                end if
-                fac1 = fac*((1.+zed_upwind)*gradpar(izp) &
-                     + (1.-zed_upwind)*gradpar(iz))*mu_dbdzed_m
-             else
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
-                     + (1.-zed_upwind)*gradpar(nzgrid-1))*mu_dbdzed_p
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the right of
-                ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(iz+1) &
-                     + (1.-zed_upwind)*gradpar(iz))*mu_dbdzed_m
-             end if
-             gext(idx,ivmu) = fac0
-             if (idx < nz_ext) gext(idx+1,ivmu) = -fac1
-             ! zonal mode BC is periodic instead of zero, so must
-             ! treat specially
-             if (zonal_mode(iky)) then
-                if (idx == 1) then
-                   gext(nz_ext,ivmu) = fac0
-                else if (idx == nz_ext-1) then
-                   gext(1,ivmu) = -fac1
-                end if
-             end if
-          else
-             if (iz < nzgrid) then
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
-                     + (1.-zed_upwind)*gradpar(iz+1))*mu_dbdzed_p
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the left of
-                ! this one
-                if (iz > -nzgrid) then
-                   izm = iz-1
-                else
-                   izm = nzgrid-1
-                end if
-                fac1 = fac*((1.+zed_upwind)*gradpar(izm) &
-                     + (1.-zed_upwind)*gradpar(iz))*mu_dbdzed_m
-             else
-                ! fac0 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at this zed index
-                fac0 = fac*((1.+zed_upwind)*gradpar(iz) &
-                     + (1.-zed_upwind)*gradpar(-nzgrid+1))*mu_dbdzed_p
-                ! fac1 is the factor multiplying delphi on the RHS
-                ! of the homogeneous GKE at the zed index to the left of
-                ! this one
-                fac1 = fac*((1.+zed_upwind)*gradpar(iz-1) &
-                     + (1.-zed_upwind)*gradpar(iz))*mu_dbdzed_m
-             end if
-             gext(idx,ivmu) = -fac0
-             if (idx > 1) gext(idx-1,ivmu) = fac1
-             ! zonal mode BC is periodic instead of zero, so must
-             ! treat specially
-             if (zonal_mode(iky)) then
-                if (idx == 1) then
-                   gext(nz_ext,ivmu) = -fac0
-                   gext(nz_ext-1,ivmu) = fac1
-                else if (idx == 2) then
-                   gext(nz_ext,ivmu) = fac1
-                end if
-             end if
-          end if
-
-          ! hack for now (duplicates much of the effort from sweep_zed_zonal)
-          if (zonal_mode(iky)) then
-             call sweep_zed_zonal_response (iv, is, stream_sign(iv), gext(:,ivmu))
-          else
-             ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-             ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-             call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
-          end if
-
-       end do
+      call mp_abort("maxwellian_inside_zed_derivative not currently supported in electromagnetic response matrix calculation")
     end if
 
   end subroutine get_dgdfield_matrix_column
+
+  subroutine get_lhs_homogenous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
+
+    use parallel_streaming, only: stream_sign
+    use run_parameters, only: wdrift_implicit, stream_implicit
+    use run_parameters, only: zed_upwind, time_upwind
+    use stella_layouts, only: iv_idx, is_idx
+    use stella_layouts, only: vmu_lo
+
+    implicit none
+
+    integer, intent(in) :: iky, ikx, ia, nz_ext, ivmu
+    complex, dimension(:), intent(in out) :: a, b, c
+    integer :: iv, is
+    real, dimension(:), allocatable :: stream_a, stream_b, stream_c
+    complex, dimension(:), allocatable :: wdrift_a, wdrift_b, wdrift_c
+
+    ! LHS looks like
+    ! dg/dt + vpa.stm.gradpar dg/dz + (ikx.wdriftx_g + iky.wdrifty_g)
+    ! Discretised, it looks like
+    !
+
+    iv = iv_idx(vmu_lo,ivmu)
+    is = is_idx(vmu_lo,ivmu)
+
+    if (stream_sign(iv)<0) then
+      a(1) = 0.
+      a(2:) = 0.5*(1-zed_upwind)
+      b(:) = 0.5*(1+zed_upwind)
+      c(:) = 0.
+    else
+      a(:) = 0.
+      b(:) = 0.5*(1+zed_upwind)
+      c(1:nz_ext-1) = 0.5*(1-zed_upwind)
+      c(nz_ext) = 0.
+    end if
+
+    if (stream_implicit) then
+      ! Could avoid allocating/deallocating each time by allocating once at the
+      ! start and deallocating at the end.
+      allocate(stream_a(1:nz_ext))
+      allocate(stream_b(1:nz_ext))
+      allocate(stream_c(1:nz_ext))
+      iv = iv_idx(vmu_lo,ivmu)
+      call get_lhs_streaming_term(ia, nz_ext, iv, is, stream_a, stream_b, stream_c)
+      a = a + stream_a
+      b = b + stream_b
+      c = c + stream_c
+      deallocate(stream_a)
+      deallocate(stream_b)
+      deallocate(stream_c)
+    end if
+
+    if (wdrift_implicit) then
+      allocate(wdrift_a(1:nz_ext))
+      allocate(wdrift_b(1:nz_ext))
+      allocate(wdrift_c(1:nz_ext))
+      call get_lhs_wdrift_term(iky, ikx, ia, nz_ext, ivmu, wdrift_a, wdrift_b, wdrift_c)
+      a = a + wdrift_a
+      b = b + wdrift_b
+      c = c + wdrift_c
+      deallocate(wdrift_a)
+      deallocate(wdrift_b)
+      deallocate(wdrift_c)
+    end if
+
+  end subroutine get_lhs_homogenous_equation
 
   subroutine get_rhs_homogenoues_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
 
@@ -951,7 +888,7 @@ contains
 
   end subroutine get_rhs_streaming_term
 
-  subroutine get_rhs_wdrift_term(iky, ikx, iz, ia, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
+  subroutine get_rhs_wdrift_term (iky, ikx, iz, ia, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
 
     use constants, only: zi
     use kt_grids, only: aky, akx
@@ -996,7 +933,7 @@ contains
       wdrifty_phi_right = wdrifty_phi(ia,iz+1,ivmu)
       wdriftx_phi_right = wdriftx_phi(ia,iz+1,ivmu)
     else
-      ! periodic - take from the left
+      ! Off-grid problem: replicate the rightmost point
       wdrifty_phi_right = wdrifty_phi(ia,nzgrid,ivmu)
       wdriftx_phi_right = wdriftx_phi(ia,nzgrid,ivmu)
     end if
@@ -1006,7 +943,7 @@ contains
       wdrifty_phi_left= wdrifty_phi(ia,iz-1,ivmu)
       wdriftx_phi_left = wdriftx_phi(ia,iz-1,ivmu)
     else
-      ! periodic - take from the right
+      ! Off-grid problem: replicate the leftmost point
       wdrifty_phi_left = wdrifty_phi(ia,-nzgrid,ivmu)
       wdriftx_phi_left = wdriftx_phi(ia,-nzgrid,ivmu)
     end if
@@ -1032,11 +969,9 @@ contains
                    + (1.+zed_upwind)*wdriftx_phi_left) )
     end if
 
-
   end subroutine get_rhs_wdrift_term
 
-
-  subroutine get_rhs_wstar_term(iky, iz, ia, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
+  subroutine get_rhs_wstar_term (iky, iz, ia, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
 
     use constants, only: zi
     use kt_grids, only: aky
@@ -1075,7 +1010,7 @@ contains
     if (iz < nzgrid) then
       wstar_right = wstar(ia,iz+1,ivmu)
     else
-      ! periodic - take from the left
+      ! Off-grid problem: replicate the rightmost point
       wstar_right = wstar(ia,nzgrid,ivmu)
     end if
 
@@ -1083,7 +1018,7 @@ contains
     if (iz > -nzgrid) then
       wstar_left = wstar(ia,iz-1,ivmu)
     else
-      ! periodic - take from the right
+      ! Off-grid problem: replicate the leftmost point
       wstar_left = wstar(ia,-nzgrid,ivmu)
     end if
 
@@ -1102,7 +1037,127 @@ contains
 
   end subroutine get_rhs_wstar_term
 
+  subroutine get_lhs_streaming_term (ia, nz_ext, iv, is, stream_a, stream_b, stream_c)
 
+    use stella_time, only: code_dt
+    use zgrid, only: delzed, nzgrid
+    use species, only: spec
+    use stella_geometry, only: gradpar
+    use vpamu_grids, only: vpa
+    use parallel_streaming, only: stream_sign
+    use run_parameters, only: zed_upwind, time_upwind
+
+    implicit none
+
+    integer, intent(in) :: ia, iv, is, nz_ext
+    real, dimension(:), intent(in out) :: stream_a, stream_b, stream_c
+    real :: stream_fac
+    real, dimension(:), allocatable :: gradpar_left, gradpar_right
+
+    ! Get the elements a, b, c corresponding to the streaming term.
+    ! NB gext has dimension(1:nz_ext, vmu), and need (a, b, c) to also have
+    ! dimension (1:nz_ext). This provides a slight complication for
+    ! our geometrical terms (e.g. gradpar), which have dimension (-nz_grid:nz_grid)
+    ! 0.25 factor from (1+ut)/2 and interpolation of gradpar
+    stream_fac = 0.25*(1.+time_upwind)*code_dt*vpa(iv)*spec(is)%stm_psi0/delzed(0)
+
+    ! NB we could avoid allocating & deallocating every time by calculating
+    ! once at the start and deallocating at the end.
+    allocate(gradpar_left(nz_ext))
+    allocate(gradpar_right(nz_ext))
+
+    ! Get gradpar at the gridpoint to the left i.e. shift everything left by
+    ! 1, but also account for the fact that gradpar is (-nz_grid:nz_grid) but
+    ! gradpar_left is (1:nz_ext)
+    gradpar_left(2:nz_ext) = gradpar(-nzgrid:nzgrid-1)
+    gradpar_left(1) = gradpar(nzgrid) ! Periodicity in gradpar
+    ! Repeat for gradpar_right; shift everything right by 1
+    gradpar_right(1:nz_ext-1) = gradpar(-nzgrid+1:nzgrid)
+    gradpar_right(nz_ext) = gradpar(-nzgrid)  ! Periodicity in gradpar
+    if (stream_sign(iv)<0) then
+      stream_a(1) = 0.
+      stream_a(2:nz_ext) = -stream_fac*((1+zed_upwind)*gradpar(-nzgrid+1:nzgrid) + (1-zed_upwind)*gradpar_left(2:nz_ext))
+      stream_b(:) = stream_fac*((1+zed_upwind)*gradpar(-nzgrid:nzgrid) + (1-zed_upwind)*gradpar_left)
+      stream_c(:) = 0.
+    else
+      stream_a(:) = 0.
+      stream_b(:) = -stream_fac*((1-zed_upwind)*gradpar_right + (1+zed_upwind)*gradpar(-nzgrid:nzgrid))
+      stream_c(1:nz_ext-1) = stream_fac*((1-zed_upwind)*gradpar_right(1:nz_ext-1) + (1+zed_upwind)*gradpar(-nzgrid:nzgrid-1))
+      stream_c(nz_ext) = 0.
+    end if
+
+    deallocate(gradpar_left)
+    deallocate(gradpar_right)
+
+  end subroutine get_lhs_streaming_term
+
+  subroutine get_lhs_wdrift_term (iky, ikx, ia, nz_ext, ivmu, wdrift_a, wdrift_b, wdrift_c)
+
+    use constants, only: zi
+    use kt_grids, only: aky, akx
+    use zgrid, only: nzgrid
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx
+    use parallel_streaming, only: stream_sign
+    use run_parameters, only: zed_upwind, time_upwind
+    use dist_fn_arrays, only: wdrifty_g, wdriftx_g
+
+    implicit none
+
+    integer, intent(in) :: iky, ikx, ia, nz_ext, ivmu
+    complex, dimension(:), intent(in out) :: wdrift_a, wdrift_b, wdrift_c
+    integer :: iv
+    real, dimension(:), allocatable  :: wdrifty_g_left, wdrifty_g_right, wdriftx_g_left, wdriftx_g_right
+    real :: wdrift_fac
+
+    ! 0.125 factor from (1+ut)/2, (1+/-uz)/2 and interpolations of wdriftx,y
+    wdrift_fac = 0.125*(1.+time_upwind)
+    iv = iv_idx(vmu_lo,ivmu)
+
+    allocate(wdrifty_g_left(nz_ext))
+    allocate(wdrifty_g_right(nz_ext))
+    allocate(wdriftx_g_left(nz_ext))
+    allocate(wdriftx_g_right(nz_ext))
+
+    ! Get the left-shifted values of wdrifty, accounting for the
+    ! translation from (-nzgrid:nzgrid) to (1:nz_ext)
+    wdrifty_g_left(2:nz_ext) = wdrifty_g(ia, -nzgrid:nzgrid-1, ivmu)
+    ! Off-grid problem: replicate the leftmost point
+    wdrifty_g_left(1) = wdrifty_g(ia, -nzgrid, ivmu)
+    wdrifty_g_right(1:nz_ext-1) = wdrifty_g(ia, -nzgrid+1:nzgrid, ivmu)
+    ! Off-grid problem: replicate the rightmost point
+    wdrifty_g_right(nz_ext) = wdrifty_g(ia, nzgrid, ivmu)
+
+    ! Repeat for wdriftx_g
+    wdriftx_g_left(2:nz_ext) = wdriftx_g(ia, -nzgrid:nzgrid-1, ivmu)
+    ! Off-grid problem: replicate the leftmost point
+    wdriftx_g_left(1) = wdriftx_g(ia, -nzgrid, ivmu)
+    wdriftx_g_right(1:nz_ext-1) = wdriftx_g(ia, -nzgrid+1:nzgrid, ivmu)
+    ! Off-grid problem: replicate the rightmost point
+    wdriftx_g_right(nz_ext) = wdriftx_g(ia, -nzgrid, ivmu)
+
+    if (stream_sign(iv)<0) then
+      wdrift_a(1) = 0.
+      wdrift_a(2:) = wdrift_fac*(zi*aky(iky)*((1+zed_upwind)*wdrifty_g(ia,-nzgrid+1:nzgrid,ivmu) + (1-zed_upwind)*wdrifty_g_left(2:)) &
+                    + zi*akx(ikx)*((1+zed_upwind)*wdriftx_g(ia,-nzgrid+1:nzgrid,ivmu) + (1-zed_upwind)*wdriftx_g_left(2:)) )
+      wdrift_b(:) = wdrift_fac*(zi*aky(iky)*((1+zed_upwind)*wdrifty_g(ia,-nzgrid:nzgrid,ivmu) + (1-zed_upwind)*wdrifty_g_left) &
+                    + zi*akx(ikx)*((1+zed_upwind)*wdriftx_g(ia,-nzgrid:nzgrid,ivmu) + (1-zed_upwind)*wdriftx_g_left) )
+      wdrift_c(:) = 0.
+    else
+      wdrift_a(:) = 0.
+      wdrift_b(:) = wdrift_fac*(zi*aky(iky)*((1-zed_upwind)*wdrifty_g_right(:) + (1+zed_upwind)*wdrifty_g(ia,-nzgrid:nzgrid,ivmu)) &
+                    + zi*akx(ikx)*((1-zed_upwind)*wdriftx_g_right(:) + (1+zed_upwind)*wdriftx_g(ia,-nzgrid:nzgrid,ivmu)))
+      wdrift_c(1:nz_ext-1) = wdrift_fac*(zi*aky(iky)*((1-zed_upwind)*wdrifty_g_right(1:nz_ext-1) + (1+zed_upwind)*wdrifty_g(ia,-nzgrid:nzgrid-1,ivmu)) &
+                    + zi*akx(ikx)*((1-zed_upwind)*wdriftx_g_right(1:nz_ext-1) + (1+zed_upwind)*wdriftx_g(ia,-nzgrid:nzgrid-1,ivmu)))
+      wdrift_c(nz_ext) = 0.
+    end if
+
+    deallocate(wdrifty_g_left)
+    deallocate(wdrifty_g_right)
+    deallocate(wdriftx_g_left)
+    deallocate(wdriftx_g_right)
+
+  end subroutine get_lhs_wdrift_term
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
