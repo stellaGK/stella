@@ -1492,15 +1492,19 @@ contains
 # endif
   end subroutine nc_geo
 
+  !> Get the index of the time dimension in the netCDF file that corresponds to
+  !> a time no larger than `tstart`
   subroutine get_nout(tstart, nout)
 
     use netcdf, only: nf90_inquire_dimension, nf90_get_var
 
     implicit none
 
+    !> Simulation time to find
     real, intent(in) :: tstart
-    real, dimension (:), allocatable :: times
+    !> Index of time dimension
     integer, intent(out) :: nout
+    real, dimension (:), allocatable :: times
     integer :: i, length, status
 
     nout = 1
