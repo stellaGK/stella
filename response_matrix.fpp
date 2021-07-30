@@ -568,7 +568,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: zonal_mode
     use run_parameters, only: maxwellian_inside_zed_derivative
-    use parallel_streaming, only: stream_tridiagonal_solve
+    use implicit_z, only: z_tridiagonal_solve
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
     use finite_differences, only : tridag
@@ -598,7 +598,7 @@ contains
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           iv = iv_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
-          call get_rhs_homogenoues_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
+          call get_rhs_homogenous_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
           call get_lhs_homogenous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
           call tridag (1, a, b, c, gext(:,ivmu))
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
@@ -608,7 +608,7 @@ contains
           else
              ! invert parallel streaming equation to get g^{n+1} on extended zed grid
              ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-             call stream_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
+             call z_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
           end if
 
        end do
@@ -685,7 +685,7 @@ contains
 
   end subroutine get_lhs_homogenous_equation
 
-  subroutine get_rhs_homogenoues_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
+  subroutine get_rhs_homogenous_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
@@ -801,7 +801,7 @@ contains
       end if
     end if
 
-  end subroutine get_rhs_homogenoues_equation
+  end subroutine get_rhs_homogenous_equation
 
 
   subroutine get_rhs_streaming_term(iz, ia, ivmu, gyro_fac, stream_fac0, stream_fac1)

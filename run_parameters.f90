@@ -13,7 +13,7 @@ module run_parameters
   public :: stream_implicit, mirror_implicit
   public :: drifts_implicit, wdrift_implicit, wstar_implicit ! drifts_implicit implemented by DSO, wdrift_implicit & wstar_implicit by RJD
   public :: driftkinetic_implicit
-  public :: fully_explicit
+  public :: fully_explicit, implicit_z
   public :: ky_solve_radial, ky_solve_real
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
@@ -30,7 +30,7 @@ module run_parameters
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
-  logical :: fully_explicit, drifts_implicit, wdrift_implicit, wstar_implicit
+  logical :: fully_explicit, drifts_implicit, wdrift_implicit, wstar_implicit, implicit_z
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
@@ -178,7 +178,13 @@ contains
        stream_implicit = .false.
     end if
 
-    if (mirror_implicit.or.stream_implicit.or.driftkinetic_implicit.or.drifts_implicit) then
+    if (stream_implicit .or. driftkinetic_implicit .or. wdrift_implicit .or. wstar_implicit) then
+      implicit_z = .true.
+    else
+      implicit_z = .false.
+    end if
+
+    if (mirror_implicit.or.implicit_z.or.drifts_implicit) then
        fully_explicit = .false.
     else
        fully_explicit = .true.

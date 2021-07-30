@@ -108,23 +108,25 @@ contains
     ! vpa = 0 is special case
 !    stream_sign(0) = 0
 
-    if (stream_implicit .or. driftkinetic_implicit) then
-       call init_invert_stream_operator
-       if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
-       stream_c = stream
-       do is = 1, nspec
-          do iv = 1, nvpa
-             call center_zed (iv, stream_c(:,iv,is))
-          end do
-       end do
-       if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
-       gradpar_c = spread(gradpar,2,3)
-       ! get gradpar centred in zed for negative vpa (affects upwinding)
-       call center_zed(1,gradpar_c(:,-stream_sign(1)))
-       ! get gradpar centred in zed for positive vpa (affects upwinding)
-       call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
-       stream = stream_c
-    end if
+    ! RJD: We no longer need to worry about this because it's handled by
+    ! implicit_z.
+    ! if (stream_implicit .or. driftkinetic_implicit) then
+    !    call init_invert_stream_operator
+    !    if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
+    !    stream_c = stream
+    !    do is = 1, nspec
+    !       do iv = 1, nvpa
+    !          call center_zed (iv, stream_c(:,iv,is))
+    !       end do
+    !    end do
+    !    if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
+    !    gradpar_c = spread(gradpar,2,3)
+    !    ! get gradpar centred in zed for negative vpa (affects upwinding)
+    !    call center_zed(1,gradpar_c(:,-stream_sign(1)))
+    !    ! get gradpar centred in zed for positive vpa (affects upwinding)
+    !    call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
+    !    stream = stream_c
+    ! end if
 
   end subroutine init_parallel_streaming
 
@@ -189,78 +191,6 @@ contains
     stream_tri_c2 = 0.5*(1.0+time_upwind)*stream_tri_c2
 
   end subroutine init_invert_stream_operator
-
-
-  ! !> Initialise the coefficients for the response matrix
-  ! !> solve. Whenever we calculate g, we're solving a matrix equation with a
-  ! !> bidiagonal matrix. However, depending on the stream sign, this is either
-  ! !> upper bidiagonal or lower bidiagnonal.
-  ! !>
-  ! !> The general equation we're solving is:
-  ! !>   / b c 0 0 . . .  . . 0 \     / g(1) \       / RHS(1)  \
-  ! !>  /  a b c 0 . . .      .  \   |  g(2)  |     |  RHS(2)  |
-  ! !> /   0 a b c . . .      .   \  |  g(3)  |     |  RHS(3)  |
-  ! !>|        . . .               | |    .   |   = |     .    |
-  ! !> \   .      . . . 0 a b c 0 /  |    .   |     |     .    |
-  ! !>  \  .       . . . 0 a b c /   |    .   |     |     .    |
-  ! !>   \ 0 . .  . . . 0 0 a b /     \   .  /       \    .   /
-  ! !>
-  ! !> For +ve stream sign (-ve advection velocity), a=0 (upper bidiagonal matrix)
-  ! !> For -ve stream sign (+ve advection velocity), c=0 (lower bidiagonal matrix)
-  ! !> Here we calculate the coefficients for both signs.
-  ! !> The "1" and "2" correspond to the discretisation of the d/dt and the d/dz terms
-  ! !> respectively
-  ! subroutine init_invert_operator
-  !
-  !   use zgrid, only: delzed
-  !   use extended_zgrid, only: iz_low, iz_up
-  !   use extended_zgrid, only: nsegments
-  !   use run_parameters, only: zed_upwind, time_upwind
-  !
-  !   implicit none
-  !
-  !   integer :: nz, nseg_max
-  !
-  !   nz = maxval(iz_up-iz_low)
-  !   nseg_max = maxval(nsegments)
-  !
-  !   if (.not.allocated(stream_tri_a1)) then
-  !      allocate (stream_tri_a1(nz*nseg_max+1,-1:1)) ; stream_tri_a1 = 0.
-  !      allocate (stream_tri_a2(nz*nseg_max+1,-1:1)) ; stream_tri_a2 = 0.
-  !      allocate (stream_tri_a3(nz*nseg_max+1,-1:1)) ; stream_tri_a3 = 0.
-  !      allocate (stream_tri_b1(nz*nseg_max+1,-1:1)) ; stream_tri_b1 = 1.
-  !      allocate (stream_tri_b2(nz*nseg_max+1,-1:1)) ; stream_tri_b2 = 0.
-  !      allocate (stream_tri_b3(nz*nseg_max+1,-1:1)) ; stream_tri_b3 = 0.
-  !      allocate (stream_tri_c1(nz*nseg_max+1,-1:1)) ; stream_tri_c1 = 0.
-  !      allocate (stream_tri_c2(nz*nseg_max+1,-1:1)) ; stream_tri_c2 = 0.
-  !      allocate (stream_tri_c3(nz*nseg_max+1,-1:1)) ; stream_tri_c3 = 0.
-  !   end if
-  !
-  !   ! corresponds to sign of stream term positive on RHS of equation
-  !   ! i.e., negative parallel advection speed
-  !   ! NB: assumes equal spacing in zed
-  !   stream_tri_b1(:,1) = 0.5*(1.0+zed_upwind)
-  !   stream_tri_b2(:,1) = -1.0/delzed(0)
-  !   stream_tri_c1(:nz*nseg_max,1) = 0.5*(1.0-zed_upwind)
-  !   stream_tri_c2(:nz*nseg_max,1) = 1.0/delzed(0)
-  !   ! corresponds to sign of stream term negative on RHS of equation
-  !   ! NB: assumes equal spacing in zed
-  !   stream_tri_b1(:,-1) = 0.5*(1.0+zed_upwind)
-  !   stream_tri_b2(:,-1) = 1.0/delzed(0)
-  !   stream_tri_a1(2:,-1) = 0.5*(1.0-zed_upwind)
-  !   stream_tri_a2(2:,-1) = -1.0/delzed(0)
-  !
-  !   stream_tri_a2 = 0.5*(1.0+time_upwind)*stream_tri_a2
-  !   stream_tri_b2 = 0.5*(1.0+time_upwind)*stream_tri_b2
-  !   stream_tri_c2 = 0.5*(1.0+time_upwind)*stream_tri_c2
-  !   ! a3 refers to the wdrift term - contains both a z-upwinding term and a
-  !   ! time-upwinding term.
-  !   stream_tri_a3 = 0.5*(1.0+time_upwind)*stream_tri_a1
-  !   stream_tri_b3 = 0.5*(1.0+time_upwind)*stream_tri_b1
-  !   stream_tri_c3 = 0.5*(1.0+time_upwind)*stream_tri_c1
-  !
-  ! end subroutine init_invert_operator
-
 
   subroutine advance_parallel_streaming_explicit (g, gout)
 
@@ -594,8 +524,6 @@ contains
        ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
        call get_gke_rhs (ivmu, g1(:,:,:,:,ivmu), phi1, phi, apar1, apar, bpar1, bpar, g(:,:,:,:,ivmu), eqn='inhomogeneous')
 
-
-       !! Bob: Need to make electromagnetic.
        if (stream_matrix_inversion) then
           ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
           ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
@@ -837,71 +765,8 @@ contains
 
   end subroutine invert_parstream
 
-  subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
-
-    use finite_differences, only: tridag
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: nsegments
-    use extended_zgrid, only: nzed_segment
-
-    implicit none
-
-    integer, intent (in) :: iky, ie, iv, is
-    complex, dimension (:), intent (in out) :: g
-
-    integer :: iseg, llim, ulim, n
-    integer :: nz, nseg_max, sgn, n_ext
-    real, dimension (:), allocatable :: a, b, c
-
-    ! avoid double-counting at boundaries between 2pi segments
-    nz = nzed_segment
-    nseg_max = nsegments(ie,iky)
-    sgn = stream_sign(iv)
-
-    n_ext = nseg_max*nz+1
-    allocate (a(n_ext))
-    allocate (b(n_ext))
-    allocate (c(n_ext))
-
-    iseg = 1
-    llim = 1 ; ulim = nz+1
-    a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-         - stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
-    b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
-    c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
-
-    ! if (wdrift_implicit) then
-    !   a(llim:ulim) = a(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
-    !   b(llim:ulim) = b(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
-    !   c(llim:ulim) = c(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
-    ! end if
-
-    if (nsegments(ie,iky) > 1) then
-       do iseg = 2, nsegments(ie,iky)
-          llim = ulim+1
-          ulim = llim+nz-1
-          a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
-          b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
-          c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
-       end do
-    end if
-    n = size(stream_tri_a1,1)
-    a(ulim) = stream_tri_a1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
-    b(ulim) = stream_tri_b1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
-    c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
-    call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
-
-    deallocate (a, b, c)
-
-  end subroutine stream_tridiagonal_solve
-
-
-  ! subroutine z_tridiagonal_solve (iky, ie, iv, is, g)
+  ! Bob: stream_tridiagonal_solve redundant (replaced by z_tridiagonal_solve)
+  ! subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
   !
   !   use finite_differences, only: tridag
   !   use extended_zgrid, only: iz_low, iz_up
@@ -936,6 +801,12 @@ contains
   !   c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
   !        -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
   !
+  !   ! if (wdrift_implicit) then
+  !   !   a(llim:ulim) = a(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
+  !   !   b(llim:ulim) = b(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
+  !   !   c(llim:ulim) = c(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
+  !   ! end if
+  !
   !   if (nsegments(ie,iky) > 1) then
   !      do iseg = 2, nsegments(ie,iky)
   !         llim = ulim+1
@@ -956,7 +827,7 @@ contains
   !
   !   deallocate (a, b, c)
   !
-  ! end subroutine z_tridiagonal_solve
+  ! end subroutine stream_tridiagonal_solve
 
   ! g= RHS of gke is input
   ! g = g^{n+1} is output

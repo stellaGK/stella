@@ -88,7 +88,7 @@ contains
     use physics_flags, only: hammett_flow_shear
     use run_parameters, only: init_run_parameters
     use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
-    use run_parameters, only: stream_implicit, driftkinetic_implicit
+    use run_parameters, only: implicit_z
     use run_parameters, only: delt_option_switch, delt_option_auto
     use run_parameters, only: mat_gen, mat_read
     use species, only: init_species, read_species_knobs
@@ -120,6 +120,7 @@ contains
     use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
     use volume_averages, only: init_volume_averages, volume_average
+    use implicit_z, only: init_implicit_z
 
     implicit none
 
@@ -256,7 +257,8 @@ contains
     call init_delt(delt)
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
-    if (stream_implicit .or. driftkinetic_implicit) then
+    if (implicit_z) then
+       call init_implicit_z
        if (mat_read) then
           if (debug) write (6,*) "stella::init_stella::read_response_matrix"
           call read_response_matrix
@@ -264,6 +266,7 @@ contains
           if (debug) write (6,*) "stella::init_stella::init_response_matrix"
           call init_response_matrix
        end if
+       stop "Initialised repsonse matrix in z successfully"
     end if
 
     if (debug) write (6,*) 'stella::init_stella::get_fields'
@@ -382,6 +385,7 @@ contains
     use fields, only: time_field_solve
     use stella_diagnostics, only: finish_stella_diagnostics
     use response_matrix, only: finish_response_matrix
+    use implicit_z, only: finish_implicit_z
     use stella_geometry, only: finish_geometry
     use extended_zgrid, only: finish_extended_zgrid
     use vpamu_grids, only: finish_vpamu_grids
@@ -396,6 +400,8 @@ contains
     call finish_stella_diagnostics(nstep)
     if (debug) write (*,*) 'stella::finish_stella::finish_response_matrix'
     call finish_response_matrix
+    if (debug) write (*,*) 'stella::finish_stella::finish_implicit_z'
+    call finish_implicit_z
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'
     call finish_fields
     if (debug) write (*,*) 'stella::finish_stella::finish_time_advance'
