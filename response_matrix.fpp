@@ -40,6 +40,7 @@ contains
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
     use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
+    use mp, only: real_size, nbytes_real
     use mpi
 #endif
 
@@ -51,9 +52,9 @@ contains
     integer :: idx
     integer :: izl_offset, izup
 #if defined MPI && defined ISO_C_BINDING
-    integer :: prior_focus, ierr, nbytes_real, rec_len
+    integer :: prior_focus, ierr
     integer :: disp_unit = 1
-    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
+    integer (kind=MPI_ADDRESS_KIND) :: win_size
     integer*8 :: cur_pos
     type(c_ptr) :: bptr, cptr
 #endif
@@ -107,17 +108,6 @@ contains
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
 
 #if defined ISO_C_BINDING && defined MPI
-    inquire(iolength=rec_len) dum !this will return 2 or 8 for double
-    if(rec_len.eq.1.or.rec_len.eq.4) then
-      nbytes_real = 4
-      real_size = 4_MPI_ADDRESS_KIND
-    else if (rec_len.eq.2.or.rec_len.eq.8) then
-      nbytes_real = 8
-      real_size = 8_MPI_ADDRESS_KIND
-    else
-      call mp_abort('failure retrieving the size of a real')
-    endif
-
 
 !   Create a single shared memory window for all the response matrices and 
 !   permutation arrays.
@@ -1014,7 +1004,7 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: scrossdomprocs, sgproc0, mp_abort
+    use mp, only: scrossdomprocs, sgproc0, mp_abort, real_size
     use mp, only: job, iproc, proc0, nproc, numnodes, inode
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
@@ -1040,9 +1030,9 @@ contains
     logical :: needs_send = .false.
 
     integer :: prior_focus, nodes_on_job
-    integer :: ijob, i,j,k,ie,n, rec_len
+    integer :: ijob, i,j,k,ie,n
     integer :: imax, jroot, neig, ierr, win, nroot
-    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
+    integer (kind=MPI_ADDRESS_KIND) :: win_size
     integer :: rdiv, rmod
     integer :: ediv, emod
     integer :: disp_unit = 1
@@ -1056,15 +1046,6 @@ contains
     allocate (job_list(nproc)); job_list = 0
     allocate (row_limits(0:nproc))
     allocate (eig_limits(0:numnodes,njobs)); eig_limits = 0
-
-    inquire(iolength=rec_len) zero !this will return 2 or 8 for double
-    if(rec_len.eq.1.or.rec_len.eq.4) then
-      real_size = 4_MPI_ADDRESS_KIND
-    else if (rec_len.eq.2.or.rec_len.eq.8) then
-      real_size = 8_MPI_ADDRESS_KIND
-    else
-      call mp_abort('failure retrieving the size of a real')
-    endif
 
     job_list(iproc+1) = job
     call sum_allreduce(job_list)

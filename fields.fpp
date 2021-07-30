@@ -1,6 +1,9 @@
 module fields
 
   use common_types, only: eigen_type
+#if defined MPI && defined ISO_C_BINDING
+  use mpi
+#endif
 
   implicit none
 
@@ -27,6 +30,10 @@ module fields
 
   complex, dimension (:,:), allocatable :: save1, save2
 
+#if defined MPI && defined ISO_C_BINDING
+  integer :: window = MPI_WIN_NULL
+#endif
+
 
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
@@ -47,6 +54,13 @@ contains
   subroutine init_fields
 
     use mp, only: sum_allreduce, job
+#if defined MPI && defined ISO_C_BINDING
+    use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+    use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
+    use mp, only: scope, real_size, nbytes_real
+    use mp_lu_decomposition, only: lu_decomposition_local
+    use mpi
+#endif
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -84,6 +98,13 @@ contains
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
     logical :: has_elec, adia_elec
+#if defined MPI && ISO_C_BINDING
+    integer :: prior_focus, ierr
+    integer :: disp_unit = 1
+    integer*8 :: cur_pos
+    integer (kind=MPI_ADDRESS_KIND) :: win_size
+    type(c_ptr) :: cptr
+#endif
 
     complex, dimension (:,:), allocatable :: g0k, g0x, g1k, thet_zf
 
@@ -274,8 +295,41 @@ contains
              if(.not.allocated(binv_fmax)) allocate(binv_fmax(nakx,-nzgrid:nzgrid));
              if(.not.allocated(binv_thet)) allocate(binv_thet(nakx, nakx,-nzgrid:nzgrid));
 
+#if defined MPI && ISO_C_BINDING
+             if(window.eq.MPI_WIN_NULL) then
+               prior_focus = curr_focus
+               call scope (sharedsubprocs)
+               win_size = 0
+               if(sgproc0) then
+                 win_size = int(nmat_zf,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND &
+                          + int(nmat_zf*nmat_zf,MPI_ADDRESS_KIND)*2*real_size !complex size
+               endif
+
+               call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
+                                            mp_comm,cptr,window,ierr)
+             endif
+
+             call mpi_win_shared_query(window,0,win_size,disp_unit,cptr,ierr)
+             cur_pos = transfer(cptr,cur_pos)
+
+             if (.not.associated(phizf_solve%zloc))  then
+               cptr = transfer(cur_pos,cptr)
+               call c_f_pointer (cptr,phizf_solve%zloc,(/nmat_zf,nmat_zf/))
+             endif
+             cur_pos = cur_pos + nmat_zf**2*2*nbytes_real
+
+             if (.not.associated(phizf_solve%idx))  then
+               cptr = transfer(cur_pos,cptr)
+               call c_f_pointer (cptr,phizf_solve%idx,(/nmat_zf/))
+             endif
+
+             call mpi_win_fence(0,window,ierr)
+
+             call scope (prior_focus)
+#else
              if(.not.associated(phizf_solve%zloc)) allocate(phizf_solve%zloc(nmat_zf,nmat_zf))
              if(.not.associated(phizf_solve%idx))  allocate(phizf_solve%idx(nmat_zf))
+#endif
 
 
              allocate (g1k(1,nakx))
@@ -352,66 +406,75 @@ contains
              deallocate (thet_zf)
 
 
-             !get the big matrix
+#if defined MPI && ISO_C_BINDING
+             if(sgproc0) then
+#endif
+               !get the big matrix
 
-             !phi
-             do idx = 1, nmat_zf
-               phizf_solve%zloc(idx,idx) = 1.0
-             enddo
+               !phi
+               do idx = 1, nmat_zf
+                 phizf_solve%zloc(idx,idx) = 1.0
+               enddo
         
-             do jz = -nzgrid, nzgrid-1
-               do jkx = 1, nakx
-                 jnmat = jkx + nakx*(jz+nzgrid)
+               do jz = -nzgrid, nzgrid-1
+                 do jkx = 1, nakx
+                   jnmat = jkx + nakx*(jz+nzgrid)
 
-                 ! -<phi>_\psi
-                 g0k = 0.0
-                 g0k(1,jkx) = 1.0
-                 call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
-                 call transform_x2kx_unpadded(g0x,g0k)
+                   ! -<phi>_\psi
+                   g0k = 0.0
+                   g0k(1,jkx) = 1.0
+                   call transform_kx2x_unpadded (g0k,g0x)
+                   g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
+                   call transform_x2kx_unpadded(g0x,g0k)
 
-                 !set the gauge potential
-                 if(jkx.eq.1) g0k(1,1) = 0. 
+                   !set the gauge potential
+                   if(jkx.eq.1) g0k(1,1) = 0. 
 
-                 do iz = -nzgrid, nzgrid-1
-                   do ikx = 1, nakx
-                     inmat = ikx + nakx*(iz+nzgrid)
-                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g0k(1,ikx)
+                   do iz = -nzgrid, nzgrid-1
+                     do ikx = 1, nakx
+                       inmat = ikx + nakx*(iz+nzgrid)
+                       phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g0k(1,ikx)
+                     enddo
                    enddo
-                 enddo
 
-                 ! get Binv.theta.phi
-                 g0k = 0.0
-                 g0k(1,jkx) = 1.0
-                 do ikx = 1, nakx
-                   g1k(1,ikx) = sum(binv_thet(ikx,:,jz)*g0k(1,:)) 
-                 enddo
-
-                 ! +Binv.thet.phi
-                 do ikx = 1, nakx
-                   inmat = ikx + nakx*(jz+nzgrid)
-                   phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + g1k(1,ikx)
-                 enddo
-
-
-                 ! -Binv.f (k0.<Binv.phi>_psi)/(k0.<Binv.f>_psi)
-                 call transform_kx2x_unpadded (g1k, g0x)
-                 g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
-                 call transform_x2kx_unpadded(g0x,g0k)
-                 tmpc = g0k(1,1)/k0_Binv_fmax
-
-                 do iz = -nzgrid, nzgrid-1
+                   ! get Binv.theta.phi
+                   g0k = 0.0
+                   g0k(1,jkx) = 1.0
                    do ikx = 1, nakx
-                     inmat = ikx + nakx*(iz+nzgrid)
-                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) &
-                                                     - binv_fmax(ikx,iz)*tmpc
+                     g1k(1,ikx) = sum(binv_thet(ikx,:,jz)*g0k(1,:)) 
+                   enddo
+
+                   ! +Binv.thet.phi
+                   do ikx = 1, nakx
+                     inmat = ikx + nakx*(jz+nzgrid)
+                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + g1k(1,ikx)
+                   enddo
+
+
+                   ! -Binv.f (k0.<Binv.phi>_psi)/(k0.<Binv.f>_psi)
+                   call transform_kx2x_unpadded (g1k, g0x)
+                   g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
+                   call transform_x2kx_unpadded(g0x,g0k)
+                   tmpc = g0k(1,1)/k0_Binv_fmax
+
+                   do iz = -nzgrid, nzgrid-1
+                     do ikx = 1, nakx
+                       inmat = ikx + nakx*(iz+nzgrid)
+                       phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) &
+                                                       - binv_fmax(ikx,iz)*tmpc
+                     enddo
                    enddo
                  enddo
                enddo
-             enddo
 
+
+#if defined MPI && ISO_C_BINDING
+             endif
+             call mpi_win_fence(0,window,ierr)
+             call lu_decomposition_local(window, phizf_solve%zloc, phizf_solve%idx, dum)
+#else
              call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
-
+#endif
              deallocate (g1k)
            endif
 
@@ -511,7 +574,7 @@ contains
 
 !DSO> while most of the modes in the box have reality built in (as we 
 !     throw out half the kx-ky plane, modes with ky=0 do not have
-!     this enforcement built in. In theory this shouldn't be a problem
+!     this enforcement built in. In theory this should not be a problem
 !     as these modes should be stable, but I made this function (and 
 !     its relative in the dist file) just in case
 
@@ -971,7 +1034,7 @@ contains
 
           do it = 1, ntubes
 
-            !calculate Binv.g'
+            !calculate Binv.gprime
             do iz = -nzgrid, nzgrid
               call lu_back_substitution (b_mat,b_idx,phi(1,:,iz,it))
             enddo
@@ -1187,7 +1250,7 @@ contains
            phi_corr_QN(:,:,iz,it) = g0k
          enddo
        enddo
-       !zero out the ones we've already solved for using the full method
+       !zero out the ones we have already solved for using the full method
        do iky = 1, min(ky_solve_radial,naky)
          phi_corr_QN(iky,:,:,:) = 0.0
        enddo
@@ -1318,12 +1381,19 @@ contains
 
   subroutine finish_fields
 
+#if defined MPI && defined ISO_C_BINDING
+    use mpi
+#endif
     use fields_arrays, only: phi, phi_old
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
 
     implicit none
+
+#if defined MPI && defined ISO_C_BINDING
+    integer :: ierr
+#endif
 
     if (allocated(phi)) deallocate (phi)
     if (allocated(phi_old)) deallocate (phi_old)
@@ -1341,13 +1411,17 @@ contains
     if (allocated(save2)) deallocate(save2)
 
     if (allocated(phi_solve)) deallocate(phi_solve)
-    if (associated(phizf_solve%zloc)) deallocate(phizf_solve%zloc)
     if (associated(phizf_solve%idx))  deallocate(phizf_solve%idx)
     if (allocated(b_mat)) deallocate(b_mat)
     if (allocated(b_idx)) deallocate(b_idx)
     if (allocated(binv_fmax)) deallocate(binv_fmax)
     if (allocated(binv_thet)) deallocate(binv_thet)
 
+#if defined MPI && defined ISO_C_BINDING
+    if (window.ne.MPI_WIN_NULL) call mpi_win_free(window, ierr)
+#else    
+    if (associated(phizf_solve%zloc)) deallocate(phizf_solve%zloc)
+#endif
     fields_initialized = .false.
 
   end subroutine finish_fields
