@@ -266,7 +266,7 @@ contains
            enddo
 
            if (adia_elec) then
-             nmat_zf = (nakx-1)*(nztot-1)
+             nmat_zf = nakx*(nztot-1)
 
              if(.not.allocated(b_mat)) allocate(b_mat(nakx,nakx));
              if(.not.allocated(b_idx)) allocate(b_idx(nakx));
@@ -360,8 +360,8 @@ contains
              enddo
         
              do jz = -nzgrid, nzgrid-1
-               do jkx = 2, nakx
-                 jnmat = (jkx-1) + (nakx-1)*(jz+nzgrid)
+               do jkx = 1, nakx
+                 jnmat = jkx + nakx*(jz+nzgrid)
 
                  ! -<phi>_\psi
                  g0k = 0.0
@@ -370,9 +370,12 @@ contains
                  g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
+                 !set the gauge potential
+                 if(jkx.eq.1) g0k(1,1) = 0. 
+
                  do iz = -nzgrid, nzgrid-1
-                   do ikx = 2, nakx
-                     inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+                   do ikx = 1, nakx
+                     inmat = ikx + nakx*(iz+nzgrid)
                      phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g0k(1,ikx)
                    enddo
                  enddo
@@ -385,8 +388,8 @@ contains
                  enddo
 
                  ! +Binv.thet.phi
-                 do ikx = 2, nakx
-                   inmat = (ikx-1) + (nakx-1)*(jz+nzgrid)
+                 do ikx = 1, nakx
+                   inmat = ikx + nakx*(jz+nzgrid)
                    phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + g1k(1,ikx)
                  enddo
 
@@ -398,8 +401,8 @@ contains
                  tmpc = g0k(1,1)/k0_Binv_fmax
 
                  do iz = -nzgrid, nzgrid-1
-                   do ikx = 2, nakx
-                     inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+                   do ikx = 1, nakx
+                     inmat = ikx + nakx*(iz+nzgrid)
                      phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) &
                                                      - binv_fmax(ikx,iz)*tmpc
                    enddo
@@ -964,7 +967,7 @@ contains
           allocate (g0k(1,nakx))
           allocate (g1k(1,nakx))
           allocate (g0x(1,nakx))
-          allocate (phiext((nakx-1)*(nztot-1)))
+          allocate (phiext(nakx*(nztot-1)))
 
           do it = 1, ntubes
 
@@ -989,8 +992,8 @@ contains
             phi(1,:,:,it) = phi(1,:,:,it) - binv_fmax*g_fsa
      
             do iz = -nzgrid, nzgrid-1
-              do ikx = 2, nakx
-                inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+              do ikx = 1, nakx
+                inmat = ikx + nakx*(iz+nzgrid)
                 phiext(inmat) = phi(1,ikx,iz,it)
               enddo
             enddo
@@ -998,8 +1001,8 @@ contains
             call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, phiext)
 
             do iz = -nzgrid, nzgrid-1
-              do ikx = 2, nakx
-                inmat = (ikx-1) + (nakx-1)*(iz+nzgrid)
+              do ikx = 1, nakx
+                inmat = ikx + nakx*(iz+nzgrid)
                 phi(1,ikx,iz,it) = phiext(inmat)
               enddo
             enddo
@@ -1007,21 +1010,21 @@ contains
             !enforce periodicity
             phi(1,:,nzgrid,it) = phi(1,:,-nzgrid,it)
         
-            ! calculate k0.<phi>_psi
-            tmp = 0.
-            do iz = -nzgrid, nzgrid-1
-              g0k(1,1) = 0.0
-              g0k(1,2:) = phi(1,2:,iz,it) 
+!           ! calculate k0.<phi>_psi
+!           tmp = 0.
+!           do iz = -nzgrid, nzgrid-1
+!             g0k(1,1) = 0.0
+!             g0k(1,2:) = phi(1,2:,iz,it) 
 
-              call transform_kx2x_unpadded (g0k,g0x)
-              g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-              call transform_x2kx_unpadded(g0x,g0k)
-              tmp = tmp + g0k(1,1)
+!             call transform_kx2x_unpadded (g0k,g0x)
+!             g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+!             call transform_x2kx_unpadded(g0x,g0k)
+!             tmp = tmp + g0k(1,1)
 
-            enddo
-            phi(1,1,:,it) = phi(1,1,:,it) + tmp
+!           enddo
+!           phi(1,1,:,it) = phi(1,1,:,it) + tmp
 
-            ! calculate Binv.Theta.phi
+!           ! calculate Binv.Theta.phi
             tmp = 0.
             do iz = -nzgrid, nzgrid-1
               g0k(1,1) = 0.0
@@ -1029,7 +1032,7 @@ contains
               do ikx = 1, nakx
                 g1k(1,ikx) = sum(binv_thet(ikx,:,iz)*g0k(1,:)) 
               enddo
-              phi(1,1,iz,it) = phi(1,1,iz,it) - g1k(1,1)
+!             phi(1,1,iz,it) = phi(1,1,iz,it) - g1k(1,1)
 
               call transform_kx2x_unpadded (g1k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
@@ -1037,7 +1040,7 @@ contains
               tmp = tmp + g1k(1,1)/k0_Binv_fmax
 
             enddo
-            phi(1,1,:,it) = phi(1,1,:,it) + binv_fmax(1,:)*tmp
+!           phi(1,1,:,it) = phi(1,1,:,it) + binv_fmax(1,:)*tmp
 
             correction = correction - tmp
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
