@@ -36,7 +36,7 @@ module mp
   public :: barrier
   public :: waitany
   public :: mp_abort
-  public :: mpireal, mpicmplx
+  public :: mpireal, mpicmplx, real_size, nbytes_real
   public :: sgproc0
 ! MAB> needed by Trinity
   public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs, sharedsubprocs, scrossdomprocs
@@ -86,13 +86,14 @@ module mp
 
   integer :: job = 0
   integer (kind(MPI_REAL)) :: mpireal, mpicmplx
+  integer (kind=MPI_ADDRESS_KIND) :: real_size
 # else
   integer, parameter :: nproc = 1, iproc = 0
   logical, parameter :: proc0 = .true.
 
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
-  integer :: mpireal, mpicmplx
+  integer :: mpireal, mpicmplx, real_size
 # endif
   integer, parameter ::      allprocs = 0, &
                           sharedprocs = 1, & 
@@ -101,6 +102,7 @@ module mp
                        sharedsubprocs = 4, &
                        scrossdomprocs = 5
 
+  integer :: nbytes_real
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
   logical :: trin_flag = .false.
@@ -345,9 +347,13 @@ contains
     if ( (kind(pi)==kind_rs) .and. (kind_rs/=kind_rd) ) then
        mpireal = MPI_REAL
        mpicmplx = MPI_COMPLEX
+       real_size = 4_MPI_ADDRESS_KIND
+       nbytes_real = 4
     else if (kind(pi)==kind_rd) then
        mpireal = MPI_DOUBLE_PRECISION
        mpicmplx = MPI_DOUBLE_COMPLEX
+       real_size = 8_MPI_ADDRESS_KIND
+       nbytes_real = 8
     else
        write (error_unit(),*) 'ERROR: precision mismatch in mpi'
     end if
