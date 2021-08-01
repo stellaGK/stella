@@ -13,14 +13,13 @@ module mp_lu_decomposition
 
 contains 
 
-  subroutine lu_decomposition_local_complex (win, lu, idx, d)
+  subroutine lu_decomposition_local_complex (mp_comm, root, win, lu, idx, d)
 
-    use mp, only: job, iproc, nproc, sgproc0
     use mpi
 
     implicit none
     
-    integer, intent (in) :: win
+    integer, intent (in) :: win, mp_comm, root
     complex, dimension (:,:), intent (in out) :: lu
     integer, dimension (:), intent (out) :: idx
     real, intent (out) :: d
@@ -28,17 +27,23 @@ contains
     real, parameter :: zero = 1.0e-20
     real, dimension (size(lu,1)) :: vv
     complex, dimension (size(lu,2)) :: dum
-    integer, dimension(0:nproc) :: row_limits
+    integer, dimension(:), allocatable :: row_limits
 
-    integer :: i, j, k, n, imax, rdiv, rmod, ierr
+    integer :: i, j, k, n, imax, rdiv, rmod
+    integer :: iproc, nproc, ierr
     real :: dmax, tmp
 
     n = size(lu,1)
 
+    call mpi_comm_size(mp_comm, nproc, ierr)
+    call mpi_comm_rank(mp_comm, iproc, ierr)
+
+    allocate (row_limits(0:nproc))
+
     d = 1.0
     vv = maxval(cabs(lu),dim=2)
     if (any(vv==0.0)) &
-      write (*,*) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
+      write (*,*) 'singular matrix in lu_decomposition on process ', iproc
     vv = 1.0/vv
     do j = 1, n
         !divide up the work using row_limits
@@ -67,7 +72,7 @@ contains
           endif
         enddo
 
-        if(sgproc0) then
+        if(iproc.eq.root) then
           idx(j) = imax
           if (j /= imax) then
             dum = lu(imax,:)
@@ -98,6 +103,8 @@ contains
 
         call mpi_win_fence(0,win,ierr)
     enddo
+
+    deallocate (row_limits)
 
   end subroutine lu_decomposition_local_complex
 

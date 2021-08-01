@@ -56,7 +56,7 @@ contains
     use mp, only: sum_allreduce, job
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-    use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
+    use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
     use mp, only: scope, real_size, nbytes_real
     use mp_lu_decomposition, only: lu_decomposition_local
     use mpi
@@ -471,7 +471,8 @@ contains
 #if defined MPI && ISO_C_BINDING
              endif
              call mpi_win_fence(0,window,ierr)
-             call lu_decomposition_local(window, phizf_solve%zloc, phizf_solve%idx, dum)
+             call lu_decomposition_local(comm_sgroup, 0, window, &
+                                         phizf_solve%zloc, phizf_solve%idx, dum)
 #else
              call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
 #endif
