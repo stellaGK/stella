@@ -40,6 +40,7 @@ module mp
   public :: sgproc0
 ! MAB> needed by Trinity
   public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs, sharedsubprocs, scrossdomprocs
+  public :: comm_group, comm_sgroup
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB

@@ -284,8 +284,7 @@ mirror_terms.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
-mp_lu_decomposition.o: \
-	 mp.o 
+mp_lu_decomposition.o: 
 mt19937.o: 
 multibox.o: \
 	 constants.o \
