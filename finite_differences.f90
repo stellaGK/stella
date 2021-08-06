@@ -12,6 +12,7 @@ module finite_differences
   public :: second_order_centered_zed
   public :: fourth_order_centered_zed
   public :: fd_variable_upwinding_zed
+  public :: fd_variable_third_order_upwinding_zed
   public :: four_point_triangle
   public :: fd3pt, fd5pt
   public :: d2_3pt
