@@ -70,9 +70,10 @@ program stella
 
 contains
 
-  !==============================================
-  !============ INITIATE STELLA =================
-  !==============================================
+  !> Initialise stella
+  !>
+  !> Calls the initialisation routines for all the geometry, physics, and
+  !> diagnostic modules
   subroutine init_stella(istep0, VERNUM, VERDATE)
     use mp, only: init_mp, broadcast, sum_allreduce
     use mp, only: proc0,job, scope, subprocs, crossdomprocs
@@ -100,9 +101,9 @@ contains
     use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
     use response_matrix, only: init_response_matrix, read_response_matrix
     use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
+    use init_g, only: tstart
     use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
     use stella_time, only: init_tstart, init_delt
-    use init_g, only: tstart
     use stella_diagnostics, only: init_stella_diagnostics
     use fields_arrays, only: phi, apar
     use dist_fn_arrays, only: gnew, gvmu
@@ -110,7 +111,7 @@ contains
     use dist_redistribute, only: init_redistribute
     use time_advance, only: init_time_advance
     use extended_zgrid, only: init_extended_zgrid
-    use kt_grids, only: init_kt_grids, read_kt_grids_parameters
+    use kt_grids, only: init_kt_grids, read_kt_grids_parameters, communicate_ktgrids_multibox
     use kt_grids, only: naky, nakx, ny, nx, nalpha
     use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
     use vpamu_grids, only: nvgrid, nmu
@@ -119,13 +120,17 @@ contains
     use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
     use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
+    use dissipation, only: init_dissipation
     use volume_averages, only: init_volume_averages, volume_average
 
     implicit none
 
+    !> Starting timestep: zero unless the simulation has been restarted
     integer, intent (out) :: istep0
-    character(len=4), intent (in) :: VERNUM 
-    character(len=10), intent (in) :: VERDATE 
+    !> stella version number
+    character(len=4), intent (in) :: VERNUM
+    !> Release date
+    character(len=10), intent (in) :: VERDATE
     logical :: exit, list, restarted, needs_transforms
     character (500), target :: cbuff
     integer, dimension (:), allocatable  :: seed
@@ -227,6 +232,10 @@ contains
     if (runtype_option_switch.eq.runtype_multibox.and.(job.eq.1)) then
       call communicate_multibox_parameters
     endif
+    if (runtype_option_switch.eq.runtype_multibox.and.radial_variation) then
+      if (debug) write (6,*) 'stella::init_stella::init_multibox_ktgrid'
+      call communicate_ktgrids_multibox
+    endif
     if (debug) write (6,*) 'stella::init_stella::finish_init_geometry'
     call finish_init_geometry
     if (debug) write (6,*) 'stella::init_stella::init_vpamu_grids'
@@ -239,6 +248,8 @@ contains
     call init_dist_fn
     if (debug) write(6,*) "stella::init_stella::init_redistribute"
     call init_redistribute
+    if (debug) write (6,*) 'stella::init_stella::init_dissipation'
+    call init_dissipation
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
     if (debug) write(6,*) "stella::init_stella::ginit"
@@ -306,17 +317,17 @@ contains
 
   end subroutine init_stella
 
-  !==============================================
-  !============ WRITE START MESSAGE =============
-  !==============================================
+  !> Write the start message to screen
   subroutine write_start_message(VERNUM, VERDATE)
     use mp, only: proc0, nproc
 
     implicit none
 
+    !> stella version number
+    character(len=4), intent (in) :: VERNUM
+    !> Release date
+    character(len=10), intent (in) :: VERDATE
     character(len=23) :: str
-    character(len=4), intent (in) :: VERNUM 
-    character(len=10), intent (in) :: VERDATE 
 
     if (proc0) then
       write (*,*) ' '
@@ -358,9 +369,7 @@ contains
 
   end subroutine write_start_message
 
-  !==============================================
-  !=============== FINISH STELLA ================
-  !==============================================
+  !> Finish a simulation, call the finialisation routines of all modules
   subroutine finish_stella (last_call)
 
     use mp, only: finish_mp
@@ -451,6 +460,7 @@ contains
        write (*,fmt=101) 'ExB nonlin:', time_gke(1,7)/60., 'min'
        write (*,fmt=101) 'parallel nonlin:', time_parallel_nl(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_parallel_nl(1,2)/60., 'min'
+       write (*,fmt=101) 'radial var:', time_gke(1,10)/60., 'min'
        write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'
        write (*,fmt=101) 'total explicit: ', time_gke(1,8)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'

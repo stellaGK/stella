@@ -73,7 +73,25 @@ contains
 
     call read_parameters
     if (include_collisions) then
-        call init_collisions
+      if (collision_model == "dougherty") then
+        write(*,*)
+        write(*,*) 'Coll. model:     Dougherty'
+        if (collisions_implicit) then
+          write(*,*) 'Coll. algorithm: implicit'
+        else
+          write(*,*) 'Coll. algorithm: explicit'
+        end if
+      end if
+      if (collision_model == "fokker-planck") then
+        write(*,*) 'Coll. model:     linearized Fokker-Planck'
+        write(*,*) 'Note:            tested for linear CBC w. adiabatic e-'
+        if (collisions_implicit) then
+          write(*,*) 'Coll. algorithm: implicit'
+        else
+          write(*,*) 'Coll. algorithm: explicit'
+        end if
+      end if
+      write(*,*)
     else
         if (proc0) then
            write (*,'(A)') "############################################################"
@@ -186,10 +204,7 @@ contains
     collisions_initialized = .true.
 
     if (collision_model == "dougherty") then
-        write(*,*)
-        write(*,*) 'Coll. model:     Dougherty'
         if (collisions_implicit) then
-            write(*,*) 'Coll. algorithm: implicit'
            if (vpa_operator) then
               call init_vpadiff_matrix
               call init_vpadiff_conserve
@@ -199,7 +214,6 @@ contains
               call init_mudiff_conserve
            end if
         else
-            write(*,*) 'Coll. algorithm: explicit'
            vnew_max = 0.0
            do is = 1, nspec
               vnew_max = max(vnew_max,maxval(spec(is)%vnew))
@@ -210,15 +224,11 @@ contains
     end if
 
     if (collision_model == "fokker-planck") then
-        write(*,*) 'Coll. model:     linearized Fokker-Planck'
-        write(*,*) 'Note:            tested for linear CBC w. adiabatic e-'
         call init_nusDpa
         if (collisions_implicit) then
-            write(*,*) 'Coll. algorithm: implicit'
            call init_fp_diffmatrix
            call init_fp_conserve
         else
-            write(*,*) 'Coll. algorithm: explicit'
            vnew_max = 0.0
            do is = 1, nspec
               vnew_max = max(vnew_max,maxval(spec(is)%vnew))
@@ -227,7 +237,6 @@ contains
            cfl_dt_mudiff = minval(bmag)/(vnew_max*maxval(mu(2:)/dmu(:nmu-1)**2))
         end if
     end if
-    write(*,*)
   end subroutine init_collisions
 
   subroutine init_nusDpa
@@ -1860,15 +1869,18 @@ contains
     use zgrid, only: nzgrid, ntubes
     use species, only: spec
     use run_parameters, only: fphi
-    use kt_grids, only: naky, nakx
+    use physics_flags, only: radial_variation
+    use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: set_vpa_weights
-    use stella_geometry, only: bmag
+    use stella_geometry, only: bmag, dBdrho
     use stella_layouts, only: vmu_lo, kxkyz_lo
     use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
     use dist_redistribute, only: kxkyz2vmu
-    use dist_fn_arrays, only: gvmu, kperp2
+    use dist_fn_arrays, only: gvmu, kperp2, dkperp2dr
+    use fields_arrays, only: phi_corr_QN
     use g_tofrom_h, only: g_to_h
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
 
@@ -1876,14 +1888,20 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
-    integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia
+    integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia, it
     logical :: conservative_wgts
+    real :: tfac
+
     complex, dimension (:), allocatable :: mucoll
     complex, dimension (:,:,:), allocatable :: coll
     complex, dimension (:,:,:,:,:), allocatable :: tmp_vmulo
 
     complex, dimension (:,:,:), allocatable :: mucoll_fp
     complex, dimension (:,:,:), allocatable :: coll_fp
+
+    complex, dimension (:,:), allocatable :: g0k, g0x
+
+    ia = 1
 
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
 
@@ -1893,19 +1911,119 @@ contains
     conservative_wgts = .true.
     call set_vpa_weights (conservative_wgts)
 
-    ! switch from g = <f> to h = f + Z*e*phi/T * F0
-    tmp_vmulo = g
-    call g_to_h (tmp_vmulo, phi, fphi)
+    if (radial_variation) then
+      allocate (g0k(naky,nakx))
+      allocate (g0x(naky,nakx))
+      !TODO (DSO) - could perhaps operator split the profile variation pieces off the main pieces, and so
+      !             this portion of the code could just treat the terms that vary in x
 
-    ! remap so that (vpa,mu) local
-    if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
-    call scatter (kxkyz2vmu, tmp_vmulo, gvmu)
-    if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+      if (collision_model=="dougherty") then
+        ! switch from g = <f> to h = f + Z*e*phi/T * F0
+        tmp_vmulo = g
+        call g_to_h (tmp_vmulo, phi, fphi, phi_corr_QN)
 
-    ia = 1
+        !handle gyroviscous term
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+              g0k = 0.5*tmp_vmulo(:,:,iz,it,ivmu)*kperp2(:,:,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2
+              gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) - code_dt*spec(is)%vnew(is)*g0k
 
-    ! take vpa derivatives
-    if (collision_model=="dougherty") then
+              g0k = g0k * (dkperp2dr(:,:,ia,iz) - 2.0*dBdrho(iz)/bmag(ia,iz) - spec(is)%tprim)
+              call multiply_by_rho (g0k)
+              gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) - code_dt*spec(is)%vnew(is)*g0k
+            enddo
+          enddo
+        enddo
+        
+        !handle the conservation terms
+        if (momentum_conservation) call conserve_momentum_vmulo (tmp_vmulo, gke_rhs)
+        if (energy_conservation) call conserve_energy_vmulo (tmp_vmulo, gke_rhs)
+
+        !since Bessel functions do not appear under the velocity derivatives, these terms are one-point in x space 
+        ! and we can simply inverse Fourier transform
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+              call transform_kx2x_unpadded (tmp_vmulo(:,:,iz,it,ivmu),g0x)
+              tmp_vmulo(:,:,iz,it,ivmu) = g0x
+            enddo
+          enddo
+        enddo
+
+        ! remap so that (vpa,mu) local
+        if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+        call scatter (kxkyz2vmu, tmp_vmulo, gvmu)
+        if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+
+        ! take vpa derivatives
+        allocate (coll(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+        allocate (mucoll(nmu))
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+           iky = iky_idx(kxkyz_lo,ikxkyz)
+           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+           iz = iz_idx(kxkyz_lo,ikxkyz)
+           is = is_idx(kxkyz_lo,ikxkyz)
+
+           if (vpa_operator) then
+             !fix the temperature term
+             tfac = (spec(is)%temp/spec(is)%temp_psi0)*(1.0 - rho_d_clamped(ikx)*spec(is)%tprim)
+             do imu = 1, nmu
+                call vpa_differential_operator (tfac, gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
+             end do
+           else
+             coll(:,:,ikxkyz) = 0.0
+           end if
+
+           if (mu_operator) then
+             !fix the temperature/bmag term
+             tfac = (spec(is)%temp/spec(is)%temp_psi0) & 
+                    * (1.0 - rho_d_clamped(ikx)*(spec(is)%tprim + dBdrho(iz)/bmag(ia,iz)))
+             do iv = 1, nvpa
+                call mu_differential_operator (tfac, iz, ia, gvmu(iv,:,ikxkyz), mucoll)
+                coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
+             end do
+           end if
+           gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz)
+        end do
+        deallocate (coll, mucoll)
+
+        ! remap so that (ky,kx,z,tube) local
+        call gather (kxkyz2vmu, gvmu, tmp_vmulo)
+
+        !don't forget to Fourier transform 
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+              call transform_x2kx_unpadded (tmp_vmulo(:,:,iz,it,ivmu),g0k)
+              tmp_vmulo(:,:,iz,it,ivmu) = g0k
+            enddo
+          enddo
+        enddo
+
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
+        end do
+      end if
+
+      deallocate (g0k,g0x)
+    else
+      ! switch from g = <f> to h = f + Z*e*phi/T * F0
+      tmp_vmulo = g
+      call g_to_h (tmp_vmulo, phi, fphi)
+
+      ! remap so that (vpa,mu) local
+      if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+      call scatter (kxkyz2vmu, tmp_vmulo, gvmu)
+      if (proc0) call time_message(.false.,time_collisions(:,2),' coll_redist')
+
+      ia = 1
+
+      ! take vpa derivatives
+      if (collision_model=="dougherty") then
         allocate (coll(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
         allocate (mucoll(nmu))
         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1915,14 +2033,14 @@ contains
            is = is_idx(kxkyz_lo,ikxkyz)
            if (vpa_operator) then
               do imu = 1, nmu
-                 call vpa_differential_operator (gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
+                 call vpa_differential_operator (1.0, gvmu(:,imu,ikxkyz), coll(:,imu,ikxkyz))
               end do
            else
               coll(:,:,ikxkyz) = 0.0
            end if
            if (mu_operator) then
               do iv = 1, nvpa
-                 call mu_differential_operator (iz, ia, gvmu(iv,:,ikxkyz), mucoll)
+                 call mu_differential_operator (1.0, iz, ia, gvmu(iv,:,ikxkyz), mucoll)
                  coll(iv,:,ikxkyz) = coll(iv,:,ikxkyz) + mucoll
               end do
            end if
@@ -1931,47 +2049,49 @@ contains
            ! save memory by using gvmu and deallocating coll below
            ! before re-allocating tmp_vmulo
            gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
-       end do
-       deallocate (coll, mucoll)
+        end do
+        deallocate (coll, mucoll)
 
-       ! remap so that (ky,kx,z,tube) local
-       call gather (kxkyz2vmu, gvmu, tmp_vmulo)
+        ! remap so that (ky,kx,z,tube) local
+        call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           is = is_idx(vmu_lo,ivmu)
           gke_rhs(:,:,:,:,ivmu) =  gke_rhs(:,:,:,:,ivmu) + code_dt*spec(is)%vnew(is)*tmp_vmulo(:,:,:,:,ivmu)
-       end do
-    end if
+        end do
+      end if
 
-    if (collision_model=="fokker-planck") then
+      if (collision_model=="fokker-planck") then
         allocate (coll_fp(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); coll_fp = 0.0
         allocate (mucoll_fp(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); mucoll_fp = 0.0
 
         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iky = iky_idx(kxkyz_lo,ikxkyz)
-            ikx = ikx_idx(kxkyz_lo,ikxkyz)
-            iz = iz_idx(kxkyz_lo,ikxkyz)
-            is = is_idx(kxkyz_lo,ikxkyz)
-            if (vpa_operator) then
-              do imu = 1, nmu
-                  call vpa_differential_operator_fp (gvmu(:,:,ikxkyz), coll_fp(:,:,ikxkyz), imu, iz, is, ia)
-              end do
-            end if
-            if (mu_operator) then
-              do iv = 1, nvpa
-                 call mu_differential_operator_fp (gvmu(:,:,ikxkyz), mucoll_fp(:,:,ikxkyz), iv, iz, is, ia, iky, ikx, cfac)
-              end do
-            end if
-            gvmu(:,:,ikxkyz) = coll_fp(:,:,ikxkyz) + mucoll_fp(:,:,ikxkyz)
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          if (vpa_operator) then
+            do imu = 1, nmu
+              call vpa_differential_operator_fp (gvmu(:,:,ikxkyz), coll_fp(:,:,ikxkyz), imu, iz, is, ia)
+            end do
+          end if
+          if (mu_operator) then
+            do iv = 1, nvpa
+              call mu_differential_operator_fp (gvmu(:,:,ikxkyz), mucoll_fp(:,:,ikxkyz), iv, iz, is, ia, &
+                                                iky, ikx, cfac)
+            end do
+          end if
+          gvmu(:,:,ikxkyz) = coll_fp(:,:,ikxkyz) + mucoll_fp(:,:,ikxkyz)
         end do
         deallocate (coll_fp, mucoll_fp)
 
         call gather (kxkyz2vmu, gvmu, tmp_vmulo)
 
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-           gke_rhs(:,:,:,:,ivmu) = gke_rhs(:,:,:,:,ivmu) + code_dt*tmp_vmulo(:,:,:,:,ivmu)
+          gke_rhs(:,:,:,:,ivmu) = gke_rhs(:,:,:,:,ivmu) + code_dt*tmp_vmulo(:,:,:,:,ivmu)
         end do
-    end if
+      end if
+    endif
 
     deallocate (tmp_vmulo)
 
@@ -2247,12 +2367,13 @@ contains
 
   end subroutine mu_differential_operator_fp
 
-  subroutine vpa_differential_operator (h, Dh)
+  subroutine vpa_differential_operator (tfac, h, Dh)
 
     use vpamu_grids, only: nvpa, vpa, dvpa
 
     implicit none
 
+    real, intent (in) :: tfac
     complex, dimension (:), intent (in) :: h
     complex, dimension (:), intent (out) :: Dh
 
@@ -2260,16 +2381,16 @@ contains
 
     ! use h = 0 at ghost cells beyond +/- vpa_max
     iv = 1
-    Dh(iv) = (0.5*h(iv+1)*(1.0/dvpa+vpa(iv+1))-h(iv)/dvpa)/dvpa
+    Dh(iv) = (0.5*h(iv+1)*(tfac/dvpa+vpa(iv+1))-tfac*h(iv)/dvpa)/dvpa
     iv = nvpa
-    Dh(iv) = (-h(iv)/dvpa+0.5*h(iv-1)*(1.0/dvpa-vpa(iv-1)))/dvpa
+    Dh(iv) = (-tfac*h(iv)/dvpa+0.5*h(iv-1)*(tfac/dvpa-vpa(iv-1)))/dvpa
     do iv = 2, nvpa-1
-       Dh(iv) = (0.5*h(iv+1)*(1.0/dvpa+vpa(iv+1))-h(iv)/dvpa+0.5*h(iv-1)*(1.0/dvpa-vpa(iv-1)))/dvpa
+       Dh(iv) = (0.5*h(iv+1)*(tfac/dvpa+vpa(iv+1))-tfac*h(iv)/dvpa+0.5*h(iv-1)*(tfac/dvpa-vpa(iv-1)))/dvpa
     end do
 
   end subroutine vpa_differential_operator
 
-  subroutine mu_differential_operator (iz, ia, h, Dh)
+  subroutine mu_differential_operator (tfac, iz, ia, h, Dh)
 
     use vpamu_grids, only: nmu, mu, dmu
     use vpamu_grids, only: equally_spaced_mu_grid
@@ -2278,6 +2399,7 @@ contains
 
     implicit none
 
+    real, intent (in) :: tfac
     integer, intent (in) :: iz, ia
     complex, dimension (:), intent (in) :: h
     complex, dimension (:), intent (out) :: Dh
@@ -2294,17 +2416,17 @@ contains
     if (equally_spaced_mu_grid) then
        ! use mu_{i-1/2} = 0 for i = 1
        imu = 1
-       mup = 0.5*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
+       mup = 0.5*tfac*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
        Dh(imu) = (h(imu+1)*(mup+mu(imu+1)) &
             -h(imu)*(mup-mu(imu)))/dmu(1)
        ! use h = 0 at ghost cells beyond mu_max
        imu = nmu
-       mup = 0.5*(2.*mu(imu)+dmu(1))/(bmag(ia,iz)*dmu(1))
-       mum = 0.5*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
+       mup = 0.5*tfac*(2.*mu(imu)+dmu(1))/(bmag(ia,iz)*dmu(1))
+       mum = 0.5*tfac*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
        Dh(imu) = (-h(imu)*(mup+mum) + h(imu-1)*(mum-mu(imu-1)))/dmu(1)
        do imu = 2, nmu-1
-          mup = 0.5*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
-          mum = 0.5*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
+          mup = 0.5*tfac*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
+          mum = 0.5*tfac*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
           Dh(imu) = (h(imu+1)*(mup+mu(imu+1)) &
                -h(imu)*(mup+mum) + h(imu-1)*(mum-mu(imu-1)))/dmu(1)
        end do
@@ -2317,11 +2439,11 @@ contains
        dmu_ghost(:nmu-1) = dmu(:nmu-1) ; dmu_ghost(nmu) = 1.0
 
        call d2_3pt (h_ghost, Dh_ghost, dmu_ghost)
-       Dh = Dh_ghost(:nmu)*mu/bmag(ia,iz)
+       Dh = tfac*Dh_ghost(:nmu)*mu/bmag(ia,iz)
 
        ! next add (1/B + 2*mu)*dh/dmu + 2*h
        call fd3pt (h_ghost, Dh_ghost, dmu_ghost)
-       Dh = Dh + (1./bmag(ia,iz) + 2.*mu)*Dh_ghost(:nmu) + 2.*h
+       Dh = Dh + (tfac/bmag(ia,iz) + 2.*mu)*Dh_ghost(:nmu) + 2.*h
     end if
 
     deallocate (h_ghost, Dh_ghost, dmu_ghost)
@@ -2392,6 +2514,250 @@ contains
     deallocate (T_fac)
 
   end subroutine conserve_energy
+
+  subroutine conserve_momentum_vmulo (h, gke_rhs)
+
+    use mp, only: sum_allreduce
+    use stella_time, only: code_dt
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, iv_idx, is_idx
+    use species, only: spec
+    use physics_flags, only: radial_variation
+    use stella_geometry, only: bmag, dBdrho
+    use kt_grids, only: nakx, naky, multiply_by_rho
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: integrate_species, mu, vpa, vperp2
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use dist_fn_arrays, only: kperp2, dkperp2dr
+    use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: h
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+
+    complex, dimension (:,:), allocatable :: g0k, g1k
+    complex, dimension (:,:,:), allocatable :: gyro_g
+    complex, dimension (:,:,:,:), allocatable :: field1, field2
+    real :: prefac, energy
+    integer :: it, iz, ivmu, imu, iv, ia, is
+
+    ia = 1
+
+    allocate (g0k(naky,nakx))
+    allocate (g1k(naky,nakx))
+    allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    allocate (field1(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (field2(naky,nakx,-nzgrid:nzgrid,ntubes))
+
+    !component from vpa
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv = iv_idx(vmu_lo,ivmu)
+
+          call gyro_average (h(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+          gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu)*vpa(iv)
+          g0k = 0.0
+          if(radial_variation) then
+            g0k(:,:) = gyro_g(:,:,ivmu) &
+                * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                + dBdrho(iz)/bmag(ia,iz))
+
+            call multiply_by_rho(g0k)
+          endif
+          gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
+
+        end do
+        call integrate_species (gyro_g, iz, spec%dens_psi0*spec%temp_psi0, field1(:,:,iz,it), reduce_in=.false.)
+      end do
+    end do
+    call sum_allreduce(field1)
+
+
+    !component from vperp
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv = iv_idx(vmu_lo,ivmu)
+
+          !component from vpa
+          call gyro_average_j1 (h(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+          gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu)*vperp2(ia,iz,imu)*sqrt(kperp2(:,:,ia,iz))*spec(is)%smz_psi0/bmag(ia,iz)
+          g0k = 0.0
+          if(radial_variation) then
+            g0k = gyro_g(:,:,ivmu)*(dBdrho(iz)/bmag(ia,iz) + 0.5*dkperp2dr(:,:,ia,iz)) &
+                  + h(:,:,iz,it,ivmu)*(0.5*aj0x(:,:,iz,ivmu) - aj1x(:,:,iz,ivmu)) &
+                     *(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))*vperp2(ia,iz,imu) &
+                     *sqrt(kperp2(:,:,ia,iz))*spec(is)%smz_psi0/bmag(ia,iz)
+
+            call multiply_by_rho(g0k)
+          endif
+          gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
+
+        end do
+        call integrate_species (gyro_g, iz, spec%dens_psi0*spec%temp_psi0, field2(:,:,iz,it), reduce_in=.false.)
+
+      end do
+    end do
+    call sum_allreduce(field2)
+    deallocate (gyro_g)
+
+
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv = iv_idx(vmu_lo,ivmu)
+
+          prefac = 2.0/(spec(is)%dens*spec(is)%temp)*code_dt*spec(is)%vnew(is) &
+                    * maxwell_mu(ia,iz,imu,is)*maxwell_vpa(iv,is)*maxwell_fac(is)
+
+          g0k = aj0x(:,:,iz,ivmu)*vpa(iv)*field1(:,:,iz,it) & 
+              + aj1x(:,:,iz,ivmu)*vperp2(ia,iz,imu)*field2(:,:,iz,it) &
+                *spec(is)%smz_psi0*sqrt(kperp2(:,:,ia,iz))/bmag(ia,iz)
+
+      
+          gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g0k
+
+          if(radial_variation) then
+            energy = (vpa(iv)**2 + vperp2(ia,iz,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+
+            g1k = field1(:,:,iz,it)*vpa(iv)*(-0.5*aj1x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))) &
+                + field2(:,:,iz,it)*spec(is)%smz_psi0*vperp2(ia,iz,imu)/bmag(ia,iz)*sqrt(kperp2(:,:,ia,iz)) &
+                   * (0.5*aj1x(:,:,iz,ivmu)*dkperp2dr(:,:,ia,iz) + (0.5*aj0x(:,:,iz,ivmu) - aj1x(:,:,iz,ivmu))  &
+                       *(dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)))
+            g1k = g1k + g0k*(spec(is)%tprim*(energy-2.5) + 2*mu(imu)*dBdrho(iz))
+
+            call multiply_by_rho(g1k)
+
+            gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g1k
+          endif 
+        enddo
+      end do
+    end do
+
+    deallocate (g0k,g1k)
+    deallocate (field1,field2)
+
+  end subroutine conserve_momentum_vmulo
+
+  subroutine conserve_energy_vmulo (h, gke_rhs)
+
+    use mp, only: sum_allreduce
+    use stella_time, only: code_dt
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: imu_idx, iv_idx, is_idx
+    use species, only: spec
+    use physics_flags, only: radial_variation
+    use stella_geometry, only: bmag, dBdrho
+    use kt_grids, only: nakx, naky, multiply_by_rho
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: integrate_species
+    use vpamu_grids, only: mu, vpa, nvpa, nmu, vperp2
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use dist_fn_arrays, only: kperp2, dkperp2dr
+    use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: h
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
+
+    complex, dimension (:,:), allocatable :: g0k, g1k
+    complex, dimension (:,:,:), allocatable :: gyro_g
+    complex, dimension (:,:,:,:), allocatable :: field
+    complex :: integral
+    real :: prefac, energy
+    integer :: it, iz, ivmu, imu, iv, ia, is
+
+    ia = 1
+
+    allocate (g0k(naky,nakx))
+    allocate (g1k(naky,nakx))
+    allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
+
+    !component from vpa
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv = iv_idx(vmu_lo,ivmu)
+
+          call gyro_average (h(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
+          gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu)*(vpa(iv)**2 + vperp2(ia,iz,imu)-1.5*spec(is)%temp/spec(is)%temp_psi0)
+          g0k = 0.0
+          if(radial_variation) then
+            g0k(:,:) = gyro_g(:,:,ivmu) &
+                        * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                        * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                           + dBdrho(iz)/bmag(ia,iz)) &
+                     + h(:,:,iz,it,ivmu)*aj0x(:,:,iz,ivmu)*(vperp2(ia,iz,imu)*dBdrho(iz)/bmag(ia,iz) &
+                                                            + 1.5*spec(is)%tprim)
+            call multiply_by_rho(g0k)
+          endif
+          gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) + g0k
+
+        end do
+        call integrate_species (gyro_g, iz, spec%dens_psi0*spec%temp_psi0**2, field(:,:,iz,it), reduce_in=.false.)
+      end do
+    end do
+    call sum_allreduce(field)
+
+    deallocate (gyro_g)
+
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv = iv_idx(vmu_lo,ivmu)
+
+          prefac = 4.0/(3.0*spec(is)%dens*spec(is)%temp**2)*code_dt*spec(is)%vnew(is) &
+                    * maxwell_mu(ia,iz,imu,is)*maxwell_vpa(iv,is)*maxwell_fac(is)
+
+          g0k = aj0x(:,:,iz,ivmu)*field(:,:,iz,it) & 
+                  *(vpa(iv)**2 + vperp2(ia,iz,imu) - 1.5*spec(is)%temp/spec(is)%temp_psi0)
+      
+          gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g0k
+
+          if(radial_variation) then
+            energy = (vpa(iv)**2 + vperp2(ia,iz,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+
+            g1k = field(:,:,iz,it)*(energy - 1.5)*(-0.5*aj1x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz))) &
+                + field(:,:,iz,it)*aj0x(:,:,iz,ivmu)*(vperp2(ia,iz,imu)*dBdrho(iz)/bmag(ia,iz) + 1.5*spec(is)%tprim)
+
+
+            g1k = g1k + g0k*(spec(is)%tprim*(energy-3.5) + 2*mu(imu)*dBdrho(iz))
+
+            call multiply_by_rho(g1k)
+
+            gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) + prefac*g1k
+          endif 
+        enddo
+      end do
+    end do
+
+    deallocate (g0k,g1k)
+    deallocate (field)
+
+  end subroutine conserve_energy_vmulo
 
   subroutine advance_collisions_implicit (mirror_implicit, phi, apar, g)
 
@@ -2907,7 +3273,7 @@ contains
   subroutine advance_hyper_dissipation (g)
 
     use stella_time, only: code_dt
-    use zgrid, only: nzgrid, ntubes, nztot, zed
+    use zgrid, only: nzgrid, ntubes, zed
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: kperp2
     use kt_grids, only: ikx_max, naky, nakx
