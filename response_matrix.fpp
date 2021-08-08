@@ -130,8 +130,8 @@ contains
       if(sgproc0) then
         do iky = 1, naky
           do ie = 1, neigen(iky)
-             if (periodic(iky)) then
-                nresponse = nsegments(ie,iky)*nzed_segment
+            if (periodic(iky)) then
+               nresponse = nsegments(ie,iky)*nzed_segment
             else
                nresponse = nsegments(ie,iky)*nzed_segment+1
             end if
@@ -297,7 +297,7 @@ contains
            ! treat zonal mode specially to avoid double counting
            ! as it is periodic
            if (periodic(iky)) then
-              nresponse = nz_ext-1
+             nresponse = nz_ext-1
            else
              nresponse = nz_ext
            end if

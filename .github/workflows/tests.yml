@@ -33,5 +33,8 @@ jobs:
           nf-config --all
       - uses: actions/checkout@v2
 
+      - name: Install integrated test dependencies
+        run: pip3 install --user -r tests/integrated/requirements.txt
+
       - name: Build stella
         run: ./scripts/ci_build_and_run.sh

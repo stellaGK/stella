@@ -58,7 +58,7 @@ module time_advance
   real, dimension (:), allocatable :: d_par_nl_driftx_dr, d_par_nl_drifty_dr
 
   ! needed for timing various pieces of gke solve
-  real, dimension (2,9) :: time_gke = 0.
+  real, dimension (2,10) :: time_gke = 0.
   real, dimension (2,2) :: time_parallel_nl = 0.
 
   logical :: debug = .false.
@@ -73,7 +73,7 @@ contains
     use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
     use neoclassical_terms, only: init_neoclassical_terms
-    use dissipation, only: init_dissipation
+    use dissipation, only: init_collisions, include_collisions
     use parallel_streaming, only: init_parallel_streaming
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
@@ -107,8 +107,10 @@ contains
     if (radial_variation) call init_radial_variation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_drifts_implicit'
     if (drifts_implicit) call init_drifts_implicit
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
-    call init_dissipation
+    if (include_collisions) then
+      if (debug) write (6,*) 'time_advance::init_time_advance::init_collisions'
+      call init_collisions
+    endif
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
 
@@ -570,9 +572,9 @@ contains
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use dist_fn_arrays, only: wstarp
-    use dist_fn_arrays, only: wdrifty_phi
+    use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
 !   use neoclassical_terms, only: include_neoclassical_terms
 
     implicit none
@@ -598,8 +600,8 @@ contains
       allocate (wstarp(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstarp = 0.0
     if (.not.allocated(wdriftpx_phi)) &
        allocate (wdriftpx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    if (.not.allocated(adiabatic_phi)) &
-       allocate (adiabatic_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!   if (.not.allocated(adiabatic_phi)) &
+!      allocate (adiabatic_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpy_phi)) &
       allocate (wdriftpy_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     if (.not.allocated(wdriftpx_g)) &
@@ -663,16 +665,22 @@ contains
        wgbdriftx = gfac*fac*dgbdrift0drho*0.5*vperp2(:,:,imu)
        wdriftpx_g(:,:,ivmu) = wgbdriftx + wcvdriftx*vpa(iv)
 
-       !the next piece is everything under the x derivative, as this needs to be
-       !transformed separately
-       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv))  &
-            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
+       wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
+            * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
+            - wdriftx_phi(:,:,ivmu)*(pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
+              + gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
-       !this is variation in the Maxwellian part of the adiabatic response of phi,
-       !which needs to be transformed separately before differentiation wrt x
-       !the gyroaveraging and quasineutrality is already done in fields
-       adiabatic_phi(:,:,ivmu) = -(pfac*(spec(is)%fprim+spec(is)%tprim*(energy-2.5)) &
-                                  +gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
+            
+!      !the next piece is everything under the x derivative, as this needs to be
+!      !transformed separately
+!      wdriftpx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv))  &
+!           * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
+
+!      !this is variation in the Maxwellian part of the adiabatic response of phi,
+!      !which needs to be transformed separately before differentiation wrt x
+!      !the gyroaveraging and quasineutrality is already done in fields
+!      adiabatic_phi(:,:,ivmu) = -(pfac*(spec(is)%fprim+spec(is)%tprim*(energy-2.5)) &
+!                                 +gfac*2.*mu(imu)*spread(dBdrho,1,nalpha))
 
     end do
 
@@ -1963,7 +1971,7 @@ contains
 
   subroutine advance_radial_variation (g, gout)
 
-    use mp, only: mp_abort
+    use mp, only: mp_abort, proc0
     use job_manage, only: time_message
     use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
@@ -1980,7 +1988,7 @@ contains
     use physics_flags, only: include_parallel_streaming, include_mirror
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi, adiabatic_phi
+    use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi !, adiabatic_phi
     use dist_fn_arrays, only: wstar, wstarp
     use mirror_terms, only: add_mirror_radial_variation
     use flow_shear, only: prl_shear, prl_shear_p
@@ -1997,11 +2005,14 @@ contains
     complex, dimension (:,:,:,:,:), allocatable :: g_corr
 
     allocate (g0k(naky,nakx))
+
     allocate (g1k(naky,nakx))
     allocate (g0a(naky,nakx))
 
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_radial_variation'
+
+    if (proc0) call time_message(.false.,time_gke(:,10),' radial variation advance')
 
     if(include_mirror .or. include_parallel_streaming) then
       allocate (g_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -2088,12 +2099,12 @@ contains
             call get_dgdx(g0a,g1k)
             g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
-            !wdriftx F_M/T_s variation
-            call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
-            g0a = adiabatic_phi(ia,iz,ivmu)*g0a
-            call multiply_by_rho(g0a)
-            call get_dgdx(g0a,g1k)
-            g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
+!           !wdriftx F_M/T_s variation
+!           call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
+!           g0a = adiabatic_phi(ia,iz,ivmu)*g0a
+!           call multiply_by_rho(g0a)
+!           call get_dgdx(g0a,g1k)
+!           g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
           
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
           end do
@@ -2102,6 +2113,8 @@ contains
 
     deallocate (g0k, g1k, g0a)
     if(allocated(g_corr)) deallocate(g_corr)
+
+    if (proc0) call time_message(.false.,time_gke(:,10),' radial variation advance')
 
   end subroutine advance_radial_variation
 
@@ -2712,7 +2725,7 @@ contains
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
     use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
-    use dist_fn_arrays, only: adiabatic_phi
+!   use dist_fn_arrays, only: adiabatic_phi
 
     implicit none
 
@@ -2724,7 +2737,7 @@ contains
     if (allocated(wdriftpy_g)) deallocate (wdriftpy_g)
     if (allocated(wdriftpx_phi)) deallocate (wdriftpx_phi)
     if (allocated(wdriftpy_phi)) deallocate (wdriftpy_phi)
-    if (allocated(adiabatic_phi)) deallocate (adiabatic_phi)
+!   if (allocated(adiabatic_phi)) deallocate (adiabatic_phi)
 
     wdriftinit = .false.
 

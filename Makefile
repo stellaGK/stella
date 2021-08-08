@@ -112,6 +112,7 @@ ARCHFLAGS 	= cr
 RANLIB		= ranlib
 AWK 		= awk
 PERL		= perl
+FORD       ?= ford
 
 MPI_INC	?=
 MPI_LIB ?=
@@ -165,8 +166,8 @@ sinclude Makefile.local
 export F90FLAGS
 export NETCDF_INC
 export NETCDF_LIB
-export UTILS=utils
-export GEO=geo
+export UTILS=$(GK_HEAD_DIR)/utils
+export GEO=$(GK_HEAD_DIR)/geo
 export VMEC=$(GEO)/vmec_interface
 export LIBSTELL=$(VMEC)/mini_libstell
 LIBSTELL_LIB=$(LIBSTELL)/mini_libstell.a
@@ -288,7 +289,7 @@ ifneq ($(TOPDIR),$(CURDIR))
 	SUBDIR=true
 endif
 
-VPATH = $(UTILS):$(GEO):../$(UTILS):../$(GEO):$(VMEC)
+VPATH = $(UTILS):$(GEO):$(VMEC)
 # this just removes non-existing directory from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
 VPATH = .:$(shell echo $(VPATH_tmp) | sed "s/ /:/g")
@@ -300,7 +301,7 @@ DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
 # most common include and library directories
-DEFAULT_INC_LIST = . $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) .. ../$(UTILS) ../$(GEO)
+DEFAULT_INC_LIST = . $(UTILS) $(LIBSTELL) $(VMEC) $(GEO)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -347,7 +348,10 @@ sinclude Makefile.target_$(GK_PROJECT)
 tests/unit/Makefile:
 include tests/unit/Makefile
 
-check: check-unit
+tests/integrated/Makefile:
+include tests/integrated/Makefile
+
+check: check-unit check-integrated
 
 ############################################################### SPECIAL RULES
 
@@ -431,3 +435,22 @@ revision:
 
 TAGS:	*.f90 *.fpp */*.f90 */*.fpp
 	etags $^
+
+############################################################# Documentation
+
+ifneq ("$(wildcard $(shell which $(FORD) 2>/dev/null))","")
+check_ford_install:
+	@echo "Using ford at $(shell which $(FORD))"
+else
+check_ford_install:
+	@echo "Ford command $(FORD) not in path -- is it installed?\\n\\tConsider installing with 'pip install --user ford' and add ${HOME}/.local/bin to PATH" ; which $(FORD)
+endif
+
+GIT_VERSION := $(shell git describe --tags --long --match "v*" --first-parent HEAD)
+
+doc: docs/stella_docs.md check_ford_install
+	$(FORD) $(INC_FLAGS) -r $(GIT_VERSION) $<
+
+cleandoc:
+	@echo "FORD docs"
+	-rm -rf docs/html
