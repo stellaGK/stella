@@ -42,7 +42,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use species, only: spec, nspec, pfac
-    use vpamu_grids, only: nvpa, nvpa
+    use vpamu_grids, only: nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: vperp2, vpa, mu
     use kt_grids, only: nalpha
@@ -110,23 +110,23 @@ contains
 
     ! RJD: We no longer need to worry about this because it's handled by
     ! implicit_z.
-    ! if (stream_implicit .or. driftkinetic_implicit) then
-    !    call init_invert_stream_operator
-    !    if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
-    !    stream_c = stream
-    !    do is = 1, nspec
-    !       do iv = 1, nvpa
-    !          call center_zed (iv, stream_c(:,iv,is))
-    !       end do
-    !    end do
-    !    if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
-    !    gradpar_c = spread(gradpar,2,3)
-    !    ! get gradpar centred in zed for negative vpa (affects upwinding)
-    !    call center_zed(1,gradpar_c(:,-stream_sign(1)))
-    !    ! get gradpar centred in zed for positive vpa (affects upwinding)
-    !    call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
-    !    stream = stream_c
-    ! end if
+    if (stream_implicit .or. driftkinetic_implicit) then
+       call init_invert_stream_operator
+       if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
+       stream_c = stream
+       do is = 1, nspec
+          do iv = 1, nvpa
+             call center_zed (iv, stream_c(:,iv,is))
+          end do
+       end do
+       if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
+       gradpar_c = spread(gradpar,2,3)
+       ! get gradpar centred in zed for negative vpa (affects upwinding)
+       call center_zed(1,gradpar_c(:,-stream_sign(1)))
+       ! get gradpar centred in zed for positive vpa (affects upwinding)
+       call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
+       stream = stream_c
+    end if
 
   end subroutine init_parallel_streaming
 
@@ -766,68 +766,68 @@ contains
   end subroutine invert_parstream
 
   ! Bob: stream_tridiagonal_solve redundant (replaced by z_tridiagonal_solve)
-  ! subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
-  !
-  !   use finite_differences, only: tridag
-  !   use extended_zgrid, only: iz_low, iz_up
-  !   use extended_zgrid, only: nsegments
-  !   use extended_zgrid, only: nzed_segment
-  !
-  !   implicit none
-  !
-  !   integer, intent (in) :: iky, ie, iv, is
-  !   complex, dimension (:), intent (in out) :: g
-  !
-  !   integer :: iseg, llim, ulim, n
-  !   integer :: nz, nseg_max, sgn, n_ext
-  !   real, dimension (:), allocatable :: a, b, c
-  !
-  !   ! avoid double-counting at boundaries between 2pi segments
-  !   nz = nzed_segment
-  !   nseg_max = nsegments(ie,iky)
-  !   sgn = stream_sign(iv)
-  !
-  !   n_ext = nseg_max*nz+1
-  !   allocate (a(n_ext))
-  !   allocate (b(n_ext))
-  !   allocate (c(n_ext))
-  !
-  !   iseg = 1
-  !   llim = 1 ; ulim = nz+1
-  !   a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-  !        - stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
-  !   b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-  !        -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
-  !   c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-  !        -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
-  !
-  !   ! if (wdrift_implicit) then
-  !   !   a(llim:ulim) = a(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
-  !   !   b(llim:ulim) = b(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
-  !   !   c(llim:ulim) = c(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
-  !   ! end if
-  !
-  !   if (nsegments(ie,iky) > 1) then
-  !      do iseg = 2, nsegments(ie,iky)
-  !         llim = ulim+1
-  !         ulim = llim+nz-1
-  !         a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-  !              - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
-  !         b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-  !              - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
-  !         c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-  !              - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
-  !      end do
-  !   end if
-  !   n = size(stream_tri_a1,1)
-  !   a(ulim) = stream_tri_a1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
-  !   b(ulim) = stream_tri_b1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
-  !   c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
-  !   call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
-  !
-  !   deallocate (a, b, c)
-  !
-  ! end subroutine stream_tridiagonal_solve
+  subroutine stream_tridiagonal_solve (iky, ie, iv, is, g)
+
+    use finite_differences, only: tridag
+    use extended_zgrid, only: iz_low, iz_up
+    use extended_zgrid, only: nsegments
+    use extended_zgrid, only: nzed_segment
+
+    implicit none
+
+    integer, intent (in) :: iky, ie, iv, is
+    complex, dimension (:), intent (in out) :: g
+
+    integer :: iseg, llim, ulim, n
+    integer :: nz, nseg_max, sgn, n_ext
+    real, dimension (:), allocatable :: a, b, c
+
+    ! avoid double-counting at boundaries between 2pi segments
+    nz = nzed_segment
+    nseg_max = nsegments(ie,iky)
+    sgn = stream_sign(iv)
+
+    n_ext = nseg_max*nz+1
+    allocate (a(n_ext))
+    allocate (b(n_ext))
+    allocate (c(n_ext))
+
+    iseg = 1
+    llim = 1 ; ulim = nz+1
+    a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
+         - stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+    b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
+         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+    c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
+         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
+
+    ! if (wdrift_implicit) then
+    !   a(llim:ulim) = a(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
+    !   b(llim:ulim) = b(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
+    !   c(llim:ulim) = c(llim:ulim) + stream_tri_13(llim:ulim,sgn) * wdrifty_phi
+    ! end if
+
+    if (nsegments(ie,iky) > 1) then
+       do iseg = 2, nsegments(ie,iky)
+          llim = ulim+1
+          ulim = llim+nz-1
+          a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
+               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+          b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
+               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+          c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
+               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
+       end do
+    end if
+    n = size(stream_tri_a1,1)
+    a(ulim) = stream_tri_a1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
+    b(ulim) = stream_tri_b1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
+    c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
+    call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
+
+    deallocate (a, b, c)
+
+  end subroutine stream_tridiagonal_solve
 
   ! g= RHS of gke is input
   ! g = g^{n+1} is output

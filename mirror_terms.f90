@@ -53,7 +53,7 @@ contains
 
     if (.not.allocated(mirror)) allocate (mirror(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
     if (.not.allocated(mirror_sign)) allocate (mirror_sign(nalpha,-nzgrid:nzgrid)) ; mirror_sign = 0
-    if (.not.allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_proc))
+    if (.not.allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     mirror_apar_fac = 0.
 
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))

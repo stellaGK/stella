@@ -266,7 +266,6 @@ contains
           if (debug) write (6,*) "stella::init_stella::init_response_matrix"
           call init_response_matrix
        end if
-       stop "Initialised repsonse matrix in z successfully"
     end if
 
     if (debug) write (6,*) 'stella::init_stella::get_fields'

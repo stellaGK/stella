@@ -2248,7 +2248,9 @@ contains
     use physics_flags, only: radial_variation, full_flux_surface
     use physics_flags, only: include_mirror, prp_shear_enabled
     use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-    use parallel_streaming, only: advance_parallel_streaming_implicit
+    use run_parameters, only: implicit_z
+    !use parallel_streaming, only: advance_parallel_streaming_implicit
+    use implicit_z, only: advance_z_implicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_implicit
     use dissipation, only: collisions_implicit, include_collisions
@@ -2333,8 +2335,14 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit (g, phi, apar, bpar)
+       ! if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
+       !      call advance_parallel_streaming_implicit (g, phi, apar, bpar)
+       !      if(radial_variation.or.full_flux_surface) fields_updated = .false.
+       ! endif
+
+       ! Advance implicitly in z
+       if (implicit_z) then
+            call advance_z_implicit (g, phi, apar, bpar)
             if(radial_variation.or.full_flux_surface) fields_updated = .false.
        endif
 
@@ -2352,8 +2360,11 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
-            call advance_parallel_streaming_implicit (g, phi, apar, bpar)
+       ! if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
+       !      call advance_parallel_streaming_implicit (g, phi, apar, bpar)
+
+       if (implicit_z) &
+            call advance_z_implicit (g, phi, apar, bpar)
 
        if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (collisions_implicit, g)

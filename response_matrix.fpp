@@ -598,8 +598,8 @@ contains
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           iv = iv_idx(vmu_lo,ivmu)
           is = is_idx(vmu_lo,ivmu)
-          call get_rhs_homogenous_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
-          call get_lhs_homogenous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
+          call get_rhs_homogeneous_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
+          call get_lhs_homogeneous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
           call tridag (1, a, b, c, gext(:,ivmu))
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
           if (zonal_mode(iky)) then
@@ -608,7 +608,7 @@ contains
           else
              ! invert parallel streaming equation to get g^{n+1} on extended zed grid
              ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-             call z_tridiagonal_solve (iky, ie, iv, is, gext(:,ivmu))
+             call z_tridiagonal_solve (iky, ie, ivmu, gext(:,ivmu))
           end if
 
        end do
@@ -618,7 +618,7 @@ contains
 
   end subroutine get_dgdfield_matrix_column
 
-  subroutine get_lhs_homogenous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
+  subroutine get_lhs_homogeneous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
 
     use parallel_streaming, only: stream_sign
     use run_parameters, only: wdrift_implicit, stream_implicit
@@ -683,9 +683,9 @@ contains
       deallocate(wdrift_c)
     end if
 
-  end subroutine get_lhs_homogenous_equation
+  end subroutine get_lhs_homogeneous_equation
 
-  subroutine get_rhs_homogenous_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
+  subroutine get_rhs_homogeneous_equation(iky, ikx, iz, ia, idx, nz_ext, ivmu, gext, field)
 
     use constants, only: zi
     use stella_layouts, only: vmu_lo
@@ -801,7 +801,7 @@ contains
       end if
     end if
 
-  end subroutine get_rhs_homogenous_equation
+  end subroutine get_rhs_homogeneous_equation
 
 
   subroutine get_rhs_streaming_term(iz, ia, ivmu, gyro_fac, stream_fac0, stream_fac1)
