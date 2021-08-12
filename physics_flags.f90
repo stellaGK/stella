@@ -10,7 +10,7 @@ module physics_flags
   public :: include_parallel_streaming
   public :: include_mirror
   public :: include_mirror_apar
-  public :: include_magnetic_drifts
+  public :: include_drifts
   public :: prp_shear_enabled
   public :: hammett_flow_shear
   public :: include_pressure_variation
@@ -27,7 +27,7 @@ module physics_flags
   logical :: include_geometric_variation
   logical :: include_mirror
   logical :: include_mirror_apar
-  logical :: include_magnetic_drifts
+  logical :: include_drifts
   logical :: nonlinear
   logical :: prp_shear_enabled
   logical :: hammett_flow_shear
@@ -59,7 +59,7 @@ contains
 
     namelist /physics_flags/ full_flux_surface, radial_variation, &
          include_parallel_nonlinearity, include_parallel_streaming, &
-         include_mirror, include_mirror_apar, include_magnetic_drifts, nonlinear, &
+         include_mirror, include_mirror_apar, include_drifts, nonlinear, &
          include_pressure_variation, include_geometric_variation
 
     if (proc0) then
@@ -71,7 +71,7 @@ contains
        include_parallel_streaming = .true.
        include_mirror = .true.
        include_mirror_apar = .true.
-       include_magnetic_drifts = .true.
+       include_drifts = .true.
        nonlinear = .false.
 
        in_file = input_unit_exist("physics_flags", rpexist)
@@ -89,7 +89,7 @@ contains
     call broadcast (include_parallel_streaming)
     call broadcast (include_mirror)
     call broadcast (include_mirror_apar)
-    call broadcast (include_magnetic_drifts)
+    call broadcast (include_drifts)
     call broadcast (nonlinear)
 
   end subroutine read_parameters

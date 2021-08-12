@@ -11,9 +11,11 @@ module run_parameters
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
-  public :: drifts_implicit, wdrift_implicit, wstar_implicit ! drifts_implicit implemented by DSO, wdrift_implicit & wstar_implicit by RJD
+  ! drifts_implicit implemented by DSO, drifts_implicit_in_z gives the
+  ! option to include these in the parallel streaming response matrix.
+  public :: drifts_implicit, drifts_implicit_in_z
   public :: driftkinetic_implicit
-  public :: fully_explicit, implicit_z
+  public :: fully_explicit, implicit_in_z
   public :: ky_solve_radial, ky_solve_real
   public :: maxwellian_inside_zed_derivative
   public :: stream_matrix_inversion
@@ -30,7 +32,7 @@ module run_parameters
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
-  logical :: fully_explicit, drifts_implicit, wdrift_implicit, wstar_implicit, implicit_z
+  logical :: fully_explicit, drifts_implicit, drifts_implicit_in_z, implicit_in_z
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp
@@ -66,6 +68,7 @@ contains
     use mp, only: proc0, broadcast
     use text_options, only: text_option, get_option_value
     use physics_flags, only: include_mirror, full_flux_surface
+    use physics_flags, only: include_parallel_streaming, include_drifts
 
     implicit none
 
@@ -88,7 +91,7 @@ contains
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, &
-         wdrift_implicit, wstar_implicit, &
+         drifts_implicit_in_z, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -103,8 +106,7 @@ contains
        stream_implicit = .true.
        mirror_implicit = .true.
        drifts_implicit = .false.
-       wdrift_implicit = .false.
-       wstar_implicit = .false.
+       drifts_implicit_in_z = .false.
        driftkinetic_implicit = .false.
        maxwellian_inside_zed_derivative = .false.
        mirror_semi_lagrange = .true.
@@ -148,8 +150,7 @@ contains
     call broadcast (fapar)
     call broadcast (fbpar)
     call broadcast (stream_implicit)
-    call broadcast (wdrift_implicit)
-    call broadcast (wstar_implicit)
+    call broadcast (drifts_implicit_in_z)
     call broadcast (mirror_implicit)
     call broadcast (drifts_implicit)
     call broadcast (driftkinetic_implicit)
@@ -168,9 +169,14 @@ contains
     call broadcast (mat_gen)
     call broadcast (mat_read)
 
-    if (.not.include_mirror) mirror_implicit = .false.
-
     code_delt_max = delt
+
+    !!! RJD: Should we perform all of the below logic before broadcasting?
+    if (.not.include_mirror) mirror_implicit = .false.
+    if (.not.include_parallel_streaming) stream_implicit = .false.
+    if (.not.include_drifts) drifts_implicit = .false.
+    if (.not.drifts_implicit) drifts_implicit_in_z = .false.
+
 
     if (driftkinetic_implicit) then
        stream_implicit = .false.
@@ -178,13 +184,13 @@ contains
        stream_implicit = .false.
     end if
 
-    if (stream_implicit .or. driftkinetic_implicit .or. wdrift_implicit .or. wstar_implicit) then
-      implicit_z = .true.
+    if (stream_implicit .or. driftkinetic_implicit .or. drifts_implicit_in_z) then
+      implicit_in_z = .true.
     else
-      implicit_z = .false.
+      implicit_in_z = .false.
     end if
 
-    if (mirror_implicit.or.implicit_z.or.drifts_implicit) then
+    if (mirror_implicit.or.implicit_in_z.or.drifts_implicit) then
        fully_explicit = .false.
     else
        fully_explicit = .true.

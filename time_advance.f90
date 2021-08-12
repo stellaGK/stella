@@ -68,12 +68,15 @@ contains
 
     use mp, only: proc0
     use stella_transforms, only: init_transforms
-    use run_parameters, only: drifts_implicit
+    use run_parameters, only: implicit_in_z, stream_implicit
+    use run_parameters, only: drifts_implicit, drifts_implicit_in_z
     use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
+    use physics_flags, only: include_parallel_streaming, include_drifts
     use neoclassical_terms, only: init_neoclassical_terms
     use dissipation, only: init_dissipation
-    use parallel_streaming, only: init_parallel_streaming
+    !use parallel_streaming, only: init_parallel_streaming
+    use parallel_streaming, only: init_z_equation
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
 
@@ -92,12 +95,16 @@ contains
     call init_neoclassical_terms
     if (debug) write (6,*) 'time_advance::init_time_advance::init_mirror'
     call init_mirror
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_parstream'
-    call init_parallel_streaming
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_wdrift'
-    call init_wdrift
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
-    call init_wstar
+    if (include_parallel_streaming .or. .not. implicit_in_z) then
+      if (debug) write (6,*) 'time_advance::init_time_advance::init_parstream'
+      call init_z_equation
+    end if
+    if (include_drifts) then
+      if (debug) write (6,*) 'time_advance::init_time_advance::init_wdrift'
+      call init_wdrift
+      if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
+      call init_wstar
+    end if
     if (debug) write (6,*) 'time_advance::init_time_advance::init_flow_shear'
     call init_flow_shear
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
@@ -105,7 +112,7 @@ contains
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
     if (radial_variation) call init_radial_variation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_drifts_implicit'
-    if (drifts_implicit) call init_drifts_implicit
+    if (drifts_implicit .and. .not. drifts_implicit_in_z) call init_drifts_implicit
     if (debug) write (6,*) 'time_advance::init_time_advance::init_dissipation'
     call init_dissipation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
@@ -682,6 +689,7 @@ contains
     use stella_time, only: cfl_dt, code_dt, write_dt
     use run_parameters, only: cfl_cushion
     use physics_flags, only: radial_variation, prp_shear_enabled
+    use physics_flags, only: include_parallel_streaming, include_drifts
     use zgrid, only: delzed
     use vpamu_grids, only: dvpa
     use kt_grids, only: akx, aky, nx, rho
@@ -706,7 +714,7 @@ contains
 
     if (cfl_dt.lt.0) cfl_dt = code_dt/cfl_cushion
 
-    if(.not.drifts_implicit) then
+    if(include_drifts .and. .not.drifts_implicit) then
       ! get the local max value of wdriftx on each processor
       wdriftx_max = maxval(abs(wdriftx_g))
       ! compare these max values across processors to get global max
@@ -727,7 +735,7 @@ contains
     endif
 
 
-    if (.not.stream_implicit) then
+    if (include_parallel_streaming .and. .not.stream_implicit) then
        ! NB: stream has code_dt built-in, which accounts for code_dt factor here
        cfl_dt_stream = abs(code_dt)*delzed(0)/max(maxval(abs(stream)),zero)
        cfl_dt = min(cfl_dt,cfl_dt_stream)
@@ -752,7 +760,7 @@ contains
 
     end if
 
-    if(.not.drifts_implicit) then
+    if(include_drifts .and. .not.drifts_implicit) then
       ! get the local max value of wdrifty on each processor
       wdrifty_max = maxval(abs(wdrifty_g))
       ! compare these max values across processors to get global max
@@ -773,9 +781,9 @@ contains
        write (*,'(A)') "                        CFL CONDITION"
        write (*,'(A)') "############################################################"
        write (*,'(A16)') 'LINEAR CFL_DT: '
-       if (.not.drifts_implicit) write (*,'(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
-       if (.not.drifts_implicit) write (*,'(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
-       if (.not.stream_implicit) write (*,'(A12,ES12.4)') '   stream: ', cfl_dt_stream
+       if (include_drifts .and. .not.drifts_implicit) write (*,'(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
+       if (include_drifts .and. .not.drifts_implicit) write (*,'(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
+       if (include_parallel_streaming .and. .not.stream_implicit) write (*,'(A12,ES12.4)') '   stream: ', cfl_dt_stream
        if (.not.mirror_implicit) write (*,'(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
        write (*,*)
     end if
@@ -801,8 +809,9 @@ contains
   subroutine reset_dt
 
     use parallel_streaming, only: parallel_streaming_initialized
-    use parallel_streaming, only: init_parallel_streaming
-    use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+    use parallel_streaming, only: init_z_equation
+    use run_parameters, only: stream_implicit, driftkinetic_implicit
+    use run_parameters, only: drifts_implicit, drifts_implicit_in_z
     use response_matrix, only: response_matrix_initialized
     use response_matrix, only: init_response_matrix
     use mirror_terms, only: mirror_initialized
@@ -826,10 +835,10 @@ contains
     call init_wstar
     call init_wdrift
     call init_mirror
-    call init_parallel_streaming
+    call init_z_equation
     call init_flow_shear
     if (radial_variation) call init_radial_variation
-    if (drifts_implicit) call init_drifts_implicit
+    if (drifts_implicit .and. .not.drifts_implicit_in_z) call init_drifts_implicit
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
     if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then
@@ -1112,6 +1121,7 @@ contains
 
   subroutine solve_gke (gin, rhs_ky, restart_time_step)
 
+    use mp, only: mp_abort
     use job_manage, only: time_message
     use fields_arrays, only: phi, apar, bpar
     use stella_layouts, only: vmu_lo
@@ -1120,8 +1130,9 @@ contains
     use physics_flags, only: include_parallel_nonlinearity
     use physics_flags, only: include_parallel_streaming
     use physics_flags, only: include_mirror
-    use physics_flags, only: include_magnetic_drifts
+    use physics_flags, only: include_drifts
     use physics_flags, only: nonlinear
+    use run_parameters, only: fapar, fbpar
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_parameters, only: g_exb
     use zgrid, only: nzgrid, ntubes
@@ -1181,14 +1192,12 @@ contains
           call advance_mirror_explicit (gin, apar,rhs)
        end if
 
-       if (.not.drifts_implicit) then
-         if (include_magnetic_drifts) then
-           ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-           call advance_wdrifty_explicit (gin, phi, apar, bpar, rhs)
+       if (include_drifts .and. (.not.drifts_implicit)) then
+         ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+         call advance_wdrifty_explicit (gin, phi, apar, bpar, rhs)
 
-           ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-           call advance_wdriftx_explicit (gin, phi, apar, bpar, rhs)
-         end if
+         ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
+         call advance_wdriftx_explicit (gin, phi, apar, bpar, rhs)
          ! calculate and add omega_* term to RHS of GK eqn
          call advance_wstar_explicit (rhs)
        endif
@@ -1204,8 +1213,13 @@ contains
        if (include_parallel_streaming.and.(.not.stream_implicit)) &
             call advance_parallel_streaming_explicit (gin, rhs_ky)
 
-       if (radial_variation) call advance_radial_variation(gin,rhs)
-
+       if (radial_variation) then
+          if ((fapar .gt. 0) .or. (fbpar .gt. 0)) then
+            call mp_abort("radial_variation currently not supported electromagnetically")
+          else
+            call advance_radial_variation(gin,rhs)
+          end if
+       end if
        if (include_krook_operator) call add_krook_operator(gin,rhs)
 
        if (runtype_option_switch == runtype_multibox .and. include_multibox_krook) &
@@ -2247,10 +2261,10 @@ contains
     use physics_flags, only: include_parallel_streaming
     use physics_flags, only: radial_variation, full_flux_surface
     use physics_flags, only: include_mirror, prp_shear_enabled
-    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-    use run_parameters, only: implicit_z
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, drifts_implicit_in_z
+    use run_parameters, only: implicit_in_z
     !use parallel_streaming, only: advance_parallel_streaming_implicit
-    use implicit_z, only: advance_z_implicit
+    use parallel_streaming, only: advance_z_implicit
     use fields, only: advance_fields, fields_updated
     use mirror_terms, only: advance_mirror_implicit
     use dissipation, only: collisions_implicit, include_collisions
@@ -2341,13 +2355,13 @@ contains
        ! endif
 
        ! Advance implicitly in z
-       if (implicit_z) then
+       if (implicit_in_z) then
             call advance_z_implicit (g, phi, apar, bpar)
             if(radial_variation.or.full_flux_surface) fields_updated = .false.
        endif
 
        call advance_fields (g, phi, apar, bpar, dist='gbar')
-       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar, bpar)
+       if (drifts_implicit .and. .not. drifts_implicit_in_z) call advance_drifts_implicit (g, phi, apar, bpar)
 
     else
 
@@ -2356,14 +2370,14 @@ contains
        ! depended only on g and so did not need field update
        call advance_fields (g, phi, apar, bpar, dist='gbar')
 
-       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar, bpar)
+       if (drifts_implicit .and. .not. drifts_implicit_in_z) call advance_drifts_implicit (g, phi, apar, bpar)
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
        ! if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
        !      call advance_parallel_streaming_implicit (g, phi, apar, bpar)
 
-       if (implicit_z) &
+       if (implicit_in_z) &
             call advance_z_implicit (g, phi, apar, bpar)
 
        if (mirror_implicit .and. include_mirror) then
@@ -2606,7 +2620,7 @@ contains
     use stella_transforms, only: finish_transforms
     use physics_flags, only: full_flux_surface
     use extended_zgrid, only: finish_extended_zgrid
-    use parallel_streaming, only: finish_parallel_streaming
+    use parallel_streaming, only: finish_z_equation
     use mirror_terms, only: finish_mirror
     use flow_shear, only : finish_flow_shear
     use neoclassical_terms, only: finish_neoclassical_terms
@@ -2620,7 +2634,7 @@ contains
     call finish_wstar
     call finish_wdrift
     call finish_drifts_implicit
-    call finish_parallel_streaming
+    call finish_z_equation
     call finish_flow_shear
     call finish_mirror
     call finish_neoclassical_terms

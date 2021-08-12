@@ -546,9 +546,6 @@ contains
 !    enddo
 !    close(3636)
 
-
-!    if (wstar_implicit) call init_get_fields_wstar
-
   end subroutine init_fields
 
 

@@ -568,7 +568,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use kt_grids, only: zonal_mode
     use run_parameters, only: maxwellian_inside_zed_derivative
-    use implicit_z, only: z_tridiagonal_solve
+    use parallel_streaming, only: z_tridiagonal_solve
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
     use finite_differences, only : tridag
@@ -621,7 +621,7 @@ contains
   subroutine get_lhs_homogeneous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
 
     use parallel_streaming, only: stream_sign
-    use run_parameters, only: wdrift_implicit, stream_implicit
+    use run_parameters, only: drifts_implicit_in_z, stream_implicit
     use run_parameters, only: zed_upwind, time_upwind
     use stella_layouts, only: iv_idx, is_idx
     use stella_layouts, only: vmu_lo
@@ -670,7 +670,7 @@ contains
       deallocate(stream_c)
     end if
 
-    if (wdrift_implicit) then
+    if (drifts_implicit_in_z) then
       allocate(wdrift_a(1:nz_ext))
       allocate(wdrift_b(1:nz_ext))
       allocate(wdrift_c(1:nz_ext))
@@ -694,7 +694,7 @@ contains
     use species, only: spec
     use vpamu_grids, only: vpa, mu
     use gyro_averages, only: aj0x, aj1x
-    use run_parameters, only: driftkinetic_implicit, wdrift_implicit, wstar_implicit, stream_implicit
+    use run_parameters, only: driftkinetic_implicit, drifts_implicit_in_z,  stream_implicit
     use run_parameters, only: maxwellian_inside_zed_derivative
     use parallel_streaming, only: stream_sign
     use run_parameters, only: zed_upwind, time_upwind
@@ -752,14 +752,16 @@ contains
       stream_fac1 = 0.
     end if
 
-    if (wdrift_implicit) then
+    if (drifts_implicit_in_z) then
       call get_rhs_wdrift_term(iky, ikx, iz, ia, ivmu, gyro_fac, wdrift_fac0, wdrift_fac1)
     else
       wdrift_fac0 = 0.
       wdrift_fac1 = 0.
     end if
 
-    if (wstar_implicit) then
+    ! Could include in the earlier if block, but we might want to separate wdrift
+    ! and wstar in the future
+    if (drifts_implicit_in_z) then
       call get_rhs_wstar_term(iky, iz, ia, ivmu, gyro_fac, wstar_fac0, wstar_fac1)
     else
       wstar_fac0 = 0.
