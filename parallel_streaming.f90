@@ -280,13 +280,13 @@ contains
     use zgrid, only: nzgrid, ntubes
     use extended_zgrid, only: neigen
     use extended_zgrid, only: nsegments
+    use extended_zgrid, only: periodic
     use extended_zgrid, only: nzed_segment
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use kt_grids, only: naky
-    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -303,7 +303,7 @@ contains
     sgn = stream_sign(iv)
 
     do iky = 1, naky
-       if (zonal_mode(iky)) then
+       if (periodic(iky)) then
           call mp_abort("sweep_zed_zonal not currently set up for electromagnetic, aborting")
           call sweep_zed_zonal (iv, is, sgn, g(iky,:,:,:))
        else
@@ -857,7 +857,8 @@ contains
     use extended_zgrid, only: map_to_extended_zgrid
     use extended_zgrid, only: map_from_extended_zgrid
     use extended_zgrid, only: ikxmod
-    use kt_grids, only: naky, zonal_mode
+    use extended_zgrid, only: periodic
+    use kt_grids, only: naky
     use fields_arrays, only: response_matrix
 
     implicit none
@@ -870,8 +871,8 @@ contains
 
     ! need to put the fields into extended zed grid
     do iky = 1, naky
-       ! avoid double counting of periodic endpoints for zonal modes
-       if (zonal_mode(iky)) then
+       ! avoid double counting of periodic endpoints for periodic modes
+       if (periodic(iky)) then
           allocate(fields(3*(nztot-1)))
           do it = 1, ntubes
              do ie = 1, neigen(iky)
@@ -1199,47 +1200,47 @@ contains
 
   end subroutine get_dzed
 
-  subroutine get_dgdz (g, ivmu, dgdz)
-
-    use finite_differences, only: third_order_upwind_zed
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: iv_idx
-    use zgrid, only: nzgrid, delzed, ntubes
-    use extended_zgrid, only: neigen, nsegments
-    use extended_zgrid, only: iz_low, iz_up
-    use extended_zgrid, only: ikxmod
-    use extended_zgrid, only: fill_zed_ghost_zones
-    use extended_zgrid, only: periodic
-    use kt_grids, only: naky
-
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
-    integer, intent (in) :: ivmu
-
-    integer :: iseg, ie, it, iky, iv
-    complex, dimension (2) :: gleft, gright
-
-    ! FLAG -- assuming delta zed is equally spaced below!
-    iv = iv_idx(vmu_lo,ivmu)
-    do iky = 1, naky
-      do it = 1, ntubes
-        do ie = 1, neigen(iky)
-          do iseg = 1, nsegments(ie,iky)
-            ! first fill in ghost zones at boundaries in g(z)
-            call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
-            ! now get dg/dz
-            call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-                 g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                 delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
-                 dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-            end do
-          end do
-      end do
-    end do
-
-  end subroutine get_dgdz
+  ! subroutine get_dgdz (g, ivmu, dgdz)
+  !
+  !   use finite_differences, only: third_order_upwind_zed
+  !   use stella_layouts, only: vmu_lo
+  !   use stella_layouts, only: iv_idx
+  !   use zgrid, only: nzgrid, delzed, ntubes
+  !   use extended_zgrid, only: neigen, nsegments
+  !   use extended_zgrid, only: iz_low, iz_up
+  !   use extended_zgrid, only: ikxmod
+  !   use extended_zgrid, only: fill_zed_ghost_zones
+  !   use extended_zgrid, only: periodic
+  !   use kt_grids, only: naky
+  !
+  !   implicit none
+  !
+  !   complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+  !   complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+  !   integer, intent (in) :: ivmu
+  !
+  !   integer :: iseg, ie, it, iky, iv
+  !   complex, dimension (2) :: gleft, gright
+  !
+  !   ! FLAG -- assuming delta zed is equally spaced below!
+  !   iv = iv_idx(vmu_lo,ivmu)
+  !   do iky = 1, naky
+  !     do it = 1, ntubes
+  !       do ie = 1, neigen(iky)
+  !         do iseg = 1, nsegments(ie,iky)
+  !           ! first fill in ghost zones at boundaries in g(z)
+  !           call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+  !           ! now get dg/dz
+  !           call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+  !                g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+  !                delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
+  !                dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+  !           end do
+  !         end do
+  !     end do
+  !   end do
+  !
+  ! end subroutine get_dgdz
 
   subroutine get_dgdz_variable (g, ivmu, dgdz)
 
