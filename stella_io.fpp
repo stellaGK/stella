@@ -35,8 +35,8 @@ module stella_io
   integer, dimension (7) :: moment_dim
   integer, dimension (6) :: field_dim
   integer, dimension (5) :: zvs_dim
-  integer, dimension (4) :: vmus_dim
-  integer, dimension (6) :: kykxaz_dim, flx_dim
+  integer, dimension (4) :: vmus_dim, kykxaz_dim
+  integer, dimension (6) :: flx_dim
   integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
   integer, dimension (2) :: flux_surface_dim, rad_grid_dim
@@ -156,11 +156,6 @@ contains
     if (status /= nf90_noerr) then
       status = nf90_def_dim (ncid, 'tube', ntubes, ntubes_dim)
       if (status /= nf90_noerr) call netcdf_error (status, dim='tube')
-    endif
-    status = nf90_inq_dimid(ncid,'theta0',nakx_dim)
-    if (status /= nf90_noerr) then
-      status = nf90_def_dim (ncid, 'theta0', nakx, nakx_dim)
-      if (status /= nf90_noerr) call netcdf_error (status, dim='theta0')
     endif
     status = nf90_inq_dimid(ncid,'zed',nttot_dim)
     if (status /= nf90_noerr) then
@@ -669,7 +664,7 @@ contains
 
     status = nf90_inq_varid(ncid,'kperp2',kperp2_id)
     if(status /= nf90_noerr) then
-      status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxz_dim, kperp2_id)
+      status = nf90_def_var (ncid, 'kperp2', netcdf_real, kykxaz_dim, kperp2_id)
       if (status /= nf90_noerr) call netcdf_error (status, var='kperp2')
     endif
     status = nf90_inq_varid(ncid,'gds2',gds2_id)
@@ -823,24 +818,36 @@ contains
     end if
 
     if (write_fluxes_kxky) then
-       status = nf90_def_var &
-            (ncid, 'pflx_kxkyz', netcdf_real, flx_dim, pflx_kxkyz_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='pflx_kxkyz')
-       status = nf90_put_att (ncid, pflx_kxkyz_id, 'long_name', 'Particle flux vs (ky,kx,z,tubes,spec,t)')
-       if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxkyz_id, att='long_name')
+      status = nf90_inq_varid(ncid,'pflx_kxky',pflx_kxkyz_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'pflx_kxky', netcdf_real, flx_dim, pflx_kxkyz_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='pflx_kxky')
+      endif
+      status = nf90_put_att (ncid, pflx_kxkyz_id, 'long_name', 'Particle flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, pflx_kxkyz_id, att='long_name')
 !
-       status = nf90_def_var &
-            (ncid, 'vflx_kxkyz', netcdf_real, flx_dim, vflx_kxkyz_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='vflx_kxkyz')
-       status = nf90_put_att (ncid, vflx_kxkyz_id, 'long_name', 'Momentum flux vs (ky,kx,z,tubes,spec,t)')
-       if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxkyz_id, att='long_name')
+      status = nf90_inq_varid(ncid,'vflx_kxky',vflx_kxkyz_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'vflx_kxky', netcdf_real, flx_dim, vflx_kxkyz_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='vflx_kxky')
+      endif
+      status = nf90_put_att (ncid, vflx_kxkyz_id, 'long_name', 'Momentum flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, vflx_kxkyz_id, att='long_name')
 !
-       status = nf90_def_var &
-            (ncid, 'qflx_kxkyz', netcdf_real, flx_dim, qflx_kxkyz_id)
-       if (status /= nf90_noerr) call netcdf_error (status, var='qflx_kxkyz')
-       status = nf90_put_att (ncid, qflx_kxkyz_id, 'long_name', 'Heat flux vs (ky,kx,z,tubes,spec,t)')
-       if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxkyz_id, att='long_name')
-    endif
+      status = nf90_inq_varid(ncid,'qflx_kxky',qflx_kxkyz_id)
+      if(status /= nf90_noerr) then
+        status = nf90_def_var &
+          (ncid, 'qflx_kxky', netcdf_real, flx_dim, qflx_kxkyz_id)
+        if (status /= nf90_noerr) call netcdf_error (status, var='qflx_kxky')
+      endif
+      status = nf90_put_att (ncid, qflx_kxkyz_id, 'long_name', 'Heat flux vs (ky,kx,spec,t)')
+      if (status /= nf90_noerr) call netcdf_error (status, ncid, qflx_kxkyz_id, att='long_name')
+   end if
+!
+!
+!
     if (write_moments) then
       status = nf90_inq_varid(ncid,'density',density_id)
       if(status /= nf90_noerr) then
@@ -1462,15 +1469,19 @@ contains
 # endif
   end subroutine nc_geo
 
+  !> Get the index of the time dimension in the netCDF file that corresponds to
+  !> a time no larger than `tstart`
   subroutine get_nout(tstart, nout)
 
     use netcdf, only: nf90_inquire_dimension, nf90_get_var
 
     implicit none
 
+    !> Simulation time to find
     real, intent(in) :: tstart
-    real, dimension (:), allocatable :: times
+    !> Index of time dimension
     integer, intent(out) :: nout
+    real, dimension (:), allocatable :: times
     integer :: i, length, status
 
     nout = 1

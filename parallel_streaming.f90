@@ -453,14 +453,12 @@ contains
        end if
 
     ! get d<phi>/dz, with z the parallel coordinate and store in g1
-       call get_dgdz (g0, ivmu, g1)
-    !    call get_dgdz_centered (g0, ivmu, g1)
+       call get_dgdz_variable (g0, ivmu, g1)
     ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
        if (driftkinetic_implicit) then
          g0 = 0.
        else
-         call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
-         !call get_dgdz_centered (g(:,:,:,:,ivmu), ivmu, g0)
+         call get_dgdz_variable (g(:,:,:,:,ivmu), ivmu, g0)
        end if
 
        iv = iv_idx(vmu_lo,ivmu)
@@ -922,7 +920,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx!, zonal_mode
+    use kt_grids, only: naky, nakx
 
     implicit none
 
@@ -935,7 +933,6 @@ contains
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
     src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
-  !  if (zonal_mode(1)) src(1,:,-nzgrid,:) = src(1,:,nzgrid,:)
 
   end subroutine add_stream_term
 

@@ -27,11 +27,12 @@ contains
     use fields, only: get_fields_vmulo_single
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use kt_grids, only: naky, zonal_mode
+    use kt_grids, only: naky
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: neigen, ikxmod
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: periodic
     use job_manage, only: time_message
     use mp, only: proc0, job, mp_abort
     use run_parameters, only: mat_gen, lu_option_switch
@@ -131,8 +132,8 @@ contains
       if(sgproc0) then
         do iky = 1, naky
           do ie = 1, neigen(iky)
-            if (zonal_mode(iky)) then
-               nresponse_per_field = nsegments(ie,iky)*nzed_segment
+            if (periodic(iky)) then
+               nresponse = nsegments(ie,iky)*nzed_segment
             else
                nresponse_per_field = nsegments(ie,iky)*nzed_segment+1
             end if
@@ -192,8 +193,8 @@ contains
 
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
-          if (zonal_mode(iky)) then
-             nresponse_per_field = nz_ext-1
+          if (periodic(iky)) then
+             nresponse = nz_ext-1
           else
              nresponse_per_field = nz_ext
           end if
@@ -251,8 +252,8 @@ contains
           ! ikxmod gives the kx corresponding to iseg,ie,iky
           ikx = ikxmod(iseg,ie,iky)
           izl_offset = 0
-          ! avoid double-counting of periodic points for zonal mode
-          if (zonal_mode(iky)) then
+          ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
+          if (periodic(iky)) then
              izup = iz_up(iseg)-1
           else
              izup = iz_up(iseg)
@@ -466,10 +467,11 @@ contains
 
     use fields_arrays, only: response_matrix
     use common_types, only: response_matrix_type
-    use kt_grids, only: naky, zonal_mode
+    use kt_grids, only: naky
     use extended_zgrid, only: neigen
     use extended_zgrid, only: nsegments
     use extended_zgrid, only: nzed_segment
+    use extended_zgrid, only: periodic
     use mp, only: proc0, job, broadcast, mp_abort
 
     implicit none
@@ -521,7 +523,7 @@ contains
 
           ! treat zonal mode specially to avoid double counting
           ! as it is periodic
-          if (zonal_mode(iky)) then
+          if (periodic(iky)) then
              nresponse = nz_ext-1
           else
              nresponse = nz_ext
@@ -566,7 +568,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
-    use kt_grids, only: zonal_mode
+    use extended_zgrid, only: periodic
     use run_parameters, only: maxwellian_inside_zed_derivative
     use parallel_streaming, only: z_tridiagonal_solve
     use parallel_streaming, only: stream_sign
@@ -602,7 +604,7 @@ contains
           call get_lhs_homogeneous_equation(iky, ikx, ia, nz_ext, ivmu, a, b, c)
           call tridag (1, a, b, c, gext(:,ivmu))
           ! hack for now (duplicates much of the effort from sweep_zed_zonal)
-          if (zonal_mode(iky)) then
+          if (periodic(iky)) then
              call mp_abort("Not set up the zonal flow calculation of ghom in response_matrix")
              call sweep_zed_zonal_response (iv, is, stream_sign(iv), gext(:,ivmu))
           else
@@ -1402,11 +1404,8 @@ contains
     implicit none
 
     integer :: ierr
-    ! Only try to free the window if the window exists
-    ! (i.e. if window is not MPI_WIN_NULL.)
-    if(window .ne. MPI_WIN_NULL) then
-      call mpi_win_free(window,ierr)
-    end if
+
+    if (window.ne.MPI_WIN_NULL) call mpi_win_free(window,ierr)
 #endif
 
     if (allocated(response_matrix)) deallocate (response_matrix)

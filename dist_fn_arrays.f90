@@ -1,6 +1,6 @@
 !> A container for the arrays that are used to store the distribution function among other things.
 !!  These need to be accessible at a lower dependency level than the dist_fn module itself.
-!! These arrays are allocated in the function dist_fn::allocate_arrays. 
+!! These arrays are allocated in the function dist_fn::allocate_arrays.
 
 module dist_fn_arrays
 
@@ -14,7 +14,7 @@ module dist_fn_arrays
   public :: wdriftx_phi, wdrifty_phi
   public :: wdriftpx_g, wdriftpy_g
   public :: wdriftpx_phi, wdriftpy_phi
-  public :: adiabatic_phi
+  ! public :: adiabatic_phi
 
   ! dist fn
   complex, dimension (:,:,:,:,:), allocatable :: gnew, gold
@@ -24,12 +24,12 @@ module dist_fn_arrays
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   ! needed to implement time-delayed source when using Krook operator
-  complex, dimension (:,:,:), allocatable :: g_krook
-  ! (nakx, ntubes, -vmu-layout-)
+  complex, dimension (:,:,:,:), allocatable :: g_krook
+  ! (nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   ! needed to implement time-delayed source when using projection method
-  complex, dimension (:,:,:), allocatable :: g_proj
-  ! (nakx, ntubes, -vmu-layout-)
+  complex, dimension (:,:,:,:), allocatable :: g_proj
+  ! (nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   complex, dimension (:,:,:), allocatable :: gvmu
   ! (nvpa, nmu, -kxkyz-layout-)
@@ -42,7 +42,6 @@ module dist_fn_arrays
 
   real, dimension (:,:,:), allocatable :: wdriftpx_g, wdriftpy_g
   real, dimension (:,:,:), allocatable :: wdriftpx_phi, wdriftpy_phi
-  real, dimension (:,:,:), allocatable :: adiabatic_phi
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:,:), allocatable :: kperp2, dkperp2dr

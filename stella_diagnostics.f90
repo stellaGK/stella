@@ -1,3 +1,4 @@
+!> Routines for calculating and writing various physical diagnostics
 module stella_diagnostics
 
   implicit none
@@ -23,27 +24,27 @@ module stella_diagnostics
   logical :: write_fluxes_kxkyz
   logical :: flux_norm
 
-  ! Arrays needed for averaging in x,y,z
+  !> Arrays needed for averaging in x,y,z
   real, dimension (:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
   real, dimension (:,:,:), allocatable :: pflux, vflux, qflux, exchange
 
-  ! Needed for calculating growth rates and frequencies
+  !> Needed for calculating growth rates and frequencies
   complex, dimension (:,:,:), allocatable :: omega_vs_time
 
-  ! Initialized variables
+  !> Current maximum index of the time dimension in the netCDF file
   integer :: nout = 1
+  !> Has this module been initialised?
   logical :: diagnostics_initialized = .false.
 
-  ! Debugging
+  !> Debugging
   logical :: debug = .false.
 
 contains
 
-  !==============================================
-  !====== INITIATE STELLA DIAGNOSTICS ===========
-  !==============================================
-  ! Broadcast the parameters from the namelist "stella_diagnostics_knobs"
-  ! and open/append the netcdf file and the ascii files.
+  !> Initialise the [[stella_diagnostics]] module
+  !>
+  !> Broadcast the parameters from the namelist "stella_diagnostics_knobs"
+  !> and open/append the netcdf file and the ascii files.
   subroutine init_stella_diagnostics (restart, tstart)
 
     use zgrid, only: init_zgrid
@@ -58,7 +59,9 @@ contains
 
     implicit none
 
+    !> Has this simulation been restarted?
     logical, intent (in) :: restart
+    !> Current simulation time
     real, intent (in) :: tstart
 
     ! Only initialize the diagnostics once
@@ -110,9 +113,9 @@ contains
 
   end subroutine init_stella_diagnostics
 
-  !==============================================
-  !============== READ PARAMETERS ===============
-  !==============================================
+  !> Read the diagnostic input parameters from the input file
+  !>
+  !> Namelist: `stella_diagnostics_knobs`
   subroutine read_parameters
 
     use mp, only: proc0
@@ -154,9 +157,7 @@ contains
 
   end subroutine read_parameters
 
-  !==============================================
-  !============== ALLOCATE ARRAYS ===============
-  !==============================================
+  !> Allocate the module-level arrays
   subroutine allocate_arrays
 
     use species, only: nspec
@@ -184,12 +185,10 @@ contains
 
   end subroutine allocate_arrays
 
-  !==============================================
-  !============= OPEN ASCII FILES ===============
-  !==============================================
-  ! Open the '.out' and the '.fluxes' file.
-  ! When running a new simulation, create a new file or replace an old file.
-  ! When restarting a simulation, append the old files.
+  !> Open the '.out' and the '.fluxes' file.
+  !>
+  !> When running a new simulation, create a new file or replace an old file.
+  !> When restarting a simulation, append the old files.
   subroutine open_loop_ascii_files(restart)
 
     use file_utils, only: open_output_file
@@ -230,9 +229,7 @@ contains
 
   end subroutine open_loop_ascii_files
 
-  !==============================================
-  !============= CLOSE ASCII FILES ==============
-  !==============================================
+  !> Close the text files opened by [[open_loop_ascii_files]]
   subroutine close_loop_ascii_files
 
     use file_utils, only: close_output_file
@@ -245,10 +242,7 @@ contains
 
   end subroutine close_loop_ascii_files
 
-  !==============================================
-  !============== DIAGNOSE STELLA ===============
-  !==============================================
-  !! Bob: Only partly implemented bpar
+  !> Calculate and write diagnostics
   subroutine diagnose_stella (istep)
 
     use mp, only: proc0
@@ -281,6 +275,7 @@ contains
 
     implicit none
 
+    !> The current timestep
     integer, intent (in) :: istep
 
     real :: phi2, apar2
@@ -446,10 +441,9 @@ contains
 
   end subroutine diagnose_stella
 
-  !==============================================
-  !=============== GET FLUXES ===================
-  !==============================================
-  ! assumes that the non-Boltzmann part of df is passed in (aka h)
+  !> Calculate fluxes
+  !>
+  !> Assumes that the non-Boltzmann part of df is passed in (aka h)
   subroutine get_fluxes (g, pflx, vflx, qflx,&
        pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)
 
@@ -654,8 +648,11 @@ contains
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
     if(radial_variation) then
-      dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
-      dflx_norm(nzgrid) = 0.
+      where (dl_over_b(ia,:) .gt. epsilon(0.0))
+        dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
+      elsewhere
+        dflx_norm = 0.
+      endwhere
     endif
 
 
