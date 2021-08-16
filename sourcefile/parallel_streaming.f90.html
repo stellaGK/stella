@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.9% of total for source files.">682 statements</a>
+    title=" 2.0% of total for source files.">710 statements</a>
      </li> 
      
      
@@ -478,12 +478,12 @@
 <a name="ln-205"></a>       <span class="k">if</span> <span class="p">(</span><span class="n">driftkinetic_implicit</span><span class="p">)</span> <span class="n">g0</span><span class="p">(:,:,:,:)</span> <span class="o">=</span> <span class="n">g0</span><span class="p">(:,:,:,:)</span> <span class="o">-</span> <span class="n">phi</span>
 <a name="ln-206"></a>
 <a name="ln-207"></a>    <span class="c">! get d&lt;phi&gt;/dz, with z the parallel coordinate and store in g1</span>
-<a name="ln-208"></a>       <span class="k">call </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">g0</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g1</span><span class="p">)</span>
+<a name="ln-208"></a>       <span class="k">call </span><span class="n">get_dgdz_centered</span> <span class="p">(</span><span class="n">g0</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g1</span><span class="p">)</span>
 <a name="ln-209"></a>    <span class="c">! only want to treat vpar . grad (&lt;phi&gt;-phi)*F0 term explicitly</span>
 <a name="ln-210"></a>       <span class="k">if</span> <span class="p">(</span><span class="n">driftkinetic_implicit</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-211"></a><span class="k">         </span><span class="n">g0</span> <span class="o">=</span> <span class="mf">0.</span>
 <a name="ln-212"></a>       <span class="k">else</span>
-<a name="ln-213"></a><span class="k">         call </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">g</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">),</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g0</span><span class="p">)</span>
+<a name="ln-213"></a><span class="k">         call </span><span class="n">get_dgdz</span> <span class="p">(</span><span class="n">g</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">),</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g0</span><span class="p">)</span>
 <a name="ln-214"></a>       <span class="k">end if</span>
 <a name="ln-215"></a>
 <a name="ln-216"></a><span class="k">       </span><span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
@@ -540,16 +540,16 @@
 <a name="ln-267"></a>    <span class="c">! obtain &lt;phi&gt;</span>
 <a name="ln-268"></a>    <span class="c">! get d&lt;phi&gt;/dz, with z the parallel coordinate and store in g1</span>
 <a name="ln-269"></a>       <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g0</span><span class="p">)</span>
-<a name="ln-270"></a>       <span class="k">call </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">g0</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g1</span><span class="p">)</span>
+<a name="ln-270"></a>       <span class="k">call </span><span class="n">get_dgdz_centered</span> <span class="p">(</span><span class="n">g0</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g1</span><span class="p">)</span>
 <a name="ln-271"></a>
 <a name="ln-272"></a>    <span class="c">! get variation in gyroaveraging and store in g2</span>
-<a name="ln-273"></a>       <span class="k">call </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">phi_corr_GA</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">),</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g2</span><span class="p">)</span>
+<a name="ln-273"></a>       <span class="k">call </span><span class="n">get_dgdz_centered</span> <span class="p">(</span><span class="n">phi_corr_GA</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">),</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g2</span><span class="p">)</span>
 <a name="ln-274"></a>
 <a name="ln-275"></a>    <span class="c">! get variation in quasineutrality and store in g3</span>
 <a name="ln-276"></a>       <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">phi_corr_QN</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">g0</span><span class="p">)</span>
-<a name="ln-277"></a>       <span class="k">call </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">g0</span><span class="p">,</span>  <span class="n">ivmu</span><span class="p">,</span> <span class="n">g3</span><span class="p">)</span>
+<a name="ln-277"></a>       <span class="k">call </span><span class="n">get_dgdz_centered</span> <span class="p">(</span><span class="n">g0</span><span class="p">,</span>  <span class="n">ivmu</span><span class="p">,</span> <span class="n">g3</span><span class="p">)</span>
 <a name="ln-278"></a>
-<a name="ln-279"></a>       <span class="k">call </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">g</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">),</span>  <span class="n">ivmu</span><span class="p">,</span> <span class="n">g0</span><span class="p">)</span>
+<a name="ln-279"></a>       <span class="k">call </span><span class="n">get_dgdz</span> <span class="p">(</span><span class="n">g</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">),</span>  <span class="n">ivmu</span><span class="p">,</span> <span class="n">g0</span><span class="p">)</span>
 <a name="ln-280"></a>
 <a name="ln-281"></a>       <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
 <a name="ln-282"></a>       <span class="n">imu</span> <span class="o">=</span> <span class="n">imu_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
@@ -583,128 +583,128 @@
 <a name="ln-310"></a>
 <a name="ln-311"></a>  <span class="k">end subroutine </span><span class="n">add_parallel_streaming_radial_variation</span>
 <a name="ln-312"></a>
-<a name="ln-313"></a><span class="c">! subroutine get_dgdz (g, ivmu, dgdz)</span>
+<a name="ln-313"></a>  <span class="k">subroutine </span><span class="n">get_dgdz</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dgdz</span><span class="p">)</span>
 <a name="ln-314"></a>
-<a name="ln-315"></a><span class="c">!   use finite_differences, only: third_order_upwind_zed</span>
-<a name="ln-316"></a><span class="c">!   use stella_layouts, only: vmu_lo</span>
-<a name="ln-317"></a><span class="c">!   use stella_layouts, only: iv_idx</span>
-<a name="ln-318"></a><span class="c">!   use zgrid, only: nzgrid, delzed, ntubes</span>
-<a name="ln-319"></a><span class="c">!   use extended_zgrid, only: neigen, nsegments</span>
-<a name="ln-320"></a><span class="c">!   use extended_zgrid, only: iz_low, iz_up</span>
-<a name="ln-321"></a><span class="c">!   use extended_zgrid, only: ikxmod</span>
-<a name="ln-322"></a><span class="c">!   use extended_zgrid, only: fill_zed_ghost_zones</span>
-<a name="ln-323"></a><span class="c">!   use extended_zgrid, only: periodic</span>
-<a name="ln-324"></a><span class="c">!   use kt_grids, only: naky</span>
+<a name="ln-315"></a>    <span class="k">use </span><span class="n">finite_differences</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">third_order_upwind_zed</span>
+<a name="ln-316"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-317"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iv_idx</span>
+<a name="ln-318"></a>    <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">delzed</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-319"></a>    <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">neigen</span><span class="p">,</span> <span class="n">nsegments</span>
+<a name="ln-320"></a>    <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iz_low</span><span class="p">,</span> <span class="n">iz_up</span>
+<a name="ln-321"></a>    <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ikxmod</span>
+<a name="ln-322"></a>    <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fill_zed_ghost_zones</span>
+<a name="ln-323"></a>    <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">periodic</span>
+<a name="ln-324"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">naky</span>
 <a name="ln-325"></a>
-<a name="ln-326"></a><span class="c">!   implicit none</span>
+<a name="ln-326"></a>    <span class="k">implicit none</span>
 <a name="ln-327"></a>
-<a name="ln-328"></a><span class="c">!   complex, dimension (:,:,-nzgrid:,:), intent (in) :: g</span>
-<a name="ln-329"></a><span class="c">!   complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz</span>
-<a name="ln-330"></a><span class="c">!   integer, intent (in) :: ivmu</span>
+<a name="ln-328"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">g</span>
+<a name="ln-329"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dgdz</span>
+<a name="ln-330"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span>
 <a name="ln-331"></a>
-<a name="ln-332"></a><span class="c">!   integer :: iseg, ie, it, iky, iv</span>
-<a name="ln-333"></a><span class="c">!   complex, dimension (2) :: gleft, gright</span>
+<a name="ln-332"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">ie</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">iv</span>
+<a name="ln-333"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span>
 <a name="ln-334"></a>
-<a name="ln-335"></a><span class="c">!   ! FLAG -- assuming delta zed is equally spaced below!</span>
-<a name="ln-336"></a><span class="c">!   iv = iv_idx(vmu_lo,ivmu)</span>
-<a name="ln-337"></a><span class="c">!   do iky = 1, naky</span>
-<a name="ln-338"></a><span class="c">!     do it = 1, ntubes</span>
-<a name="ln-339"></a><span class="c">!       do ie = 1, neigen(iky)</span>
-<a name="ln-340"></a><span class="c">!         do iseg = 1, nsegments(ie,iky)</span>
-<a name="ln-341"></a><span class="c">!           ! first fill in ghost zones at boundaries in g(z)</span>
-<a name="ln-342"></a><span class="c">!           call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)</span>
-<a name="ln-343"></a><span class="c">!           ! now get dg/dz</span>
-<a name="ln-344"></a><span class="c">!           call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &amp;</span>
-<a name="ln-345"></a><span class="c">!                g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &amp;</span>
-<a name="ln-346"></a><span class="c">!                delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &amp;</span>
-<a name="ln-347"></a><span class="c">!                dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))</span>
-<a name="ln-348"></a><span class="c">!           end do</span>
-<a name="ln-349"></a><span class="c">!         end do</span>
-<a name="ln-350"></a><span class="c">!     end do</span>
-<a name="ln-351"></a><span class="c">!   end do</span>
+<a name="ln-335"></a>    <span class="c">! FLAG -- assuming delta zed is equally spaced below!</span>
+<a name="ln-336"></a>    <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-337"></a>    <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span>
+<a name="ln-338"></a>      <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-339"></a>        <span class="k">do </span><span class="n">ie</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">neigen</span><span class="p">(</span><span class="n">iky</span><span class="p">)</span>
+<a name="ln-340"></a>          <span class="k">do </span><span class="n">iseg</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">)</span>
+<a name="ln-341"></a>            <span class="c">! first fill in ghost zones at boundaries in g(z)</span>
+<a name="ln-342"></a>            <span class="k">call </span><span class="n">fill_zed_ghost_zones</span> <span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">ie</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">g</span><span class="p">(:,:,:,:),</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span><span class="p">)</span>
+<a name="ln-343"></a>            <span class="c">! now get dg/dz</span>
+<a name="ln-344"></a>            <span class="k">call </span><span class="n">third_order_upwind_zed</span> <span class="p">(</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-345"></a>                 <span class="n">g</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="n">it</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-346"></a>                 <span class="n">delzed</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">stream_sign</span><span class="p">(</span><span class="n">iv</span><span class="p">),</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span><span class="p">,</span> <span class="n">periodic</span><span class="p">(</span><span class="n">iky</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-347"></a>                 <span class="n">dgdz</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="n">it</span><span class="p">))</span>
+<a name="ln-348"></a>            <span class="k">end do</span>
+<a name="ln-349"></a><span class="k">          end do</span>
+<a name="ln-350"></a><span class="k">      end do</span>
+<a name="ln-351"></a><span class="k">    end do</span>
 <a name="ln-352"></a>
-<a name="ln-353"></a><span class="c">! end subroutine get_dgdz</span>
+<a name="ln-353"></a><span class="k">  end subroutine </span><span class="n">get_dgdz</span>
 <a name="ln-354"></a>
-<a name="ln-355"></a><span class="c">! subroutine get_dgdz_centered (g, ivmu, dgdz)</span>
+<a name="ln-355"></a>  <span class="k">subroutine </span><span class="n">get_dgdz_centered</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dgdz</span><span class="p">)</span>
 <a name="ln-356"></a>
-<a name="ln-357"></a><span class="c">!    use finite_differences, only: second_order_centered_zed</span>
-<a name="ln-358"></a><span class="c">!    use stella_layouts, only: vmu_lo</span>
-<a name="ln-359"></a><span class="c">!    use stella_layouts, only: iv_idx</span>
-<a name="ln-360"></a><span class="c">!    use zgrid, only: nzgrid, delzed, ntubes</span>
-<a name="ln-361"></a><span class="c">!    use extended_zgrid, only: neigen, nsegments</span>
-<a name="ln-362"></a><span class="c">!    use extended_zgrid, only: iz_low, iz_up</span>
-<a name="ln-363"></a><span class="c">!    use extended_zgrid, only: ikxmod</span>
-<a name="ln-364"></a><span class="c">!    use extended_zgrid, only: fill_zed_ghost_zones</span>
-<a name="ln-365"></a><span class="c">!    use extended_zgrid, only: periodic</span>
-<a name="ln-366"></a><span class="c">!    use kt_grids, only: naky</span>
+<a name="ln-357"></a>     <span class="k">use </span><span class="n">finite_differences</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">second_order_centered_zed</span>
+<a name="ln-358"></a>     <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-359"></a>     <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iv_idx</span>
+<a name="ln-360"></a>     <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">delzed</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-361"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">neigen</span><span class="p">,</span> <span class="n">nsegments</span>
+<a name="ln-362"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iz_low</span><span class="p">,</span> <span class="n">iz_up</span>
+<a name="ln-363"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ikxmod</span>
+<a name="ln-364"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fill_zed_ghost_zones</span>
+<a name="ln-365"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">periodic</span>
+<a name="ln-366"></a>     <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">naky</span>
 <a name="ln-367"></a>
-<a name="ln-368"></a><span class="c">!    implicit none</span>
+<a name="ln-368"></a>     <span class="k">implicit none</span>
 <a name="ln-369"></a>
-<a name="ln-370"></a><span class="c">!    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g</span>
-<a name="ln-371"></a><span class="c">!    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz</span>
-<a name="ln-372"></a><span class="c">!    integer, intent (in) :: ivmu</span>
+<a name="ln-370"></a><span class="k">     </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">g</span>
+<a name="ln-371"></a>     <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dgdz</span>
+<a name="ln-372"></a>     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span>
 <a name="ln-373"></a>
-<a name="ln-374"></a><span class="c">!    integer :: iseg, ie, iky, iv, it</span>
-<a name="ln-375"></a><span class="c">!    complex, dimension (2) :: gleft, gright</span>
-<a name="ln-376"></a><span class="c">!    ! FLAG -- assuming delta zed is equally spaced below!</span>
-<a name="ln-377"></a><span class="c">!     iv = iv_idx(vmu_lo,ivmu)</span>
-<a name="ln-378"></a><span class="c">!     do iky = 1, naky</span>
-<a name="ln-379"></a><span class="c">!       do it = 1, ntubes</span>
-<a name="ln-380"></a><span class="c">!         do ie = 1, neigen(iky)</span>
-<a name="ln-381"></a><span class="c">!           do iseg = 1, nsegments(ie,iky)</span>
-<a name="ln-382"></a><span class="c">!              ! first fill in ghost zones at boundaries in g(z)</span>
-<a name="ln-383"></a><span class="c">!              call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)</span>
-<a name="ln-384"></a><span class="c">!              ! now get dg/dz</span>
-<a name="ln-385"></a><span class="c">!              call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &amp;</span>
-<a name="ln-386"></a><span class="c">!                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &amp;</span>
-<a name="ln-387"></a><span class="c">!                   delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &amp;</span>
-<a name="ln-388"></a><span class="c">!                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))</span>
-<a name="ln-389"></a><span class="c">!           end do</span>
-<a name="ln-390"></a><span class="c">!         end do</span>
-<a name="ln-391"></a><span class="c">!       enddo</span>
-<a name="ln-392"></a><span class="c">!     end do</span>
-<a name="ln-393"></a><span class="c">! end subroutine get_dgdz_centered</span>
+<a name="ln-374"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">ie</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="n">it</span>
+<a name="ln-375"></a>     <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span>
+<a name="ln-376"></a>     <span class="c">! FLAG -- assuming delta zed is equally spaced below!</span>
+<a name="ln-377"></a>      <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-378"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span>
+<a name="ln-379"></a>        <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-380"></a>          <span class="k">do </span><span class="n">ie</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">neigen</span><span class="p">(</span><span class="n">iky</span><span class="p">)</span>
+<a name="ln-381"></a>            <span class="k">do </span><span class="n">iseg</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">)</span>
+<a name="ln-382"></a>               <span class="c">! first fill in ghost zones at boundaries in g(z)</span>
+<a name="ln-383"></a>               <span class="k">call </span><span class="n">fill_zed_ghost_zones</span> <span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">ie</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">g</span><span class="p">(:,:,:,:),</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span><span class="p">)</span>
+<a name="ln-384"></a>               <span class="c">! now get dg/dz</span>
+<a name="ln-385"></a>               <span class="k">call </span><span class="n">second_order_centered_zed</span> <span class="p">(</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-386"></a>                    <span class="n">g</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="n">it</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-387"></a>                    <span class="n">delzed</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">stream_sign</span><span class="p">(</span><span class="n">iv</span><span class="p">),</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span><span class="p">,</span> <span class="n">periodic</span><span class="p">(</span><span class="n">iky</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-388"></a>                    <span class="n">dgdz</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="n">it</span><span class="p">))</span>
+<a name="ln-389"></a>            <span class="k">end do</span>
+<a name="ln-390"></a><span class="k">          end do</span>
+<a name="ln-391"></a><span class="k">        </span><span class="n">enddo</span>
+<a name="ln-392"></a>      <span class="k">end do</span>
+<a name="ln-393"></a><span class="k">  end subroutine </span><span class="n">get_dgdz_centered</span>
 <a name="ln-394"></a>
-<a name="ln-395"></a>  <span class="k">subroutine </span><span class="n">get_dgdz_variable</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dgdz</span><span class="p">)</span>
+<a name="ln-395"></a><span class="c">! subroutine get_dgdz_variable (g, ivmu, dgdz)</span>
 <a name="ln-396"></a>
-<a name="ln-397"></a>     <span class="k">use </span><span class="n">finite_differences</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fd_variable_upwinding_zed</span>
-<a name="ln-398"></a>     <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-399"></a>     <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iv_idx</span>
-<a name="ln-400"></a>     <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">delzed</span><span class="p">,</span> <span class="n">ntubes</span>
-<a name="ln-401"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">neigen</span><span class="p">,</span> <span class="n">nsegments</span>
-<a name="ln-402"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iz_low</span><span class="p">,</span> <span class="n">iz_up</span>
-<a name="ln-403"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ikxmod</span>
-<a name="ln-404"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fill_zed_ghost_zones</span>
-<a name="ln-405"></a>     <span class="k">use </span><span class="n">extended_zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">periodic</span>
-<a name="ln-406"></a>     <span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">zed_upwind</span>
-<a name="ln-407"></a>     <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">naky</span>
+<a name="ln-397"></a><span class="c">!    use finite_differences, only: fd_variable_upwinding_zed</span>
+<a name="ln-398"></a><span class="c">!    use stella_layouts, only: vmu_lo</span>
+<a name="ln-399"></a><span class="c">!    use stella_layouts, only: iv_idx</span>
+<a name="ln-400"></a><span class="c">!    use zgrid, only: nzgrid, delzed, ntubes</span>
+<a name="ln-401"></a><span class="c">!    use extended_zgrid, only: neigen, nsegments</span>
+<a name="ln-402"></a><span class="c">!    use extended_zgrid, only: iz_low, iz_up</span>
+<a name="ln-403"></a><span class="c">!    use extended_zgrid, only: ikxmod</span>
+<a name="ln-404"></a><span class="c">!    use extended_zgrid, only: fill_zed_ghost_zones</span>
+<a name="ln-405"></a><span class="c">!    use extended_zgrid, only: periodic</span>
+<a name="ln-406"></a><span class="c">!    use run_parameters, only: zed_upwind</span>
+<a name="ln-407"></a><span class="c">!    use kt_grids, only: naky</span>
 <a name="ln-408"></a>
-<a name="ln-409"></a>     <span class="k">implicit none</span>
+<a name="ln-409"></a><span class="c">!    implicit none</span>
 <a name="ln-410"></a>
-<a name="ln-411"></a><span class="k">     </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">g</span>
-<a name="ln-412"></a>     <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dgdz</span>
-<a name="ln-413"></a>     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span>
+<a name="ln-411"></a><span class="c">!    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g</span>
+<a name="ln-412"></a><span class="c">!    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz</span>
+<a name="ln-413"></a><span class="c">!    integer, intent (in) :: ivmu</span>
 <a name="ln-414"></a>
-<a name="ln-415"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">ie</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="n">it</span>
-<a name="ln-416"></a>     <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span>
-<a name="ln-417"></a>     <span class="c">! FLAG -- assuming delta zed is equally spaced below!</span>
-<a name="ln-418"></a>      <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-419"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span>
-<a name="ln-420"></a>        <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
-<a name="ln-421"></a>          <span class="k">do </span><span class="n">ie</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">neigen</span><span class="p">(</span><span class="n">iky</span><span class="p">)</span>
-<a name="ln-422"></a>            <span class="k">do </span><span class="n">iseg</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">)</span>
-<a name="ln-423"></a>               <span class="c">! first fill in ghost zones at boundaries in g(z)</span>
-<a name="ln-424"></a>               <span class="k">call </span><span class="n">fill_zed_ghost_zones</span> <span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">ie</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">g</span><span class="p">(:,:,:,:),</span> <span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span><span class="p">)</span>
+<a name="ln-415"></a><span class="c">!    integer :: iseg, ie, iky, iv, it</span>
+<a name="ln-416"></a><span class="c">!    complex, dimension (2) :: gleft, gright</span>
+<a name="ln-417"></a><span class="c">!    ! FLAG -- assuming delta zed is equally spaced below!</span>
+<a name="ln-418"></a><span class="c">!     iv = iv_idx(vmu_lo,ivmu)</span>
+<a name="ln-419"></a><span class="c">!     do iky = 1, naky</span>
+<a name="ln-420"></a><span class="c">!       do it = 1, ntubes</span>
+<a name="ln-421"></a><span class="c">!         do ie = 1, neigen(iky)</span>
+<a name="ln-422"></a><span class="c">!           do iseg = 1, nsegments(ie,iky)</span>
+<a name="ln-423"></a><span class="c">!              ! first fill in ghost zones at boundaries in g(z)</span>
+<a name="ln-424"></a><span class="c">!              call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)</span>
 <a name="ln-425"></a>               <span class="c">! now get dg/dz</span>
-<a name="ln-426"></a>               <span class="k">call </span><span class="n">fd_variable_upwinding_zed</span> <span class="p">(</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span> <span class="n">iseg</span><span class="p">,</span> <span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-427"></a>                    <span class="n">g</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="n">it</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-428"></a>                    <span class="n">delzed</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">stream_sign</span><span class="p">(</span><span class="n">iv</span><span class="p">),</span> <span class="n">zed_upwind</span><span class="p">,</span><span class="n">gleft</span><span class="p">,</span> <span class="n">gright</span><span class="p">,</span> <span class="n">periodic</span><span class="p">(</span><span class="n">iky</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-429"></a>                    <span class="n">dgdz</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">iky</span><span class="p">),</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="n">it</span><span class="p">))</span>
-<a name="ln-430"></a>            <span class="k">end do</span>
-<a name="ln-431"></a><span class="k">          end do</span>
-<a name="ln-432"></a><span class="k">        </span><span class="n">enddo</span>
-<a name="ln-433"></a>      <span class="k">end do</span>
-<a name="ln-434"></a><span class="k">  end subroutine </span><span class="n">get_dgdz_variable</span>
+<a name="ln-426"></a><span class="c">!              call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &amp;</span>
+<a name="ln-427"></a><span class="c">!                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &amp;</span>
+<a name="ln-428"></a><span class="c">!                   delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &amp;</span>
+<a name="ln-429"></a><span class="c">!                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))</span>
+<a name="ln-430"></a><span class="c">!           end do</span>
+<a name="ln-431"></a><span class="c">!         end do</span>
+<a name="ln-432"></a><span class="c">!       enddo</span>
+<a name="ln-433"></a><span class="c">!     end do</span>
+<a name="ln-434"></a><span class="c">! end subroutine get_dgdz_variable</span>
 <a name="ln-435"></a>
 <a name="ln-436"></a>  <span class="k">subroutine </span><span class="n">add_stream_term</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
 <a name="ln-437"></a>
@@ -1348,13 +1348,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-51-gf1cc086</small></p>
+                                          <br /><small>v0.3-52-g4034397</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-07-27T13:58:25.072682 
+             on 2021-08-16T09:53:16.182526 
             
           </p>
         </div>
