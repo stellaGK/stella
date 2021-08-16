@@ -452,13 +452,16 @@ contains
          call get_gyroaverage_chi(ivmu, phi, apar, bpar, g0)
        end if
 
-    ! get d<phi>/dz, with z the parallel coordinate and store in g1
-       call get_dgdz_variable (g0, ivmu, g1)
-    ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
+       ! get d<phi>/dz, with z the parallel coordinate and store in g1
+       ! Want d<phi>/dz centered in z to avoid spurious numerical mode.
+       call get_dgdz_centered (g0, ivmu, g1)
+
+       ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
        if (driftkinetic_implicit) then
          g0 = 0.
        else
-         call get_dgdz_variable (g(:,:,:,:,ivmu), ivmu, g0)
+         ! get dg/dz, allowing upwinding - don't need to center dg/dz in z.
+         call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
        end if
 
        iv = iv_idx(vmu_lo,ivmu)
@@ -567,7 +570,7 @@ contains
     ! obtain (dg^{n}/dz)_(i*) and store in dgdz
     ! NB: could eliminate this calculation at the expense of memory
     ! as this was calculated previously
-    call get_dzed (iv,gold,dgdz)
+    call get_dgdz (gold,ivmu,dgdz)
 
     ! obtain <chi^(n*)>_(i) and store in chi
     ! First, get phi, apar, bpar time-centered:
@@ -600,7 +603,8 @@ contains
     deallocate (field3)
 
     ! obtain (d<chi^(n*)>/dz)_(i*) and store in dchidz
-    call get_dzed (iv,chi,dchidz)
+    ! Centered derivative to avoid numerical mode
+    call get_dgdz_centered (chi,ivmu,dchidz)
 
     ! obtain <chi^(n*)>_(i*) and store in chi
     call center_zed (iv,chi)
@@ -1058,16 +1062,16 @@ contains
     ! obtain <phi>
     ! get d<phi>/dz, with z the parallel coordinate and store in g1
        call gyro_average (phi, ivmu, g0)
-       call get_dgdz_variable (g0, ivmu, g1)
+       call get_dgdz_centered (g0, ivmu, g1)
 
     ! get variation in gyroaveraging and store in g2
-       call get_dgdz_variable (phi_corr_GA(:,:,:,:,ivmu), ivmu, g2)
+       call get_dgdz_centered (phi_corr_GA(:,:,:,:,ivmu), ivmu, g2)
 
     ! get variation in quasineutrality and store in g3
        call gyro_average (phi_corr_QN, ivmu, g0)
-       call get_dgdz_variable (g0,  ivmu, g3)
+       call get_dgdz_centered (g0,  ivmu, g3)
 
-       call get_dgdz_variable (g(:,:,:,:,ivmu),  ivmu, g0)
+       call get_dgdz (g(:,:,:,:,ivmu),  ivmu, g0)
 
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
@@ -1162,89 +1166,51 @@ contains
 
   end subroutine center_zed_segment_real
 
-  subroutine get_dzed (iv, g, dgdz)
+  subroutine get_dgdz (g, ivmu, dgdz)
 
-    use finite_differences, only: fd_cell_centres_zed
-    use kt_grids, only: naky
+    use finite_differences, only: third_order_upwind_zed
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx
     use zgrid, only: nzgrid, delzed, ntubes
     use extended_zgrid, only: neigen, nsegments
     use extended_zgrid, only: iz_low, iz_up
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: fill_zed_ghost_zones
+    use extended_zgrid, only: periodic
+    use kt_grids, only: naky
 
     implicit none
 
-    integer, intent (in) :: iv
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+    integer, intent (in) :: ivmu
 
-    integer :: iky, ie, iseg, it
+    integer :: iseg, ie, it, iky, iv
     complex, dimension (2) :: gleft, gright
 
-    do it = 1, ntubes
-       do iky = 1, naky
-          do ie = 1, neigen(iky)
-             do iseg = 1, nsegments(ie,iky)
-                ! first fill in ghost zones at boundaries in g(z)
-                call fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
-                ! get finite difference approximation for dg/dz at cell centres
-                ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-                call fd_cell_centres_zed (iz_low(iseg), &
-                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                     delzed(0), stream_sign(iv), gleft(2), gright(1), &
-                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-             end do
+    ! FLAG -- assuming delta zed is equally spaced below!
+    iv = iv_idx(vmu_lo,ivmu)
+    do iky = 1, naky
+      do it = 1, ntubes
+        do ie = 1, neigen(iky)
+          do iseg = 1, nsegments(ie,iky)
+            ! first fill in ghost zones at boundaries in g(z)
+            call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+            ! now get dg/dz
+            call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                 g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                 delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
+                 dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+            end do
           end do
-       end do
+      end do
     end do
 
-  end subroutine get_dzed
+  end subroutine get_dgdz
 
-  ! subroutine get_dgdz (g, ivmu, dgdz)
-  !
-  !   use finite_differences, only: third_order_upwind_zed
-  !   use stella_layouts, only: vmu_lo
-  !   use stella_layouts, only: iv_idx
-  !   use zgrid, only: nzgrid, delzed, ntubes
-  !   use extended_zgrid, only: neigen, nsegments
-  !   use extended_zgrid, only: iz_low, iz_up
-  !   use extended_zgrid, only: ikxmod
-  !   use extended_zgrid, only: fill_zed_ghost_zones
-  !   use extended_zgrid, only: periodic
-  !   use kt_grids, only: naky
-  !
-  !   implicit none
-  !
-  !   complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
-  !   complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
-  !   integer, intent (in) :: ivmu
-  !
-  !   integer :: iseg, ie, it, iky, iv
-  !   complex, dimension (2) :: gleft, gright
-  !
-  !   ! FLAG -- assuming delta zed is equally spaced below!
-  !   iv = iv_idx(vmu_lo,ivmu)
-  !   do iky = 1, naky
-  !     do it = 1, ntubes
-  !       do ie = 1, neigen(iky)
-  !         do iseg = 1, nsegments(ie,iky)
-  !           ! first fill in ghost zones at boundaries in g(z)
-  !           call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
-  !           ! now get dg/dz
-  !           call third_order_upwind_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-  !                g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-  !                delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
-  !                dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-  !           end do
-  !         end do
-  !     end do
-  !   end do
-  !
-  ! end subroutine get_dgdz
+  subroutine get_dgdz_centered (g, ivmu, dgdz)
 
-  subroutine get_dgdz_variable (g, ivmu, dgdz)
-
-     use finite_differences, only: fd_variable_upwinding_zed
+     use finite_differences, only: second_order_centered_zed
      use stella_layouts, only: vmu_lo
      use stella_layouts, only: iv_idx
      use zgrid, only: nzgrid, delzed, ntubes
@@ -1253,7 +1219,6 @@ contains
      use extended_zgrid, only: ikxmod
      use extended_zgrid, only: fill_zed_ghost_zones
      use extended_zgrid, only: periodic
-     use run_parameters, only: zed_upwind
      use kt_grids, only: naky
 
      implicit none
@@ -1273,15 +1238,15 @@ contains
                ! first fill in ghost zones at boundaries in g(z)
                call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
                ! now get dg/dz
-               call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+               call second_order_centered_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-                    delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &
+                    delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
             end do
           end do
         enddo
       end do
-  end subroutine get_dgdz_variable
+  end subroutine get_dgdz_centered
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! The following are from the original parallel_streaming,
