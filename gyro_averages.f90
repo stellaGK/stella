@@ -78,10 +78,8 @@ contains
     real, dimension (:), allocatable :: gam0_alpha
     real, dimension (:,:,:), allocatable :: kperp2_swap
 
-    write (*,*) 'in init_bessel'
     if (bessinit) return
     bessinit = .true.
-    write (*,*) 'Passed the init Bessel check'
 
     if (.not.allocated(aj0v)) then
        allocate (aj0v(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))

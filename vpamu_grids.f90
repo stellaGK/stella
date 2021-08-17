@@ -210,8 +210,6 @@ contains
       end do
     end do
 
-    write(*,*) "integ_tot = ", integ_tot
-
   end subroutine init_vpa_grid
 
   subroutine set_vpa_weights (conservative)

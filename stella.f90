@@ -91,6 +91,7 @@ contains
     use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
     use run_parameters, only: delt_option_switch, delt_option_auto
     use run_parameters, only: mat_gen, mat_read
+    use run_parameters, only: implicit_in_z
     use species, only: init_species, read_species_knobs
     use species, only: nspec, communicate_species_multibox
     use zgrid, only: init_zgrid
@@ -266,12 +267,14 @@ contains
     call init_delt(delt)
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
-    if (mat_read) then
-      if (debug) write (6,*) "stella::init_stella::read_response_matrix"
-      call read_response_matrix
-    else
-      if (debug) write (6,*) "stella::init_stella::init_response_matrix"
-        call init_response_matrix
+    if (implicit_in_z) then
+      if (mat_read) then
+        if (debug) write (6,*) "stella::init_stella::read_response_matrix"
+        call read_response_matrix
+      else
+        if (debug) write (6,*) "stella::init_stella::init_response_matrix"
+          call init_response_matrix
+      end if
     end if
 
     if (debug) write (6,*) 'stella::init_stella::get_fields'

@@ -861,7 +861,7 @@ contains
 
     use parallel_streaming, only: parallel_streaming_initialized
     use parallel_streaming, only: init_z_equation
-    use run_parameters, only: stream_implicit, driftkinetic_implicit
+    use run_parameters, only: implicit_in_z, driftkinetic_implicit
     use run_parameters, only: drifts_implicit, drifts_implicit_in_z
     use dissipation, only: init_collisions, collisions_initialized, include_collisions
     use response_matrix, only: response_matrix_initialized
@@ -897,7 +897,7 @@ contains
     endif
     ! do not try to re-init response matrix
     ! before it has been initialized the first time
-    if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then
+    if (implicit_in_z .and. response_matrix_initialized) then
        response_matrix_initialized = .false.
        call init_response_matrix
     end if
