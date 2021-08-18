@@ -33,7 +33,7 @@ contains
     use vpamu_grids, only: mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use stella_layouts, only: vmu_lo
-    use stella_layouts, only: imu_idx, is_idx
+    use stella_layouts, only: imu_idx, is_idx, iv_idx
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
     use stella_geometry, only: dbdzed, gradpar, gfac
@@ -63,7 +63,6 @@ contains
        neoclassical_term = 0.
     end if
 
-
     ! mirror has sign consistent with being on RHS of GKE
     if (include_mirror) then
        do imu = 1, nmu
@@ -75,19 +74,32 @@ contains
           end do
        end do
        if ((fapar > epsilon(0.)) .and. (include_mirror_apar)) then
-         ! Using gbar, there's a term in the mirror equation which looks like
+         ! Using gbar, there's a term on the RHS of the mirror equation which looks like
          ! -2*Z/m * mu * (b.grad B) exp(-v^2) * gyro_average(apar)
          ! Calculate (-2*Z/m * mu * (b.grad B) exp(-v^2))*dt here
+
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !!!!!!!!!!!!!! For numerically evaulating dvpa/dpva !!!!!!!!!!!!!!!!!!!
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !! If we want to numerically evaluate d/dvpa (vpa)
+         ! call scatter (kxkyz2vmu, g, gvmu)
+         ! do imu = 1, nmu
+         !    call third_order_upwind (1,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
+         !    g(:,imu,ikxkyz) = tmp
+         ! end do
+         ! call gather (kxkyz2vmu, g0v, g0x)
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo,ivmu)
             imu = imu_idx(vmu_lo,ivmu)
-            iv = imu_idx(vmu_lo,iv)
+            iv = iv_idx(vmu_lo,ivmu)
             do iy = 1, nalpha
-               !do iz = -nzgrid, nzgrid
-               ! Check this - correct use of maxwell facs?
+               ! Exact
                mirror_apar_fac(iy,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
                      *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
-               !end do
+               !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
+               !!! because the third_order_upwind scheme has problems at the boundaries.
+               ! mirror_apar_fac(iy,:,ivmu) = mirror_apar_fac(iy,:,ivmu) * dvpa_dvpa
             end do
          end do
        else
@@ -466,7 +478,7 @@ contains
 
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
-    use vpamu_grids, only: nvpa, nmu, dvpa
+    use vpamu_grids, only: nvpa, nmu, dvpa, vpa
 
     implicit none
 
@@ -474,6 +486,7 @@ contains
 
     integer :: ikxkyz, imu, iz, is
     complex, dimension (:), allocatable :: tmp
+    !real, dimension (:), allocatable :: tmp2 ! For calculating dvpa/dvpa
 
     allocate (tmp(nvpa))
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -484,6 +497,15 @@ contains
           g(:,imu,ikxkyz) = tmp
        end do
     end do
+
+    ! Try calculating dvpa/dvpa
+    !allocate (tmp2(nvpa))
+    ! call third_order_upwind (1,vpa,dvpa,-1,tmp2)
+    ! write(*,*) "tmp = ", tmp2
+    ! call third_order_upwind (1,vpa,dvpa,1,tmp2)
+    ! write(*,*) "tmp = ", tmp2
+
+    !stop "Finishing early"
 
     deallocate (tmp)
 
