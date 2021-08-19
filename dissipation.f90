@@ -851,6 +851,7 @@ contains
     use zgrid, only: nzgrid
     use stella_geometry, only: bmag
     use vpamu_grids, only: dmu, mu, nmu
+    use vpamu_grids, only: dmu_cell, mu_cell, dmu_ghost
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: kperp2
@@ -861,22 +862,6 @@ contains
     integer :: ia
     ! TMP FOR TESTING -- MAB
 !    integer :: imu
-
-    real, dimension (:), allocatable :: dmu_ghost, dmu_cell, mu_cell
-
-    ! add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
-    ! note assuming here that grid spacing for ghost cell is equal to
-    ! grid spacing for last non-ghost cell
-    allocate (dmu_ghost(nmu))
-    dmu_ghost(:nmu-1) = dmu ; dmu_ghost(nmu) = dmu(nmu-1)
-    ! this is mu at cell centres (including to left and right of mu grid boundary points)
-    allocate (mu_cell(nmu))
-    mu_cell(:nmu-1) = 0.5*(mu(:nmu-1)+mu(2:))
-    mu_cell(nmu) = mu(nmu)+0.5*dmu(nmu-1)
-    ! this is mu_{j+1/2} - mu_{j-1/2}
-    allocate (dmu_cell(nmu))
-    dmu_cell(1) = mu_cell(1)
-    dmu_cell(2:) = mu_cell(2:)-mu_cell(:nmu-1)
 
     if (.not.allocated(aa_mu)) allocate (aa_mu(-nzgrid:nzgrid,nmu,nspec))
     if (.not.allocated(bb_mu)) allocate (bb_mu(nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -889,11 +874,17 @@ contains
     ! 2nd order centered differences for dt * nu * d/dmu (mu/B*dh/dmu + 2*mu*h)
     do is = 1, nspec
        do iz = -nzgrid, nzgrid
-          aa_mu(iz,2:,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)-1.0)/dmu_cell(2:)
+          aa_mu(iz,2:,is)     = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)-1.0)/dmu_cell(2:)
           cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)+1.0)/dmu_cell(:nmu-1)
        end do
     end do
 
+    !1st derivative here is  2 d/dmu( mu h) -> (mu(i+1/2)h(i+1/2) - mu(i-1/2)h(i-1/2))/(mu(i+1/2)-mu(i-1/2)) 
+    !where h(i+1/2) = 0.5*[h(i+1)+h(i)] and mu(i+1/2) = 0.5*(mu(i+1)+mu(i)) 
+    !2nd derivative here is d/dmu ( mu dh/dmu ) = (mu(i+1/2)h'(i+1/2) - mu(i-1/2)h'(i-1/2))/(mu(i+1/2)-mu(i-1/2))
+    !where h'(i+1/2) = (h(i+1)-h(i))/(mu(i+1)-mu(i))
+    !left  endpoint i=1   -> mu(i-1/2) = 0
+    !right endpoint i=nmu -> h(i+1/2) = h'(i+1/2) = 0 (these are the two boundary conditions)
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -910,8 +901,6 @@ contains
           * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(nmu))
     end do
-
-    deallocate (dmu_ghost, dmu_cell, mu_cell)
 
   end subroutine init_mudiff_matrix
 
@@ -1890,7 +1879,7 @@ contains
 
     integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia, it
     logical :: conservative_wgts
-    real :: tfac
+    real :: tfac, kfac
 
     complex, dimension (:), allocatable :: mucoll
     complex, dimension (:,:,:), allocatable :: coll
@@ -1904,6 +1893,10 @@ contains
     ia = 1
 
     if (proc0) call time_message(.false.,time_collisions(:,1),' collisions')
+
+    kfac = 0.0
+    if (mu_operator)  kfac = kfac + 0.5 
+    if (vpa_operator) kfac = kfac + 0.5 
 
     allocate (tmp_vmulo(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -1927,7 +1920,7 @@ contains
           is = is_idx(vmu_lo,ivmu)
           do it = 1, ntubes
             do iz = -nzgrid, nzgrid
-              g0k = 0.5*tmp_vmulo(:,:,iz,it,ivmu)*kperp2(:,:,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2
+              g0k = 0.5*kfac*tmp_vmulo(:,:,iz,it,ivmu)*kperp2(:,:,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2
               gke_rhs(:,:,iz,it,ivmu) = gke_rhs(:,:,iz,it,ivmu) - code_dt*spec(is)%vnew(is)*g0k
 
               g0k = g0k * (dkperp2dr(:,:,ia,iz) - 2.0*dBdrho(iz)/bmag(ia,iz) - spec(is)%tprim)
@@ -2048,7 +2041,7 @@ contains
            if (energy_conservation) call conserve_energy (iz, is, ikxkyz, gvmu(:,:,ikxkyz), coll(:,:,ikxkyz))
            ! save memory by using gvmu and deallocating coll below
            ! before re-allocating tmp_vmulo
-           gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
+           gvmu(:,:,ikxkyz) = coll(:,:,ikxkyz) - 0.5*kfac*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*gvmu(:,:,ikxkyz)
         end do
         deallocate (coll, mucoll)
 
@@ -2393,6 +2386,7 @@ contains
   subroutine mu_differential_operator (tfac, iz, ia, h, Dh)
 
     use vpamu_grids, only: nmu, mu, dmu
+    use vpamu_grids, only: mu_cell, dmu_cell, dmu_ghost
     use vpamu_grids, only: equally_spaced_mu_grid
     use finite_differences, only: d2_3pt, fd3pt
     use stella_geometry, only: bmag
@@ -2405,48 +2399,27 @@ contains
     complex, dimension (:), intent (out) :: Dh
 
     integer :: imu
-    real :: mup, mum
-    complex, dimension (:), allocatable :: h_ghost, Dh_ghost
-    real, dimension (:), allocatable :: dmu_ghost
+    real :: mm, m0, mp
 
-    allocate (h_ghost(nmu+1))
-    allocate (Dh_ghost(nmu+1))
-    allocate (dmu_ghost(nmu))
 
-    if (equally_spaced_mu_grid) then
-       ! use mu_{i-1/2} = 0 for i = 1
-       imu = 1
-       mup = 0.5*tfac*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
-       Dh(imu) = (h(imu+1)*(mup+mu(imu+1)) &
-            -h(imu)*(mup-mu(imu)))/dmu(1)
-       ! use h = 0 at ghost cells beyond mu_max
-       imu = nmu
-       mup = 0.5*tfac*(2.*mu(imu)+dmu(1))/(bmag(ia,iz)*dmu(1))
-       mum = 0.5*tfac*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
-       Dh(imu) = (-h(imu)*(mup+mum) + h(imu-1)*(mum-mu(imu-1)))/dmu(1)
-       do imu = 2, nmu-1
-          mup = 0.5*tfac*(mu(imu+1)+mu(imu))/(bmag(ia,iz)*dmu(1))
-          mum = 0.5*tfac*(mu(imu)+mu(imu-1))/(bmag(ia,iz)*dmu(1))
-          Dh(imu) = (h(imu+1)*(mup+mu(imu+1)) &
-               -h(imu)*(mup+mum) + h(imu-1)*(mum-mu(imu-1)))/dmu(1)
-       end do
-    else
-       ! pad h_ghost array with ghost cell beyond max(mu) with zero BC
-       h_ghost(:nmu) = h ; h_ghost(nmu+1) = 0.
-       ! assign extra dmu value at nmu (beyond mu grid)
-       ! because it will be accessed (but not later used)
-       ! by generic subroutine d2_3pt
-       dmu_ghost(:nmu-1) = dmu(:nmu-1) ; dmu_ghost(nmu) = 1.0
+    ! the following finite difference method is explained in init_mudiff_matrix
 
-       call d2_3pt (h_ghost, Dh_ghost, dmu_ghost)
-       Dh = tfac*Dh_ghost(:nmu)*mu/bmag(ia,iz)
+    imu = 1
+    m0 = 1.0 - tfac/(dmu(imu)*bmag(ia,iz))
+    mp = mu_cell(imu)*(tfac/(bmag(ia,iz)*dmu(imu)) + 1.0)/dmu_cell(imu)
+    Dh(imu) = m0*h(imu) + mp*h(imu+1)
 
-       ! next add (1/B + 2*mu)*dh/dmu + 2*h
-       call fd3pt (h_ghost, Dh_ghost, dmu_ghost)
-       Dh = Dh + (tfac/bmag(ia,iz) + 2.*mu)*Dh_ghost(:nmu) + 2.*h
-    end if
+    imu = nmu
+    mm =  mu_cell(imu-1)*(tfac/(bmag(ia,iz)*dmu(imu-1)) - 1.0)/dmu_cell(imu)
+    m0 = -mu_cell(imu-1)*(tfac/(dmu(imu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(imu)
+    Dh(imu) = mm*h(imu-1) + m0*h(imu)
 
-    deallocate (h_ghost, Dh_ghost, dmu_ghost)
+    do imu = 2, nmu-1
+      mm =   mu_cell(imu-1)*(tfac/(bmag(ia,iz)*dmu(imu-1)) - 1.0)/dmu_cell(imu)
+      m0 = -(mu_cell(imu)/dmu(imu) + mu_cell(imu-1)/dmu(imu-1))*tfac/(dmu_cell(imu)*bmag(ia,iz)) + 1.0
+      mp =   mu_cell(imu  )*(tfac/(bmag(ia,iz)*dmu(imu  )) + 1.0)/dmu_cell(imu)
+      Dh(imu) = mm*h(imu-1) + m0*h(imu) + mp*h(imu+1) 
+    enddo
 
   end subroutine mu_differential_operator
 
