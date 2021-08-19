@@ -23,7 +23,7 @@ module run_parameters
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
-  public :: center_dgdz, center_dgdvpa, numerical_mirror_apar_fac
+  public :: center_dgdz!, center_dgdvpa, numerical_mirror_apar_fac
 
   private
 
@@ -40,8 +40,8 @@ module run_parameters
   logical :: fields_kxkyz, mat_gen, mat_read
   logical :: ky_solve_real
   logical :: center_dgdz
-  logical :: center_dgdvpa
-  logical :: numerical_mirror_apar_fac
+  ! logical :: center_dgdvpa
+  ! logical :: numerical_mirror_apar_fac
   real :: avail_cpu_time
   integer :: nstep, ky_solve_radial
   integer :: rng_seed
@@ -101,7 +101,7 @@ contains
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
          ky_solve_radial, ky_solve_real, &
-         center_dgdz, center_dgdvpa, numerical_mirror_apar_fac
+         center_dgdz!, center_dgdvpa, numerical_mirror_apar_fac
 
     if (proc0) then
        fphi = 1.0
@@ -131,8 +131,8 @@ contains
        mat_gen = .true.
        mat_read = .false.
        center_dgdz = .false.
-       center_dgdvpa = .false.
-       numerical_mirror_apar_fac = .false.
+       ! center_dgdvpa = .false.
+       ! numerical_mirror_apar_fac = .false.
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
@@ -177,8 +177,8 @@ contains
     call broadcast (mat_gen)
     call broadcast (mat_read)
     call broadcast (center_dgdz)
-    call broadcast (center_dgdvpa)
-    call broadcast (numerical_mirror_apar_fac)
+    ! call broadcast (center_dgdvpa)
+    ! call broadcast (numerical_mirror_apar_fac)
 
     code_delt_max = delt
 
