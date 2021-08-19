@@ -41,15 +41,15 @@ contains
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
     use run_parameters, only: mirror_implicit, mirror_semi_lagrange, fapar
-    use run_parameters, only: numerical_mirror_apar_fac
+    !use run_parameters, only: numerical_mirror_apar_fac
     use physics_flags, only: include_mirror, radial_variation, include_mirror_apar
-    use finite_differences, only: second_order_centered
+    !use finite_differences, only: second_order_centered
 
     implicit none
 
     integer :: iz, iy, imu, iv, is, ivmu
     real, dimension (:,:), allocatable :: neoclassical_term
-    real, dimension (:), allocatable :: dvpa_dvpa
+    !real, dimension (:), allocatable :: dvpa_dvpa
 
     if (mirror_initialized) return
     mirror_initialized = .true.
@@ -85,11 +85,11 @@ contains
          !!!!!!!!!!!!!! For numerically evaulating dvpa/dpva !!!!!!!!!!!!!!!!!!!
          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          !! If we want to numerically evaluate d/dvpa (vpa)
-         if (numerical_mirror_apar_fac) then
-            allocate (dvpa_dvpa(nvpa))
-            call second_order_centered (1,vpa,dvpa,dvpa_dvpa)
-            write(*,*) "dvpa_dvpa = ", dvpa_dvpa
-         end if
+         ! if (numerical_mirror_apar_fac) then
+         !    allocate (dvpa_dvpa(nvpa))
+         !    call second_order_centered (1,vpa,dvpa,dvpa_dvpa)
+         !    write(*,*) "dvpa_dvpa = ", dvpa_dvpa
+         ! end if
          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo,ivmu)
@@ -98,12 +98,12 @@ contains
             do iy = 1, nalpha
                ! Exact
                mirror_apar_fac(iy,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
-               *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
-               if (numerical_mirror_apar_fac) then
-                 !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
-                 !!! because the third_order_upwind scheme has problems at the boundaries.
-                 mirror_apar_fac(iy,:,ivmu) = mirror_apar_fac(iy,:,ivmu) * dvpa_dvpa(iv)
-               end if
+                      *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
+               ! if (numerical_mirror_apar_fac) then
+               !   !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
+               !   !!! because the third_order_upwind scheme has problems at the boundaries.
+               !   mirror_apar_fac(iy,:,ivmu) = mirror_apar_fac(iy,:,ivmu) * dvpa_dvpa(iv)
+               ! end if
             end do
          end do
        else
@@ -113,7 +113,7 @@ contains
        mirror = 0.
     end if
 
-    if (allocated(dvpa_dvpa)) deallocate(dvpa_dvpa)
+    !if (allocated(dvpa_dvpa)) deallocate(dvpa_dvpa)
     deallocate (neoclassical_term)
 
     if(radial_variation) then
@@ -456,7 +456,7 @@ contains
     use finite_differences, only: third_order_upwind, second_order_centered
     use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
     use vpamu_grids, only: nvpa, nmu, dvpa
-    use run_parameters, only: center_dgdvpa
+    !use run_parameters, only: center_dgdvpa
 
     implicit none
 
@@ -472,11 +472,7 @@ contains
        is = is_idx(kxyz_lo,ikxyz)
        do imu = 1, nmu
           ! tmp is dh/dvpa
-          if (center_dgdvpa) then
-            call second_order_centered(1,g(:,imu,ikxyz),dvpa,tmp)
-          else
-            call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
-          end if
+          call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
           g(:,imu,ikxyz) = tmp
        end do
     end do
@@ -503,6 +499,11 @@ contains
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
        do imu = 1, nmu
+          ! if (center_dgdvpa) then
+          !   call second_order_centered(1,g(:,imu,ikxyz),dvpa,tmp)
+          ! else
+          !   call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
+          ! end if
           call third_order_upwind (1,g(:,imu,ikxkyz),dvpa,mirror_sign(1,iz),tmp)
           g(:,imu,ikxkyz) = tmp
        end do
