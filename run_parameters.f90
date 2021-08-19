@@ -23,6 +23,7 @@ module run_parameters
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
+  public :: center_dgdz
 
   private
 
@@ -38,6 +39,7 @@ module run_parameters
   logical :: mirror_semi_lagrange, mirror_linear_interp
   logical :: fields_kxkyz, mat_gen, mat_read
   logical :: ky_solve_real
+  logical :: center_dgdz
   real :: avail_cpu_time
   integer :: nstep, ky_solve_radial
   integer :: rng_seed
@@ -96,7 +98,8 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real
+         ky_solve_radial, ky_solve_real, &
+         center_dgdz
 
     if (proc0) then
        fphi = 1.0
@@ -125,6 +128,7 @@ contains
        ky_solve_real   = .false.
        mat_gen = .true.
        mat_read = .false.
+       center_dgdz = .false.
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)

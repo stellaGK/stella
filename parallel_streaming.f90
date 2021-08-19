@@ -424,7 +424,7 @@ contains
     use gyro_averages, only: gyro_average
     use fields, only: get_gyroaverage_chi
     use fields_arrays, only: phi, apar, bpar
-    use run_parameters, only: driftkinetic_implicit, fapar, fbpar
+    use run_parameters, only: driftkinetic_implicit, fapar, fbpar, center_dgdz
 
     implicit none
 
@@ -460,18 +460,26 @@ contains
        if (driftkinetic_implicit) then
          g0 = 0.
        else
-         ! get dg/dz, allowing upwinding - don't need to center dg/dz in z.
-         call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
+         ! get dg/dz, allowing upwinding - don't need to center dg/dz in z
+         ! to avoid spurious numerical mode, BUT we might get cancellation
+         ! problems by treating g and <chi> differently - consider adding an
+         ! option for centered derivative.
+         if (center_dgdz) then
+           call get_dgdz_centered (g(:,:,:,:,ivmu), ivmu, g0)
+         else
+           call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
+         end if 
        end if
 
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
+       ! (dg/dz + Z/T e^(-v**2) d<chi>/dz)
        g0(:,:,:,:) = g0(:,:,:,:) + g1(:,:,:,:)*spec(is)%zt &
             *maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes) &
             *maxwell_fac(is)
 
-       ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
+       ! multiply (dg/dz + Z/T e^(-v**2) d<chi>/dz) with vpa*(b . grad z) and add to source (RHS of GK equation)
        call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
     end do
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
