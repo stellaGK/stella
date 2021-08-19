@@ -295,7 +295,6 @@ contains
   subroutine fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
-    use kt_grids, only: zonal_mode
 
     implicit none
 

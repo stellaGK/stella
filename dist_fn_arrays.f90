@@ -14,7 +14,6 @@ module dist_fn_arrays
   public :: wdriftx_phi, wdrifty_phi
   public :: wdriftpx_g, wdriftpy_g
   public :: wdriftpx_phi, wdriftpy_phi
-  public :: adiabatic_phi
 
   ! dist fn
   complex, dimension (:,:,:,:,:), allocatable :: gnew, gold
