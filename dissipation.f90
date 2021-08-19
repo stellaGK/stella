@@ -851,7 +851,7 @@ contains
     use zgrid, only: nzgrid
     use stella_geometry, only: bmag
     use vpamu_grids, only: dmu, mu, nmu
-    use vpamu_grids, only: dmu_cell, mu_cell, dmu_ghost
+    use vpamu_grids, only: dmu_cell, mu_cell
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: kperp2
@@ -2386,9 +2386,8 @@ contains
   subroutine mu_differential_operator (tfac, iz, ia, h, Dh)
 
     use vpamu_grids, only: nmu, mu, dmu
-    use vpamu_grids, only: mu_cell, dmu_cell, dmu_ghost
+    use vpamu_grids, only: mu_cell, dmu_cell
     use vpamu_grids, only: equally_spaced_mu_grid
-    use finite_differences, only: d2_3pt, fd3pt
     use stella_geometry, only: bmag
 
     implicit none
