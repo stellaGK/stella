@@ -899,15 +899,10 @@ contains
     use dist_fn_arrays, only: golder, gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
-<<<<<<< HEAD
-    use run_parameters, only: fully_explicit
-    use physics_flags, only: nonlinear
-    use multibox, only: RK_step, multibox_communicate
-=======
     use fields, only: advance_fields, fields_updated
     use run_parameters, only: fully_explicit, use_leapfrog_splitting, nisl_nonlinear
+    use physics_flags, only: nonlinear
     use multibox, only: RK_step
->>>>>>> master
     use dissipation, only: include_krook_operator, update_delay_krook
     use dissipation, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
@@ -2213,15 +2208,6 @@ contains
             call get_dgdx(g0a,g1k)
             g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
-<<<<<<< HEAD
-            !wdriftx F_M/T_s variation
-            call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
-            g0a = adiabatic_phi(ia,iz,ivmu)*g0a
-            call multiply_by_rho(g0a)
-            call get_dgdx(g0a,g1k)
-            g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
-
-=======
 !           !wdriftx F_M/T_s variation
 !           call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
 !           g0a = adiabatic_phi(ia,iz,ivmu)*g0a
@@ -2229,7 +2215,6 @@ contains
 !           call get_dgdx(g0a,g1k)
 !           g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
->>>>>>> master
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
           end do
        end do
@@ -2563,17 +2548,11 @@ contains
 
        ! g^{**} is input
        ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-<<<<<<< HEAD
-       if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) &
-            call advance_parallel_streaming_implicit (g, phi, apar)
-
-=======
        if ((stream_implicit.or.driftkinetic_implicit) .and. include_parallel_streaming) then
           call advance_parallel_streaming_implicit (g, phi, apar)
           if(radial_variation.or.full_flux_surface) fields_updated = .false.
        endif
 
->>>>>>> master
        if (mirror_implicit .and. include_mirror) then
           call advance_mirror_implicit (collisions_implicit, g)
           fields_updated = .false.
