@@ -9,6 +9,7 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu, dmu
+  public :: dmu_ghost, dmu_cell, mu_cell
   public :: maxwell_vpa, maxwell_mu, ztmax
   public :: maxwell_fac
   public :: vperp2
@@ -30,6 +31,7 @@ module vpamu_grids
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
   real, dimension (:), allocatable :: dmu
+  real, dimension (:), allocatable :: dmu_ghost, dmu_cell, mu_cell
   complex, dimension (:), allocatable :: rbuffer
   logical :: equally_spaced_mu_grid
 
@@ -657,6 +659,9 @@ contains
        allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
        allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; maxwell_mu = 0.0
        allocate (dmu(nmu-1))
+       allocate (dmu_ghost(nmu))
+       allocate (mu_cell(nmu))
+       allocate (dmu_cell(nmu))
     end if
 
     allocate (wgts_mu_tmp(nmu)) ; wgts_mu_tmp = 0.0
@@ -680,6 +685,7 @@ contains
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
        call get_laguerre_grids (mu, wgts_mu_tmp)
+       if(vperp_max.lt.0) vperp_max = sqrt(mu(nmu))
        wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
@@ -701,6 +707,17 @@ contains
 
     deallocate (wgts_mu_tmp)
 
+    ! add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
+    ! note assuming here that grid spacing for ghost cell is equal to
+    ! grid spacing for last non-ghost cell
+    dmu_ghost(:nmu-1) = dmu ; dmu_ghost(nmu) = dmu(nmu-1)
+    ! this is mu at cell centres (including to left and right of mu grid boundary points)
+    mu_cell(:nmu-1) = 0.5*(mu(:nmu-1)+mu(2:))
+    mu_cell(nmu) = mu(nmu)+0.5*dmu(nmu-1)
+    ! this is mu_{j+1/2} - mu_{j-1/2}
+    dmu_cell(1) = mu_cell(1)
+    dmu_cell(2:) = mu_cell(2:)-mu_cell(:nmu-1)
+
   end subroutine init_mu_grid
 
   subroutine finish_mu_grid
@@ -708,9 +725,12 @@ contains
     implicit none
 
     if (allocated(mu)) deallocate (mu)
+    if (allocated(mu_cell)) deallocate (mu_cell)
     if (allocated(wgts_mu)) deallocate (wgts_mu)
     if (allocated(maxwell_mu)) deallocate (maxwell_mu)
     if (allocated(dmu)) deallocate (dmu)
+    if (allocated(dmu_cell)) deallocate (dmu_cell)
+    if (allocated(dmu_ghost)) deallocate (dmu_ghost)
     if (allocated(rbuffer)) deallocate (rbuffer)
 
   end subroutine finish_mu_grid

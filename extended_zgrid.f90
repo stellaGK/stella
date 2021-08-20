@@ -25,8 +25,8 @@ module extended_zgrid
   ! as a function of current flux tube index
   ! pre-compute to avoid conditionals in loops
   integer, dimension (:), allocatable :: it_left, it_right
+  complex, dimension (:), allocatable :: phase_shift
 
-  ! FLAG -- NEED TO IMPLEMENT PERIODIC FOR ZONAL FLOW
   logical, dimension (:), allocatable :: periodic
 
   logical :: extended_zgrid_initialized = .false.
@@ -40,8 +40,9 @@ contains
     use zgrid, only: boundary_option_linked
     use zgrid, only: nperiod, nzgrid, nzed, ntubes
     use kt_grids, only: nakx, naky
-    use kt_grids, only: jtwist, ikx_twist_shift
+    use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_fac
     use kt_grids, only: aky, ikx_max
+    use constants, only: zi
 
     implicit none
 
@@ -50,6 +51,7 @@ contains
     integer, dimension (:), allocatable :: ikx_shift_end
     integer, dimension (:,:), allocatable :: ikx_shift
 
+
     if (extended_zgrid_initialized) return
     extended_zgrid_initialized = .true.
     
@@ -57,6 +59,7 @@ contains
 
     if (.not. allocated(neigen)) allocate (neigen(naky))
     if (.not. allocated(periodic)) allocate (periodic(naky)) ; periodic = .false.
+    if (.not. allocated(phase_shift)) allocate (phase_shift(naky)); phase_shift = 1.
 
     if (boundary_option_switch==boundary_option_self_periodic) then
        periodic = .true.
@@ -67,15 +70,14 @@ contains
     select case (boundary_option_switch)
     case (boundary_option_linked)
 
-       ! if linked BC, then iky=1 corresponds to ky=0 which has no connections
-       neigen(1) = nakx
-       if (naky > 1) then
-          do iky = 2, naky
-             ! must link different kx values at theta = +/- pi
-             ! neigen is the number of independent eigenfunctions along the field line
+       ! all periodic modes (e.g., the zonal mode) have no connections
+       do iky = 1, naky
+          if (periodic(iky)) then
+             neigen(iky) = nakx
+          else
              neigen(iky) = min((iky-1)*jtwist,nakx)
-          end do
-       end if
+          end if
+       end do
 
        neigen_max = maxval(neigen)
 
@@ -200,6 +202,8 @@ contains
           allocate (iz_mid(nseg_max)) ; iz_mid = 0
           allocate (iz_up(nseg_max)) ; iz_up = nzgrid
        end if
+
+       phase_shift = exp(zi*aky*phase_shift_fac)
        
     case default
        
@@ -260,7 +264,7 @@ contains
           end if
        end do
     end do
-
+    
     if (allocated(ikx_shift_end)) deallocate (ikx_shift_end)
     if (allocated(ikx_shift)) deallocate (ikx_shift)
 
@@ -291,7 +295,6 @@ contains
   subroutine fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
 
     use zgrid, only: nzgrid
-    use kt_grids, only: zonal_mode
 
     implicit none
 
@@ -299,26 +302,29 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:), intent (out) :: gleft, gright
 
+    integer :: nseg
+
     ! stream_sign > 0 --> stream speed < 0
 
+    nseg = nsegments(ie,iky)
+
     if (iseg == 1) then
-       ! if zonal mode, then periodic BC instead of zero BC
-       if (zonal_mode(iky)) then
-          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1,it)
+       if (periodic(iky)) then
+          gleft = phase_shift(iky)*g(iky,ikxmod(iseg,ie,iky),iz_up(nseg)-2:iz_up(nseg)-1,it)
        else
           gleft = 0.0
        end if
     else
-       gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
+       gleft = phase_shift(iky)*g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
     end if
     
-    if (nsegments(ie,iky) > iseg) then
+    if (nseg > iseg) then
        ! connect to segment with larger theta-theta0 (on right)
-       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))
+       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))/phase_shift(iky)
     else
-       ! apply periodic BC to zonal mode and zero BC otherwise
-       if (zonal_mode(iky)) then
-          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2,it)
+       ! apply periodic BC where necessary and zero BC otherwise
+       if (periodic(iky)) then
+          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(1)+1:iz_low(1)+2,it)/phase_shift(iky)
        else
           gright = 0.0
        end if
@@ -339,20 +345,24 @@ contains
 
     integer :: iseg, ikx, itmod
     integer :: llim
+    complex :: curr_shift
+
 
     ! avoid double-counting at boundaries between 2pi segments
     iseg = 1
+    curr_shift = 1.
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
-    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg),it)
+    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg),it)*curr_shift
     if (nsegments(ie,iky) > 1) then
        itmod = it
        do iseg = 2, nsegments(ie,iky)
+          curr_shift = curr_shift/phase_shift(iky)
           ikx = ikxmod(iseg,ie,iky)
           itmod = it_right(itmod)
           llim = ulim+1
           ulim = llim+nzed_segment-1
-          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)
+          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)*curr_shift
        end do
     end if
 
@@ -370,20 +380,23 @@ contains
 
     integer :: iseg, ikx, itmod
     integer :: llim, ulim
+    complex :: curr_shift
 
     iseg = 1
+    curr_shift = 1.
     ikx = ikxmod(iseg,ie,iky)
     llim = 1 ; ulim = nzed_segment+1
     g(ikx,iz_low(iseg):iz_up(iseg),it) = gext(llim:ulim)
     if (nsegments(ie,iky) > 1) then
        itmod = it
        do iseg = 2, nsegments(ie,iky)
+          curr_shift = curr_shift*phase_shift(iky)
           llim = ulim+1
           ulim = llim+nzed_segment-1
           ikx = ikxmod(iseg,ie,iky)
           itmod = it_right(itmod)
-          g(ikx,iz_low(iseg),itmod) = gext(llim-1)
-          g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod) = gext(llim:ulim)
+          g(ikx,iz_low(iseg),itmod) = gext(llim-1)*curr_shift
+          g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod) = gext(llim:ulim)*curr_shift
        end do
     end if
 
@@ -400,6 +413,7 @@ contains
     if (allocated(ikxmod)) deallocate (ikxmod)
     if (allocated(it_right)) deallocate (it_right)
     if (allocated(it_left)) deallocate (it_left)
+    if (allocated(phase_shift)) deallocate (phase_shift)
 
     extended_zgrid_initialized = .false.
 
