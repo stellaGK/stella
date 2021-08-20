@@ -191,6 +191,7 @@ contains
 
     use species, only: spec, nspec
     use vpamu_grids, only: dvpa, dmu, mu, nmu
+!   use vpamu_grids, only: calculate_velocity_integrals
     use stella_geometry, only: bmag
     use stella_layouts
 
@@ -202,6 +203,8 @@ contains
 
     if (collisions_initialized) return
     collisions_initialized = .true.
+
+!   call calculate_velocity_integrals
 
     if (collision_model == "dougherty") then
         if (collisions_implicit) then
@@ -851,7 +854,7 @@ contains
     use zgrid, only: nzgrid
     use stella_geometry, only: bmag
     use vpamu_grids, only: dmu, mu, nmu
-    use vpamu_grids, only: dmu_cell, mu_cell
+    use vpamu_grids, only: dmu_cell, mu_cell, wgts_mu_bare
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
     use dist_fn_arrays, only: kperp2
@@ -874,8 +877,8 @@ contains
     ! 2nd order centered differences for dt * nu * d/dmu (mu/B*dh/dmu + 2*mu*h)
     do is = 1, nspec
        do iz = -nzgrid, nzgrid
-          aa_mu(iz,2:,is)     = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)-1.0)/dmu_cell(2:)
-          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)+1.0)/dmu_cell(:nmu-1)
+          aa_mu(iz,2:,is)     = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)-1.0)/wgts_mu_bare(2:)
+          cc_mu(iz,:nmu-1,is) = -code_dt*spec(is)%vnew(is)*mu_cell(:nmu-1)*(1.0/(bmag(ia,iz)*dmu)+1.0)/wgts_mu_bare(:nmu-1)
        end do
     end do
 
@@ -892,14 +895,14 @@ contains
        is = is_idx(kxkyz_lo,ikxkyz)
        bb_mu(1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
           * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
-            + 1.0/(dmu(1)*bmag(ia,iz)) - 1.0)
+            + dmu_cell(1)*(1.0/(dmu(1)*bmag(ia,iz)) - 1.0)/wgts_mu_bare(1))
        bb_mu(2:nmu-1,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
           * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
             + (mu_cell(2:nmu-1)/dmu(2:)+mu_cell(:nmu-2)/dmu(:nmu-2)) &
-            /(dmu_cell(2:nmu-1)*bmag(ia,iz)) - 1.0)
+            /(wgts_mu_bare(2:nmu-1)*bmag(ia,iz)) - dmu_cell(2:nmu-1)/wgts_mu_bare(2:nmu-1))
        bb_mu(nmu,ikxkyz) = 1.0 + code_dt*spec(is)%vnew(is) &
           * (0.25*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2 &
-            + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(nmu))
+            + mu_cell(nmu-1)*(1.0/(dmu(nmu-1)*bmag(ia,iz)) + 1.0)/wgts_mu_bare(nmu))
     end do
 
   end subroutine init_mudiff_matrix
@@ -2386,7 +2389,7 @@ contains
   subroutine mu_differential_operator (tfac, iz, ia, h, Dh)
 
     use vpamu_grids, only: nmu, mu, dmu
-    use vpamu_grids, only: mu_cell, dmu_cell
+    use vpamu_grids, only: mu_cell, dmu_cell, wgts_mu_bare
     use vpamu_grids, only: equally_spaced_mu_grid
     use stella_geometry, only: bmag
 
@@ -2400,23 +2403,22 @@ contains
     integer :: imu
     real :: mm, m0, mp
 
-
     ! the following finite difference method is explained in init_mudiff_matrix
 
     imu = 1
-    m0 = 1.0 - tfac/(dmu(imu)*bmag(ia,iz))
-    mp = mu_cell(imu)*(tfac/(bmag(ia,iz)*dmu(imu)) + 1.0)/dmu_cell(imu)
+    m0 = dmu_cell(imu)*(1.0 - tfac/(dmu(imu)*bmag(ia,iz)))/wgts_mu_bare(imu)
+    mp = mu_cell(imu)*(tfac/(bmag(ia,iz)*dmu(imu)) + 1.0)/wgts_mu_bare(imu)
     Dh(imu) = m0*h(imu) + mp*h(imu+1)
 
     imu = nmu
-    mm =  mu_cell(imu-1)*(tfac/(bmag(ia,iz)*dmu(imu-1)) - 1.0)/dmu_cell(imu)
-    m0 = -mu_cell(imu-1)*(tfac/(dmu(imu-1)*bmag(ia,iz)) + 1.0)/dmu_cell(imu)
+    mm =  mu_cell(imu-1)*(tfac/(bmag(ia,iz)*dmu(imu-1)) - 1.0)/wgts_mu_bare(imu)
+    m0 = -mu_cell(imu-1)*(tfac/(dmu(imu-1)*bmag(ia,iz)) + 1.0)/wgts_mu_bare(imu)
     Dh(imu) = mm*h(imu-1) + m0*h(imu)
 
     do imu = 2, nmu-1
-      mm =   mu_cell(imu-1)*(tfac/(bmag(ia,iz)*dmu(imu-1)) - 1.0)/dmu_cell(imu)
-      m0 = -(mu_cell(imu)/dmu(imu) + mu_cell(imu-1)/dmu(imu-1))*tfac/(dmu_cell(imu)*bmag(ia,iz)) + 1.0
-      mp =   mu_cell(imu  )*(tfac/(bmag(ia,iz)*dmu(imu  )) + 1.0)/dmu_cell(imu)
+      mm =   mu_cell(imu-1)*(tfac/(bmag(ia,iz)*dmu(imu-1)) - 1.0)/wgts_mu_bare(imu)
+      m0 = -(mu_cell(imu)/dmu(imu) + mu_cell(imu-1)/dmu(imu-1))*tfac/(wgts_mu_bare(imu)*bmag(ia,iz)) + dmu_cell(imu)/wgts_mu_bare(imu)
+      mp =   mu_cell(imu  )*(tfac/(bmag(ia,iz)*dmu(imu  )) + 1.0)/wgts_mu_bare(imu)
       Dh(imu) = mm*h(imu-1) + m0*h(imu) + mp*h(imu+1) 
     enddo
 
@@ -2429,6 +2431,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
+!   use vpamu_grids, only: int_vpa2
     use dist_fn_arrays, only: kperp2
     use gyro_averages, only: aj0v, aj1v
 
@@ -2442,19 +2445,28 @@ contains
     complex :: integral
     integer :: ia
 
+    real :: norm
+
     allocate (u_fac(nvpa,nmu))
 
     ia = 1
 
-    u_fac = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)
-    call integrate_vmu (u_fac*h,iz,integral)
+!   norm = 1.0/int_vpa2(ia,iz,is)
+    norm = 2.0
 
-    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+    if (vpa_operator) then 
+      u_fac = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)
+      call integrate_vmu (u_fac*h,iz,integral)
 
-    u_fac = spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,ia,iz))*spec(is)%smz/bmag(ia,iz)
-    call integrate_vmu (u_fac*h,iz,integral)
+      Ch = Ch + norm*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+    endif
 
-    Ch = Ch + 2.0*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+    if (mu_operator) then 
+      u_fac = spread(vperp2(ia,iz,:)*aj1v(:,ikxkyz),1,nvpa)*sqrt(kperp2(iky,ikx,ia,iz))*spec(is)%smz/bmag(ia,iz)
+      call integrate_vmu (u_fac*h,iz,integral)
+
+      Ch = Ch + norm*u_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+    endif
 
     deallocate (u_fac)
 
@@ -2465,6 +2477,7 @@ contains
     use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: vpa, nvpa, nmu, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
+!   use vpamu_grids, only: int_unit, int_vpa2, int_vperp2, int_vfrth
     use gyro_averages, only: aj0v
 
     implicit none
@@ -2475,13 +2488,22 @@ contains
 
     complex, dimension (:,:), allocatable :: T_fac
     complex :: integral
+    real :: norm
+    
+    integer :: ia
 
     allocate (T_fac(nvpa,nmu))
 
-    T_fac = spread(aj0v(:,ikxkyz),1,nvpa)*(spread(vpa**2,2,nmu)+spread(vperp2(1,iz,:),1,nvpa)-1.5)
+    ia = 1
+    T_fac = 0.0
+    if (vpa_operator) T_fac = spread(aj0v(:,ikxkyz),1,nvpa)*(spread(vpa**2,2,nmu))-0.5
+    if (mu_operator)  T_fac = T_fac + spread(vperp2(ia,iz,:),1,nvpa)-1.0
     call integrate_vmu (T_fac*h,iz,integral)
 
-    Ch = Ch + 4.0*T_fac*integral*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)/3.0
+!   norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
+    norm = 2.0/3.0
+
+    Ch = Ch + 2.0*norm*T_fac*integral*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
 
     deallocate (T_fac)
 

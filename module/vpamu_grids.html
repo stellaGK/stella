@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.3% of total for modules and submodules.">447 statements</a>
+    title=" 1.4% of total for modules and submodules.">481 statements</a>
      </li> 
      
      
@@ -197,11 +197,21 @@
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-wgts_vpa_default">wgts_vpa_default</a>
       
-      <a class="list-group-item" href="../module/vpamu_grids.html#variable-maxwell_vpa">maxwell_vpa</a>
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-wgts_mu_bare">wgts_mu_bare</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-mu">mu</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-maxwell_fac">maxwell_fac</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-maxwell_vpa">maxwell_vpa</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_unit">int_unit</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_vpa2">int_vpa2</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_vperp2">int_vperp2</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_vfrth">int_vfrth</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-wgts_mu">wgts_mu</a>
       
@@ -296,6 +306,8 @@
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-finish_mu_grid">finish_mu_grid</a>
       
+      <a class="list-group-item" href="../module/vpamu_grids.html#proc-calculate_velocity_integrals">calculate_velocity_integrals</a>
+      
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-finish_vpamu_grids">finish_vpamu_grids</a>
       
     </div>
@@ -356,11 +368,21 @@
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-wgts_vpa_default">wgts_vpa_default</a>
       
-      <a class="list-group-item" href="../module/vpamu_grids.html#variable-maxwell_vpa">maxwell_vpa</a>
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-wgts_mu_bare">wgts_mu_bare</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-mu">mu</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-maxwell_fac">maxwell_fac</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-maxwell_vpa">maxwell_vpa</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_unit">int_unit</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_vpa2">int_vpa2</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_vperp2">int_vperp2</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#variable-int_vfrth">int_vfrth</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#variable-wgts_mu">wgts_mu</a>
       
@@ -454,6 +476,8 @@
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-init_mu_grid">init_mu_grid</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-finish_mu_grid">finish_mu_grid</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#proc-calculate_velocity_integrals">calculate_velocity_integrals</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-finish_vpamu_grids">finish_vpamu_grids</a>
       
@@ -620,11 +644,11 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-maxwell_vpa"></span>real,</td>
+  <td><span class="anchor" id="variable-wgts_mu_bare"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
-  <td><strong>maxwell_vpa</strong></td><td></td><td></td><td></td>
+  <td>dimension (:), allocatable</td><td>::</td>
+  <td><strong>wgts_mu_bare</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -653,6 +677,76 @@
   <td>public,</td>
   <td>dimension (:), allocatable</td><td>::</td>
   <td><strong>maxwell_fac</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxwell_vpa"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>maxwell_vpa</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-int_unit"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>int_unit</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-int_vpa2"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>int_vpa2</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-int_vperp2"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>int_vperp2</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-int_vfrth"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>int_vfrth</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -3047,6 +3141,28 @@ public subroutine <a href='../proc/finish_mu_grid.html'>finish_mu_grid</a>()
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-calculate_velocity_integrals"></span><h3>
+public subroutine <a href='../proc/calculate_velocity_integrals.html'>calculate_velocity_integrals</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-finish_vpamu_grids"></span><h3>
 public subroutine <a href='../proc/finish_vpamu_grids.html'>finish_vpamu_grids</a>()
     
@@ -3082,13 +3198,13 @@ public subroutine <a href='../proc/finish_vpamu_grids.html'>finish_vpamu_grids</
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-54-g0b35c6b</small></p>
+                                          <br /><small>v0.3-55-g8908b47</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-08-19T13:50:22.900969 
+             on 2021-08-20T15:14:16.092683 
             
           </p>
         </div>
