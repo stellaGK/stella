@@ -69,6 +69,9 @@ USE_NAGLIB ?=
 USE_SFINCS ?=
 # Use LAPACK, needed for test particle collisions
 USE_LAPACK ?= on
+# does the compiler support the iso_c_binding features of Fortran? 
+# (needed for local parallel LU decomposition) 
+HAS_ISO_C_BINDING ?= on
 #
 # * Targets:
 #
@@ -93,7 +96,7 @@ export MPIFC	?= mpif90
 #export MPIFC	?= mpifort
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
-F90FLAGS	=
+F90FLAGS	= 
 F90OPTFLAGS	=
 CC		= cc
 #MPICC		?= mpicc-mpich-gcc48
@@ -109,6 +112,7 @@ ARCHFLAGS 	= cr
 RANLIB		= ranlib
 AWK 		= awk
 PERL		= perl
+FORD       ?= ford
 
 MPI_INC	?=
 MPI_LIB ?=
@@ -116,8 +120,6 @@ FFT_INC ?=
 FFT_LIB ?=
 NETCDF_INC ?=
 NETCDF_LIB ?=
-LAPACK_INC ?=
-LAPACK_LIB ?=
 HDF5_INC ?=
 HDF5_LIB ?=
 NAG_LIB ?=
@@ -127,6 +129,14 @@ SFINCS_INC ?=
 PETSC_LIB ?=
 PETSC_INC ?=
 LIBSTELL_LIB ?=
+
+# Record the top level path. Note we don't just use $(PWD) as this
+# resolves to the directory from which make was invoked. The approach
+# taken here ensures that GK_HEAD_DIR is the location of this
+# Makefile. Note the realpath call removes the trailing slash so
+# later we need to add a slash if we want to address subdirectories
+GK_THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
+GK_HEAD_DIR := $(realpath $(dir $(GK_THIS_MAKEFILE)))
 
 ######################################################### PLATFORM DEPENDENCE
 
@@ -153,8 +163,11 @@ sinclude Makefile.local
 
 #############################################################################
 
-export UTILS=utils
-export GEO=geo
+export F90FLAGS
+export NETCDF_INC
+export NETCDF_LIB
+export UTILS=$(GK_HEAD_DIR)/utils
+export GEO=$(GK_HEAD_DIR)/geo
 export VMEC=$(GEO)/vmec_interface
 export LIBSTELL=$(VMEC)/mini_libstell
 LIBSTELL_LIB=$(LIBSTELL)/mini_libstell.a
@@ -174,6 +187,10 @@ endif
 ifndef USE_FFT
 $(warning USE_FFT is off)
 $(warning Be sure that nonlinear run makes no sense)
+endif
+
+ifdef HAS_ISO_C_BINDING
+	CPPFLAGS += -DISO_C_BINDING
 endif
 
 ifdef USE_MPI
@@ -206,9 +223,7 @@ ifdef USE_NETCDF
 	CPPFLAGS += -DNETCDF
 endif
 ifdef USE_LAPACK
-	ifeq ($(LAPACK_LIB),)
-  		LAPACK_LIB = -llapack
-        endif
+        LAPACK_LIB ?= -llapack
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
@@ -256,8 +271,8 @@ endif
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
 		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) \
 		$(LAPACK_LIB)
-F90FLAGS+= $(F90OPTFLAGS) \
-	   $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
+F90FLAGS+= $(F90OPTFLAGS)
+INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
 	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
 CFLAGS += $(COPTFLAGS)
 
@@ -274,7 +289,7 @@ ifneq ($(TOPDIR),$(CURDIR))
 	SUBDIR=true
 endif
 
-VPATH = $(UTILS):$(GEO):../$(UTILS):../$(GEO):$(VMEC)
+VPATH = $(UTILS):$(GEO):$(VMEC)
 # this just removes non-existing directory from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
 VPATH = .:$(shell echo $(VPATH_tmp) | sed "s/ /:/g")
@@ -286,7 +301,7 @@ DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
 # most common include and library directories
-DEFAULT_INC_LIST = . $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) .. ../$(UTILS) ../$(GEO)
+DEFAULT_INC_LIST = . $(UTILS) $(LIBSTELL) $(VMEC) $(GEO)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -300,9 +315,11 @@ F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 .SUFFIXES: .fpp .f90 .c .o
 
 .f90.o:
-	$(FC) $(F90FLAGS) -c $<
+	$(FC) $(F90FLAGS) $(INC_FLAGS) -c $<
 .fpp.f90:
 	$(CPP) $(CPPFLAGS) $< $@
+.F90.o:
+	$(FC) $(F90FLAGS) $(CPPFLAGS) $(INC_FLAGS) -c $<
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
@@ -326,13 +343,23 @@ include $(DEPEND)
 
 sinclude Makefile.target_$(GK_PROJECT)
 
+# Include unit test makefile, empty target so Make doesn't attempt to
+# build the file
+tests/unit/Makefile:
+include tests/unit/Makefile
+
+tests/integrated/Makefile:
+include tests/integrated/Makefile
+
+check: check-unit check-integrated
+
 ############################################################### SPECIAL RULES
 
 # comment this out to keep intermediate .f90 files
 #.PRECIOUS: $(F90FROMFPP)
 
 .INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
-		mp.f90 fft_work.f90
+		mp.f90 fft_work.f90 response_matrix.f90 multibox.f90
 
 ############################################################# MORE DIRECTIVES
 
@@ -408,3 +435,22 @@ revision:
 
 TAGS:	*.f90 *.fpp */*.f90 */*.fpp
 	etags $^
+
+############################################################# Documentation
+
+ifneq ("$(wildcard $(shell which $(FORD) 2>/dev/null))","")
+check_ford_install:
+	@echo "Using ford at $(shell which $(FORD))"
+else
+check_ford_install:
+	@echo "Ford command $(FORD) not in path -- is it installed?\\n\\tConsider installing with 'pip install --user ford' and add ${HOME}/.local/bin to PATH" ; which $(FORD)
+endif
+
+GIT_VERSION := $(shell git describe --tags --long --match "v*" --first-parent HEAD)
+
+doc: docs/stella_docs.md check_ford_install
+	$(FORD) $(INC_FLAGS) -r $(GIT_VERSION) $<
+
+cleandoc:
+	@echo "FORD docs"
+	-rm -rf docs/html

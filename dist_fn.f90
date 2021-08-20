@@ -19,8 +19,7 @@ module dist_fn
   integer :: adiabatic_option_switch
   integer, parameter :: adiabatic_option_default = 1, &
        adiabatic_option_zero = 2, &
-       adiabatic_option_fieldlineavg = 3, &
-       adiabatic_option_yavg = 4
+       adiabatic_option_fieldlineavg = 3
 
   logical :: debug = .false.
 
@@ -34,7 +33,7 @@ contains
     use physics_flags, only: radial_variation
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-    use kt_grids, only: nalpha, nakx, naky, nx, multiply_by_rho
+    use kt_grids, only: nalpha, nakx, naky, multiply_by_rho
     use vpamu_grids, only: mu, vpa, vperp2
     use zgrid, only: nzgrid, ntubes
     use species, only: spec, pfac
@@ -99,12 +98,7 @@ contains
 
     use mp, only: proc0
     use stella_layouts, only: init_dist_fn_layouts
-    use species, only: nspec
-    use zgrid, only: ntubes
     use gyro_averages, only: init_bessel
-    use physics_flags, only: full_flux_surface
-    use physics_flags, only: nonlinear
-    use physics_flags, only: include_parallel_nonlinearity
 
     implicit none
 
@@ -136,14 +130,13 @@ contains
 
     logical :: dfexist
 
-    type (text_option), dimension (7), parameter :: adiabaticopts = &
+    type (text_option), dimension (6), parameter :: adiabaticopts = &
          (/ text_option('default', adiabatic_option_default), &
             text_option('no-field-line-average-term', adiabatic_option_default), &
             text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
             text_option('iphi00=0', adiabatic_option_default), &
             text_option('iphi00=1', adiabatic_option_default), &
-            text_option('iphi00=2', adiabatic_option_fieldlineavg), &
-            text_option('iphi00=3', adiabatic_option_yavg)/)
+            text_option('iphi00=2', adiabatic_option_fieldlineavg) /)
     character(30) :: adiabatic_option
             
     namelist /dist_fn_knobs/ adiabatic_option
@@ -197,12 +190,19 @@ contains
           do ikx = 1, nakx
              if(q_as_x) then
                kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22
-               dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/kperp2(iky,ikx,:,:)
+               where (kperp2(iky,ikx,:,:) .gt. epsilon(0.0))
+                 dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/kperp2(iky,ikx,:,:)
+               elsewhere
+                 dkperp2dr(iky,ikx,:,:) = 0.0
+               endwhere
              else
                kperp2(iky,ikx,:,:) = akx(ikx)*akx(ikx)*gds22/(geo_surf%shat**2)
-               dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/(geo_surf%shat**2*kperp2(iky,ikx,:,:))
+               where (kperp2(iky,ikx,:,:) .gt. epsilon(0.0))
+                 dkperp2dr(iky,ikx,:,:) = akx(ikx)*akx(ikx)*dgds22dr/(geo_surf%shat**2*kperp2(iky,ikx,:,:))
+               elsewhere
+                 dkperp2dr(iky,ikx,:,:) = 0.0
+               endwhere
              endif
-             if(any(kperp2(iky,ikx,:,:) .lt. epsilon(0.))) dkperp2dr(iky,ikx,:,:) = 0.
           end do
        else
           do ikx = 1, nakx

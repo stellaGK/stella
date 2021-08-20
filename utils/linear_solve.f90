@@ -5,6 +5,7 @@ module linear_solve
   public :: lu_decomposition
   public :: lu_back_substitution
   public :: lu_inverse
+  public :: imaxloc
 
   interface lu_decomposition
      module procedure lu_decomposition_real

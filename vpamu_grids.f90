@@ -9,6 +9,7 @@ module vpamu_grids
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
   public :: mu, nmu, wgts_mu, dmu
+  public :: dmu_ghost, dmu_cell, mu_cell
   public :: maxwell_vpa, maxwell_mu, ztmax
   public :: maxwell_fac
   public :: vperp2
@@ -30,6 +31,7 @@ module vpamu_grids
   real, dimension (:,:), allocatable :: ztmax
   real :: dvpa
   real, dimension (:), allocatable :: dmu
+  real, dimension (:), allocatable :: dmu_ghost, dmu_cell, mu_cell
   complex, dimension (:), allocatable :: rbuffer
   logical :: equally_spaced_mu_grid
 
@@ -457,7 +459,7 @@ contains
 !   end subroutine integrate_species_vmu
 
   ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single (g, iz, weights, total, ia_in)
+  subroutine integrate_species_vmu_single (g, iz, weights, total, ia_in, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -465,12 +467,14 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     real, dimension (:), intent (in) :: weights
     complex, intent (out) :: total
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
 
     total = 0.
     
@@ -478,6 +482,11 @@ contains
        ia = ia_in
     else
        ia = 1
+    end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
     end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -488,12 +497,12 @@ contains
             wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
     end do
 
-    call sum_allreduce (total)
+    if (reduce) call sum_allreduce (total)
 
   end subroutine integrate_species_vmu_single
 
   ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single_real (g, iz, weights, total, ia_in)
+  subroutine integrate_species_vmu_single_real (g, iz, weights, total, ia_in,reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -501,12 +510,14 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     real, dimension (vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     real, dimension (:), intent (in) :: weights
     real, intent (out) :: total
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
 
     total = 0.
     
@@ -514,6 +525,11 @@ contains
        ia = ia_in
     else
        ia = 1
+    end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
     end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -524,11 +540,11 @@ contains
             wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
     end do
 
-    call sum_allreduce (total)
+    if (reduce) call sum_allreduce (total)
 
   end subroutine integrate_species_vmu_single_real
 
-  subroutine integrate_species_vmu_block_complex (g, iz, weights, pout, ia_in)
+  subroutine integrate_species_vmu_block_complex (g, iz, weights, pout, ia_in, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -536,10 +552,12 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:), intent (out) :: pout
 
@@ -550,6 +568,11 @@ contains
     else
        ia = 1
     end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
+    end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -558,11 +581,11 @@ contains
        pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
     end do
 
-    call sum_allreduce (pout)
+    if (reduce) call sum_allreduce (pout)
 
   end subroutine integrate_species_vmu_block_complex
 
-  subroutine integrate_species_vmu_block_real (g, iz, weights, pout, ia_in)
+  subroutine integrate_species_vmu_block_real (g, iz, weights, pout, ia_in,reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -570,10 +593,12 @@ contains
     implicit none
 
     integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
 
     real, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
     integer, intent (in) :: iz
     integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
     real, dimension (:), intent (in) :: weights
     real, dimension (:,:), intent (out) :: pout
 
@@ -584,6 +609,11 @@ contains
     else
        ia = 1
     end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
+    end if
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -592,7 +622,7 @@ contains
        pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
     end do
 
-    call sum_allreduce (pout)
+    if (reduce) call sum_allreduce (pout)
 
   end subroutine integrate_species_vmu_block_real
 
@@ -629,6 +659,9 @@ contains
        allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
        allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; maxwell_mu = 0.0
        allocate (dmu(nmu-1))
+       allocate (dmu_ghost(nmu))
+       allocate (mu_cell(nmu))
+       allocate (dmu_cell(nmu))
     end if
 
     allocate (wgts_mu_tmp(nmu)) ; wgts_mu_tmp = 0.0
@@ -652,6 +685,7 @@ contains
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
        call get_laguerre_grids (mu, wgts_mu_tmp)
+       if(vperp_max.lt.0) vperp_max = sqrt(mu(nmu))
        wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
@@ -673,6 +707,17 @@ contains
 
     deallocate (wgts_mu_tmp)
 
+    ! add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
+    ! note assuming here that grid spacing for ghost cell is equal to
+    ! grid spacing for last non-ghost cell
+    dmu_ghost(:nmu-1) = dmu ; dmu_ghost(nmu) = dmu(nmu-1)
+    ! this is mu at cell centres (including to left and right of mu grid boundary points)
+    mu_cell(:nmu-1) = 0.5*(mu(:nmu-1)+mu(2:))
+    mu_cell(nmu) = mu(nmu)+0.5*dmu(nmu-1)
+    ! this is mu_{j+1/2} - mu_{j-1/2}
+    dmu_cell(1) = mu_cell(1)
+    dmu_cell(2:) = mu_cell(2:)-mu_cell(:nmu-1)
+
   end subroutine init_mu_grid
 
   subroutine finish_mu_grid
@@ -680,9 +725,12 @@ contains
     implicit none
 
     if (allocated(mu)) deallocate (mu)
+    if (allocated(mu_cell)) deallocate (mu_cell)
     if (allocated(wgts_mu)) deallocate (wgts_mu)
     if (allocated(maxwell_mu)) deallocate (maxwell_mu)
     if (allocated(dmu)) deallocate (dmu)
+    if (allocated(dmu_cell)) deallocate (dmu_cell)
+    if (allocated(dmu_ghost)) deallocate (dmu_ghost)
     if (allocated(rbuffer)) deallocate (rbuffer)
 
   end subroutine finish_mu_grid

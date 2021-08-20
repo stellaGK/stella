@@ -5,4 +5,4 @@ OBJ_FILES = fzero.o test_vmec_to_stella_geometry_interface.o vmec_to_stella_geom
 # Dependencies:
 fzero.o:
 test_vmec_to_stella_geometry_interface.o: vmec_to_stella_geometry_interface.o 
-vmec_to_stella_geometry_interface.o: mini_libstell/mini_libstell.a
+vmec_to_stella_geometry_interface.o: $(LIBSTELL_FOR_STELLA)

@@ -6,8 +6,8 @@ module flow_shear
   public :: init_flow_shear, finish_flow_shear
   public :: prl_shear, prl_shear_p, prp_shear
   public :: advance_parallel_flow_shear, advance_perp_flow_shear
-  public :: shift_state, shift_times
   public :: v_edge, v_shift
+  public :: shift_times
 
   private
 
@@ -15,7 +15,7 @@ module flow_shear
 
   complex, dimension (:,:), allocatable :: upwind_advect
   real, dimension (:,:,:), allocatable :: prl_shear, prl_shear_p
-  real, dimension (:), allocatable :: prp_shear, shift_times, shift_state
+  real, dimension (:), allocatable :: prp_shear, shift_times
 
   integer :: shift_sign, shift_start
 
@@ -30,7 +30,8 @@ contains
     use species, only: spec
     use constants, only: zi, pi
     use zgrid, only: nzgrid
-    use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode
+    use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode, box
+    use fields_arrays, only: shift_state
     use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
     use stella_geometry, only: dydalpha, drhodpsi
     use physics_parameters, only: g_exb, g_exbfac, omprimfac
@@ -77,8 +78,10 @@ contains
 
     allocate (energy(nalpha,-nzgrid:nzgrid))
 
-    if (.not.allocated(prl_shear)) &
+    if (.not.allocated(prl_shear)) then
       allocate (prl_shear(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      prl_shear = 0.0
+    endif
 
     if (radial_variation.and..not.allocated(prl_shear_p)) &
       allocate (prl_shear_p(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -118,11 +121,10 @@ contains
       shift_state = 0.
     endif
 
-    if(nakx.gt.1) then
+    if(nakx.gt.1.and.abs(g_exb*g_exbfac).gt.0) then
       shift_times = abs(akx(2)/(aky*g_exb*g_exbfac))
     endif
-    if(zonal_mode(1)) shift_times(1) = 0.
-
+    if(zonal_mode(1)) shift_times(1) = huge(0.)
 
     if(g_exb*g_exbfac > 0.) then
       shift_sign = -1
@@ -132,7 +134,7 @@ contains
       shift_start = ikx_max + 1
     endif
 
-    upwind_advect = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nakx)*spread(x_d,1,naky))
+    if(box) upwind_advect = exp(-zi*g_exbfac*g_exb*code_dt*spread(aky,2,nakx)*spread(x_d,1,naky))
 
   end subroutine init_flow_shear
 
@@ -177,11 +179,11 @@ contains
 
     use stella_layouts, only: vmu_lo
     use constants, only: zi
-    use physics_parameters, only: g_exb, g_exbfac
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: aky, nakx, naky, nx, ikx_max, zonal_mode
+    use fields_arrays, only: shift_state
+    use kt_grids, only: aky, nakx, naky, ikx_max, zonal_mode
     use file_utils, only: runtype_option_switch, runtype_multibox
     use stella_time, only: code_dt
 
@@ -279,6 +281,7 @@ contains
   end subroutine advance_perp_flow_shear
 
   subroutine finish_flow_shear
+    use fields_arrays, only: shift_state
 
     implicit none
 
