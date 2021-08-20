@@ -13,8 +13,8 @@ module run_parameters
   public :: stream_implicit, mirror_implicit
   public :: drifts_implicit
   public :: driftkinetic_implicit
-  public :: fully_explicit
-  public :: use_leapfrog_splitting
+  public :: none_implicit
+  public :: use_leapfrog_splitting, leapfrog_nonlinear, leapfrog_drifts
   public :: nisl_nonlinear
   public :: ky_solve_radial, ky_solve_real
   public :: maxwellian_inside_zed_derivative
@@ -32,11 +32,12 @@ module run_parameters
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
-  logical :: fully_explicit, drifts_implicit
+  logical :: none_implicit, drifts_implicit
   logical :: maxwellian_inside_zed_derivative
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option
   logical :: use_leapfrog_splitting
+  logical :: leapfrog_nonlinear, leapfrog_drifts
   logical :: nisl_nonlinear
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
   logical :: ky_solve_real
@@ -96,7 +97,7 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option, &
-         ky_solve_radial, ky_solve_real, use_leapfrog_splitting, nisl_nonlinear
+         ky_solve_radial, ky_solve_real, leapfrog_nonlinear, leapfrog_drifts, nisl_nonlinear
 
     if (proc0) then
        fphi = 1.0
@@ -113,7 +114,8 @@ contains
        mirror_linear_interp = .false.
        no_advection_option = .false.
        stream_matrix_inversion = .false.
-       use_leapfrog_splitting = .false.
+       leapfrog_nonlinear = .false.
+       leapfrog_drifts = .false.
        nisl_nonlinear = .false.
        delt_option = 'default'
        lu_option = 'default'
@@ -136,9 +138,12 @@ contains
            mirror_semi_lagrange = .false.
        end if
 
-       if (use_leapfrog_splitting) then
-         ! TODO: set other terms to .false.
+       if (leapfrog_drifts .or. nisl_nonlinear .or. leapfrog_nonlinear) then
+         use_leapfrog_splitting = .true.
+       else
+         use_leapfrog_splitting = .false.
        end if
+
        ierr = error_unit()
        call get_option_value &
             (delt_option, deltopts, delt_option_switch, ierr, &
@@ -170,6 +175,8 @@ contains
     call broadcast (no_advection_option)
     call broadcast (stream_matrix_inversion)
     call broadcast (use_leapfrog_splitting)
+    call broadcast (leapfrog_nonlinear)
+    call broadcast (leapfrog_drifts)
     call broadcast (nisl_nonlinear)
     call broadcast (zed_upwind)
     call broadcast (vpa_upwind)
@@ -193,9 +200,9 @@ contains
     end if
 
     if (mirror_implicit.or.stream_implicit.or.driftkinetic_implicit.or.drifts_implicit) then
-       fully_explicit = .false.
+       none_implicit = .false.
     else
-       fully_explicit = .true.
+       none_implicit = .true.
     end if
 
     if (fields_kxkyz .and. full_flux_surface) then

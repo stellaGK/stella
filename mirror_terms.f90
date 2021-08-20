@@ -48,10 +48,10 @@ contains
 
     if (mirror_initialized) return
     mirror_initialized = .true.
-    
+
     if (.not.allocated(mirror)) allocate (mirror(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; mirror = 0.
     if (.not.allocated(mirror_sign)) allocate (mirror_sign(nalpha,-nzgrid:nzgrid)) ; mirror_sign = 0
-    
+
     allocate (neoclassical_term(-nzgrid:nzgrid,nspec))
     if (include_neoclassical_terms) then
        neoclassical_term = spread(dphineo_dzed(1,:),2,nspec)*spread(spec%zt_psi0,1,nztot)*0.5
@@ -78,7 +78,7 @@ contains
 
     if(radial_variation) then
       if(.not.allocated(mirror_rad_var)) then
-        allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec)); 
+        allocate (mirror_rad_var(nalpha,-nzgrid:nzgrid,nmu,nspec));
         mirror_rad_var = 0.
       endif
       !FLAG should include neoclassical corrections here?
@@ -102,10 +102,10 @@ contains
     end do
 
     if (mirror_implicit) then
-       if (mirror_semi_lagrange) then 
+       if (mirror_semi_lagrange) then
           call init_mirror_semi_lagrange
        else if (mirror_semi_lagrange_non_interp) then
-          call init_mirror_semi_lagrange_non_interp 
+          call init_mirror_semi_lagrange_non_interp
        else
           call init_invert_mirror_operator
        end if
@@ -238,7 +238,7 @@ contains
     ! with assumed zero BC at extremes in both +/- vpa
     b(1,1) = -1.0/dvpa
     c(1,1) = 1.0/dvpa
-       
+
     ! corresponds to sign of mirror term negative on RHS of equation
     a(2:nvpa-1,-1) = -0.5*(1.0+vpa_upwind)/dvpa
     b(:nvpa-1,-1) = vpa_upwind/dvpa
@@ -395,7 +395,7 @@ contains
 
     ! the mirror term is most complicated of all when doing full flux surface
     if (full_flux_surface) then
-      ! FLAG DSO - Someday one should be able to do full global 
+      ! FLAG DSO - Someday one should be able to do full global
     else
        if (.not.fields_kxkyz) then
           if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
@@ -664,7 +664,7 @@ contains
                 ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
                 ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
                 g0v(:,imu,ikxkyz) = gvmu(:,imu,ikxkyz) + tupwnd*mirror(1,iz,imu,is)*g0v(:,imu,ikxkyz)
-                
+
                 ! invert_mirror_operator takes rhs of equation and
                 ! returns g^{n+1}
                 call invert_mirror_operator (imu, ikxkyz, g0v(:,imu,ikxkyz))
@@ -677,7 +677,7 @@ contains
        call gather (kxkyz2vmu, g0v, g)
        if (proc0) call time_message(.false.,time_mirror(:,2),' mirror_redist')
     end if
-    
+
     deallocate (g0x,g0v)
 
     if (proc0) call time_message(.false.,time_mirror,' Mirror advance')
@@ -739,7 +739,7 @@ contains
                 do iv = 1, -shift
                    interp(iv,imu,ikxkyz) = grid(1,imu,ikxkyz)*real(iv-1)/real(-shift)
                 end do
-                
+
              end if
           end do
        end do
@@ -862,8 +862,8 @@ contains
 
           do iv = 1, nvpa
              if (no_advection_option) then ! no advection occurs, only for debugging purposes!
-                non_interp_g(iv,imu,ikxkyz) = grid(iv,imu,ikxkyz) 
-             else if (p == 0) then   
+                non_interp_g(iv,imu,ikxkyz) = grid(iv,imu,ikxkyz)
+             else if (p == 0) then
                 non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv+1,imu,ikxkyz)-grid(iv-1,imu,ikxkyz))/(2*dvpa)
                 PRINT *, "p = 0, no parallel acceleration here"
              else if (MODULO(p,2) == 0) then ! if p even
@@ -881,7 +881,7 @@ contains
                 advected_index_minus = iv-(p+1)/2
                 if (advected_index_plus <= nvpa .AND. advected_index_minus >= 0) then ! if the points are on grid
                    non_interp_g(iv,imu,ikxkyz) = -apll_prime*(grid(iv-(p-1)/2,imu,ikxkyz)-grid(iv-(p+1)/2,imu,ikxkyz))/(2*dvpa)
-                   PRINT *, "p odd, advecting! and g is", non_interp_g(iv,imu,ikxkyz) 
+                   PRINT *, "p odd, advecting! and g is", non_interp_g(iv,imu,ikxkyz)
                 else ! else, we are being accelerated by points off grid
                    non_interp_g(iv,imu,ikxkyz) = 0.! probably need to change this...
                    PRINT *, "p odd, off grid!"
@@ -917,16 +917,11 @@ contains
     if (allocated(mirror_sign)) deallocate (mirror_sign)
     if (allocated(mirror_rad_var)) deallocate (mirror_rad_var)
 
-    PRINT *, "Testing we are here 908!"
-
     if (mirror_implicit) then
-        !PRINT *, "Testing we are here 911!"
        if (mirror_semi_lagrange) then
           call finish_mirror_semi_lagrange
-          !PRINT *, "Using the interpolating scheme, called 912!"
        else if (mirror_semi_lagrange_non_interp) then
           call finish_mirror_semi_lagrange_non_interp ! JFP to make
-          PRINT *, "Using non-interpolating scheme, called 913!"
        else
           call finish_invert_mirror_operator
        end if
@@ -939,7 +934,7 @@ contains
   subroutine finish_mirror_semi_lagrange
 
     implicit none
-    
+
     if (allocated(mirror_interp_loc)) deallocate (mirror_interp_loc)
     if (allocated(mirror_interp_idx_shift)) deallocate (mirror_interp_idx_shift)
 

@@ -123,7 +123,7 @@ contains
     use file_utils, only: error_unit, input_unit_exist
     use text_options, only: text_option, get_option_value
     use mp, only: proc0, broadcast
-    use run_parameters, only: fully_explicit
+    use run_parameters, only: none_implicit
 
     implicit none
 
@@ -165,7 +165,7 @@ contains
     call broadcast (wstarknob)
     call broadcast (flip_flop)
 
-    if (fully_explicit) flip_flop = .false.
+    if (none_implicit) flip_flop = .false.
 
   end subroutine read_parameters
 
@@ -900,7 +900,7 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use fields, only: advance_fields, fields_updated
-    use run_parameters, only: fully_explicit, use_leapfrog_splitting, nisl_nonlinear
+    use run_parameters, only: none_implicit, use_leapfrog_splitting, nisl_nonlinear
     use physics_flags, only: nonlinear
     use multibox, only: RK_step
     use dissipation, only: include_krook_operator, update_delay_krook
@@ -926,20 +926,12 @@ contains
     phi_old = phi
     if (use_leapfrog_splitting .and. istep > 1) then
       call advance_explicit (golder)
-      if (.not.fully_explicit) call advance_implicit (istep, phi, apar, golder)
-      if (nonlinear) then
-        if (nisl_nonlinear) then
-          call advance_nisl_leapfrog(golder, gnew)
-          stop "Stopping"
-        else
-          ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
-          ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
-          call advance_leapfrog(golder, gnew)
-        end if
-      else
-        gnew = golder
-      end if
-      if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+      if (.not.none_implicit) call advance_implicit (istep, phi, apar, golder)
+      ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
+      ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
+      call advance_leapfrog(golder, gnew)
+
+      if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
       call advance_explicit (gnew)
 
     else
@@ -956,9 +948,9 @@ contains
 
         ! use operator splitting to separately evolve
         ! all terms treated implicitly
-        if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+        if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
       else
-        if (.not.fully_explicit) call advance_implicit (istep, phi, apar, gnew)
+        if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
         call advance_explicit (gnew)
       end if
 
@@ -1029,16 +1021,27 @@ contains
 
   end subroutine advance_explicit
 
+  !> Advance g by the Leapfrog technique:
+  !> g(i+1) = g(i-1) + (dg/dt)_leapfrog(i) * 2dt
+  !> where (dg/dt)_leapfrog(i) are terms in GKE evaluated at ti (i.e.
+  !> pertaining to gold) - the user can select these terms to be any of the
+  !> following:
+  !> nonlinear (ExB advection) term
+  !> drifts (magnetic drifts + wstar drifts)
+  !> NB more terms could be implemented in this way if desired
+  !> This subroutine takes g(i-1) and g(i) as inputs; g(i) is overwritten
+  !> by g(i+1)
   subroutine advance_leapfrog (golder, gout)
 
-    use mp, only: proc0, min_allreduce
-    use job_manage, only: time_message
-    use stella_time, only: cfl_dt, code_dt, code_dt_max
-    use run_parameters, only: cfl_cushion, delt_adjust, fphi
-    use physics_parameters, only: g_exb, g_exbfac
-    use zgrid, only: nzgrid
+    !use mp, only: proc0, min_allreduce
+    !use job_manage, only: time_message
+    !use stella_time, only: cfl_dt, code_dt, code_dt_max
+    use run_parameters, only: nisl_nonlinear, leapfrog_nonlinear, leapfrog_drifts
+    !use physics_parameters, only: g_exb, g_exbfac
+    use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
-    use dist_fn_arrays, only: g1
+    use kt_grids, only: naky, nakx
+    use fields_arrays, only: phi
     implicit none
 
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
@@ -1047,34 +1050,54 @@ contains
 
     logical  :: restart_time_step
     integer :: icnt
-
-    ! start the timer for the explicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
+    complex, dimension (:,:,:,:,:), allocatable :: rhs
 
     ! if CFL condition is violated by nonlinear term
     ! then must modify time step size and restart time step
     ! assume false and test
     restart_time_step = .false.
+    ! There are 2 different "flavours" of leapfrog option we can use:
+    ! (1) Use NISL for the leapfrog step - has to be done as a single
+    ! operation (SL scheme)
+    !
+    ! (2) Use "normal" (explicit) method, whereby (dg/dt) is explicitly evaluated
+    if (nisl_nonlinear) then
+      call advance_nisl_leapfrog(golder, gout)
+    else
+      ! Calculate the rhs from the nonlinear and/or drift terms.
+      ! There are already methods which calculate this, assuming that the
+      ! step to be taking is dt - calculate the RHS using these and then
+      ! double to get a step of 2dt.
+      allocate (rhs(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      rhs = 0
+      icnt = 1
+      do while (icnt <= 1)
+        if (leapfrog_nonlinear) call advance_ExB_nonlinearity (gout, rhs, restart_time_step)
+        if (.not. restart_time_step) then
+          if (leapfrog_drifts) then
+            ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+            call advance_wdrifty_explicit (gout, phi, rhs)
 
-    ! Don't think this is needed, but need to check
-    ! if(RK_step) call multibox_communicate (golder)
-    ! if(RK_step) call multibox_communicate (gout)
+            ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
+            call advance_wdriftx_explicit (gout, phi, rhs)
 
-    icnt = 1
-    ! if GK equation written as dg/dt = rhs - vpar . grad h,
-    ! solve_gke returns rhs*dt
-    do while (icnt <= 1)
-      call advance_ExB_nonlinearity (gout, g1, restart_time_step)
-      if (restart_time_step) then
+            ! calculate and add omega_* term to RHS of GK eqn
+            call advance_wstar_explicit (rhs)
+          end if
+        end if
+
+        if (restart_time_step) then
           icnt = 1
-      else
+        else
           icnt = icnt + 1
-      end if
-    end do
+        end if
+      end do
 
+      ! g(i+1) = g(i-1) + (dg/dt)_leapfrog(i) * 2dt
+      gout = golder+2*rhs
 
-    ! Multiply RHS by 2, because it's the nonlinearity applied for dt.
-    gout = golder+2*g1
+      deallocate(rhs)
+    end if
 
   end subroutine advance_leapfrog
 
@@ -1292,7 +1315,7 @@ contains
     use physics_flags, only: include_mirror
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
-    use run_parameters, only: use_leapfrog_splitting
+    use run_parameters, only: nisl_nonlinear, leapfrog_nonlinear, leapfrog_drifts
     use physics_parameters, only: g_exb
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, ny
@@ -1339,7 +1362,8 @@ contains
     ! do this first, as the CFL condition may require a change in time step
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     ! Bob: Don't calculate nonlinear here, if we're using the Leapfrog method
-    if (nonlinear .and. .not. use_leapfrog_splitting) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    if (nonlinear .and. .not. nisl_nonlinear &
+        .and. .not. leapfrog_nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
@@ -1353,7 +1377,7 @@ contains
           call advance_mirror_explicit (gin, rhs)
        end if
 
-       if (.not.drifts_implicit) then
+       if (.not.drifts_implicit .and. .not. leapfrog_drifts) then
          ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
          call advance_wdrifty_explicit (gin, phi, rhs)
 
