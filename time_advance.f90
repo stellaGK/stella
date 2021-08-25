@@ -965,6 +965,11 @@ contains
 
     gold = gnew
 
+    ! For diagnostics to calculate omega, we need the fields corresponding to
+    ! the g at the end of the timestep. This may have already been calculated
+    ! (and fields_updated set to .true.), but it may not have - so update here. 
+    call advance_fields (gnew, phi, apar, bpar, dist='gbar')
+
   end subroutine advance_stella
 
 !  subroutine advance_explicit (phi, apar, g)
