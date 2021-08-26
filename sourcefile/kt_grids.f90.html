@@ -540,7 +540,7 @@
 <a name="ln-267"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">shat</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">shat_zero</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-268"></a><span class="k">       </span><span class="n">dkx</span> <span class="o">=</span> <span class="n">dky</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
 <a name="ln-269"></a>    <span class="k">else</span>
-<a name="ln-270"></a><span class="k">       </span><span class="n">dkx</span> <span class="o">=</span> <span class="n">dky</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">twist_and_shift_geo_fac</span><span class="p">)</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
+<a name="ln-270"></a><span class="k">       </span><span class="n">dkx</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">nperiod</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dky</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">twist_and_shift_geo_fac</span><span class="p">)</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
 <a name="ln-271"></a>    <span class="k">end if</span>
 <a name="ln-272"></a>
 <a name="ln-273"></a><span class="k">    </span><span class="n">x0</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">dkx</span>
@@ -731,7 +731,7 @@
 <a name="ln-458"></a>                  <span class="o">=</span> <span class="p">(</span><span class="o">/</span> <span class="p">(</span><span class="n">theta0_min</span> <span class="o">+</span> <span class="n">dtheta0</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">nakx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span><span class="p">)</span>
 <a name="ln-459"></a>          <span class="k">end do</span>
 <a name="ln-460"></a><span class="k">          </span><span class="n">akx</span> <span class="o">=</span> <span class="n">theta0</span><span class="p">(</span><span class="mi">1</span><span class="p">,:)</span> <span class="o">*</span> <span class="n">tfac</span> <span class="o">*</span> <span class="n">aky</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-461"></a>       <span class="k">else if</span> <span class="p">(</span><span class="n">akx_max</span> <span class="o">&gt;</span> <span class="n">akx_min</span><span class="o">-</span><span class="n">zero</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-461"></a>       <span class="k">else if</span> <span class="p">(</span><span class="n">akx_max</span> <span class="o">&gt;</span> <span class="n">akx_min</span><span class="o">-</span><span class="n">zero</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">nakx</span><span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-462"></a><span class="k">          </span><span class="n">dkx</span> <span class="o">=</span> <span class="mf">0.0</span>
 <a name="ln-463"></a>          <span class="k">if</span> <span class="p">(</span><span class="n">nakx</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="n">dkx</span> <span class="o">=</span> <span class="p">(</span><span class="n">akx_max</span> <span class="o">-</span> <span class="n">akx_min</span><span class="p">)</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nakx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 <a name="ln-464"></a>          <span class="n">akx</span> <span class="o">=</span> <span class="p">(</span><span class="o">/</span> <span class="p">(</span><span class="n">akx_min</span> <span class="o">+</span> <span class="n">dkx</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="n">nakx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span><span class="p">)</span>
@@ -1094,13 +1094,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-55-g8908b47</small></p>
+                                          <br /><small>v0.3-56-g7742c47</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-08-20T15:14:16.092683 
+             on 2021-08-26T10:08:09.781487 
             
           </p>
         </div>
