@@ -930,10 +930,7 @@ contains
 
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
-    fields_updated = .false.
-    call advance_fields (gnew, phi, apar, bpar, dist='gbar')
     phi_old = phi
-    ! write(gold
 
     ! reverse the order of operations every time step
     ! as part of alternating direction operator splitting
@@ -965,10 +962,8 @@ contains
 
     gold = gnew
 
-    ! For diagnostics to calculate omega, we need the fields corresponding to
-    ! the g at the end of the timestep. This may have already been calculated
-    ! (and fields_updated set to .true.), but it may not have - so update here. 
-    call advance_fields (gnew, phi, apar, bpar, dist='gbar')
+    ! Ensure fields are updated so that omega calculation is correct.
+    call advance_fields (gnew, phi, apar, dist='gbar')
 
   end subroutine advance_stella
 
