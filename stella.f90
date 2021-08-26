@@ -121,6 +121,7 @@ contains
     use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
     use dissipation, only: init_dissipation
+    use sources, only: init_sources
     use volume_averages, only: init_volume_averages, volume_average
 
     implicit none
@@ -250,6 +251,8 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'stella::init_stella::init_dissipation'
     call init_dissipation
+    if (debug) write (6,*) 'stella::init_stella::init_sources'
+    call init_sources
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
     if (debug) write(6,*) "stella::init_stella::ginit"
@@ -386,6 +389,7 @@ contains
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
     use dissipation, only: time_collisions
+    use sources, only: finish_sources
     use init_g, only: finish_init_g
     use dist_fn, only: finish_dist_fn
     use dist_redistribute, only: finish_redistribute
@@ -411,6 +415,8 @@ contains
     call finish_fields
     if (debug) write (*,*) 'stella::finish_stella::finish_time_advance'
     call finish_time_advance
+    if (debug) write (*,*) 'stella::finish_stella::finish_sources'
+    call finish_sources
     if (debug) write (*,*) 'stella::finish_stella::finish_volume_averages'
     call finish_volume_averages
     if (debug) write (*,*) 'stella::finish_stella::finish_extended_zgrid'
