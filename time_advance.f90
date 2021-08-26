@@ -902,8 +902,8 @@ contains
     use fields, only: advance_fields, fields_updated
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
-    use dissipation, only: include_krook_operator, update_delay_krook
-    use dissipation, only: remove_zero_projection, project_out_zero
+    use sources, only: include_krook_operator, update_delay_krook
+    use sources, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
     use stella_layouts, only: vmu_lo
@@ -1190,7 +1190,7 @@ contains
     use kt_grids, only: nakx, ny
     use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
-    use dissipation, only: include_krook_operator, add_krook_operator
+    use sources, only: include_krook_operator, add_krook_operator
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit

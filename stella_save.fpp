@@ -88,8 +88,8 @@ contains
     use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvpa, nmu
-    use dissipation, only: include_krook_operator, int_krook
-    use dissipation, only: remove_zero_projection, int_proj
+    use sources, only: include_krook_operator, int_krook
+    use sources, only: remove_zero_projection, int_proj
     use physics_flags, only: prp_shear_enabled
 
     implicit none
@@ -679,8 +679,8 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use file_utils, only: error_unit
-    use dissipation, only: include_krook_operator, int_krook
-    use dissipation, only: remove_zero_projection, int_proj
+    use sources, only: include_krook_operator, int_krook
+    use sources, only: remove_zero_projection, int_proj
     use physics_flags, only: prp_shear_enabled
 
     implicit none

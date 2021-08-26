@@ -43,6 +43,7 @@ stella_mod = \
 	 response_matrix.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
+	 sources.o \
 	 species.o \
 	 spfunc.o \
 	 spl.o \
@@ -87,7 +88,6 @@ dissipation.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 multibox.o \
 	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -377,6 +377,18 @@ run_parameters.o: \
 sfincs_interface.o: \
 	 mp.o \
 	 zgrid.o 
+sources.o: \
+	 constants.o \
+	 dist_fn_arrays.o \
+	 file_utils.o \
+	 kt_grids.o \
+	 mp.o \
+	 multibox.o \
+	 physics_flags.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 zgrid.o 
 species.o: \
 	 common_types.o \
 	 euterpe_interface.o \
@@ -485,7 +497,6 @@ stella_layouts.o: \
 	 mp.o 
 stella_save.o: \
 	 common_types.o \
-	 dissipation.o \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
@@ -493,6 +504,7 @@ stella_save.o: \
 	 mp.o \
 	 netcdf_utils.o \
 	 physics_flags.o \
+	 sources.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -531,6 +543,7 @@ time_advance.o: \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
+	 sources.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
