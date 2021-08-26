@@ -963,7 +963,7 @@ contains
     gold = gnew
 
     ! Ensure fields are updated so that omega calculation is correct.
-    call advance_fields (gnew, phi, apar, dist='gbar')
+    call advance_fields (gnew, phi, apar, bpar, dist='gbar')
 
   end subroutine advance_stella
 
