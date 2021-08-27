@@ -331,7 +331,6 @@ contains
              if(.not.associated(phizf_solve%idx))  allocate(phizf_solve%idx(nmat_zf))
 #endif
 
-
              allocate (g1k(1,nakx))
 
              !get B and perform LU decomposition
@@ -1074,20 +1073,6 @@ contains
             !enforce periodicity
             phi(1,:,nzgrid,it) = phi(1,:,-nzgrid,it)
         
-!           ! calculate k0.<phi>_psi
-!           tmp = 0.
-!           do iz = -nzgrid, nzgrid-1
-!             g0k(1,1) = 0.0
-!             g0k(1,2:) = phi(1,2:,iz,it) 
-
-!             call transform_kx2x_unpadded (g0k,g0x)
-!             g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-!             call transform_x2kx_unpadded(g0x,g0k)
-!             tmp = tmp + g0k(1,1)
-
-!           enddo
-!           phi(1,1,:,it) = phi(1,1,:,it) + tmp
-
 !           ! calculate Binv.Theta.phi
             tmp = 0.
             do iz = -nzgrid, nzgrid-1
@@ -1096,7 +1081,6 @@ contains
               do ikx = 1, nakx
                 g1k(1,ikx) = sum(binv_thet(ikx,:,iz)*g0k(1,:)) 
               enddo
-!             phi(1,1,iz,it) = phi(1,1,iz,it) - g1k(1,1)
 
               call transform_kx2x_unpadded (g1k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
@@ -1104,7 +1088,6 @@ contains
               tmp = tmp + g1k(1,1)/k0_Binv_fmax
 
             enddo
-!           phi(1,1,:,it) = phi(1,1,:,it) + binv_fmax(1,:)*tmp
 
             correction = correction - tmp
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
