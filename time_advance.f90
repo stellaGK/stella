@@ -1069,9 +1069,12 @@ contains
       ! step to be taking is dt - calculate the RHS using these and then
       ! double to get a step of 2dt.
       allocate (rhs(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      rhs = 0
       icnt = 1
       do while (icnt <= 1)
+        ! Set RHS to zero, then add terms relating to nonlinear and/or wdrift
+        ! piece.
+        rhs = 0
+        ! Calculate the nonlinear term and add to RHS
         if (leapfrog_nonlinear) call advance_ExB_nonlinearity (gout, rhs, restart_time_step)
         if (.not. restart_time_step) then
           if (leapfrog_drifts) then
