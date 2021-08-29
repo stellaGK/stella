@@ -914,7 +914,7 @@ contains
 
     integer, intent (in) :: istep
     complex, allocatable, dimension (:,:,:,:) :: g1
-    logical  :: restart_time_step, leapfrog_this_timestep, time_advance_successful
+    logical  :: restart_time_step, leapfrog_this_timestep, time_advance_successful, reverse_implicit_order
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -947,6 +947,11 @@ contains
       leapfrog_this_timestep = .true.
     end if
 
+    ! For reversing the order in which the implicit operators are applied
+    ! (either ABC...  or ...CBA )
+    ! The order is never reversed for Lie splitting (always ABC...), but
+    ! is reversed for flip-flop or Leapfrog splitting.
+    reverse_implicit_order = .false.
 
     if (leapfrog_this_timestep) then
       ! Try taking a leapfrog step, but if dt is reset, we can't take a Leapfrog
@@ -963,7 +968,8 @@ contains
       call advance_explicit (golder, restart_time_step)
 
       if (.not. restart_time_step) then
-        if (.not.none_implicit) call advance_implicit (istep, phi, apar, golder)
+        ! NB reverse_implicit_order is .false. at this point
+        if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, golder)
         ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
         ! operators) and gnew = g^{n}. It returns gnew = golder + 2*rhs(gnew)
         ! To get rhs(gnew), we need the fields at gnew; set the flag to ensure
@@ -975,8 +981,8 @@ contains
         call advance_leapfrog(golder, gnew, restart_time_step)
 
         if (.not. restart_time_step) then
-
-          if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
+          reverse_implicit_order = .true.  ! Swap the order in which we apply the implicit operators
+          if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
           call advance_explicit (gnew, restart_time_step)
         end if
       end if
@@ -1012,6 +1018,7 @@ contains
       ! as part of alternating direction operator splitting
       ! this is needed to ensure 2nd order accuracy in time
       if (mod(istep,2)==1 .or. .not.flip_flop) then
+        reverse_implicit_order = .false.
         ! advance the explicit parts of the GKE
         call advance_explicit (gnew, restart_time_step)
 
@@ -1020,9 +1027,10 @@ contains
 
         ! use operator splitting to separately evolve
         ! all terms treated implicitly
-        if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, gnew)
+        if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
       else
-        if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
+        reverse_implicit_order = .true.
+        if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
         call advance_explicit (gnew, restart_time_step)
       end if
 
@@ -2515,7 +2523,7 @@ contains
 
   end subroutine add_wstar_term
 
-  subroutine advance_implicit (istep, phi, apar, g)
+  subroutine advance_implicit (istep, phi, apar, reverse_implicit_order, g)
 !  subroutine advance_implicit (phi, apar, g)
 
     use mp, only: proc0
@@ -2540,6 +2548,7 @@ contains
 
     integer, intent (in) :: istep
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
+    logical, intent(in) :: reverse_implicit_order
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
@@ -2574,10 +2583,9 @@ contains
 
     if(RK_step) call mb_communicate (g)
 
-    ! Bob: would be good to update this; use_leapfrog_splitting means we want to
-    ! flip-flop the order, but this shoul be independent from flip_flop to avoid
-    ! confusion.
-    if (mod(istep,2)==1 .or. .not.flip_flop) then
+    ! Apply the operators sequentially, order depending on the reverse_implicit_order
+    ! logical
+    if (.not. reverse_implicit_order) then
 
        if (prp_shear_enabled) then
           call advance_perp_flow_shear(g)
