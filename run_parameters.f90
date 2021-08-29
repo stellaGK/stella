@@ -70,7 +70,7 @@ contains
     use file_utils, only: input_unit, error_unit, input_unit_exist
     use mp, only: proc0, broadcast
     use text_options, only: text_option, get_option_value
-    use physics_flags, only: include_mirror, full_flux_surface
+    use physics_flags, only: include_mirror, full_flux_surface, nonlinear
 
     implicit none
 
@@ -136,6 +136,11 @@ contains
 
        if (mirror_semi_lagrange_non_interp) then
            mirror_semi_lagrange = .false.
+       end if
+
+       if (.not. nonlinear) then
+         nisl_nonlinear = .false.
+         leapfrog_nonlinear = .false.
        end if
 
        if (leapfrog_drifts .or. nisl_nonlinear .or. leapfrog_nonlinear) then
