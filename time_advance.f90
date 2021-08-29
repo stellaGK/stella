@@ -46,6 +46,7 @@ module time_advance
 
   real :: xdriftknob, ydriftknob, wstarknob
   logical :: flip_flop
+  logical :: leapfrog_this_timestep
 
   complex, dimension (:,:,:), allocatable :: gamtot_drifts!, apar_denom_drifts
   complex, dimension (:,:), allocatable :: gamtot3_drifts
@@ -913,6 +914,7 @@ contains
 
     integer, intent (in) :: istep
     complex, allocatable, dimension (:,:,:,:) :: g1
+    logical  :: restart_time_step, leapfrog_this_timestep, time_advance_successful
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -921,40 +923,117 @@ contains
 
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
-    fields_updated = .false.
-    call advance_fields (gnew, phi, apar, dist='gbar')
     phi_old = phi
+
+    ! We can use the leapfrog step provided:
+    ! 1) istep > 1 (need gold and golder)
+    ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
+    ! aren't equally spaced in time)
+    ! 3) The simulation hasn't just been restarted - currently, save_for_restart
+    ! only saves gold, so we don't have golder.
+    leapfrog_this_timestep = .false.
+    ! Flag which is set to true once we've taken a step without needing to
+    ! reset dt.
+    time_advance_successful = .false.
+    ! if CFL condition is violated by nonlinear term
+    ! then must modify time step size and restart time step
+    ! assume false and test.
+    ! We don't want to do any operations after dt is reset (we discard any
+    ! updates to g and the timestep again), so we'll be frequently checking
+    ! this flag.
+    restart_time_step = .false.
+
     if (use_leapfrog_splitting .and. istep > 1) then
-      call advance_explicit (golder)
-      if (.not.none_implicit) call advance_implicit (istep, phi, apar, golder)
-      ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
-      ! operators) and gnew = g^{n}. It returns gnew = golder + 2*advance_ExB_nonlinearity(gnew)
-      call advance_leapfrog(golder, gnew)
+      leapfrog_this_timestep = .true.
+    end if
 
-      if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
-      call advance_explicit (gnew)
 
-    else
-      !!! Original
+    if (leapfrog_this_timestep) then
+      ! Try taking a leapfrog step, but if dt is reset, we can't take a Leapfrog
+      ! step (need to do an "ordinary" single-step approach).
+      ! Need to check if dt is reset after the explicit step, and after the
+      ! Leapfrog step - either could contain the nonlinearity, so either could
+      ! cause dt to be reset.
+
+      ! We advance golder by a step; we need to get the fields at golder, so
+      ! set the flag to ensure fields get re-calculated. NB we could skip the
+      ! field solve because these fields have been calculated previously, but at the
+      ! expense of memory (storing another set of fields) and code refactoring
+      fields_updated = .false.
+      call advance_explicit (golder, restart_time_step)
+
+      if (.not. restart_time_step) then
+        if (.not.none_implicit) call advance_implicit (istep, phi, apar, golder)
+        ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
+        ! operators) and gnew = g^{n}. It returns gnew = golder + 2*rhs(gnew)
+        ! To get rhs(gnew), we need the fields at gnew; set the flag to ensure
+        ! fields get re-calculated.
+        ! NB we could skip the
+        ! field solve because these fields have been calculated previously, but at the
+        ! expense of memory (storing another set of fields) and code refactoring
+        fields_updated = .false.
+        call advance_leapfrog(golder, gnew, restart_time_step)
+
+        if (.not. restart_time_step) then
+
+          if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
+          call advance_explicit (gnew, restart_time_step)
+        end if
+      end if
+
+      if (restart_time_step) then
+        ! Need to re-do the step with Lie splitting
+        ! This flag tells us we need to treat whatever terms we were going to
+        ! treat with the leapfrog approach with a non-leapfrog scheme.
+        leapfrog_this_timestep = .false.
+
+        ! We're discarding changes to gnew and starting over, so fields will
+        ! need to be updated.
+        fields_updated = .false.
+      else
+        time_advance_successful = .true.
+      end if
+    end if
+
+    ! Perform the Lie or flip-flopping step until we've done it without the
+    ! timestep changing.
+    do while (.not. time_advance_successful)
+
+      ! If we've already attempted a time advance then we've updated gnew,
+      ! so reset it now.
+      gnew = gold
+      ! Ensure fields are consistent with gnew.
+      call advance_fields (gnew, phi, apar, dist='gbar')
+
+      ! Reset the flag that checks if we've reset dt
+      restart_time_step = .false. ! Becomes true if we reset dt
+
       ! reverse the order of operations every time step
       ! as part of alternating direction operator splitting
       ! this is needed to ensure 2nd order accuracy in time
       if (mod(istep,2)==1 .or. .not.flip_flop) then
         ! advance the explicit parts of the GKE
-        call advance_explicit (gnew)
+        call advance_explicit (gnew, restart_time_step)
 
         ! enforce periodicity for zonal mode
         !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
 
         ! use operator splitting to separately evolve
         ! all terms treated implicitly
-        if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
+        if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, gnew)
       else
         if (.not.none_implicit) call advance_implicit (istep, phi, apar, gnew)
-        call advance_explicit (gnew)
+        call advance_explicit (gnew, restart_time_step)
       end if
 
-    end if
+      if (.not. restart_time_step) then
+        time_advance_successful = .true.
+      else
+        ! We're discarding changes to gnew and starting over, so fields will
+        ! need to be re-calculated
+        fields_updated = .false.
+      end if
+    end do
 
     if(remove_zero_projection) then
       allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -970,10 +1049,13 @@ contains
     golder = gold
     gold = gnew
 
+    ! Ensure fields are updated so that omega calculation is correct.
+    call advance_fields (gnew, phi, apar, dist='gbar')
+
   end subroutine advance_stella
 
 !  subroutine advance_explicit (phi, apar, g)
-  subroutine advance_explicit (g)
+  subroutine advance_explicit (g, restart_time_step)
 
     use mp, only: proc0
     use job_manage, only: time_message
@@ -986,6 +1068,7 @@ contains
 
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
+    logical, intent (in out) :: restart_time_step
 
     integer :: ivmu, iv, sgn, iky
 
@@ -995,13 +1078,13 @@ contains
     select case (explicit_option_switch)
     case (explicit_option_rk2)
        ! SSP RK2
-       call advance_explicit_rk2 (g)
+       call advance_explicit_rk2 (g, restart_time_step)
     case (explicit_option_rk3)
        ! default is SSP RK3
-       call advance_explicit_rk3 (g)
+       call advance_explicit_rk3 (g, restart_time_step)
     case (explicit_option_rk4)
        ! RK4
-       call advance_explicit_rk4 (g)
+       call advance_explicit_rk4 (g, restart_time_step)
     end select
 
     ! enforce periodicity for periodic (including zonal) modes
@@ -1031,7 +1114,7 @@ contains
   !> NB more terms could be implemented in this way if desired
   !> This subroutine takes g(i-1) and g(i) as inputs; g(i) is overwritten
   !> by g(i+1)
-  subroutine advance_leapfrog (golder, gout)
+  subroutine advance_leapfrog (golder, gout, restart_time_step)
 
     !use mp, only: proc0, min_allreduce
     !use job_manage, only: time_message
@@ -1041,21 +1124,23 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
     use kt_grids, only: naky, nakx
-    use fields_arrays, only: phi
+    use fields_arrays, only: phi, apar
+    use fields, only: fields_updated, advance_fields
     implicit none
 
-!    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+    logical, intent (in out)  :: restart_time_step
 
-    logical  :: restart_time_step
-    integer :: icnt
     complex, dimension (:,:,:,:,:), allocatable :: rhs
 
     ! if CFL condition is violated by nonlinear term
     ! then must modify time step size and restart time step
     ! assume false and test
     restart_time_step = .false.
+
+    ! Get the fields corresponding to g(i)
+    call advance_fields (gout, phi, apar, dist='gbar')
     ! There are 2 different "flavours" of leapfrog option we can use:
     ! (1) Use NISL for the leapfrog step - has to be done as a single
     ! operation (SL scheme)
@@ -1063,14 +1148,14 @@ contains
     ! (2) Use "normal" (explicit) method, whereby (dg/dt) is explicitly evaluated
     if (nisl_nonlinear) then
       call advance_nisl_leapfrog(golder, gout)
+      fields_updated = .false.
     else
       ! Calculate the rhs from the nonlinear and/or drift terms.
       ! There are already methods which calculate this, assuming that the
       ! step to be taking is dt - calculate the RHS using these and then
       ! double to get a step of 2dt.
       allocate (rhs(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      icnt = 1
-      do while (icnt <= 1)
+
         ! Set RHS to zero, then add terms relating to nonlinear and/or wdrift
         ! piece.
         rhs = 0
@@ -1089,15 +1174,10 @@ contains
           end if
         end if
 
-        if (restart_time_step) then
-          icnt = 1
-        else
-          icnt = icnt + 1
-        end if
-      end do
 
       ! g(i+1) = g(i-1) + (dg/dt)_leapfrog(i) * 2dt
       gout = golder+2*rhs
+      fields_updated = .false.
 
       deallocate(rhs)
     end if
@@ -1117,7 +1197,6 @@ contains
     use dist_fn_arrays, only: g1
     implicit none
 
-!    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
@@ -1142,7 +1221,7 @@ contains
   end subroutine advance_nisl_leapfrog
 
   ! strong stability-preserving RK2
-  subroutine advance_explicit_rk2 (g)
+  subroutine advance_explicit_rk2 (g, restart_time_step)
 
     use dist_fn_arrays, only: g0, g1
     use zgrid, only: nzgrid
@@ -1152,47 +1231,34 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-
-    integer :: icnt
-    logical :: restart_time_step
-
-    ! if CFL condition is violated by nonlinear term
-    ! then must modify time step size and restart time step
-    ! assume false and test
-    restart_time_step = .false.
+    logical, intent (in out) :: restart_time_step
 
     if(RK_step) call mb_communicate (g)
 
     g0 = g
 
-    icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
     ! solve_gke returns rhs*dt
-    do while (icnt <= 2)
 
-       select case (icnt)
-       case (1)
-          call solve_gke (g0, g1, restart_time_step)
-       case (2)
-          g1 = g0 + g1
-          if(RK_step) call mb_communicate (g1)
-          call solve_gke (g1, g, restart_time_step)
-       end select
-       if (restart_time_step) then
-          icnt = 1
-       else
-          icnt = icnt + 1
-       end if
-    end do
+    ! First step of RK2
+    call solve_gke (g0, g1, restart_time_step)
+    ! Don't bother to try the subsequent steps if we've reset dt, because
+    ! we'll be re-doing the timestep anyway.
+    if (.not. restart_time_step) then
+      ! Second step of RK2
+      g1 = g0 + g1
+      if(RK_step) call mb_communicate (g1)
+      call solve_gke (g1, g, restart_time_step)
 
-    ! this is gbar at intermediate time level
-    g = 0.5*g0 + 0.5*(g1 + g)
+      ! this is gbar at intermediate time level
+      g = 0.5*g0 + 0.5*(g1 + g)
+    end if
 
   end subroutine advance_explicit_rk2
 
   ! strong stability-preserving RK3
-  subroutine advance_explicit_rk3 (g)
+  subroutine advance_explicit_rk3 (g, restart_time_step)
 
     use dist_fn_arrays, only: g0, g1, g2
     use zgrid, only: nzgrid
@@ -1202,49 +1268,39 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-
-    integer :: icnt
-    logical :: restart_time_step
-
-    ! if CFL condition is violated by nonlinear term
-    ! then must modify time step size and restart time step
-    ! assume false and test
-    restart_time_step = .false.
+    logical, intent (in out) :: restart_time_step
 
     if(RK_step) call mb_communicate (g)
 
     g0 = g
 
-    icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
     ! solve_gke returns rhs*dt
-    do while (icnt <= 3)
-       select case (icnt)
-       case (1)
-          call solve_gke (g0, g1, restart_time_step)
-       case (2)
-          g1 = g0 + g1
-          if(RK_step) call mb_communicate (g1)
-          call solve_gke (g1, g2, restart_time_step)
-       case (3)
+
+    ! First step of RK3
+    call solve_gke (g0, g1, restart_time_step)
+    if (.not. restart_time_step) then
+       ! Second step of RK3
+       g1 = g0 + g1
+       if(RK_step) call mb_communicate (g1)
+       call solve_gke (g1, g2, restart_time_step)
+
+       if (.not. restart_time_step) then
+          ! Third step of RK3
           g2 = g1 + g2
           if(RK_step) call mb_communicate (g2)
           call solve_gke (g2, g, restart_time_step)
-       end select
-       if (restart_time_step) then
-          icnt = 1
-       else
-          icnt = icnt + 1
-       end if
-    end do
 
-    ! this is gbar at intermediate time level
-    g = g0/3. + 0.5*g1 + (g2 + g)/6.
+          ! this is gbar at intermediate time level
+          g = g0/3. + 0.5*g1 + (g2 + g)/6.
+
+       end if
+    end if
 
   end subroutine advance_explicit_rk3
 
-  subroutine advance_explicit_rk4 (g)
+  subroutine advance_explicit_rk4 (g, restart_time_step)
 
     use dist_fn_arrays, only: g0, g1, g2, g3
     use zgrid, only: nzgrid
@@ -1254,55 +1310,48 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
-
-    integer :: icnt
-    logical :: restart_time_step
-
-    ! if CFL condition is violated by nonlinear term
-    ! then must modify time step size and restart time step
-    ! assume false and test
-    restart_time_step = .false.
+    logical, intent (in out) :: restart_time_step
 
     if(RK_step) call mb_communicate(g)
 
     g0 = g
 
-    icnt = 1
     ! SSP rk3 algorithm to advance explicit part of code
     ! if GK equation written as dg/dt = rhs - vpar . grad h,
     ! solve_gke returns rhs*dt
-    do while (icnt <= 4)
-       select case (icnt)
-       case (1)
-          call solve_gke (g0, g1, restart_time_step)
-       case (2)
-          ! g1 is h*k1
-          g3 = g0 + 0.5*g1
-          if(RK_step) call mb_communicate(g3)
-          call solve_gke (g3, g2, restart_time_step)
-          g1 = g1 + 2.*g2
-       case (3)
+
+    ! First step of RK4
+    call solve_gke (g0, g1, restart_time_step)
+
+    if (.not. restart_time_step) then
+       ! Step 2 of RK4
+       ! g1 is h*k1
+       g3 = g0 + 0.5*g1
+       if(RK_step) call mb_communicate(g3)
+       call solve_gke (g3, g2, restart_time_step)
+       g1 = g1 + 2.*g2
+
+       if (.not. restart_time_step) then
+          ! Step 3 of RK4
           ! g2 is h*k2
           g2 = g0+0.5*g2
           if(RK_step) call mb_communicate(g2)
           call solve_gke (g2, g3, restart_time_step)
           g1 = g1 + 2.*g3
-       case (4)
-          ! g3 is h*k3
-          g3 = g0+g3
-          if(RK_step) call mb_communicate(g3)
-          call solve_gke (g3, g, restart_time_step)
-          g1 = g1 + g
-       end select
-       if (restart_time_step) then
-          icnt = 1
-       else
-          icnt = icnt + 1
-       end if
-    end do
 
-    ! this is gbar at intermediate time level
-    g = g0 + g1/6.
+          if (.not. restart_time_step) then
+             ! Step 4 of RK4
+             ! g3 is h*k3
+             g3 = g0+g3
+             if(RK_step) call mb_communicate(g3)
+             call solve_gke (g3, g, restart_time_step)
+             g1 = g1 + g
+
+            ! this is gbar at intermediate time level
+            g = g0 + g1/6.
+          end if
+       end if
+    end if
 
   end subroutine advance_explicit_rk4
 
@@ -1336,7 +1385,7 @@ contains
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out), target :: rhs_ky
-    logical, intent (out) :: restart_time_step
+    logical, intent (in out) :: restart_time_step
 
     complex, dimension (:,:,:,:,:), allocatable, target :: rhs_y
     complex, dimension (:,:,:,:,:), pointer :: rhs
@@ -1364,14 +1413,19 @@ contains
     ! calculate and add ExB nonlinearity to RHS of GK eqn
     ! do this first, as the CFL condition may require a change in time step
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
-    ! Bob: Don't calculate nonlinear here, if we're using the Leapfrog method
-    if (nonlinear .and. .not. nisl_nonlinear &
-        .and. .not. leapfrog_nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    ! We want to calculate the nonlinear term here if the following is true:
+    !  (1) nonlinear = .true.
+    !  (2) (nisl_nonlinear = .false. and leapfrog_nonlinear = .false.) UNLESS
+    !    leapfrog_this_timestep = .false.
+    if (nonlinear) then
+      if ( (.not. leapfrog_this_timestep) .or. (.not. nisl_nonlinear &
+        .and. .not. leapfrog_nonlinear)) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+    end if
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
          call advance_parallel_nonlinearity (gin, rhs, restart_time_step)
 
-    if (.not.restart_time_step) then
+    if (.not. restart_time_step) then
 
        if ((g_exb**2).gt.epsilon(0.0)) call advance_parallel_flow_shear (rhs)
 
@@ -1380,7 +1434,11 @@ contains
           call advance_mirror_explicit (gin, rhs)
        end if
 
-       if (.not.drifts_implicit .and. .not. leapfrog_drifts) then
+       ! Calculate drifts here if the following is true:
+       !  (1) nonlinear = .true.
+       !  (2) (nisl_nonlinear = .false. and leapfrog_nonlinear = .false.) UNLESS
+       !    leapfrog_this_timestep = .false.
+       if (.not.drifts_implicit .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
          ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
          call advance_wdrifty_explicit (gin, phi, rhs)
 
@@ -1389,7 +1447,7 @@ contains
 
          ! calculate and add omega_* term to RHS of GK eqn
          call advance_wstar_explicit (rhs)
-       endif
+       end if
 
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
 
