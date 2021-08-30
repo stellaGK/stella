@@ -33,7 +33,7 @@ module vpamu_grids
   real, dimension (:), allocatable :: dmu
   real, dimension (:), allocatable :: dmu_ghost, dmu_cell, mu_cell
   complex, dimension (:), allocatable :: rbuffer
-  logical :: equally_spaced_mu_grid
+  logical :: equally_spaced_mu_grid, conservative_wgts_vpa
 
   ! vpa-mu related arrays that are declared here
   ! but allocated and filled elsewhere because they depend on z, etc.
@@ -71,7 +71,7 @@ contains
     implicit none
 
     namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
-         equally_spaced_mu_grid
+         equally_spaced_mu_grid, conservative_wgts_vpa
 
     integer :: in_file
     logical :: exist
@@ -83,6 +83,8 @@ contains
        nmu = 12
        vperp_max = 3.0
        equally_spaced_mu_grid = .false.
+       conservative_wgts_vpa = .false.
+
 
        in_file = input_unit_exist("vpamu_grids_parameters", exist)
        if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
@@ -94,6 +96,7 @@ contains
     call broadcast (nmu)
     call broadcast (vperp_max)
     call broadcast (equally_spaced_mu_grid)
+    call broadcast (conservative_wgts_vpa)
 
     nvpa = 2*nvgrid
 
@@ -214,7 +217,9 @@ contains
 
     if (conservative) then
        wgts_vpa = dvpa
-    else
+    else if (conservative_wgts_vpa) then ! AVB: added option for density conserving form of collision operator
+       wgts_vpa = dvpa
+   else if ((.not.conservative_wgts_vpa).and.(.not.conservative)) then
        wgts_vpa = wgts_vpa_default
     end if
 

@@ -29,6 +29,7 @@ module species
 
   integer :: nspec
   logical :: read_profile_variation, write_profile_variation
+  logical :: ecoll_zeff
 
   type (spec_type), dimension (:), allocatable :: spec
 
@@ -38,6 +39,7 @@ module species
 !  real, dimension (:), allocatable :: dens_trin, temp_trin, fprim_trin, tprim_trin, nu_trin
 
   character (20) :: species_option
+
 
   logical :: initialized = .false.
 
@@ -54,7 +56,7 @@ contains
 
     implicit none
 
-    integer :: is
+    integer :: is, is2
 
     if (initialized) return
     initialized = .true.
@@ -77,17 +79,38 @@ contains
           call communicate_species_multibox
        end select
 
-       do is = 1, nspec
-          ! initialize nu_ss' = 0 for all s'
-          spec(is)%vnew = 0.
-          ! FLAG -- only contains self-collisions at the moment
-          spec(is)%vnew(is) = vnew_ref*spec(is)%dens*spec(is)%z**4 &
-               / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
-          ! include electron-ion collisions
-          if (spec(is)%type == electron_species) then
-             spec(is)%vnew(is) = spec(is)%vnew(is)*(1.+zeff)
-          end if
-       end do
+
+       if (ecoll_zeff) then
+           ! AVB: only intra-species collisions, account for e-i and e-impurity collisions using zeff
+           do is = 1, nspec
+              ! initialize nu_ss' = 0 for all s'
+              spec(is)%vnew = 0.
+             ! FLAG -- only contains self-collisions at the moment
+              spec(is)%vnew(is) = vnew_ref*spec(is)%dens*spec(is)%z**4 &
+                   / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
+              ! include electron-ion collisions
+              if (spec(is)%type == electron_species) then
+                 spec(is)%vnew(is) = spec(is)%vnew(is)*(1.+zeff)
+              end if
+           end do
+       else
+           print*,'using full inter-species collisions'
+           ! AVB: full intra- and inter-species collision frequencies
+           do is = 1, nspec
+               do is2 = 1, nspec
+                   if (spec(is)%type == electron_species) then
+                       spec(is)%vnew(is2) = vnew_ref*spec(is2)%dens*spec(is)%z**2*spec(is2)%z**2&
+                               / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
+                   else if ((spec(is)%type == ion_species).and.(spec(is2)%type == ion_species)) then
+                       spec(is)%vnew(is2) = vnew_ref*spec(is2)%dens*spec(is)%z**2*spec(is2)%z**2&
+                               / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
+                   else if ((spec(is)%type == ion_species).and.(spec(is2)%type == electron_species)) then
+                       spec(is)%vnew(is2) = vnew_ref*spec(is2)%dens*spec(is)%z**2*spec(is2)%z**2&
+                               / (sqrt(spec(is)%mass)*spec(is)%temp**1.5)
+                   end if
+                end do
+           end do
+       end if
 
        call dump_species_input
 
@@ -117,23 +140,27 @@ contains
 
     namelist /species_knobs/ nspec, species_option, &
                              read_profile_variation, &
-                             write_profile_variation
+                             write_profile_variation, &
+                             ecoll_zeff
+
 
     type (text_option), dimension (4), parameter :: specopts = (/ &
          text_option('default', species_option_stella), &
          text_option('stella', species_option_stella), &
          text_option('input.profiles', species_option_inputprofs), &
          text_option('euterpe', species_option_euterpe) /)
-    
+
     if (proc0) then
        nspec = 2
        read_profile_variation  = .false.
        write_profile_variation = .false.
        species_option = 'stella'
-       
+
+       ecoll_zeff = .false.
+
        in_file = input_unit_exist("species_knobs", exist)
        if (exist) read (unit=in_file, nml=species_knobs)
-       
+
        ierr = error_unit()
        call get_option_value (species_option, specopts, species_option_switch, &
             ierr, "species_option in species_knobs")
@@ -142,7 +169,7 @@ contains
          !will need to readjust the species parameters in the left/right boxes
          species_option_switch = species_option_multibox
        endif
-       
+
        if (nspec < 1) then
           ierr = error_unit()
           write (unit=ierr, &
@@ -153,6 +180,7 @@ contains
     call broadcast (nspec)
     call broadcast (read_profile_variation)
     call broadcast (write_profile_variation)
+    call broadcast (ecoll_zeff)
 
   end subroutine read_species_knobs
 
@@ -391,7 +419,7 @@ contains
   !          write (*,100) 'reinit_species', rhoc_ms, spec(is)%temp, spec(is)%fprim, &
   !               spec(is)%tprim, spec(is)%vnewk, real(is)
          end do
-         
+
          call dump_species_input
 
       end if

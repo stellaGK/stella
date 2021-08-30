@@ -8,7 +8,7 @@ module fields
   public :: advance_fields, get_fields
   public :: get_radial_correction
   public :: enforce_reality_field
-  public :: get_fields_by_spec
+  public :: get_fields_by_spec, get_fields_by_spec_idx
   public :: gamtot_h, gamtot3_h, gamtot3, dgamtot3dr
   public :: time_field_solve
   public :: fields_updated
@@ -187,7 +187,7 @@ contains
        endif
 
        if (.not.has_electron_species(spec)) then
-          efac = tite/nine * (spec(ion_species)%dens/spec(ion_species)%temp) 
+          efac = tite/nine * (spec(ion_species)%dens/spec(ion_species)%temp)
           efacp = efac*(spec(ion_species)%tprim - spec(ion_species)%fprim)
           gamtot   = gamtot   + efac
           gamtot_h = gamtot_h + efac
@@ -206,11 +206,11 @@ contains
                             + sum(d_dl_over_b_drho(ia,:)/gamtot(1,ikx,:)) &
                             - sum(dl_over_b(ia,:)*dgamtotdr(1,ikx,:) &
                                 / gamtot(1,ikx,:)**2)
-                     dgamtot3dr(ikx,:)  = gamtot3(ikx,:) & 
+                     dgamtot3dr(ikx,:)  = gamtot3(ikx,:) &
                                         * (-dgamtotdr(1,ikx,:)/gamtot(1,ikx,:) + tmp2/tmp)
                    endif
                 end do
-                if(akx(1)<epsilon(0.)) then 
+                if(akx(1)<epsilon(0.)) then
                    gamtot3(1,:)    = 0.0
                    dgamtot3dr(1,:) = 0.0
                    zm = 1
@@ -222,7 +222,7 @@ contains
        if(radial_variation.and.ky_solve_radial.gt.0) then
 
          has_elec  = has_electron_species(spec)
-         adia_elec = .not.has_elec & 
+         adia_elec = .not.has_elec &
                      .and.adiabatic_option_switch == adiabatic_option_fieldlineavg
 
          if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1.and.ky_solve_real) then
@@ -568,7 +568,7 @@ contains
     
   end subroutine get_fields
 
-  subroutine get_fields_vmulo (g, phi, apar, dist,skip_fsa)
+  subroutine get_fields_vmulo (g, phi, apar, dist, skip_fsa)
 
     use mp, only: mp_abort, sum_allreduce
     use stella_layouts, only: vmu_lo
@@ -635,7 +635,7 @@ contains
        deallocate (gyro_g)
        call sum_allreduce(phi)
 
-       call get_phi(phi, dist,skip_fsa_local)
+       call get_phi(phi, dist, skip_fsa_local)
 
     end if
     
@@ -741,6 +741,80 @@ contains
     end if
 
   end subroutine get_fields_by_spec
+
+  subroutine get_fields_by_spec_idx (isa, g, fld)
+
+  ! apply phi_isa[ ] to all species indices contained in g
+  ! ie get phi_isa[g_is1], phi_isa[g_is2], phi_isa[g_is3] ...
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: kxkyz_lo
+    use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+    use gyro_averages, only: gyro_average
+    use run_parameters, only: fphi
+    use stella_geometry, only: dl_over_b, bmag
+    use zgrid, only: nzgrid, ntubes
+    use vpamu_grids, only: vperp2, nvpa, nmu
+    use vpamu_grids, only: integrate_vmu
+    use kt_grids, only: nakx
+    use kt_grids, only: zonal_mode
+    use species, only: spec, nspec, has_electron_species
+    use dist_fn, only: adiabatic_option_switch
+    use dist_fn, only: adiabatic_option_fieldlineavg
+    use dist_fn_arrays, only: kperp2
+    use spfunc, only: j0
+
+    implicit none
+
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: fld
+    integer, intent (in) :: isa
+
+    complex, dimension (:,:), allocatable :: g0
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia
+    complex, dimension (nspec) :: tmp
+    real :: wgt
+    real, dimension (nmu) :: arg
+
+    ia = 1
+
+    fld = 0.
+    if (fphi > epsilon(0.0)) then
+       allocate (g0(nvpa,nmu))
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo,ikxkyz)
+          it = it_idx(kxkyz_lo,ikxkyz)
+          ikx = ikx_idx(kxkyz_lo,ikxkyz)
+          iky = iky_idx(kxkyz_lo,ikxkyz)
+          is = is_idx(kxkyz_lo,ikxkyz)
+          wgt = spec(isa)%z*spec(isa)%dens
+          arg = spec(isa)%bess_fac*spec(isa)%smz_psi0*sqrt(vperp2(ia,iz,:)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz) ! AVB: changed this for use of j0, check
+          g0 = g(:,:,ikxkyz)*spread(j0(arg),1,nvpa) ! AVB: gyroaverage
+          g0 = g0*wgt
+          call integrate_vmu (g0, iz, fld(iky,ikx,iz,it,is))
+       end do
+       call sum_allreduce (fld)
+
+       fld = fld/gamtot_h
+
+       if (.not.has_electron_species(spec).and. &
+        adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          if (zonal_mode(1)) then
+             do ikx = 1, nakx
+                do it = 1, ntubes
+                   do is = 1, nspec
+                      tmp(is) = sum(dl_over_b(ia,:)*fld(1,ikx,:,it,is))
+                      fld(1,ikx,:,it,is) = fld(1,ikx,:,it,is) + tmp(is)*gamtot3_h
+                   end do
+                end do
+             end do
+          end if
+       end if
+
+       deallocate (g0)
+    end if
+
+end subroutine get_fields_by_spec_idx
 
   subroutine get_phi (phi, dist, skip_fsa)
 
