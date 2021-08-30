@@ -4,14 +4,16 @@ module vpamu_grids
 
   public :: init_vpamu_grids, finish_vpamu_grids
   public :: read_vpamu_grids_parameters
+  public :: calculate_velocity_integrals
   public :: integrate_vmu, integrate_species
   public :: integrate_mu
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
-  public :: mu, nmu, wgts_mu, dmu
+  public :: mu, nmu, wgts_mu, wgts_mu_bare, dmu
   public :: dmu_ghost, dmu_cell, mu_cell
   public :: maxwell_vpa, maxwell_mu, ztmax
   public :: maxwell_fac
+  public :: int_unit, int_vpa2, int_vperp2, int_vfrth
   public :: vperp2
   public :: equally_spaced_mu_grid
   public :: set_vpa_weights
@@ -23,9 +25,10 @@ module vpamu_grids
   real :: vpa_max, vperp_max
 
   ! arrays that are filled in vpamu_grids
-  real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
-  real, dimension (:,:), allocatable :: maxwell_vpa
+  real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default, wgts_mu_bare
   real, dimension (:), allocatable :: mu, maxwell_fac
+  real, dimension (:,:), allocatable :: maxwell_vpa
+  real, dimension (:,:,:), allocatable :: int_unit, int_vpa2, int_vperp2, int_vfrth
   real, dimension (:,:,:), allocatable :: wgts_mu
   real, dimension (:,:,:,:), allocatable :: maxwell_mu
   real, dimension (:,:), allocatable :: ztmax
@@ -105,6 +108,7 @@ contains
   subroutine init_vpamu_grids
 
     use species, only: spec, nspec
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -120,12 +124,23 @@ contains
 
     maxwell_fac = spec%dens/spec%dens_psi0*(spec%temp_psi0/spec%temp)**1.5
 
+!   do is = 1, nspec
+!     norm = sum(maxwell_vpa(:,is)*wgts_vpa)
+!     maxwell_vpa(:,is) = maxwell_vpa(:,is)/norm
+
+!   
+!     do iz = -nzgrid, nzgrid
+!       norm = sum(maxwell_mu(1,iz,:,is)*wgts_mu(1,iz,:))
+!       maxwell_mu(1,iz,:,is) = maxwell_mu(1,iz,:,is) / norm
+!     enddo
+!   enddo
 
   end subroutine init_vpamu_grids
 
   subroutine init_vpa_grid
 
     use mp, only: mp_abort
+    use constants, only: pi
     use species, only: spec, nspec
 
     implicit none
@@ -203,7 +218,7 @@ contains
     end do
 
     ! divide by 2 to account for double-counting
-    wgts_vpa = 0.5*wgts_vpa
+    wgts_vpa = 0.5*wgts_vpa/sqrt(pi)
 
     wgts_vpa_default = wgts_vpa
 
@@ -211,15 +226,17 @@ contains
 
   subroutine set_vpa_weights (conservative)
 
+    use constants, only: pi
+
     implicit none
 
     logical, intent (in) :: conservative
 
     if (conservative) then
-       wgts_vpa = dvpa
+       wgts_vpa = dvpa/sqrt(pi)
     else if (conservative_wgts_vpa) then ! AVB: added option for density conserving form of collision operator
-       wgts_vpa = dvpa
-   else if ((.not.conservative_wgts_vpa).and.(.not.conservative)) then
+       wgts_vpa = dvpa/sqrt(pi)
+    else if ((.not.conservative_wgts_vpa).and.(.not.conservative)) then
        wgts_vpa = wgts_vpa_default
     end if
 
@@ -645,7 +662,6 @@ contains
 
   subroutine init_mu_grid
 
-    use constants, only: pi
     use gauss_quad, only: get_laguerre_grids
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
@@ -656,20 +672,18 @@ contains
 
     integer :: imu
     real :: mu_max
-    real, dimension (:), allocatable :: wgts_mu_tmp
 
     ! allocate arrays and initialize to zero
     if (.not. allocated(mu)) then
        allocate (mu(nmu)) ; mu = 0.0
        allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
+       allocate (wgts_mu_bare(nmu)) ; wgts_mu_bare = 0.0
        allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; maxwell_mu = 0.0
        allocate (dmu(nmu-1))
        allocate (dmu_ghost(nmu))
        allocate (mu_cell(nmu))
        allocate (dmu_cell(nmu))
     end if
-
-    allocate (wgts_mu_tmp(nmu)) ; wgts_mu_tmp = 0.0
 
     ! dvpe * vpe = d(2*mu*B0) * B/2B0
     if (equally_spaced_mu_grid) then
@@ -685,13 +699,13 @@ contains
           mu(imu) = mu(1)+(imu-1)*dmu(1)
        end do
        ! do simplest thing to start
-       wgts_mu_tmp = dmu(1)
+       wgts_mu_bare = dmu(1)
     else
        !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
        ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
-       call get_laguerre_grids (mu, wgts_mu_tmp)
+       call get_laguerre_grids (mu, wgts_mu_bare)
        if(vperp_max.lt.0) vperp_max = sqrt(mu(nmu))
-       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
+       wgts_mu_bare = wgts_mu_bare*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
     
        !    mu = mu/(2.*bmag(1,0))
        mu = mu/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
@@ -705,12 +719,11 @@ contains
     maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu),4,nspec) &
                        *spread(spread(spread(spec%temp_psi0/spec%temp,1,nalpha),2,nztot),3,nmu))
        
-    ! factor of 2./sqrt(pi) necessary to account for 2pi from 
+    ! factor of 2. necessary to account for 2pi from 
     ! integration over gyro-angle and 1/pi^(3/2) normalization
     ! of velocity space Jacobian
-    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
+    wgts_mu = 2.*spread(spread(wgts_mu_bare,1,nalpha),2,nztot)*spread(bmag,3,nmu)
 
-    deallocate (wgts_mu_tmp)
 
     ! add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
     ! note assuming here that grid spacing for ghost cell is equal to
@@ -732,6 +745,7 @@ contains
     if (allocated(mu)) deallocate (mu)
     if (allocated(mu_cell)) deallocate (mu_cell)
     if (allocated(wgts_mu)) deallocate (wgts_mu)
+    if (allocated(wgts_mu_bare)) deallocate (wgts_mu_bare)
     if (allocated(maxwell_mu)) deallocate (maxwell_mu)
     if (allocated(dmu)) deallocate (dmu)
     if (allocated(dmu_cell)) deallocate (dmu_cell)
@@ -740,6 +754,44 @@ contains
 
   end subroutine finish_mu_grid
 
+  subroutine calculate_velocity_integrals
+
+    use zgrid, only: nzgrid
+    use species, only: nspec
+
+    implicit none
+
+    real, dimension (nvpa,nmu) :: moment
+    integer :: ia, is, iz
+
+    ia = 1
+    is = 1
+    
+    if(.not.allocated(int_unit))   allocate (int_unit(1,-nzgrid:nzgrid,nspec))
+    if(.not.allocated(int_vpa2))   allocate (int_vpa2(1,-nzgrid:nzgrid,nspec))
+    if(.not.allocated(int_vperp2)) allocate (int_vperp2(1,-nzgrid:nzgrid,nspec))
+    if(.not.allocated(int_vfrth))  allocate (int_vfrth(1,-nzgrid:nzgrid,nspec))
+
+
+    do is = 1, nspec
+      do iz = -nzgrid, nzgrid
+        moment  = spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+        call integrate_vmu (moment,iz,int_unit(ia,iz,is))
+
+        moment  = spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(vpa(:)**2*maxwell_vpa(:,is),2,nmu)
+        call integrate_vmu (moment,iz,int_vpa2(ia,iz,is))
+
+        moment  = spread(vperp2(ia,iz,:)*maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+        call integrate_vmu (moment,iz,int_vperp2(ia,iz,is))
+
+        moment  = spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)
+        moment  = moment*(spread(vpa**2,2,nmu) + spread(vperp2(ia,iz,:),1,nvpa))**2
+        call integrate_vmu (moment,iz,int_vfrth(ia,iz,is))
+      enddo
+    enddo
+
+  end subroutine calculate_velocity_integrals
+
   subroutine finish_vpamu_grids
 
     implicit none
@@ -747,7 +799,11 @@ contains
     call finish_vpa_grid
     call finish_mu_grid
 
-    if(allocated(maxwell_fac)) deallocate(maxwell_fac)
+    if (allocated(maxwell_fac)) deallocate (maxwell_fac)
+    if (allocated(int_unit))    deallocate (int_unit)
+    if (allocated(int_vpa2))    deallocate (int_vpa2)
+    if (allocated(int_vperp2))  deallocate (int_vperp2)
+    if (allocated(int_vfrth))   deallocate (int_vfrth)
 
     vpamu_initialized = .false.
 
