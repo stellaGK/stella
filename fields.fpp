@@ -23,7 +23,7 @@ module fields
   real, dimension (:,:,:), allocatable ::  apar_denom
   real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
-  complex, dimension (:,:,:), allocatable :: binv_thet
+  complex, dimension (:,:,:), allocatable :: theta
   complex, dimension (:,:), allocatable :: b_mat, binv_fmax
   integer, dimension (:), allocatable :: b_idx
   complex :: k0_Binv_fmax
@@ -109,6 +109,7 @@ contains
     complex, dimension (:,:), allocatable :: g0k, g0x, g1k, thet_zf
 
     ia = 1
+    zm = 0
 
     ! do not see why this is before fields_initialized check below
     call allocate_arrays
@@ -293,7 +294,7 @@ contains
              if(.not.allocated(b_idx)) allocate(b_idx(nakx));
            
              if(.not.allocated(binv_fmax)) allocate(binv_fmax(nakx,-nzgrid:nzgrid));
-             if(.not.allocated(binv_thet)) allocate(binv_thet(nakx, nakx,-nzgrid:nzgrid));
+             if(.not.allocated(theta)) allocate(theta(nakx, nakx,-nzgrid:nzgrid));
 
 #if defined MPI && ISO_C_BINDING
              if(window.eq.MPI_WIN_NULL) then
@@ -333,7 +334,7 @@ contains
 
              allocate (g1k(1,nakx))
 
-             !get B and perform LU decomposition
+             !get C and perform LU decomposition
              do ikx = 1, nakx
                g0k(1,:) = 0.0
                g0k(1,ikx) = 1.0
@@ -345,42 +346,8 @@ contains
                !row column
                b_mat(:,ikx) = g0k(1,:) 
              enddo
-             call lu_decomposition(b_mat, b_idx, dum)
 
-
-             !get Binv.fmax
-             !note that k = 0 means J_0 = 1, J_1 = 0
-             do iz = -nzgrid, nzgrid
-               total = 0.0
-               do is = 1, nspec
-                 g0 = spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)
-                 call integrate_vmu (g0,iz,tmp)
-                 total = total + tmp
-               enddo
-
-               g0k = 0.
-               g0k(1,1) = total
-               if(radial_variation) then
-                 call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = (1. + dBdrho(iz)/bmag(ia,iz)*rho_d_clamped)*g0x(1,:)
-                 call transform_x2kx_unpadded(g0x,g0k)
-               endif
-               call lu_back_substitution(b_mat, b_idx, g0k(1,:))
-               binv_fmax(:,iz) = g0k(1,:)
-             enddo
-
-             !get k0.<Binv.fmax>_\psi
-             k0_Binv_fmax = 0.
-             do iz = -nzgrid, nzgrid
-               g0k(1,:) = binv_fmax(:,iz) 
-               call transform_kx2x_unpadded (g0k,g0x)
-               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-               call transform_x2kx_unpadded(g0x,g0k)
-
-               k0_Binv_fmax = k0_Binv_fmax + g0k(1,1) 
-             enddo
-
-             !get Binv.Theta
+             !get Theta
              allocate (thet_zf(nakx,nakx))
              do iz = -nzgrid, nzgrid
 
@@ -398,11 +365,9 @@ contains
                  thet_zf(ikx,ikx) = thet_zf(ikx,ikx) + gamtot(1,ikx,iz) - efac
                enddo
 
-               call lu_back_substitution(b_mat, b_idx, thet_zf)
-               !store Binv.Theta
-               binv_thet(:,:,iz) = thet_zf 
+               !store theta
+               theta(:,:,iz) = thet_zf 
              enddo
-             deallocate (thet_zf)
 
 
 #if defined MPI && ISO_C_BINDING
@@ -410,18 +375,17 @@ contains
 #endif
                !get the big matrix
 
-               !phi
-               do idx = 1, nmat_zf
-                 phizf_solve%zloc(idx,idx) = 1.0
-               enddo
-        
                do jz = -nzgrid, nzgrid-1
                  do jkx = 1, nakx
                    jnmat = jkx + nakx*(jz+nzgrid)
+                   ! C.phi
+                   do ikx = 1, nakx
+                     inmat = ikx + nakx*(jz+nzgrid)
+                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + b_mat(ikx,jkx)
+                   enddo
 
-                   ! -<phi>_\psi
-                   g0k = 0.0
-                   g0k(1,jkx) = 1.0
+                   ! -C.<phi>_\psi
+                   g0k = 0.0; g0k(1,jkx) = 1.0
                    call transform_kx2x_unpadded (g0k,g0x)
                    g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
                    call transform_x2kx_unpadded(g0x,g0k)
@@ -429,38 +393,37 @@ contains
                    !set the gauge potential
                    if(jkx.eq.1) g0k(1,1) = 0. 
 
+                   do ikx = 1, nakx
+                     g1k(1,ikx) = sum(b_mat(ikx,:)*g0k(1,:))
+                   enddo
+
                    do iz = -nzgrid, nzgrid-1
                      do ikx = 1, nakx
                        inmat = ikx + nakx*(iz+nzgrid)
-                       phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g0k(1,ikx)
+                       phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g1k(1,ikx)
                      enddo
                    enddo
 
-                   ! get Binv.theta.phi
-                   g0k = 0.0
-                   g0k(1,jkx) = 1.0
-                   do ikx = 1, nakx
-                     g1k(1,ikx) = sum(binv_thet(ikx,:,jz)*g0k(1,:)) 
-                   enddo
+                   ! get theta.phi
+                   g1k(1,:) = theta(:,jkx,jz)
 
-                   ! +Binv.thet.phi
+                   ! +theta.phi
                    do ikx = 1, nakx
                      inmat = ikx + nakx*(jz+nzgrid)
                      phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + g1k(1,ikx)
                    enddo
 
-
-                   ! -Binv.f (k0.<Binv.phi>_psi)/(k0.<Binv.f>_psi)
+                   ! -<<theta.phi>_psi>_T)
                    call transform_kx2x_unpadded (g1k, g0x)
                    g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
+                   g0x(1,:) = sum(g0x(1,:))/nakx
                    call transform_x2kx_unpadded(g0x,g0k)
-                   tmpc = g0k(1,1)/k0_Binv_fmax
 
                    do iz = -nzgrid, nzgrid-1
                      do ikx = 1, nakx
                        inmat = ikx + nakx*(iz+nzgrid)
                        phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) &
-                                                       - binv_fmax(ikx,iz)*tmpc
+                                                       - g0k(1,ikx)
                      enddo
                    enddo
                  enddo
@@ -476,6 +439,7 @@ contains
              call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
 #endif
              deallocate (g1k)
+             deallocate (thet_zf)
            endif
 
            deallocate(g0k,g0x)
@@ -915,7 +879,7 @@ contains
     use species, only: spec, has_electron_species
     use vpamu_grids, only: maxwell_vpa, maxwell_mu
     use multibox, only: mb_get_phi
-    use fields_arrays, only: gamtot, phi_solve, phizf_solve
+    use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_proj
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
@@ -1033,26 +997,23 @@ contains
           allocate (phiext(nakx*(nztot-1)))
 
           do it = 1, ntubes
-
-            !calculate Binv.gprime
-            do iz = -nzgrid, nzgrid
-              call lu_back_substitution (b_mat,b_idx,phi(1,:,iz,it))
-            enddo
-
-            ! calculate k0.<Binv.g>_psi/k0.<Bimnv.fmax>_psi
-            g_fsa = 0.0
-            do iz = -nzgrid, nzgrid
+            ! calculate <<g>_psi>_T
+            g1k = 0.0
+            do iz = -nzgrid, nzgrid-1
               g0k(1,:) = phi(1,:,iz,it)
               call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+              g0x(1,:) = sum(g0x(1,:))/nakx
               call transform_x2kx_unpadded(g0x,g0k)
 
-              g_fsa = g_fsa + g0k(1,1)/k0_Binv_fmax
+              g1k = g1k + g0k
             enddo
 
-            correction = g_fsa
-            
-            phi(1,:,:,it) = phi(1,:,:,it) - binv_fmax*g_fsa
+!           correction = g_fsa
+            phi_proj(:,1,it) = g1k(1,:)
+            do iz = -nzgrid, nzgrid-1
+              phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
+            enddo
      
             do iz = -nzgrid, nzgrid-1
               do ikx = 1, nakx
@@ -1073,32 +1034,20 @@ contains
             !enforce periodicity
             phi(1,:,nzgrid,it) = phi(1,:,-nzgrid,it)
         
-!           ! calculate Binv.Theta.phi
-            tmp = 0.
+!           ! calculate Theta.phi
+            g1k = 0.0
             do iz = -nzgrid, nzgrid-1
-              g0k(1,1) = 0.0
-              g0k(1,2:) = phi(1,2:,iz,it) 
               do ikx = 1, nakx
-                g1k(1,ikx) = sum(binv_thet(ikx,:,iz)*g0k(1,:)) 
+                g0k(1,ikx) = sum(theta(ikx,:,iz)*phi(1,:,iz,it)) 
               enddo
 
-              call transform_kx2x_unpadded (g1k,g0x)
+              call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-              call transform_x2kx_unpadded(g0x,g1k)
-              tmp = tmp + g1k(1,1)/k0_Binv_fmax
-
+              g0x(1,:) = sum(g0x(1,:))/nakx
+              call transform_x2kx_unpadded(g0x,g0k)
+              g1k = g1k + g0k
             enddo
-
-            correction = correction - tmp
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-              is = is_idx(vmu_lo,ivmu)
-              imu = imu_idx(vmu_lo,ivmu)
-              iv = iv_idx(vmu_lo,ivmu)
-
-              g(1,1,:,it,ivmu) = g(1,1,:,it,ivmu) - correction &
-                                *maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)
-            enddo
-
+            phi_proj(:,1,it) = phi_proj(:,1,it) - g1k(1,:)
 
           enddo
           deallocate(g0k,g1k,g0x,phiext)
@@ -1399,7 +1348,7 @@ contains
     if (allocated(b_mat)) deallocate(b_mat)
     if (allocated(b_idx)) deallocate(b_idx)
     if (allocated(binv_fmax)) deallocate(binv_fmax)
-    if (allocated(binv_thet)) deallocate(binv_thet)
+    if (allocated(theta)) deallocate(theta)
 
 #if defined MPI && defined ISO_C_BINDING
     if (window.ne.MPI_WIN_NULL) call mpi_win_free(window, ierr)

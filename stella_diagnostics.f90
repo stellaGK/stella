@@ -1046,7 +1046,7 @@ contains
     use stella_geometry, only: bmag, dBdrho
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use gyro_averages, only: aj0x, aj1x, gyro_average
-    use fields_arrays, only: phi, phi_corr_QN
+    use fields_arrays, only: phi, phi_corr_QN, phi_proj
     use run_parameters, only: fphi
     use physics_flags, only: radial_variation
     use stella_transforms, only: transform_kx2x_unpadded
@@ -1125,12 +1125,13 @@ contains
        endif
     end do
     call integrate_vmu (g2, spec%dens_psi0, dens)
+
     if (write_radial_moments) then
       dens_x = 0.0
       do is = 1, nspec
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
-            g1k(1,:) = dens(1,:,iz,it,is)
+            g1k(1,:) = dens(1,:,iz,it,is) - phi_proj(:,1,it)
             call transform_kx2x_unpadded(g1k,g1x)
             dens_x(:,is) = dens_x(:,is) &
                           + real(g1x(1,:)*(dl_over_b(ia,iz) + rho_d_clamped*d_dl_over_b_drho(ia,iz)))
