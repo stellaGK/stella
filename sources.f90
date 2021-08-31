@@ -3,16 +3,17 @@ module sources
   implicit none
 
   public :: init_sources, finish_sources
-  public :: include_krook_operator, update_delay_krook
+  public :: include_krook_operator, update_tcorr_krook
   public :: remove_zero_projection, project_out_zero
   public :: add_krook_operator
-  public :: delay_krook, int_krook, int_proj
+  public :: tcorr_source
+  public :: int_krook, int_proj, int_QN
 
   private
 
   logical :: include_krook_operator, remove_zero_projection
   logical :: krook_odd, exclude_boundary_regions
-  real :: nu_krook, delay_krook, int_krook, int_proj
+  real :: nu_krook, tcorr_source, int_krook, int_proj, int_QN
   integer:: ikxmax_source
 
 
@@ -24,20 +25,26 @@ contains
     use zgrid, only: nzgrid, ntubes
     use stella_layouts, only: vmu_lo
     use dist_fn_arrays, only: g_krook, g_proj
+    use fields_arrays, only : phi_proj
 
     implicit none
 
     call read_parameters
 
-    if(include_krook_operator.and..not.allocated(g_krook)) then
+    if (include_krook_operator.and..not.allocated(g_krook)) then
       allocate (g_krook(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_krook = 0.
     endif
 
-    if(remove_zero_projection.and..not.allocated(g_proj)) then
+    if (remove_zero_projection.and..not.allocated(g_proj)) then
       allocate (g_proj(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_proj = 0.
     endif
+
+    if (.not.allocated(phi_proj)) then
+      allocate (phi_proj(nakx,1,ntubes)); phi_proj = 0.
+    endif
+
     int_krook = 0.
     int_proj  = 0.
 
@@ -53,7 +60,7 @@ contains
     implicit none
 
     namelist /sources/ &
-         include_krook_operator, nu_krook, delay_krook, remove_zero_projection, &
+         include_krook_operator, nu_krook, tcorr_source, remove_zero_projection, &
          ikxmax_source, krook_odd, exclude_boundary_regions
 
     integer :: in_file
@@ -64,7 +71,7 @@ contains
        exclude_boundary_regions = radial_variation.and..not.periodic_variation
        remove_zero_projection = .false.
        nu_krook = 0.05
-       delay_krook =0.02
+       tcorr_source =0.02
        ikxmax_source = 1 ! kx=0
        if(periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
        krook_odd = .true. ! damp only the odd mode that can affect profiles
@@ -78,7 +85,7 @@ contains
     call broadcast (include_krook_operator)
     call broadcast (exclude_boundary_regions)
     call broadcast (nu_krook)
-    call broadcast (delay_krook)
+    call broadcast (tcorr_source)
     call broadcast (ikxmax_source)
     call broadcast (remove_zero_projection)
     call broadcast (krook_odd)
@@ -122,7 +129,7 @@ contains
     ia = 1
     if(.not.zonal_mode(1)) return
 
-    exp_fac = exp(-code_dt/delay_krook)
+    exp_fac = exp(-code_dt/tcorr_source)
 
     !TODO: add number and momentum conservation
     if (exclude_boundary_regions) then
@@ -134,7 +141,7 @@ contains
             g0k(1,:) = g(1,:,iz,it,ivmu)
             call transform_kx2x_unpadded(g0k,g0x)
             tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
-            if(delay_krook.le.epsilon(0.0)) then
+            if(tcorr_source.le.epsilon(0.0)) then
               g0x = tmp
             else
               g0x = (code_dt*tmp + exp_fac*int_krook*g_krook(1,iz,it,ivmu)) &
@@ -156,7 +163,7 @@ contains
               if(abs(akx(ikx)).gt.akx(ikxmax_source)) cycle
               tmp = g(1,ikx,iz,it,ivmu)
               if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-              if(delay_krook.le.epsilon(0.0)) then
+              if(tcorr_source.le.epsilon(0.0)) then
                 gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook*tmp
               else
                 gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
@@ -171,7 +178,7 @@ contains
 
   end subroutine add_krook_operator
 
-  subroutine update_delay_krook (g)
+  subroutine update_tcorr_krook (g)
 
     use constants, only: zi
     use dist_fn_arrays, only: g_krook
@@ -193,7 +200,7 @@ contains
 
     if(.not.zonal_mode(1)) return
 
-    exp_fac = exp(-code_dt/delay_krook)
+    exp_fac = exp(-code_dt/tcorr_source)
 
     ia = 1
 
@@ -228,7 +235,7 @@ contains
       enddo
     endif
 
-  end subroutine update_delay_krook
+  end subroutine update_tcorr_krook
 
   subroutine project_out_zero (g)
 
@@ -253,7 +260,7 @@ contains
     ia = 1
     if(.not.zonal_mode(1)) return
 
-    exp_fac = exp(-code_dt/delay_krook)
+    exp_fac = exp(-code_dt/tcorr_source)
 
     if (exclude_boundary_regions) then !here we do not require ikxmax_source
       allocate (g0k(1,nakx))
@@ -264,7 +271,7 @@ contains
             g0k(1,:) = g(:,iz,it,ivmu)
             call transform_kx2x_unpadded (g0k,g0x)
             tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
-            if(delay_krook.le.epsilon(0.)) then
+            if(tcorr_source.le.epsilon(0.)) then
               g0x = tmp
             else
               g0x = (code_dt*tmp + exp_fac*int_proj*g_proj(1,iz,it,ivmu)) &
@@ -289,7 +296,7 @@ contains
               else
                 tmp = g(ikx,iz,it,ivmu)
                 if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
-                if(delay_krook.le.epsilon(0.)) then
+                if(tcorr_source.le.epsilon(0.)) then
                   g(ikx,iz,it,ivmu) = tmp
                 else
                   g(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &

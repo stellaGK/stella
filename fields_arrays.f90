@@ -11,10 +11,13 @@ module fields_arrays
   complex, dimension (:,:,:,:), allocatable :: phi_corr_QN, apar_corr_QN
   ! (naky, nakx, -nzgrid:nzgrid, ntubes)
 
+  ! needed to implement time-delayed source when using projection method
+  complex, dimension (:,:,:), allocatable :: phi_proj
+  ! (nakx, -nzgrid:nzgrid, ntubes)
+
   ! radial corrections to phi and apar from gyroaveraging
   ! may result in tight space constraints however
   complex, dimension (:,:,:,:,:), allocatable :: phi_corr_GA, apar_corr_GA
-  complex, dimension (:,:,:,:,:), allocatable :: phi_corr_ztmax
   ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
   type (response_matrix_type), dimension (:), allocatable :: response_matrix

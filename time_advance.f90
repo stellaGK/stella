@@ -902,7 +902,7 @@ contains
     use fields, only: advance_fields, fields_updated
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
-    use sources, only: include_krook_operator, update_delay_krook
+    use sources, only: include_krook_operator, update_tcorr_krook
     use sources, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
@@ -952,7 +952,7 @@ contains
     end if
 
     !update the delay parameters for the Krook operator
-    if(include_krook_operator) call update_delay_krook(gnew)
+    if(include_krook_operator) call update_tcorr_krook(gnew)
 
     gold = gnew
 
