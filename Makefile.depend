@@ -158,6 +158,7 @@ fields.o: \
 	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
+	 sources.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
@@ -380,6 +381,7 @@ sfincs_interface.o: \
 sources.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
+	 fields_arrays.o \
 	 file_utils.o \
 	 kt_grids.o \
 	 mp.o \
@@ -426,6 +428,7 @@ stella.o: \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
+	 sources.o \
 	 species.o \
 	 stella_diagnostics.o \
 	 stella_geometry.o \
