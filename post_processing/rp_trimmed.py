@@ -15,6 +15,7 @@ basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/source_test/proj6/'
 #basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_ky/'
 basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/CBC_flux_alt/'
 basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_hr_v3e_alt/'
+basedir = '/Users/denisst-onge/stella/build/eparallel/'
 left_file  = basedir + 'left.out.nc'
 center_file = basedir + 'center.out.nc'
 right_file   = basedir + 'right.out.nc'
@@ -103,9 +104,17 @@ qfluxr  = np.copy( right_nc.variables['qflux_x'][:])
 
 print('3')
 
+densl  = np.copy(left_nc.variables['dens_x'][:])
+uparl  = np.copy(left_nc.variables['upar_x'][:])
+templ  = np.copy(left_nc.variables['temp_x'][:])
+
 densc  = np.copy(center_nc.variables['dens_x'][:])
 uparc  = np.copy(center_nc.variables['upar_x'][:])
 tempc  = np.copy(center_nc.variables['temp_x'][:])
+
+densr  = np.copy(right_nc.variables['dens_x'][:])
+uparr  = np.copy(right_nc.variables['upar_x'][:])
+tempr  = np.copy(right_nc.variables['temp_x'][:])
 
 cout = open(basedir + 'left.fluxes_t','w')
 cout.write('[1] t     ')
@@ -201,9 +210,17 @@ prave = np.mean(pfluxr[tind:nt,0,:],0)
 vrave = np.mean(vfluxr[tind:nt,0,:],0)
 qrave = np.mean(qfluxr[tind:nt,0,:],0)
 
+dlave = np.mean(densl[tind:nt,0,:],0)
+ulave = np.mean(uparl[tind:nt,0,:],0)
+tlave = np.mean(templ[tind:nt,0,:],0)
+
 dcave = np.mean(densc[tind:nt,0,:],0)
 ucave = np.mean(uparc[tind:nt,0,:],0)
 tcave = np.mean(tempc[tind:nt,0,:],0)
+
+drave = np.mean(densr[tind:nt,0,:],0)
+urave = np.mean(uparr[tind:nt,0,:],0)
+trave = np.mean(tempr[tind:nt,0,:],0)
 
 print('9')
 
@@ -252,6 +269,9 @@ for i in range (0, nakxl):
   cout.write('%e ' % plave[i])
   cout.write('%e ' % vlave[i])
   cout.write('%e ' % qlave[i])
+  cout.write('%e ' % dlave[i])
+  cout.write('%e ' % ulave[i])
+  cout.write('%e ' % tlave[i])
   cout.write('\n')
 
 cout.close()
@@ -270,6 +290,9 @@ for i in range (0, nakxr):
   cout.write('%e ' % prave[i])
   cout.write('%e ' % vrave[i])
   cout.write('%e ' % qrave[i])
+  cout.write('%e ' % drave[i])
+  cout.write('%e ' % urave[i])
+  cout.write('%e ' % trave[i])
   cout.write('\n')
 
 cout.close()
