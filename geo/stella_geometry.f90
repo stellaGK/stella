@@ -77,6 +77,7 @@ module stella_geometry
   character (100) :: geo_file
 
   logical :: geoinit = .false.
+  logical :: set_bmag_const
 
 contains
 
@@ -102,10 +103,10 @@ contains
     integer, intent (in) :: nalpha
 
     real :: dpsidrho, dpsidrho_psi0
-    integer :: iy
+    integer :: iy, ia, iz
     integer :: sign_torflux
     integer :: dxdXcoord_sign, dydalpha_sign
-    real :: field_period_ratio
+    real :: field_period_ratio, bmag_z0
     real, dimension (:,:), allocatable :: grad_alpha_grad_alpha
     real, dimension (:,:), allocatable :: grad_alpha_grad_psi
     real, dimension (:,:), allocatable :: grad_psi_grad_psi
@@ -132,7 +133,7 @@ contains
           call read_local_parameters (nzed,nzgrid,geo_surf)
           ! allocate geometry arrays
           call allocate_arrays (nalpha, nzgrid)
-          ! use Miller local parameters to get 
+          ! use Miller local parameters to get
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
                dpsidrho, dpsidrho_psi0, dIdrho, grho(1,:), &
@@ -143,7 +144,7 @@ contains
                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
-               dgds2dr(1,:),dgds21dr(1,:), & 
+               dgds2dr(1,:),dgds21dr(1,:), &
                dgds22dr(1,:), djacdrho(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
@@ -178,7 +179,7 @@ contains
 
           call communicate_parameters_multibox(surf=geo_surf)
 
-          ! use Miller local parameters to get 
+          ! use Miller local parameters to get
           ! geometric coefficients needed by stella
           call get_local_geo (nzed, nzgrid, zed, zed_equal_arc, &
                dpsidrho, dpsidrho_psi0, dIdrho, grho(1,:), &
@@ -189,7 +190,7 @@ contains
                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                dcvdrift0drho(1,:), dcvdriftdrho(1,:), &
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
-               dgds2dr(1,:),dgds21dr(1,:), & 
+               dgds2dr(1,:),dgds21dr(1,:), &
                dgds22dr(1,:), djacdrho(1,:))
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
@@ -348,27 +349,27 @@ contains
     ! but not in non-axisymmetric case
 !    twist_and_shift_geo_fac = geo_surf%shat*(gds21(1,-nzgrid)/gds22(1,-nzgrid)-gds21(1,nzgrid)/gds22(1,nzgrid))
 
-    ! FLAG DSO - the followiing assumes a linear relation from q to rho, but this will 
+    ! FLAG DSO - the followiing assumes a linear relation from q to rho, but this will
     !            not be correct if d2qdrho != 0
     dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
 
     jacob = 1.0/abs(drhodpsi*spread(gradpar,1,nalpha)*bmag)
-    
+
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
 
-    ! the next line is to avoid double counting the end points for ky = 0 modes (which leads to destabilization 
+    ! the next line is to avoid double counting the end points for ky = 0 modes (which leads to destabilization
     ! of the zonal modes for certain input parameters)
-    ! FLAG DSO - while this is correct for ky = 0 modes and sufficient for output, if dl_over_b is applied to 
-    ! non-zero ky modes, a more sophisticated approach will be required that takes into account the sign of 
+    ! FLAG DSO - while this is correct for ky = 0 modes and sufficient for output, if dl_over_b is applied to
+    ! non-zero ky modes, a more sophisticated approach will be required that takes into account the sign of
     ! v_parallel
     dl_over_b(:,nzgrid) = 0.
 
     ! this is the correction to flux-surface-averaging for adiabatic electrons
     d_dl_over_b_drho = spread(delzed,1,nalpha)*djacdrho
     d_dl_over_b_drho(:,nzgrid) = 0
-    d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b & 
-                     * spread(sum(d_dl_over_b_drho,dim=2)/sum(dl_over_b,dim=2),2,2*nzgrid+1) 
+    d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b &
+                     * spread(sum(d_dl_over_b_drho,dim=2)/sum(dl_over_b,dim=2),2,2*nzgrid+1)
     d_dl_over_b_drho = gfac*d_dl_over_b_drho / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
 
     ! normalize dl/B by int dl/B
@@ -399,6 +400,19 @@ contains
     call get_zed_eqarc (gradpar, delzed, zed, gradpar_eqarc, zed_eqarc)
 
     if (proc0) call write_geometric_coefficients (nalpha)
+
+    ! AVB: temporary, set bmag = constant in z for Spitzer problem
+    if (set_bmag_const) then
+        bmag_z0 = bmag(1,0)
+        print*,''
+        print*,'! SETTING BMAG = CONSTANT IN Z'
+        print*,''
+        do ia = 1, nalpha
+           do iz = -nzgrid, nzgrid
+               bmag(ia,iz) = bmag_z0
+           end do
+        end do
+     end if
 
   contains
 
@@ -433,7 +447,7 @@ contains
     end subroutine deallocate_temporary_arrays
 
     subroutine overwrite_selected_geometric_coefficients (nalpha)
-      
+
       use file_utils, only: get_unused_unit
       use zgrid, only: nzgrid
 
@@ -451,7 +465,7 @@ contains
 
       call get_unused_unit (geofile_unit)
       open (geofile_unit,file=trim(geo_file),status='old',action='read')
-      
+
       read (geofile_unit,fmt=*) dum_char
       read (geofile_unit,fmt=*) dum_char
       read (geofile_unit,fmt=*) dum_char
@@ -478,7 +492,7 @@ contains
       cvdrift0 = gbdrift0
 
       close (geofile_unit)
-      
+
     end subroutine overwrite_selected_geometric_coefficients
 
   end subroutine init_geometry
@@ -553,7 +567,7 @@ contains
 
     namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_gradpar, &
          overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
-         overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x
+         overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x, set_bmag_const
 
     geo_option = 'local'
     overwrite_bmag = .false.
@@ -566,6 +580,7 @@ contains
     overwrite_gbdrift = .false.
     overwrite_cvdrift = .false.
     overwrite_gbdrift0 = .false.
+    set_bmag_const = .false.
     q_as_x = radial_variation !true by default in radial variation runs
     geo_file = 'input.geometry'
 
@@ -581,7 +596,7 @@ contains
     if(radial_variation.and.runtype_option_switch.eq.runtype_multibox.and.job.ne.1) then
       geo_option_switch = geo_option_multibox
     endif
-    
+
     overwrite_geometry = overwrite_bmag .or. overwrite_gradpar &
          .or. overwrite_gds2 .or. overwrite_gds21 .or. overwrite_gds22 &
          .or. overwrite_gds23 .or. overwrite_gds24 &
@@ -656,6 +671,7 @@ contains
 
     call broadcast (zed_scalefac)
     call broadcast (q_as_x)
+    call broadcast (set_bmag_const)
     call broadcast (alpha)
     call broadcast (zeta)
     call broadcast (dxdXcoord)
@@ -668,7 +684,7 @@ contains
   end subroutine broadcast_arrays
 
   subroutine communicate_geo_multibox(l_edge, r_edge)
-  
+
     use millerlocal, only: communicate_parameters_multibox
     use mp, only: proc0
 
@@ -676,7 +692,7 @@ contains
 
     real, intent (in) :: l_edge, r_edge
 
-    if(proc0) then 
+    if(proc0) then
       call communicate_parameters_multibox(geo_surf,gfac*l_edge, gfac*r_edge)
     endif
 
@@ -813,7 +829,7 @@ contains
 
     call open_output_file (geometry_unit,'.geometry')
 
-    write (geometry_unit,'(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdXcoord', 'dydalpha', & 
+    write (geometry_unit,'(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdXcoord', 'dydalpha', &
                                       'exb_nonlin', 'exb_nonlin_p'
     write (geometry_unit,'(a1,11e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, &
                                               dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac

@@ -22,7 +22,7 @@ module stella_diagnostics
   logical :: write_kspectra
   logical :: write_radial_fluxes
   logical :: write_radial_moments
-  logical :: write_fluxes_kxkyz  
+  logical :: write_fluxes_kxkyz
   logical :: flux_norm
 
   !> Arrays needed for averaging in x,y,z
@@ -68,10 +68,10 @@ contains
     ! Only initialize the diagnostics once
     if (diagnostics_initialized) return
     diagnostics_initialized = .true.
-    
+
     ! Only debug on the first processor
     debug = debug .and. proc0
-    
+
     ! Make sure the other routines are intialized
     call init_zgrid
     call init_physics_parameters
@@ -80,11 +80,11 @@ contains
     call init_species
     call init_init_g
     call init_dist_fn
-    
+
     ! Read the namelist "stella_diagnostics_knobs" in the input file
     call read_parameters
     call allocate_arrays
-    
+
     ! Broadcast the variables to all processors
     call broadcast (nwrite)
     call broadcast (navg)
@@ -99,9 +99,9 @@ contains
     call broadcast (write_gzvs)
     call broadcast (write_radial_fluxes)
     call broadcast (write_radial_moments)
-    call broadcast (write_fluxes_kxkyz)    
+    call broadcast (write_fluxes_kxkyz)
     call broadcast (flux_norm)
-    
+
     ! Initiate the netcdf file with extension '.out.nc'
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
@@ -115,7 +115,7 @@ contains
     call broadcast (nout)
 
   end subroutine init_stella_diagnostics
-  
+
   !> Read the diagnostic input parameters from the input file
   !>
   !> Namelist: `stella_diagnostics_knobs`
@@ -236,11 +236,11 @@ contains
 
   !> Close the text files opened by [[open_loop_ascii_files]]
   subroutine close_loop_ascii_files
-    
+
     use file_utils, only: close_output_file
-    
+
     implicit none
-    
+
     call close_output_file (stdout_unit)
     call close_output_file (fluxes_unit)
     if (write_omega) call close_output_file (omega_unit)
@@ -283,7 +283,7 @@ contains
 
     !> The current timestep
     integer, intent (in) :: istep
-    
+
     real :: phi2, apar2
     real :: zero
     real, dimension (:,:,:), allocatable :: gvmus
@@ -294,7 +294,7 @@ contains
     real, dimension (:,:), allocatable :: dens_x, upar_x, temp_x
     real, dimension (:,:), allocatable :: phi2_vs_kxky
     real, dimension (:,:,:,:,:), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
-    complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature
+    complex, dimension (:,:,:,:,:), allocatable :: density, upar, temperature, spitzer2
 
     complex, dimension (:,:), allocatable :: omega_avg
     complex, dimension (:,:), allocatable :: phiavg, phioldavg
@@ -377,7 +377,6 @@ contains
        deallocate (omega_avg)
     end if
 
-
     if (mod(istep,nwrite*nc_mult).eq.0) then
       if (proc0) then
          if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
@@ -403,15 +402,16 @@ contains
          allocate (density(naky,nakx,nztot,ntubes,nspec))
          allocate (upar(naky,nakx,nztot,ntubes,nspec))
          allocate (temperature(naky,nakx,nztot,ntubes,nspec))
+         allocate (spitzer2(naky,nakx,nztot,ntubes,nspec))
          if(write_radial_moments) then
            allocate (dens_x(nakx,nspec))
            allocate (upar_x(nakx,nspec))
            allocate (temp_x(nakx,nspec))
          endif
-         call get_moments (gnew, density, upar, temperature, dens_x, upar_x, temp_x)
-         if (proc0.and.write_moments) call write_moments_nc (nout, density, upar, temperature)
+         call get_moments (gnew, density, upar, temperature, dens_x, upar_x, temp_x, spitzer2)
+         if (proc0.and.write_moments) call write_moments_nc (nout, density, upar, temperature, spitzer2)
          if (proc0.and.write_radial_moments) call write_radial_moments_nc (nout, dens_x, upar_x, temp_x)
-         deallocate (density, upar, temperature)
+         deallocate (density, upar, temperature, spitzer2)
          if(allocated(dens_x)) deallocate (dens_x)
          if(allocated(upar_x)) deallocate (upar_x)
          if(allocated(temp_x)) deallocate (temp_x)
@@ -437,16 +437,7 @@ contains
          if (proc0) call write_gzvs_nc (nout, gzvs)
          deallocate (gzvs)
       end if
-  !     if (write_symmetry) then
-  !        allocate (pflx_zvpa(nztot,nvpa,nspec))
-  !        allocate (vflx_zvpa(nztot,nvpa,nspec))
-  !        allocate (qflx_zvpa(nztot,nvpa,nspec))
-  !        call get_fluxes_vs_zvpa (gnew, pflx_zvpa, vflx_zvpa, qflx_zvpa)
-  !        deallocate (pflx_zvpa, vflx_zvpa, qflx_zvpa)
-  !     end if
-
       if (proc0) call sync_nc
-
 
       nout = nout + 1
     endif
@@ -509,7 +500,7 @@ contains
     else
        ! Flux definition witou the extra factor.
        flx_norm_partial = 1.0
-       flx_norm = flx_norm/sum(flx_norm)       
+       flx_norm = flx_norm/sum(flx_norm)
     endif
 
     ia = 1
@@ -521,7 +512,7 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          
+
           ! get particle flux
           call gyro_average (g(:,:,ikxkyz), ikxkyz, gtmp1)
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), pflx(is))
@@ -544,7 +535,7 @@ contains
           gtmp1 = gtmp2 + gtmp3
 
           call get_one_flux (iky, iz, flx_norm(iz), gtmp1, phi(iky,ikx,iz,it), vflx(is))
-          call get_one_flux (iky, iz, flx_norm_partial, gtmp1, phi(iky,ikx,iz,it), vflx_vs_kxkyz(iky,ikx,iz,it,is)) 
+          call get_one_flux (iky, iz, flx_norm_partial, gtmp1, phi(iky,ikx,iz,it), vflx_vs_kxkyz(iky,ikx,iz,it,is))
        end do
     end if
 
@@ -556,16 +547,16 @@ contains
           iz = iz_idx(kxkyz_lo,ikxkyz)
           it = it_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
-          
+
           ! Apar contribution to particle flux
           gtmp1 = -g(:,:,ikxkyz)*spec(is)%stm*spread(vpa,2,nmu)
           call gyro_average (gtmp1, ikxkyz, gtmp2)
           call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), pflx(is))
-          
+
           ! Apar contribution to heat flux
           gtmp2 = gtmp2*(spread(vpa**2,2,nmu)+spread(vperp2(ia,iz,:),1,nvpa))
           call get_one_flux (iky, iz, flx_norm(iz), gtmp2, apar(iky,ikx,iz,it), qflx(is))
-          
+
           ! Apar contribution to momentum flux
           ! parallel component
           gtmp1 = -spread(vpa**2,2,nmu)*spec(is)%stm*g(:,:,ikxkyz) &
@@ -692,17 +683,17 @@ contains
             do iz= -nzgrid, nzgrid
               if(radial_variation) then
                 g0k = g1(:,:,iz,it,ivmu) &
-                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                   + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
-               
+
                 call multiply_by_rho(g0k)
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
               endif
 
               !subtract adiabatic contribution part of g
-              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 & 
+              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 &
                     *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
               if(radial_variation) then
                 g1k = g0k*( -spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu) - 2.5) &
@@ -740,8 +731,8 @@ contains
               g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))
 
               if(radial_variation) then
-                g0k = g1(:,:,iz,it,ivmu) & 
-                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                g0k = g1(:,:,iz,it,ivmu) &
+                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                      + dBdrho(iz)/bmag(ia,iz) &
@@ -755,7 +746,7 @@ contains
               endif
 
               !subtract adiabatic contribution part of g
-              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 & 
+              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 &
                     *(vpa(iv)**2+vperp2(ia,iz,imu)) &
                     *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
               if(radial_variation) then
@@ -794,10 +785,10 @@ contains
 
               if(radial_variation) then
                 g0k = g1(:,:,iz,it,ivmu) &
-                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dIdrho/(geo_surf%rmaj*btor(iz)) & 
+                  + dIdrho/(geo_surf%rmaj*btor(iz)) &
                   + dflx_norm(iz))
 
                 call multiply_by_rho(g0k)
@@ -806,7 +797,7 @@ contains
 
               endif
               !subtract adiabatic contribution part of g
-              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 & 
+              g0k = spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)**2 &
                     *vpa(iv)*geo_surf%rmaj*btor(iz)/bmag(ia,iz) &
                     *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
               if(radial_variation) then
@@ -815,7 +806,7 @@ contains
                             -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                            + dflx_norm(iz) + dIdrho/(geo_surf%rmaj*btor(iz))) 
+                            + dflx_norm(iz) + dIdrho/(geo_surf%rmaj*btor(iz)))
 
                 call multiply_by_rho(g1k)
 
@@ -850,20 +841,20 @@ contains
               endif
 
               !subtract adiabatic contribution part of g
-              g0k = -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)*aj1x(:,:,iz,ivmu) & 
+              g0k = -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)*aj1x(:,:,iz,ivmu) &
                     *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                     *zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
                     * (gds21(ia,iz)+theta0*gds22(ia,iz))*spec(is)%smz &
                       / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
 
               if(radial_variation) then
-                g1k = -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)*aj1x(:,:,iz,ivmu) & 
+                g1k = -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu)*aj1x(:,:,iz,ivmu) &
                       *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                       *zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
                       * (dgds21dr(ia,iz)+theta0*dgds22dr(ia,iz))*spec(is)%smz &
                       / (geo_surf%qinp*geo_surf%shat*bmag(ia,iz)**2)
 
-                g1k = g1k -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu) & 
+                g1k = g1k -spec(is)%zt*fphi*phi(:,:,iz,it)*aj0x(:,:,iz,ivmu) &
                        *maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                        *zi*spread(aky,2,nakx)*vperp2(ia,iz,imu)*geo_surf%rhoc &
                        * (gds21(ia,iz)+theta0*gds22(ia,iz))*spec(is)%smz &
@@ -927,7 +918,7 @@ contains
     complex, dimension (:,:), intent (in) :: gin
     complex, intent (in) :: fld
     real, intent (in out) :: flxout
-    
+
     complex :: flx
 
     call integrate_vmu (gin,iz,flx)
@@ -955,7 +946,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
     real, dimension (:), intent (in out) :: flxout
-    
+
     complex, dimension (:,:,:,:,:), allocatable :: totals
 
     integer :: is, it, iz, ikx
@@ -999,7 +990,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
     real, dimension (:,:), intent (in out) :: flxout
-    
+
     complex, dimension (:,:,:,:,:), allocatable :: totals
 
     complex, dimension (:,:), allocatable :: g0x, g1x
@@ -1032,8 +1023,8 @@ contains
   !==============================================
   !=============== GET MOMENTS ==================
   !==============================================
-  subroutine get_moments (g, dens, upar, temp, dens_x, upar_x, temp_x)
-    
+  subroutine get_moments (g, dens, upar, temp, dens_x, upar_x, temp_x, spitzer2)
+
     use zgrid, only: nzgrid, ntubes
     use species, only: spec, nspec
     use vpamu_grids, only: integrate_vmu
@@ -1054,7 +1045,7 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: dens, upar, temp
+    complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp, spitzer2
     real, dimension (:,:), intent (out) :: dens_x, upar_x, temp_x
 
     complex, dimension (:,:), allocatable :: g0k, g1k, g1x
@@ -1074,7 +1065,7 @@ contains
     ! Hack below. Works since J0^2 - 1 and its derivative are zero at the origin
     zero = 100.*epsilon(0.)
 
-    ! h is gyrophase independent, but is in gyrocenter coordinates, 
+    ! h is gyrophase independent, but is in gyrocenter coordinates,
     ! so requires a J_0 to get to particle coordinates
     ! <f>_r = h J_0 - Ze*phi/T * F0
     ! g     = h     - Ze*<phi>_R/T * F0
@@ -1090,7 +1081,7 @@ contains
        g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
             * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
             * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*fphi*phi
- 
+
        if(radial_variation) then
          do it = 1, ntubes
            do iz= -nzgrid, nzgrid
@@ -1099,14 +1090,14 @@ contains
                 * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*fphi*phi(:,:,iz,it) &
                 *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                   -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                      /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
 
              !g
              g0k = g0k + g1(:,:,iz,it,ivmu) &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                + dBdrho(iz)/bmag(ia,iz))
@@ -1154,11 +1145,11 @@ contains
            do iz= -nzgrid, nzgrid
              !phi
              g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
-               *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
+               *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
                *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it)*fphi &
                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                 -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+                 -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                     /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero) &
@@ -1166,8 +1157,8 @@ contains
 
 
              !g
-             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 & 
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 &
+               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                  + dBdrho(iz)/bmag(ia,iz) &
@@ -1177,7 +1168,7 @@ contains
 
              !phi QN
              g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 & 
+               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
 
              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
@@ -1203,6 +1194,15 @@ contains
       temp_x = naky * temp_x / ntubes
     endif
 
+    ! for Spitzer problem tests of the collision operator
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       g2(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)*( vpa(iv)*(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2.*vpa(iv) )
+    end do
+    call integrate_vmu (g2, spec%stm, spitzer2) ! AVB: stm is the thermal speed
+
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
@@ -1213,7 +1213,7 @@ contains
            do iz= -nzgrid, nzgrid
              !g
              g0k = vpa(iv)*g1(:,:,iz,it,ivmu) &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 & 
+               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                + dBdrho(iz)/bmag(ia,iz))
@@ -1327,7 +1327,7 @@ contains
           end do
        end do
     end do
-    
+
     do it = 1, ntubes
        do iz = -nzgrid, nzgrid
           izp = iz+nzgrid+1
@@ -1384,7 +1384,7 @@ contains
     use kt_grids, only: aky, akx
 
     implicit none
-    
+
     integer, intent (in) :: istep
     real, intent (in) :: phi2, apar2
     real, dimension (:), intent (in) :: pflx, vflx, qflx
@@ -1458,7 +1458,7 @@ contains
        end do
     end do
     call close_output_file (tmpunit)
-    
+
   end subroutine write_final_ascii_files
 
   !==============================================
