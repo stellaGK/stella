@@ -6,7 +6,7 @@ module sources
   public :: include_krook_operator, update_tcorr_krook
   public :: remove_zero_projection, project_out_zero
   public :: add_krook_operator
-  public :: tcorr_source
+  public :: tcorr_source, exclude_boundary_regions
   public :: int_krook, int_proj, int_QN
 
   private
