@@ -74,6 +74,7 @@ common_types.o:
 constants.o: 
 convert.o: 
 dissipation.o: \
+	 common_types.o \
 	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
@@ -89,6 +90,7 @@ dissipation.o: \
 	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
+	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -160,6 +162,7 @@ fields.o: \
 	 run_parameters.o \
 	 sources.o \
 	 species.o \
+	 spfunc.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
