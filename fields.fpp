@@ -24,9 +24,7 @@ module fields
   real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
   complex, dimension (:,:,:), allocatable :: theta
-  complex, dimension (:,:), allocatable :: b_mat, binv_fmax
-  integer, dimension (:), allocatable :: b_idx
-  complex :: k0_Binv_fmax
+  complex, dimension (:,:), allocatable :: c_mat
 
   complex, dimension (:,:), allocatable :: save1, save2
 
@@ -84,7 +82,8 @@ contains
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use linear_solve, only: lu_decomposition, lu_back_substitution, lu_inverse
-    use multibox, only: init_mb_get_phi
+    use multibox, only: init_mb_get_phi, boundary_size
+    use sources, only: exclude_boundary_regions
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
     use file_utils, only: runtype_option_switch, runtype_multibox
     
@@ -92,9 +91,8 @@ contains
     implicit none
 
     integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi, jkx, jz
-    integer :: inmat, jnmat, nmat_zf, idx
-    real :: tmp, tmp2, wgt, dum, total
-    complex :: tmpc
+    integer :: inmat, jnmat, nmat_zf
+    real :: tmp, tmp2, wgt, dum
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
     logical :: has_elec, adia_elec
@@ -290,10 +288,7 @@ contains
            if (adia_elec) then
              nmat_zf = nakx*(nztot-1)
 
-             if(.not.allocated(b_mat)) allocate(b_mat(nakx,nakx));
-             if(.not.allocated(b_idx)) allocate(b_idx(nakx));
-           
-             if(.not.allocated(binv_fmax)) allocate(binv_fmax(nakx,-nzgrid:nzgrid));
+             if(.not.allocated(c_mat)) allocate(c_mat(nakx,nakx));
              if(.not.allocated(theta)) allocate(theta(nakx, nakx,-nzgrid:nzgrid));
 
 #if defined MPI && ISO_C_BINDING
@@ -344,7 +339,7 @@ contains
                call transform_x2kx_unpadded(g0x,g0k)
 
                !row column
-               b_mat(:,ikx) = g0k(1,:) 
+               c_mat(:,ikx) = g0k(1,:)
              enddo
 
              !get Theta
@@ -381,7 +376,7 @@ contains
                    ! C.phi
                    do ikx = 1, nakx
                      inmat = ikx + nakx*(jz+nzgrid)
-                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + b_mat(ikx,jkx)
+                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + c_mat(ikx,jkx)
                    enddo
 
                    ! -C.<phi>_\psi
@@ -394,7 +389,7 @@ contains
                    if(jkx.eq.1) g0k(1,1) = 0. 
 
                    do ikx = 1, nakx
-                     g1k(1,ikx) = sum(b_mat(ikx,:)*g0k(1,:))
+                     g1k(1,ikx) = sum(c_mat(ikx,:)*g0k(1,:))
                    enddo
 
                    do iz = -nzgrid, nzgrid-1
@@ -416,7 +411,16 @@ contains
                    ! -<<theta.phi>_psi>_T)
                    call transform_kx2x_unpadded (g1k, g0x)
                    g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
-                   g0x(1,:) = sum(g0x(1,:))/nakx
+
+                   if (exclude_boundary_regions) then
+                     g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                     g0x(1,1:boundary_size) = 0.0
+                     g0x(1,(nakx-boundary_size+1):) = 0.0
+                   else
+                     g0x(1,:) = sum(g0x(1,:))/nakx
+                   endif
+
                    call transform_x2kx_unpadded(g0x,g0k)
 
                    do iz = -nzgrid, nzgrid-1
@@ -706,7 +710,7 @@ contains
 
     implicit none
     
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
@@ -755,7 +759,7 @@ contains
        deallocate (gyro_g)
        call sum_allreduce(phi)
 
-       call get_phi(phi, dist,skip_fsa_local,g)
+       call get_phi(phi, dist,skip_fsa_local)
 
     end if
     
@@ -862,11 +866,9 @@ contains
 
   end subroutine get_fields_by_spec
 
-  subroutine get_phi (phi, dist, skip_fsa, g)
+  subroutine get_phi (phi, dist, skip_fsa)
 
     use mp, only: proc0, mp_abort, job
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: imu_idx, is_idx, iv_idx
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes, nztot
@@ -877,21 +879,20 @@ contains
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu
-    use multibox, only: mb_get_phi
+    use multibox, only: mb_get_phi, boundary_size
+    use sources, only: exclude_boundary_regions
     use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_proj
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
     logical, optional, intent (in) :: skip_fsa
     integer :: ia, it, iz, ikx, iky, zmi
-    integer :: imu, iv, is, ivmu, inmat
+    integer :: inmat
     complex, dimension (:,:), allocatable :: g0k, g1k, g0x, g0a
     complex, dimension (:), allocatable :: phiext
-    complex :: tmp, g_fsa, correction
+    complex :: tmp
     logical :: skip_fsa_local
     logical :: has_elec, adia_elec
 
@@ -1003,13 +1004,20 @@ contains
               g0k(1,:) = phi(1,:,iz,it)
               call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-              g0x(1,:) = sum(g0x(1,:))/nakx
+              if (exclude_boundary_regions) then
+                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                g0x(1,1:boundary_size) = 0.0
+                g0x(1,(nakx-boundary_size+1):) = 0.0
+              else
+                g0x(1,:) = sum(g0x(1,:))/nakx
+              endif
+
               call transform_x2kx_unpadded(g0x,g0k)
 
               g1k = g1k + g0k
             enddo
 
-!           correction = g_fsa
             phi_proj(:,1,it) = g1k(1,:)
             do iz = -nzgrid, nzgrid-1
               phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
@@ -1034,7 +1042,7 @@ contains
             !enforce periodicity
             phi(1,:,nzgrid,it) = phi(1,:,-nzgrid,it)
         
-!           ! calculate Theta.phi
+            ! calculate Theta.phi
             g1k = 0.0
             do iz = -nzgrid, nzgrid-1
               do ikx = 1, nakx
@@ -1042,8 +1050,17 @@ contains
               enddo
 
               call transform_kx2x_unpadded (g0k,g0x)
+
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-              g0x(1,:) = sum(g0x(1,:))/nakx
+              if (exclude_boundary_regions) then
+                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                g0x(1,1:boundary_size) = 0.0
+                g0x(1,(nakx-boundary_size+1):) = 0.0
+              else
+                 g0x(1,:) = sum(g0x(1,:))/nakx
+              endif
+
               call transform_x2kx_unpadded(g0x,g0k)
               g1k = g1k + g0k
             enddo
@@ -1345,9 +1362,7 @@ contains
 
     if (allocated(phi_solve)) deallocate(phi_solve)
     if (associated(phizf_solve%idx))  deallocate(phizf_solve%idx)
-    if (allocated(b_mat)) deallocate(b_mat)
-    if (allocated(b_idx)) deallocate(b_idx)
-    if (allocated(binv_fmax)) deallocate(binv_fmax)
+    if (allocated(c_mat)) deallocate(c_mat)
     if (allocated(theta)) deallocate(theta)
 
 #if defined MPI && defined ISO_C_BINDING
