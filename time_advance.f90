@@ -46,7 +46,7 @@ module time_advance
 
   real :: xdriftknob, ydriftknob, wstarknob
   logical :: flip_flop
-  logical :: leapfrog_this_timestep
+  logical :: leapfrog_this_timestep, runge_kutta_terms_this_timestep
 
   complex, dimension (:,:,:), allocatable :: gamtot_drifts!, apar_denom_drifts
   complex, dimension (:,:), allocatable :: gamtot3_drifts
@@ -902,19 +902,32 @@ contains
     use fields_arrays, only: phi_old
     use fields, only: advance_fields, fields_updated
     use run_parameters, only: none_implicit, use_leapfrog_splitting, nisl_nonlinear
+    use run_parameters, only:  leapfrog_drifts, leapfrog_nonlinear
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use physics_flags, only: nonlinear
+    use physics_flags, only: include_parallel_nonlinearity
+    use physics_flags, only: include_mirror
+    use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: full_flux_surface, radial_variation
+    use physics_parameters, only: g_exb
     use multibox, only: RK_step
     use dissipation, only: include_krook_operator, update_delay_krook
     use dissipation, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
     use stella_layouts, only: vmu_lo
+    use dissipation, only: include_collisions, collisions_implicit
+    use dissipation, only: include_krook_operator
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use multibox, only: include_multibox_krook
+
+
 
     implicit none
 
     integer, intent (in) :: istep
     complex, allocatable, dimension (:,:,:,:) :: g1
-    logical  :: restart_time_step, leapfrog_this_timestep, time_advance_successful, reverse_implicit_order
+    logical  :: restart_time_step, time_advance_successful, reverse_implicit_order
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -924,7 +937,7 @@ contains
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
     phi_old = phi
-
+    !write(*,*) "In advance_stella"
     ! We can use the leapfrog step provided:
     ! 1) istep > 1 (need gold and golder)
     ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
@@ -932,6 +945,7 @@ contains
     ! 3) The simulation hasn't just been restarted - currently, save_for_restart
     ! only saves gold, so we don't have golder.
     leapfrog_this_timestep = .false.
+
     ! Flag which is set to true once we've taken a step without needing to
     ! reset dt.
     time_advance_successful = .false.
@@ -947,6 +961,34 @@ contains
       leapfrog_this_timestep = .true.
     end if
 
+    ! Work out whether there's any terms which are to be evolved by a
+    ! Runge-Kutta scheme this timestep.
+    ! TODO: Tidy up this logic, maybe put in its own subroutine.
+    if ((nonlinear) .and. ( (.not. leapfrog_this_timestep) .or. (.not. nisl_nonlinear &
+            .and. .not. leapfrog_nonlinear))) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (include_parallel_nonlinearity) then
+      runge_kutta_terms_this_timestep = .true.
+    else if ((g_exb**2).gt.epsilon(0.0)) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (include_mirror.and..not.mirror_implicit) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (.not.drifts_implicit .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (include_collisions.and..not.collisions_implicit) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (include_parallel_streaming.and.(.not.stream_implicit)) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (radial_variation) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (include_krook_operator) then
+      runge_kutta_terms_this_timestep = .true.
+    else if (runtype_option_switch == runtype_multibox .and. include_multibox_krook) then
+      runge_kutta_terms_this_timestep = .true.
+    else
+      runge_kutta_terms_this_timestep = .false.
+    end if
+
     ! For reversing the order in which the implicit operators are applied
     ! (either ABC...  or ...CBA )
     ! The order is never reversed for Lie splitting (always ABC...), but
@@ -954,6 +996,7 @@ contains
     reverse_implicit_order = .false.
 
     if (leapfrog_this_timestep) then
+      !write(*,*) "In leapfrog_this_timestep"
       ! Try taking a leapfrog step, but if dt is reset, we can't take a Leapfrog
       ! step (need to do an "ordinary" single-step approach).
       ! Need to check if dt is reset after the explicit step, and after the
@@ -965,7 +1008,9 @@ contains
       ! field solve because these fields have been calculated previously, but at the
       ! expense of memory (storing another set of fields) and code refactoring
       fields_updated = .false.
-      call advance_explicit (golder, restart_time_step)
+      !write(*,*) "before explicit call #1, phi = ", phi
+      if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
+      !write(*,*) "after explicit call #1, phi = ", phi
 
       if (.not. restart_time_step) then
         ! NB reverse_implicit_order is .false. at this point
@@ -978,26 +1023,30 @@ contains
         ! field solve because these fields have been calculated previously, but at the
         ! expense of memory (storing another set of fields) and code refactoring
         fields_updated = .false.
+        !write(*,*) "About to call advance_leapfrog"
         call advance_leapfrog(golder, gnew, restart_time_step)
+        !write(*,*) "Called advance_leapfrog"
 
         if (.not. restart_time_step) then
           reverse_implicit_order = .true.  ! Swap the order in which we apply the implicit operators
           if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
-          call advance_explicit (gnew, restart_time_step)
+          if (runge_kutta_terms_this_timestep) call advance_explicit (gnew, restart_time_step)
         end if
       end if
 
       if (restart_time_step) then
+        !write(*,*) "restart_time_step!"
         ! Need to re-do the step with Lie splitting
         ! This flag tells us we need to treat whatever terms we were going to
         ! treat with the leapfrog approach with a non-leapfrog scheme.
         leapfrog_this_timestep = .false.
-
+        runge_kutta_terms_this_timestep = .true.
         ! We're discarding changes to gnew and starting over, so fields will
         ! need to be updated.
         fields_updated = .false.
       else
         time_advance_successful = .true.
+        !write(*,*) "time_advance_successful!"
       end if
     end if
 
@@ -1005,6 +1054,7 @@ contains
     ! timestep changing.
     do while (.not. time_advance_successful)
 
+      !write(*,*) "In .not. time_advance_successful!"
       ! If we've already attempted a time advance then we've updated gnew,
       ! so reset it now.
       gnew = gold
@@ -1018,6 +1068,7 @@ contains
       ! as part of alternating direction operator splitting
       ! this is needed to ensure 2nd order accuracy in time
       if (mod(istep,2)==1 .or. .not.flip_flop) then
+        !write(*,*) ".not. flip_flop!"
         reverse_implicit_order = .false.
         ! advance the explicit parts of the GKE
         call advance_explicit (gnew, restart_time_step)
@@ -1029,14 +1080,17 @@ contains
         ! all terms treated implicitly
         if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
       else
+        !write(*,*) "flip_flop!"
         reverse_implicit_order = .true.
         if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
         call advance_explicit (gnew, restart_time_step)
       end if
 
       if (.not. restart_time_step) then
+        !write(*,*) "Normal step, restart_time_step false"
         time_advance_successful = .true.
       else
+        !write(*,*) "Normal step, restart_time_step true"
         ! We're discarding changes to gnew and starting over, so fields will
         ! need to be re-calculated
         fields_updated = .false.
@@ -1074,7 +1128,7 @@ contains
     use parallel_streaming, only: stream_sign
     implicit none
 
-!    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
+    !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
     logical, intent (in out) :: restart_time_step
 
@@ -1146,7 +1200,7 @@ contains
     ! then must modify time step size and restart time step
     ! assume false and test
     restart_time_step = .false.
-
+    !write(*,*) "In advance_leapfrog"
     ! Get the fields corresponding to g(i)
     call advance_fields (gout, phi, apar, dist='gbar')
     ! There are 2 different "flavours" of leapfrog option we can use:
@@ -1407,7 +1461,7 @@ contains
     else
        rhs => rhs_ky
     end if
-
+    !write(*,*) "In solve_gke"
     ! start with gbar in k-space and (ky,kx,z) local
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
@@ -1446,7 +1500,9 @@ contains
        !  (1) nonlinear = .true.
        !  (2) (nisl_nonlinear = .false. and leapfrog_nonlinear = .false.) UNLESS
        !    leapfrog_this_timestep = .false.
+
        if (.not.drifts_implicit .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
+         !write(*,*) "Advancing drifts in the explicit way."
          ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
          call advance_wdrifty_explicit (gin, phi, rhs)
 
@@ -1670,7 +1726,7 @@ contains
     use fields, only: get_dchidx, get_dchidy
     use fields_arrays, only: phi, apar, shift_state
     use fields_arrays, only: phi_corr_QN,   phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
+    !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_transforms, only: transform_y2ky,transform_x2kx
     use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
     use stella_time, only: cfl_dt, code_dt, code_dt_max
@@ -2163,8 +2219,8 @@ contains
        end if
        code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
        call reset_dt
-!    else
-!       gout = code_dt*gout
+       !    else
+       !       gout = code_dt*gout
     end if
 
     if (proc0) call time_message(.false.,time_parallel_nl(:,1),' parallel nonlinearity advance')
@@ -2178,7 +2234,7 @@ contains
     use fields, only: get_dchidy
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_corr_QN,  phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
+    !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
@@ -2301,7 +2357,7 @@ contains
             call get_dgdx(g0a,g1k)
             g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
-!           !wdriftx F_M/T_s variation
+            !           !wdriftx F_M/T_s variation
 !           call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
 !           g0a = adiabatic_phi(ia,iz,ivmu)*g0a
 !           call multiply_by_rho(g0a)
@@ -2570,7 +2626,7 @@ contains
 !       gy => g
 !       gk => g_dual
 !    end if
-
+    !write(*,*) "In implicit_advance"
     ! start the timer for the implicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
@@ -2586,6 +2642,7 @@ contains
     ! Apply the operators sequentially, order depending on the reverse_implicit_order
     ! logical
     if (.not. reverse_implicit_order) then
+       !write(*,*) "In implicit_advance, reverse_implicit_order = .false."
 
        if (prp_shear_enabled) then
           call advance_perp_flow_shear(g)
@@ -2633,6 +2690,7 @@ contains
 
     else
 
+       !write(*,*) "In implicit_advance, reverse_implicit_order = .true."
        ! get updated fields corresponding to advanced g
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update
@@ -2709,7 +2767,7 @@ contains
     complex, dimension (:,:,:), allocatable :: gyro_g
 
     ia = 1
-
+    write(*,*) "In advance_drifts_implicit, this is wrong"
     allocate (wd_g(naky,nakx))
     allocate (wd_phi(naky,nakx))
     allocate (wstr(naky,nakx))
