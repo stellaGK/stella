@@ -978,12 +978,12 @@ contains
         ! field solve because these fields have been calculated previously, but at the
         ! expense of memory (storing another set of fields) and code refactoring
         fields_updated = .false.
-        call advance_leapfrog(golder, gnew, restart_time_step)
+        call advance_leapfrog(gold, golder, restart_time_step)
 
         if (.not. restart_time_step) then
           reverse_implicit_order = .true.  ! Swap the order in which we apply the implicit operators
-          if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
-          call advance_explicit (gnew, restart_time_step)
+          if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, golder)
+          call advance_explicit (golder, restart_time_step)
         end if
       end if
 
@@ -998,6 +998,8 @@ contains
         fields_updated = .false.
       else
         time_advance_successful = .true.
+        ! Update gnew
+        gnew = golder
       end if
     end if
 
@@ -1120,9 +1122,9 @@ contains
   !> nonlinear (ExB advection) term
   !> drifts (magnetic drifts + wstar drifts)
   !> NB more terms could be implemented in this way if desired
-  !> This subroutine takes g(i-1) and g(i) as inputs; g(i) is overwritten
+  !> This subroutine takes g(i-1) and g(i) as inputs; g(i-1) is overwritten
   !> by g(i+1)
-  subroutine advance_leapfrog (golder, gout, restart_time_step)
+  subroutine advance_leapfrog (gold, golder, restart_time_step)
 
     !use mp, only: proc0, min_allreduce
     !use job_manage, only: time_message
@@ -1136,8 +1138,8 @@ contains
     use fields, only: fields_updated, advance_fields
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gold
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: golder
     logical, intent (in out)  :: restart_time_step
 
     complex, dimension (:,:,:,:,:), allocatable :: rhs
@@ -1148,14 +1150,14 @@ contains
     restart_time_step = .false.
 
     ! Get the fields corresponding to g(i)
-    call advance_fields (gout, phi, apar, dist='gbar')
+    call advance_fields (gold, phi, apar, dist='gbar')
     ! There are 2 different "flavours" of leapfrog option we can use:
     ! (1) Use NISL for the leapfrog step - has to be done as a single
     ! operation (SL scheme)
     !
     ! (2) Use "normal" (explicit) method, whereby (dg/dt) is explicitly evaluated
     if (nisl_nonlinear) then
-      call advance_nisl_leapfrog(golder, gout)
+      call advance_ExB_nonlinearity_nisl (gold, golder, gout) ! call advance_nisl_leapfrog(golder, gout)
       fields_updated = .false.
     else
       ! Calculate the rhs from the nonlinear and/or drift terms.
@@ -1168,14 +1170,14 @@ contains
         ! piece.
         rhs = 0
         ! Calculate the nonlinear term and add to RHS
-        if (leapfrog_nonlinear) call advance_ExB_nonlinearity (gout, rhs, restart_time_step)
+        if (leapfrog_nonlinear) call advance_ExB_nonlinearity (gold, rhs, restart_time_step)
         if (.not. restart_time_step) then
           if (leapfrog_drifts) then
             ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
-            call advance_wdrifty_explicit (gout, phi, rhs)
+            call advance_wdrifty_explicit (gold, phi, rhs)
 
             ! calculate and add psi-component of magnetic drift term to RHS of GK eqn
-            call advance_wdriftx_explicit (gout, phi, rhs)
+            call advance_wdriftx_explicit (gold, phi, rhs)
 
             ! calculate and add omega_* term to RHS of GK eqn
             call advance_wstar_explicit (rhs)
@@ -1184,49 +1186,13 @@ contains
 
 
       ! g(i+1) = g(i-1) + (dg/dt)_leapfrog(i) * 2dt
-      gout = golder+2*rhs
+      golder = golder+2*rhs
       fields_updated = .false.
 
       deallocate(rhs)
     end if
 
   end subroutine advance_leapfrog
-
-
-  subroutine advance_nisl_leapfrog (golder, gout)
-
-    use mp, only: proc0, min_allreduce
-    use job_manage, only: time_message
-    use stella_time, only: cfl_dt, code_dt, code_dt_max
-    use run_parameters, only: cfl_cushion, delt_adjust, fphi
-    use physics_parameters, only: g_exb, g_exbfac
-    use zgrid, only: nzgrid
-    use stella_layouts, only: vmu_lo
-    use dist_fn_arrays, only: g1
-    implicit none
-
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: golder
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
-
-    logical  :: restart_time_step
-    integer :: icnt
-
-    ! start the timer for the explicit part of the solve
-    if (proc0) call time_message(.false.,time_gke(:,8),' nonlinear leapfrog')
-    stop "Not implemented yet"
-
-    ! Don't think this is needed, but need to check
-    ! if(RK_step) call multibox_communicate (golder)
-    ! if(RK_step) call multibox_communicate (gout)
-
-    !! Begin by calculating <v_E> (kx, ky)
-
-    !! Calcalute p and q
-
-    !! We have the departure points -
-
-
-  end subroutine advance_nisl_leapfrog
 
   ! strong stability-preserving RK2
   subroutine advance_explicit_rk2 (g, restart_time_step)
@@ -1893,6 +1859,165 @@ contains
     end subroutine forward_transform
 
   end subroutine advance_ExB_nonlinearity
+
+  !> A time-advanced golder is passed in, along with gold (which hasn't been
+  !> evolved at all). We apply a NISL-Leapfrog step to replace golder with
+  !> nonlinearly-advanced golder, that is we update golder as follows:
+  !>
+  !>  golder(x,y) = iFFt(golder(kx,ky))
+  !>  golder(x,y) = golder(x-p*dx,y-q*dy) + 2*rhs{gold(x-p*dx/2,y-q*dy/2)}
+  !>  golder(kx,ky) = FFT(golder(x,y))
+  !>
+  !> NB it's likely that sequentially advecting in x,y leads to O(dt) errors,
+  !> so advect in both directions at the same time. 
+  subroutine advance_ExB_nonlinearity_nisl (gold, golder)
+
+    use mp, only: proc0, min_allreduce
+    use mp, only: scope, allprocs, subprocs
+    use stella_layouts, only: vmu_lo, imu_idx, is_idx
+    use job_manage, only: time_message
+    use gyro_averages, only: gyro_average
+    use fields, only: get_dchidx, get_dchidy
+    use fields_arrays, only: phi, apar, shift_state
+    use stella_transforms, only: transform_y2ky,transform_x2kx
+    use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
+    use stella_time, only: code_dt
+    use run_parameters, only: fphi
+    use physics_parameters, only: g_exb, g_exbfac
+    use zgrid, only: nzgrid, ntubes
+    use stella_geometry, only: exb_nonlin_fac, gfac
+    use kt_grids, only: nakx, naky, nx, ny, ikx_max
+    use kt_grids, only: akx, aky, rho_clamped
+    use kt_grids, only: x, swap_kxky, swap_kxky_back
+    use constants, only: pi, zi
+    use file_utils, only: runtype_option_switch, runtype_multibox
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gold
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: golder
+
+
+    complex, dimension (:,:,:,:,:), allocatable :: gout, g
+    complex, dimension (:,:), allocatable :: g0k, golderxy, g0k_swap
+    complex, dimension (:,:), allocatable :: g0kxy
+    real, dimension (:,:), allocatable :: g0xy, g1xy!, bracket
+
+    integer :: ivmu, iz, it, ia, imu, is
+    logical :: yfirst
+
+    ! alpha-component of magnetic drift (requires ky -> y)
+    if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance, nisl')
+
+    if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+
+    ! Assume no perp shear; yfist = true
+
+    allocate (g0k(naky,nakx))
+    allocate (g0xy(ny,nx))
+    allocate (g1xy(ny,nx))
+    allocate (golderxy(naky,nakx))
+    !allocate (bracket(ny,nx))
+
+    allocate (g0k_swap(2*naky-1,ikx_max))
+    allocate (g0kxy(ny,ikx_max))
+
+    prefac = 1.0
+
+    ia=1
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+             ! Need to do the following:
+             ! 1) Get dgold/dx(x,y), dgold/dy(x,y), vchiold_x(x,y), vchiold_y(x,y)
+             ! 2) Get golder(x,y)
+             ! 3) Calculate p, q
+             ! 4) golder(x,y) = golder(x-p*dx,y-q*dy) + 2*rhs{gold(x-p*dx/2,y-q*dy/2)}
+             ! 5) F.T. golder to get golder(kx,ky)
+             call get_dgdy (gold(:,:,iz,it,ivmu), g0k)
+             call forward_transform(g0k,g0xy)
+
+             ! TODO: Check phi and apar are corresponding to phi_old
+             call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+             call forward_transform(g0k,g1xy)
+
+             g1xy = g1xy*exb_nonlin_fac
+             ! g0xy = dgold/dy(x,y)
+             ! g1xy = vchiold_x(x,y)
+
+             call get_dgdx (gold(:,:,iz,it,ivmu), g0k)
+             call forward_transform(g0k,g0xy)
+             ! TODO: Check phi and apar are corresponding to phi_old
+             call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
+             call forward_transform(g0k,g1xy)
+
+             g1xy = g1xy*exb_nonlin_fac
+             ! g0xy = dgold/dx(x,y)
+             ! g1xy = vchiold_y(x,y)
+
+             !! Get golder(x,y)
+             call forward_transform(golder(:,:,iz,it,ivmu),golderxy)
+
+             !! Get p, q
+
+             !! Update golder(x,y)
+
+             !! Invert to get golder(kx,ky)
+             call transform_x2kx (golderxy, g0kxy)
+             call transform_y2ky (g0kxy, g0k_swap)
+             call swap_kxky_back (g0k_swap, golder(:,:,iz,it,ivmu))
+          end do
+       end do
+       ! ! enforce periodicity for zonal mode
+       ! ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
+       ! ! AND MAY INDEED BE THE WRONG THING TO DO
+       ! golder(1,:,-nzgrid,:,ivmu) = 0.5*(golder(1,:,nzgrid,:,ivmu)+golder(1,:,-nzgrid,:,ivmu))
+       ! golder(1,:,nzgrid,:,ivmu) = golder(1,:,-nzgrid,:,ivmu)
+    end do
+
+    deallocate (g0k, g0xy, g1xy, golderxy)
+    if (allocated(g0k_swap)) deallocate(g0k_swap)
+    if (allocated(g0kxy)) deallocate(g0kxy)
+
+    if(runtype_option_switch == runtype_multibox) call scope(allprocs)
+
+    if(runtype_option_switch == runtype_multibox) call scope(subprocs)
+
+    if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance, nisl')
+
+    contains
+
+    subroutine forward_transform (gk,gx)
+
+      use stella_transforms, only: transform_ky2y, transform_kx2x
+      use stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
+
+      implicit none
+
+      complex, dimension(:,:), intent (in) :: gk
+      real, dimension(:,:), intent (out) :: gx
+
+      ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
+      ! want to do 1D complex to complex transform in y
+      ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
+      ! use g(kx,-ky) = conjg(g(-kx,ky))
+      ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
+      ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
+      ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
+      ! and i*kx*J0(kx,-ky)*phi(kx,-ky) = conjg(i*(-kx)*J0(-kx,ky)*phi(-kx,ky))
+      ! i.e., can calculate dg/dx, dg/dy, d<phi>/dx and d<phi>/dy
+      ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
+      ! NB: J0(kx,ky) = J0(-kx,-ky)
+      ! TODO DSO: coordinate change for shearing
+      call swap_kxky (gk, g0k_swap)
+      call transform_ky2y (g0k_swap, g0kxy)
+      call transform_kx2x (g0kxy, gx)
+
+    end subroutine forward_transform
+
+  end subroutine advance_ExB_nonlinearity_nisl
 
   subroutine advance_parallel_nonlinearity (g, gout, restart_time_step)
 
