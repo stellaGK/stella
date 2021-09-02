@@ -267,7 +267,7 @@ contains
     if (abs(geo_surf%shat) <= shat_zero) then
        dkx = dky / real(jtwist)
     else
-       dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+       dkx = (2*nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
     end if
 
     x0 = 1./dkx
@@ -458,7 +458,7 @@ contains
                   = (/ (theta0_min + dtheta0*real(i), i=0,nakx-1) /)
           end do
           akx = theta0(1,:) * tfac * aky(1)
-       else if (akx_max > akx_min-zero) then
+       else if (akx_max > akx_min-zero .or. nakx.eq.1) then
           dkx = 0.0
           if (nakx > 1) dkx = (akx_max - akx_min)/real(nakx - 1)
           akx = (/ (akx_min + dkx*real(i), i = 0,nakx-1) /)
