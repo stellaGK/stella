@@ -432,6 +432,7 @@ contains
     if (proc0) call sync_nc
 
     deallocate (part_flux, mom_flux, heat_flux)
+    deallocate (pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
     if(allocated(part_flux_x)) deallocate (part_flux_x)
     if(allocated(mom_flux_x))  deallocate (mom_flux_x)
     if(allocated(heat_flux_x)) deallocate (heat_flux_x)
