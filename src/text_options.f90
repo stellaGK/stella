@@ -15,6 +15,9 @@ contains
 
   subroutine get_option_value (selection, options, value, &
        error_unit, selection_name, stop_on_error)
+
+    use mp, only: mp_abort
+
     implicit none
     character(*), intent (in) :: selection
     type (text_option), dimension (:), intent (in) :: options
@@ -87,7 +90,9 @@ contains
        end do
     end if
 
-    if (local_stop) stop
+    if (local_stop) then
+      call mp_abort ('STOP error in get_option_value')
+    endif
 
     write (unit=err, fmt="('Continuing with default selection...')")
   end subroutine get_option_value
