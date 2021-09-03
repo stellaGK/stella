@@ -771,10 +771,10 @@ contains
     integer, intent (in) :: isa
 
     complex, dimension (:,:), allocatable :: g0
-    integer :: ikxkyz, iz, it, ikx, iky, is, ia
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia, imu
     complex, dimension (nspec) :: tmp
     real :: wgt
-    real, dimension (nmu) :: arg
+    real :: arg
 
     ia = 1
 
@@ -788,8 +788,11 @@ contains
           iky = iky_idx(kxkyz_lo,ikxkyz)
           is = is_idx(kxkyz_lo,ikxkyz)
           wgt = spec(isa)%z*spec(isa)%dens
-          arg = spec(isa)%bess_fac*spec(isa)%smz_psi0*sqrt(vperp2(ia,iz,:)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz) ! AVB: changed this for use of j0, check
-          g0 = g(:,:,ikxkyz)*spread(j0(arg),1,nvpa) ! AVB: gyroaverage
+          do imu = 1, nmu 
+            ! AVB: changed this for use of j0, check
+            arg = spec(isa)%bess_fac*spec(isa)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
+            g0(:,imu) = g(:,imu,ikxkyz)*j0(arg) ! AVB: gyroaverage
+          enddo
           g0 = g0*wgt
           call integrate_vmu (g0, iz, fld(iky,ikx,iz,it,is))
        end do
