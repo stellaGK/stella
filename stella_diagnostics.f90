@@ -1045,7 +1045,7 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp, spitzer2
+    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: dens, upar, temp, spitzer2
     real, dimension (:,:), intent (out) :: dens_x, upar_x, temp_x
 
     complex, dimension (:,:), allocatable :: g0k, g1k, g1x
