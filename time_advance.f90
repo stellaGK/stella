@@ -77,6 +77,7 @@ contains
     use parallel_streaming, only: init_parallel_streaming
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
+    use sources, only: init_quasineutrality_source, init_source_timeaverage
 
     implicit none
 
@@ -101,6 +102,10 @@ contains
     call init_wstar
     if (debug) write (6,*) 'time_advance::init_time_advance::init_flow_shear'
     call init_flow_shear
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_source_timeaverage'
+    call init_source_timeaverage
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_quasineutrality_source'
+    call init_quasineutrality_source
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
@@ -861,6 +866,8 @@ contains
     use flow_shear, only: flow_shear_initialized
     use flow_shear, only: init_flow_shear
     use physics_flags, only: radial_variation
+    use sources, only: init_source_timeaverage
+    use sources, only: init_quasineutrality_source, qn_source_initialized
 
     implicit none
 
@@ -873,12 +880,15 @@ contains
     flow_shear_initialized = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
+    qn_source_initialized = .false.
 
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
     call init_flow_shear
+    call init_source_timeaverage
+    call init_quasineutrality_source
     if (radial_variation) call init_radial_variation
     if (drifts_implicit) call init_drifts_implicit
     if (include_collisions) then
@@ -903,6 +913,7 @@ contains
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
     use sources, only: include_krook_operator, update_tcorr_krook
+    use sources, only: include_qn_source, update_quasineutrality_source
     use sources, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
@@ -951,6 +962,7 @@ contains
 
     !update the delay parameters for the Krook operator
     if(include_krook_operator) call update_tcorr_krook(gnew)
+    if(include_qn_source) call update_quasineutrality_source
 
     gold = gnew
 
