@@ -1,9 +1,6 @@
 module fields
 
   use common_types, only: eigen_type
-#if defined MPI && defined ISO_C_BINDING
-  use mpi
-#endif
 
   implicit none
 
@@ -23,15 +20,8 @@ module fields
   real, dimension (:,:,:), allocatable ::  apar_denom
   real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
-  complex, dimension (:,:,:), allocatable :: theta
-  complex, dimension (:,:), allocatable :: c_mat
 
   complex, dimension (:,:), allocatable :: save1, save2
-
-#if defined MPI && defined ISO_C_BINDING
-  integer :: window = MPI_WIN_NULL
-#endif
-
 
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
@@ -52,13 +42,6 @@ contains
   subroutine init_fields
 
     use mp, only: sum_allreduce, job
-#if defined MPI && defined ISO_C_BINDING
-    use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-    use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
-    use mp, only: scope, real_size, nbytes_real
-    use mp_lu_decomposition, only: lu_decomposition_local
-    use mpi
-#endif
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -71,7 +54,7 @@ contains
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-    use zgrid, only: nzgrid, ntubes, nztot
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu, mu
     use vpamu_grids, only: vpa, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -81,30 +64,21 @@ contains
     use kt_grids, only: zonal_mode, rho_d_clamped
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
-    use linear_solve, only: lu_decomposition, lu_back_substitution, lu_inverse
-    use multibox, only: init_mb_get_phi, boundary_size
-    use sources, only: exclude_boundary_regions
-    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
+    use linear_solve, only: lu_decomposition
+    use multibox, only: init_mb_get_phi
+    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
     
 
     implicit none
 
-    integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi, jkx, jz
-    integer :: inmat, jnmat, nmat_zf
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi
     real :: tmp, tmp2, wgt, dum
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
     logical :: has_elec, adia_elec
-#if defined MPI && ISO_C_BINDING
-    integer :: prior_focus, ierr
-    integer :: disp_unit = 1
-    integer*8 :: cur_pos
-    integer (kind=MPI_ADDRESS_KIND) :: win_size
-    type(c_ptr) :: cptr
-#endif
 
-    complex, dimension (:,:), allocatable :: g0k, g0x, g1k, thet_zf
+    complex, dimension (:,:), allocatable :: g0k, g0x
 
     ia = 1
     zm = 0
@@ -244,7 +218,7 @@ contains
        if(radial_variation.and.ky_solve_radial.gt.0) then
 
          has_elec  = has_electron_species(spec)
-         adia_elec = .not.has_elec &
+         adia_elec = .not.has_elec.and.zonal_mode(1) &
                      .and.adiabatic_option_switch == adiabatic_option_fieldlineavg
 
          if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1.and.ky_solve_real) then
@@ -286,50 +260,10 @@ contains
            enddo
 
            if (adia_elec) then
-             nmat_zf = nakx*(nztot-1)
-
              if(.not.allocated(c_mat)) allocate(c_mat(nakx,nakx));
              if(.not.allocated(theta)) allocate(theta(nakx, nakx,-nzgrid:nzgrid));
 
-#if defined MPI && ISO_C_BINDING
-             if(window.eq.MPI_WIN_NULL) then
-               prior_focus = curr_focus
-               call scope (sharedsubprocs)
-               win_size = 0
-               if(sgproc0) then
-                 win_size = int(nmat_zf,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND &
-                          + int(nmat_zf*nmat_zf,MPI_ADDRESS_KIND)*2*real_size !complex size
-               endif
-
-               call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
-                                            mp_comm,cptr,window,ierr)
-             endif
-
-             call mpi_win_shared_query(window,0,win_size,disp_unit,cptr,ierr)
-             cur_pos = transfer(cptr,cur_pos)
-
-             if (.not.associated(phizf_solve%zloc))  then
-               cptr = transfer(cur_pos,cptr)
-               call c_f_pointer (cptr,phizf_solve%zloc,(/nmat_zf,nmat_zf/))
-             endif
-             cur_pos = cur_pos + nmat_zf**2*2*nbytes_real
-
-             if (.not.associated(phizf_solve%idx))  then
-               cptr = transfer(cur_pos,cptr)
-               call c_f_pointer (cptr,phizf_solve%idx,(/nmat_zf/))
-             endif
-
-             call mpi_win_fence(0,window,ierr)
-
-             call scope (prior_focus)
-#else
-             if(.not.associated(phizf_solve%zloc)) allocate(phizf_solve%zloc(nmat_zf,nmat_zf))
-             if(.not.associated(phizf_solve%idx))  allocate(phizf_solve%idx(nmat_zf))
-#endif
-
-             allocate (g1k(1,nakx))
-
-             !get C and perform LU decomposition
+             !get C
              do ikx = 1, nakx
                g0k(1,:) = 0.0
                g0k(1,ikx) = 1.0
@@ -343,7 +277,6 @@ contains
              enddo
 
              !get Theta
-             allocate (thet_zf(nakx,nakx))
              do iz = -nzgrid, nzgrid
 
                !get Theta
@@ -356,96 +289,11 @@ contains
                  call transform_x2kx_unpadded(g0x,g0k)
 
                  !row column
-                 thet_zf(:,ikx)   = g0k(1,:)
-                 thet_zf(ikx,ikx) = thet_zf(ikx,ikx) + gamtot(1,ikx,iz) - efac
+                 theta(:,ikx,iz)   = g0k(1,:)
+                 theta(ikx,ikx,iz) = theta(ikx,ikx,iz) + gamtot(1,ikx,iz) - efac
                enddo
-
-               !store theta
-               theta(:,:,iz) = thet_zf 
              enddo
-
-
-#if defined MPI && ISO_C_BINDING
-             if(sgproc0) then
-#endif
-               !get the big matrix
-
-               do jz = -nzgrid, nzgrid-1
-                 do jkx = 1, nakx
-                   jnmat = jkx + nakx*(jz+nzgrid)
-                   ! C.phi
-                   do ikx = 1, nakx
-                     inmat = ikx + nakx*(jz+nzgrid)
-                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + c_mat(ikx,jkx)
-                   enddo
-
-                   ! -C.<phi>_\psi
-                   g0k = 0.0; g0k(1,jkx) = 1.0
-                   call transform_kx2x_unpadded (g0k,g0x)
-                   g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
-                   call transform_x2kx_unpadded(g0x,g0k)
-
-                   !set the gauge potential
-                   if(jkx.eq.1) g0k(1,1) = 0. 
-
-                   do ikx = 1, nakx
-                     g1k(1,ikx) = sum(c_mat(ikx,:)*g0k(1,:))
-                   enddo
-
-                   do iz = -nzgrid, nzgrid-1
-                     do ikx = 1, nakx
-                       inmat = ikx + nakx*(iz+nzgrid)
-                       phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) - g1k(1,ikx)
-                     enddo
-                   enddo
-
-                   ! get theta.phi
-                   g1k(1,:) = theta(:,jkx,jz)
-
-                   ! +theta.phi
-                   do ikx = 1, nakx
-                     inmat = ikx + nakx*(jz+nzgrid)
-                     phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) + g1k(1,ikx)
-                   enddo
-
-                   ! -<<theta.phi>_psi>_T)
-                   call transform_kx2x_unpadded (g1k, g0x)
-                   g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
-
-                   if (exclude_boundary_regions) then
-                     g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
-                              / (nakx - 2*boundary_size)
-                     g0x(1,1:boundary_size) = 0.0
-                     g0x(1,(nakx-boundary_size+1):) = 0.0
-                   else
-                     g0x(1,:) = sum(g0x(1,:))/nakx
-                   endif
-
-                   call transform_x2kx_unpadded(g0x,g0k)
-
-                   do iz = -nzgrid, nzgrid-1
-                     do ikx = 1, nakx
-                       inmat = ikx + nakx*(iz+nzgrid)
-                       phizf_solve%zloc(inmat,jnmat) = phizf_solve%zloc(inmat,jnmat) &
-                                                       - g0k(1,ikx)
-                     enddo
-                   enddo
-                 enddo
-               enddo
-
-
-#if defined MPI && ISO_C_BINDING
-             endif
-             call mpi_win_fence(0,window,ierr)
-             call lu_decomposition_local(comm_sgroup, 0, window, &
-                                         phizf_solve%zloc, phizf_solve%idx, dum)
-#else
-             call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
-#endif
-             deallocate (g1k)
-             deallocate (thet_zf)
            endif
-
            deallocate(g0k,g0x)
          endif
        endif
@@ -957,8 +805,9 @@ end subroutine get_fields_by_spec_idx
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
     use multibox, only: mb_get_phi, boundary_size
-    use sources, only: exclude_boundary_regions
-    use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_proj
+    use sources, only: exclude_boundary_regions, exp_fac, tcorr_source
+    use fields_arrays, only: gamtot, phi_solve, phizf_solve
+    use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none
@@ -1095,10 +944,19 @@ end subroutine get_fields_by_spec_idx
               g1k = g1k + g0k
             enddo
 
-            phi_proj(:,1,it) = g1k(1,:)
-            do iz = -nzgrid, nzgrid-1
-              phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
-            enddo
+
+            if (tcorr_source.lt.epsilon(0.0)) then
+              phi_proj_stage(:,1,it) = g1k(1,:)
+              do iz = -nzgrid, nzgrid-1
+                phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
+              enddo
+            else
+              g1k(1,:) = (1. - exp_fac)*g1k(1,:)
+              phi_proj_stage(:,1,it) = g1k(1,:)
+              do iz = -nzgrid, nzgrid-1
+                phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:) - exp_fac*phi_proj(:,1,it)
+              enddo
+            endif
      
             do iz = -nzgrid, nzgrid-1
               do ikx = 1, nakx
@@ -1141,7 +999,12 @@ end subroutine get_fields_by_spec_idx
               call transform_x2kx_unpadded(g0x,g0k)
               g1k = g1k + g0k
             enddo
-            phi_proj(:,1,it) = phi_proj(:,1,it) - g1k(1,:)
+
+            if (tcorr_source.lt.epsilon(0.0)) then
+              phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - g1k(1,:)
+            else
+              phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - (1. - exp_fac)*g1k(1,:)
+            endif
 
           enddo
           deallocate(g0k,g1k,g0x,phiext)
@@ -1408,19 +1271,12 @@ end subroutine get_fields_by_spec_idx
 
   subroutine finish_fields
 
-#if defined MPI && defined ISO_C_BINDING
-    use mpi
-#endif
     use fields_arrays, only: phi, phi_old
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
-    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
+    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
 
     implicit none
-
-#if defined MPI && defined ISO_C_BINDING
-    integer :: ierr
-#endif
 
     if (allocated(phi)) deallocate (phi)
     if (allocated(phi_old)) deallocate (phi_old)
@@ -1438,15 +1294,9 @@ end subroutine get_fields_by_spec_idx
     if (allocated(save2)) deallocate(save2)
 
     if (allocated(phi_solve)) deallocate(phi_solve)
-    if (associated(phizf_solve%idx))  deallocate(phizf_solve%idx)
     if (allocated(c_mat)) deallocate(c_mat)
     if (allocated(theta)) deallocate(theta)
 
-#if defined MPI && defined ISO_C_BINDING
-    if (window.ne.MPI_WIN_NULL) call mpi_win_free(window, ierr)
-#else    
-    if (associated(phizf_solve%zloc)) deallocate(phizf_solve%zloc)
-#endif
     fields_initialized = .false.
 
   end subroutine finish_fields

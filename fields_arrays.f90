@@ -12,7 +12,7 @@ module fields_arrays
   ! (naky, nakx, -nzgrid:nzgrid, ntubes)
 
   ! needed to implement time-delayed source when using projection method
-  complex, dimension (:,:,:), allocatable :: phi_proj
+  complex, dimension (:,:,:), allocatable :: phi_proj, phi_proj_stage
   ! (nakx, -nzgrid:nzgrid, ntubes)
 
   ! radial corrections to phi and apar from gyroaveraging
@@ -26,6 +26,12 @@ module fields_arrays
 
   real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr
   !real :: gamtot_h, gamtot3_h, efac, efacp
+
+
+  complex, dimension (:,:,:), allocatable :: theta
+  ! (nakx, nakx, -nzgrid:nzgrid)
+
+  complex, dimension (:,:), allocatable :: c_mat
 
   type (eigen_type), dimension (:,:), allocatable :: phi_solve
   type (eigen_type) :: phizf_solve
