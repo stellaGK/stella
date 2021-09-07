@@ -41,7 +41,7 @@ contains
 
   subroutine init_fields
 
-    use mp, only: sum_allreduce, job
+    use mp, only: sum_allreduce, job, proc0
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -79,6 +79,8 @@ contains
     logical :: has_elec, adia_elec
 
     complex, dimension (:,:), allocatable :: g0k, g0x
+
+    debug = debug .and. proc0
 
     ia = 1
     zm = 0
@@ -486,6 +488,8 @@ contains
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields_kxkyzlo'
+
     ia = 1
 
     phi = 0.
@@ -571,6 +575,8 @@ contains
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields_vmulo'
+
     ia = 1
 
     phi = 0.
@@ -605,6 +611,7 @@ contains
          end do
        end do
        deallocate (gyro_g)
+       if (debug) write (*,*) 'dist_fn::advance_stella::sum_all_reduce'
        call sum_allreduce(phi)
 
        call get_phi(phi, dist, skip_fsa_local)
@@ -674,6 +681,8 @@ contains
 
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
+
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields_by_spec'
 
     ia = 1
 
@@ -824,6 +833,8 @@ end subroutine get_fields_by_spec_idx
 
     character (*), intent (in) :: dist
 
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_phi'
+
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
@@ -901,6 +912,7 @@ end subroutine get_fields_by_spec_idx
 
 
     if (adia_elec.and.zonal_mode(1).and..not.skip_fsa_local) then
+      if (debug) write (*,*) 'dist_fn::advance_stella::adiabatic_electrons'
       if (dist == 'h') then
         do it = 1, ntubes
           do ikx = 1, nakx

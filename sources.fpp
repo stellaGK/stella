@@ -430,25 +430,30 @@ contains
 
             call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
                                           mp_comm,cptr,window,ierr)
+
+            if(.not.sgproc0) then
+              !make sure all the procs have the right memory address
+              call mpi_win_shared_query(window,0,win_size,disp_unit,cptr,ierr)
+            end if
+            call mpi_win_fence(0,window,ierr)
+            cur_pos = transfer(cptr,cur_pos)
+
+            !allocate the memory
+            if (.not.associated(phizf_solve%zloc))  then
+              cptr = transfer(cur_pos,cptr)
+              call c_f_pointer (cptr,phizf_solve%zloc,(/nmat_zf,nmat_zf/))
+            endif
+            cur_pos = cur_pos + nmat_zf**2*2*nbytes_real
+
+            if (.not.associated(phizf_solve%idx))  then
+              cptr = transfer(cur_pos,cptr)
+              call c_f_pointer (cptr,phizf_solve%idx,(/nmat_zf/))
+            endif
+
+            call mpi_win_fence(0,window,ierr)
+
+            call scope (prior_focus)
           endif
-
-          call mpi_win_shared_query(window,0,win_size,disp_unit,cptr,ierr)
-          cur_pos = transfer(cptr,cur_pos)
-
-          if (.not.associated(phizf_solve%zloc))  then
-            cptr = transfer(cur_pos,cptr)
-            call c_f_pointer (cptr,phizf_solve%zloc,(/nmat_zf,nmat_zf/))
-          endif
-          cur_pos = cur_pos + nmat_zf**2*2*nbytes_real
-
-          if (.not.associated(phizf_solve%idx))  then
-            cptr = transfer(cur_pos,cptr)
-            call c_f_pointer (cptr,phizf_solve%idx,(/nmat_zf/))
-          endif
-
-          call mpi_win_fence(0,window,ierr)
-
-          call scope (prior_focus)
 #else
           if(.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
           if(.not.associated(phizf_solve%idx))  allocate (phizf_solve%idx(nmat_zf))
