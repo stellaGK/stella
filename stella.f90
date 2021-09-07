@@ -283,9 +283,13 @@ contains
     if (debug) write (6,*) 'stella::init_stella::get_fields'
     ! get initial field from initial distribution function
     call advance_fields (gnew, phi, apar, dist='gbar')
-    if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
+    if(radial_variation) then
+      if (debug) write (6,*) 'stella::init_stella::get_radial_correction'
+      call get_radial_correction(gnew,phi,dist='gbar')
+    endif
 
     if(runtype_option_switch.eq.runtype_multibox) then
+      if (debug) write (6,*) 'stella::init_stella:multibox_communicate'
       call multibox_communicate (gnew)
       if(job.eq.1) then
         fields_updated=.false.
