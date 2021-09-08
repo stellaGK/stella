@@ -466,6 +466,8 @@ contains
             allocate (g0x(1,nakx))
             allocate (g1k(1,nakx))
 
+            phizf_solve%zloc = 0.
+
             !get the big matrix
             do jz = -nzgrid, nzgrid-1
               do jkx = 1, nakx
