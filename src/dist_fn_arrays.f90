@@ -42,6 +42,8 @@ module dist_fn_arrays
 
   real, dimension (:,:,:), allocatable :: wdriftpx_g, wdriftpy_g
   real, dimension (:,:,:), allocatable :: wdriftpx_phi, wdriftpy_phi
+  
+  real, dimension (:,:,:), allocatable :: adiabatic_phi
   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
   real, dimension (:,:,:,:), allocatable :: kperp2, dkperp2dr
