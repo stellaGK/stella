@@ -814,7 +814,7 @@ end subroutine get_fields_by_spec_idx
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
     use multibox, only: mb_get_phi, boundary_size
-    use sources, only: exclude_boundary_regions, exp_fac, tcorr_source
+    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
     use fields_arrays, only: gamtot, phi_solve, phizf_solve
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -942,7 +942,7 @@ end subroutine get_fields_by_spec_idx
               g0k(1,:) = phi(1,:,iz,it)
               call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-              if (exclude_boundary_regions) then
+              if (exclude_boundary_regions_qn) then
                 g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
                               / (nakx - 2*boundary_size)
                 g0x(1,1:boundary_size) = 0.0
@@ -957,16 +957,16 @@ end subroutine get_fields_by_spec_idx
             enddo
 
 
-            if (tcorr_source.lt.epsilon(0.0)) then
+            if (tcorr_source_qn.lt.epsilon(0.0)) then
               phi_proj_stage(:,1,it) = g1k(1,:)
               do iz = -nzgrid, nzgrid-1
                 phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
               enddo
             else
-              g1k(1,:) = (1. - exp_fac)*g1k(1,:)
+              g1k(1,:) = (1. - exp_fac_qn)*g1k(1,:)
               phi_proj_stage(:,1,it) = g1k(1,:)
               do iz = -nzgrid, nzgrid-1
-                phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:) - exp_fac*phi_proj(:,1,it)
+                phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:) - exp_fac_qn*phi_proj(:,1,it)
               enddo
             endif
      
@@ -999,7 +999,7 @@ end subroutine get_fields_by_spec_idx
               call transform_kx2x_unpadded (g0k,g0x)
 
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-              if (exclude_boundary_regions) then
+              if (exclude_boundary_regions_qn) then
                 g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
                               / (nakx - 2*boundary_size)
                 g0x(1,1:boundary_size) = 0.0
@@ -1012,10 +1012,10 @@ end subroutine get_fields_by_spec_idx
               g1k = g1k + g0k
             enddo
 
-            if (tcorr_source.lt.epsilon(0.0)) then
+            if (tcorr_source_qn.lt.epsilon(0.0)) then
               phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - g1k(1,:)
             else
-              phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - (1. - exp_fac)*g1k(1,:)
+              phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - (1. - exp_fac_qn)*g1k(1,:)
             endif
 
           enddo
