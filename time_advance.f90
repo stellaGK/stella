@@ -1261,7 +1261,7 @@ contains
          call advance_wdriftx_explicit (gin, phi, rhs)
 
          ! calculate and add omega_* term to RHS of GK eqn
-         call advance_wstar_explicit (rhs)
+         call advance_wstar_explicit (phi, rhs)
        endif
 
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
@@ -1290,34 +1290,40 @@ contains
 
   end subroutine solve_gke
 
-  subroutine advance_wstar_explicit (gout)
+  subroutine advance_wstar_explicit (phi, gout)
 
     use mp, only: proc0, mp_abort
     use job_manage, only: time_message
     use fields, only: get_dchidy
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: apar
     use stella_layouts, only: vmu_lo
+    use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, ny
     use physics_flags, only: full_flux_surface
 
     implicit none
 
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    complex, dimension (:,:,:,:,:), allocatable :: g0
-
+    complex, dimension (:,:,:,:,:), allocatable :: g0, g0y
+    
     if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! omega_* stays in ky,kx,z space with ky,kx,z local
-    ! get d<chi>/dy
     if (debug) write (*,*) 'time_advance::solve_gke::get_dchidy'
+    ! get d<chi>/dy in k-space
+    call get_dchidy (phi, apar, g0)
     if (full_flux_surface) then
-       ! FLAG -- ADD SOMETHING HERE
-       call mp_abort ('wstar term not yet setup for full_flux_surface = .true. aborting.')
+       allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! transform d<chi>/dy from ky-space to y-space
+       call transform_ky2y (g0, g0y)
+       ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
+       call add_wstar_term_annulus (g0y, gout)
+       deallocate (g0y)
     else
-       call get_dchidy (phi, apar, g0)
        ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
        if (debug) write (*,*) 'time_advance::solve_gke::add_wstar_term'
        call add_wstar_term (g0, gout)
@@ -2324,6 +2330,27 @@ contains
     end do
 
   end subroutine add_wstar_term
+
+  subroutine add_wstar_term_annulus (g, src)
+
+    use dist_fn_arrays, only: wstar
+    use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
+
+    integer :: ivmu
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
+            + spread(spread(wstar(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+    end do
+
+  end subroutine add_wstar_term_annulus
 
   subroutine advance_implicit (istep, phi, apar, g)
 !  subroutine advance_implicit (phi, apar, g)
