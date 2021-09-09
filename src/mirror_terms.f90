@@ -290,29 +290,28 @@ contains
 
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
-    ! the mirror term is most complicated of all when doing full flux surface
     if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-       ! for upwinding, need to evaluate dh/dvpa in y-space
-       ! first must take h(ky) and transform to h(y)
+       ! for upwinding of vpa, need to evaluate dg/dvpa in y-space
+       ! this is necessary because the advection speed contains dB/dz, which depends on y
+       ! first must take g(ky) and transform to g(y)
        call transform_ky2y (g, g0x)
-       ! second, remap h so velocities are local
+       ! second, remap g so velocities are local
        call scatter (kxyz2vmu, g0x, g0v)
-       ! next, calculate dh/dvpa
-       call get_dgdvpa_global (g0v)
-       ! add in extra term coming from definition of h as h*exp(mu*B/T)
+       ! next, calculate dg/dvpa
+       call get_dgdvpa_annulus (g0v)
 
-       ! FLAG -- NEED TO REPLACE GVMU BELOW !!!
-       do iv = 1, nvpa
-          g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
-       end do
+       ! ! FLAG -- NEED TO REPLACE GVMU BELOW !!!
+       ! do iv = 1, nvpa
+       !    g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
+       ! end do
 
        ! then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
        ! finally add the mirror term to the RHS of the GK eqn
-       call add_mirror_term_global (g0x, gout)
+       call add_mirror_term_annulus (g0x, gout)
     else
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -404,7 +403,7 @@ contains
 
   end subroutine add_mirror_radial_variation
 
-  subroutine get_dgdvpa_global (g)
+  subroutine get_dgdvpa_annulus (g)
 
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
@@ -423,14 +422,14 @@ contains
        iy = iy_idx(kxyz_lo,ikxyz)
        is = is_idx(kxyz_lo,ikxyz)
        do imu = 1, nmu
-          ! tmp is dh/dvpa
+          ! tmp is dg/dvpa
           call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
           g(:,imu,ikxyz) = tmp
        end do
     end do
     deallocate (tmp)
 
-  end subroutine get_dgdvpa_global
+  end subroutine get_dgdvpa_annulus
 
   subroutine get_dgdvpa_explicit (g)
 
@@ -481,7 +480,7 @@ contains
 
   end subroutine add_mirror_term
 
-  subroutine add_mirror_term_global (g, src)
+  subroutine add_mirror_term_annulus (g, src)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
@@ -501,7 +500,7 @@ contains
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(mirror(:,:,imu,is),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_mirror_term_global
+  end subroutine add_mirror_term_annulus
 
   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
   subroutine advance_mirror_implicit (collisions_implicit, g)
