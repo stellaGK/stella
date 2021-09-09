@@ -15,16 +15,19 @@ module sources
   public :: remove_zero_projection, project_out_zero
   public :: add_krook_operator
   public :: tcorr_source, exclude_boundary_regions, exp_fac
-  public :: int_krook, int_proj, int_QN
+  public :: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
+  public :: int_krook, int_proj
   public :: qn_source_initialized
 
   private
 
   logical :: include_krook_operator, remove_zero_projection
   logical :: krook_odd, exclude_boundary_regions
-  real :: nu_krook, tcorr_source, int_krook, int_proj, int_QN
+  logical :: exclude_boundary_regions_qn
+  real :: nu_krook, tcorr_source, int_krook, int_proj
+  real :: tcorr_source_qn
   integer:: ikxmax_source
-  real :: exp_fac
+  real :: exp_fac, exp_fac_qn
 
   logical :: qn_source_initialized, include_qn_source
 
@@ -79,7 +82,8 @@ contains
 
     namelist /sources/ &
          include_krook_operator, nu_krook, tcorr_source, remove_zero_projection, &
-         ikxmax_source, krook_odd, exclude_boundary_regions
+         ikxmax_source, krook_odd, exclude_boundary_regions, &
+         tcorr_source_qn, exclude_boundary_regions_qn
 
     integer :: in_file
     logical :: dexist
@@ -87,15 +91,19 @@ contains
     if (proc0) then
        include_krook_operator = .false.
        exclude_boundary_regions = radial_variation.and..not.periodic_variation
+       exclude_boundary_regions_qn = exclude_boundary_regions
        remove_zero_projection = .false.
        nu_krook = 0.05
-       tcorr_source =0.02
+       tcorr_source = 0.02
+       tcorr_source_qn = -1.0
        ikxmax_source = 1 ! kx=0
        if(periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
        krook_odd = .true. ! damp only the odd mode that can affect profiles
 
        in_file = input_unit_exist("sources", dexist)
        if (dexist) read (unit=in_file, nml=sources)
+
+       if (tcorr_source_qn.lt.0) tcorr_source_qn = tcorr_source
     end if
 
     ikxmax_source = min(ikxmax_source,ikx_max)
@@ -106,8 +114,10 @@ contains
 
     call broadcast (include_krook_operator)
     call broadcast (exclude_boundary_regions)
+    call broadcast (exclude_boundary_regions_qn)
     call broadcast (nu_krook)
     call broadcast (tcorr_source)
+    call broadcast (tcorr_source_qn)
     call broadcast (ikxmax_source)
     call broadcast (remove_zero_projection)
     call broadcast (krook_odd)
@@ -120,7 +130,8 @@ contains
 
     implicit none
 
-    exp_fac = exp(-code_dt/tcorr_source)
+    exp_fac    = exp(-code_dt/tcorr_source)
+    exp_fac_qn = exp(-code_dt/tcorr_source_qn)
 
   end subroutine init_source_timeaverage
 
@@ -511,7 +522,7 @@ contains
                 call transform_kx2x_unpadded (g1k, g0x)
                 g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
 
-                if (exclude_boundary_regions) then
+                if (exclude_boundary_regions_qn) then
                   g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
                            / (nakx - 2*boundary_size)
                   g0x(1,1:boundary_size) = 0.0
@@ -522,8 +533,8 @@ contains
 
                 call transform_x2kx_unpadded(g0x,g0k)
 
-                if (tcorr_source.gt.epsilon(0.)) then
-                  g0k = (1. - exp_fac)*g0k
+                if (tcorr_source_qn.gt.epsilon(0.)) then
+                  g0k = (1. - exp_fac_qn)*g0k
                 endif
 
                 do iz = -nzgrid, nzgrid-1
