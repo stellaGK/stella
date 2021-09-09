@@ -1210,11 +1210,19 @@ contains
 
     rhs_ky = 0.
 
+    ! if full_flux_surface = .true., then initially obtain the RHS of the GKE in alpha-space;
+    ! will later inverse Fourier transform to get RHS in k_alpha-space
     if (full_flux_surface) then
+       ! rhs_ky will always be needed as the array returned by the subroutine,
+       ! but intermediate array rhs_y (RHS of gke in alpha-space) only needed for full_flux_surface = .true.
        allocate (rhs_y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        rhs_y = 0.
+       ! rhs is array referred to for both flux tube and full-flux-surface simulations;
+       ! for full-flux-surface it should point to rhs_y
        rhs => rhs_y
     else
+       ! rhs is array referred to for both flux tube and full-flux-surface simulations;
+       ! for flux tube it should point to rhs_ky
        rhs => rhs_ky
     end if
 
@@ -1274,11 +1282,6 @@ contains
        if (runtype_option_switch == runtype_multibox .and. include_multibox_krook) &
          call add_multibox_krook(gin,rhs)
 
-       ! calculate and add omega_* term to RHS of GK eqn
-!       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
-!       call advance_wstar_explicit (rhs_ky)
-       ! calculate and add collision term to RHS of GK eqn
-       !    call advance_collisions
     end if
 
     fields_updated = .false.
@@ -1362,7 +1365,7 @@ contains
        ! transform dg/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y dg/dy term to equation
-       call add_dg_term_global (g0y, wdrifty_g, gout)
+       call add_dg_term_annulus (g0y, wdrifty_g, gout)
        ! get <dphi/dy> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           call gyro_average (dphidy, ivmu, g0k(:,:,:,:,ivmu))
@@ -1370,7 +1373,7 @@ contains
        ! transform d<phi>/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y d<phi>/dy term to equation
-       call add_dphi_term_global (g0y, wdrifty_phi, gout)
+       call add_dphi_term_annulus (g0y, wdrifty_phi, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdy_term'
@@ -1432,7 +1435,7 @@ contains
        ! transform dg/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x dg/dx term to equation
-       call add_dg_term_global (g0y, wdriftx_g, gout)
+       call add_dg_term_annulus (g0y, wdriftx_g, gout)
        ! get <dphi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           call gyro_average (dphidx, ivmu, g0k(:,:,:,:,ivmu))
@@ -1440,7 +1443,7 @@ contains
        ! transform d<phi>/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x d<phi>/dx term to equation
-       call add_dphi_term_global (g0y, wdriftx_phi, gout)
+       call add_dphi_term_annulus (g0y, wdriftx_phi, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdx_term'
@@ -2190,7 +2193,7 @@ contains
 
   end subroutine add_dg_term
 
-  subroutine add_dg_term_global (g, wdrift_in, src)
+  subroutine add_dg_term_annulus (g, wdrift_in, src)
 
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
@@ -2208,7 +2211,7 @@ contains
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) - spread(spread(wdrift_in(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_dg_term_global
+  end subroutine add_dg_term_annulus
 
   subroutine get_dgdx_2d (g, dgdx)
 
@@ -2280,7 +2283,7 @@ contains
 
   end subroutine add_dphi_term
 
-  subroutine add_dphi_term_global (g, wdrift, src)
+  subroutine add_dphi_term_annulus (g, wdrift, src)
 
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
@@ -2299,7 +2302,7 @@ contains
             + spread(spread(wdrift(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_dphi_term_global
+  end subroutine add_dphi_term_annulus
 
   subroutine add_wstar_term (g, src)
 
