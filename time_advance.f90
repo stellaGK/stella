@@ -102,10 +102,6 @@ contains
     call init_wstar
     if (debug) write (6,*) 'time_advance::init_time_advance::init_flow_shear'
     call init_flow_shear
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_source_timeaverage'
-    call init_source_timeaverage
-    if (debug) write (6,*) 'time_advance::init_time_advance::init_quasineutrality_source'
-    call init_quasineutrality_source
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parallel_nonlinearity'
     if (include_parallel_nonlinearity) call init_parallel_nonlinearity
     if (debug) write (6,*) 'time_advance::init_time_advance::init_radial_variation'
@@ -118,6 +114,11 @@ contains
     endif
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
+
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_source_timeaverage'
+    call init_source_timeaverage
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_quasineutrality_source'
+    call init_quasineutrality_source
 
     !call write_drifts
 
