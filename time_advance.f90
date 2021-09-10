@@ -1264,16 +1264,20 @@ contains
          call advance_wstar_explicit (phi, rhs)
        endif
 
+       ! calculate and add contribution from collisions to RHS of GK eqn
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
 
+       ! calculate and add parallel streaming term to RHS of GK eqn
+       if (include_parallel_streaming.and.(.not.stream_implicit)) &
+            call advance_parallel_streaming_explicit (gin, phi, rhs)
+
+       ! if simulating a full flux surface (flux annulus), all terms to this point have been calculated
+       ! in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
+       ! NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
        if (full_flux_surface) then
           call transform_y2ky (rhs_y, rhs_ky)
           deallocate (rhs_y)
        end if
-
-       ! calculate and add parallel streaming term to RHS of GK eqn
-       if (include_parallel_streaming.and.(.not.stream_implicit)) &
-            call advance_parallel_streaming_explicit (gin, rhs_ky)
 
        if (radial_variation) call advance_radial_variation(gin,rhs)
 
