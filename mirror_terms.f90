@@ -285,15 +285,17 @@ contains
 
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:,:), allocatable :: g0x
-
-    integer :: iv
+    complex, dimension (:,:), allocatable :: dgdv
+    
+    integer :: iv, ikxyz
 
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
     if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
+       allocate (dgdv(nvpa,nmu))
+       
        ! for upwinding of vpa, need to evaluate dg/dvpa in y-space
        ! this is necessary because the advection speed contains dB/dz, which depends on y
        ! first must take g(ky) and transform to g(y)
@@ -301,17 +303,18 @@ contains
        ! second, remap g so velocities are local
        call scatter (kxyz2vmu, g0x, g0v)
        ! next, calculate dg/dvpa
-       call get_dgdvpa_annulus (g0v)
-
-       ! ! FLAG -- NEED TO REPLACE GVMU BELOW !!!
-       ! do iv = 1, nvpa
-       !    g0v(iv,:,:) = g0v(iv,:,:) + 2.0*vpa(iv)*gvmu(iv,:,:)
-       ! end do
-
+       do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+          dgdv = g0v(:,:,ikxyz)
+          call get_dgdvpa_annulus (dgdv, ikxyz)
+          do iv = 1, nvpa
+             g0v(iv,:,ikxyz) = dgdv(iv,:) + 2.0*vpa(iv)*g0v(iv,:,ikxyz)
+          end do
+       end do
        ! then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
        ! finally add the mirror term to the RHS of the GK eqn
        call add_mirror_term_annulus (g0x, gout)
+       deallocate (dgdv)
     else
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -403,7 +406,7 @@ contains
 
   end subroutine add_mirror_radial_variation
 
-  subroutine get_dgdvpa_annulus (g)
+  subroutine get_dgdvpa_annulus (g, ikxyz)
 
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
@@ -411,21 +414,20 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,kxyz_lo%llim_proc:), intent (in out) :: g
-
-    integer :: ikxyz, imu, iz, iy, is
+    complex, dimension (:,:), intent (in out) :: g
+    integer, intent (in) :: ikxyz
+    
+    integer :: imu, iz, iy, is
     complex, dimension (:), allocatable :: tmp
 
     allocate (tmp(nvpa))
-    do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-       iz = iz_idx(kxyz_lo,ikxyz)
-       iy = iy_idx(kxyz_lo,ikxyz)
-       is = is_idx(kxyz_lo,ikxyz)
-       do imu = 1, nmu
-          ! tmp is dg/dvpa
-          call third_order_upwind (1,g(:,imu,ikxyz),dvpa,mirror_sign(iy,iz),tmp)
-          g(:,imu,ikxyz) = tmp
-       end do
+    iz = iz_idx(kxyz_lo,ikxyz)
+    iy = iy_idx(kxyz_lo,ikxyz)
+    is = is_idx(kxyz_lo,ikxyz)
+    do imu = 1, nmu
+       ! tmp is dg/dvpa
+       call third_order_upwind (1,g(:,imu),dvpa,mirror_sign(iy,iz),tmp)
+       g(:,imu) = tmp
     end do
     deallocate (tmp)
 
