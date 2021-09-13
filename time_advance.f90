@@ -911,6 +911,7 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use fields, only: advance_fields
+    use stella_time, only: code_dt
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
     use sources, only: include_krook_operator, update_tcorr_krook
@@ -955,9 +956,10 @@ contains
 
     if(remove_zero_projection) then
       allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
+      !divide by code_dt to ensure time averaging is performed correctly
+      g1 = (gnew(1,:,:,:,:) - gold(1,:,:,:,:))/code_dt
       call project_out_zero(g1)
-      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
+      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g1
       deallocate (g1)
     end if
 
