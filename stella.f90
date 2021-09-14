@@ -18,7 +18,7 @@ program stella
   character(len=4), parameter :: VERNUM = '0.3'
   character(len=10), parameter :: VERDATE = '2021.03.26'
 
-  logical :: debug = .false.
+  logical :: debug = .true.
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
@@ -141,6 +141,7 @@ contains
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
     mpi_initialized = .true.
+    debug = debug .and. proc0
 
     ! initialize timer
     if (debug) write (*,*) 'stella::init_stella::check_time'
@@ -161,6 +162,7 @@ contains
     call broadcast (runtype_option_switch)
     if(list) call job_fork
 
+    !proc0 may have changed
     debug = debug .and. proc0
 
     if (proc0) cbuff = trim(run_name)
@@ -459,6 +461,9 @@ contains
        write (*,fmt=101) 'diagnostics:', time_diagnostics(1)/60., 'min'
        write (*,fmt=101) 'fields:', time_field_solve(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_field_solve(1,2)/60., 'min'
+       write (*,fmt=101) '(int_dv_g):', time_field_solve(1,3)/60., 'min'
+       write (*,fmt=101) '(get_phi):', time_field_solve(1,4)/60., 'min'
+       write (*,fmt=101) '(phi_adia_elec):', time_field_solve(1,5)/60., 'min'
        write (*,fmt=101) 'mirror:', time_mirror(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_mirror(1,2)/60., 'min'
        write (*,fmt=101) 'stream:', time_parallel_streaming(1)/60., 'min'

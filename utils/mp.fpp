@@ -30,7 +30,7 @@ module mp
   public :: max_reduce, max_allreduce
   public :: min_reduce, min_allreduce
   public :: comm_split, comm_free
-  public :: nproc, iproc, proc0, job
+  public :: nproc, iproc, proc0, job, min_proc
   public :: send, ssend, receive
   public :: numnodes, inode
   public :: barrier
@@ -85,7 +85,7 @@ module mp
 
   integer, parameter :: mp_info = MPI_INFO_NULL
 
-  integer :: job = 0
+  integer :: job = 0, min_proc
   integer (kind(MPI_REAL)) :: mpireal, mpicmplx
   integer (kind=MPI_ADDRESS_KIND) :: real_size
 # else
@@ -340,10 +340,12 @@ contains
     nscross_proc = numnodes
     scproc       = inode
      
-
     call scope (sharedprocs)
     call broadcast(inode)
     call scope (allprocs)
+
+    min_proc = nshared_proc
+    call min_allreduce (min_proc)
 
     if ( (kind(pi)==kind_rs) .and. (kind_rs/=kind_rd) ) then
        mpireal = MPI_REAL
@@ -533,6 +535,10 @@ contains
 ! TT> brought down here from init_job_name in file_utils.fpp
     call scope (subprocs)
 ! <TT
+
+!get the minimum number of procs on a node for a given job
+    min_proc = nsgroup_proc
+    call min_allreduce (min_proc)
 
 # endif
   end subroutine init_job_topology
