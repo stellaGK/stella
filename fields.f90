@@ -29,7 +29,7 @@ module fields
 
   integer :: zm
 
-  real, dimension (2,2) :: time_field_solve
+  real, dimension (2,5) :: time_field_solve
 
   interface get_dchidy
      module procedure get_dchidy_4d
@@ -460,6 +460,7 @@ contains
 
     use mp, only: proc0
     use mp, only: sum_allreduce, mp_abort
+    use job_manage, only: time_message
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2
@@ -494,6 +495,7 @@ contains
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -508,6 +510,7 @@ contains
        end do
        deallocate (g0)
        call sum_allreduce (phi)
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
 
        call get_phi (phi, dist, skip_fsa_local)
 
@@ -546,7 +549,8 @@ contains
 
   subroutine get_fields_vmulo (g, phi, apar, dist, skip_fsa)
 
-    use mp, only: mp_abort, sum_allreduce
+    use mp, only: mp_abort, sum_allreduce, proc0
+    use job_manage, only: time_message
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -581,6 +585,7 @@ contains
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
        allocate (g0k(naky,nakx))
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        do it = 1, ntubes
@@ -613,6 +618,7 @@ contains
        deallocate (gyro_g)
        if (debug) write (*,*) 'dist_fn::advance_stella::sum_all_reduce'
        call sum_allreduce(phi)
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
 
        call get_phi(phi, dist, skip_fsa_local)
 
@@ -803,6 +809,7 @@ end subroutine get_fields_by_spec_idx
   subroutine get_phi (phi, dist, skip_fsa)
 
     use mp, only: proc0, mp_abort, job
+    use job_manage, only: time_message
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes, nztot
@@ -843,6 +850,7 @@ end subroutine get_fields_by_spec_idx
     adia_elec = .not.has_elec  &
                 .and.adiabatic_option_switch.eq.adiabatic_option_fieldlineavg
 
+    if (proc0) call time_message(.false.,time_field_solve(:,4),' get_phi')
     if (dist == 'h') then
       phi = phi/gamtot_h
     else if (dist == 'gbar') then
@@ -909,8 +917,10 @@ end subroutine get_fields_by_spec_idx
     end if
 
     if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
+    if (proc0) call time_message(.false.,time_field_solve(:,4),' get_phi')
 
 
+    if (proc0) call time_message(.false.,time_field_solve(:,5),'get_phi_adia_elec')
     if (adia_elec.and.zonal_mode(1).and..not.skip_fsa_local) then
       if (debug) write (*,*) 'dist_fn::advance_stella::adiabatic_electrons'
       if (dist == 'h') then
@@ -1044,6 +1054,7 @@ end subroutine get_fields_by_spec_idx
         call mp_abort ('unknown dist option in get_fields. aborting')
       end if
     end if
+    if (proc0) call time_message(.false.,time_field_solve(:,5),'get_phi_adia_elec')
     
   end subroutine get_phi
 

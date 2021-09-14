@@ -67,7 +67,7 @@ contains
 ! only on proc0
     use file_utils, only: init_error_unit, init_input_unit, list_name
 ! <MAB
-    use mp, only: job, scope
+    use mp, only: job, scope, min_proc
     use mp, only: proc0, nproc
     use mp, only: init_job_topology, broadcast, finish_mp
     implicit none
@@ -159,9 +159,11 @@ contains
     
     if (nproc > 1 .and. proc0) &
          & write(*,*) 'Job ',job,' is called ',trim(run_name),&
-         & ' and is running on ',nproc,' processors'
+         & ' and is running on ',nproc,' processors with a minimum of', &
+         & min_proc, ' processors on a node'
     if (nproc == 1) write(*,*) 'Job ',job,' is called ',trim(run_name),&
-         & ' and is running on ',nproc,' processor'
+         & ' and is running on ',nproc,' processors with a minimum of', &
+         & min_proc, ' processors on a node'
     
     deallocate (group0, job_list) ! MAB
     
