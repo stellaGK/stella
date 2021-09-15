@@ -590,7 +590,11 @@ contains
 
     implicit none
 
-    phi_proj = phi_proj + phi_proj_stage
+    if (tcorr_source_qn.lt.epsilon(0.)) then
+      phi_proj = phi_proj_stage
+    else
+      phi_proj = exp_fac_qn*phi_proj + (1.-exp_fac_qn)*phi_proj_stage
+    endif
 
   end subroutine update_quasineutrality_source
 

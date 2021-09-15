@@ -18,7 +18,7 @@ program stella
   character(len=4), parameter :: VERNUM = '0.3'
   character(len=10), parameter :: VERDATE = '2021.03.26'
 
-  logical :: debug = .true.
+  logical :: debug = .false.
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
