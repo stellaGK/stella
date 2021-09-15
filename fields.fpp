@@ -975,16 +975,15 @@ end subroutine get_fields_by_spec_idx
             enddo
 
 
+            phi_proj_stage(:,1,it) = g1k(1,:)
             if (tcorr_source_qn.lt.epsilon(0.0)) then
-              phi_proj_stage(:,1,it) = g1k(1,:)
               do iz = -nzgrid, nzgrid-1
                 phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
               enddo
             else
-              g1k(1,:) = (1. - exp_fac_qn)*g1k(1,:)
-              phi_proj_stage(:,1,it) = g1k(1,:)
               do iz = -nzgrid, nzgrid-1
-                phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:) - exp_fac_qn*phi_proj(:,1,it)
+                phi(1,:,iz,it) = phi(1,:,iz,it) &
+                               - (1.-exp_fac_qn)*g1k(1,:) - exp_fac_qn*phi_proj(:,1,it)
               enddo
             endif
 
@@ -1042,12 +1041,7 @@ end subroutine get_fields_by_spec_idx
               g1k = g1k + g0k
             enddo
 
-            if (tcorr_source_qn.lt.epsilon(0.0)) then
-              phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - g1k(1,:)
-            else
-              phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - (1. - exp_fac_qn)*g1k(1,:)
-            endif
-
+            phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - g1k(1,:)
           enddo
           deallocate(g0k,g1k,g0x)
         else
