@@ -809,6 +809,9 @@ end subroutine get_fields_by_spec_idx
   subroutine get_phi (phi, dist, skip_fsa)
 
     use mp, only: proc0, mp_abort, job
+#if defined MPI && ISO_C_BINDING
+    use mp, only: sgproc0, comm_sgroup
+#endif
     use job_manage, only: time_message
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
@@ -816,15 +819,19 @@ end subroutine get_fields_by_spec_idx
     use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-    use linear_solve, only: lu_back_substitution
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
     use multibox, only: mb_get_phi, boundary_size
-    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
-    use fields_arrays, only: gamtot, phi_solve, phizf_solve
+    use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+#if defined MPI && ISO_C_BINDING
+    use sources, only: qn_window
+    use mp_lu_decomposition, only: lu_matrix_multiply_local
+#endif
+    use linear_solve, only: lu_back_substitution
 
     implicit none
 
@@ -833,10 +840,12 @@ end subroutine get_fields_by_spec_idx
     integer :: ia, it, iz, ikx, iky, zmi
     integer :: inmat
     complex, dimension (:,:), allocatable :: g0k, g1k, g0x, g0a
-    complex, dimension (:), allocatable :: phiext
     complex :: tmp
     logical :: skip_fsa_local
     logical :: has_elec, adia_elec
+#if defined MPI && ISO_C_BINDING
+    integer :: ierr
+#endif
 
     character (*), intent (in) :: dist
 
@@ -943,7 +952,6 @@ end subroutine get_fields_by_spec_idx
           allocate (g0k(1,nakx))
           allocate (g1k(1,nakx))
           allocate (g0x(1,nakx))
-          allocate (phiext(nakx*(nztot-1)))
 
           do it = 1, ntubes
             ! calculate <<g>_psi>_T
@@ -979,20 +987,32 @@ end subroutine get_fields_by_spec_idx
                 phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:) - exp_fac_qn*phi_proj(:,1,it)
               enddo
             endif
-     
-            do iz = -nzgrid, nzgrid-1
-              do ikx = 1, nakx
-                inmat = ikx + nakx*(iz+nzgrid)
-                phiext(inmat) = phi(1,ikx,iz,it)
+
+#if defined MPI && ISO_C_BINDING
+            if (sgproc0) then
+#endif
+              do iz = -nzgrid, nzgrid-1
+                do ikx = 1, nakx
+                  inmat = ikx + nakx*(iz+nzgrid)
+                  phi_ext(inmat) = phi(1,ikx,iz,it)
+                enddo
               enddo
-            enddo
+#if defined MPI && ISO_C_BINDING
+            endif
+            call mpi_win_fence (0, qn_window, ierr)
+#endif
         
-            call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, phiext)
+#if defined MPI && ISO_C_BINDING
+            call lu_matrix_multiply_local (comm_sgroup, 0, qn_window, phizf_solve%zloc, phi_ext)
+            call mpi_win_fence (0, qn_window, ierr)
+#else
+            call lu_back_substitution (phizf_solve%zloc,phizf_solve%idx, phi_ext)
+#endif
 
             do iz = -nzgrid, nzgrid-1
               do ikx = 1, nakx
                 inmat = ikx + nakx*(iz+nzgrid)
-                phi(1,ikx,iz,it) = phiext(inmat)
+                phi(1,ikx,iz,it) = phi_ext(inmat)
               enddo
             enddo
 
@@ -1029,7 +1049,7 @@ end subroutine get_fields_by_spec_idx
             endif
 
           enddo
-          deallocate(g0k,g1k,g0x,phiext)
+          deallocate(g0k,g1k,g0x)
         else
           if(radial_variation) then
             do it = 1, ntubes

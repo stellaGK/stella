@@ -18,6 +18,9 @@ module sources
   public :: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
   public :: int_krook, int_proj
   public :: qn_source_initialized
+#if defined MPI && defined ISO_C_BINDING
+  public :: qn_window
+#endif
 
   private
 
@@ -32,7 +35,7 @@ module sources
   logical :: qn_source_initialized, include_qn_source
 
 #if defined MPI && defined ISO_C_BINDING
-  integer :: window = MPI_WIN_NULL
+  integer :: qn_window = MPI_WIN_NULL
 #endif
 
 contains
@@ -161,7 +164,7 @@ contains
     use dist_fn_arrays, only: g_krook, g_proj
     use fields_arrays, only : phi_proj, phi_proj_stage
 #if !defined(MPI) || !defined(ISO_C_BINDING)
-    use fields_arrays, only : phizf_solve
+    use fields_arrays, only : phizf_solve, phi_ext
 #endif
 
     implicit none
@@ -174,10 +177,11 @@ contains
     if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
 #if defined MPI && defined ISO_C_BINDING
-    if (window.ne.MPI_WIN_NULL) call mpi_win_free(window, ierr)
+    if (qn_window.ne.MPI_WIN_NULL) call mpi_win_free(qn_window, ierr)
 #else    
-    if (associated(phizf_solve%zloc)) deallocate(phizf_solve%zloc)
-    if (associated(phizf_solve%idx)) deallocate(phizf_solve%idx)
+    if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
+    if (associated(phizf_solve%idx)) deallocate (phizf_solve%idx)
+    if (allocated(phi_ext)) deallocate (phi_ext)
 #endif
 
   end subroutine finish_sources
@@ -396,7 +400,7 @@ contains
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
     use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
     use mp, only: scope, real_size, nbytes_real
-    use mp_lu_decomposition, only: lu_decomposition_local
+    use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
     use mpi
 #endif
     use physics_flags, only: radial_variation
@@ -408,7 +412,7 @@ contains
     use kt_grids, only: zonal_mode, rho_d_clamped
     use linear_solve, only: lu_decomposition
     use multibox, only: boundary_size
-    use fields_arrays, only: phizf_solve, c_mat, theta
+    use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
     
 
     implicit none
@@ -422,8 +426,8 @@ contains
     integer*8 :: cur_pos
     integer (kind=MPI_ADDRESS_KIND) :: win_size
     type(c_ptr) :: cptr
+    complex, dimension (:,:), allocatable :: temp_mat
 #endif
-
     complex, dimension (:,:), allocatable :: g0k, g0x, g1k
 
     ia = 1
@@ -434,23 +438,23 @@ contains
     if (include_qn_source) then
       nmat_zf = nakx*(nztot-1)
 #if defined MPI && ISO_C_BINDING
-      if(window.eq.MPI_WIN_NULL) then
+      if(qn_window.eq.MPI_WIN_NULL) then
         prior_focus = curr_focus
         call scope (sharedsubprocs)
         win_size = 0
         if(sgproc0) then
-          win_size = int(nmat_zf,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND &
-                   + int(nmat_zf*nmat_zf,MPI_ADDRESS_KIND)*2*real_size !complex size
+          win_size = int(nmat_zf,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND & 
+                   + int(nmat_zf*(nmat_zf+1),MPI_ADDRESS_KIND)*2*real_size !complex size
         endif
 
         call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
-                                     mp_comm,cptr,window,ierr)
+                                     mp_comm,cptr,qn_window,ierr)
 
         if(.not.sgproc0) then
           !make sure all the procs have the right memory address
-          call mpi_win_shared_query(window,0,win_size,disp_unit,cptr,ierr)
+          call mpi_win_shared_query(qn_window,0,win_size,disp_unit,cptr,ierr)
         end if
-        call mpi_win_fence(0,window,ierr)
+        call mpi_win_fence(0,qn_window,ierr)
         cur_pos = transfer(cptr,cur_pos)
 
         !allocate the memory
@@ -460,18 +464,25 @@ contains
         endif
         cur_pos = cur_pos + nmat_zf**2*2*nbytes_real
 
+        if (.not.allocated(phi_ext))  then
+          cptr = transfer(cur_pos,cptr)
+          call c_f_pointer (cptr,phi_ext,(/nmat_zf/))
+        endif
+        cur_pos = cur_pos + nmat_zf*2*nbytes_real
+
         if (.not.associated(phizf_solve%idx))  then
           cptr = transfer(cur_pos,cptr)
           call c_f_pointer (cptr,phizf_solve%idx,(/nmat_zf/))
         endif
 
-        call mpi_win_fence(0,window,ierr)
+        call mpi_win_fence(0,qn_window,ierr)
 
         call scope (prior_focus)
       endif
 #else
       if(.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
       if(.not.associated(phizf_solve%idx))  allocate (phizf_solve%idx(nmat_zf))
+      if(.not.allocated(phi_ext)) allocate (phi_ext)
 #endif
 
 #if defined MPI && ISO_C_BINDING
@@ -553,9 +564,20 @@ contains
         deallocate (g0k,g1k,g0x)
 #if defined MPI && ISO_C_BINDING
       endif
-      call mpi_win_fence(0,window,ierr)
-      call lu_decomposition_local(comm_sgroup, 0, window, &
-                                         phizf_solve%zloc, phizf_solve%idx, dum)
+      call mpi_win_fence(0,qn_window,ierr)
+      call lu_decomposition_local(comm_sgroup, 0, qn_window, &
+                                  phizf_solve%zloc, phizf_solve%idx, dum)
+
+      allocate (temp_mat(nmat_zf,nmat_zf))
+      temp_mat = phizf_solve%zloc
+
+      call mpi_win_fence(0,qn_window,ierr)
+
+      ! inverse is calculated since it is more straightforward to parallelize
+      ! inverse calculation/matrix multiplication than the lu back substitution
+      call lu_inverse_local(comm_sgroup, 0, qn_window, &
+                            temp_mat, phizf_solve%idx, phizf_solve%zloc)
+      deallocate (temp_mat)
 #else
       call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
 #endif

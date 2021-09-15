@@ -5,10 +5,22 @@ module mp_lu_decomposition
   implicit none
 
   public :: lu_decomposition_local
+  public :: lu_inverse_local
+  public :: lu_matrix_multiply_local
 
   interface lu_decomposition_local
 !    module procedure lu_decomposition_local_real
      module procedure lu_decomposition_local_complex
+  end interface
+
+  interface lu_inverse_local
+!    module procedure lu_inverse_local_real
+     module procedure lu_inverse_local_complex
+  end interface
+
+  interface lu_matrix_multiply_local
+!    module procedure lu_decomposition_local_real
+     module procedure lu_matrix_multiply_local_complex
   end interface
 
 contains 
@@ -107,6 +119,83 @@ contains
     deallocate (row_limits)
 
   end subroutine lu_decomposition_local_complex
+
+  subroutine lu_inverse_local_complex (mp_comm, root, win, lu, idx, inverse)
+
+    use linear_solve, only: lu_back_substitution
+
+    implicit none
+
+    integer, intent (in) :: win, mp_comm, root
+    complex, dimension (:,:), intent (in) :: lu
+    integer, dimension (:), intent (in) :: idx
+    complex, dimension (:,:), intent (out) :: inverse
+
+    integer :: i, n, nproc, iproc, rdiv, rmod, ierr
+    integer :: llim, ulim
+
+    n = size(lu,1)
+
+    call mpi_comm_size(mp_comm, nproc, ierr)
+    call mpi_comm_rank(mp_comm, iproc, ierr)
+
+    rdiv = n/nproc
+    rmod = mod(n,nproc)
+
+    llim = 1 + iproc*rdiv + min(rmod,iproc)
+    ulim = (iproc+1)*rdiv + min(rmod,iproc+1)
+
+    do i = llim, ulim
+      inverse(i,:) = 0
+      inverse(i,i) = 1.0
+    enddo
+
+    call mpi_win_fence(0,win,ierr)
+
+    do i = llim, ulim
+      call lu_back_substitution(lu,idx,inverse(:,i))
+    enddo
+
+    call mpi_win_fence(0,win,ierr)
+
+  end subroutine lu_inverse_local_complex
+
+  subroutine lu_matrix_multiply_local_complex (mp_comm, root, win, mat, b)
+
+    implicit none
+
+    integer, intent (in) :: win, mp_comm, root
+    complex, dimension (:,:), intent (in) :: mat
+    complex, dimension (:), intent (out) :: b
+    complex, dimension (size(b)) :: a
+
+    integer :: i, n, nproc, iproc, rdiv, rmod
+    integer :: llim, ulim, ierr
+
+    n = size(mat,1)
+
+    call mpi_comm_size(mp_comm, nproc, ierr)
+    call mpi_comm_rank(mp_comm, iproc, ierr)
+
+    rdiv = n/nproc
+    rmod = mod(n,nproc)
+
+    llim = 1 + iproc*rdiv + min(rmod,iproc)
+    ulim = (iproc+1)*rdiv + min(rmod,iproc+1)
+
+    do i = llim, ulim
+      a(i) = sum(mat(i,:)*b(:))
+    enddo
+
+    call mpi_win_fence(0,win,ierr)
+
+    do i = llim, ulim
+      b(i) = a(i)
+    enddo
+
+    call mpi_win_fence(0,win,ierr)
+
+  end subroutine lu_matrix_multiply_local_complex
 
 #endif
 
