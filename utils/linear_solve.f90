@@ -271,7 +271,7 @@ contains
 
   !!
   !! One shouldn't need to compute the inverse of a matrix if solving the linear equation A.x = y;
-  !! a simply back substitution should suffice.
+  !! a simple back substitution should suffice.
   !! 
   !! Only compute the inverse of A when absolutely necessary!
   !!

@@ -31,6 +31,7 @@ stella_mod = \
 	 mirror_terms.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
+	 mt19937.o \
 	 multibox.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
@@ -153,6 +154,7 @@ fields.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 mp_lu_decomposition.o \
 	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
@@ -286,7 +288,9 @@ mirror_terms.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
-mp_lu_decomposition.o: 
+mp_lu_decomposition.o: \
+	 linear_solve.o 
+mt19937.o: 
 multibox.o: \
 	 constants.o \
 	 fft_work.o \
@@ -345,7 +349,8 @@ physics_flags.o: \
 physics_parameters.o: \
 	 file_utils.o \
 	 mp.o 
-ran.o: 
+ran.o: \
+	 mt19937.o 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 
@@ -360,6 +365,7 @@ response_matrix.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
 	 run_parameters.o \
 	 species.o \

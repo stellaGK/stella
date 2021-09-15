@@ -32,6 +32,10 @@ module fields_arrays
   ! (nakx, nakx, -nzgrid:nzgrid)
 
   complex, dimension (:,:), allocatable :: c_mat
+  ! (nakx, nakx)
+
+  complex, dimension (:), allocatable :: phi_ext
+  ! (nakx*nztot)
 
   type (eigen_type), dimension (:,:), allocatable :: phi_solve
   type (eigen_type) :: phizf_solve
