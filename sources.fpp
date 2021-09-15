@@ -181,7 +181,7 @@ contains
 #else    
     if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
     if (associated(phizf_solve%idx)) deallocate (phizf_solve%idx)
-    if (allocated(phi_ext)) deallocate (phi_ext)
+    if (associated(phi_ext)) deallocate (phi_ext)
 #endif
 
   end subroutine finish_sources
@@ -450,7 +450,7 @@ contains
         call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
                                      mp_comm,cptr,qn_window,ierr)
 
-        if(.not.sgproc0) then
+        if (.not.sgproc0) then
           !make sure all the procs have the right memory address
           call mpi_win_shared_query(qn_window,0,win_size,disp_unit,cptr,ierr)
         end if
@@ -464,7 +464,7 @@ contains
         endif
         cur_pos = cur_pos + nmat_zf**2*2*nbytes_real
 
-        if (.not.allocated(phi_ext))  then
+        if (.not.associated(phi_ext))  then
           cptr = transfer(cur_pos,cptr)
           call c_f_pointer (cptr,phi_ext,(/nmat_zf/))
         endif
@@ -480,9 +480,9 @@ contains
         call scope (prior_focus)
       endif
 #else
-      if(.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
-      if(.not.associated(phizf_solve%idx))  allocate (phizf_solve%idx(nmat_zf))
-      if(.not.allocated(phi_ext)) allocate (phi_ext)
+      if (.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
+      if (.not.associated(phizf_solve%idx))  allocate (phizf_solve%idx(nmat_zf))
+      if (.not.associated(phi_ext)) allocate (phi_ext)
 #endif
 
 #if defined MPI && ISO_C_BINDING

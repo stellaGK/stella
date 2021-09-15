@@ -34,7 +34,7 @@ module fields_arrays
   complex, dimension (:,:), allocatable :: c_mat
   ! (nakx, nakx)
 
-  complex, dimension (:), allocatable :: phi_ext
+  complex, dimension (:), pointer :: phi_ext => null()
   ! (nakx*nztot)
 
   type (eigen_type), dimension (:,:), allocatable :: phi_solve
