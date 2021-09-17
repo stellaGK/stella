@@ -49,6 +49,8 @@ program stella
   if (debug) write(*,*) 'stella::advance_stella'
   do istep = (istep0+1), nstep
      if (debug) write(*,*) 'istep = ', istep
+     if (mod(istep,10)==0) call checkstop (stop_stella)
+     if (stop_stella) exit
      call advance_stella(istep)
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
@@ -58,8 +60,6 @@ program stella
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
      call time_message(.false.,time_diagnostics,' diagnostics')
-     if (mod(istep,10)==0) call checkstop (stop_stella)
-     if (stop_stella) exit
      ierr = error_unit()
      call flush_output_file (ierr)
   end do
@@ -387,7 +387,7 @@ contains
     use job_manage, only: time_message
     use physics_parameters, only: finish_physics_parameters
     use physics_flags, only: finish_physics_flags
-    use run_parameters, only: finish_run_parameters, nstep
+    use run_parameters, only: finish_run_parameters
     use zgrid, only: finish_zgrid
     use species, only: finish_species
     use time_advance, only: time_gke, time_parallel_nl
@@ -414,7 +414,7 @@ contains
     logical, intent (in), optional :: last_call
 
     if (debug) write (*,*) 'stella::finish_stella::finish_stella_diagnostics'
-    call finish_stella_diagnostics(nstep)
+    call finish_stella_diagnostics(istep)
     if (debug) write (*,*) 'stella::finish_stella::finish_response_matrix'
     call finish_response_matrix
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'
