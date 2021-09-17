@@ -5,17 +5,20 @@ import numpy as np
 import numpy.matlib
 
 
-tave = 900
+tave = 1200
 
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/T1/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/rho_scan2/r0.001/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/rhoscan_hr/0.002/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/0.001d/'
-basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001d_per/'
-#basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001t_2/'
-right_file  = basedir + 'left.out.nc'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/source_test/proj6/'
+#basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_ky/'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/CBC_flux_alt/'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_hr_v3e_alt/'
+basedir = '/Users/denisst-onge/stella/build/eparallel/'
+left_file  = basedir + 'left.out.nc'
 center_file = basedir + 'center.out.nc'
-left_file   = basedir + 'right.out.nc'
+right_file   = basedir + 'right.out.nc'
 
 
 right_nc  = netcdf.netcdf_file(right_file,'r')
@@ -39,28 +42,6 @@ def read_stella_float(infile, var):
     flag = FLAG
 
   return arr, flag
-
-def phi_vs_t_to_x(infile,var,ny,nx):
-# t ntube z kx ky ri
-
-  avt, present = read_stella_float(infile,var)
-  #print('c')
-  avt_kxky = ny*nx*(avt[:,0,:,:,:,0] + 1j*avt[:,0,:,:,:,1])
-  #print('d')
-  arr = np.fft.ifft(avt_kxky,axis=2)
-  #print('e')
-
-  return arr
-
-def mom_vs_t_to_x(infile,var,ny,nx):
-  #in:  t nspec ntube z kx ky ri
-  #out: t z kx ky
-
-  avt, present = read_stella_float(infile,var)
-  avt_kxky = ny*nx*(avt[:,0,0,:,:,:,0] + 1j*avt[:,0,0,:,:,:,1])
-  arr = np.fft.ifft(avt_kxky,axis=2)
-
-  return arr
 
 print('0')
 naky  = center_nc.dimensions['ky']
@@ -123,6 +104,17 @@ qfluxr  = np.copy( right_nc.variables['qflux_x'][:])
 
 print('3')
 
+densl  = np.copy(left_nc.variables['dens_x'][:])
+uparl  = np.copy(left_nc.variables['upar_x'][:])
+templ  = np.copy(left_nc.variables['temp_x'][:])
+
+densc  = np.copy(center_nc.variables['dens_x'][:])
+uparc  = np.copy(center_nc.variables['upar_x'][:])
+tempc  = np.copy(center_nc.variables['temp_x'][:])
+
+densr  = np.copy(right_nc.variables['dens_x'][:])
+uparr  = np.copy(right_nc.variables['upar_x'][:])
+tempr  = np.copy(right_nc.variables['temp_x'][:])
 
 cout = open(basedir + 'left.fluxes_t','w')
 cout.write('[1] t     ')
@@ -162,9 +154,20 @@ for i in range (0, nt):
     cout.write('%e ' % pfluxc[i,0,j])
     cout.write('%e ' % vfluxc[i,0,j])
     cout.write('%e ' % qfluxc[i,0,j])
+    cout.write('%e ' % densc[i,0,j])
+    cout.write('%e ' % uparc[i,0,j])
+    cout.write('%e ' % tempc[i,0,j])
     cout.write('\n')
   cout.write('\n')
 cout.close()
+
+for i in range (0, nt):
+  cout = open(basedir + 'center.fluxes_' + str(i),'w')
+  for j in range (0, nakxc):
+    cout.write('%e ' % radgrid[j,2]) 
+    cout.write('%e ' % tempc[i,0,j])
+    cout.write('\n')
+  cout.close()
 
 cout = open(basedir + 'right.fluxes_t','w')
 cout.write('[1] t     ')
@@ -207,7 +210,23 @@ prave = np.mean(pfluxr[tind:nt,0,:],0)
 vrave = np.mean(vfluxr[tind:nt,0,:],0)
 qrave = np.mean(qfluxr[tind:nt,0,:],0)
 
+dlave = np.mean(densl[tind:nt,0,:],0)
+ulave = np.mean(uparl[tind:nt,0,:],0)
+tlave = np.mean(templ[tind:nt,0,:],0)
+
+dcave = np.mean(densc[tind:nt,0,:],0)
+ucave = np.mean(uparc[tind:nt,0,:],0)
+tcave = np.mean(tempc[tind:nt,0,:],0)
+
+drave = np.mean(densr[tind:nt,0,:],0)
+urave = np.mean(uparr[tind:nt,0,:],0)
+trave = np.mean(tempr[tind:nt,0,:],0)
+
 print('9')
+
+dens_zero = np.mean(densc[:,0,:],1)
+upar_zero = np.mean(uparc[:,0,:],1)
+temp_zero = np.mean(tempc[:,0,:],1)
 
 cout = open(basedir + 'center.prof_ave','w')
 cout.write('#Average from t=' + str(t[tind])+ ' to t=' + str(t[nt-1]) + '\n')
@@ -230,6 +249,9 @@ for i in range (0, nakxc):
   cout.write('%e ' % pcave[i])
   cout.write('%e ' % vcave[i])
   cout.write('%e ' % qcave[i])
+  cout.write('%e ' % dcave[i])
+  cout.write('%e ' % ucave[i])
+  cout.write('%e ' % tcave[i])
   cout.write('\n')
 
 cout.close()
@@ -247,6 +269,9 @@ for i in range (0, nakxl):
   cout.write('%e ' % plave[i])
   cout.write('%e ' % vlave[i])
   cout.write('%e ' % qlave[i])
+  cout.write('%e ' % dlave[i])
+  cout.write('%e ' % ulave[i])
+  cout.write('%e ' % tlave[i])
   cout.write('\n')
 
 cout.close()
@@ -265,6 +290,24 @@ for i in range (0, nakxr):
   cout.write('%e ' % prave[i])
   cout.write('%e ' % vrave[i])
   cout.write('%e ' % qrave[i])
+  cout.write('%e ' % drave[i])
+  cout.write('%e ' % urave[i])
+  cout.write('%e ' % trave[i])
   cout.write('\n')
 
+cout.close()
+
+cout = open(basedir + 'center.zero_mode','w')
+cout.write('[1] t    ')
+cout.write('[2] dens ')
+cout.write('[3] upar ')
+cout.write('[4] temp ')
+cout.write('\n')
+print(basedir + 'center.zero_mode')
+for i in range (0, nt):
+  cout.write('%e ' % t[i])
+  cout.write('%e ' % dens_zero[i]) 
+  cout.write('%e ' % upar_zero[i])
+  cout.write('%e ' % temp_zero[i]) 
+  cout.write('\n')
 cout.close()

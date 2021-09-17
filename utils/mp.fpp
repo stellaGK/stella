@@ -30,16 +30,17 @@ module mp
   public :: max_reduce, max_allreduce
   public :: min_reduce, min_allreduce
   public :: comm_split, comm_free
-  public :: nproc, iproc, proc0, job
+  public :: nproc, iproc, proc0, job, min_proc
   public :: send, ssend, receive
   public :: numnodes, inode
   public :: barrier
   public :: waitany
   public :: mp_abort
-  public :: mpireal, mpicmplx
+  public :: mpireal, mpicmplx, real_size, nbytes_real
   public :: sgproc0
 ! MAB> needed by Trinity
   public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs, sharedsubprocs, scrossdomprocs
+  public :: comm_group, comm_sgroup
   public :: all_to_group, group_to_all
   public :: trin_flag
 ! <MAB
@@ -84,15 +85,16 @@ module mp
 
   integer, parameter :: mp_info = MPI_INFO_NULL
 
-  integer :: job = 0
+  integer :: job = 0, min_proc
   integer (kind(MPI_REAL)) :: mpireal, mpicmplx
+  integer (kind=MPI_ADDRESS_KIND) :: real_size
 # else
   integer, parameter :: nproc = 1, iproc = 0
   logical, parameter :: proc0 = .true.
 
   integer, parameter :: mp_info = -1
   integer, parameter :: job = 0, mp_comm = -1
-  integer :: mpireal, mpicmplx
+  integer :: mpireal, mpicmplx, real_size
 # endif
   integer, parameter ::      allprocs = 0, &
                           sharedprocs = 1, & 
@@ -101,6 +103,7 @@ module mp
                        sharedsubprocs = 4, &
                        scrossdomprocs = 5
 
+  integer :: nbytes_real
 ! needed for Trinity -- MAB
   integer, dimension (:), allocatable :: grp0
   logical :: trin_flag = .false.
@@ -337,17 +340,23 @@ contains
     nscross_proc = numnodes
     scproc       = inode
      
-
     call scope (sharedprocs)
     call broadcast(inode)
     call scope (allprocs)
 
+    min_proc = nshared_proc
+    call min_allreduce (min_proc)
+
     if ( (kind(pi)==kind_rs) .and. (kind_rs/=kind_rd) ) then
        mpireal = MPI_REAL
        mpicmplx = MPI_COMPLEX
+       real_size = 4_MPI_ADDRESS_KIND
+       nbytes_real = 4
     else if (kind(pi)==kind_rd) then
        mpireal = MPI_DOUBLE_PRECISION
        mpicmplx = MPI_DOUBLE_COMPLEX
+       real_size = 8_MPI_ADDRESS_KIND
+       nbytes_real = 8
     else
        write (error_unit(),*) 'ERROR: precision mismatch in mpi'
     end if
@@ -526,6 +535,10 @@ contains
 ! TT> brought down here from init_job_name in file_utils.fpp
     call scope (subprocs)
 ! <TT
+
+!get the minimum number of procs on a node for a given job
+    min_proc = nsgroup_proc
+    call min_allreduce (min_proc)
 
 # endif
   end subroutine init_job_topology

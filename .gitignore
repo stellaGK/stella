@@ -12,6 +12,9 @@ constants.f90
 file_utils.f90
 job_manage.f90
 mp.f90
+mp_lu_decomposition.f90
+fields.f90
+sources.f90
 multibox.f90
 netcdf_utils.f90
 ran.f90
