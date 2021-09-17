@@ -49,8 +49,10 @@ module stella_save
   real, allocatable, dimension (:,:,:) :: tmpr, tmpi
   real, allocatable, dimension (:,:,:,:) :: ktmpr, ktmpi
   real, allocatable, dimension (:,:,:,:)   :: ptmpr, ptmpi
+  real, allocatable, dimension (:,:,:)   :: pptmpr, pptmpi
   integer (kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
   integer (kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
+  integer (kind_nf) :: phiprojr_id, phiproji_id
 !  integer (kind_nf) :: bparr_id, bpari_id
   integer (kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
   integer (kind_nf) :: intkrook_id, intproj_id;
@@ -71,7 +73,7 @@ contains
        (g, istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
-    use fields_arrays, only: shift_state
+    use fields_arrays, only: shift_state, phi_proj
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # else
@@ -88,8 +90,9 @@ contains
     use common_types, only: kxkyz_layout_type
     use file_utils, only: error_unit
     use vpamu_grids, only: nvpa, nmu
-    use dissipation, only: include_krook_operator, int_krook
-    use dissipation, only: remove_zero_projection, int_proj
+    use sources, only: include_krook_operator, int_krook
+    use sources, only: remove_zero_projection, int_proj
+    use sources, only: include_qn_source
     use physics_flags, only: prp_shear_enabled
 
     implicit none
@@ -351,6 +354,24 @@ contains
              end if
 
           end if
+
+          if (include_qn_source.and.iproc.eq.0) then
+             istatus = nf90_def_var (ncid, "phiprojr", netcdf_real, &
+                  (/ kxid, zedid, tubeid /), phiprojr_id)
+             if (istatus /= NF90_NOERR) then
+                ierr = error_unit()
+                write(ierr,*) "nf90_def_var phiprojr error: ", nf90_strerror(istatus)
+                goto 1
+             end if
+             
+             istatus = nf90_def_var (ncid, "phiproji", netcdf_real, &
+                  (/ kxid, zedid, tubeid /), phiproji_id)
+             if (istatus /= NF90_NOERR) then
+                ierr = error_unit()
+                write(ierr,*) "nf90_def_var phiproji error: ", nf90_strerror(istatus)
+                goto 1
+             end if
+          endif
 
           if (remove_zero_projection.and.has_vmulo) then
              istatus = nf90_def_var (ncid, "intproj", netcdf_real, intproj_id)
@@ -629,6 +650,47 @@ contains
          istatus = nf90_put_var (ncid, shift_id, shift_state)
          if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, shift_id)
        end if
+
+       if (include_qn_source.and.iproc.eq.0) then
+         if (.not. allocated(pptmpr)) &
+           allocate (pptmpr(nakx,-nzgrid:nzgrid,ntubes))
+         if (.not. allocated(pptmpi)) &
+           allocate (pptmpi(nakx,-nzgrid:nzgrid,ntubes))
+
+         pptmpr = real(phi_proj)
+         pptmpi = aimag(phi_proj)
+         
+# ifdef NETCDF_PARALLEL
+         if(save_many) then
+# endif
+           istatus = nf90_put_var (ncid, phiprojr_id, pptmpr)
+#ifdef NETCDF_PARALLEL
+         else
+           istatus = nf90_var_par_access(ncid, phiprojr_id, NF90_COLLECTIVE)
+           istatus = nf90_var_par_access(ncid, phiproji_id, NF90_COLLECTIVE)
+
+           start_pos = (/1,1,1/)
+           counts = (/nakx, nztot, ntubes/)
+
+           istatus = nf90_put_var (ncid, phiprojr_id, ktmpr, start=start_pos, count=counts)
+         endif
+# endif     
+         if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phiprojr_id)
+
+
+
+# ifdef NETCDF_PARALLEL
+         if(save_many) then
+# endif
+           istatus = nf90_put_var (ncid, phiproji_id, pptmpi)
+#ifdef NETCDF_PARALLEL
+         else
+           istatus = nf90_put_var (ncid, phiproji_id, pptmpi, start=start_pos, count=counts)
+         endif
+# endif     
+         if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phiproji_id)
+       
+       end if
     end if
        
     if (exit) then
@@ -654,6 +716,8 @@ contains
     if (allocated(ptmpi)) deallocate (ptmpi)
     if (allocated(ktmpr)) deallocate (ktmpr)
     if (allocated(ktmpi)) deallocate (ktmpi)
+    if (allocated(pptmpr)) deallocate (pptmpr)
+    if (allocated(pptmpi)) deallocate (pptmpi)
 
   end subroutine stella_save_for_restart
 
@@ -667,21 +731,22 @@ contains
 
   subroutine stella_restore_many (g, scale, istatus)
 # ifdef NETCDF
-    use mp, only: iproc
-    use fields_arrays, only: shift_state
+    use fields_arrays, only: shift_state, phi_proj
     use dist_fn_arrays, only: g_krook, g_proj
     use kt_grids, only: naky, nakx
 # endif
 # ifdef NETCDF_PARALLEL
     use zgrid, only: nztot
 # endif
+    use mp, only: iproc, broadcast
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: nvpa, nmu
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use file_utils, only: error_unit
-    use dissipation, only: include_krook_operator, int_krook
-    use dissipation, only: remove_zero_projection, int_proj
+    use sources, only: include_krook_operator, int_krook
+    use sources, only: remove_zero_projection, int_proj
     use physics_flags, only: prp_shear_enabled
+    use sources, only: include_qn_source
 
     implicit none
 
@@ -812,6 +877,14 @@ contains
           
           istatus = nf90_inq_varid (ncid, "proji", proji_id)
           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='proji')
+       endif
+
+       if(include_qn_source.and.iproc.eq.0) then
+          istatus = nf90_inq_varid (ncid, "phiprojr", phiprojr_id)
+          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='phiprojr')
+          
+          istatus = nf90_inq_varid (ncid, "phiproji", phiproji_id)
+          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='phiproji')
        endif
 
        if(prp_shear_enabled) then
@@ -954,6 +1027,42 @@ contains
       
     endif
 
+    if(include_qn_source.and.iproc.eq.0) then
+      if (.not. allocated(pptmpr)) allocate (pptmpr(nakx,-nzgrid:nzgrid,ntubes))
+      if (.not. allocated(pptmpi)) allocate (pptmpi(nakx,-nzgrid:nzgrid,ntubes))
+
+
+      pptmpr = 0.; pptmpi = 0.
+# ifdef NETCDF_PARALLEL
+      if(read_many) then
+# endif
+        istatus = nf90_get_var (ncid, phiprojr_id, pptmpr)
+#ifdef NETCDF_PARALLEL
+      else
+        start_pos = (/1,1,1/)
+        counts = (/nakx, nztot, ntubes/)
+        istatus = nf90_get_var (ncid, phiprojr_id, pptmpr, start=start_pos, count=counts)
+      end if
+# endif
+
+       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phiprojr_id)
+
+# ifdef NETCDF_PARALLEL
+      if(read_many) then
+# endif
+        istatus = nf90_get_var (ncid, phiproji_id, pptmpi)
+#ifdef NETCDF_PARALLEL
+      else
+        istatus = nf90_get_var (ncid, phiproji_id, pptmpi, start=start_pos, count=counts)
+      end if
+# endif
+
+      if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, phiproji_id)
+
+      phi_proj = cmplx(pptmpr, pptmpi)
+
+    endif
+
     if(prp_shear_enabled) then
       istatus = nf90_get_var (ncid, shift_id, shift_state)
       if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, shift_id)
@@ -987,6 +1096,10 @@ contains
     if (allocated(ptmpi)) deallocate (ptmpi)
     if (allocated(ktmpr)) deallocate (ktmpr)
     if (allocated(ktmpi)) deallocate (ktmpi)
+    if (allocated(pptmpr)) deallocate (pptmpr)
+    if (allocated(pptmpi)) deallocate (pptmpi)
+
+    if (include_qn_source) call broadcast (phi_proj)
 
   end subroutine stella_restore_many
 

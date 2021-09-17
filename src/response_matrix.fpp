@@ -40,6 +40,7 @@ contains
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
     use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
+    use mp, only: real_size, nbytes_real
     use mpi
 #endif
 
@@ -51,9 +52,9 @@ contains
     integer :: idx
     integer :: izl_offset, izup
 #if defined MPI && defined ISO_C_BINDING
-    integer :: prior_focus, ierr, nbytes_real, rec_len
+    integer :: prior_focus, ierr
     integer :: disp_unit = 1
-    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
+    integer (kind=MPI_ADDRESS_KIND) :: win_size
     integer*8 :: cur_pos
     type(c_ptr) :: bptr, cptr
 #endif
@@ -107,17 +108,6 @@ contains
     if (.not.allocated(response_matrix)) allocate (response_matrix(naky))
 
 #if defined ISO_C_BINDING && defined MPI
-    inquire(iolength=rec_len) dum !this will return 2 or 8 for double
-    if(rec_len.eq.1.or.rec_len.eq.4) then
-      nbytes_real = 4
-      real_size = 4_MPI_ADDRESS_KIND
-    else if (rec_len.eq.2.or.rec_len.eq.8) then
-      nbytes_real = 8
-      real_size = 8_MPI_ADDRESS_KIND
-    else
-      call mp_abort('failure retrieving the size of a real')
-    endif
-
 
 !   Create a single shared memory window for all the response matrices and 
 !   permutation arrays.
@@ -1014,12 +1004,12 @@ contains
     use fields_arrays, only: response_matrix
     use mp, only: barrier, broadcast, sum_allreduce
     use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-    use mp, only: scrossdomprocs, sgproc0, mp_abort
+    use mp, only: scrossdomprocs, sgproc0, mp_abort, real_size
     use mp, only: job, iproc, proc0, nproc, numnodes, inode
+    use mp_lu_decomposition, only: lu_decomposition_local
     use job_manage, only: njobs
     use extended_zgrid, only: neigen
     use mpi
-    use linear_solve, only: imaxloc
 
     implicit none
 
@@ -1030,9 +1020,6 @@ contains
     integer, dimension (:), allocatable :: row_limits
     logical, dimension (:,:), allocatable :: node_jobs
 
-    real, parameter :: zero = 1.0e-20
-    real, dimension (:), allocatable :: vv
-    complex, dimension (:), allocatable :: dum
     complex, dimension (:,:), pointer :: lu
 
     type(c_ptr) :: bptr
@@ -1040,13 +1027,11 @@ contains
     logical :: needs_send = .false.
 
     integer :: prior_focus, nodes_on_job
-    integer :: ijob, i,j,k,ie,n, rec_len
-    integer :: imax, jroot, neig, ierr, win, nroot
-    integer (kind=MPI_ADDRESS_KIND) :: win_size, real_size
-    integer :: rdiv, rmod
-    integer :: ediv, emod
+    integer :: ijob, j, ie, n, ediv, emod
+    integer :: jroot, neig, ierr, win, nroot
+    integer (kind=MPI_ADDRESS_KIND) :: win_size
     integer :: disp_unit = 1
-    real :: dmax, tmp
+    real :: dmax
 
     prior_focus = curr_focus
 
@@ -1056,15 +1041,6 @@ contains
     allocate (job_list(nproc)); job_list = 0
     allocate (row_limits(0:nproc))
     allocate (eig_limits(0:numnodes,njobs)); eig_limits = 0
-
-    inquire(iolength=rec_len) zero !this will return 2 or 8 for double
-    if(rec_len.eq.1.or.rec_len.eq.4) then
-      real_size = 4_MPI_ADDRESS_KIND
-    else if (rec_len.eq.2.or.rec_len.eq.8) then
-      real_size = 8_MPI_ADDRESS_KIND
-    else
-      call mp_abort('failure retrieving the size of a real')
-    endif
 
     job_list(iproc+1) = job
     call sum_allreduce(job_list)
@@ -1126,9 +1102,6 @@ contains
         !broadcast size of matrix
         call broadcast(n, jroot)
 
-        allocate (dum(n))
-        allocate (vv(n))
-
         !allocate the window
         call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL,mp_comm,bptr,win,ierr)
 
@@ -1148,75 +1121,13 @@ contains
 
         ! All the processors have the matrix.
         ! Now perform LU decomposition
-        vv = maxval(cabs(lu),dim=2)
-        if (any(vv==0.0)) &
-           write (*,*) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
-        vv = 1.0/vv
-        do j = 1, n
-           !divide up the work using row_limits
-           rdiv = (n-j)/nproc
-           rmod = mod(n-j,nproc)
-           row_limits(0) = j+1
-           if(rdiv.eq.0) then
-             row_limits(rmod+1:) = -1
-             do k=1,rmod
-               row_limits(k)  = row_limits(k-1) + 1
-             enddo
-           else
-             do k=1,nproc
-               row_limits(k) = row_limits(k-1) + rdiv
-               if(k.le.rmod) row_limits(k) = row_limits(k) + 1
-             enddo
-           endif
-
-           !pivot if needed
-           dmax = -1.0
-           do k = j, n
-             tmp = vv(k)*abs(lu(k,j))
-             if(tmp.gt.dmax) then 
-               dmax = tmp
-               imax = k
-             endif
-           enddo
-!          imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
-
-           if(iproc.eq.jroot) then
-             response_matrix(iky)%eigen(ie)%idx(j) = imax
-             if (j /= imax) then
-               dum = lu(imax,:)
-               lu(imax,:) = lu(j,:)
-               lu(j,:) = dum
-               vv(imax) = vv(j)
-             end if
-             if (lu(j,j)==0.0) lu(j,j) = zero
-           else
-             if (j /= imax) vv(imax) = vv(j)
-           endif
-
-           call mpi_win_fence(0,win,ierr)
-
-           !get the lead multiplier
-           do i = row_limits(iproc), row_limits(iproc+1)-1
-             lu(i,j) = lu(i,j)/lu(j,j)
-           enddo
-         
-           call mpi_win_fence(0,win,ierr)
-
-           do k=row_limits(iproc), row_limits(iproc+1)-1
-             do i = j+1,n
-                lu(i,k) = lu(i,k) - lu(i,j)*lu(j,k)
-             enddo
-           enddo
-
-           call mpi_win_fence(0,win,ierr)
-        enddo
-        !LU decomposition ends here
+        call lu_decomposition_local (mp_comm, jroot, win, lu, &
+                                     response_matrix(iky)%eigen(ie)%idx, dmax)
 
         !copy the decomposed matrix over
         if(iproc.eq.jroot) response_matrix(iky)%eigen(ie)%zloc = lu
 
         call mpi_win_free(win,ierr)
-        deallocate (vv,dum)
       enddo
     enddo
 
@@ -1268,10 +1179,10 @@ contains
     integer, dimension (MPI_STATUS_SIZE) :: status
 
     real, parameter :: zero = 1.0e-20
-    real, dimension (:), allocatable :: vv
-    complex, dimension (:), allocatable :: dum
     integer, dimension (:), allocatable :: idx
     complex, dimension (:,:), allocatable :: lu
+    real, dimension (:), allocatable :: vv
+    complex, dimension (:), allocatable :: dum
 
     integer :: sproc
     logical :: sproc0

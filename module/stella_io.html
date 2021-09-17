@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for modules and submodules.">158 statements</a>
+    title=" 0.4% of total for modules and submodules.">165 statements</a>
      </li> 
      
      
@@ -219,6 +219,8 @@
       <a class="list-group-item" href="../module/stella_io.html#proc-write_phi_nc">write_phi_nc</a>
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_fluxes_nc">write_radial_fluxes_nc</a>
+      
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_moments_nc">write_radial_moments_nc</a>
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_kspectra_nc">write_kspectra_nc</a>
       
@@ -321,6 +323,8 @@
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_fluxes_nc">write_radial_fluxes_nc</a>
       
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_moments_nc">write_radial_moments_nc</a>
+      
       <a class="list-group-item" href="../module/stella_io.html#proc-write_kspectra_nc">write_kspectra_nc</a>
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_fluxes_kxkyz_nc">write_fluxes_kxkyz_nc</a>
@@ -410,7 +414,7 @@
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-init_stella_io"></span><h3>
-public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(restart, write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes, write_fluxes_kxky)
+public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(restart, write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
     
     
    
@@ -548,6 +552,21 @@ public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(resta
   <td></td>
   
   <td></td><td>::</td>
+  <td><strong>write_radial_moments</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
   <td><strong>write_fluxes_kxky</strong></td><td></td>
   
 </tr>
@@ -640,7 +659,7 @@ private subroutine <a href='../proc/save_input.html'>save_input</a>()
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-define_vars"></span><h3>
-private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes, write_fluxes_kxky)
+private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
     
     
    
@@ -749,6 +768,21 @@ private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_
   
   <td></td><td>::</td>
   <td><strong>write_radial_fluxes</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>write_radial_moments</strong></td><td></td>
   
 </tr>
 
@@ -1058,6 +1092,102 @@ public subroutine <a href='../proc/write_radial_fluxes_nc.html'>write_radial_flu
   
   <td>dimension (:,:)</td><td>::</td>
   <td><strong>qflux</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_radial_moments_nc"></span><h3>
+public subroutine <a href='../proc/write_radial_moments_nc.html'>write_radial_moments_nc</a>(nout, dens_x, upar_x, temp_x)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nout</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>dens_x</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>upar_x</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>temp_x</strong></td><td></td>
   
 </tr>
 
@@ -1562,7 +1692,7 @@ public subroutine <a href='../proc/get_nout.html'>get_nout</a>(tstart, nout)
 
 
 <p>Get the index of the time dimension in the netCDF file that corresponds to
- a time no larger than <code>tstart</code></p>
+a time no larger than <code>tstart</code></p>
     
     <h4>Arguments</h4>
     
@@ -1655,13 +1785,13 @@ public subroutine <a href='../proc/sync_nc.html'>sync_nc</a>()
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-39-gb488d29d</small></p>
+                                          <br /><small>v0.3-40-gd345335d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-10T14:47:14.070243 
+             on 2021-09-17T14:56:49.857183 
             
           </p>
         </div>

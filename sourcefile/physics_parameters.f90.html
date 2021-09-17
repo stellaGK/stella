@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.1% of total for source files.">52 statements</a>
+    title=" 0.1% of total for source files.">54 statements</a>
      </li> 
      
      
@@ -282,7 +282,7 @@
 <a name="ln-9"></a>
 <a name="ln-10"></a>  <span class="k">private</span>
 <a name="ln-11"></a>
-<a name="ln-12"></a><span class="k">  </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">beta</span><span class="p">,</span> <span class="n">zeff</span><span class="p">,</span> <span class="n">tite</span><span class="p">,</span> <span class="n">nine</span><span class="p">,</span> <span class="n">rhostar</span><span class="p">,</span> <span class="n">vnew_ref</span>
+<a name="ln-12"></a><span class="k">  </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">beta</span><span class="p">,</span> <span class="n">zeff</span><span class="p">,</span> <span class="n">tite</span><span class="p">,</span> <span class="n">nine</span><span class="p">,</span> <span class="n">rhostar</span><span class="p">,</span> <span class="n">irhostar</span><span class="p">,</span> <span class="n">vnew_ref</span>
 <a name="ln-13"></a>  <span class="kt">real</span> <span class="kd">::</span> <span class="n">g_exb</span><span class="p">,</span> <span class="n">g_exbfac</span><span class="p">,</span> <span class="n">omprimfac</span>
 <a name="ln-14"></a>  <span class="kt">logical</span> <span class="kd">::</span> <span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
 <a name="ln-15"></a>
@@ -315,40 +315,43 @@
 <a name="ln-42"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-43"></a><span class="k">       </span><span class="n">beta</span> <span class="o">=</span> <span class="mf">0.0</span>
 <a name="ln-44"></a>       <span class="n">vnew_ref</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="c">! various input options will override this value if it is negative</span>
-<a name="ln-45"></a>       <span class="n">rhostar</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="c">! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI</span>
-<a name="ln-46"></a>       <span class="n">zeff</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-47"></a>       <span class="n">tite</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-48"></a>       <span class="n">nine</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-49"></a>
-<a name="ln-50"></a>       <span class="n">g_exb</span>    <span class="o">=</span> <span class="mf">0.0</span>
-<a name="ln-51"></a>       <span class="n">g_exbfac</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-52"></a>       <span class="n">omprimfac</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-53"></a>
-<a name="ln-54"></a>       <span class="n">in_file</span> <span class="o">=</span> <span class="n">input_unit_exist</span><span class="p">(</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="n">rpexist</span><span class="p">)</span>
-<a name="ln-55"></a>       <span class="k">if</span> <span class="p">(</span><span class="n">rpexist</span><span class="p">)</span> <span class="k">read</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">in_file</span><span class="p">,</span><span class="n">nml</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
-<a name="ln-56"></a>    <span class="k">end if</span>
+<a name="ln-45"></a>       <span class="n">rhostar</span>  <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="c">! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI</span>
+<a name="ln-46"></a>       <span class="n">irhostar</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+<a name="ln-47"></a>       <span class="n">zeff</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-48"></a>       <span class="n">tite</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-49"></a>       <span class="n">nine</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-50"></a>
+<a name="ln-51"></a>       <span class="n">g_exb</span>    <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-52"></a>       <span class="n">g_exbfac</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-53"></a>       <span class="n">omprimfac</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-54"></a>
+<a name="ln-55"></a>       <span class="n">in_file</span> <span class="o">=</span> <span class="n">input_unit_exist</span><span class="p">(</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="n">rpexist</span><span class="p">)</span>
+<a name="ln-56"></a>       <span class="k">if</span> <span class="p">(</span><span class="n">rpexist</span><span class="p">)</span> <span class="k">read</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">in_file</span><span class="p">,</span><span class="n">nml</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
 <a name="ln-57"></a>
-<a name="ln-58"></a><span class="k">    call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">beta</span><span class="p">)</span>
-<a name="ln-59"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">vnew_ref</span><span class="p">)</span>
-<a name="ln-60"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">zeff</span><span class="p">)</span>
-<a name="ln-61"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">rhostar</span><span class="p">)</span>
-<a name="ln-62"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">tite</span><span class="p">)</span>
-<a name="ln-63"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">nine</span><span class="p">)</span>
-<a name="ln-64"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">g_exb</span><span class="p">)</span>
-<a name="ln-65"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">g_exbfac</span><span class="p">)</span>
-<a name="ln-66"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">omprimfac</span><span class="p">)</span>
-<a name="ln-67"></a>
-<a name="ln-68"></a>  <span class="k">end subroutine </span><span class="n">read_parameters</span>
-<a name="ln-69"></a>
-<a name="ln-70"></a>  <span class="k">subroutine </span><span class="n">finish_physics_parameters</span>
-<a name="ln-71"></a>
-<a name="ln-72"></a>    <span class="k">implicit none</span>
-<a name="ln-73"></a>
-<a name="ln-74"></a><span class="k">    </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-75"></a>
-<a name="ln-76"></a>  <span class="k">end subroutine </span><span class="n">finish_physics_parameters</span>
-<a name="ln-77"></a>
-<a name="ln-78"></a><span class="k">end module </span><span class="n">physics_parameters</span>
+<a name="ln-58"></a>       <span class="k">if</span> <span class="p">(</span><span class="n">irhostar</span><span class="p">.</span><span class="n">gt</span><span class="p">.</span><span class="mi">0</span><span class="p">)</span> <span class="n">rhostar</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">irhostar</span>
+<a name="ln-59"></a>    <span class="k">end if</span>
+<a name="ln-60"></a>
+<a name="ln-61"></a><span class="k">    call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">beta</span><span class="p">)</span>
+<a name="ln-62"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">vnew_ref</span><span class="p">)</span>
+<a name="ln-63"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">zeff</span><span class="p">)</span>
+<a name="ln-64"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">rhostar</span><span class="p">)</span>
+<a name="ln-65"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">tite</span><span class="p">)</span>
+<a name="ln-66"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">nine</span><span class="p">)</span>
+<a name="ln-67"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">g_exb</span><span class="p">)</span>
+<a name="ln-68"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">g_exbfac</span><span class="p">)</span>
+<a name="ln-69"></a>    <span class="k">call </span><span class="n">broadcast</span> <span class="p">(</span><span class="n">omprimfac</span><span class="p">)</span>
+<a name="ln-70"></a>
+<a name="ln-71"></a>  <span class="k">end subroutine </span><span class="n">read_parameters</span>
+<a name="ln-72"></a>
+<a name="ln-73"></a>  <span class="k">subroutine </span><span class="n">finish_physics_parameters</span>
+<a name="ln-74"></a>
+<a name="ln-75"></a>    <span class="k">implicit none</span>
+<a name="ln-76"></a>
+<a name="ln-77"></a><span class="k">    </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-78"></a>
+<a name="ln-79"></a>  <span class="k">end subroutine </span><span class="n">finish_physics_parameters</span>
+<a name="ln-80"></a>
+<a name="ln-81"></a><span class="k">end module </span><span class="n">physics_parameters</span>
 </pre></div>
 
     </section>
@@ -362,13 +365,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-39-gb488d29d</small></p>
+                                          <br /><small>v0.3-40-gd345335d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-10T14:47:14.070243 
+             on 2021-09-17T14:56:49.857183 
             
           </p>
         </div>

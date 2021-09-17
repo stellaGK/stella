@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="<p> 0.0% of total for procedures.</p>Including implementation: 77 statements,  0.2% of total for procedures.">5 statements</a>
+    title="<p> 0.0% of total for procedures.</p>Including implementation: 131 statements,  0.4% of total for procedures.">7 statements</a>
      </li> 
      
      
@@ -204,6 +204,10 @@
       
       <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_complex">lu_back_substitution_complex</a>
       
+      <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_matrix_real">lu_back_substitution_matrix_real</a>
+      
+      <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_matrix_complex">lu_back_substitution_matrix_complex</a>
+      
     </div>
   </div>
 </div>
@@ -256,6 +260,10 @@
       <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_real_complex">lu_back_substitution_real_complex</a>
       
       <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_complex">lu_back_substitution_complex</a>
+      
+      <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_matrix_real">lu_back_substitution_matrix_real</a>
+      
+      <a class="list-group-item" href="../interface/lu_back_substitution.html#moduleprocedure-lu_back_substitution_matrix_complex">lu_back_substitution_matrix_complex</a>
       
     </div>
   </div>
@@ -517,6 +525,168 @@ public subroutine <a href='../proc/lu_back_substitution_complex.html'>lu_back_su
   </div>
 
    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-lu_back_substitution_matrix_real"></span><h3>
+public subroutine <a href='../proc/lu_back_substitution_matrix_real.html'>lu_back_substitution_matrix_real</a>(lu, idx, b)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>lu</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>idx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>b</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+   
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-lu_back_substitution_matrix_complex"></span><h3>
+public subroutine <a href='../proc/lu_back_substitution_matrix_complex.html'>lu_back_substitution_matrix_complex</a>(lu, idx, b)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>lu</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>idx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>b</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+   
      
 
  </div>
@@ -529,13 +699,13 @@ public subroutine <a href='../proc/lu_back_substitution_complex.html'>lu_back_su
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-39-gb488d29d</small></p>
+                                          <br /><small>v0.3-40-gd345335d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-10T14:47:14.070243 
+             on 2021-09-17T14:56:49.857183 
             
           </p>
         </div>

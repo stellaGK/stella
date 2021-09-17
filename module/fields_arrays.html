@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.0% of total for modules and submodules.">13 statements</a>
+    title=" 0.0% of total for modules and submodules.">16 statements</a>
      </li> 
      
      
@@ -189,11 +189,13 @@
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_qn">apar_corr_QN</a>
       
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_proj">phi_proj</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_proj_stage">phi_proj_stage</a>
+      
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_ga">phi_corr_GA</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_ga">apar_corr_GA</a>
-      
-      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_ztmax">phi_corr_ztmax</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-response_matrix">response_matrix</a>
       
@@ -202,6 +204,12 @@
       <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot">gamtot</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-theta~4">theta</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-c_mat">c_mat</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_ext">phi_ext</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_solve">phi_solve</a>
       
@@ -287,11 +295,13 @@
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_qn">apar_corr_QN</a>
       
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_proj">phi_proj</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_proj_stage">phi_proj_stage</a>
+      
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_ga">phi_corr_GA</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_ga">apar_corr_GA</a>
-      
-      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_ztmax">phi_corr_ztmax</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-response_matrix">response_matrix</a>
       
@@ -300,6 +310,12 @@
       <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot">gamtot</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-theta~4">theta</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-c_mat">c_mat</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_ext">phi_ext</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_solve">phi_solve</a>
       
@@ -423,6 +439,34 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-phi_proj"></span>complex,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>phi_proj</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-phi_proj_stage"></span>complex,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>phi_proj_stage</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-phi_corr_ga"></span>complex,</td>
   
   <td>public,</td>
@@ -442,20 +486,6 @@
   <td>public,</td>
   <td>dimension (:,:,:,:,:), allocatable</td><td>::</td>
   <td><strong>apar_corr_GA</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-phi_corr_ztmax"></span>complex,</td>
-  
-  <td>public,</td>
-  <td>dimension (:,:,:,:,:), allocatable</td><td>::</td>
-  <td><strong>phi_corr_ztmax</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -521,6 +551,48 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-theta~4"></span>complex,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td><strong>theta</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-c_mat"></span>complex,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>c_mat</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-phi_ext"></span>complex,</td>
+  
+  <td>public,</td>
+  <td>dimension (:), pointer</td><td>::</td>
+  <td><strong>phi_ext</strong></td><td>=> </td><td>null()</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-phi_solve"></span>type(<a href='../type/eigen_type.html'>eigen_type</a>),</td>
   
   <td>public,</td>
@@ -573,13 +645,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-39-gb488d29d</small></p>
+                                          <br /><small>v0.3-40-gd345335d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-10T14:47:14.070243 
+             on 2021-09-17T14:56:49.857183 
             
           </p>
         </div>

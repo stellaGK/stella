@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.4% of total for modules and submodules.">890 statements</a>
+    title=" 2.6% of total for modules and submodules.">955 statements</a>
      </li> 
      
      
@@ -187,6 +187,8 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-navg">navg</a>
       
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-nc_mult">nc_mult</a>
+      
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-stdout_unit">stdout_unit</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-fluxes_unit">fluxes_unit</a>
@@ -208,6 +210,8 @@
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_kspectra~3">write_kspectra</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_radial_fluxes~3">write_radial_fluxes</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_radial_moments~3">write_radial_moments</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_fluxes_kxkyz">write_fluxes_kxkyz</a>
       
@@ -231,11 +235,11 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-omega_vs_time">omega_vs_time</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-nout~11">nout</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-nout~12">nout</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-diagnostics_initialized">diagnostics_initialized</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~3">debug</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~4">debug</a>
       
     </div>
   </div>
@@ -292,7 +296,7 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-write_final_ascii_files">write_final_ascii_files</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-deallocate_arrays~2">deallocate_arrays</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-deallocate_arrays~3">deallocate_arrays</a>
       
     </div>
   </div>
@@ -342,6 +346,8 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-navg">navg</a>
       
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-nc_mult">nc_mult</a>
+      
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-stdout_unit">stdout_unit</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-fluxes_unit">fluxes_unit</a>
@@ -363,6 +369,8 @@
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_kspectra~3">write_kspectra</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_radial_fluxes~3">write_radial_fluxes</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_radial_moments~3">write_radial_moments</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-write_fluxes_kxkyz">write_fluxes_kxkyz</a>
       
@@ -386,11 +394,11 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-omega_vs_time">omega_vs_time</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-nout~11">nout</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-nout~12">nout</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-diagnostics_initialized">diagnostics_initialized</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~3">debug</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~4">debug</a>
       
     </div>
   </div>
@@ -447,7 +455,7 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-write_final_ascii_files">write_final_ascii_files</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-deallocate_arrays~2">deallocate_arrays</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-deallocate_arrays~3">deallocate_arrays</a>
       
     </div>
   </div>
@@ -533,6 +541,20 @@
   <td>private</td>
   <td></td><td>::</td>
   <td><strong>navg</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nc_mult"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>nc_mult</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -696,6 +718,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-write_radial_moments~3"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>write_radial_moments</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-write_fluxes_kxkyz"></span>logical,</td>
   
   <td>private</td>
@@ -850,7 +886,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-nout~11"></span>integer,</td>
+  <td><span class="anchor" id="variable-nout~12"></span>integer,</td>
   
   <td>private</td>
   <td></td><td>::</td>
@@ -878,7 +914,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-debug~3"></span>logical,</td>
+  <td><span class="anchor" id="variable-debug~4"></span>logical,</td>
   
   <td>private</td>
   <td></td><td>::</td>
@@ -1845,7 +1881,7 @@ private subroutine <a href='../proc/get_one_flux_radial.html'>get_one_flux_radia
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-get_moments"></span><h3>
-private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, upar, temp, spitzer2)
+private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, upar, temp, dens_x, upar_x, temp_x, spitzer2)
     
     
    
@@ -1892,7 +1928,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
   <td><strong>dens</strong></td><td></td>
   
 </tr>
@@ -1907,7 +1943,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
   <td><strong>upar</strong></td><td></td>
   
 </tr>
@@ -1922,8 +1958,53 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
   <td><strong>temp</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>dens_x</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>upar_x</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:)</td><td>::</td>
+  <td><strong>temp_x</strong></td><td></td>
   
 </tr>
 
@@ -1937,7 +2018,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
   <td><strong>spitzer2</strong></td><td></td>
   
 </tr>
@@ -2316,8 +2397,8 @@ private subroutine <a href='../proc/write_final_ascii_files.html'>write_final_as
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-deallocate_arrays~2"></span><h3>
-private subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-deallocate_arrays~3"></span><h3>
+private subroutine <a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a>()
     
     
    
@@ -2351,13 +2432,13 @@ private subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays<
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-39-gb488d29d</small></p>
+                                          <br /><small>v0.3-40-gd345335d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-10T14:47:14.070243 
+             on 2021-09-17T14:56:49.857183 
             
           </p>
         </div>

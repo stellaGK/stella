@@ -340,7 +340,7 @@
 <a name="ln-67"></a><span class="c">! only on proc0</span>
 <a name="ln-68"></a>    <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">init_error_unit</span><span class="p">,</span> <span class="n">init_input_unit</span><span class="p">,</span> <span class="n">list_name</span>
 <a name="ln-69"></a><span class="c">! &lt;MAB</span>
-<a name="ln-70"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">job</span><span class="p">,</span> <span class="n">scope</span>
+<a name="ln-70"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">job</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">min_proc</span>
 <a name="ln-71"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">nproc</span>
 <a name="ln-72"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">init_job_topology</span><span class="p">,</span> <span class="n">broadcast</span><span class="p">,</span> <span class="n">finish_mp</span>
 <a name="ln-73"></a>    <span class="k">implicit none</span>
@@ -432,77 +432,79 @@
 <a name="ln-159"></a>    
 <a name="ln-160"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">nproc</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">proc0</span><span class="p">)</span> <span class="p">&amp;</span>
 <a name="ln-161"></a>         <span class="p">&amp;</span> <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Job &#39;</span><span class="p">,</span><span class="n">job</span><span class="p">,</span><span class="s1">&#39; is called &#39;</span><span class="p">,</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">),&amp;</span>
-<a name="ln-162"></a>         <span class="p">&amp;</span> <span class="s1">&#39; and is running on &#39;</span><span class="p">,</span><span class="n">nproc</span><span class="p">,</span><span class="s1">&#39; processors&#39;</span>
-<a name="ln-163"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">nproc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Job &#39;</span><span class="p">,</span><span class="n">job</span><span class="p">,</span><span class="s1">&#39; is called &#39;</span><span class="p">,</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">),&amp;</span>
-<a name="ln-164"></a>         <span class="p">&amp;</span> <span class="s1">&#39; and is running on &#39;</span><span class="p">,</span><span class="n">nproc</span><span class="p">,</span><span class="s1">&#39; processor&#39;</span>
-<a name="ln-165"></a>    
-<a name="ln-166"></a>    <span class="k">deallocate</span> <span class="p">(</span><span class="n">group0</span><span class="p">,</span> <span class="n">job_list</span><span class="p">)</span> <span class="c">! MAB</span>
+<a name="ln-162"></a>         <span class="p">&amp;</span> <span class="s1">&#39; and is running on &#39;</span><span class="p">,</span><span class="n">nproc</span><span class="p">,</span><span class="s1">&#39; processors with a minimum of&#39;</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-163"></a>         <span class="p">&amp;</span> <span class="n">min_proc</span><span class="p">,</span> <span class="s1">&#39; processors on a node&#39;</span>
+<a name="ln-164"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">nproc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Job &#39;</span><span class="p">,</span><span class="n">job</span><span class="p">,</span><span class="s1">&#39; is called &#39;</span><span class="p">,</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">),&amp;</span>
+<a name="ln-165"></a>         <span class="p">&amp;</span> <span class="s1">&#39; and is running on &#39;</span><span class="p">,</span><span class="n">nproc</span><span class="p">,</span><span class="s1">&#39; processors with a minimum of&#39;</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-166"></a>         <span class="p">&amp;</span> <span class="n">min_proc</span><span class="p">,</span> <span class="s1">&#39; processors on a node&#39;</span>
 <a name="ln-167"></a>    
-<a name="ln-168"></a>  <span class="k">end subroutine </span><span class="n">job_fork</span>
-<a name="ln-169"></a>  
-<a name="ln-170"></a>  <span class="k">subroutine </span><span class="n">checkstop</span><span class="p">(</span><span class="k">exit</span><span class="p">,</span><span class="n">list</span><span class="p">)</span>
-<a name="ln-171"></a>    
-<a name="ln-172"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">broadcast</span>
-<a name="ln-173"></a>    <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">run_name</span><span class="p">,</span> <span class="n">list_name</span>
-<a name="ln-174"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">optional</span> <span class="kd">::</span> <span class="n">list</span>
-<a name="ln-175"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="k">exit</span>
-<a name="ln-176"></a><span class="k">    </span><span class="kt">character</span> <span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">filename</span>
-<a name="ln-177"></a>    
-<a name="ln-178"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">exit_local</span>
+<a name="ln-168"></a>    <span class="k">deallocate</span> <span class="p">(</span><span class="n">group0</span><span class="p">,</span> <span class="n">job_list</span><span class="p">)</span> <span class="c">! MAB</span>
+<a name="ln-169"></a>    
+<a name="ln-170"></a>  <span class="k">end subroutine </span><span class="n">job_fork</span>
+<a name="ln-171"></a>  
+<a name="ln-172"></a>  <span class="k">subroutine </span><span class="n">checkstop</span><span class="p">(</span><span class="k">exit</span><span class="p">,</span><span class="n">list</span><span class="p">)</span>
+<a name="ln-173"></a>    
+<a name="ln-174"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">broadcast</span>
+<a name="ln-175"></a>    <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">run_name</span><span class="p">,</span> <span class="n">list_name</span>
+<a name="ln-176"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">optional</span> <span class="kd">::</span> <span class="n">list</span>
+<a name="ln-177"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="k">exit</span>
+<a name="ln-178"></a><span class="k">    </span><span class="kt">character</span> <span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">filename</span>
 <a name="ln-179"></a>    
-<a name="ln-180"></a>    <span class="c">! If .stop file has appeared, set exit flag</span>
-<a name="ln-181"></a>    <span class="n">filename</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.stop&quot;</span>
-<a name="ln-182"></a>    <span class="k">if</span><span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">list</span><span class="p">))</span> <span class="k">then</span>
-<a name="ln-183"></a><span class="k">       if</span><span class="p">(</span><span class="n">list</span><span class="p">)</span> <span class="n">filename</span><span class="o">=</span><span class="n">list_name</span><span class="p">(:</span><span class="nb">len_trim</span><span class="p">(</span><span class="n">list_name</span><span class="p">)</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.stop&quot;</span>
-<a name="ln-184"></a>    <span class="n">endif</span>
-<a name="ln-185"></a>    
-<a name="ln-186"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-187"></a><span class="k">       inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">exit_local</span><span class="p">)</span>
-<a name="ln-188"></a>       <span class="k">exit</span> <span class="o">=</span> <span class="k">exit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">exit_local</span>
-<a name="ln-189"></a>    <span class="k">end if</span>
-<a name="ln-190"></a><span class="k">    </span>
-<a name="ln-191"></a><span class="k">    call </span><span class="n">broadcast</span> <span class="p">(</span><span class="k">exit</span><span class="p">)</span>
-<a name="ln-192"></a>    
-<a name="ln-193"></a>  <span class="k">end subroutine </span><span class="n">checkstop</span>
-<a name="ln-194"></a>  
-<a name="ln-195"></a>  <span class="k">subroutine </span><span class="n">checktime</span><span class="p">(</span><span class="n">avail_time</span><span class="p">,</span><span class="k">exit</span><span class="p">)</span>
-<a name="ln-196"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">broadcast</span>
-<a name="ln-197"></a>    <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">error_unit</span>
-<a name="ln-198"></a>
-<a name="ln-199"></a>    <span class="c">! available time in second</span>
-<a name="ln-200"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">avail_time</span>
-<a name="ln-201"></a>    <span class="c">! true if elapse time exceed available time</span>
-<a name="ln-202"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="k">exit</span>
-<a name="ln-203"></a><span class="k">    </span><span class="kt">logical</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">initialized</span><span class="o">=</span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-204"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">elapse_time</span><span class="o">=</span><span class="mf">0.</span>
-<a name="ln-205"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">initial_time</span><span class="o">=</span><span class="mf">0.</span>
-<a name="ln-206"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">margin</span><span class="o">=</span><span class="mi">30</span><span class="mf">0.</span> <span class="c">! 5 minutes</span>
-<a name="ln-207"></a>
-<a name="ln-208"></a>    <span class="k">if</span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="n">initialized</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-209"></a><span class="k">       </span><span class="n">initial_time</span><span class="o">=</span><span class="n">timer_local</span><span class="p">()</span>  <span class="c">! timer_local() returns #seconds from fixed time in past</span>
-<a name="ln-210"></a>       <span class="n">initialized</span><span class="o">=</span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-211"></a>       <span class="k">return</span>
-<a name="ln-212"></a><span class="k">    </span><span class="n">endif</span>
-<a name="ln-213"></a>
-<a name="ln-214"></a>    <span class="n">elapse_time</span><span class="o">=</span><span class="n">timer_local</span><span class="p">()</span><span class="o">-</span><span class="n">initial_time</span>
+<a name="ln-180"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">exit_local</span>
+<a name="ln-181"></a>    
+<a name="ln-182"></a>    <span class="c">! If .stop file has appeared, set exit flag</span>
+<a name="ln-183"></a>    <span class="n">filename</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.stop&quot;</span>
+<a name="ln-184"></a>    <span class="k">if</span><span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">list</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-185"></a><span class="k">       if</span><span class="p">(</span><span class="n">list</span><span class="p">)</span> <span class="n">filename</span><span class="o">=</span><span class="n">list_name</span><span class="p">(:</span><span class="nb">len_trim</span><span class="p">(</span><span class="n">list_name</span><span class="p">)</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.stop&quot;</span>
+<a name="ln-186"></a>    <span class="n">endif</span>
+<a name="ln-187"></a>    
+<a name="ln-188"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-189"></a><span class="k">       inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span><span class="n">exist</span><span class="o">=</span><span class="n">exit_local</span><span class="p">)</span>
+<a name="ln-190"></a>       <span class="k">exit</span> <span class="o">=</span> <span class="k">exit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">exit_local</span>
+<a name="ln-191"></a>    <span class="k">end if</span>
+<a name="ln-192"></a><span class="k">    </span>
+<a name="ln-193"></a><span class="k">    call </span><span class="n">broadcast</span> <span class="p">(</span><span class="k">exit</span><span class="p">)</span>
+<a name="ln-194"></a>    
+<a name="ln-195"></a>  <span class="k">end subroutine </span><span class="n">checkstop</span>
+<a name="ln-196"></a>  
+<a name="ln-197"></a>  <span class="k">subroutine </span><span class="n">checktime</span><span class="p">(</span><span class="n">avail_time</span><span class="p">,</span><span class="k">exit</span><span class="p">)</span>
+<a name="ln-198"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">broadcast</span>
+<a name="ln-199"></a>    <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">error_unit</span>
+<a name="ln-200"></a>
+<a name="ln-201"></a>    <span class="c">! available time in second</span>
+<a name="ln-202"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">avail_time</span>
+<a name="ln-203"></a>    <span class="c">! true if elapse time exceed available time</span>
+<a name="ln-204"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="k">exit</span>
+<a name="ln-205"></a><span class="k">    </span><span class="kt">logical</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">initialized</span><span class="o">=</span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-206"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">elapse_time</span><span class="o">=</span><span class="mf">0.</span>
+<a name="ln-207"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">initial_time</span><span class="o">=</span><span class="mf">0.</span>
+<a name="ln-208"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">margin</span><span class="o">=</span><span class="mi">30</span><span class="mf">0.</span> <span class="c">! 5 minutes</span>
+<a name="ln-209"></a>
+<a name="ln-210"></a>    <span class="k">if</span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="n">initialized</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-211"></a><span class="k">       </span><span class="n">initial_time</span><span class="o">=</span><span class="n">timer_local</span><span class="p">()</span>  <span class="c">! timer_local() returns #seconds from fixed time in past</span>
+<a name="ln-212"></a>       <span class="n">initialized</span><span class="o">=</span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-213"></a>       <span class="k">return</span>
+<a name="ln-214"></a><span class="k">    </span><span class="n">endif</span>
 <a name="ln-215"></a>
-<a name="ln-216"></a>    <span class="k">if</span><span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-217"></a><span class="k">       if</span><span class="p">(</span><span class="n">elapse_time</span> <span class="o">&gt;=</span> <span class="n">avail_time</span><span class="o">-</span><span class="n">margin</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-218"></a><span class="k">          write</span><span class="p">(</span><span class="n">error_unit</span><span class="p">(),</span><span class="s1">&#39;(a,f12.4,a,f12.4)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-219"></a>               <span class="p">&amp;</span> <span class="s1">&#39;Elapse time &#39;</span><span class="p">,</span><span class="n">elapse_time</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-220"></a>               <span class="p">&amp;</span> <span class="s1">&#39; exceeds available time&#39;</span><span class="p">,</span><span class="n">avail_time</span><span class="o">-</span><span class="n">margin</span>
-<a name="ln-221"></a>          <span class="k">write</span><span class="p">(</span><span class="n">error_unit</span><span class="p">(),</span><span class="s1">&#39;(a,f12.4,a,f12.4,a)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-222"></a>               <span class="p">&amp;</span> <span class="s1">&#39;  (Given CPU time: &#39;</span><span class="p">,</span><span class="n">avail_time</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-223"></a>               <span class="p">&amp;</span> <span class="s1">&#39;  Margin: &#39;</span><span class="p">,</span><span class="n">margin</span><span class="p">,</span><span class="s1">&#39;)&#39;</span>
-<a name="ln-224"></a>          <span class="k">exit</span><span class="o">=</span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-225"></a>       <span class="n">endif</span>
-<a name="ln-226"></a>    <span class="n">endif</span>
-<a name="ln-227"></a>
-<a name="ln-228"></a>    <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="k">exit</span><span class="p">)</span>
+<a name="ln-216"></a>    <span class="n">elapse_time</span><span class="o">=</span><span class="n">timer_local</span><span class="p">()</span><span class="o">-</span><span class="n">initial_time</span>
+<a name="ln-217"></a>
+<a name="ln-218"></a>    <span class="k">if</span><span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-219"></a><span class="k">       if</span><span class="p">(</span><span class="n">elapse_time</span> <span class="o">&gt;=</span> <span class="n">avail_time</span><span class="o">-</span><span class="n">margin</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-220"></a><span class="k">          write</span><span class="p">(</span><span class="n">error_unit</span><span class="p">(),</span><span class="s1">&#39;(a,f12.4,a,f12.4)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-221"></a>               <span class="p">&amp;</span> <span class="s1">&#39;Elapse time &#39;</span><span class="p">,</span><span class="n">elapse_time</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-222"></a>               <span class="p">&amp;</span> <span class="s1">&#39; exceeds available time&#39;</span><span class="p">,</span><span class="n">avail_time</span><span class="o">-</span><span class="n">margin</span>
+<a name="ln-223"></a>          <span class="k">write</span><span class="p">(</span><span class="n">error_unit</span><span class="p">(),</span><span class="s1">&#39;(a,f12.4,a,f12.4,a)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-224"></a>               <span class="p">&amp;</span> <span class="s1">&#39;  (Given CPU time: &#39;</span><span class="p">,</span><span class="n">avail_time</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-225"></a>               <span class="p">&amp;</span> <span class="s1">&#39;  Margin: &#39;</span><span class="p">,</span><span class="n">margin</span><span class="p">,</span><span class="s1">&#39;)&#39;</span>
+<a name="ln-226"></a>          <span class="k">exit</span><span class="o">=</span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-227"></a>       <span class="n">endif</span>
+<a name="ln-228"></a>    <span class="n">endif</span>
 <a name="ln-229"></a>
-<a name="ln-230"></a>  <span class="k">end subroutine </span><span class="n">checktime</span>
+<a name="ln-230"></a>    <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="k">exit</span><span class="p">)</span>
 <a name="ln-231"></a>
-<a name="ln-232"></a><span class="k">end module </span><span class="n">job_manage</span>
+<a name="ln-232"></a>  <span class="k">end subroutine </span><span class="n">checktime</span>
+<a name="ln-233"></a>
+<a name="ln-234"></a><span class="k">end module </span><span class="n">job_manage</span>
 </pre></div>
 
     </section>
@@ -516,13 +518,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-39-gb488d29d</small></p>
+                                          <br /><small>v0.3-40-gd345335d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-10T14:47:14.070243 
+             on 2021-09-17T14:56:49.857183 
             
           </p>
         </div>
