@@ -67,6 +67,7 @@ contains
   end subroutine init_volume_averages
 
   subroutine finish_volume_averages
+    use stella_geometry, only: dVolume
     implicit none
     if (allocated(mode_fac)) deallocate (mode_fac)
     if (allocated(dVolume)) deallocate (dVolume)
