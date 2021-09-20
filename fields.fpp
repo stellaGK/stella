@@ -18,14 +18,10 @@ module fields
   private
 
   real, dimension (:,:,:), allocatable ::  apar_denom
-  real, dimension (:,:), allocatable :: gamtot3
+  real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
-  complex, dimension (:,:), allocatable :: b_mat
-
-  real, dimension (:,:), allocatable :: dgamtot3dr
 
   complex, dimension (:,:), allocatable :: save1, save2
-
 
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
@@ -33,7 +29,7 @@ module fields
 
   integer :: zm
 
-  real, dimension (2,2) :: time_field_solve
+  real, dimension (2,5) :: time_field_solve
 
   interface get_dchidy
      module procedure get_dchidy_4d
@@ -45,7 +41,7 @@ contains
 
   subroutine init_fields
 
-    use mp, only: sum_allreduce, job
+    use mp, only: sum_allreduce, job, proc0
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -63,28 +59,31 @@ contains
     use vpamu_grids, only: vpa, vperp2
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: integrate_vmu
-    use species, only: spec
+    use species, only: spec, nspec
     use kt_grids, only: naky, nakx, akx
     use kt_grids, only: zonal_mode, rho_d_clamped
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
-    use linear_solve, only: lu_decomposition, lu_inverse
+    use linear_solve, only: lu_decomposition
     use multibox, only: init_mb_get_phi
-    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
+    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
     
 
     implicit none
 
-    integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi, jkx
+    integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi
     real :: tmp, tmp2, wgt, dum
     real, dimension (:,:), allocatable :: g0
     real, dimension (:), allocatable :: g1
     logical :: has_elec, adia_elec
 
-    complex, dimension (:,:), allocatable :: g0k, g0x, a_inv, a_fsa
+    complex, dimension (:,:), allocatable :: g0k, g0x
+
+    debug = debug .and. proc0
 
     ia = 1
+    zm = 0
 
     ! do not see why this is before fields_initialized check below
     call allocate_arrays
@@ -213,7 +212,6 @@ contains
                 if(akx(1)<epsilon(0.)) then
                    gamtot3(1,:)    = 0.0
                    dgamtot3dr(1,:) = 0.0
-                   zm = 1
                 endif
              end if
           end if
@@ -222,7 +220,7 @@ contains
        if(radial_variation.and.ky_solve_radial.gt.0) then
 
          has_elec  = has_electron_species(spec)
-         adia_elec = .not.has_elec &
+         adia_elec = .not.has_elec.and.zonal_mode(1) &
                      .and.adiabatic_option_switch == adiabatic_option_fieldlineavg
 
          if(runtype_option_switch.eq.runtype_multibox.and.job.eq.1.and.ky_solve_real) then
@@ -260,23 +258,15 @@ contains
                enddo
 
                call lu_decomposition(phi_solve(iky,iz)%zloc, phi_solve(iky,iz)%idx, dum)
-               !call zgetrf(nakx-zmi,nakx-zmi,phi_solve(iky,iz)%zloc,nakx-zmi,phi_solve(iky,iz)%idx,info)
              enddo
            enddo
 
            if (adia_elec) then
-             if(.not.allocated(b_mat)) allocate(b_mat(nakx-zm,nakx-zm));
-           
-             allocate(a_inv(nakx-zm,nakx-zm))
-             allocate(a_fsa(nakx-zm,nakx-zm)); a_fsa = 0.0
+             if(.not.allocated(c_mat)) allocate(c_mat(nakx,nakx));
+             if(.not.allocated(theta)) allocate(theta(nakx, nakx,-nzgrid:nzgrid));
 
-             if(.not.associated(phizf_solve%zloc)) &
-               allocate(phizf_solve%zloc(nakx-zm,nakx-zm));
-             phizf_solve%zloc = 0.0
-
-             if(.not.associated(phizf_solve%idx)) allocate(phizf_solve%idx(nakx-zm));
-
-             do ikx = 1+zm, nakx
+             !get C
+             do ikx = 1, nakx
                g0k(1,:) = 0.0
                g0k(1,ikx) = 1.0
 
@@ -285,43 +275,27 @@ contains
                call transform_x2kx_unpadded(g0x,g0k)
 
                !row column
-               b_mat(:,ikx-zm) = g0k(1,(1+zm):) 
+               c_mat(:,ikx) = g0k(1,:)
              enddo
 
-             !get inverse of A
+             !get Theta
              do iz = -nzgrid, nzgrid
 
-               call lu_inverse(phi_solve(1,iz)%zloc, phi_solve(1,iz)%idx, &
-                               a_inv)
-
-               !flux surface average it
-               do ikx = 1, nakx-zm
-                 g0k(1,1) = 0
-                 g0k(1,(1+zm):) = a_inv(:,ikx)
+               !get Theta
+               do ikx = 1, nakx
+                 g0k(1,:) = 0.0
+                 g0k(1,ikx) = dgamtotdr(1,ikx,iz) - efacp
 
                  call transform_kx2x_unpadded (g0k,g0x)
-                 g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+                 g0x(1,:) = rho_d_clamped*g0x(1,:)
                  call transform_x2kx_unpadded(g0x,g0k)
 
-                 a_fsa(:,ikx) = a_fsa(:,ikx) + g0k(1,(1+zm):) 
+                 !row column
+                 theta(:,ikx,iz)   = g0k(1,:)
+                 theta(ikx,ikx,iz) = theta(ikx,ikx,iz) + gamtot(1,ikx,iz) - efac
                enddo
              enddo
-
-             ! calculate I - <A^-1>B
-             do ikx = 1, nakx-zm
-               do jkx = 1, nakx-zm
-                 phizf_solve%zloc(ikx,jkx) = -sum(a_fsa(ikx,:)*b_mat(:,jkx))
-               enddo
-             enddo
-             do ikx = 1, nakx-zm
-               phizf_solve%zloc(ikx,ikx) = 1.0 + phizf_solve%zloc(ikx,ikx)
-             enddo
-
-             call lu_decomposition(phizf_solve%zloc,phizf_solve%idx, dum)
-
-             deallocate(a_inv,a_fsa)
            endif
-
            deallocate(g0k,g0x)
          endif
        endif
@@ -418,7 +392,7 @@ contains
 
 !DSO> while most of the modes in the box have reality built in (as we 
 !     throw out half the kx-ky plane, modes with ky=0 do not have
-!     this enforcement built in. In theory this shouldn't be a problem
+!     this enforcement built in. In theory this should not be a problem
 !     as these modes should be stable, but I made this function (and 
 !     its relative in the dist file) just in case
 
@@ -452,7 +426,7 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     character (*), intent (in) :: dist
 
@@ -486,6 +460,7 @@ contains
 
     use mp, only: proc0
     use mp, only: sum_allreduce, mp_abort
+    use job_manage, only: time_message
     use stella_layouts, only: kxkyz_lo
     use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
     use dist_fn_arrays, only: kperp2
@@ -500,7 +475,7 @@ contains
 
     implicit none
     
-    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (inout) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar
     logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
@@ -514,10 +489,13 @@ contains
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields_kxkyzlo'
+
     ia = 1
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
        allocate (g0(nvpa,nmu))
        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
           iz = iz_idx(kxkyz_lo,ikxkyz)
@@ -532,6 +510,7 @@ contains
        end do
        deallocate (g0)
        call sum_allreduce (phi)
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
 
        call get_phi (phi, dist, skip_fsa_local)
 
@@ -570,7 +549,8 @@ contains
 
   subroutine get_fields_vmulo (g, phi, apar, dist, skip_fsa)
 
-    use mp, only: mp_abort, sum_allreduce
+    use mp, only: mp_abort, sum_allreduce, proc0
+    use job_manage, only: time_message
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -599,10 +579,13 @@ contains
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
 
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields_vmulo'
+
     ia = 1
 
     phi = 0.
     if (fphi > epsilon(0.0)) then
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
        allocate (g0k(naky,nakx))
        allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        do it = 1, ntubes
@@ -633,7 +616,9 @@ contains
          end do
        end do
        deallocate (gyro_g)
+       if (debug) write (*,*) 'dist_fn::advance_stella::sum_all_reduce'
        call sum_allreduce(phi)
+       if (proc0) call time_message(.false.,time_field_solve(:,3),' int_dv_g')
 
        call get_phi(phi, dist, skip_fsa_local)
 
@@ -702,6 +687,8 @@ contains
 
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
+
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_fields_by_spec'
 
     ia = 1
 
@@ -822,32 +809,47 @@ end subroutine get_fields_by_spec_idx
   subroutine get_phi (phi, dist, skip_fsa)
 
     use mp, only: proc0, mp_abort, job
+#if defined MPI && ISO_C_BINDING
+    use mp, only: sgproc0, comm_sgroup
+#endif
+    use job_manage, only: time_message
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
-    use zgrid, only: nzgrid, ntubes
+    use zgrid, only: nzgrid, ntubes, nztot
     use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-    use linear_solve, only: lu_back_substitution
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
-    use multibox, only: mb_get_phi
-    use fields_arrays, only: gamtot, phi_solve, phizf_solve
+    use multibox, only: mb_get_phi, boundary_size
+    use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
+    use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+#if defined MPI && ISO_C_BINDING
+    use sources, only: qn_window
+    use mp_lu_decomposition, only: lu_matrix_multiply_local
+#endif
+    use linear_solve, only: lu_back_substitution
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
     logical, optional, intent (in) :: skip_fsa
     integer :: ia, it, iz, ikx, iky, zmi
-    complex, dimension (:,:), allocatable :: g0k, g0x, g0a
-    complex, dimension (:), allocatable :: g_fsa
+    integer :: inmat
+    complex, dimension (:,:), allocatable :: g0k, g1k, g0x, g0a
     complex :: tmp
     logical :: skip_fsa_local
     logical :: has_elec, adia_elec
+#if defined MPI && ISO_C_BINDING
+    integer :: ierr
+#endif
 
     character (*), intent (in) :: dist
+
+    if (debug) write (*,*) 'dist_fn::advance_stella::get_phi'
 
     skip_fsa_local=.false.
     if(present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -857,6 +859,7 @@ end subroutine get_fields_by_spec_idx
     adia_elec = .not.has_elec  &
                 .and.adiabatic_option_switch.eq.adiabatic_option_fieldlineavg
 
+    if (proc0) call time_message(.false.,time_field_solve(:,4),' get_phi')
     if (dist == 'h') then
       phi = phi/gamtot_h
     else if (dist == 'gbar') then
@@ -892,11 +895,11 @@ end subroutine get_fields_by_spec_idx
          do it = 1, ntubes
            do iz = -nzgrid, nzgrid
              do iky = 1, naky
-               zmi = 0
-               if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
                if(iky > ky_solve_radial) then
                  phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
-               else
+               elseif (.not.(adia_elec.and.zonal_mode(iky))) then
+                 zmi = 0
+                 if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
                  call lu_back_substitution(phi_solve(iky,iz)%zloc, &
                                            phi_solve(iky,iz)%idx, phi(iky,(1+zmi):,iz,it))
                  if(zmi.gt.0) phi(iky,zmi,iz,it) = 0.0
@@ -923,9 +926,12 @@ end subroutine get_fields_by_spec_idx
     end if
 
     if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
+    if (proc0) call time_message(.false.,time_field_solve(:,4),' get_phi')
 
 
+    if (proc0) call time_message(.false.,time_field_solve(:,5),'get_phi_adia_elec')
     if (adia_elec.and.zonal_mode(1).and..not.skip_fsa_local) then
+      if (debug) write (*,*) 'dist_fn::advance_stella::adiabatic_electrons'
       if (dist == 'h') then
         do it = 1, ntubes
           do ikx = 1, nakx
@@ -944,35 +950,100 @@ end subroutine get_fields_by_spec_idx
                 .and.runtype_option_switch.eq.runtype_multibox          &
                 .and..not.ky_solve_real))  then
           allocate (g0k(1,nakx))
+          allocate (g1k(1,nakx))
           allocate (g0x(1,nakx))
-          allocate (g_fsa(nakx-zm))
 
           do it = 1, ntubes
-            g_fsa = 0.0
-            do iz = -nzgrid, nzgrid
+            ! calculate <<g>_psi>_T
+            g1k = 0.0
+            do iz = -nzgrid, nzgrid-1
               g0k(1,:) = phi(1,:,iz,it)
               call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+              if (exclude_boundary_regions_qn) then
+                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                g0x(1,1:boundary_size) = 0.0
+                g0x(1,(nakx-boundary_size+1):) = 0.0
+              else
+                g0x(1,:) = sum(g0x(1,:))/nakx
+              endif
+
               call transform_x2kx_unpadded(g0x,g0k)
 
-              g_fsa = g_fsa + g0k(1,(1+zm):)
+              g1k = g1k + g0k
             enddo
+
+
+            phi_proj_stage(:,1,it) = g1k(1,:)
+            if (tcorr_source_qn.lt.epsilon(0.0)) then
+              do iz = -nzgrid, nzgrid-1
+                phi(1,:,iz,it) = phi(1,:,iz,it) - g1k(1,:)
+              enddo
+            else
+              do iz = -nzgrid, nzgrid-1
+                phi(1,:,iz,it) = phi(1,:,iz,it) &
+                               - (1.-exp_fac_qn)*g1k(1,:) - exp_fac_qn*phi_proj(:,1,it)
+              enddo
+            endif
+
+#if defined MPI && ISO_C_BINDING
+            if (sgproc0) then
+#endif
+              do iz = -nzgrid, nzgrid-1
+                do ikx = 1, nakx
+                  inmat = ikx + nakx*(iz+nzgrid)
+                  phi_ext(inmat) = phi(1,ikx,iz,it)
+                enddo
+              enddo
+#if defined MPI && ISO_C_BINDING
+            endif
+            call mpi_win_fence (0, qn_window, ierr)
+#endif
         
-            call lu_back_substitution(phizf_solve%zloc,phizf_solve%idx, g_fsa)
+#if defined MPI && ISO_C_BINDING
+            call lu_matrix_multiply_local (comm_sgroup, 0, qn_window, phizf_solve%zloc, phi_ext)
+            call mpi_win_fence (0, qn_window, ierr)
+#else
+            call lu_back_substitution (phizf_solve%zloc,phizf_solve%idx, phi_ext)
+#endif
 
-            do ikx = 1,nakx-zm
-              g0k(1,ikx+zm) = sum(b_mat(ikx,:)*g_fsa(:))
+            do iz = -nzgrid, nzgrid-1
+              do ikx = 1, nakx
+                inmat = ikx + nakx*(iz+nzgrid)
+                phi(1,ikx,iz,it) = phi_ext(inmat)
+              enddo
             enddo
 
-            do iz = -nzgrid, nzgrid
-              g_fsa = g0k(1,(1+zm):)
-              call lu_back_substitution(phi_solve(1,iz)%zloc,phi_solve(1,iz)%idx, g_fsa)
+            !enforce periodicity
+            phi(1,:,nzgrid,it) = phi(1,:,-nzgrid,it)
+        
+            ! calculate Theta.phi
+            g1k = 0.0
+            do iz = -nzgrid, nzgrid-1
+              do ikx = 1, nakx
+                g0k(1,ikx) = sum(theta(ikx,:,iz)*phi(1,:,iz,it)) 
+              enddo
 
-              phi(1,(1+zm):,iz,it) = phi(1,(1+zm):,iz,it) + g_fsa
+              call transform_kx2x_unpadded (g0k,g0x)
+
+              g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
+              if (exclude_boundary_regions_qn) then
+                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                g0x(1,1:boundary_size) = 0.0
+                g0x(1,(nakx-boundary_size+1):) = 0.0
+              else
+                 g0x(1,:) = sum(g0x(1,:))/nakx
+              endif
+
+              call transform_x2kx_unpadded(g0x,g0k)
+              g1k = g1k + g0k
             enddo
-            if(zm.gt.0) phi(1,zm,:,it) = 0.0
+
+            phi_proj_stage(:,1,it) = phi_proj_stage(:,1,it) - g1k(1,:)
           enddo
-          deallocate(g0k,g0x,g_fsa)
+          deallocate(g0k,g1k,g0x)
         else
           if(radial_variation) then
             do it = 1, ntubes
@@ -996,11 +1067,9 @@ end subroutine get_fields_by_spec_idx
         if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
         call mp_abort ('unknown dist option in get_fields. aborting')
       end if
-      phi(1,1,:,:) = 0.0
     end if
+    if (proc0) call time_message(.false.,time_field_solve(:,5),'get_phi_adia_elec')
     
-    !if(zm.eq.1) phi(1,zm,:,:) = 0.0
-
   end subroutine get_phi
 
   ! the following routine gets the correction in phi both from gyroaveraging and quasineutrality
@@ -1108,7 +1177,7 @@ end subroutine get_fields_by_spec_idx
            phi_corr_QN(:,:,iz,it) = g0k
          enddo
        enddo
-       !zero out the ones we've already solved for using the full method
+       !zero out the ones we have already solved for using the full method
        do iky = 1, min(ky_solve_radial,naky)
          phi_corr_QN(iky,:,:,:) = 0.0
        enddo
@@ -1242,7 +1311,7 @@ end subroutine get_fields_by_spec_idx
     use fields_arrays, only: phi, phi_old
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
-    use fields_arrays, only: gamtot, dgamtotdr
+    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
 
     implicit none
 
@@ -1260,6 +1329,10 @@ end subroutine get_fields_by_spec_idx
     if (allocated(apar_denom)) deallocate (apar_denom)
     if (allocated(save1)) deallocate(save1)
     if (allocated(save2)) deallocate(save2)
+
+    if (allocated(phi_solve)) deallocate(phi_solve)
+    if (allocated(c_mat)) deallocate(c_mat)
+    if (allocated(theta)) deallocate(theta)
 
     fields_initialized = .false.
 

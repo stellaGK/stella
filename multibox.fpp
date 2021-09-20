@@ -118,7 +118,10 @@ contains
                                    mb_debug_step, krook_exponent, comm_at_init, &
                                    phi_bound, phi_pow
 
-    if(runtype_option_switch /= runtype_multibox) return
+    if(runtype_option_switch /= runtype_multibox) then
+      boundary_size = 0; krook_size = 0
+      return
+    endif
 
     boundary_size = 4
     krook_size = 0
@@ -450,7 +453,7 @@ contains
     use zgrid, only: nzgrid
     use mp, only: job, scope, mp_abort,  &
                   crossdomprocs, subprocs, allprocs, &
-                  send, receive, proc0
+                  ssend, receive, proc0
 
     implicit none
 
@@ -560,7 +563,7 @@ contains
           enddo
         enddo
       enddo
-      call send(g_buffer0,1,43 + job)
+      call ssend(g_buffer0,1,43 + job)
       !now phi
       num=1
       do it = 1, vmu_lo%ntubes
@@ -598,7 +601,7 @@ contains
         enddo
       enddo
 ! DSO - send data
-      call send(phi_buffer0,1,143 + job)
+      call ssend(phi_buffer0,1,143 + job)
     else
       offsetL = 0
       offsetR = x_fft_size - boundary_size

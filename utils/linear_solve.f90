@@ -16,6 +16,8 @@ module linear_solve
      module procedure lu_back_substitution_real
      module procedure lu_back_substitution_real_complex
      module procedure lu_back_substitution_complex
+     module procedure lu_back_substitution_matrix_real
+     module procedure lu_back_substitution_matrix_complex
   end interface
 
   interface lu_inverse
@@ -199,10 +201,77 @@ contains
 
   end subroutine lu_back_substitution_complex
 
+  subroutine lu_back_substitution_matrix_real (lu, idx, b)
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: lu
+    integer, dimension (:), intent (in) :: idx
+    real, dimension (:,:), intent (in out) :: b
+
+    integer :: i, j, n, ii, ll
+    real :: summ
+
+    n = size(lu,1)
+    ii = 0
+    do j = 1, n
+      do i = 1, n
+        ll = idx(i)
+        summ = b(ll,j)
+        b(ll,j) = b(i,j)
+        if (ii /= 0) then
+          summ = summ - dot_product(lu(i,ii:i-1),b(ii:i-1,j))
+        else if (summ /= 0.0) then
+          ii = i
+        end if
+        b(i,j) = summ
+      end do
+      do i = n, 1, -1
+       b(i,j) = (b(i,j) - dot_product(lu(i,i+1:n),b(i+1:n,j))) / lu(i,i)
+      end do
+    end do
+
+  end subroutine lu_back_substitution_matrix_real
+
+  subroutine lu_back_substitution_matrix_complex (lu, idx, b)
+
+    implicit none
+
+    complex, dimension (:,:), intent (in) :: lu
+    integer, dimension (:), intent (in) :: idx
+    complex, dimension (:,:), intent (in out) :: b
+
+    integer :: i, j, n, ii, ll
+    complex :: summ
+
+    !! The dot products we use below automatically take the complex conjugate of its 
+    !! first argument, which we do not want here. Hence the use of conjg to undo this
+
+    n = size(lu,1)
+    ii = 0
+    do j = 1, n
+      do i = 1, n
+        ll = idx(i)
+        summ = b(ll,j)
+        b(ll,j) = b(i,j)
+        if (ii /= 0) then
+          summ = summ - dot_product(conjg(lu(i,ii:i-1)),b(ii:i-1,j))
+        else if (summ /= 0.0) then
+          ii = i
+        end if
+        b(i,j) = summ
+      end do
+      do i = n, 1, -1
+        b(i,j) = (b(i,j) - dot_product(conjg(lu(i,i+1:n)),b(i+1:n,j))) / lu(i,i)
+      end do
+    end do
+
+  end subroutine lu_back_substitution_matrix_complex
+
 
   !!
   !! One shouldn't need to compute the inverse of a matrix if solving the linear equation A.x = y;
-  !! a simply back substitution should suffice.
+  !! a simple back substitution should suffice.
   !! 
   !! Only compute the inverse of A when absolutely necessary!
   !!

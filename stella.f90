@@ -49,6 +49,8 @@ program stella
   if (debug) write(*,*) 'stella::advance_stella'
   do istep = (istep0+1), nstep
      if (debug) write(*,*) 'istep = ', istep
+     if (mod(istep,10)==0) call checkstop (stop_stella)
+     if (stop_stella) exit
      call advance_stella(istep)
      call update_time
      if (nsave > 0 .and. mod(istep,nsave)==0) then
@@ -58,8 +60,6 @@ program stella
      call time_message(.false.,time_diagnostics,' diagnostics')
      call diagnose_stella (istep)
      call time_message(.false.,time_diagnostics,' diagnostics')
-     if (mod(istep,10)==0) call checkstop (stop_stella)
-     if (stop_stella) exit
      ierr = error_unit()
      call flush_output_file (ierr)
   end do
@@ -121,6 +121,7 @@ contains
     use multibox, only: communicate_multibox_parameters, multibox_communicate
     use ran, only: get_rnd_seed_length, init_ranf
     use dissipation, only: init_dissipation
+    use sources, only: init_sources
     use volume_averages, only: init_volume_averages, volume_average
 
     implicit none
@@ -140,6 +141,7 @@ contains
     ! initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
     mpi_initialized = .true.
+    debug = debug .and. proc0
 
     ! initialize timer
     if (debug) write (*,*) 'stella::init_stella::check_time'
@@ -160,6 +162,7 @@ contains
     call broadcast (runtype_option_switch)
     if(list) call job_fork
 
+    !proc0 may have changed
     debug = debug .and. proc0
 
     if (proc0) cbuff = trim(run_name)
@@ -250,6 +253,8 @@ contains
     call init_redistribute
     if (debug) write (6,*) 'stella::init_stella::init_dissipation'
     call init_dissipation
+    if (debug) write (6,*) 'stella::init_stella::init_sources'
+    call init_sources
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
     if (debug) write(6,*) "stella::init_stella::ginit"
@@ -280,9 +285,13 @@ contains
     if (debug) write (6,*) 'stella::init_stella::get_fields'
     ! get initial field from initial distribution function
     call advance_fields (gnew, phi, apar, dist='gbar')
-    if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
+    if(radial_variation) then
+      if (debug) write (6,*) 'stella::init_stella::get_radial_correction'
+      call get_radial_correction(gnew,phi,dist='gbar')
+    endif
 
     if(runtype_option_switch.eq.runtype_multibox) then
+      if (debug) write (6,*) 'stella::init_stella:multibox_communicate'
       call multibox_communicate (gnew)
       if(job.eq.1) then
         fields_updated=.false.
@@ -378,7 +387,7 @@ contains
     use job_manage, only: time_message
     use physics_parameters, only: finish_physics_parameters
     use physics_flags, only: finish_physics_flags
-    use run_parameters, only: finish_run_parameters, nstep
+    use run_parameters, only: finish_run_parameters
     use zgrid, only: finish_zgrid
     use species, only: finish_species
     use time_advance, only: time_gke, time_parallel_nl
@@ -386,6 +395,7 @@ contains
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
     use dissipation, only: time_collisions
+    use sources, only: finish_sources
     use init_g, only: finish_init_g
     use dist_fn, only: finish_dist_fn
     use dist_redistribute, only: finish_redistribute
@@ -404,13 +414,15 @@ contains
     logical, intent (in), optional :: last_call
 
     if (debug) write (*,*) 'stella::finish_stella::finish_stella_diagnostics'
-    call finish_stella_diagnostics(nstep)
+    call finish_stella_diagnostics(istep)
     if (debug) write (*,*) 'stella::finish_stella::finish_response_matrix'
     call finish_response_matrix
     if (debug) write (*,*) 'stella::finish_stella::finish_fields'
     call finish_fields
     if (debug) write (*,*) 'stella::finish_stella::finish_time_advance'
     call finish_time_advance
+    if (debug) write (*,*) 'stella::finish_stella::finish_sources'
+    call finish_sources
     if (debug) write (*,*) 'stella::finish_stella::finish_volume_averages'
     call finish_volume_averages
     if (debug) write (*,*) 'stella::finish_stella::finish_extended_zgrid'
@@ -449,6 +461,9 @@ contains
        write (*,fmt=101) 'diagnostics:', time_diagnostics(1)/60., 'min'
        write (*,fmt=101) 'fields:', time_field_solve(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_field_solve(1,2)/60., 'min'
+       write (*,fmt=101) '(int_dv_g):', time_field_solve(1,3)/60., 'min'
+       write (*,fmt=101) '(get_phi):', time_field_solve(1,4)/60., 'min'
+       write (*,fmt=101) '(phi_adia_elec):', time_field_solve(1,5)/60., 'min'
        write (*,fmt=101) 'mirror:', time_mirror(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_mirror(1,2)/60., 'min'
        write (*,fmt=101) 'stream:', time_parallel_streaming(1)/60., 'min'
