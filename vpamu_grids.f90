@@ -108,7 +108,6 @@ contains
   subroutine init_vpamu_grids
 
     use species, only: spec, nspec
-    use zgrid, only: nzgrid
 
     implicit none
 

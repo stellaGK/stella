@@ -9,7 +9,7 @@ module physics_parameters
 
   private
 
-  real :: beta, zeff, tite, nine, rhostar, vnew_ref
+  real :: beta, zeff, tite, nine, rhostar, irhostar, vnew_ref
   real :: g_exb, g_exbfac, omprimfac
   logical :: initialized = .false.
 
@@ -42,7 +42,8 @@ contains
     if (proc0) then
        beta = 0.0
        vnew_ref = -1.0 ! various input options will override this value if it is negative
-       rhostar = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
+       rhostar  = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
+       irhostar = -1.0
        zeff = 1.0
        tite = 1.0
        nine = 1.0
@@ -53,6 +54,8 @@ contains
 
        in_file = input_unit_exist("parameters", rpexist)
        if (rpexist) read (unit=in_file,nml=parameters)
+
+       if (irhostar.gt.0) rhostar = 1./irhostar
     end if
 
     call broadcast (beta)

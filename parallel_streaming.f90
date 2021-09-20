@@ -171,60 +171,119 @@ contains
 
   end subroutine init_invert_stream_operator
 
-  subroutine advance_parallel_streaming_explicit (g, gout)
+  subroutine advance_parallel_streaming_explicit (g, phi, gout)
 
     use mp, only: proc0
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
+    use stella_transforms, only: transform_ky2y
+    use stella_geometry, only: dBdzed
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use kt_grids, only: naky, nakx, ny
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, mu
     use species, only: spec
+    use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
-    use fields_arrays, only: phi
     use run_parameters, only: driftkinetic_implicit
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    integer :: ivmu, iv, imu, is, ia
-    complex, dimension (:,:,:,:), allocatable :: g0, g1
-
-    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
-    allocate (g1(naky,nakx,-nzgrid:nzgrid,ntubes))
-    ! parallel streaming stays in ky,kx,z space with ky,kx,z local
+    integer :: ivmu, iv, imu, is, ia, iz, it
+    complex, dimension (:,:,:,:), allocatable :: g0, dgphi_dz
+    complex, dimension (:,:,:,:), allocatable :: g0y, g1y
+    
+    ! if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
+    ! if full flux surface (flux annulus), will need to calculate in y space
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
+    ! allocate arrays needed for intermmediate calculations
+    allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
+    allocate (dgphi_dz(naky,nakx,-nzgrid:nzgrid,ntubes))
+    ! if simulating a full flux surface, will also need version of the above arrays,
+    ! Fourier transformed to y-space
+    if (full_flux_surface) then
+       allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes))
+       allocate (g1y(ny,nakx,-nzgrid:nzgrid,ntubes))
+    end if
+    
     ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-    ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-       call gyro_average (phi, ivmu, g0(:,:,:,:))
-       if (driftkinetic_implicit) g0(:,:,:,:) = g0(:,:,:,:) - phi
-
-    ! get d<phi>/dz, with z the parallel coordinate and store in g1
-       call get_dgdz_centered (g0, ivmu, g1)
-    ! only want to treat vpar . grad (<phi>-phi)*F0 term explicitly
-       if (driftkinetic_implicit) then
-         g0 = 0.
-       else
-         call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
-       end if
-
+       ! get (iv,imu,is) indices corresponding to ivmu super-index
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       g0(:,:,:,:) = g0(:,:,:,:) + g1(:,:,:,:)*spec(is)%zt &
-            *maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes) &
-            *maxwell_fac(is)
 
-       ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
-       call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
+       ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
+       call gyro_average (phi, ivmu, g0(:,:,:,:))
+       if (driftkinetic_implicit) g0(:,:,:,:) = g0(:,:,:,:) - phi
+
+       ! get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
+       ! note that this should be a centered difference to avoid numerical
+       ! unpleasantness to do with inexact cancellations in later velocity integration
+       ! see appendix of the stella JCP 2019 for details
+       call get_dgdz_centered (g0, ivmu, dgphi_dz)
+
+       ! if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
+       ! in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
+       if (driftkinetic_implicit) then
+          g0 = 0.
+       else
+          ! compute dg/dz in k-space and store in g0
+          call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
+          ! if simulating a full flux surface, must calculate F * d/dz (g/F) rather than dg/dz
+          ! since F=F(y) in this case, avoid multiple Fourier transforms by applying chain rule
+          ! to z derivative: F * d/dz (g/F) = dg/dz - g * d ln F / dz = dg/dz + g * mu/T * dB/dz
+          if (full_flux_surface) then
+             ! transform g and dg/dz from ky to y space and store in g0y and g1y, respectively
+             g1y = g(:,:,:,:,ivmu)
+             do it = 1, ntubes
+                do iz = -nzgrid, nzgrid
+                   call transform_ky2y (g1y(:,:,iz,it), g0y(:,:,iz,it))
+                   ! no longer need g1y so re-use as FFT of dg/dz (g0)
+                   call transform_ky2y (g0(:,:,iz,it), g1y(:,:,iz,it))
+                end do
+             end do
+             ! overwrite g0y with dg/dz + g * mu/T * dB/dz
+             g0y = g1y + 2.0*mu(imu)*spread(spread(dBdzed,2,nakx),4,ntubes) * g0y
+             ! g1y no longer needed so can over-write with d<phi>/dz below
+          end if
+       end if
+       
+       if (full_flux_surface) then
+          ! transform d<phi>/dz (fully explicit) or d(<phi>-phi)/dz (if driftkinetic_implicit)
+          ! from kalpha (ky) to alpha (y) space and store in g1y
+          do it = 1, ntubes
+             do iz = -nzgrid, nzgrid
+                call transform_ky2y (dgphi_dz(:,:,iz,it), g1y(:,:,iz,it))
+             end do
+          end do
+          ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
+          g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
+               * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,nakx),4,ntubes)*maxwell_fac(is)
+
+          ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
+          call add_stream_term_annulus (g0y, ivmu, gout(:,:,:,:,ivmu))
+       else
+          g0(:,:,:,:) = g0(:,:,:,:) + dgphi_dz(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
+               * maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes)
+
+          ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
+          call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
+       end if
+          
     end do
+
+    ! deallocate intermediate arrays used in this subroutine
+    deallocate (g0, dgphi_dz)
+    if (full_flux_surface) deallocate (g0y, g1y)
+
+    ! finish timing the subroutine
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
-    deallocate (g0, g1)
 
   end subroutine advance_parallel_streaming_explicit
 
@@ -453,6 +512,27 @@ contains
     src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
 
   end subroutine add_stream_term
+
+    subroutine add_stream_term_annulus (g, ivmu, src)
+
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: ny, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:), intent (in out) :: src
+    integer, intent (in) :: ivmu
+
+    integer :: iv, is
+
+    iv = iv_idx(vmu_lo,ivmu)
+    is = is_idx(vmu_lo,ivmu)
+    src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,ny),2,nakx),4,ntubes)*g(:,:,:,:)
+
+  end subroutine add_stream_term_annulus
 
   subroutine advance_parallel_streaming_implicit (g, phi, apar)
 

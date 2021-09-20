@@ -77,6 +77,7 @@ contains
     use parallel_streaming, only: init_parallel_streaming
     use mirror_terms, only: init_mirror
     use flow_shear, only: init_flow_shear
+    use sources, only: init_quasineutrality_source, init_source_timeaverage
 
     implicit none
 
@@ -113,6 +114,11 @@ contains
     endif
     if (debug) write (6,*) 'time_advance::init_time_advance::init_cfl'
     call init_cfl
+
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_source_timeaverage'
+    call init_source_timeaverage
+    if (debug) write (6,*) 'time_advance::init_time_advance::init_quasineutrality_source'
+    call init_quasineutrality_source
 
     !call write_drifts
 
@@ -861,6 +867,8 @@ contains
     use flow_shear, only: flow_shear_initialized
     use flow_shear, only: init_flow_shear
     use physics_flags, only: radial_variation
+    use sources, only: init_source_timeaverage
+    use sources, only: init_quasineutrality_source, qn_source_initialized
 
     implicit none
 
@@ -873,12 +881,15 @@ contains
     flow_shear_initialized = .false.
     mirror_initialized = .false.
     parallel_streaming_initialized = .false.
+    qn_source_initialized = .false.
 
     call init_wstar
     call init_wdrift
     call init_mirror
     call init_parallel_streaming
     call init_flow_shear
+    call init_source_timeaverage
+    call init_quasineutrality_source
     if (radial_variation) call init_radial_variation
     if (drifts_implicit) call init_drifts_implicit
     if (include_collisions) then
@@ -899,11 +910,13 @@ contains
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
-    use fields, only: advance_fields, fields_updated
+    use fields, only: advance_fields
+    use stella_time, only: code_dt
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
-    use dissipation, only: include_krook_operator, update_delay_krook
-    use dissipation, only: remove_zero_projection, project_out_zero
+    use sources, only: include_krook_operator, update_tcorr_krook
+    use sources, only: include_qn_source, update_quasineutrality_source
+    use sources, only: remove_zero_projection, project_out_zero
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
     use stella_layouts, only: vmu_lo
@@ -943,14 +956,16 @@ contains
 
     if(remove_zero_projection) then
       allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
+      !divide by code_dt to ensure time averaging is performed correctly
+      g1 = (gnew(1,:,:,:,:) - gold(1,:,:,:,:))/code_dt
       call project_out_zero(g1)
-      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
+      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g1
       deallocate (g1)
     end if
 
     !update the delay parameters for the Krook operator
-    if(include_krook_operator) call update_delay_krook(gnew)
+    if(include_krook_operator) call update_tcorr_krook(gnew)
+    if(include_qn_source) call update_quasineutrality_source
 
     gold = gnew
 
@@ -1191,7 +1206,7 @@ contains
     use kt_grids, only: nakx, ny
     use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
-    use dissipation, only: include_krook_operator, add_krook_operator
+    use sources, only: include_krook_operator, add_krook_operator
     use parallel_streaming, only: advance_parallel_streaming_explicit
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
@@ -1201,7 +1216,7 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (inout) :: gin
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out), target :: rhs_ky
     logical, intent (out) :: restart_time_step
 
@@ -1210,11 +1225,19 @@ contains
 
     rhs_ky = 0.
 
+    ! if full_flux_surface = .true., then initially obtain the RHS of the GKE in alpha-space;
+    ! will later inverse Fourier transform to get RHS in k_alpha-space
     if (full_flux_surface) then
+       ! rhs_ky will always be needed as the array returned by the subroutine,
+       ! but intermediate array rhs_y (RHS of gke in alpha-space) only needed for full_flux_surface = .true.
        allocate (rhs_y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        rhs_y = 0.
+       ! rhs is array referred to for both flux tube and full-flux-surface simulations;
+       ! for full-flux-surface it should point to rhs_y
        rhs => rhs_y
     else
+       ! rhs is array referred to for both flux tube and full-flux-surface simulations;
+       ! for flux tube it should point to rhs_ky
        rhs => rhs_ky
     end if
 
@@ -1253,19 +1276,23 @@ contains
          call advance_wdriftx_explicit (gin, phi, rhs)
 
          ! calculate and add omega_* term to RHS of GK eqn
-         call advance_wstar_explicit (rhs)
+         call advance_wstar_explicit (phi, rhs)
        endif
 
+       ! calculate and add contribution from collisions to RHS of GK eqn
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
 
+       ! calculate and add parallel streaming term to RHS of GK eqn
+       if (include_parallel_streaming.and.(.not.stream_implicit)) &
+            call advance_parallel_streaming_explicit (gin, phi, rhs)
+
+       ! if simulating a full flux surface (flux annulus), all terms to this point have been calculated
+       ! in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
+       ! NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
        if (full_flux_surface) then
           call transform_y2ky (rhs_y, rhs_ky)
           deallocate (rhs_y)
        end if
-
-       ! calculate and add parallel streaming term to RHS of GK eqn
-       if (include_parallel_streaming.and.(.not.stream_implicit)) &
-            call advance_parallel_streaming_explicit (gin, rhs_ky)
 
        if (radial_variation) call advance_radial_variation(gin,rhs)
 
@@ -1274,11 +1301,6 @@ contains
        if (runtype_option_switch == runtype_multibox .and. include_multibox_krook) &
          call add_multibox_krook(gin,rhs)
 
-       ! calculate and add omega_* term to RHS of GK eqn
-!       if (wstar_explicit) call advance_wstar_explicit (rhs_ky)
-!       call advance_wstar_explicit (rhs_ky)
-       ! calculate and add collision term to RHS of GK eqn
-       !    call advance_collisions
     end if
 
     fields_updated = .false.
@@ -1287,34 +1309,40 @@ contains
 
   end subroutine solve_gke
 
-  subroutine advance_wstar_explicit (gout)
+  subroutine advance_wstar_explicit (phi, gout)
 
     use mp, only: proc0, mp_abort
     use job_manage, only: time_message
     use fields, only: get_dchidy
-    use fields_arrays, only: phi, apar
+    use fields_arrays, only: apar
     use stella_layouts, only: vmu_lo
+    use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, nakx, ny
     use physics_flags, only: full_flux_surface
 
     implicit none
 
+    complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    complex, dimension (:,:,:,:,:), allocatable :: g0
-
+    complex, dimension (:,:,:,:,:), allocatable :: g0, g0y
+    
     if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     ! omega_* stays in ky,kx,z space with ky,kx,z local
-    ! get d<chi>/dy
     if (debug) write (*,*) 'time_advance::solve_gke::get_dchidy'
+    ! get d<chi>/dy in k-space
+    call get_dchidy (phi, apar, g0)
     if (full_flux_surface) then
-       ! FLAG -- ADD SOMETHING HERE
-       call mp_abort ('wstar term not yet setup for full_flux_surface = .true. aborting.')
+       allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       ! transform d<chi>/dy from ky-space to y-space
+       call transform_ky2y (g0, g0y)
+       ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
+       call add_wstar_term_annulus (g0y, gout)
+       deallocate (g0y)
     else
-       call get_dchidy (phi, apar, g0)
        ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
        if (debug) write (*,*) 'time_advance::solve_gke::add_wstar_term'
        call add_wstar_term (g0, gout)
@@ -1362,7 +1390,7 @@ contains
        ! transform dg/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y dg/dy term to equation
-       call add_dg_term_global (g0y, wdrifty_g, gout)
+       call add_dg_term_annulus (g0y, wdrifty_g, gout)
        ! get <dphi/dy> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           call gyro_average (dphidy, ivmu, g0k(:,:,:,:,ivmu))
@@ -1370,7 +1398,7 @@ contains
        ! transform d<phi>/dy from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad y d<phi>/dy term to equation
-       call add_dphi_term_global (g0y, wdrifty_phi, gout)
+       call add_dphi_term_annulus (g0y, wdrifty_phi, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdy_term'
@@ -1432,7 +1460,7 @@ contains
        ! transform dg/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x dg/dx term to equation
-       call add_dg_term_global (g0y, wdriftx_g, gout)
+       call add_dg_term_annulus (g0y, wdriftx_g, gout)
        ! get <dphi/dx> in k-space
        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           call gyro_average (dphidx, ivmu, g0k(:,:,:,:,ivmu))
@@ -1440,7 +1468,7 @@ contains
        ! transform d<phi>/dx from k-space to y-space
        call transform_ky2y (g0k, g0y)
        ! add vM . grad x d<phi>/dx term to equation
-       call add_dphi_term_global (g0y, wdriftx_phi, gout)
+       call add_dphi_term_annulus (g0y, wdriftx_phi, gout)
        deallocate (g0y)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdx_term'
@@ -2190,7 +2218,7 @@ contains
 
   end subroutine add_dg_term
 
-  subroutine add_dg_term_global (g, wdrift_in, src)
+  subroutine add_dg_term_annulus (g, wdrift_in, src)
 
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
@@ -2208,7 +2236,7 @@ contains
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) - spread(spread(wdrift_in(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_dg_term_global
+  end subroutine add_dg_term_annulus
 
   subroutine get_dgdx_2d (g, dgdx)
 
@@ -2280,7 +2308,7 @@ contains
 
   end subroutine add_dphi_term
 
-  subroutine add_dphi_term_global (g, wdrift, src)
+  subroutine add_dphi_term_annulus (g, wdrift, src)
 
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
@@ -2299,7 +2327,7 @@ contains
             + spread(spread(wdrift(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_dphi_term_global
+  end subroutine add_dphi_term_annulus
 
   subroutine add_wstar_term (g, src)
 
@@ -2321,6 +2349,27 @@ contains
     end do
 
   end subroutine add_wstar_term
+
+  subroutine add_wstar_term_annulus (g, src)
+
+    use dist_fn_arrays, only: wstar
+    use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: naky, nakx
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
+
+    integer :: ivmu
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
+            + spread(spread(wstar(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+    end do
+
+  end subroutine add_wstar_term_annulus
 
   subroutine advance_implicit (istep, phi, apar, g)
 !  subroutine advance_implicit (phi, apar, g)
