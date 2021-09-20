@@ -35,11 +35,11 @@ contains
        if (aky(1)<epsilon(0.)) mode_fac(1) = 1.0
     end if
 
-    !dVolume contains the volume element jacob, which maybe vary with x or alpha
     dqdrho = geo_surf%shat * geo_surf%qinp/ geo_surf%rhoc
-
     if (.not.allocated(dVolume)) allocate (dVolume(nalpha,nakx,-nzgrid:nzgrid))
 
+    !dVolume contains the volume element jacob, which may vary with x or alpha
+    ! NB: dVolume does not contain the factor dx, as this should always be uniform
     dVolume = spread(jacob*spread(delzed,1,nalpha),2,nakx)
     if (q_as_x) then
       dVolume = dVolume / (dqdrho*drhodpsi)
@@ -60,6 +60,7 @@ contains
       !something should go here
     endif
 
+    !avoid the double counting at the zed boundaries
     dVolume(:,:,-nzgrid)= 0.5*dVolume(:,:,-nzgrid) 
     dVolume(:,:, nzgrid)= 0.5*dVolume(:,:, nzgrid) 
 
@@ -68,6 +69,7 @@ contains
   subroutine finish_volume_averages
     implicit none
     if (allocated(mode_fac)) deallocate (mode_fac)
+    if (allocated(dVolume)) deallocate (dVolume)
   end subroutine finish_volume_averages
 
 
