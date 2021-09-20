@@ -118,7 +118,10 @@ contains
                                    mb_debug_step, krook_exponent, comm_at_init, &
                                    phi_bound, phi_pow
 
-    if(runtype_option_switch /= runtype_multibox) return
+    if(runtype_option_switch /= runtype_multibox) then
+      boundary_size = 0; krook_size = 0
+      return
+    endif
 
     boundary_size = 4
     krook_size = 0

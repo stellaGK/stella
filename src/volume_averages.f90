@@ -20,20 +20,56 @@ contains
 
   subroutine init_volume_averages
 
-    use kt_grids, only: aky, naky
+    use zgrid, only: nzgrid, nztot, ntubes, delzed
+    use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
+    use stella_geometry, only: geo_surf, drhodpsi
+    use stella_geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
+    use physics_flags, only: full_flux_surface, radial_variation
 
     implicit none
+
+    real :: dqdrho
 
     if (.not.allocated(mode_fac)) then
        allocate (mode_fac(naky)) ; mode_fac = 2.0
        if (aky(1)<epsilon(0.)) mode_fac(1) = 1.0
     end if
 
+    dqdrho = geo_surf%shat * geo_surf%qinp/ geo_surf%rhoc
+    if (.not.allocated(dVolume)) allocate (dVolume(nalpha,nakx,-nzgrid:nzgrid))
+
+    !dVolume contains the volume element jacob, which may vary with x or alpha
+    ! NB: dVolume does not contain the factor dx, as this should always be uniform
+    dVolume = spread(jacob*spread(delzed,1,nalpha),2,nakx)
+    if (q_as_x) then
+      dVolume = dVolume / (dqdrho*drhodpsi)
+    endif
+
+    if (radial_variation) then
+      if (q_as_x) then
+        dVolume = dVolume*(1. + spread(spread(rho_d_clamped,1,nalpha),3,nztot) & 
+                  *(spread(djacdrho/jacob,2,nakx) - geo_surf%d2qdr2/dqdrho     &
+                    + geo_surf%d2psidr2*drhodpsi))
+      else
+        dVolume = dVolume*(1. + spread(spread(rho_d_clamped,1,nalpha),3,nztot) & 
+                              * spread(djacdrho/jacob,2,nakx))
+      endif
+    endif
+
+    if (full_flux_surface) then
+      !something should go here
+    endif
+
+    !avoid the double counting at the zed boundaries
+    dVolume(:,:,-nzgrid)= 0.5*dVolume(:,:,-nzgrid) 
+    dVolume(:,:, nzgrid)= 0.5*dVolume(:,:, nzgrid) 
+
   end subroutine init_volume_averages
 
   subroutine finish_volume_averages
     implicit none
     if (allocated(mode_fac)) deallocate (mode_fac)
+    if (allocated(dVolume)) deallocate (dVolume)
   end subroutine finish_volume_averages
 
 
