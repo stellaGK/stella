@@ -341,6 +341,7 @@ parallel_streaming.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 physics_flags.o: \
@@ -464,6 +465,7 @@ stella_diagnostics.o: \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
+	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
@@ -580,6 +582,7 @@ vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
 volume_averages.o: \
 	 kt_grids.o \
+	 physics_flags.o \
 	 stella_geometry.o \
 	 zgrid.o 
 vpamu_grids.o: \

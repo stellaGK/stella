@@ -613,14 +613,13 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use species, only: spec
-    use stella_geometry, only: jacob, grho, bmag, btor
+    use stella_geometry, only: grho_norm, bmag, btor
     use stella_geometry, only: drhodpsi
     use stella_geometry, only: gds21, gds22
     use stella_geometry, only: dgds21dr, dgds22dr
     use stella_geometry, only: geo_surf
     use stella_geometry, only: dBdrho, dIdrho
-    use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-    use zgrid, only: delzed, nzgrid, ntubes
+    use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: vperp2, vpa, mu
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use run_parameters, only: fphi
@@ -636,34 +635,21 @@ contains
     real, dimension (:,:), intent (out) :: pflx_x, vflx_x, qflx_x
 
     integer :: ivmu, imu, iv, iz, it, is, ia
-    real, dimension (:), allocatable :: flx_norm, dflx_norm
+    real :: flx_norm
     complex, dimension (:,:), allocatable :: g0k,g1k
-
-    allocate (flx_norm(-nzgrid:nzgrid))
-    allocate (dflx_norm(-nzgrid:nzgrid))
 
     pflx = 0. ; vflx = 0. ; qflx = 0.
     pflx_x = 0. ; vflx_x = 0. ; qflx_x = 0.
 
     ia = 1
-
-    flx_norm = jacob(1,:)*delzed
-    flx_norm(-nzgrid) = 0.5*flx_norm(-nzgrid)
-    flx_norm( nzgrid) = 0.5*flx_norm( nzgrid)
-
-    flx_norm = flx_norm/sum(flx_norm*grho(1,:))
+    if (flux_norm) then 
+      flx_norm = 1./grho_norm
+    else
+      flx_norm = 1.
+    endif
 
     allocate (g0k(naky,nakx))
     allocate (g1k(naky,nakx))
-    if(radial_variation) then
-      where (dl_over_b(ia,:) .gt. epsilon(0.0))
-        dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
-      elsewhere
-        dflx_norm = 0.
-      endwhere
-    endif
-
-
 
     ! FLAG - electrostatic for now
     ! get electrostatic contributions to fluxes
@@ -686,7 +672,7 @@ contains
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dBdrho(iz)/bmag(ia,iz) + dflx_norm(iz))
+                  + dBdrho(iz)/bmag(ia,iz))
 
                 call multiply_by_rho(g0k)
                 g1(:,:,iz,it,ivmu) = g1(:,:,iz,it,ivmu) + g0k
@@ -701,7 +687,7 @@ contains
                             -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                            + dBdrho(iz)/bmag(ia,iz)+dflx_norm(iz))
+                            + dBdrho(iz)/bmag(ia,iz))
 
                 call multiply_by_rho(g1k)
 
@@ -712,10 +698,10 @@ contains
             enddo
           enddo
        enddo
-       call get_one_flux_vmulo (flx_norm, spec%dens_psi0, g1, phi, pflx)
+       call get_one_flux_vmulo (flx_norm*spec%dens_psi0, g1, phi, pflx)
 
        if(write_radial_fluxes) then
-         call get_one_flux_radial (flx_norm, spec%dens_psi0, g1, phi, pflx_x)
+         call get_one_flux_radial (flx_norm*spec%dens_psi0, g1, phi, pflx_x)
        endif
 
        !get heat flux
@@ -736,8 +722,7 @@ contains
                      * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                      * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                      + dBdrho(iz)/bmag(ia,iz) &
-                     + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)) &
-                     + dflx_norm(iz))
+                     + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
 
                 call multiply_by_rho(g0k)
 
@@ -755,7 +740,7 @@ contains
                             -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                            + dBdrho(iz)/bmag(ia,iz)+dflx_norm(iz) &
+                            + dBdrho(iz)/bmag(ia,iz) &
                             + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
 
                 call multiply_by_rho(g1k)
@@ -766,10 +751,10 @@ contains
             enddo
           enddo
        enddo
-       call get_one_flux_vmulo (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
+       call get_one_flux_vmulo (flx_norm*spec%dens_psi0*spec%temp_psi0, g1, phi, qflx)
 
        if(write_radial_fluxes) then
-         call get_one_flux_radial (flx_norm,spec%dens_psi0*spec%temp_psi0, g1, phi, qflx_x)
+         call get_one_flux_radial (flx_norm*spec%dens_psi0*spec%temp_psi0, g1, phi, qflx_x)
        endif
 
        ! get momentum flux
@@ -788,8 +773,7 @@ contains
                   * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                   * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                   * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                  + dIdrho/(geo_surf%rmaj*btor(iz)) &
-                  + dflx_norm(iz))
+                  + dIdrho/(geo_surf%rmaj*btor(iz)))
 
                 call multiply_by_rho(g0k)
 
@@ -806,7 +790,7 @@ contains
                             -aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                            + dflx_norm(iz) + dIdrho/(geo_surf%rmaj*btor(iz)))
+                            + dIdrho/(geo_surf%rmaj*btor(iz)))
 
                 call multiply_by_rho(g1k)
 
@@ -833,7 +817,7 @@ contains
 
                 g0k = g0k + g2(:,:,iz,it,ivmu) &
                     * (- geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
-                       - geo_surf%d2psidr2*drhodpsi + dflx_norm(iz))
+                       - geo_surf%d2psidr2*drhodpsi)
 
                 call multiply_by_rho(g0k)
 
@@ -869,7 +853,7 @@ contains
                               * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                               * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                            - geo_surf%d2qdr2*geo_surf%rhoc/(geo_surf%shat*geo_surf%qinp) &
-                           - geo_surf%d2psidr2*drhodpsi + dflx_norm(iz))
+                           - geo_surf%d2psidr2*drhodpsi)
 
                 call multiply_by_rho(g1k)
 
@@ -881,22 +865,14 @@ contains
       enddo
 
       g1 = g1 + g2
-      call get_one_flux_vmulo (flx_norm,spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx)
+      call get_one_flux_vmulo (flx_norm*spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx)
 
       if(write_radial_fluxes) then
-        call get_one_flux_radial (flx_norm, spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx_x)
+        call get_one_flux_radial (flx_norm*spec%dens_psi0*sqrt(spec%mass*spec%temp_psi0), g1, phi, vflx_x)
       endif
 
     end if
 
-    ! normalise to account for contributions from multiple flux tubes
-    ! in flux tube train
-    pflx = pflx/real(ntubes)
-    qflx = qflx/real(ntubes)
-    vflx = vflx/real(ntubes)
-
-    deallocate (flx_norm)
-    if(allocated(dflx_norm)) deallocate(dflx_norm)
     if(allocated(g0k)) deallocate(g0k)
     if(allocated(g1k)) deallocate(g1k)
 
@@ -930,7 +906,7 @@ contains
   !==============================================
   !============ GET ONE FLUX VMULO ==============
   !==============================================
-  subroutine get_one_flux_vmulo (norm, weights, gin, fld, flxout)
+  subroutine get_one_flux_vmulo (weights, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
     use stella_layouts, only: vmu_lo
@@ -938,32 +914,65 @@ contains
     use zgrid, only: nzgrid, ntubes
     use species, only: nspec
     use volume_averages, only: mode_fac
+    use stella_geometry, only: dVolume
+    use stella_transforms, only: transform_kx2x_unpadded
+    use multibox, only: boundary_size
+    use physics_flags, only: radial_variation
 
     implicit none
 
-    real, dimension (-nzgrid:), intent (in) :: norm
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
     real, dimension (:), intent (in out) :: flxout
 
     complex, dimension (:,:,:,:,:), allocatable :: totals
+    complex, dimension (:,:), allocatable :: g0x, g1x
 
-    integer :: is, it, iz, ikx
+    integer :: ia, is, it, iz, ikx
+    real, dimension (nspec) :: flux_sum
+    real :: volume
 
     allocate (totals(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
+    ia = 1
+    flux_sum = 0.
+
     call integrate_vmu (gin,weights,totals)
-    do is = 1, nspec
-      do it = 1, ntubes
-        do iz= -nzgrid, nzgrid
-          do ikx = 1, nakx
-            flxout(is) = flxout(is) &
-              + sum(0.5*mode_fac*aky*aimag(totals(:,ikx,iz,it,is)*conjg(fld(:,ikx,iz,it)))*norm(iz))
+    if (radial_variation) then !do it in real-space
+      allocate (g0x(naky,nakx))
+      allocate (g1x(naky,nakx))
+      do is = 1, nspec
+        volume = 0.
+        do it = 1, ntubes
+          do iz= -nzgrid, nzgrid
+            call transform_kx2x_unpadded (totals(:,:,iz,it,is),g0x)
+            call transform_kx2x_unpadded (fld(:,:,iz,it)      ,g1x)
+            do ikx = boundary_size+1, nakx-boundary_size
+              flux_sum(is) = flux_sum(is) + &
+                 sum(0.5*mode_fac*aky*aimag(g0x(:,ikx)*conjg(g1x(:,ikx)))*dVolume(ia,ikx,iz))
+              volume = volume + dVolume(ia,ikx,iz)
+            enddo
           enddo
         enddo
       enddo
-    enddo
+      deallocate (g0x,g1x)
+    else
+      do is = 1, nspec
+        volume = 0.
+        do it = 1, ntubes
+          do iz= -nzgrid, nzgrid
+            do ikx = 1, nakx
+              flux_sum(is) = flux_sum(is) + &
+                 sum(0.5*mode_fac*aky*aimag(totals(:,ikx,iz,it,is)*conjg(fld(:,ikx,iz,it)))*dVolume(ia,ikx,iz))
+              volume = volume + dVolume(ia,ikx,iz)
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
+    
+    flxout = flxout + flux_sum/volume
 
     deallocate (totals)
 
@@ -972,36 +981,45 @@ contains
   !==============================================
   !=========== GET ONE FLUX RADIAL ==============
   !==============================================
-  subroutine get_one_flux_radial (norm, weights, gin, fld, flxout)
+  subroutine get_one_flux_radial (weights, gin, fld, flxout)
 
     use vpamu_grids, only: integrate_vmu
+    use stella_geometry, only: dVolume
     use stella_layouts, only: vmu_lo
     use kt_grids, only: aky, nakx, naky
     use zgrid, only: nzgrid, ntubes
     use species, only: nspec
     use volume_averages, only: mode_fac
-
     use stella_transforms, only: transform_kx2x_unpadded
 
     implicit none
 
-    real, dimension (-nzgrid:), intent (in) :: norm
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gin
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: fld
     real, dimension (:,:), intent (in out) :: flxout
 
+
+    real, dimension (:), allocatable :: dV_rad
     complex, dimension (:,:,:,:,:), allocatable :: totals
 
     complex, dimension (:,:), allocatable :: g0x, g1x
 
-    integer :: is, it, iz, ikx
+    integer :: ia, is, it, iz, ikx
 
+    allocate (dV_rad(nakx))
     allocate (g0x(naky,nakx))
     allocate (g1x(naky,nakx))
-
     allocate (totals(naky,nakx,-nzgrid:nzgrid,ntubes,nspec))
 
+    ia = 1
+
+    dV_rad = sum(sum(dVolume,3),1)*ntubes
+
+    ! NB: this returns the flux-surface-averaged radial fluxes. Keep in mind that the 
+    !     volume element in a flux-surface, dV, may not be uniform across surfaces, so
+    !     one cannot simply sum across the radius here to get the total flux; rather, one
+    !     would have to multiply by dV/V across the radius first
     call integrate_vmu (gin,weights,totals)
     do is = 1, nspec
       do it = 1, ntubes
@@ -1010,13 +1028,13 @@ contains
           call transform_kx2x_unpadded(fld(:,:,iz,it)      ,g1x)
           do ikx = 1, nakx
             flxout(ikx,is) = flxout(ikx,is) &
-              + sum(0.5*mode_fac*aky*aimag(g0x(:,ikx)*conjg(g1x(:,ikx)))*norm(iz))
+              + sum(0.5*mode_fac*aky*aimag(g0x(:,ikx)*conjg(g1x(:,ikx)))*dVolume(ia,ikx,iz)/dV_rad(ikx))
           enddo
         enddo
       enddo
     enddo
 
-    deallocate (totals)
+    deallocate (dV_rad, g0x, g1x, totals)
 
   end subroutine get_one_flux_radial
 
@@ -1241,9 +1259,9 @@ contains
       upar_x = naky * upar_x / ntubes
     endif
 
-    if(allocated(g0k)) deallocate(g0k)
-    if(allocated(g1k)) deallocate(g1k)
-    if(allocated(g1x)) deallocate(g1x)
+    if (allocated(g0k)) deallocate(g0k)
+    if (allocated(g1k)) deallocate(g1k)
+    if (allocated(g1x)) deallocate(g1x)
 
   end subroutine get_moments
 

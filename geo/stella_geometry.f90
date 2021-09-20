@@ -6,7 +6,7 @@ module stella_geometry
 
   public :: init_geometry, finish_init_geometry, finish_geometry
   public :: communicate_geo_multibox
-  public :: grho
+  public :: grho, grho_norm
   public :: bmag, dbdzed, btor, bmag_psi0
   public :: gradpar, gradpar_eqarc, zed_eqarc
   public :: cvdrift, cvdrift0
@@ -30,6 +30,7 @@ module stella_geometry
   public :: aref, bref
   public :: twist_and_shift_geo_fac
   public :: q_as_x, get_x_to_rho, gfac
+  public :: dVolume
 
   private
 
@@ -39,6 +40,7 @@ module stella_geometry
   real :: dxdXcoord, dydalpha
   real :: dqdrho
   real :: dIdrho
+  real :: grho_norm
   real :: drhodpsi, drhodpsi_psi0, shat, qinp
   real :: exb_nonlin_fac, exb_nonlin_fac_p
   real :: gradpar_eqarc
@@ -57,6 +59,7 @@ module stella_geometry
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, djacdrho, grho
   real, dimension (:,:), allocatable :: dl_over_b, d_dl_over_b_drho
+  real, dimension (:,:,:), allocatable :: dVolume
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
   real, dimension (:), allocatable :: alpha
@@ -375,6 +378,8 @@ contains
     ! normalize dl/B by int dl/B
     dl_over_b = dl_over_b / spread(sum(dl_over_b,dim=2),2,2*nzgrid+1)
 
+    ! this is what we use to normalize the fluxes
+    grho_norm = sum(dl_over_b(1,:)*grho(1,:))
 
     ! would probably be better to compute this in the various
     ! geometry subroutine (Miller, vmec, etc.), as there
