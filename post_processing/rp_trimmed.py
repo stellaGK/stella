@@ -5,7 +5,8 @@ import numpy as np
 import numpy.matlib
 
 
-tave = 1200
+tave = 450
+br = 16
 
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/T1/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/rho_scan2/r0.001/'
@@ -15,8 +16,9 @@ basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/source_test/proj6/'
 #basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_ky/'
 basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/CBC_flux_alt/'
 basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_hr_v3e_alt/'
-basedir = '/Users/denisst-onge/stella/build/eparallel/'
-left_file  = basedir + 'left.out.nc'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/new_source_hr_v3e_pe3/'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/rho_scan/0.005/'
+left_file   = basedir + 'left.out.nc'
 center_file = basedir + 'center.out.nc'
 right_file   = basedir + 'right.out.nc'
 
@@ -228,6 +230,18 @@ dens_zero = np.mean(densc[:,0,:],1)
 upar_zero = np.mean(uparc[:,0,:],1)
 temp_zero = np.mean(tempc[:,0,:],1)
 
+dens_br_zero = np.mean(densc[:,0,br:(nakxc-br-1)],1)
+upar_br_zero = np.mean(uparc[:,0,br:(nakxc-br-1)],1)
+temp_br_zero = np.mean(tempc[:,0,br:(nakxc-br-1)],1)
+
+deri1 = np.arange(1,nakxc-2*br,1)
+deri1 = deri1 - np.mean(deri1)
+deri1 = deri1/np.sqrt(np.sum(deri1**2))
+
+dens_br_d1 = np.sum(deri1*densc[:,0,br:(nakxc-br-1)],1)
+upar_br_d1 = np.sum(deri1*uparc[:,0,br:(nakxc-br-1)],1)
+temp_br_d1 = np.sum(deri1*tempc[:,0,br:(nakxc-br-1)],1)
+
 cout = open(basedir + 'center.prof_ave','w')
 cout.write('#Average from t=' + str(t[tind])+ ' to t=' + str(t[nt-1]) + '\n')
 cout.write('#')
@@ -309,5 +323,11 @@ for i in range (0, nt):
   cout.write('%e ' % dens_zero[i]) 
   cout.write('%e ' % upar_zero[i])
   cout.write('%e ' % temp_zero[i]) 
+  cout.write('%e ' % dens_br_zero[i]) 
+  cout.write('%e ' % upar_br_zero[i])
+  cout.write('%e ' % temp_br_zero[i]) 
+  cout.write('%e ' % dens_br_d1[i]) 
+  cout.write('%e ' % upar_br_d1[i])
+  cout.write('%e ' % temp_br_d1[i]) 
   cout.write('\n')
 cout.close()
