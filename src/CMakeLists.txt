@@ -1,11 +1,20 @@
 add_subdirectory(vmec_interface)
 
-file(GLOB SOURCES *.f90 utils/*.f90 geo/*.f90)
-file(GLOB SOURCES_FPP *.fpp utils/*.fpp )
 
 add_executable(stella.x  ${SOURCES} )
 
+#set flags here
+#TODO add the most common flags needed for stella
 
+set(dialect "-ffree-line-length-none -fno-backslash -I /usr/include")
+set(bounds "-fbounds-check")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect} -march=native")
+set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds} -pedantic -g -Wall -fimplicit-none")
+if(PRECISION STREQUAL "DOUBLE")
+	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8")
+endif()
+
+#get package includes and libs here
 
 find_package(MPI REQUIRED)
 if(MPI_FOUND)
@@ -37,19 +46,24 @@ if(PETSc_FOUND)
 	target_link_libraries(stella.x PRIVATE ${PETSC_LIBRARIES})
 endif()
 
+#link executable to internal library
+target_include_directories(stella.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/)
+target_link_libraries(stella.x PRIVATE mini_libstell)
+
+
+#TODO configure FindNetCDF
 set (NETCDF_F90 "YES")
 find_package(NetCDF REQUIRED)
 
-
-target_include_directories(stella.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/)
 target_include_directories(stella.x PRIVATE "/opt/netcdf-fortran-4.5.3/include")
-
-
-
-
-target_link_libraries(stella.x PRIVATE mini_libstell)
 target_link_libraries(stella.x PRIVATE "/opt/netcdf-fortran-4.5.3/lib/libnetcdff.so")
 
+
+#get all fpp and f90 files
+file(GLOB SOURCES *.f90 utils/*.f90 geo/*.f90)
+file(GLOB SOURCES_FPP *.fpp utils/*.fpp )
+
+#generate f90 files from fpp files and link them to executable
 set( GENERATED_SOURCES "" )
 foreach ( SOURCE_FPP ${SOURCES_FPP} ) 
     get_filename_component (SOURCE_NO_EXT ${SOURCE_FPP} NAME_WE )
