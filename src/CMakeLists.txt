@@ -2,19 +2,17 @@ add_subdirectory(vmec_interface)
 
 file(GLOB SOURCES *.f90 utils/*.f90 geo/*.f90)
 file(GLOB SOURCES_FPP *.fpp utils/*.fpp )
-#message(STATUS "${SOURCES}")
 
 add_executable(stella.x  ${SOURCES} )
+
+
 
 find_package(MPI REQUIRED)
 if(MPI_FOUND)
 	message(STATUS "Found MPI Libraries in ${MPI_LIBRARIES}")
 	get_filename_component (MPI_LIBRARY_PATH ${MPI_LIBRARY} DIRECTORY)
-	#target_include_directories(stella.x PRIVATE ${MPI_INCLUDE_PATH} ${MPI_LIBRARY_PATH})
     target_include_directories(stella.x PRIVATE ${MPI_Fortran_INCLUDE_PATH})
-	#target_link_directories(${MPI_Fortran_LIBRARIES})
 	target_link_libraries( stella.x PRIVATE ${MPI_Fortran_LIBRARIES})
-    #target_add_definitions(${MPI_Fortran_COMPILE_FLAGS})
 endif()
 
 find_package(LAPACK REQUIRED)
@@ -31,22 +29,25 @@ if(FFTW_FOUND)
 	target_link_libraries(stella.x PRIVATE ${FFTW_LIBRARIES})
 endif()
 
-find_package(NetCDF )
 
-find_package(HDF5 REQUIRED)
-if(HDF5_FOUND)
-	message(STATUS "Found HDF5 Libraries in ${HDF5_LIBRARIES}")
-	message(STATUS "Found HDF5 Libraries in ${HDF5_INCLUDE_DIRS}")
-	include_directories(${HDF5_INCLUDE_DIRS})
+find_package(PETSc REQUIRED)
+if(PETSc_FOUND)
+	message(STATUS "Found PETSc Libraries in ${PETSC_LIBRARIES}")
+	include_directories(${PETSC_INCLUDES})
+	target_link_libraries(stella.x PRIVATE ${PETSC_LIBRARIES})
 endif()
-target_include_directories(stella.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/ ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/mini_libstell)
+
+set (NETCDF_F90 "YES")
+find_package(NetCDF REQUIRED)
+
+
+target_include_directories(stella.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/)
 target_include_directories(stella.x PRIVATE "/opt/netcdf-fortran-4.5.3/include")
 
 
 
 
-target_link_libraries(stella.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/libmini_libstell.a)
-#target_link_libraries(stella.x PRIVATE ${MPI_LIBRARIES})
+target_link_libraries(stella.x PRIVATE mini_libstell)
 target_link_libraries(stella.x PRIVATE "/opt/netcdf-fortran-4.5.3/lib/libnetcdff.so")
 
 set( GENERATED_SOURCES "" )
