@@ -112,10 +112,10 @@ target_compile_options(libstella PRIVATE
   )
 
 # Main executable
-add_executable(stella.x
+add_executable(stella
   stella.f90
   )
-target_link_libraries(stella.x PRIVATE libstella)
+target_link_libraries(stella PRIVATE libstella)
 
 ############################################################
 # Dependencies and build options
