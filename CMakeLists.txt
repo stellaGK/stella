@@ -6,22 +6,23 @@ project(stella
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-#set variables here
-#TODO choose which variables are necessary for stella
-set(PRECISION "DOUBLE")
+############################################################
+# Build options
+option(STELLA_ENABLE_LAPACK "Enable LAPACK wrappers" ON)
+option(STELLA_ENABLE_FFT "Enable FFTs" ON)
+option(STELLA_ENABLE_NETCDF "Enable NetCDF" ON)
+option(STELLA_ENABLE_DOUBLE "Promotes precisions of real and complex to double" ON)
+option(STELLA_ENABLE_PETSC "Enable PETSc" OFF)
 
+# Options for utils internal library
+option(STELLA_ENABLE_LOCAL_SPFUNC "Enable local special functions" OFF)
+option(STELLA_ENABLE_NAGLIB "Use the NAG library" OFF)
+option(STELLA_ENABLE_POSIX "Enable POSIX functions for command line functionality" OFF)
+option(STELLA_ENABLE_RANDOM_MT "Enable Mersenne-Twister rng (not recommended)" OFF)
+option(STELLA_ENABLE_F200X "Enable use of F2003/F2008 functionality" ON)
 
-
-#set flags here
-#TODO add the most common flags needed for stella
-
-set(dialect "-ffree-line-length-none -fno-backslash -I /usr/include")
-set(bounds "-fbounds-check")
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect} -march=native")
-set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds} -pedantic -g -Wall -fimplicit-none")
-if(PRECISION STREQUAL "DOUBLE")
-	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8")
-endif()
+############################################################
+# Sources
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
@@ -91,43 +92,64 @@ target_compile_options(stella.x PRIVATE
       -ffree-line-length-none>
 )
 
+############################################################
+# Dependencies and build options
+
 find_package(MPI REQUIRED)
-if(MPI_FOUND)
-	message(STATUS "Found MPI Libraries in ${MPI_LIBRARIES}")
-	get_filename_component (MPI_LIBRARY_PATH ${MPI_LIBRARY} DIRECTORY)
-    target_include_directories(stella.x PRIVATE ${MPI_Fortran_INCLUDE_PATH})
-	target_link_libraries( stella.x PRIVATE ${MPI_Fortran_LIBRARIES})
+target_link_libraries(stella.x PRIVATE MPI::MPI_Fortran)
+target_compile_definitions(stella.x PUBLIC MPI)
+
+if (STELLA_ENABLE_LAPACK)
+  if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
+    # Cray wrappers sort this out for us
+    find_package(LAPACK REQUIRED)
+    target_link_libraries(stella.x PUBLIC "${LAPACK_LIBRARIES}")
+  endif()
+  target_compile_definitions(stella.x PRIVATE LAPACK)
 endif()
 
-find_package(LAPACK REQUIRED)
-if(LAPACK_FOUND)
-	message(STATUS "Found LAPACK Libraries in ${LAPACK_LIBRARIES}")
-	target_link_libraries( stella.x PRIVATE ${LAPACK_LIBRARIES})
+if (STELLA_ENABLE_FFT)
+  if (STELLA_ENABLE_DOUBLE)
+    set(_fftw_component DOUBLE_LIB)
+    set(_fftw_lib FFTW::Double)
+  else()
+    set(_fftw_component FLOAT_LIB)
+    set(_fftw_lib FFTW::Float)
+  endif()
+  find_package(FFTW REQUIRED COMPONENTS ${_fftw_component})
+  target_link_libraries(stella.x PUBLIC ${_fftw_lib})
+  target_compile_definitions(stella.x PUBLIC FFT=_FFTW3_)
+else()
+  message(WARNING "STELLA_ENABLE_FFT is off -- Be sure that nonlinear run makes no sense")
 endif()
 
-
-find_package(FFTW REQUIRED)
-if(FFTW_FOUND)
-	message(STATUS "Found FFTW Libraries in ${FFTW_LIBRARIES}")
-	include_directories(${FFTW_INCLUDES})
-	target_link_libraries(stella.x PRIVATE ${FFTW_LIBRARIES})
+if (STELLA_ENABLE_NETCDF)
+  find_package(netCDFFortran REQUIRED)
+  target_link_libraries(stella.x PUBLIC netCDF::netcdff)
+  target_compile_definitions(stella.x PRIVATE NETCDF=_DEFAULT_)
 endif()
 
-
-find_package(PETSc REQUIRED)
-if(PETSc_FOUND)
-	message(STATUS "Found PETSc Libraries in ${PETSC_LIBRARIES}")
-	include_directories(${PETSC_INCLUDES})
-	target_link_libraries(stella.x PRIVATE ${PETSC_LIBRARIES})
+if (STELLA_ENABLE_DOUBLE)
+  target_compile_options(stella.x PUBLIC
+    $<$<Fortran_COMPILER_ID:GNU>:
+      -fdefault-real-8 -fdefault-double-8 >
+    $<$<Fortran_COMPILER_ID:Intel>:
+      -r8 >
+    )
+  set(STELLA_DEFAULT_REAL_KIND "double")
+else()
+  set(STELLA_DEFAULT_REAL_KIND "single")
+  target_compile_definitions(stella.x PRIVATE SINGLE_PRECISION)
 endif()
 
-
-#TODO configure FindNetCDF
-find_package(netCDFFortran REQUIRED)
-target_link_libraries(stella.x PRIVATE netCDF::netcdff)
+if (STELLA_ENABLE_PETSC)
+  find_package(PETSc REQUIRED)
+  target_link_libraries(stella.x PRIVATE PETSc::PETSc)
+endif()
 
 ##################################################
 # Internal libraries
+
 add_subdirectory(geo/vmec_interface)
 add_subdirectory(utils)
 target_link_libraries(stella.x PRIVATE mini_libstell stella_utils)
