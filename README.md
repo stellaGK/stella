@@ -10,13 +10,67 @@ stellarators.
 
 ## Dependencies
 
-stella has several optional dependencies:
+stella requires MPI, and has several optional dependencies:
 
-- MPI
 - netCDF Fortran
 - FFTW3
+- LAPACK
 
 ## Installation
+
+There are two ways to build stella: with CMake (experimental) or with
+plain `make`.
+
+### CMake
+
+Building stella with CMake requires CMake >= 3.16. You can download
+the latest version from the [CMake
+website](https://cmake.org/download/), but it is often easier to
+install with `pip`:
+
+```
+pip install cmake
+```
+
+Building stella is then a matter of first configuring the build:
+
+```
+cmake . -B build
+```
+
+and then building proper:
+
+```
+cmake --build build
+```
+
+You may need to pass a few flags to the first `cmake` command to tell
+it where to find some dependencies:
+
+```
+cmake . -B build \
+  -DnetCDFFortran_ROOT=/path/to/netcdf/fortran
+  -DFFTW_ROOT=/path/to/fftw
+```
+
+There are a few build options:
+
+- `STELLA_ENABLE_LAPACK`: Enable LAPACK (default: on)
+- `STELLA_ENABLE_FFT`: Enable FFTs (default: on)
+- `STELLA_ENABLE_NETCDF`: Enable NetCDF (default: on)
+- `STELLA_ENABLE_DOUBLE`: Promotes precisions of real and complex to double
+  (default: on)
+- `STELLA_ENABLE_LOCAL_SPFUNC`: Enable local special functions" (default: off)
+- `STELLA_ENABLE_NAGLIB`: Use the NAG library (default: off)
+- `STELLA_ENABLE_POSIX`: Enable POSIX functions for command line functionality
+  (default: off)
+- `STELLA_ENABLE_F200X`: Enable use of F2003/F2008 functionality (default: on)
+
+You can turn these on or off with `-D<option name>=ON/OFF`
+
+### Makefiles
+
+The other build system uses plain `make`:
 
 1. Set `GK_SYSTEM='system'`, with `system` replaced by the appropriate system on
    which you are running. See the `Makefiles` directory for a list of supported
