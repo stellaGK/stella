@@ -56,7 +56,14 @@ target_include_directories(mini_libstell PUBLIC "${netCDFFortran_INCLUDE_DIRS}")
 
 # Add compiler flags for:
 # - long lines
-# - mismatched arguments when using the netCDF Fortran77 interface
+# - mismatched arguments when using the netCDF Fortran77 interface and
+#   gfortran >= 10
 # TODO: Fix both of these!
 target_compile_options(mini_libstell PRIVATE
-  $<$<Fortran_COMPILER_ID:GNU>:-ffree-line-length-none -fallow-argument-mismatch>)
+  $<$<Fortran_COMPILER_ID:GNU>:
+    -ffree-line-length-none
+    $<$<VERSION_GREATER:$<Fortran_COMPILER_VERSION>,10>:
+      -fallow-argument-mismatch
+    >
+  >)
+
