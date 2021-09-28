@@ -10,7 +10,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 #TODO choose which variables are necessary for stella
 set(PRECISION "DOUBLE")
 
-add_subdirectory(geo/vmec_interface)
 
 
 #set flags here
@@ -122,12 +121,13 @@ if(PETSc_FOUND)
 	target_link_libraries(stella.x PRIVATE ${PETSC_LIBRARIES})
 endif()
 
-#link executable to internal library
-target_include_directories(stella.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vmec_interface/)
-target_link_libraries(stella.x PRIVATE mini_libstell)
-
 
 #TODO configure FindNetCDF
 find_package(netCDFFortran REQUIRED)
 target_link_libraries(stella.x PRIVATE netCDF::netcdff)
 
+##################################################
+# Internal libraries
+add_subdirectory(geo/vmec_interface)
+add_subdirectory(utils)
+target_link_libraries(stella.x PRIVATE mini_libstell stella_utils)
