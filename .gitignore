@@ -6,6 +6,7 @@ stella
 .DS_Store
 geo/vmec_interface/test_vmec_to_stella_geometry_interface
 post_processing/clean_hist
+build*/
 
 command_line.f90
 constants.f90
