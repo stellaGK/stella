@@ -6,6 +6,9 @@ project(stella
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
+# Sets default build type to RelWithDebInfo
+include(BuildType)
+
 ############################################################
 # Build options
 option(STELLA_ENABLE_LAPACK "Enable LAPACK wrappers" ON)
