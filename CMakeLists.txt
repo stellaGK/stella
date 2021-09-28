@@ -167,6 +167,10 @@ else()
   target_compile_definitions(libstella PUBLIC SINGLE_PRECISION)
 endif()
 
+if (STELLA_ENABLE_F200X)
+  target_compile_definitions(libstella PUBLIC ISO_C_BINDING)
+endif()
+
 if (STELLA_ENABLE_PETSC)
   find_package(PETSc REQUIRED)
   target_link_libraries(libstella PUBLIC PETSc::PETSc)
