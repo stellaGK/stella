@@ -156,3 +156,36 @@ endif()
 add_subdirectory(geo/vmec_interface)
 add_subdirectory(utils)
 target_link_libraries(stella.x PRIVATE mini_libstell stella_utils)
+
+##################################################
+# Configure summary
+
+# The optimisation and/or debug flags are in the CMAKE_Fortran_FLAGS*
+# variables. We need both the common flags as well as those for the
+# build type actually being used. Note: this might behave weirdly on
+# Windows. Might need to expand CMAKE_CONFIGURATION_TYPES instead?
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE_UPPER "DEBUG")
+else()
+  string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
+endif()
+string(JOIN " " STELLA_COMPILE_BUILD_FLAGS
+  "${CMAKE_Fortran_FLAGS}"
+  "${CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE_UPPER}}"
+  )
+
+message("
+   ---------------------------------
+     stella Configuration Summary
+   ---------------------------------
+
+   LAPACK support           : ${STELLA_ENABLE_LAPACK}
+   FFTW support             : ${STELLA_ENABLE_FFT}
+   NetCDF support           : ${STELLA_ENABLE_NETCDF}
+   Default real kind        : ${STELLA_DEFAULT_REAL_KIND}
+   POSIX support            : ${STELLA_ENABLE_POSIX}
+   Use F2003/8 intrinsics   : ${STELLA_ENABLE_F200X}
+   Compilation flags        : ${STELLA_COMPILE_BUILD_FLAGS}
+   Build type               : ${CMAKE_BUILD_TYPE}
+   Compiler                 : ${CMAKE_Fortran_COMPILER}
+")
