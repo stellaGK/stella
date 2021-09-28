@@ -64,11 +64,8 @@ target_link_libraries(stella.x PRIVATE mini_libstell)
 
 
 #TODO configure FindNetCDF
-set (NETCDF_F90 "YES")
-find_package(NetCDF REQUIRED)
-
-target_include_directories(stella.x PRIVATE "/opt/netcdf-fortran-4.5.3/include")
-target_link_libraries(stella.x PRIVATE "/opt/netcdf-fortran-4.5.3/lib/libnetcdff.so")
+find_package(netCDFFortran REQUIRED)
+target_link_libraries(stella.x PRIVATE netCDF::netcdff)
 
 
 #get all fpp and f90 files
