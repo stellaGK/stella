@@ -24,25 +24,25 @@ function(gk_inspect_netcdf_config VAR NX_CONFIG ARG)
 endfunction()
 
 # Adds target for pfunit tests in test_source
-# name utils_tests_${test_name} and adds to
+# name stella_tests_${test_name} and adds to
 # list of know tests cases to give to ctest.
-function(gk_add_test test_source test_name)
-  add_pfunit_test(utils_tests_${test_name}
+function(stella_add_test test_source test_name)
+  add_pfunit_test(stella_tests_${test_name}
     "${test_source}" "" "")
-  target_link_libraries(utils_tests_${test_name} gkutils)
-  list(APPEND GK_CTEST_CASES utils_tests_${test_name})
-  set(GK_CTEST_CASES ${GK_CTEST_CASES} PARENT_SCOPE)
+  target_link_libraries(stella_tests_${test_name} libstella)
+  list(APPEND STELLA_CTEST_CASES stella_tests_${test_name})
+  set(STELLA_CTEST_CASES ${STELLA_CTEST_CASES} PARENT_SCOPE)
 endfunction()
 
 # Helper function to easily add multiple separate
-# tests provided they exist at tests/test_${name}.pf
-# and we're happy to identify them as utils_tests_${name}
-function(gk_add_standard_tests)
+# tests provided they exist at tests/unit/test_${name}.pf
+# and we're happy to identify them as stella_tests_${name}
+function(stella_add_standard_tests)
   cmake_parse_arguments(
-        GK_ADD "" "" "TEST_NAMES" ${ARGN}
+        STELLA_ADD "" "" "TEST_NAMES" ${ARGN}
     )
-  foreach(name ${GK_ADD_TEST_NAMES})
-    gk_add_test("tests/test_${name}.pf" ${name})
+  foreach(name ${STELLA_ADD_TEST_NAMES})
+    stella_add_test("tests/unit/test_${name}.pf" ${name})
   endforeach()
-  set(GK_CTEST_CASES ${GK_CTEST_CASES} PARENT_SCOPE)
+  set(STELLA_CTEST_CASES ${STELLA_CTEST_CASES} PARENT_SCOPE)
 endfunction()

@@ -23,6 +23,10 @@ option(STELLA_ENABLE_POSIX "Enable POSIX functions for command line functionalit
 option(STELLA_ENABLE_RANDOM_MT "Enable Mersenne-Twister rng (not recommended)" OFF)
 option(STELLA_ENABLE_F200X "Enable use of F2003/F2008 functionality" ON)
 
+# Options for testing
+option(STELLA_ENABLE_TESTS "Enable pFUnit-based tests" ON)
+option(STELLA_DOWNLOAD_PFUNIT "Download and compile pFUnit at configure time" ON)
+
 ############################################################
 # Sources
 
@@ -80,34 +84,53 @@ set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
   Fortran_PREPROCESS ON
   )
 
-add_executable(stella.x
+# Internal library that we can link tests against
+add_library(libstella OBJECT
   ${STELLA_SOURCES_f90}
   ${STELLA_SOURCES_fpp}
   )
 
-set_target_properties(stella.x PROPERTIES
-  Fortran_FORMAT FREE
-)
+# Location of built and installed .mod files
+set(libstella_module_directory ${CMAKE_CURRENT_BINARY_DIR}/mod)
+set(libstella_module_install_directory "${CMAKE_INSTALL_INCLUDEDIR}" CACHE STRING
+  "Fortran module installation directory")
 
-target_compile_options(stella.x PRIVATE
-    $<$<Fortran_COMPILER_ID:GNU>:
-      -ffree-line-length-none>
-)
+# Make sure all source files are compiled in free-format
+set_target_properties(libstella PROPERTIES
+  Fortran_FORMAT FREE
+  Fortran_MODULE_DIRECTORY ${libstella_module_directory}
+  )
+
+target_include_directories(libstella PUBLIC
+  $<BUILD_INTERFACE:${libstella_module_directory}>
+  $<INSTALL_INTERFACE:${libstella_module_install_directory}>
+  )
+
+# Don't worry about line length
+target_compile_options(libstella PRIVATE
+  $<$<Fortran_COMPILER_ID:GNU>:-ffree-line-length-none>
+  )
+
+# Main executable
+add_executable(stella.x
+  stella.f90
+  )
+target_link_libraries(stella.x PRIVATE libstella)
 
 ############################################################
 # Dependencies and build options
 
 find_package(MPI REQUIRED)
-target_link_libraries(stella.x PRIVATE MPI::MPI_Fortran)
-target_compile_definitions(stella.x PUBLIC MPI)
+target_link_libraries(libstella PUBLIC MPI::MPI_Fortran)
+target_compile_definitions(libstella PUBLIC MPI)
 
 if (STELLA_ENABLE_LAPACK)
   if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
     # Cray wrappers sort this out for us
     find_package(LAPACK REQUIRED)
-    target_link_libraries(stella.x PUBLIC "${LAPACK_LIBRARIES}")
+    target_link_libraries(libstella PUBLIC "${LAPACK_LIBRARIES}")
   endif()
-  target_compile_definitions(stella.x PRIVATE LAPACK)
+  target_compile_definitions(libstella PUBLIC LAPACK)
 endif()
 
 if (STELLA_ENABLE_FFT)
@@ -119,20 +142,20 @@ if (STELLA_ENABLE_FFT)
     set(_fftw_lib FFTW::Float)
   endif()
   find_package(FFTW REQUIRED COMPONENTS ${_fftw_component})
-  target_link_libraries(stella.x PUBLIC ${_fftw_lib})
-  target_compile_definitions(stella.x PUBLIC FFT=_FFTW3_)
+  target_link_libraries(libstella PUBLIC ${_fftw_lib})
+  target_compile_definitions(libstella PUBLIC FFT=_FFTW3_)
 else()
   message(WARNING "STELLA_ENABLE_FFT is off -- Be sure that nonlinear run makes no sense")
 endif()
 
 if (STELLA_ENABLE_NETCDF)
   find_package(netCDFFortran REQUIRED)
-  target_link_libraries(stella.x PUBLIC netCDF::netcdff)
-  target_compile_definitions(stella.x PRIVATE NETCDF=_DEFAULT_)
+  target_link_libraries(libstella PUBLIC netCDF::netcdff)
+  target_compile_definitions(libstella PUBLIC NETCDF=_DEFAULT_)
 endif()
 
 if (STELLA_ENABLE_DOUBLE)
-  target_compile_options(stella.x PUBLIC
+  target_compile_options(libstella PUBLIC
     $<$<Fortran_COMPILER_ID:GNU>:
       -fdefault-real-8 -fdefault-double-8 >
     $<$<Fortran_COMPILER_ID:Intel>:
@@ -141,12 +164,12 @@ if (STELLA_ENABLE_DOUBLE)
   set(STELLA_DEFAULT_REAL_KIND "double")
 else()
   set(STELLA_DEFAULT_REAL_KIND "single")
-  target_compile_definitions(stella.x PRIVATE SINGLE_PRECISION)
+  target_compile_definitions(libstella PUBLIC SINGLE_PRECISION)
 endif()
 
 if (STELLA_ENABLE_PETSC)
   find_package(PETSc REQUIRED)
-  target_link_libraries(stella.x PRIVATE PETSc::PETSc)
+  target_link_libraries(libstella PUBLIC PETSc::PETSc)
 endif()
 
 ##################################################
@@ -154,7 +177,60 @@ endif()
 
 add_subdirectory(geo/vmec_interface)
 add_subdirectory(utils)
-target_link_libraries(stella.x PRIVATE mini_libstell stella_utils)
+target_link_libraries(libstella PUBLIC mini_libstell stella_utils)
+
+############################################################
+# Tests
+
+if (STELLA_ENABLE_TESTS)
+  if (STELLA_DOWNLOAD_PFUNIT)
+    message(STATUS "Downloading pFUnit...")
+    include(FetchContent)
+    set(STELLA_DOWNLOAD_PFUNIT_URL "https://github.com/Goddard-Fortran-Ecosystem/pFUnit"
+      CACHE STRING "URL of pFUnit repository")
+
+    set(STELLA_PFUNIT_LOCATION "${STELLA_DOWNLOAD_PFUNIT_URL}")
+
+    FetchContent_Declare(
+      pfunit
+      GIT_REPOSITORY ${STELLA_DOWNLOAD_PFUNIT_URL}
+      GIT_TAG        main
+      )
+
+    set(SKIP_OPENMP YES CACHE BOOL "" FORCE)
+    # Workaround for bug in current main at time of commit
+    set(BUILD_SHARED ${BUILD_SHARED_LIBS})
+    if (NOT CMAKE_Fortran_FLAGS)
+      if (CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+        # Workaround for an issue in pFUnit: preprocessor macro
+        # expansion of the current source directory, which may
+        # truncate the line
+        set(CMAKE_Fortran_FLAGS "-ffree-line-length-none" CACHE STRING "" FORCE)
+        message(STATUS "Setting CMAKE_Fortran_FLAGS = ${CMAKE_Fortran_FLAGS}")
+      endif()
+    endif()
+    FetchContent_MakeAvailable(pfunit)
+  else()
+    find_package(PFUNIT REQUIRED)
+    set(STELLA_PFUNIT_LOCATION "${PFUNIT_ROOT}")
+  endif()
+  include(CTest)
+  enable_testing()
+
+  include(GKfunctions)
+
+  set(STELLA_CTEST_CASES)
+  stella_add_standard_tests(TEST_NAMES
+    simple
+    utils_convert
+    )
+  add_custom_target(check
+    COMMAND ctest --output-on-failure
+    DEPENDS ${STELLA_CTEST_CASES}
+    )
+else()
+  set(STELLA_PFUNIT_LOCATION "Not used")
+endif()
 
 ##################################################
 # Configure summary
