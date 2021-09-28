@@ -1,8 +1,7 @@
-cmake_minimum_required( VERSION 3.5)
-project(stella)
-enable_language(Fortran)
-
-
+cmake_minimum_required(VERSION 3.16)
+project(stella
+  VERSION 0.3
+  LANGUAGES Fortran)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
@@ -13,7 +12,6 @@ set(PRECISION "DOUBLE")
 
 add_subdirectory(geo/vmec_interface)
 
-add_executable(stella.x  ${SOURCES} )
 
 #set flags here
 #TODO add the most common flags needed for stella
@@ -26,7 +24,73 @@ if(PRECISION STREQUAL "DOUBLE")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8")
 endif()
 
-#get package includes and libs here
+# Sources that don't need preprocessing
+set(STELLA_SOURCES_f90
+  common_types.f90
+  define.inc
+  dissipation.f90
+  dist_fn.f90
+  dist_fn_arrays.f90
+  dist_redistribute.f90
+  euterpe_interface.f90
+  extended_zgrid.f90
+  fields_arrays.f90
+  finite_differences.f90
+  flow_shear.f90
+  g_tofrom_h.f90
+  gyro_averages.f90
+  init_g.f90
+  kt_grids.f90
+  mirror_terms.f90
+  neoclassical_terms.f90
+  parallel_streaming.f90
+  physics_flags.f90
+  physics_parameters.f90
+  run_parameters.f90
+  species.f90
+  stella_diagnostics.f90
+  stella_layouts.f90
+  stella_time.f90
+  stella_transforms.f90
+  time_advance.f90
+  volume_averages.f90
+  vpamu_grids.f90
+  zgrid.f90
+  geo/inputprofiles_interface.f90
+  geo/millerlocal.f90
+  geo/stella_geometry.f90
+  geo/vmec_geo.f90
+  geo/vmec_interface/vmec_to_stella_geometry_interface.f90
+  geo/vmec_interface/fzero.f90
+)
+
+# Sources that _do_ need preprocessing
+set(STELLA_SOURCES_fpp
+  fields.fpp
+  multibox.fpp
+  response_matrix.fpp
+  sfincs_interface.fpp
+  sources.fpp
+  stella_io.fpp
+  stella_save.fpp
+)
+set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
+  Fortran_PREPROCESS ON
+  )
+
+add_executable(stella.x
+  ${STELLA_SOURCES_f90}
+  ${STELLA_SOURCES_fpp}
+  )
+
+set_target_properties(stella.x PROPERTIES
+  Fortran_FORMAT FREE
+)
+
+target_compile_options(stella.x PRIVATE
+    $<$<Fortran_COMPILER_ID:GNU>:
+      -ffree-line-length-none>
+)
 
 find_package(MPI REQUIRED)
 if(MPI_FOUND)
@@ -67,21 +131,3 @@ target_link_libraries(stella.x PRIVATE mini_libstell)
 find_package(netCDFFortran REQUIRED)
 target_link_libraries(stella.x PRIVATE netCDF::netcdff)
 
-
-#get all fpp and f90 files
-file(GLOB SOURCES *.f90 utils/*.f90 geo/*.f90)
-file(GLOB SOURCES_FPP *.fpp utils/*.fpp )
-
-#generate f90 files from fpp files and link them to executable
-set( GENERATED_SOURCES "" )
-foreach ( SOURCE_FPP ${SOURCES_FPP} ) 
-    get_filename_component (SOURCE_NO_EXT ${SOURCE_FPP} NAME_WE )
-    set(SOURCE_F90 "${SOURCE_NO_EXT}.f90" )
-	message(${SOURCE_F90})
-	add_custom_command(
-    	OUTPUT  "${SOURCE_F90}"
-    	COMMAND cpp -P -traditional -DFCOMPILER=_GFORTRAN_ -ffreestanding  -DISO_C_BINDING -DMPI -DFFT=_FFTW3_ -DNETCDF -DLAPACK ${SOURCE_FPP} ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_F90}
-    	DEPENDS ${SOURCE_FPP}
-	)
-    target_sources( stella.x PRIVATE ${SOURCE_F90} )
-endforeach()
