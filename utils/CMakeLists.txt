@@ -106,7 +106,7 @@ if (STELLA_ENABLE_POSIX)
 endif()
 
 if (STELLA_ENABLE_F200X)
-  target_compile_definitions(stella_utils PRIVATE F200X_INTRINSICS)
+  target_compile_definitions(stella_utils PRIVATE F200X_INTRINSICS ISO_C_BINDING)
 endif()
 
 if (STELLA_ENABLE_RANDOM_MT)
