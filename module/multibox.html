@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.6% of total for modules and submodules.">589 statements</a>
+    title=" 1.6% of total for modules and submodules.">599 statements</a>
      </li> 
      
      
@@ -265,9 +265,13 @@
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_size">krook_size</a>
       
+      <a class="list-group-item" href="../module/multibox.html#variable-copy_size">copy_size</a>
+      
       <a class="list-group-item" href="../module/multibox.html#variable-nu_krook_mb">nu_krook_mb</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_exponent">krook_exponent</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#variable-krook_efold">krook_efold</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-smooth_zfs">smooth_ZFs</a>
       
@@ -280,6 +284,8 @@
       <a class="list-group-item" href="../module/multibox.html#variable-krook_option_switch">krook_option_switch</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_option_default">krook_option_default</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#variable-krook_option_flat">krook_option_flat</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_option_linear">krook_option_linear</a>
       
@@ -497,9 +503,13 @@
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_size">krook_size</a>
       
+      <a class="list-group-item" href="../module/multibox.html#variable-copy_size">copy_size</a>
+      
       <a class="list-group-item" href="../module/multibox.html#variable-nu_krook_mb">nu_krook_mb</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_exponent">krook_exponent</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#variable-krook_efold">krook_efold</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-smooth_zfs">smooth_ZFs</a>
       
@@ -512,6 +522,8 @@
       <a class="list-group-item" href="../module/multibox.html#variable-krook_option_switch">krook_option_switch</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_option_default">krook_option_default</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#variable-krook_option_flat">krook_option_flat</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-krook_option_linear">krook_option_linear</a>
       
@@ -1211,6 +1223,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-copy_size"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>copy_size</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-nu_krook_mb"></span>real,</td>
   
   <td>private</td>
@@ -1230,6 +1256,20 @@
   <td>private</td>
   <td></td><td>::</td>
   <td><strong>krook_exponent</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-krook_efold"></span>real,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>krook_efold</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -1313,7 +1353,21 @@
   
   <td>private,</td>
   <td>parameter</td><td>::</td>
-  <td><strong>krook_option_default</strong></td><td> =</td><td>0</td><td></td>
+  <td><strong>krook_option_default</strong></td><td> =</td><td>1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-krook_option_flat"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>krook_option_flat</strong></td><td> =</td><td>0</td><td></td>
   
 </tr>
 
@@ -1327,7 +1381,7 @@
   
   <td>private,</td>
   <td>parameter</td><td>::</td>
-  <td><strong>krook_option_linear</strong></td><td> =</td><td>0</td><td></td>
+  <td><strong>krook_option_linear</strong></td><td> =</td><td>1</td><td></td>
   
 </tr>
 
@@ -1341,7 +1395,7 @@
   
   <td>private,</td>
   <td>parameter</td><td>::</td>
-  <td><strong>krook_option_exp</strong></td><td> =</td><td>1</td><td></td>
+  <td><strong>krook_option_exp</strong></td><td> =</td><td>2</td><td></td>
   
 </tr>
 
@@ -1355,7 +1409,7 @@
   
   <td>private,</td>
   <td>parameter</td><td>::</td>
-  <td><strong>krook_option_exp_rev</strong></td><td> =</td><td>2</td><td></td>
+  <td><strong>krook_option_exp_rev</strong></td><td> =</td><td>3</td><td></td>
   
 </tr>
 
@@ -2183,13 +2237,13 @@ private subroutine <a href='../proc/finish_mb_transforms.html'>finish_mb_transfo
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-48-g49ae9fff</small></p>
+                                          <br /><small>v0.3-49-g84fc763d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-09-23T14:35:31.566004 
+             on 2021-10-04T09:25:57.143233 
             
           </p>
         </div>
