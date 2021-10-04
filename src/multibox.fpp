@@ -53,6 +53,7 @@ module multibox
   integer :: mb_debug_step 
   integer :: x_fft_size
   integer :: phi_bound, phi_pow
+  integer :: ikymin
   
 
   real :: xL = 0., xR = 0.
@@ -71,9 +72,10 @@ module multibox
                        krook_option_exp     = 2, &
                        krook_option_exp_rev = 3
   integer:: mb_zf_option_switch
-  integer, parameter :: mb_zf_option_default = 0, &
-                        mb_zf_option_no_ky0  = 1, &
-                        mb_zf_option_no_fsa  = 2
+  integer, parameter :: mb_zf_option_default   = 0, &
+                        mb_zf_option_skip_ky0  = 1, &
+                        mb_zf_option_zero_ky0  = 2, &
+                        mb_zf_option_zero_fsa  = 3
   integer :: LR_debug_switch
   integer, parameter:: LR_debug_option_default  = 0, &
                        LR_debug_option_L        = 1, &
@@ -105,10 +107,11 @@ contains
          text_option('linear',  krook_option_linear) , &
          text_option('exp',         krook_option_exp) , &
          text_option('exp_reverse', krook_option_exp_rev)/)
-    type (text_option), dimension (3), parameter :: mb_zf_opts = &
-      (/ text_option('default', mb_zf_option_default), &
-         text_option('no_ky0',  mb_zf_option_no_ky0) , &
-         text_option('no_fsa',  mb_zf_option_no_fsa)/)
+    type (text_option), dimension (4), parameter :: mb_zf_opts = &
+      (/ text_option('default',  mb_zf_option_default),  &
+         text_option('skip_ky0', mb_zf_option_skip_ky0), &
+         text_option('zero_ky0', mb_zf_option_zero_ky0), &
+         text_option('zero_fsa', mb_zf_option_zero_fsa)/)
     type (text_option), dimension (3), parameter :: LR_db_opts = &
       (/ text_option('default', LR_debug_option_default), &
          text_option('L',       LR_debug_option_L) , &
@@ -235,6 +238,9 @@ contains
 
     bs_fullgrid = nint((3.0*boundary_size)/2.0)
 
+    ikymin = 1
+    if (mb_zf_option_switch.eq.mb_zf_option_skip_ky0) ikymin = 2
+
     pfac = 1
     if (periodic_variation) pfac = 2
     phi_buff_size = pfac*boundary_size*naky*ntubes*(2*nzgrid+1)
@@ -244,7 +250,7 @@ contains
     if (.not.allocated(g_buffer1)) allocate(g_buffer1(g_buff_size))
     if (.not.allocated(phi_buffer0)) allocate(phi_buffer0(phi_buff_size))
     if (.not.allocated(phi_buffer1)) allocate(phi_buffer1(phi_buff_size))
-    if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_no_fsa)) then
+    if (.not.allocated(fsa_x) .and. (mb_zf_option_switch.eq.mb_zf_option_zero_fsa)) then
       allocate(fsa_x(nakx)); fsa_x=0.0
     endif
     if (.not.allocated(copy_mask_left))   allocate(copy_mask_left(pfac*boundary_size));  copy_mask_left =1.0
@@ -543,7 +549,7 @@ contains
         do it = 1, vmu_lo%ntubes
 
           !this is where the FSA goes
-          if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+          if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
             do ix= 1,nakx
               fsa_x(ix) = sum(dl_over_b(ia,:)*gin(1,ix,:,it,iv))
             enddo
@@ -553,23 +559,23 @@ contains
             fft_kxky = gin(:,:,iz,it,iv)
 
             if(zonal_mode(1)) then
-              if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
+              if(    mb_zf_option_switch .eq. mb_zf_option_zero_ky0) then
                 fft_kxky(1,:) = 0.0
-              elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+              elseif(mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
                 fft_kxky(1,:) = fft_kxky(1,:) - fsa_x
               endif
             endif
 
             call transform_kx2x(fft_kxky,fft_xky)
             fft_xky = fft_xky*prefac
-            do ix=1,pfac*boundary_size
-              iix=ix + offset
+            do ix = 1, pfac*boundary_size
+              iix = ix + offset
               if(iix.le.0) iix = iix + nakx
-              do iky=1,naky
+              do iky = ikymin, naky
                 !DSO if in the future the grids can have different naky, one will
                 !have to divide by naky here, and multiply on the receiving end
                 g_buffer0(num) = fft_xky(iky,iix)
-                num=num+1
+                num = num + 1
               enddo
             enddo
           enddo
@@ -581,7 +587,7 @@ contains
       do it = 1, vmu_lo%ntubes
 
         !this is where the FSA goes
-        if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+        if(zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
           do ix= 1,nakx
             fsa_x(ix) = sum(dl_over_b(ia,:)*phi(1,ix,:,it))
           enddo
@@ -591,23 +597,23 @@ contains
           fft_kxky = spread((zi*akx)**phi_pow,1,naky)*phi(:,:,iz,it)
 
           if(zonal_mode(1)) then
-            if(    mb_zf_option_switch .eq. mb_zf_option_no_ky0) then
+            if(    mb_zf_option_switch .eq. mb_zf_option_zero_ky0) then
               fft_kxky(1,:) = 0.0
-            elseif(mb_zf_option_switch .eq. mb_zf_option_no_fsa) then
+            elseif(mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
               fft_kxky(1,:) = fft_kxky(1,:) - fsa_x
             endif
           endif
 
           call transform_kx2x(fft_kxky,fft_xky)
           fft_xky = fft_xky*prefac
-          do iky=1,naky
-            do ix=1,pfac*boundary_size
-              iix=ix + offset
+          do iky = ikymin, naky
+            do ix = 1, pfac*boundary_size
+              iix = ix + offset
               if(iix.le.0) iix = iix + nakx
               !DSO if in the future the grids can have different naky, one will
               !have to divide by naky here, and multiply on the receiving end
               phi_buffer0(num) = fft_xky(iky,iix)
-              num=num+1
+              num = num + 1
             enddo
           enddo
         enddo
@@ -630,29 +636,29 @@ contains
       call receive(g_buffer1,njobs-1, 43+njobs-1)
       call receive(phi_buffer1,njobs-1, 143+njobs-1)
 
-      num=1
+      num = 1
       do iv = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, vmu_lo%ntubes
           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
             call transform_kx2x(gin(:,:,iz,it,iv),fft_xky)  
-            do ix=1,pfac*boundary_size
+            do ix = 1, pfac*boundary_size
               iL = ix + offsetL
               iR = ix + offsetR
               if (iL.le.0) iL = iL + x_fft_size
               if (iR.le.0) iR = iR + x_fft_size
-              do iky=1,naky
+              do iky = ikymin, naky
                 fft_xky(iky,iL) = fft_xky(iky,iL)*(1-copy_mask_left(ix)) &
                                         + g_buffer0(num)*copy_mask_left(ix)
                                         
                 fft_xky(iky,iR) = fft_xky(iky,iR)*(1-copy_mask_right(ix)) &
                                         + g_buffer1(num)*copy_mask_right(ix)
-                num=num+1
+                num = num + 1
               enddo
             enddo
             if(smooth_ZFs) then
               dzm = fft_xky(1,boundary_size+1)            - fft_xky(1,boundary_size)
               dzp = fft_xky(1,x_fft_size-boundary_size+1) - fft_xky(1,x_fft_size-boundary_size)
-              do ix=1,pfac*boundary_size
+              do ix = 1, pfac*boundary_size
                 iL = ix + offsetL
                 iR = ix + offsetR
                 if (iL.le.0) iL = iL + x_fft_size
@@ -661,8 +667,8 @@ contains
                 fft_xky(1,iR) = fft_xky(1,iR) - dzp
               enddo
             endif
-            if(zonal_mode(1)) fft_xky(1,:) = real(fft_xky(1,:))
-            call transform_x2kx(fft_xky,gin(:,:,iz,it,iv))  
+            if (zonal_mode(1)) fft_xky(1,:) = real(fft_xky(1,:))
+            call transform_x2kx (fft_xky,gin(:,:,iz,it,iv))  
           enddo
         enddo
       enddo
@@ -712,21 +718,21 @@ contains
     pfac = 1
     if (periodic_variation) pfac = 2
 
-    num=1
+    num = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
           g0x = 0.0
           call transform_kx2x(g(:,:,iz,it,ivmu),fft_xky)  
-          do ix=1,pfac*boundary_size
+          do ix = 1, pfac*boundary_size
             iL = ix + offsetL
             iR = ix + offsetR
             if (iL.le.0) iL = iL + x_fft_size
             if (iR.le.0) iR = iR + x_fft_size
-            do iky=1,naky
+            do iky = ikymin, naky
                 g0x(iky,iL) = (fft_xky(iky,iL) - g_buffer0(num))*krook_mask_left(ix)
                 g0x(iky,iR) = (fft_xky(iky,iR) - g_buffer1(num))*krook_mask_right(ix)
-                num=num+1
+                num = num + 1
             enddo
           enddo
           call transform_x2kx(g0x,g0k)  
