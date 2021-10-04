@@ -13,6 +13,7 @@ module multibox
   public :: communicate_multibox_parameters
   public :: add_multibox_krook
   public :: boundary_size
+  public :: copy_size
   public :: bs_fullgrid
   public :: xL, xR
   public :: rhoL, rhoR
@@ -59,15 +60,16 @@ module multibox
   real :: kx0_L, kx0_R
   !real :: efac_l, efacp_l
 
-  integer :: boundary_size, krook_size
-  real :: nu_krook_mb, krook_exponent
+  integer :: boundary_size, krook_size, copy_size
+  real :: nu_krook_mb, krook_exponent, krook_efold
   logical :: smooth_ZFs
   logical :: RK_step, include_multibox_krook, comm_at_init
   integer :: krook_option_switch
-  integer, parameter:: krook_option_default = 0, &
-                       krook_option_linear  = 0, &
-                       krook_option_exp   = 1, &
-                       krook_option_exp_rev  = 2 
+  integer, parameter:: krook_option_default = 1, &
+                       krook_option_flat    = 0, &
+                       krook_option_linear  = 1, &
+                       krook_option_exp     = 2, &
+                       krook_option_exp_rev = 3
   integer:: mb_zf_option_switch
   integer, parameter :: mb_zf_option_default = 0, &
                         mb_zf_option_no_ky0  = 1, &
@@ -97,8 +99,9 @@ contains
     logical exist
     
 
-    type (text_option), dimension (4), parameter :: krook_opts = &
+    type (text_option), dimension (5), parameter :: krook_opts = &
       (/ text_option('default', krook_option_default), &
+         text_option('flat',  krook_option_flat) , &
          text_option('linear',  krook_option_linear) , &
          text_option('exp',         krook_option_exp) , &
          text_option('exp_reverse', krook_option_exp_rev)/)
@@ -116,10 +119,10 @@ contains
                                    smooth_ZFs, zf_option, LR_debug_option, &
                                    krook_option, RK_step, nu_krook_mb, &
                                    mb_debug_step, krook_exponent, comm_at_init, &
-                                   phi_bound, phi_pow
+                                   phi_bound, phi_pow, krook_efold
 
     if(runtype_option_switch /= runtype_multibox) then
-      boundary_size = 0; krook_size = 0
+      boundary_size = 0; krook_size = 0; copy_size = 0
       return
     endif
 
@@ -128,6 +131,7 @@ contains
     phi_bound = 0
     phi_pow = 0
     krook_exponent = 0.0
+    krook_efold = 3.0
     nu_krook_mb = 0.0
     mb_debug_step = 1000
     smooth_ZFs = .false.
@@ -162,6 +166,7 @@ contains
     call broadcast(mb_zf_option_switch)
     call broadcast(krook_option_switch)
     call broadcast(krook_exponent)
+    call broadcast(krook_efold)
     call broadcast(LR_debug_switch)
     call broadcast(RK_step)
     call broadcast(mb_debug_step)
@@ -194,6 +199,8 @@ contains
     if(abs(nu_krook_mb) > epsilon(0.0)) then
       include_multibox_krook = .true.
     endif
+
+    copy_size = boundary_size - krook_size
 
   end subroutine read_multibox_parameters
 
@@ -247,6 +254,11 @@ contains
 
     if (krook_size .gt. 0) then
       select case (krook_option_switch)
+      case (krook_option_flat)
+        do i = 1, krook_size
+          krook_mask_right(i) = 1.0
+          copy_mask_right(i) = 0.0
+        enddo
       case (krook_option_linear)
         db = 1.0/krook_size
         do i = 1, krook_size
@@ -254,15 +266,15 @@ contains
           copy_mask_right(i) = 0.0
         enddo
       case (krook_option_exp)
-        db = 3.0/krook_size
+        db = krook_efold/krook_size
         do i = 1, krook_size
-          krook_mask_right(i) = 1.0-(1.0-exp(-(krook_size-i)*db))/(1.0-exp(-3.0))
+          krook_mask_right(i) = 1.0-(1.0-exp(-(krook_size-i)*db))/(1.0-exp(-krook_efold))
           copy_mask_right(i) = 0.0
         enddo
       case (krook_option_exp_rev)
-        db = 3.0/krook_size
+        db = krook_efold/krook_size
         do i = 1, krook_size
-          krook_mask_right(i) = (1.0-exp(-i*db))/(1.0-exp(-3.0))
+          krook_mask_right(i) = (1.0-exp(-i*db))/(1.0-exp(-krook_efold))
           copy_mask_right(i) = 0.0
         enddo
       end select

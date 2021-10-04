@@ -822,7 +822,7 @@ end subroutine get_fields_by_spec_idx
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
-    use multibox, only: mb_get_phi, boundary_size
+    use multibox, only: mb_get_phi, copy_size
     use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -961,10 +961,10 @@ end subroutine get_fields_by_spec_idx
               call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
               if (exclude_boundary_regions_qn) then
-                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
-                              / (nakx - 2*boundary_size)
-                g0x(1,1:boundary_size) = 0.0
-                g0x(1,(nakx-boundary_size+1):) = 0.0
+                g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
+                              / (nakx - 2*copy_size)
+                g0x(1,1:copy_size) = 0.0
+                g0x(1,(nakx-copy_size+1):) = 0.0
               else
                 g0x(1,:) = sum(g0x(1,:))/nakx
               endif
@@ -1029,10 +1029,10 @@ end subroutine get_fields_by_spec_idx
 
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
               if (exclude_boundary_regions_qn) then
-                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
-                              / (nakx - 2*boundary_size)
-                g0x(1,1:boundary_size) = 0.0
-                g0x(1,(nakx-boundary_size+1):) = 0.0
+                g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
+                              / (nakx - 2*copy_size)
+                g0x(1,1:copy_size) = 0.0
+                g0x(1,(nakx-copy_size+1):) = 0.0
               else
                  g0x(1,:) = sum(g0x(1,:))/nakx
               endif

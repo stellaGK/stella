@@ -27,6 +27,7 @@ module sources
   logical :: include_krook_operator, remove_zero_projection
   logical :: krook_odd, exclude_boundary_regions
   logical :: exclude_boundary_regions_qn
+  logical :: from_zero
   real :: nu_krook, tcorr_source, int_krook, int_proj
   real :: tcorr_source_qn
   integer:: ikxmax_source
@@ -59,6 +60,7 @@ contains
     implicit none
 
     logical :: has_elec, adia_elec
+    real :: fac
 
     call read_parameters
 
@@ -79,8 +81,11 @@ contains
       allocate (phi_proj_stage(nakx,-nzgrid:nzgrid,ntubes)); phi_proj_stage = 0.
     endif
 
-    if (int_krook.lt.0.) int_krook = tcorr_source
-    if (int_proj.lt.0.)  int_proj  = tcorr_source
+    fac = 1.
+    if (from_zero) fac = 0.
+
+    if (int_krook.lt.0.) int_krook = fac*tcorr_source
+    if (int_proj.lt.0.)  int_proj  = fac*tcorr_source
 
     include_qn_source = .false.
     if (fphi > epsilon(0.0).and.radial_variation.and.ky_solve_radial.gt.0) then
@@ -108,7 +113,7 @@ contains
     namelist /sources/ &
          include_krook_operator, nu_krook, tcorr_source, remove_zero_projection, &
          ikxmax_source, krook_odd, exclude_boundary_regions, &
-         tcorr_source_qn, exclude_boundary_regions_qn
+         tcorr_source_qn, exclude_boundary_regions_qn, from_zero
 
     integer :: in_file
     logical :: dexist
@@ -124,6 +129,7 @@ contains
        ikxmax_source = 1 ! kx=0
        if(periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
        krook_odd = .true. ! damp only the odd mode that can affect profiles
+       from_zero = .true.
 
        in_file = input_unit_exist("sources", dexist)
        if (dexist) read (unit=in_file, nml=sources)
@@ -145,6 +151,7 @@ contains
     call broadcast (ikxmax_source)
     call broadcast (remove_zero_projection)
     call broadcast (krook_odd)
+    call broadcast (from_zero)
 
   end subroutine read_parameters
 
@@ -194,7 +201,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook
-    use multibox, only: boundary_size
+    use multibox, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
@@ -220,15 +227,15 @@ contains
           do iz = -nzgrid, nzgrid
             g0k(1,:) = g(1,:,iz,it,ivmu)
             call transform_kx2x_unpadded(g0k,g0x)
-            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
+            tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(nakx-2*copy_size)
             if(tcorr_source.le.epsilon(0.0)) then
               g0x = tmp
             else
               g0x = (code_dt*tmp + exp_fac*int_krook*g_krook(1,iz,it,ivmu)) &
                   / (code_dt     + exp_fac*int_krook)
             endif
-            g0x(1,1:boundary_size) = 0.0
-            g0x(1,(nakx-boundary_size+1):nakx) = 0.0
+            g0x(1,1:copy_size) = 0.0
+            g0x(1,(nakx-copy_size+1):nakx) = 0.0
             call transform_x2kx_unpadded (g0x,g0k)
             gke_rhs(1,:,iz,it,ivmu) = gke_rhs(1,:,iz,it,ivmu) - code_dt*nu_krook*g0k(1,:)
           enddo
@@ -266,7 +273,7 @@ contains
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
-    use multibox, only: boundary_size
+    use multibox, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
@@ -293,7 +300,7 @@ contains
           do iz = -nzgrid, nzgrid
             g0k(1,:) = g(1,:,iz,it,ivmu)
             call transform_kx2x_unpadded(g0k,g0x)
-            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
+            tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(nakx-2*copy_size)
             g_krook(:,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(:,iz,it,ivmu))/int_krook
           enddo
         enddo
@@ -323,7 +330,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj
-    use multibox, only: boundary_size
+    use multibox, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
@@ -345,7 +352,7 @@ contains
           do iz = -nzgrid, nzgrid
             g0k(1,:) = g(:,iz,it,ivmu)
             call transform_kx2x_unpadded (g0k,g0x)
-            tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(nakx-2*boundary_size)
+            tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(nakx-2*copy_size)
             if(tcorr_source.le.epsilon(0.)) then
               g0x = tmp
             else
@@ -353,8 +360,8 @@ contains
                   / (code_dt     + exp_fac*int_proj)
             endif
             g_proj(1,iz,it,ivmu) = g0x(1,1)
-            g0x(1,1:boundary_size) = 0.0
-            g0x(1,(nakx-boundary_size+1):nakx) = 0.0
+            g0x(1,1:copy_size) = 0.0
+            g0x(1,(nakx-copy_size+1):nakx) = 0.0
             call transform_x2kx_unpadded (g0x,g0k)
             g(:,iz,it,ivmu) = g0k(1,:)
           enddo
@@ -411,7 +418,7 @@ contains
     use kt_grids, only: naky, nakx
     use kt_grids, only: zonal_mode, rho_d_clamped
     use linear_solve, only: lu_decomposition
-    use multibox, only: boundary_size
+    use multibox, only: copy_size
     use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
     
 
@@ -538,10 +545,10 @@ contains
             g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
 
             if (exclude_boundary_regions_qn) then
-              g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
-                       / (nakx - 2*boundary_size)
-              g0x(1,1:boundary_size) = 0.0
-              g0x(1,(nakx-boundary_size+1):) = 0.0
+              g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
+                       / (nakx - 2*copy_size)
+              g0x(1,1:copy_size) = 0.0
+              g0x(1,(nakx-copy_size+1):) = 0.0
             else
               g0x(1,:) = sum(g0x(1,:))/nakx
             endif
