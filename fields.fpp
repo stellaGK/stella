@@ -815,7 +815,7 @@ end subroutine get_fields_by_spec_idx
     use job_manage, only: time_message
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
-    use zgrid, only: nzgrid, ntubes, nztot
+    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho

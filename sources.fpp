@@ -411,12 +411,10 @@ contains
     use mpi
 #endif
     use physics_flags, only: radial_variation
-    use species, only: spec, has_electron_species
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, nztot
-    use kt_grids, only: naky, nakx
-    use kt_grids, only: zonal_mode, rho_d_clamped
+    use kt_grids, only: naky, nakx, rho_d_clamped
     use linear_solve, only: lu_decomposition
     use multibox, only: copy_size
     use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
