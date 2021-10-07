@@ -196,7 +196,7 @@ contains
   subroutine add_krook_operator (g, gke_rhs)
 
     use zgrid, only: nzgrid, ntubes
-    use constants, only: zi
+    use constants, only: pi, zi
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
@@ -207,41 +207,55 @@ contains
     implicit none
 
     complex :: tmp
-    integer :: ikx, iz, it, ia, ivmu
+    integer :: ikx, jkx, iz, it, ia, ivmu, npts
 
     !complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), optional, intent (in) :: f0
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
 
-    complex, dimension (:,:), allocatable :: g0k, g0x
+    complex, dimension (:,:), allocatable :: g0k, g0x, g1x
+    real, dimension (:), allocatable :: basis_func
 
     ia = 1
     if(.not.zonal_mode(1)) return
 
     !TODO: add number and momentum conservation
     if (exclude_boundary_regions) then
+      npts = nakx - 2*copy_size
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
+      allocate (g1x(1,nakx))
+      allocate (basis_func(npts))
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
             g0k(1,:) = g(1,:,iz,it,ivmu)
+            g1x = 0.
             call transform_kx2x_unpadded(g0k,g0x)
-            tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(nakx-2*copy_size)
-            if(tcorr_source.le.epsilon(0.0)) then
-              g0x = tmp
-            else
-              g0x = (code_dt*tmp + exp_fac*int_krook*g_krook(1,iz,it,ivmu)) &
-                  / (code_dt     + exp_fac*int_krook)
-            endif
-            g0x(1,1:copy_size) = 0.0
-            g0x(1,(nakx-copy_size+1):nakx) = 0.0
-            call transform_x2kx_unpadded (g0x,g0k)
+            do ikx = 1, ikxmax_source
+              if (ikx.eq.1) then
+                basis_func = 1.0
+                tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts)
+              else
+                do jkx = 1, npts
+                  basis_func(jkx) = sin(2.0*pi*(ikx-1)*jkx/real(npts+1))
+                enddo
+                tmp = 2.0*sum(basis_func*g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts+1)
+              endif
+              if(tcorr_source.gt.epsilon(0.0)) then
+                tmp = (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
+                    / (code_dt     + exp_fac*int_krook)
+              endif
+              do jkx = 1, npts
+                g1x(1,copy_size+jkx) = g1x(1,copy_size+jkx) + tmp*basis_func(jkx) 
+              enddo
+            enddo
+            call transform_x2kx_unpadded (g1x,g0k)
             gke_rhs(1,:,iz,it,ivmu) = gke_rhs(1,:,iz,it,ivmu) - code_dt*nu_krook*g0k(1,:)
           enddo
         enddo
       enddo
-      deallocate (g0k, g0x)
+      deallocate (g0k, g0x, g1x, basis_func)
     else
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
@@ -267,7 +281,7 @@ contains
 
   subroutine update_tcorr_krook (g)
 
-    use constants, only: zi
+    use constants, only: pi, zi
     use dist_fn_arrays, only: g_krook
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: akx, nakx, zonal_mode
@@ -281,7 +295,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
     complex, dimension (:,:), allocatable :: g0k, g0x
 
-    integer :: ivmu, iz, it, ikx, ia
+    integer :: ivmu, iz, it, ikx, jkx, ia, npts
     real :: int_krook_old
     complex :: tmp
 
@@ -293,6 +307,7 @@ contains
     int_krook =  code_dt + exp_fac*int_krook_old
 
     if (exclude_boundary_regions) then
+      npts = nakx - 2*copy_size
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -300,8 +315,19 @@ contains
           do iz = -nzgrid, nzgrid
             g0k(1,:) = g(1,:,iz,it,ivmu)
             call transform_kx2x_unpadded(g0k,g0x)
-            tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(nakx-2*copy_size)
-            g_krook(:,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(:,iz,it,ivmu))/int_krook
+            do ikx = 1, ikxmax_source
+              if (ikx.eq.1) then
+                tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts)
+              else
+                tmp = 0.
+                do jkx = 1, npts
+                  tmp = tmp + sin(2.0*pi*(ikx-1)*jkx/real(npts+1))*g0x(1,copy_size+jkx)
+                enddo
+                tmp = 2.0*tmp/real(npts+1)
+              endif
+            enddo
+            g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu)) &
+                                      /int_krook
           enddo
         enddo
       enddo
@@ -325,7 +351,7 @@ contains
   subroutine project_out_zero (g)
 
     use zgrid, only: nzgrid, ntubes
-    use constants, only: zi
+    use constants, only: pi, zi
     use kt_grids, only: zonal_mode, akx, nakx
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
@@ -336,38 +362,57 @@ contains
     implicit none
 
     complex :: tmp
-    integer :: ikx, iz, it, ia, ivmu
+    integer :: ikx, jkx, iz, it, ia, ivmu, npts
 
-    complex, dimension (:,:), allocatable :: g0k, g0x
+    complex, dimension (:,:), allocatable :: g0k, g0x, g1x
+    real, dimension (:), allocatable :: basis_func
     complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
 
     ia = 1
     if(.not.zonal_mode(1)) return
 
-    if (exclude_boundary_regions) then !here we do not require ikxmax_source
+    if (exclude_boundary_regions) then
+      npts = nakx - 2*copy_size
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
+      allocate (g1x(1,nakx))
+      allocate (basis_func(npts))
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
           do iz = -nzgrid, nzgrid
             g0k(1,:) = g(:,iz,it,ivmu)
+            g1x = 0.
             call transform_kx2x_unpadded (g0k,g0x)
-            tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(nakx-2*copy_size)
-            if(tcorr_source.le.epsilon(0.)) then
-              g0x = tmp
-            else
-              g0x = (code_dt*tmp + exp_fac*int_proj*g_proj(1,iz,it,ivmu)) &
-                  / (code_dt     + exp_fac*int_proj)
-            endif
-            g_proj(1,iz,it,ivmu) = g0x(1,1)
-            g0x(1,1:copy_size) = 0.0
-            g0x(1,(nakx-copy_size+1):nakx) = 0.0
-            call transform_x2kx_unpadded (g0x,g0k)
+            do ikx = 1, ikxmax_source
+              !physical region should have an odd number of collocation points
+              if (ikx.eq.1) then
+                basis_func = 1.0
+                tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts)
+              else
+                ! here we use a Fourier basis due to periodicity, 
+                ! though we could use Legendre polynomials
+                ! NB: Only a constant or linear function (or nearly linear, i.e. first
+                ! sine harmonic) make physical sense as sources, so ikxmax_source <= 2
+                do jkx = 1, npts
+                  basis_func(jkx) = sin(2.0*pi*(ikx-1)*jkx/real(npts+1))
+                enddo
+                tmp = 2.0*sum(basis_func*g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts+1)
+              endif
+              if(tcorr_source.gt.epsilon(0.)) then
+                tmp = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &
+                    / (code_dt     + exp_fac*int_proj)
+                g_proj(ikx,iz,it,ivmu) = tmp
+              endif
+              do jkx = 1, npts
+                g1x(1,copy_size+jkx) = g1x(1,copy_size+jkx) + tmp*basis_func(jkx) 
+              enddo
+            enddo
+            call transform_x2kx_unpadded (g1x,g0k)
             g(:,iz,it,ivmu) = g0k(1,:)
           enddo
         enddo
       enddo
-      deallocate (g0k, g0x)
+      deallocate (g0k, g0x, g1x, basis_func)
     else
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do it = 1, ntubes
