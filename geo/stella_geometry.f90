@@ -30,6 +30,7 @@ module stella_geometry
   public :: aref, bref
   public :: twist_and_shift_geo_fac
   public :: q_as_x, get_x_to_rho, gfac
+  public :: x_displacement_fac
 
   private
 
@@ -57,6 +58,7 @@ module stella_geometry
   real, dimension (:,:), allocatable :: theta_vmec
   real, dimension (:,:), allocatable :: jacob, djacdrho, grho
   real, dimension (:,:), allocatable :: dl_over_b, d_dl_over_b_drho
+  real, dimension (:,:), allocatable :: x_displacement_fac
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
   real, dimension (:), allocatable :: alpha
@@ -81,7 +83,7 @@ module stella_geometry
 
 contains
 
-  subroutine init_geometry (nalpha)
+  subroutine init_geometry (nalpha, naky)
 
     use constants, only: pi
     use mp, only: proc0
@@ -93,14 +95,13 @@ contains
     use zgrid, only: zed, delzed
     use zgrid, only: shat_zero, zed_equal_arc
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
-    use file_utils, only: get_unused_unit
     use physics_flags, only: include_geometric_variation
 
     implicit none
 
     logical, parameter :: debug = .false.
 
-    integer, intent (in) :: nalpha
+    integer, intent (in) :: nalpha, naky
 
     real :: dpsidrho, dpsidrho_psi0
     integer :: iy, ia, iz
@@ -268,12 +269,12 @@ contains
           call allocate_temporary_arrays (nalpha, nzgrid)
           ! get geometry coefficients from vmec
           if (debug) write (*,*) 'init_geometry::get_vmec_geo'
-          call get_vmec_geo (nzgrid, nalpha, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
+          call get_vmec_geo (nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
                grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
-               field_period_ratio)
+               field_period_ratio, x_displacement_fac)
           ! Bref = 2*abs(psi_tor_LCFS)/a^2
           ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
           ! psi = -psi_tor
@@ -542,6 +543,8 @@ contains
     if (.not.allocated(alpha)) allocate (alpha(nalpha)) ; alpha = 0.
     if (.not.allocated(zeta)) allocate (zeta(nalpha,-nzgrid:nzgrid)) ; zeta = 0.
 
+    if (.not.allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha,-nzgrid:nzgrid)) ; x_displacement_fac = 0.
+    
   end subroutine allocate_arrays
 
   subroutine read_parameters
@@ -914,6 +917,8 @@ contains
     if (allocated(alpha)) deallocate (alpha)
     if (allocated(zeta)) deallocate (zeta)
 
+    if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
+    
     geoinit = .false.
 
   end subroutine finish_geometry

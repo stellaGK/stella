@@ -191,7 +191,7 @@ contains
        alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, &
        grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
        gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-       theta_vmec, B_sub_zeta, B_sub_theta_vmec)
+       theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac)
 
     use fzero_mod, only: fzero
 
@@ -288,6 +288,8 @@ contains
 
     real, dimension (:,-nzgrid:), intent (out) :: B_sub_theta_vmec, B_sub_zeta
 
+    real, dimension (:,-nzgrid:), intent (out) :: x_displacement_fac
+    
     !*********************************************************************
     ! Variables used internally by this subroutine
     !*********************************************************************
@@ -307,7 +309,8 @@ contains
     real, dimension(:), allocatable :: d_pressure_d_s_on_half_grid, d_iota_d_s_on_half_grid
 !    real :: root_solve_absolute_tolerance, root_solve_relative_tolerance
     logical :: non_Nyquist_mode_available, found_imn
-    real, dimension(:,:), allocatable :: B, sqrt_g, R, B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D
+    real, dimension(:,:), allocatable :: R, Z
+    real, dimension(:,:), allocatable :: B, sqrt_g, B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D
     real, dimension(:,:), allocatable :: d_B_d_theta_vmec, d_B_d_zeta, d_B_d_s
     real, dimension(:,:), allocatable :: d_R_d_theta_vmec, d_R_d_zeta, d_R_d_s
     real, dimension(:,:), allocatable :: d_Z_d_theta_vmec, d_Z_d_zeta, d_Z_d_s
@@ -745,6 +748,7 @@ contains
     allocate(temp2D(nalpha,-nzgrid:nzgrid))
     allocate(sqrt_g(nalpha,-nzgrid:nzgrid))
     allocate(R(nalpha,-nzgrid:nzgrid))
+    allocate(Z(nalpha,-nzgrid:nzgrid))
     allocate(d_B_d_theta_vmec(nalpha,-nzgrid:nzgrid))
     allocate(d_B_d_zeta(nalpha,-nzgrid:nzgrid))
     allocate(d_B_d_s(nalpha,-nzgrid:nzgrid))
@@ -816,7 +820,8 @@ contains
 
     B = 0
     sqrt_g = 0
-    R = 0
+    R = 0.0
+    Z = 0.0
     d_B_d_theta_vmec = 0
     d_B_d_zeta = 0
     d_B_d_s = 0
@@ -967,6 +972,7 @@ contains
                    ! Handle Z, which is on the full mesh
                    temp = zmns(imn,vmec_radial_index_full(isurf)) * vmec_radial_weight_full(isurf)
                    temp = temp*scale_factor
+                   Z(ialpha,izeta) = Z(ialpha,izeta) + temp * sin_angle
                    !Z(ialpha,izeta) = Z(ialpha,izeta) + temp * sin_angle  ! We don't actually need Z itself, only derivatives of Z.
                    d_Z_d_theta_vmec(ialpha,izeta) = d_Z_d_theta_vmec(ialpha,izeta) + temp * m * cos_angle
                    d_Z_d_zeta(ialpha,izeta)  = d_Z_d_zeta(ialpha,izeta)  - temp * n * nfp * cos_angle
@@ -1104,7 +1110,7 @@ contains
                       ! Handle Z, which is on the full mesh
                       temp = zmnc(imn,vmec_radial_index_full(isurf)) * vmec_radial_weight_full(isurf)
                       temp = temp*scale_factor
-                      ! Z(ialpha,izeta) = Z(ialpha,izeta) + temp * cos_angle   ! We don't actually need Z itself, only derivatives of Z.
+                      Z(ialpha,izeta) = Z(ialpha,izeta) + temp * cos_angle   ! We don't actually need Z itself, only derivatives of Z.
                       d_Z_d_theta_vmec(ialpha,izeta) = d_Z_d_theta_vmec(ialpha,izeta) - temp * m * sin_angle
                       d_Z_d_zeta(ialpha,izeta)  = d_Z_d_zeta(ialpha,izeta)  + temp * n * nfp * sin_angle
 
@@ -1436,6 +1442,10 @@ contains
 
     cvdrift0_psi = gbdrift0_psi
 
+    ! calculate the ratio of the physical displacement due to movement in the stella x-coordinate to the x-coordinate itself
+    ! This is |ds/dx|*sqrt((dR/ds)^2+(dZ/ds)^2)
+    x_displacement_fac = 2.0*sqrt(normalized_toroidal_flux_used)*sqrt(d_R_d_s**2 + d_Z_d_s**2)/L_reference
+
     !*********************************************************************
     ! Free all arrays that were allocated.
     !*********************************************************************
@@ -1443,7 +1453,7 @@ contains
     deallocate(B)
     deallocate(temp2D)
     deallocate(sqrt_g)
-    deallocate(R)
+    deallocate(R, Z)
     deallocate(d_B_d_theta_vmec)
     deallocate(d_B_d_zeta)
     deallocate(d_B_d_s)
