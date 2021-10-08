@@ -397,6 +397,7 @@ contains
        allocate (temperature(naky,nakx,nztot,ntubes,nspec))
        allocate (spitzer2(naky,nakx,nztot,ntubes,nspec))
        call get_moments (gnew, density, upar, temperature, spitzer2)
+       if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_moments_nc'
        if (proc0) call write_moments_nc (nout, density, upar, temperature, spitzer2)
        deallocate (density, upar, temperature)
     end if
@@ -1030,7 +1031,7 @@ contains
     use gyro_averages, only: aj0x, aj1x, gyro_average
     use fields_arrays, only: phi, phi_corr_QN
     use run_parameters, only: fphi
-    use physics_flags, only: radial_variation
+    use physics_flags, only: radial_variation, full_flux_surface
 
     implicit none
 
@@ -1043,12 +1044,179 @@ contains
     integer :: ivmu, iv, imu, is, ia
     integer :: iz, it
 
-    if(radial_variation) then
-      allocate (g0k(naky,nakx))
-    endif
+    if (full_flux_surface) then
+       call get_moments_flux_annulus (g, dens, upar, temp)
+    else
+       if(radial_variation) then
+          allocate (g0k(naky,nakx))
+       endif
 
-    ! Hack below. Works since J0^2 - 1 and its derivative are zero at the origin
-    zero = 100.*epsilon(0.)
+       ! Hack below. Works since J0^2 - 1 and its derivative are zero at the origin
+       zero = 100.*epsilon(0.)
+
+       ! h is gyrophase independent, but is in gyrocenter coordinates,
+       ! so requires a J_0 to get to particle coordinates
+       ! <f>_r = h J_0 - Ze*phi/T * F0
+       ! g     = h     - Ze*<phi>_R/T * F0
+       ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
+
+       ! calculate the integrand appearing in the integral for the density
+       ia = 1
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          ! obtain the gyro-average of g that appears in the density integral
+          call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
+          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
+          g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
+               * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
+               * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*fphi*phi
+          
+          if(radial_variation) then
+             do it = 1, ntubes
+                do iz= -nzgrid, nzgrid
+                   !phi
+                   g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+                        * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*fphi*phi(:,:,iz,it) &
+                        *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
+                        -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
+                        -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                        * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                        /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
+                   
+                   !g
+                   g0k = g0k + g1(:,:,iz,it,ivmu) &
+                        * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                        * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                        + dBdrho(iz)/bmag(ia,iz))
+                   
+                   call multiply_by_rho(g0k)
+                   
+                   ! g0k(1,1) = 0.0
+                   
+                   !phi QN
+                   g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*fphi &
+                        * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
+                   
+                   g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
+                enddo
+             enddo
+          endif
+       end do
+       call integrate_vmu (g2, spec%dens_psi0, dens)
+       
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          g2(:,:,:,:,ivmu) = (g1(:,:,:,:,ivmu) + ztmax(iv,is) &
+               * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
+               * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi*fphi) &
+               *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))/1.5
+          if(radial_variation) then
+             do it = 1, ntubes
+                do iz= -nzgrid, nzgrid
+                   !phi
+                   g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+                        *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
+                        *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it)*fphi &
+                        *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
+                        -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
+                        -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                        * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                        /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero) &
+                        + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+                   
+                   
+                   !g
+                   g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 &
+                        * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                        * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                        + dBdrho(iz)/bmag(ia,iz) &
+                        + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+                   
+                   call multiply_by_rho(g0k)
+                   
+                   !phi QN
+                   g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
+                        * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
+                        * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
+                   
+                   g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
+                enddo
+             enddo
+          endif
+       end do
+       ! integrate to get dTs/Tr
+       !    call integrate_vmu (g2, spec%temp, temp)
+       call integrate_vmu (g2, spec%temp_psi0*spec%dens_psi0, temp)
+
+       ! for Spitzer problem tests of the collision operator
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          g2(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)*( vpa(iv)*(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2.*vpa(iv) )
+       end do
+       call integrate_vmu (g2, spec%stm, spitzer2) ! AVB: stm is the thermal speed
+       
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          g2(:,:,:,:,ivmu) = vpa(iv)*g1(:,:,:,:,ivmu)
+          if(radial_variation) then
+             do it = 1, ntubes
+                do iz= -nzgrid, nzgrid
+                   !g
+                   g0k = vpa(iv)*g1(:,:,iz,it,ivmu) &
+                        * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
+                        * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                        * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                        + dBdrho(iz)/bmag(ia,iz))
+                   
+                   call multiply_by_rho(g0k)
+                   
+                   g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
+                enddo
+             enddo
+          endif
+       end do
+       call integrate_vmu (g2, spec%stm_psi0, upar)
+
+       if(allocated(g0k)) deallocate(g0k)
+    end if
+       
+  end subroutine get_moments
+
+  subroutine get_moments_flux_annulus (g, dens, upar, temp)
+
+    use zgrid, only: nzgrid, ntubes
+    use species, only: spec
+    use vpamu_grids, only: integrate_vmu
+    use vpamu_grids, only: vpa, vperp2, mu
+    use vpamu_grids, only: maxwell_mu, ztmax
+    use kt_grids, only: naky, nakx
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
+    use stella_geometry, only: bmag, dBdrho
+    use gyro_averages, only: gyro_average, j0_over_B_ffs
+    use fields_arrays, only: phi
+    use run_parameters, only: fphi
+    use physics_flags, only: full_flux_surface
+
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+    complex, dimension (:,:,:,:,:), intent (out) :: dens, upar, temp
+
+    integer :: ivmu!, iv, imu, is
 
     ! h is gyrophase independent, but is in gyrocenter coordinates,
     ! so requires a J_0 to get to particle coordinates
@@ -1056,137 +1224,41 @@ contains
     ! g     = h     - Ze*<phi>_R/T * F0
     ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
 
-    ia = 1
+    ! calculate the integrand appearing in the integral for the guiding centre density
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       call gyro_average (g(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
-       ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-       g2(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) + ztmax(iv,is) &
-            * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
-            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*fphi*phi
-
-       if(radial_variation) then
-         do it = 1, ntubes
-           do iz= -nzgrid, nzgrid
-             !phi
-             g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*fphi*phi(:,:,iz,it) &
-                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
-                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                  -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
-                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                     /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero))
-
-             !g
-             g0k = g0k + g1(:,:,iz,it,ivmu) &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
-               * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-               * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-               + dBdrho(iz)/bmag(ia,iz))
-
-             call multiply_by_rho(g0k)
-
-            ! g0k(1,1) = 0.0
-
-             !phi QN
-             g0k = g0k + ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*fphi &
-                 * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
-
-             g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
-           enddo
-         enddo
-       endif
+       ! obtain the k_alpha component of <g>_r/B(alpha) that appears in the integral for the guiding centre density
+       call gyro_average (g(:,:,:,:,ivmu), g1(:,:,:,:,ivmu), j0_over_B_ffs(:,:,:,ivmu))
     end do
-    call integrate_vmu (g2, spec%dens_psi0, dens)
+    ! integrate over v-space to get the guiding centre density
+    ! note that the 1/B factor has already been accounted for in g1
+!    call integrate_vmu_no_Binv (g1, spec%dens_psi0, dens)
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       g2(:,:,:,:,ivmu) = (g1(:,:,:,:,ivmu) + ztmax(iv,is) &
-            * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
-            * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi*fphi) &
-            *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))/1.5
-       if(radial_variation) then
-         do it = 1, ntubes
-           do iz= -nzgrid, nzgrid
-             !phi
-             g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
-               *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
-               *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it)*fphi &
-               *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
-                 -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
-                 -aj1x(:,:,iz,ivmu)*aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
-                 * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-                 * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                    /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero) &
-                 + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+    ! calculate the integrand appearing in the integral for the polarization density
+!    g2
+    
+       ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       !    iv = iv_idx(vmu_lo,ivmu)
+       !    imu = imu_idx(vmu_lo,ivmu)
+       !    is = is_idx(vmu_lo,ivmu)
+       !    g2(:,:,:,:,ivmu) = (g1(:,:,:,:,ivmu) + ztmax(iv,is) &
+       !         * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
+       !         * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi*fphi) &
+       !         *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))/1.5
+       ! end do
+       ! ! integrate to get dTs/Tr
+       ! !    call integrate_vmu (g2, spec%temp, temp)
+       ! call integrate_vmu (g2, spec%temp_psi0*spec%dens_psi0, temp)
 
+       ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       !    iv = iv_idx(vmu_lo,ivmu)
+       !    imu = imu_idx(vmu_lo,ivmu)
+       !    is = is_idx(vmu_lo,ivmu)
+       !    g2(:,:,:,:,ivmu) = vpa(iv)*g1(:,:,:,:,ivmu)
+       ! end do
+       ! call integrate_vmu (g2, spec%stm_psi0, upar)
 
-             !g
-             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
-               * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-               * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-                 + dBdrho(iz)/bmag(ia,iz) &
-                 + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
-
-             call multiply_by_rho(g0k)
-
-             !phi QN
-             g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
-               * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
-
-             g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
-           enddo
-         enddo
-       endif
-    end do
-    ! integrate to get dTs/Tr
-!    call integrate_vmu (g2, spec%temp, temp)
-    call integrate_vmu (g2, spec%temp_psi0*spec%dens_psi0, temp)
-
-    ! for Spitzer problem tests of the collision operator
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       g2(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)*( vpa(iv)*(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2.*vpa(iv) )
-    end do
-    call integrate_vmu (g2, spec%stm, spitzer2) ! AVB: stm is the thermal speed
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       g2(:,:,:,:,ivmu) = vpa(iv)*g1(:,:,:,:,ivmu)
-       if(radial_variation) then
-         do it = 1, ntubes
-           do iz= -nzgrid, nzgrid
-             !g
-             g0k = vpa(iv)*g1(:,:,iz,it,ivmu) &
-               * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
-               * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-               * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-               + dBdrho(iz)/bmag(ia,iz))
-
-             call multiply_by_rho(g0k)
-
-             g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
-           enddo
-         enddo
-       endif
-    end do
-    call integrate_vmu (g2, spec%stm_psi0, upar)
-
-    if(allocated(g0k)) deallocate(g0k)
-
-  end subroutine get_moments
-
+     end subroutine get_moments_flux_annulus
+       
   !==============================================
   !================ GET GVMUS ===================
   !==============================================
