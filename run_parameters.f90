@@ -171,6 +171,13 @@ contains
        stream_implicit = .false.
     else if (stream_implicit .and. full_flux_surface) then
        stream_implicit = .false.
+       write (*,*)
+       write (*,*) "!!!WARNING!!!"
+       write (*,*) "The option stream_implicit=T is not supported for full_flux_surface=T."
+       write (*,*) "Setting driftkinetic_implicit=T instead."
+       write (*,*) "!!!WARNING!!!"
+       write (*,*)
+       driftkinetic_implicit = .true.
     end if
 
     if (mirror_implicit.or.stream_implicit.or.driftkinetic_implicit.or.drifts_implicit) then
