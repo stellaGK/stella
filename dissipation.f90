@@ -157,7 +157,6 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use mp, only: proc0, broadcast
     use kt_grids, only: ikx_max, periodic_variation
-    use run_parameters, only: fully_explicit
 
     implicit none
 
@@ -401,7 +400,7 @@ contains
       ! AVB: compute the collision frequencies nuD, nus and nupa
 
       use zgrid, only: nzgrid
-      use vpamu_grids, only: nmu, mu, dmu, vpa, nvpa, integrate_vmu
+      use vpamu_grids, only: nmu, mu, vpa, nvpa, integrate_vmu
       use stella_geometry, only: bmag
       use species, only: spec, nspec
       use spfunc, only: erf => erf_ext
@@ -2450,19 +2449,19 @@ end subroutine init_fp_diffmatrix
                                 if ((exact_conservation).and.(ll==1).and.(jj==0)) then
                                     ! momentum conservation term for uniform mu grid
                                     call integrate_vmu( 3*legendre_vpamu(ll,0,:,:,iz)**2*vlaguerre_vmu(ll,jj,:,:,ia,iz)*deltaj(ll,jj,isa,isb,:,:,ia,iz) &
-                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**-0.5, iz, psijnorm(ll,jj,isa,isb,iz) )
+                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**(-0.5), iz, psijnorm(ll,jj,isa,isb,iz) )
                                 else if ((exact_conservation).and.(ll==0).and.(jj==1)) then
                                     ! energy conservation term for uniform mu grid
                                     call integrate_vmu( legendre_vpamu(ll,0,:,:,iz)**2*vlaguerre_vmu(ll,jj,:,:,ia,iz)*deltaj(ll,jj,isa,isb,:,:,ia,iz) &
-                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**-0.5, iz, psijnorm(ll,jj,isa,isb,iz) )
+                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**(-0.5), iz, psijnorm(ll,jj,isa,isb,iz) )
                                 else if ((exact_conservation_tp).and.(ll==0).and.(jj==1)) then
                                     ! energy conservation term for non-uniform mu grid
                                     call integrate_vmu( legendre_vpamu(ll,0,:,:,iz)**2*vlaguerre_vmu(ll,jj,:,:,ia,iz)*deltaj(ll,jj,isa,isb,:,:,ia,iz) &
-                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**-0.5, iz, psijnorm(ll,jj,isa,isb,iz) )
+                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**(-0.5), iz, psijnorm(ll,jj,isa,isb,iz) )
                                 else if ((exact_conservation_tp).and.(ll==1).and.(jj==0)) then
                                     ! momentum conservation term for non-uniform mu grid
                                     call integrate_vmu( 3*legendre_vpamu(ll,0,:,:,iz)**2*vlaguerre_vmu(ll,jj,:,:,ia,iz)*deltaj(ll,jj,isa,isb,:,:,ia,iz) &
-                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**-0.5, iz, psijnorm(ll,jj,isa,isb,iz) )
+                                        * (spec(isa)%mass/spec(isb)%mass)**(-3) * (spec(isa)%mass/spec(isb)%mass)**(-0.5), iz, psijnorm(ll,jj,isa,isb,iz) )
                                 else if (.not.((exact_conservation).or.(exact_conservation_tp)).and.(ll==0).and.(jj==1)) then
                                     ! non-exact conservation of energy
                                     if (spec(isa)%mass/spec(isb)%mass < 1.) then
@@ -2470,7 +2469,7 @@ end subroutine init_fp_diffmatrix
                                         call integrate_vmu( (-velvpamu(:,:,iz)**2)*deltaj(ll,jj,isb,isa,:,:,ia,iz), iz, psijnorm(ll,jj,isa,isb,iz) )
                                     else
                                         call integrate_vmu( (-velvpamu(:,:,iz)**2)*deltaj(ll,jj,isa,isb,:,:,ia,iz) * (spec(isa)%mass/spec(isb)%mass)**(-3) &
-                                            * (spec(isa)%mass/spec(isb)%mass)**-0.5, iz, psijnorm(ll,jj,isa,isb,iz) )
+                                            * (spec(isa)%mass/spec(isb)%mass)**(-0.5), iz, psijnorm(ll,jj,isa,isb,iz) )
                                     end if
                                 else
                                     ! non-exact conservation of momentum, and higher-order terms
@@ -2479,7 +2478,7 @@ end subroutine init_fp_diffmatrix
                                         call integrate_vmu( vlaguerre_vmu(ll,jj,:,:,ia,iz)*deltaj(ll,jj,isb,isa,:,:,ia,iz), iz, psijnorm(ll,jj,isa,isb,iz) )
                                     else
                                         call integrate_vmu( vlaguerre_vmu(ll,jj,:,:,ia,iz)*deltaj(ll,jj,isa,isb,:,:,ia,iz) * (spec(isa)%mass/spec(isb)%mass)**(-3) &
-                                            * (spec(isa)%mass/spec(isb)%mass)**-0.5, iz, psijnorm(ll,jj,isa,isb,iz) )
+                                            * (spec(isa)%mass/spec(isb)%mass)**(-0.5), iz, psijnorm(ll,jj,isa,isb,iz) )
                                     end if
                                 end if
 
