@@ -68,7 +68,6 @@ contains
   subroutine init_time_advance
 
     use mp, only: proc0
-    use stella_transforms, only: init_transforms
     use run_parameters, only: drifts_implicit
     use physics_flags, only: radial_variation
     use physics_flags, only: include_parallel_nonlinearity
@@ -899,7 +898,7 @@ contains
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
-    use fields, only: advance_fields, fields_updated
+    use fields, only: advance_fields
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
     use dissipation, only: include_krook_operator, update_delay_krook

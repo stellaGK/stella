@@ -3112,13 +3112,13 @@ subroutine get_psi_response (ll, mm, jj, isa, response)
              do imu = 1, nmu
                  if (mm == 0) then
                      ghrs(nmu*(iv-1)+imu) = code_dt*spec(isa)%vnew(is)*clm*legendre_vpamu(ll,mm,iv,imu,iz)&
-                        *jm(imu,mm,iky,ikx,iz,isa)*(spec(isa)%mass/spec(is)%mass)**-1.5*deltaj(ll,jj,isa,is,iv,imu,ia,iz)
+                        *jm(imu,mm,iky,ikx,iz,isa)*(spec(isa)%mass/spec(is)%mass)**(-1.5)*deltaj(ll,jj,isa,is,iv,imu,ia,iz)
                  else if (mm > 0) then
                      ghrs(nmu*(iv-1)+imu) = code_dt*spec(isa)%vnew(is)*clm*legendre_vpamu(ll,mm,iv,imu,iz)&
-                        *jm(imu,mm,iky,ikx,iz,isa)*(spec(isa)%mass/spec(is)%mass)**-1.5*deltaj(ll,jj,isa,is,iv,imu,ia,iz)
+                        *jm(imu,mm,iky,ikx,iz,isa)*(spec(isa)%mass/spec(is)%mass)**(-1.5)*deltaj(ll,jj,isa,is,iv,imu,ia,iz)
                  else if (mm < 0) then
                      ghrs(nmu*(iv-1)+imu) = (-1)**mm*code_dt*spec(isa)%vnew(is)*clm*legendre_vpamu(ll,mm,iv,imu,iz)&
-                        *jm(imu,abs(mm),iky,ikx,iz,isa)*(spec(isa)%mass/spec(is)%mass)**-1.5*deltaj(ll,jj,isa,is,iv,imu,ia,iz)
+                        *jm(imu,abs(mm),iky,ikx,iz,isa)*(spec(isa)%mass/spec(is)%mass)**(-1.5)*deltaj(ll,jj,isa,is,iv,imu,ia,iz)
                  end if
              end do
          end do
