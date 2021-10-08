@@ -81,12 +81,12 @@ contains
 
   end subroutine init_vmec_defaults
 
-  subroutine get_vmec_geo (nzgrid, nalpha, surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
+  subroutine get_vmec_geo (nzgrid, nalpha, naky, surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
        grad_alpha_grad_psi, grad_psi_grad_psi, &
        gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
        cvdrift0_psi, sign_torflux, &
        theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, &
-       field_period_ratio)
+       field_period_ratio, x_displacement_fac)
 
     use constants, only: pi
     use common_types, only: flux_surface_type
@@ -100,13 +100,14 @@ contains
     
     implicit none
 
-    integer, intent (in) :: nzgrid, nalpha
+    integer, intent (in) :: nzgrid, nalpha, naky
     type (flux_surface_type), intent (out) :: surf
     real, dimension (-nzgrid:), intent (out) :: gradpar
     real, dimension (:,-nzgrid:), intent (out) :: grho, bmag, grad_alpha_grad_alpha, &
          grad_alpha_grad_psi, grad_psi_grad_psi, &
          gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
-         cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta ! JFP
+         cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta, & ! JCP
+         x_displacement_fac
     real, dimension (:), intent (out) :: alpha
     real, intent (out) :: zed_scalefac, L_reference, B_reference
     integer, intent (out) :: sign_torflux
@@ -131,7 +132,8 @@ contains
     real, dimension (:,:), allocatable :: gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec
     real, dimension (:,:), allocatable :: gbdrift_alpha_vmec, gbdrift0_psi_vmec
     real, dimension (:,:), allocatable :: cvdrift_alpha_vmec, cvdrift0_psi_vmec
-
+    real, dimension (:,:), allocatable :: x_displacement_fac_vmec
+    
     real, dimension (:), allocatable :: zed_domain_size
     real, dimension (:,:), allocatable :: arc_length
 
@@ -179,6 +181,7 @@ contains
     allocate (gbdrift0_psi_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (cvdrift_alpha_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (cvdrift0_psi_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
+    allocate (x_displacement_fac_vmec(nalpha,-nzgrid_vmec:nzgrid_vmec))
     allocate (arc_length(nalpha,-nzgrid_vmec:nzgrid_vmec))
 
     if (debug) write (*,*) 'get_vmec_geo::vmec_to_stella_geometry_interface'
@@ -192,7 +195,8 @@ contains
          gds23_vmec, gds24_vmec, &
          gds25_vmec, gds26_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, &
          cvdrift_alpha_vmec, &
-         cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod)
+         cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, &
+         x_displacement_fac_vmec)
     
     ! get ratio of number of simulated field periods to the number of field periods of the device
     field_period_ratio = nfield_periods / real(nfp)
@@ -251,6 +255,8 @@ contains
           call geo_spline (arc_length(ia,:), thetamod_vmec(ia,:), zed, theta_vmec(ia,:))
           call geo_spline (arc_length(ia,:), B_sub_zeta_mod(ia,:), zed, B_sub_zeta(ia,:)) ! JFP
           call geo_spline (arc_length(ia,:), B_sub_theta_vmec_mod(ia,:), zed, B_sub_theta_vmec(ia,:)) ! JFP
+          call geo_spline (arc_length(ia,:), x_displacement_fac_vmec(ia,:), zed, x_displacement_fac(ia,:))
+
           !B_sub_zeta = B_sub_zeta_mod
           !B_sub_theta_vmec = B_sub_theta_vmec_mod
 
@@ -272,20 +278,20 @@ contains
        ! this is accomplished by filtering out the highest third of 
        ! the wavenumber spectra
        if (full_flux_surface) then
-          if (debug) write (*,*) 'get_vmec_geo::geo_spline'
+          if (debug) write (*,*) 'get_vmec_geo::filter_geo_coef'
           do iz = -nzgrid, nzgrid
-             call filter_geo_coef (nalpha,bmag(:,iz))
-             call filter_geo_coef (nalpha,grad_alpha_grad_alpha(:,iz))
-             call filter_geo_coef (nalpha,grad_alpha_grad_psi(:,iz))
-             call filter_geo_coef (nalpha,grad_psi_grad_psi(:,iz))
-             call filter_geo_coef (nalpha,gds23(:,iz))
-             call filter_geo_coef (nalpha,gds24(:,iz))
-             call filter_geo_coef (nalpha,gds25(:,iz))
-             call filter_geo_coef (nalpha,gds26(:,iz))
-             call filter_geo_coef (nalpha,gbdrift_alpha(:,iz))
-             call filter_geo_coef (nalpha,gbdrift0_psi(:,iz))
-             call filter_geo_coef (nalpha,cvdrift_alpha(:,iz))
-             call filter_geo_coef (nalpha,cvdrift0_psi(:,iz))
+             call filter_geo_coef (naky,bmag(:,iz))
+             call filter_geo_coef (naky,grad_alpha_grad_alpha(:,iz))
+             call filter_geo_coef (naky,grad_alpha_grad_psi(:,iz))
+             call filter_geo_coef (naky,grad_psi_grad_psi(:,iz))
+             call filter_geo_coef (naky,gds23(:,iz))
+             call filter_geo_coef (naky,gds24(:,iz))
+             call filter_geo_coef (naky,gds25(:,iz))
+             call filter_geo_coef (naky,gds26(:,iz))
+             call filter_geo_coef (naky,gbdrift_alpha(:,iz))
+             call filter_geo_coef (naky,gbdrift0_psi(:,iz))
+             call filter_geo_coef (naky,cvdrift_alpha(:,iz))
+             call filter_geo_coef (naky,cvdrift0_psi(:,iz))
           end do
        end if
     else
@@ -303,6 +309,7 @@ contains
        gbdrift0_psi = gbdrift0_psi_vmec
        cvdrift_alpha = cvdrift_alpha_vmec
        cvdrift0_psi = cvdrift0_psi_vmec
+       x_displacement_fac = x_displacement_fac_vmec
        theta_vmec = thetamod_vmec
        B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
        B_sub_zeta = B_sub_zeta_mod ! JFP
@@ -331,6 +338,7 @@ contains
     deallocate (gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec)
     deallocate (gbdrift_alpha_vmec, gbdrift0_psi_vmec)
     deallocate (cvdrift_alpha_vmec, cvdrift0_psi_vmec)
+    deallocate (x_displacement_fac_vmec)
     deallocate (arc_length)
     
     ! vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc
@@ -373,7 +381,7 @@ contains
     theta_vmec = theta_vmec/nfp
 
     call open_output_file (tmpunit,'.vmec.geo')
-    write (tmpunit,'(6a12)') 'rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
+    write (tmpunit,'(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
     write (tmpunit,'(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, zed_scalefac
     write (tmpunit,'(16a12)') '#    alpha', 'zeta', 'bmag', 'gradpar', 'grad_alpha2',&
          'gd_alph_psi', 'grad_psi2', 'gds23', 'gds24','gbdriftalph', 'gbdrift0psi', 'cvdriftalph',&
@@ -385,24 +393,26 @@ contains
                gds23(i,j), gds24(i,j), &
                gbdrift_alpha(i,j), gbdrift0_psi(i,j), cvdrift_alpha(i,j), cvdrift0_psi(i,j), theta_vmec(i,j), B_sub_theta_vmec(i,j), B_sub_zeta(i,j) ! JFP
        end do
+       write (tmpunit,*)
     end do
     close (tmpunit)
 
   end subroutine get_vmec_geo
 
-  subroutine filter_geo_coef (nalpha, geocoef)
+  subroutine filter_geo_coef (naky, geocoef)
 
     use stella_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
-
+    
     implicit none
     
-    integer, intent (in) :: nalpha
+    integer, intent (in) :: naky
     real, dimension (:), intent (in out) :: geocoef
 
     complex, dimension (:), allocatable :: fourier
 
-    allocate (fourier(nalpha/2+1))
-
+!    allocate (fourier(nalpha/2+1))
+    allocate (fourier(naky))
+    
     ! filtering and padding are built-in to the 
     ! Fourier transform routines below
     call transform_alpha2kalpha (geocoef, fourier)
