@@ -5,7 +5,7 @@ module vpamu_grids
   public :: init_vpamu_grids, finish_vpamu_grids
   public :: read_vpamu_grids_parameters
   public :: calculate_velocity_integrals
-  public :: integrate_vmu, integrate_species
+  public :: integrate_vmu, integrate_species, integrate_species_ffs
   public :: integrate_mu
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
@@ -108,7 +108,6 @@ contains
   subroutine init_vpamu_grids
 
     use species, only: spec, nspec
-    use zgrid, only: nzgrid
 
     implicit none
 
@@ -647,6 +646,46 @@ contains
     if (reduce) call sum_allreduce (pout)
 
   end subroutine integrate_species_vmu_block_real
+
+  subroutine integrate_species_ffs(g, weights, pout, ia_in, reduce_in)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+    implicit none
+
+    integer :: ivmu, iv, is, imu, ia
+    logical :: reduce
+
+    complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
+    integer, intent (in), optional :: ia_in
+    logical, intent (in), optional :: reduce_in
+    real, dimension (:), intent (in) :: weights
+    complex, dimension (:,:), intent (out) :: pout
+
+    pout =0.
+
+    if (present(ia_in)) then
+       ia = ia_in
+    else
+       ia = 1
+    end if
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
+    end if
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       pout = pout + 2.0*wgts_mu_bare(imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
+    end do
+
+    if (reduce) call sum_allreduce (pout)
+
+  end subroutine integrate_species_ffs
 
   subroutine finish_vpa_grid
 

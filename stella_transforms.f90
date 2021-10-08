@@ -188,6 +188,7 @@ contains
   subroutine init_alpha_fft
 
     use fft_work, only: init_rcfftw, init_crfftw
+    use fft_work, only: fft_backward, fft_forward
     use stella_layouts, only: vmu_lo
 
     implicit none
@@ -200,8 +201,8 @@ contains
     if (.not.allocated(fft_alpha_kalpha)) allocate (fft_alpha_kalpha(vmu_lo%nalpha/2+1))
     if (.not.allocated(fft_alpha_alpha)) allocate (fft_alpha_alpha(vmu_lo%nalpha))
 
-    call init_crfftw (alpha_f_fft,  1, vmu_lo%nalpha, fft_alpha_kalpha, fft_alpha_alpha)
-    call init_rcfftw (alpha_b_fft, -1, vmu_lo%nalpha, fft_alpha_alpha, fft_alpha_kalpha)
+    call init_crfftw (alpha_f_fft, fft_backward, vmu_lo%nalpha, fft_alpha_kalpha, fft_alpha_alpha)
+    call init_rcfftw (alpha_b_fft,  fft_forward, vmu_lo%nalpha, fft_alpha_alpha, fft_alpha_kalpha)
 
   end subroutine init_alpha_fft
 

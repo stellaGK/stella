@@ -183,8 +183,18 @@ contains
     call read_vpamu_grids_parameters
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
+    needs_transforms = .false.
+    if(nonlinear.or.include_parallel_nonlinearity) needs_transforms = .true.
+    if(radial_variation.or.full_flux_surface)      needs_transforms = .true.
+    if(runtype_option_switch.eq.runtype_multibox)  needs_transforms = .true.
+    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) & 
+         needs_transforms = .true.
+    if (needs_transforms) then
+       if (debug) write (*,*) "stella::init_stella::init_transforms"
+       call init_transforms
+    end if
     if (debug) write(6,*) "stella::init_stella::init_geometry"
-    call init_geometry (nalpha)
+    call init_geometry (nalpha, naky)
     if (debug) write (6,*) 'stella::init_stella::init_species'
     call init_species
     if (debug) write(6,*) "stella::init_stella::init_init_g"
@@ -207,19 +217,6 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids
-    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
-    !    .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
-    !    runtype_option_switch.eq.runtype_multibox) then
-    needs_transforms = .false.
-    if(nonlinear.or.include_parallel_nonlinearity) needs_transforms = .true.
-    if(radial_variation.or.full_flux_surface)      needs_transforms = .true.
-    if(runtype_option_switch.eq.runtype_multibox)  needs_transforms = .true.
-    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) & 
-      needs_transforms = .true.
-    if (needs_transforms) then
-       if (debug) write (*,*) "stella::init_stella::init_transforms"
-       call init_transforms
-    end if
     if (debug) write (6,*) 'stella::init_stella::init_multibox'
     call init_multibox
     if (proc0.and.runtype_option_switch.eq.runtype_multibox &
