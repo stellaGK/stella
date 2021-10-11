@@ -176,6 +176,13 @@ if (STELLA_ENABLE_PETSC)
   target_link_libraries(libstella PUBLIC PETSc::PETSc)
 endif()
 
+# Ensure FCOMPILER is set
+target_compile_definitions(libstella PRIVATE
+  $<$<Fortran_COMPILER_ID:GNU>:FCOMPILER=_GFORTRAN_>
+  $<$<Fortran_COMPILER_ID:Intel>:FCOMPILER=_INTEL_>
+  $<$<Fortran_COMPILER_ID:Cray>:FCOMPILER=_CRAY_>
+  )
+
 ##################################################
 # Internal libraries
 
