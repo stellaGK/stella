@@ -37,7 +37,7 @@ endif()
 find_package(netCDF REQUIRED)
 
 find_program(NF_CONFIG "nf-config"
-  PATHS "${netCDFFortran_ROOT}"
+  HINTS "${netCDFFortran_ROOT}" "${netCDF_ROOT}"
   PATH_SUFFIXES bin
   DOC "Path to netCDF Fortran config helper"
   NO_DEFAULT_PATH
@@ -115,10 +115,16 @@ if (NOT netCDF_Fortran_LIBRARY OR NOT netCDF_Fortran_INCLUDE_DIR)
   endif()
 endif()
 
+if (NOT NF_CONFIG)
+  set(failure_reason "Could not find 'nf-config'. ")
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(netCDFFortran
   REQUIRED_VARS netCDF_Fortran_LIBRARY netCDF_Fortran_INCLUDE_DIR
-  VERSION_VAR netCDFFortran_VERSION)
+  VERSION_VAR netCDFFortran_VERSION
+  REASON_FAILURE_MESSAGE "${failure_reason}Try setting netCDFFortran_ROOT to the location of netCDF"
+  )
 
 if (netCDFFortran_FOUND)
   set(netCDFFortran_INCLUDE_DIRS "${netCDF_Fortran_INCLUDE_DIR}")

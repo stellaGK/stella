@@ -115,10 +115,16 @@ if (netCDF_C_INCLUDE_DIR)
   unset(_netcdf_version_lines)
 endif ()
 
+if (NOT NC_CONFIG)
+  set(failure_reason "Could not find 'nc-config'. ")
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(netCDF
   REQUIRED_VARS netCDF_C_LIBRARY netCDF_C_INCLUDE_DIR
-  VERSION_VAR netCDF_VERSION)
+  VERSION_VAR netCDF_VERSION
+  REASON_FAILURE_MESSAGE "${failure_reason}Try setting netCDF_ROOT to the location of netCDF"
+  )
 
 if (netCDF_FOUND)
   set(netCDF_INCLUDE_DIR "${netCDF_C_INCLUDE_DIR}")
