@@ -23,6 +23,10 @@ plain `make`.
 
 ### CMake
 
+**Note**: If you have previously built stella with plain `make` you
+_must_ run `make clean` before attempting to build with CMake, or the
+existing built objects will interfere with the CMake build.
+
 Building stella with CMake requires CMake >= 3.16. You can download
 the latest version from the [CMake
 website](https://cmake.org/download/), but it is often easier to
@@ -66,7 +70,13 @@ There are a few build options:
   (default: off)
 - `STELLA_ENABLE_F200X`: Enable use of F2003/F2008 functionality (default: on)
 
-You can turn these on or off with `-D<option name>=ON/OFF`
+You can turn these on or off with `-D<option name>=ON/OFF`. You can
+get a complete list of options by running the following in a build
+directory:
+
+```
+cmake -LH
+```
 
 ### Makefiles
 
