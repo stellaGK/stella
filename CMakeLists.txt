@@ -24,7 +24,7 @@ option(STELLA_ENABLE_RANDOM_MT "Enable Mersenne-Twister rng (not recommended)" O
 option(STELLA_ENABLE_F200X "Enable use of F2003/F2008 functionality" ON)
 
 # Options for testing
-option(STELLA_ENABLE_TESTS "Enable pFUnit-based tests" ON)
+option(STELLA_ENABLE_TESTS "Enable pFUnit-based tests" OFF)
 option(STELLA_DOWNLOAD_PFUNIT "Download and compile pFUnit at configure time" ON)
 
 ############################################################
