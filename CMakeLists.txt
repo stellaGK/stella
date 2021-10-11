@@ -183,6 +183,20 @@ target_compile_definitions(libstella PRIVATE
   $<$<Fortran_COMPILER_ID:Cray>:FCOMPILER=_CRAY_>
   )
 
+############################################################
+# Add some extra flags for Debug configs
+
+target_compile_options(libstella PRIVATE
+  $<$<CONFIG:Debug>:
+    $<$<Fortran_COMPILER_ID:GNU>:
+      -g -Wall -fimplicit-none -fbounds-check >
+    $<$<Fortran_COMPILER_ID:Intel>:
+      -g -implicitnone -warn all -nogen-interfaces -CB -traceback >
+    $<$<Fortran_COMPILER_ID:Cray>:
+      -g -Rb >
+    >
+  )
+
 ##################################################
 # Internal libraries
 
