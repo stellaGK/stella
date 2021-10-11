@@ -11,6 +11,12 @@ jobs:
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "Makefiles"
+          - name: "CMake"
     steps:
       - name: Install dependencies
         run: sudo apt update &&
@@ -36,5 +42,10 @@ jobs:
       - name: Install integrated test dependencies
         run: pip3 install --user -r tests/integrated/requirements.txt
 
-      - name: Build stella
+      - name: Build stella (Makefile)
+        if: ${{ ! contains(matrix.config.name, 'CMake') }}
         run: ./scripts/ci_build_and_run.sh
+
+      - name: Build stella (CMake)
+        if: ${{ contains(matrix.config.name, 'CMake') }}
+        run: ./scripts/ci_cmake_build_and_run.sh

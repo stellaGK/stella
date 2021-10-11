@@ -1,7 +1,7 @@
 ! This is a very simple test module to demonstrate the test suite is
 ! working. This will be removed as soon as we have some actually
 ! useful tests
-module test_simple_mod
+module test_simple
   use funit
   implicit none
 contains
@@ -9,4 +9,4 @@ contains
   subroutine test_always_true
     @assertTrue(.true.)
   end subroutine test_always_true
-end module test_simple_mod
+end module test_simple
