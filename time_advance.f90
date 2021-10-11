@@ -321,6 +321,9 @@ contains
 
     end do
 
+    write(*,*) "wdrifty_phi(1,:,10) = ", wdrifty_phi(1,:,10)
+    write(*,*) "wdriftx_phi(1,:,10) = ", wdriftx_phi(1,:,10)
+
     deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
   end subroutine init_wdrift
@@ -369,7 +372,7 @@ contains
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
-
+    write(*,*) "wstar(1,:,10) = ", wstar(1,:,10)
     deallocate (energy)
 
   end subroutine init_wstar
@@ -2357,12 +2360,21 @@ contains
             call get_dgdx(g0a,g1k)
             g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
+<<<<<<< Updated upstream
             !           !wdriftx F_M/T_s variation
 !           call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
 !           g0a = adiabatic_phi(ia,iz,ivmu)*g0a
 !           call multiply_by_rho(g0a)
 !           call get_dgdx(g0a,g1k)
 !           g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
+=======
+            !wdriftx F_M/T_s variation
+            call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
+            g0a = adiabatic_phi(ia,iz,ivmu)*g0a
+            call multiply_by_rho(g0a)
+            call get_dgdx(g0a,g1k)
+            g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
+>>>>>>> Stashed changes
 
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
           end do
@@ -2767,7 +2779,11 @@ contains
     complex, dimension (:,:,:), allocatable :: gyro_g
 
     ia = 1
+<<<<<<< Updated upstream
     write(*,*) "In advance_drifts_implicit, this is wrong"
+=======
+
+>>>>>>> Stashed changes
     allocate (wd_g(naky,nakx))
     allocate (wd_phi(naky,nakx))
     allocate (wstr(naky,nakx))
