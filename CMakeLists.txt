@@ -160,6 +160,8 @@ if (STELLA_ENABLE_DOUBLE)
       -fdefault-real-8 -fdefault-double-8 >
     $<$<Fortran_COMPILER_ID:Intel>:
       -r8 >
+    $<$<Fortran_COMPILER_ID:Cray>:
+      -s real64 >
     )
   set(STELLA_DEFAULT_REAL_KIND "double")
 else()
