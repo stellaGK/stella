@@ -120,6 +120,9 @@ target_link_libraries(stella PRIVATE libstella)
 ############################################################
 # Dependencies and build options
 
+# This might not be entirely sensible, but helps CMake to find the
+# correct MPI, workaround for https://gitlab.kitware.com/cmake/cmake/issues/18895
+find_program(MPIEXEC_EXECUTABLE NAMES mpiexec mpirun)
 find_package(MPI REQUIRED)
 target_link_libraries(libstella PUBLIC MPI::MPI_Fortran)
 target_compile_definitions(libstella PUBLIC MPI)
