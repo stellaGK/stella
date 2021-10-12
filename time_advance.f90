@@ -967,8 +967,7 @@ contains
     ! Work out whether there's any terms which are to be evolved by a
     ! Runge-Kutta scheme this timestep.
     ! TODO: Tidy up this logic, maybe put in its own subroutine.
-    if ((nonlinear) .and. ( (.not. leapfrog_this_timestep) .or. (.not. nisl_nonlinear &
-            .and. .not. leapfrog_nonlinear))) then
+    if ((nonlinear) .and. ( (.not. leapfrog_this_timestep))) then
       runge_kutta_terms_this_timestep = .true.
     else if (include_parallel_nonlinearity) then
       runge_kutta_terms_this_timestep = .true.
@@ -1941,7 +1940,7 @@ contains
     use run_parameters, only: fphi
     use physics_parameters, only: g_exb, g_exbfac
     use zgrid, only: nzgrid, ntubes
-    use stella_geometry, only: exb_nonlin_fac, gfac
+    use stella_geometry, only: exb_nonlin_fac, gfac, dxdXcoord, dydalpha
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
     use kt_grids, only: akx, aky, rho_clamped
     use kt_grids, only: x, y, swap_kxky, swap_kxky_back
@@ -1963,13 +1962,13 @@ contains
     integer :: ivmu, iz, it, ia, imu, is, ix, iy, p, q, xidx_departure, yidx_departure, yidx_for_upsampled_array, xidx_for_upsampled_array
     logical :: yfirst
     real :: y_departure, x_departure, yval, xval, rhs, velocity_x, velocity_y
-
+    real :: max_velocity_x, max_velocity_y
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance, nisl')
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
-    ! Assume no perp shear; yfist = true
+    ! Assume no perp shear; yfirst = true
 
     allocate (g0k(naky,nakx))
     allocate (dgold_dx(2*ny,2*nx))
@@ -2013,17 +2012,23 @@ contains
 
           ! TODO: Check phi and apar are corresponding to phi_old
           call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-          call forward_transform_extra_padding(g0k,vchiold_x)
+          call forward_transform_extra_padding(g0k,vchiold_y)
 
-          vchiold_x = vchiold_x*exb_nonlin_fac
+          ! NB we haven't flipped the signs (in contrast to advance_exb_nonlinearity)
+          ! because this is the actual velocity - we haven't moved to the RHS yet.
+          vchiold_y = -vchiold_y*exb_nonlin_fac
+          !vchiold_y = -vchiold_y*dxdXcoord*0.5
+          !dgold_dy =  dgold_dy*dydalpha
 
           call get_dgdx (gold(:,:,iz,it,ivmu), g0k)
           call forward_transform_extra_padding(g0k,dgold_dx)
           ! TODO: Check phi and apar are corresponding to phi_old
           call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-          call forward_transform_extra_padding(g0k,vchiold_y)
+          call forward_transform_extra_padding(g0k,vchiold_x)
 
-          vchiold_y = vchiold_y*exb_nonlin_fac
+          vchiold_x = vchiold_x*exb_nonlin_fac
+          !vchiold_x = vchiold_x*dydalpha*0.5
+          !dgold_dx = dgold_dx!*dxdXcoord
           ! dgold_dx = dgold/dx(x,y)
           ! vchiold_y = vchiold_y(x,y)
 
@@ -2032,6 +2037,13 @@ contains
 
           !!! Write everything to file
           !call write_nonlinear_data_to_file(ny, nx, naky, nakx, golder(:,:,iz,it,ivmu), golderxy, dgold_dy, dgold_dx, vchiold_y, vchiold_x)
+
+          max_velocity_x = dx/(2*code_dt)
+          max_velocity_y = dy/(2*code_dt)
+
+          ! Hack: force velocities to be some constant
+          ! vchiold_y = 1
+          ! vchiold_x = 1
 
           ! Step 3) Calculate departure points, and hence velocities and p, q
           do iy = 1, ny
@@ -2044,7 +2056,9 @@ contains
               velocity_y = (y(iy) - y_departure)/(2*code_dt)
               p = nint((x(ix) - x_departure)/dx)
               q = nint((y(iy) - y_departure)/dy)
-              !write(*,*) "p, q = ", p, q
+              ! if ((p .ne. 0) .or. (q .ne. 0)) then
+              !   write(*,*) "p, q = ", p, q
+              ! end if
               ! Find idxs of gridpoint closest to departure point.
               ! Normal idxs must be in the range(1,2,3,...,nx(or ny))
               ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
@@ -2057,6 +2071,18 @@ contains
               velocity_x = velocity_x - p*dx/(2*code_dt)
               velocity_y = velocity_y - q*dy/(2*code_dt)
 
+              ! Can we check velocity_x, velocity_y to see if they're breaking a CFL condition?
+              ! Are the residual velocities larger than expected?
+              if (abs(velocity_x) > max_velocity_x) then
+                write(*,*) "velocity_x, max_velocity_x =  ", velocity_x, max_velocity_x
+                write(*,*) "velocity_y, max_velocity_y =  ", velocity_y, max_velocity_y
+                stop "Stopping early"
+              end if
+              if (abs(velocity_y) > max_velocity_y) then
+                write(*,*) "velocity_x, max_velocity_x =  ", velocity_x, max_velocity_x
+                write(*,*) "velocity_y, max_velocity_y =  ", velocity_y, max_velocity_y
+                stop "Stopping early"
+              end if
               !! Update golder(x,y)
               !  !   if n_timesteps == 1:
               !  !     ## The single-step version:
@@ -2242,8 +2268,8 @@ contains
             ! We've hit the boundary in y - update the non-periodic
             ! position of the particle and the periodic position of the
             ! particle.
-            yboundary = (yboundary - u_y*very_small_dt )   ! slightly overstep, so we're definitely in the next cell
-            xboundary = (xboundary - u_x * (ydist_dt + very_small_dt))
+            y_departure = (yboundary - u_y*very_small_dt )   ! slightly overstep, so we're definitely in the next cell
+            x_departure = (xboundary - u_x * (ydist_dt + very_small_dt))
 
             ! Update the values of u_x, u_y
             if (u_y > 0) then
@@ -2279,8 +2305,8 @@ contains
             time_remaining = time_remaining - (ydist_dt + very_small_dt)
           else
             ! Hit the boundary in x
-            xboundary = (xboundary - u_x*very_small_dt)    ! slightly overstep, so we're definitely in the next cell
-            yboundary = (yboundary - u_y*(xdist_dt + very_small_dt))
+            x_departure = (xboundary - u_x*very_small_dt)    ! slightly overstep, so we're definitely in the next cell
+            y_departure = (yboundary - u_y*(xdist_dt + very_small_dt))
 
             ! Update the values of u_x, u_y
             if (u_x > 0) then
