@@ -907,6 +907,7 @@ contains
     use physics_flags, only: nonlinear
     use physics_flags, only: include_parallel_nonlinearity
     use physics_flags, only: include_mirror
+    use physics_flags, only: include_drifts
     use physics_flags, only: include_parallel_streaming
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_parameters, only: g_exb
@@ -975,7 +976,7 @@ contains
       runge_kutta_terms_this_timestep = .true.
     else if (include_mirror.and..not.mirror_implicit) then
       runge_kutta_terms_this_timestep = .true.
-    else if (.not.drifts_implicit .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
+    else if ( (include_drifts .and. .not.drifts_implicit) .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
       runge_kutta_terms_this_timestep = .true.
     else if (include_collisions.and..not.collisions_implicit) then
       runge_kutta_terms_this_timestep = .true.
@@ -1035,7 +1036,7 @@ contains
       end if
 
       if (restart_time_step) then
-        !write(*,*) "restart_time_step!"
+        write(*,*) "restart_time_step!"
         ! Need to re-do the step with Lie splitting
         ! This flag tells us we need to treat whatever terms we were going to
         ! treat with the leapfrog approach with a non-leapfrog scheme.
@@ -1391,6 +1392,7 @@ contains
     use physics_flags, only: include_parallel_nonlinearity
     use physics_flags, only: include_parallel_streaming
     use physics_flags, only: include_mirror
+    use physics_flags, only: include_drifts
     use physics_flags, only: nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: nisl_nonlinear, leapfrog_nonlinear, leapfrog_drifts
@@ -1465,7 +1467,7 @@ contains
        !  (2) (nisl_nonlinear = .false. and leapfrog_nonlinear = .false.) UNLESS
        !    leapfrog_this_timestep = .false.
 
-       if (.not.drifts_implicit .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
+       if ((include_drifts .and. .not. drifts_implicit) .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
          !write(*,*) "Advancing drifts in the explicit way."
          ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
          call advance_wdrifty_explicit (gin, phi, rhs)
@@ -1938,6 +1940,7 @@ contains
     ! use stella_diagnostics, only: write_nonlinear_data_to_file
     use stella_time, only: code_dt
     use run_parameters, only: fphi
+    use physics_flags, only: override_vexb, vexb_x, vexb_y
     use physics_parameters, only: g_exb, g_exbfac
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac, gfac, dxdXcoord, dydalpha
@@ -1957,7 +1960,7 @@ contains
     !complex, dimension (:,:,:,:,:), allocatable :: gout, g
     complex, dimension (:,:), allocatable :: g0k, g0k_swap!, g0k_swap_extra_padding
     complex, dimension (:,:), allocatable :: g0kxy, g0kxy_extra_padding
-    real, dimension (:,:), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy!, bracket
+    real, dimension (:,:), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy, dgold_dx_normal!, bracket
 
     integer :: ivmu, iz, it, ia, imu, is, ix, iy, p, q, xidx_departure, yidx_departure, yidx_for_upsampled_array, xidx_for_upsampled_array
     logical :: yfirst
@@ -1972,6 +1975,7 @@ contains
 
     allocate (g0k(naky,nakx))
     allocate (dgold_dx(2*ny,2*nx))
+    allocate (dgold_dx_normal(ny,nx))
     allocate (dgold_dy(2*ny,2*nx))
     allocate (vchiold_x(2*ny,2*nx))
     allocate (vchiold_y(2*ny,2*nx))
@@ -1987,13 +1991,14 @@ contains
     ! write(*,*) "akx = ", akx
     ! write(*,*) "x = ", x
     ! write(*,*) "dx, dy, x0, y0 = ", dx, dy, x0, y0
+    !write(*,*) ""
     ia=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       imu = imu_idx(vmu_lo,ivmu)
       is = is_idx(vmu_lo,ivmu)
       do it = 1, ntubes
         do iz = -nzgrid, nzgrid
-          !write(*,*) "BEFORE golder = ", golder
+          !write(*,*) "BEFORE golder(:,:,iz,it,ivmu) = ", golder(:,:,iz,it,ivmu)
           ! Need to do the following:
           ! 1) Get dgold/dx(x,y), dgold/dy(x,y), vchiold_x(x,y), vchiold_y(x,y)
           ! 2) Get golder(x,y)
@@ -2022,6 +2027,7 @@ contains
 
           call get_dgdx (gold(:,:,iz,it,ivmu), g0k)
           call forward_transform_extra_padding(g0k,dgold_dx)
+          call forward_transform(g0k,dgold_dx_normal)
           ! TODO: Check phi and apar are corresponding to phi_old
           call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
           call forward_transform_extra_padding(g0k,vchiold_x)
@@ -2035,16 +2041,25 @@ contains
           ! Step 2) Get golder(x,y)
           call forward_transform(golder(:,:,iz,it,ivmu),golderxy)
 
+          ! if ((iz == 1) .and. (ivmu == 1) ) then
+          !   write(*,*) "maxval(abs(dgold_dx)), maxval(abs(dgold_dy)) = ", maxval(abs(dgold_dx)), maxval(abs(dgold_dy))
+          ! end if
           !!! Write everything to file
           !call write_nonlinear_data_to_file(ny, nx, naky, nakx, golder(:,:,iz,it,ivmu), golderxy, dgold_dy, dgold_dx, vchiold_y, vchiold_x)
 
-          max_velocity_x = dx/(2*code_dt)
-          max_velocity_y = dy/(2*code_dt)
+          max_velocity_x = dx/(4*code_dt)
+          max_velocity_y = dy/(4*code_dt)
 
           ! Hack: force velocities to be some constant
-          ! vchiold_y = 1
-          ! vchiold_x = 1
+          ! vchiold_y = 0
+          ! vchiold_x = 0.2 ! 0-> 6E1 ; 0.1 -> 9E1 ; 0.5 -> 1E11 ; 0.3 -> 1E6 ; 0.2 -> 4E3; 0.15 -> 3E2
+          !                 ! 0.2 -> 4E3 at t=30 for delt=0.03, 0.015, 0.005, 0.1,
 
+          if (override_vexb) then
+            vchiold_y = vexb_y
+            vchiold_x = vexb_x
+            !write(*,*) "vchiold_y, vchiold_x = ", vchiold_y, vchiold_x
+          end if
           ! Step 3) Calculate departure points, and hence velocities and p, q
           do iy = 1, ny
             do ix = 1, nx
@@ -2064,12 +2079,15 @@ contains
               ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
               xidx_departure = modulo((ix - p - 1),nx) + 1
               yidx_departure = modulo((iy - q - 1),ny) + 1
-              xidx_for_upsampled_array = modulo((2*ix - p - 1),(2*nx)) + 1
-              yidx_for_upsampled_array = modulo((2*iy - q - 1),(2*ny)) + 1
+              xidx_for_upsampled_array = modulo((2*ix - p - 2),(2*nx)) + 1
+              yidx_for_upsampled_array = modulo((2*iy - q - 2),(2*ny)) + 1
+              ! write(*,*) "ix, xidx_departure, xidx_for_upsampled_array = ", ix, xidx_departure, xidx_for_upsampled_array
+              ! write(*,*) "iy, yidx_departure, yidx_for_upsampled_array = ", iy, yidx_departure, yidx_for_upsampled_array
 
               ! Residual velocities
               velocity_x = velocity_x - p*dx/(2*code_dt)
               velocity_y = velocity_y - q*dy/(2*code_dt)
+              !write(*,*) "velocity_x, velocity_y = ", velocity_x, velocity_y
 
               ! Can we check velocity_x, velocity_y to see if they're breaking a CFL condition?
               ! Are the residual velocities larger than expected?
@@ -2090,6 +2108,7 @@ contains
               !  !                     + vchiresidual_y * dgold_dy_array[yidx_for_norm_array, xidx_for_norm_array] )
               !  ! elif n_timesteps == 2:
               ! The 3-step version
+              !write(*,*) "dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx(yidx, xidx) = ", dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx_normal(iy,ix)
               rhs = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
                       + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
               gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs
@@ -2099,9 +2118,10 @@ contains
           call transform_x2kx (gnewxy, g0kxy)
           call transform_y2ky (g0kxy, g0k_swap)
           call swap_kxky_back (g0k_swap, golder(:,:,iz,it,ivmu))
+          !write(*,*) "AFTER golder(:,:,iz,it,ivmu) = ", golder(:,:,iz,it,ivmu)
+          !stop "Stopping early"
         end do
       end do
-      !write(*,*) "AFTER golder = ", golder
       ! ! enforce periodicity for zonal mode
       ! ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
       ! ! AND MAY INDEED BE THE WRONG THING TO DO
@@ -2203,6 +2223,7 @@ contains
       x_departure = x(x_idx)
 
       max_iterations = 100
+      very_small_dt = 1E-10
 
       u_x = vx_upsampled(y_idx,x_idx)
       u_y = vy_upsampled(y_idx,x_idx)

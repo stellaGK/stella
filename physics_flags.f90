@@ -8,12 +8,16 @@ module physics_flags
   public :: radial_variation
   public :: include_parallel_nonlinearity
   public :: include_parallel_streaming
+  public :: include_drifts
   public :: include_mirror
   public :: prp_shear_enabled
   public :: hammett_flow_shear
   public :: include_pressure_variation
   public :: include_geometric_variation
   public :: nonlinear
+  public :: override_vexb
+  public :: vexb_x
+  public :: vexb_y
 
   private
 
@@ -21,13 +25,16 @@ module physics_flags
   logical :: radial_variation
   logical :: include_parallel_nonlinearity
   logical :: include_parallel_streaming
+  logical :: include_drifts
   logical :: include_pressure_variation
   logical :: include_geometric_variation
   logical :: include_mirror
   logical :: nonlinear
   logical :: prp_shear_enabled
   logical :: hammett_flow_shear
-
+  logical :: override_vexb
+  real :: vexb_x
+  real :: vexb_y
   logical :: initialized = .false.
 
 contains
@@ -52,11 +59,12 @@ contains
 
     integer :: in_file
     logical :: rpexist
-    
+
     namelist /physics_flags/ full_flux_surface, radial_variation, &
          include_parallel_nonlinearity, include_parallel_streaming, &
          include_mirror, nonlinear, &
-         include_pressure_variation, include_geometric_variation
+         include_pressure_variation, include_geometric_variation, include_drifts, &
+         override_vexb, vexb_x, vexb_y
 
     if (proc0) then
        full_flux_surface = .false.
@@ -66,12 +74,15 @@ contains
        include_parallel_nonlinearity = .false.
        include_parallel_streaming = .true.
        include_mirror = .true.
+       include_drifts = .true.
        nonlinear = .false.
-
+       override_vexb = .false.
+       vexb_x = 0
+       vexb_y = 0
        in_file = input_unit_exist("physics_flags", rpexist)
        if (rpexist) read (unit=in_file,nml=physics_flags)
     end if
-    
+
     prp_shear_enabled = .false.
     hammett_flow_shear = .true.
 
@@ -82,7 +93,11 @@ contains
     call broadcast (include_parallel_nonlinearity)
     call broadcast (include_parallel_streaming)
     call broadcast (include_mirror)
+    call broadcast (include_drifts)
     call broadcast (nonlinear)
+    call broadcast (override_vexb)
+    call broadcast (vexb_x)
+    call broadcast (vexb_y)
 
   end subroutine read_parameters
 
