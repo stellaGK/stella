@@ -475,7 +475,8 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-      src(:, :, :, :, ivmu) = src(:, :, :, :, ivmu) + spread(spread(spread(mirror(1, :, imu, is), 1, naky), 2, nakx), 4, ntubes) * g(:, :, :, :, ivmu)
+         src(:, :, :, :, ivmu) = src(:, :, :, :, ivmu) &
+                                 + spread(spread(spread(mirror(1, :, imu, is), 1, naky), 2, nakx), 4, ntubes) * g(:, :, :, :, ivmu)
       end do
 
    end subroutine add_mirror_term
@@ -497,7 +498,8 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         src(:, :, :, :, ivmu) = src(:, :, :, :, ivmu) + spread(spread(mirror(:, :, imu, is), 2, nakx), 4, ntubes) * g(:, :, :, :, ivmu)
+         src(:, :, :, :, ivmu) = src(:, :, :, :, ivmu) &
+                                 + spread(spread(mirror(:, :, imu, is), 2, nakx), 4, ntubes) * g(:, :, :, :, ivmu)
       end do
 
    end subroutine add_mirror_term_annulus

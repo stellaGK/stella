@@ -948,8 +948,9 @@ contains
                   call transform_kx2x_unpadded(totals(:, :, iz, it, is), g0x)
                   call transform_kx2x_unpadded(fld(:, :, iz, it), g1x)
                   do ikx = boundary_size + 1, nakx - boundary_size
-                     flux_sum(is) = flux_sum(is) + &
-                                    sum(0.5 * mode_fac * aky * aimag(g0x(:, ikx) * conjg(g1x(:, ikx))) * dVolume(ia, ikx, iz))
+                     flux_sum(is) = flux_sum(is) &
+                                    + sum(0.5 * mode_fac * aky &
+                                          * aimag(g0x(:, ikx) * conjg(g1x(:, ikx))) * dVolume(ia, ikx, iz))
                      volume = volume + dVolume(ia, ikx, iz)
                   end do
                end do
@@ -962,8 +963,9 @@ contains
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   do ikx = 1, nakx
-                     flux_sum(is) = flux_sum(is) + &
-                                    sum(0.5 * mode_fac * aky * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:, ikx, iz, it))) * dVolume(ia, ikx, iz))
+                     flux_sum(is) = flux_sum(is) &
+                                    + sum(0.5 * mode_fac * aky &
+                                          * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:, ikx, iz, it))) * dVolume(ia, ikx, iz))
                      volume = volume + dVolume(ia, ikx, iz)
                   end do
                end do
@@ -1214,7 +1216,9 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         g2(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)*( vpa(iv)*(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2.*vpa(iv) )
+         g2(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) * (vpa(iv) &
+                                                       * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes)) &
+                                                       - 5./2.*vpa(iv))
       end do
       call integrate_vmu(g2, spec%stm, spitzer2) ! AVB: stm is the thermal speed
 
