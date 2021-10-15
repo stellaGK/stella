@@ -55,7 +55,7 @@ contains
          in_file = input_unit_exist("parameters", rpexist)
          if (rpexist) read (unit=in_file, nml=parameters)
 
-         if (irhostar .gt. 0) rhostar = 1./irhostar
+         if (irhostar > 0) rhostar = 1./irhostar
       end if
 
       call broadcast(beta)

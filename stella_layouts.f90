@@ -127,16 +127,16 @@ contains
       in_file = input_unit_exist("layouts_knobs", exist)
       if (exist) read (unit=input_unit("layouts_knobs"), nml=layouts_knobs)
 
-      if (xyzs_layout .ne. 'xyzs' .and. &
-          xyzs_layout .ne. 'xzys' .and. &
-          xyzs_layout .ne. 'yxzs' .and. &
-          xyzs_layout .ne. 'yzxs' .and. &
-          xyzs_layout .ne. 'zxys' .and. &
-          xyzs_layout .ne. 'zyxs') then
+      if (xyzs_layout /= 'xyzs' .and. &
+          xyzs_layout /= 'xzys' .and. &
+          xyzs_layout /= 'yxzs' .and. &
+          xyzs_layout /= 'yzxs' .and. &
+          xyzs_layout /= 'zxys' .and. &
+          xyzs_layout /= 'zyxs') then
          call mp_abort('stella_layouts: read_parameters finds illegal xyzs_layout. aborting')
       end if
-      if (vms_layout .ne. 'vms' .and. &
-          vms_layout .ne. 'mvs') then
+      if (vms_layout /= 'vms' .and. &
+          vms_layout /= 'mvs') then
          call mp_abort('stella_layouts: read_parameters finds illegal vms_layout. aborting')
       end if
 

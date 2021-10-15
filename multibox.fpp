@@ -234,7 +234,7 @@ contains
       bs_fullgrid = nint((3.0 * boundary_size) / 2.0)
 
       ikymin = 1
-      if (mb_zf_option_switch .eq. mb_zf_option_skip_ky0) ikymin = 2
+      if (mb_zf_option_switch == mb_zf_option_skip_ky0) ikymin = 2
 
       pfac = 1
       if (periodic_variation) pfac = 2
@@ -245,7 +245,7 @@ contains
       if (.not. allocated(g_buffer1)) allocate (g_buffer1(g_buff_size))
       if (.not. allocated(phi_buffer0)) allocate (phi_buffer0(phi_buff_size))
       if (.not. allocated(phi_buffer1)) allocate (phi_buffer1(phi_buff_size))
-      if (.not. allocated(fsa_x) .and. (mb_zf_option_switch .eq. mb_zf_option_zero_fsa)) then
+      if (.not. allocated(fsa_x) .and. (mb_zf_option_switch == mb_zf_option_zero_fsa)) then
          allocate (fsa_x(nakx)); fsa_x = 0.0
       end if
       if (.not. allocated(copy_mask_left)) allocate (copy_mask_left(pfac * boundary_size)); copy_mask_left = 1.0
@@ -253,7 +253,7 @@ contains
       if (.not. allocated(krook_mask_left)) allocate (krook_mask_left(pfac * boundary_size)); krook_mask_left = 0.0
       if (.not. allocated(krook_mask_right)) allocate (krook_mask_right(pfac * boundary_size)); krook_mask_right = 0.0
 
-      if (krook_size .gt. 0) then
+      if (krook_size > 0) then
          select case (krook_option_switch)
          case (krook_option_flat)
             do i = 1, krook_size
@@ -324,7 +324,7 @@ contains
          end if
          do i = 1, x_fft_size
             if (periodic_variation) then
-               if (i .le. (x_fft_size / 2)) then
+               if (i <= (x_fft_size / 2)) then
                   x_mb(i) = (i - 1) * dx_mb - 0.5 * x_shift
                else
                   x_mb(i) = x_mb(x_fft_size - i + 1)
@@ -544,7 +544,7 @@ contains
             do it = 1, vmu_lo%ntubes
 
                !this is where the FSA goes
-               if (zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
+               if (zonal_mode(1) .and. mb_zf_option_switch == mb_zf_option_zero_fsa) then
                   do ix = 1, nakx
                      fsa_x(ix) = sum(dl_over_b(ia, :) * gin(1, ix, :, it, iv))
                   end do
@@ -554,9 +554,9 @@ contains
                   fft_kxky = gin(:, :, iz, it, iv)
 
                   if (zonal_mode(1)) then
-                     if (mb_zf_option_switch .eq. mb_zf_option_zero_ky0) then
+                     if (mb_zf_option_switch == mb_zf_option_zero_ky0) then
                         fft_kxky(1, :) = 0.0
-                     elseif (mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
+                     elseif (mb_zf_option_switch == mb_zf_option_zero_fsa) then
                         fft_kxky(1, :) = fft_kxky(1, :) - fsa_x
                      end if
                   end if
@@ -565,7 +565,7 @@ contains
                   fft_xky = fft_xky * prefac
                   do ix = 1, pfac * boundary_size
                      iix = ix + offset
-                     if (iix .le. 0) iix = iix + nakx
+                     if (iix <= 0) iix = iix + nakx
                      do iky = ikymin, naky
                         !DSO if in the future the grids can have different naky, one will
                         !have to divide by naky here, and multiply on the receiving end
@@ -582,7 +582,7 @@ contains
          do it = 1, vmu_lo%ntubes
 
             !this is where the FSA goes
-            if (zonal_mode(1) .and. mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
+            if (zonal_mode(1) .and. mb_zf_option_switch == mb_zf_option_zero_fsa) then
                do ix = 1, nakx
                   fsa_x(ix) = sum(dl_over_b(ia, :) * phi(1, ix, :, it))
                end do
@@ -592,9 +592,9 @@ contains
                fft_kxky = spread((zi * akx)**phi_pow, 1, naky) * phi(:, :, iz, it)
 
                if (zonal_mode(1)) then
-                  if (mb_zf_option_switch .eq. mb_zf_option_zero_ky0) then
+                  if (mb_zf_option_switch == mb_zf_option_zero_ky0) then
                      fft_kxky(1, :) = 0.0
-                  elseif (mb_zf_option_switch .eq. mb_zf_option_zero_fsa) then
+                  elseif (mb_zf_option_switch == mb_zf_option_zero_fsa) then
                      fft_kxky(1, :) = fft_kxky(1, :) - fsa_x
                   end if
                end if
@@ -604,7 +604,7 @@ contains
                do iky = ikymin, naky
                   do ix = 1, pfac * boundary_size
                      iix = ix + offset
-                     if (iix .le. 0) iix = iix + nakx
+                     if (iix <= 0) iix = iix + nakx
                      !DSO if in the future the grids can have different naky, one will
                      !have to divide by naky here, and multiply on the receiving end
                      phi_buffer0(num) = fft_xky(iky, iix)
@@ -639,8 +639,8 @@ contains
                   do ix = 1, pfac * boundary_size
                      iL = ix + offsetL
                      iR = ix + offsetR
-                     if (iL .le. 0) iL = iL + x_fft_size
-                     if (iR .le. 0) iR = iR + x_fft_size
+                     if (iL <= 0) iL = iL + x_fft_size
+                     if (iR <= 0) iR = iR + x_fft_size
                      do iky = ikymin, naky
                         fft_xky(iky, iL) = fft_xky(iky, iL) * (1 - copy_mask_left(ix)) &
                                            + g_buffer0(num) * copy_mask_left(ix)
@@ -656,8 +656,8 @@ contains
                      do ix = 1, pfac * boundary_size
                         iL = ix + offsetL
                         iR = ix + offsetR
-                        if (iL .le. 0) iL = iL + x_fft_size
-                        if (iR .le. 0) iR = iR + x_fft_size
+                        if (iL <= 0) iL = iL + x_fft_size
+                        if (iR <= 0) iR = iR + x_fft_size
                         fft_xky(1, iL) = fft_xky(1, iL) + dzm
                         fft_xky(1, iR) = fft_xky(1, iR) - dzp
                      end do
@@ -721,8 +721,8 @@ contains
                do ix = 1, pfac * boundary_size
                   iL = ix + offsetL
                   iR = ix + offsetR
-                  if (iL .le. 0) iL = iL + x_fft_size
-                  if (iR .le. 0) iR = iR + x_fft_size
+                  if (iL <= 0) iL = iL + x_fft_size
+                  if (iR <= 0) iR = iR + x_fft_size
                   do iky = ikymin, naky
                      g0x(iky, iL) = (fft_xky(iky, iL) - g_buffer0(num)) * krook_mask_left(ix)
                      g0x(iky, iR) = (fft_xky(iky, iR) - g_buffer1(num)) * krook_mask_right(ix)
@@ -905,22 +905,22 @@ contains
                      g0x(1, x_fft_size + 1 - ix) = phi_buffer1(ind + boundary_size + 1 - ix)
                   end do
 
-                  if (iky .eq. 1) tmp = sum(real(g0x(1, :)))
+                  if (iky == 1) tmp = sum(real(g0x(1, :)))
                   call transform_x2kx(g0x, g0k)
-                  if (phi_pow .ne. 0) then
+                  if (phi_pow /= 0) then
                      g0k(1, :) = g0k(1, :) / ((zi * akx)**phi_pow)
-                     if (iky .eq. 1) g0k(1, 1) = 0.0
+                     if (iky == 1) g0k(1, 1) = 0.0
                   end if
 
                   g0x = 0.0
-                  if (.not. has_elec .and. phi_pow .ne. 0) then
+                  if (.not. has_elec .and. phi_pow /= 0) then
                      g1k(1, :) = g0k(1, :)
                      call transform_kx2x(g1k, g0x)
 
                      g0x(1, (b_solve + 1):(x_fft_size - b_solve)) = &
                         -g0x(1, (b_solve + 1):(x_fft_size - b_solve)) * b_mat
 
-                     if (adiabatic_elec .and. iky .eq. 1) then
+                     if (adiabatic_elec .and. iky == 1) then
                         pb_fsa = pb_fsa + (dl_over_b(ia, iz) + d_dl_over_b_drho(ia, iz) &
                                            * rho_mb_clamped((1 + b_solve):(x_fft_size - b_solve))) &
                                  * g0x(1, (1 + b_solve):(x_fft_size - b_solve))
@@ -941,13 +941,13 @@ contains
                   call lu_back_substitution(phi_solve(iky, iz)%zloc, phi_solve(iky, iz)%idx, &
                                             g0x(1, (b_solve + 1):(x_fft_size - b_solve)))
 
-                  if (iky .eq. 1) then
+                  if (iky == 1) then
                      tmp = (tmp + &
                             sum(real(g0x(1, (b_solve + 1):(x_fft_size - b_solve))))) &
                            / (2 * b_solve)
                   end if
 
-                  if (phi_pow .ne. 0) then
+                  if (phi_pow /= 0) then
                      do ix = 1, b_solve
                         g0x(1, ix) = 0.0
                         g0x(1, x_fft_size + 1 - ix) = 0.0
@@ -963,9 +963,9 @@ contains
                   end do
 
                   call transform_x2kx(g0x, g0k)
-                  if (phi_pow .ne. 0) then
+                  if (phi_pow /= 0) then
                      g0k(1, :) = g0k(1, :) / (zi * akx)**phi_pow
-                     if (iky .eq. 1) g0k(1, 1) = 0.
+                     if (iky == 1) g0k(1, 1) = 0.
                   end if
                   phi(iky, :, iz, it) = g0k(1, :)
 
@@ -973,7 +973,7 @@ contains
             end do
          end do
 
-         if (ky_solve_radial .eq. 0 .and. any(gamtot(1, 1, :) .lt. epsilon(0.))) phi(1, 1, :, it) = 0.0
+         if (ky_solve_radial == 0 .and. any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, it) = 0.0
 
          if (adiabatic_elec .and. zonal_mode(1)) then
             !get A_p^-1.(g - A_b.phi_b) in real space
@@ -982,7 +982,7 @@ contains
                call transform_kx2x(g0k, g0x)
                g0z(:, iz) = g0x(1, :)
 
-               if (phi_pow .ne. 0) then
+               if (phi_pow /= 0) then
                   call lu_back_substitution(phi_solve(1, iz)%zloc, phi_solve(1, iz)%idx, pb_fsa)
                   g0z((1 + b_solve):(x_fft_size - b_solve), iz) = &
                      g0z((1 + b_solve):(x_fft_size - b_solve), iz) + pb_fsa

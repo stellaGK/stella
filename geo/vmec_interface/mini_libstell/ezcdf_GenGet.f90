@@ -66,7 +66,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'i', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2) .and. dimlens(3) == ldim(3)) then
          status = nf_get_var_int(ncid, varid, varval)
@@ -124,7 +124,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1), size(varval, 2), size(varval, 3)), stat=status)
-      if (status .ne. 0) STOP 'Allocation error in cdf_getvar'
+      if (status /= 0) STOP 'Allocation error in cdf_getvar'
 
       call cdfr_3i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
@@ -155,7 +155,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
 
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2) .and. dimlens(3) == ldim(3)) then
@@ -219,7 +219,7 @@ CONTAINS
       ldim = shape(varval)
       ldim(1) = 2 * ldim(1) ! Re/Im pairs
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2) .and. dimlens(3) == ldim(3)) then
          status = nf_get_var_double(ncid, varid, varval)
@@ -283,7 +283,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2) .and. dimlens(3) == ldim(3)) then
          status = nf_get_var_real(ncid, varid, varval)
@@ -345,7 +345,7 @@ CONTAINS
       ldim = shape(varval)
       ldim(1) = 2 * ldim(1) ! Re/Im pairs
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2) .and. dimlens(3) == ldim(3)) then
          status = nf_get_var_real(ncid, varid, varval)
@@ -411,7 +411,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'i', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2)) then
          status = nf_get_var_int(ncid, varid, varval)
@@ -464,7 +464,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1), size(varval, 2)), stat=status)
-      if (status .ne. 0) STOP 'Allocation error in cdf_getvar'
+      if (status /= 0) STOP 'Allocation error in cdf_getvar'
 
       call cdfr_2i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
@@ -495,7 +495,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2)) then
          status = nf_get_var_double(ncid, varid, varval)
@@ -552,7 +552,7 @@ CONTAINS
       ldim = shape(varval)
       ldim(1) = 2 * ldim(1) ! Re/Im pairs
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2)) then
          status = nf_get_var_double(ncid, varid, varval)
@@ -610,7 +610,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2)) then
          status = nf_get_var_real(ncid, varid, varval)
@@ -667,7 +667,7 @@ CONTAINS
       ldim = shape(varval)
       ldim(1) = 2 * ldim(1) ! Re/Pairs
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       if (dimlens(1) == ldim(1) .and. dimlens(2) == ldim(2)) then
          status = nf_get_var_real(ncid, varid, varval)
@@ -722,7 +722,7 @@ CONTAINS
       ldim(1) = len(varval)
       ldim(2) = size(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'c', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       st(1) = 1
       cnt(1) = min(dimlens(1), ldim(1)) ! x count
@@ -730,7 +730,7 @@ CONTAINS
       do j = 1, min(dimlens(2), ldim(2)) ! For each Y : read slab into varval
          st(2) = j              ! Start of slab
          status = nf_get_vara_text(ncid, varid, st, cnt, varval(j))
-         if (status .ne. NF_NOERR) then
+         if (status /= NF_NOERR) then
             call handle_err(status, varnam, 'cdfr_2c',                       &
                  &        'nf_get_var_text')
             return
@@ -753,7 +753,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'i', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_int(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_1i', 'nf_get_var_int')
@@ -776,7 +776,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1)), stat=status)
-      if (status .ne. 0) STOP 'Allocation error in cdf_getvar'
+      if (status /= 0) STOP 'Allocation error in cdf_getvar'
 
       call cdfr_1i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
@@ -802,7 +802,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_double(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_1d', 'nf_get_var_double')
@@ -825,7 +825,7 @@ CONTAINS
       ldim = shape(varval)
       ldim(1) = 2 * ldim(1) ! Re/Im pairs
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_double(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_1c16', 'nf_get_var_double')
@@ -846,7 +846,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim = shape(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_real(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_1f', 'nf_get_var_real')
@@ -869,7 +869,7 @@ CONTAINS
       ldim = shape(varval)
       ldim(1) = 2 * ldim(1)
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_real(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_1c8', 'nf_get_var_real')
@@ -890,7 +890,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim(1) = len(varval)
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'c', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_text(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_1c', 'nf_get_var_text')
@@ -911,7 +911,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim(1) = 0
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'i', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_int(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_0i', 'nf_get_var_int')
@@ -958,7 +958,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim(1) = 0
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_double(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_0d', 'nf_get_var_double')
@@ -980,7 +980,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim(1) = 2 ! Re/Im pair
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'd', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_double(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_0d', 'nf_get_var_double')
@@ -1001,7 +1001,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim(1) = 0
       call cdfgv(ncid, varnam, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_real(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_0f', 'nf_get_var_real')
@@ -1023,7 +1023,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       ldim(1) = 2 ! Re/Im pair
       call cdfgv(ncid, trim(varnam)//cmplx_name, varid, dimlens, ldim, 'r', status)
-      if (status .ne. 0) return
+      if (status /= 0) return
       !
       status = nf_get_var_real(ncid, varid, varval)
       call handle_err(status, varnam, 'cdfr_0f', 'nf_get_var_real')

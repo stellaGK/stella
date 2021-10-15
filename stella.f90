@@ -43,7 +43,7 @@ program stella
 
    ! Diagnose stella
    if (debug) write (*, *) 'stella::diagnose_stella'
-   if (istep0 .eq. 0) call diagnose_stella(istep0)
+   if (istep0 == 0) call diagnose_stella(istep0)
 
    ! Advance stella until istep=nstep
    if (debug) write (*, *) 'stella::advance_stella'
@@ -197,7 +197,7 @@ contains
       if (debug) write (6, *) "stella::init_stella::init_ranf"
       n = get_rnd_seed_length()
       allocate (seed(n))
-      if (rng_seed .lt. 0) then
+      if (rng_seed < 0) then
          call init_ranf(.true., seed, job + 2)
       else
          seed = rng_seed + 37 * (/(i - 1, i=1, n)/)
@@ -215,8 +215,8 @@ contains
       needs_transforms = .false.
       if (nonlinear .or. include_parallel_nonlinearity) needs_transforms = .true.
       if (radial_variation .or. full_flux_surface) needs_transforms = .true.
-      if (runtype_option_switch .eq. runtype_multibox) needs_transforms = .true.
-      if (abs(g_exb * g_exbfac) .gt. epsilon(0.) .and. .not. hammett_flow_shear) &
+      if (runtype_option_switch == runtype_multibox) needs_transforms = .true.
+      if (abs(g_exb * g_exbfac) > epsilon(0.) .and. .not. hammett_flow_shear) &
          needs_transforms = .true.
       if (needs_transforms) then
          if (debug) write (*, *) "stella::init_stella::init_transforms"
@@ -224,17 +224,17 @@ contains
       end if
       if (debug) write (6, *) 'stella::init_stella::init_multibox'
       call init_multibox
-      if (proc0 .and. runtype_option_switch .eq. runtype_multibox &
-          .and. (job .eq. 1) .and. radial_variation) then
+      if (proc0 .and. runtype_option_switch == runtype_multibox &
+          .and. (job == 1) .and. radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::init_multibox_geo'
          call communicate_geo_multibox(rhoL, rhoR)
          if (debug) write (6, *) 'stella::init_stella::init_multibox_spec'
          call communicate_species_multibox(rhoL, rhoR)
       end if
-      if (runtype_option_switch .eq. runtype_multibox .and. (job .eq. 1)) then
+      if (runtype_option_switch == runtype_multibox .and. (job == 1)) then
          call communicate_multibox_parameters
       end if
-      if (runtype_option_switch .eq. runtype_multibox .and. radial_variation) then
+      if (runtype_option_switch == runtype_multibox .and. radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::init_multibox_ktgrid'
          call communicate_ktgrids_multibox
       end if
@@ -289,10 +289,10 @@ contains
          call get_radial_correction(gnew, phi, dist='gbar')
       end if
 
-      if (runtype_option_switch .eq. runtype_multibox) then
+      if (runtype_option_switch == runtype_multibox) then
          if (debug) write (6, *) 'stella::init_stella:multibox_communicate'
          call multibox_communicate(gnew)
-         if (job .eq. 1) then
+         if (job == 1) then
             fields_updated = .false.
             call advance_fields(gnew, phi, apar, dist='gbar')
          end if
@@ -301,7 +301,7 @@ contains
       ! FLAG - the following code should probably go elsewhere
       if (.not. restarted .and. scale_to_phiinit) then
          call volume_average(phi, phi2)
-         if (runtype_option_switch .eq. runtype_multibox) then
+         if (runtype_option_switch == runtype_multibox) then
             call scope(crossdomprocs)
             call sum_allreduce(phi2)
             call scope(subprocs)

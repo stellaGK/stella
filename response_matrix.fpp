@@ -112,7 +112,7 @@ contains
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
 !   degradation on some clusters
-      if (window .eq. MPI_WIN_NULL) then
+      if (window == MPI_WIN_NULL) then
          prior_focus = curr_focus
          call scope(sharedsubprocs)
          win_size = 0
@@ -421,7 +421,7 @@ contains
          end if
 
          read (unit=mat_unit) naky_dump
-         if (naky .ne. naky_dump) call mp_abort('mismatch in naky and naky_dump')
+         if (naky /= naky_dump) call mp_abort('mismatch in naky and naky_dump')
       end if
 
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
@@ -429,7 +429,7 @@ contains
       do iky = 1, naky
          if (proc0) then
             read (unit=mat_unit) iky_dump, neigen_dump
-            if (iky_dump .ne. iky .or. neigen_dump .ne. neigen(iky)) &
+            if (iky_dump /= iky .or. neigen_dump /= neigen(iky)) &
                call mp_abort('mismatch in iky_dump/neigen_dump')
          end if
 
@@ -451,7 +451,7 @@ contains
 
             if (proc0) then
                read (unit=mat_unit) ie_dump, nresponse_dump
-               if (ie_dump .ne. ie .or. nresponse .ne. nresponse_dump) &
+               if (ie_dump /= ie .or. nresponse /= nresponse_dump) &
                   call mp_abort('mismatch in ie/nresponse_dump')
             end if
 
@@ -972,7 +972,7 @@ contains
 
       integer :: ierr
 
-      if (window .ne. MPI_WIN_NULL) call mpi_win_free(window, ierr)
+      if (window /= MPI_WIN_NULL) call mpi_win_free(window, ierr)
 #endif
 
       if (allocated(response_matrix)) deallocate (response_matrix)
@@ -1055,15 +1055,15 @@ contains
       do ijob = 0, njobs - 1
          jroot = -1
          do j = 1, nproc
-            if (job_list(j) .eq. ijob) then
+            if (job_list(j) == ijob) then
                jroot = j - 1 !the first processor on this job will be the root process
                exit
             end if
          end do
 
-         if (jroot .eq. -1) cycle !no processors on this node are on this job
+         if (jroot == -1) cycle !no processors on this node are on this job
 
-         if (iproc .eq. jroot) neig = neigen(iky)
+         if (iproc == jroot) neig = neigen(iky)
 
          ! broadcast number of matrices
          call broadcast(neig, jroot)
@@ -1077,7 +1077,7 @@ contains
          do j = 1, numnodes
             if (node_jobs(j, ijob + 1)) then
                eig_limits(j, ijob + 1) = eig_limits(j - 1, ijob + 1) + ediv
-               if (emod .gt. 0) then
+               if (emod > 0) then
                   eig_limits(j, ijob + 1) = eig_limits(j, ijob + 1) + 1
                   emod = emod - 1
                end if
@@ -1088,7 +1088,7 @@ contains
 
          do ie = eig_limits(inode, ijob + 1), eig_limits(inode + 1, ijob + 1) - 1
             win_size = 0
-            if (iproc .eq. jroot) then
+            if (iproc == jroot) then
                needs_send = .true.
                n = size(response_matrix(iky)%eigen(ie)%idx)
                win_size = int(n * n, MPI_ADDRESS_KIND) * 2 * real_size !complex size
@@ -1100,7 +1100,7 @@ contains
             !allocate the window
             call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, bptr, win, ierr)
 
-            if (iproc .ne. jroot) then
+            if (iproc /= jroot) then
                !make sure all the procs have the right memory address
                call mpi_win_shared_query(win, jroot, win_size, disp_unit, bptr, ierr)
             end if
@@ -1109,7 +1109,7 @@ contains
             call c_f_pointer(bptr, lu, (/n, n/))
 
             !load the matrix
-            if (iproc .eq. jroot) lu = response_matrix(iky)%eigen(ie)%zloc
+            if (iproc == jroot) lu = response_matrix(iky)%eigen(ie)%zloc
 
             !syncronize the processors
             call mpi_win_fence(0, win, ierr)
@@ -1120,7 +1120,7 @@ contains
                                         response_matrix(iky)%eigen(ie)%idx, dmax)
 
             !copy the decomposed matrix over
-            if (iproc .eq. jroot) response_matrix(iky)%eigen(ie)%zloc = lu
+            if (iproc == jroot) response_matrix(iky)%eigen(ie)%zloc = lu
 
             call mpi_win_free(win, ierr)
          end do
@@ -1133,7 +1133,7 @@ contains
          do ie = 1, neigen(iky)
             nroot = 0
             if (needs_send .and. &
-                (ie .ge. eig_limits(inode, job + 1) .and. ie .lt. eig_limits(inode + 1, job + 1))) nroot = iproc
+                (ie >= eig_limits(inode, job + 1) .and. ie < eig_limits(inode + 1, job + 1))) nroot = iproc
             !first let processors know who is sending the data
             call sum_allreduce(nroot)
             !now send the data
@@ -1209,7 +1209,7 @@ contains
       call sum_allreduce(job_roots)
 
       do ijob = 0, njobs - 1
-         if (job .eq. ijob .and. sproc0) then
+         if (job == ijob .and. sproc0) then
             neig = neigen(iky)
          end if
 
@@ -1233,7 +1233,7 @@ contains
          allocate (eig_limits(0:ncomm))
          allocate (row_limits(0:eig_cores))
 
-         if (ieig_core .eq. 0) eig_roots(ceig_core) = iproc
+         if (ieig_core == 0) eig_roots(ceig_core) = iproc
 
          call sum_allreduce(eig_roots)
 
@@ -1243,13 +1243,13 @@ contains
 
          !how many stages will the LU decomposition take?
          nstage = ediv
-         if (emod .gt. 0) nstage = nstage + 1
+         if (emod > 0) nstage = nstage + 1
 
          !determine which parts of neigen this communicator processes
          eig_limits(0) = 1
          do j = 1, ncomm
             eig_limits(j) = eig_limits(j - 1) + ediv
-            if (j .le. emod) then
+            if (j <= emod) then
                eig_limits(j) = eig_limits(j) + 1
             end if
          end do
@@ -1259,20 +1259,20 @@ contains
             do j = 0, ncomm - 1
                ie = eig_limits(j) + istage
                ie_hi = eig_limits(j + 1) - 1
-               if (ie .gt. ie_hi) cycle
+               if (ie > ie_hi) cycle
 
-               if (iproc .eq. job_roots(ijob) .and. iproc .eq. eig_roots(j)) then !no need for data transfer
+               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
                   n = size(response_matrix(iky)%eigen(ie)%idx)
                   allocate (lu(n, n))
                   lu = response_matrix(iky)%eigen(ie)%zloc
-               else if (iproc .eq. job_roots(ijob)) then !send data to subroots
+               else if (iproc == job_roots(ijob)) then !send data to subroots
                   !send size of matrix
                   n_send = size(response_matrix(iky)%eigen(ie)%idx)
                   call mpi_send(n_send, 1, MPI_INT, eig_roots(j), j, mp_comm, ierr)
                   !send matrix
                   call mpi_send(response_matrix(iky)%eigen(ie)%zloc, &
                                 n_send * n_send, mpicmplx, eig_roots(j), nproc + j, mp_comm, ierr)
-               else if (iproc .eq. eig_roots(j)) then !subroot gets the data
+               else if (iproc == eig_roots(j)) then !subroot gets the data
                   !receive size of matrix
                   call mpi_recv(n, 1, MPI_INT, job_roots(ijob), j, mp_comm, status, ierr)
                   allocate (lu(n, n))
@@ -1281,7 +1281,7 @@ contains
                end if
             end do
 
-            if (istage .ge. (eig_limits(ceig_core + 1) - eig_limits(ceig_core))) cycle !nothing for this communicator to do
+            if (istage >= (eig_limits(ceig_core + 1) - eig_limits(ceig_core))) cycle !nothing for this communicator to do
 
             !broadcast matrix and its size across the communicator
             call mpi_bcast(n, 1, MPI_INT, 0, eig_comm, ierr)
@@ -1304,7 +1304,7 @@ contains
                rdiv = (n - j) / eig_cores
                rmod = mod(n - j, eig_cores)
                row_limits(0) = j + 1
-               if (rdiv .eq. 0) then
+               if (rdiv == 0) then
                   row_limits(rmod + 1:) = -1
                   do k = 1, rmod
                      row_limits(k) = row_limits(k - 1) + 1
@@ -1312,7 +1312,7 @@ contains
                else
                   do k = 1, eig_cores
                      row_limits(k) = row_limits(k - 1) + rdiv
-                     if (k .le. rmod) row_limits(k) = row_limits(k) + 1
+                     if (k <= rmod) row_limits(k) = row_limits(k) + 1
                   end do
                end if
 
@@ -1320,7 +1320,7 @@ contains
                dmax = -1.0
                do k = j, n
                   tmp = vv(k) * abs(lu(k, j))
-                  if (tmp .gt. dmax) then
+                  if (tmp > dmax) then
                      dmax = tmp
                      imax = k
                   end if
@@ -1332,7 +1332,7 @@ contains
                   lu(j, :) = dum
                   vv(imax) = vv(j)
                end if
-               if (ieig_core .eq. 0) idx(j) = imax
+               if (ieig_core == 0) idx(j) = imax
 
                !get the lead multiplier
                if (lu(j, j) == 0.0) lu(j, j) = zero
@@ -1353,7 +1353,7 @@ contains
                   r_lo = row_limits(i)
                   r_hi = row_limits(i + 1) - 1
                   rsize = (r_hi - r_lo + 1) * (n - j)
-                  if (r_lo .gt. r_hi) cycle
+                  if (r_lo > r_hi) cycle
                   !call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,mpicmplx,i,eig_comm,ierr)
                   do k = r_lo, r_hi
                      call mpi_bcast(lu(j + 1:n, k), n - j, mpicmplx, i, eig_comm, ierr)
@@ -1367,17 +1367,17 @@ contains
 
                ie = eig_limits(j) + istage
                ie_hi = eig_limits(j + 1) - 1
-               if (ie .gt. ie_hi) cycle
+               if (ie > ie_hi) cycle
 
-               if (iproc .eq. job_roots(ijob) .and. iproc .eq. eig_roots(j)) then !no need for data transfer
+               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
                   response_matrix(iky)%eigen(ie)%zloc = lu
                   response_matrix(iky)%eigen(ie)%idx = idx
-               else if (iproc .eq. eig_roots(j)) then !subroot sends the data
+               else if (iproc == eig_roots(j)) then !subroot sends the data
                   !send indices
                   call mpi_send(idx, n, MPI_INT, job_roots(ijob), j, mp_comm, ierr)
                   !send matrix
                   call mpi_send(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, ierr)
-               else if (iproc .eq. job_roots(ijob)) then !receive data from subroot
+               else if (iproc == job_roots(ijob)) then !receive data from subroot
                   !receive indices
                   call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
                                 n, MPI_INT, eig_roots(j), j, mp_comm, status, ierr)

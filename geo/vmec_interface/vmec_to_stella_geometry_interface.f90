@@ -96,8 +96,8 @@ contains
       write (*, '(A)') "############################################################"
       write (*, *) "About to read VMEC wout file: '", trim(vmec_filename), "'."
       call read_wout_file(vmec_filename, ierr, iopen)
-      if (iopen .ne. 0) stop 'error opening wout file'
-      if (ierr .ne. 0) stop 'error reading wout file'
+      if (iopen /= 0) stop 'error opening wout file'
+      if (ierr /= 0) stop 'error reading wout file'
       write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
 
       nfp = nfp_vmec
@@ -447,10 +447,10 @@ contains
       end do
 
       ! The first mode in the m and n arrays should be m=n=0:
-      if (xm(1) .ne. 0) stop "First element of xm in the wout file should be 0."
-      if (xn(1) .ne. 0) stop "First element of xn in the wout file should be 0."
-      if (xm_nyq(1) .ne. 0) stop "First element of xm_nyq in the wout file should be 0."
-      if (xn_nyq(1) .ne. 0) stop "First element of xn_nyq in the wout file should be 0."
+      if (xm(1) /= 0) stop "First element of xm in the wout file should be 0."
+      if (xn(1) /= 0) stop "First element of xn in the wout file should be 0."
+      if (xm_nyq(1) /= 0) stop "First element of xm_nyq in the wout file should be 0."
+      if (xn_nyq(1) /= 0) stop "First element of xn_nyq in the wout file should be 0."
 
       ! Lambda should be on the half mesh, so its value at radial index 1 should be 0 for all (m,n)
       if (maxval(abs(lmns(:, 1))) > 0) then
@@ -854,7 +854,7 @@ contains
                   exit
                end if
             end do
-            if ((xm(imn) .ne. m) .or. (xn(imn) .ne. n * nfp)) stop "Something went wrong!"
+            if ((xm(imn) /= m) .or. (xn(imn) /= n * nfp)) stop "Something went wrong!"
             if (.not. found_imn) stop "Error! imn could not be found matching the given imn_nyq."
          end if
 

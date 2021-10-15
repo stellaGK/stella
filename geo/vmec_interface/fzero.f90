@@ -115,7 +115,7 @@ contains
 !   Initialize.
 !
       Z = R
-      IF (R .LE. MIN(B, C) .OR. R .GE. MAX(B, C)) Z = C
+      IF (R <= MIN(B, C) .OR. R >= MAX(B, C)) Z = C
       RW = MAX(RE, ER)
       AW = MAX(AE, ZERO)
       IC = 0
@@ -125,14 +125,14 @@ contains
       T = B
       FB = F(T)
       KOUNT = 2
-      IF (SIGN(ONE, FZ) .EQ. SIGN(ONE, FB)) GO TO 1
+      IF (SIGN(ONE, FZ) == SIGN(ONE, FB)) GO TO 1
       C = Z
       GO TO 2
-1     IF (Z .EQ. C) GO TO 2
+1     IF (Z == C) GO TO 2
       T = C
       FC = F(T)
       KOUNT = 3
-      IF (SIGN(ONE, FZ) .EQ. SIGN(ONE, FC)) GO TO 2
+      IF (SIGN(ONE, FZ) == SIGN(ONE, FC)) GO TO 2
       B = Z
       FB = FZ
 2     A = C
@@ -140,7 +140,7 @@ contains
       ACBS = ABS(B - C)
       FX = MAX(ABS(FB), ABS(FC))
 !
-3     IF (ABS(FC) .GE. ABS(FB)) GO TO 4
+3     IF (ABS(FC) >= ABS(FB)) GO TO 4
 !
 !   Perform interchange.
 !
@@ -158,16 +158,16 @@ contains
 !
 !   Test stopping criterion and function count.
 !
-      IF (ACMB .LE. TOL) GO TO 10
-      IF (FB .EQ. ZERO) GO TO 11
-      IF (KOUNT .GE. 500) GO TO 14
+      IF (ACMB <= TOL) GO TO 10
+      IF (FB == ZERO) GO TO 11
+      IF (KOUNT >= 500) GO TO 14
 !
 !   Calculate new iterate implicitly as B+P/Q, where we arrange
 !   P .GE. 0.  The implicit form is used to prevent overflow.
 !
       P = (B - A) * FB
       Q = FA - FB
-      IF (P .GE. ZERO) GO TO 5
+      IF (P >= ZERO) GO TO 5
       P = -P
       Q = -Q
 !
@@ -177,14 +177,14 @@ contains
 5     A = B
       FA = FB
       IC = IC + 1
-      IF (IC .LT. 4) GO TO 6
-      IF (8 * ACMB .GE. ACBS) GO TO 8
+      IF (IC < 4) GO TO 6
+      IF (8 * ACMB >= ACBS) GO TO 8
       IC = 0
       ACBS = ACMB
 !
 !   Test for too small a change.
 !
-6     IF (P .GT. ABS(Q) * TOL) GO TO 7
+6     IF (P > ABS(Q) * TOL) GO TO 7
 !
 !   Increment by TOLerance.
 !
@@ -193,7 +193,7 @@ contains
 !
 !   Root ought to be between B and (C+B)/2.
 !
-7     IF (P .GE. CMB * Q) GO TO 8
+7     IF (P >= CMB * Q) GO TO 8
 !
 !   Use secant rule.
 !
@@ -212,15 +212,15 @@ contains
 !
 !   Decide whether next step is interpolation or extrapolation.
 !
-      IF (SIGN(ONE, FB) .NE. SIGN(ONE, FC)) GO TO 3
+      IF (SIGN(ONE, FB) /= SIGN(ONE, FC)) GO TO 3
       C = A
       FC = FA
       GO TO 3
 !
 !   Finished.  Process results for proper setting of IFLAG.
 !
-10    IF (SIGN(ONE, FB) .EQ. SIGN(ONE, FC)) GO TO 13
-      IF (ABS(FB) .GT. FX) GO TO 12
+10    IF (SIGN(ONE, FB) == SIGN(ONE, FC)) GO TO 13
+      IF (ABS(FB) > FX) GO TO 12
       IFLAG = 1
       RETURN
 11    IFLAG = 2

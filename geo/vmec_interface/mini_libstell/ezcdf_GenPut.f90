@@ -83,8 +83,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 3) then
+      if (sts /= 0) return
+      if (ndims /= 3) then
          print "('% cdfPutVar_3i: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -110,7 +110,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1), size(varval, 2), size(varval, 3)), stat=sts)
-      if (sts .ne. 0) stop 'Allocation error in cdf_putvar'
+      if (sts /= 0) stop 'Allocation error in cdf_putvar'
 
       WHERE (varval)
          varval_i = 1
@@ -140,8 +140,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 3) then
+      if (sts /= 0) return
+      if (ndims /= 3) then
          print "('% cdfPutVar_3d: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -169,8 +169,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 3) then
+      if (sts /= 0) return
+      if (ndims /= 3) then
          print "('% cdfPutVar_3c16: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -197,8 +197,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 3) then
+      if (sts /= 0) return
+      if (ndims /= 3) then
          print "('% cdfPutVar_3f: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -226,8 +226,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 3) then
+      if (sts /= 0) return
+      if (ndims /= 3) then
          print "('% cdfPutVar_3c8: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -254,8 +254,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 2) then
+      if (sts /= 0) return
+      if (ndims /= 2) then
          print "('% cdfPutVar_2i: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -281,7 +281,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1), size(varval, 2)), stat=sts)
-      if (sts .ne. 0) stop 'Allocation error in cdf_putvar'
+      if (sts /= 0) stop 'Allocation error in cdf_putvar'
 
       WHERE (varval)
          varval_i = 1
@@ -311,8 +311,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 2) then
+      if (sts /= 0) return
+      if (ndims /= 2) then
          print "('% cdfPutVar_2d: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -340,8 +340,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 2) then
+      if (sts /= 0) return
+      if (ndims /= 2) then
          print "('% cdfPutVar_2c16: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -368,8 +368,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 2) then
+      if (sts /= 0) return
+      if (ndims /= 2) then
          print "('% cdfPutVar_2f: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -397,8 +397,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 2) then
+      if (sts /= 0) return
+      if (ndims /= 2) then
          print "('% cdfPutVar_2c8: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -425,8 +425,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 2) then
+      if (sts /= 0) return
+      if (ndims /= 2) then
          print "('% cdfPutVar_2c: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -451,8 +451,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_1i: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -477,7 +477,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1)), stat=sts)
-      if (sts .ne. 0) stop 'Allocation error in cdf_putvar'
+      if (sts /= 0) stop 'Allocation error in cdf_putvar'
 
       WHERE (varval)
          varval_i = 1
@@ -507,8 +507,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_1d: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -536,8 +536,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_1c16: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -564,8 +564,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_1f: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -593,8 +593,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_1c8: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -621,8 +621,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_1c: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -647,8 +647,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 0) then
+      if (sts /= 0) return
+      if (ndims /= 0) then
          print "('% cdfPutVar_0i: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -697,8 +697,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 0) then
+      if (sts /= 0) return
+      if (ndims /= 0) then
          print "('% cdfPutVar_0d: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -725,8 +725,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then ! scalar complex stored as 2 element real array
+      if (sts /= 0) return
+      if (ndims /= 1) then ! scalar complex stored as 2 element real array
          print "('% cdfPutVar_0c16: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -752,8 +752,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, varnam, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 0) then
+      if (sts /= 0) return
+      if (ndims /= 0) then
          print "('% cdfPutVar_0f: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -780,8 +780,8 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
       sts = nf_enddef(ncid)
       call cdfInqV(ncid, trim(varnam)//cmplx_name, varid, dimlens, ndims, sts)
-      if (sts .ne. 0) return
-      if (ndims .ne. 1) then
+      if (sts /= 0) return
+      if (ndims /= 1) then
          print "('% cdfPutVar_0c8: --E-- The variable ',a,               &
               &         ' was defined as',i2,' dimensional')", varnam, ndims
          return
@@ -832,26 +832,26 @@ CONTAINS
       status = 0
 
       dims = dimlens
-      if (xtype .eq. 'R8' .or. xtype .eq. 'r8') then
+      if (xtype == 'R8' .or. xtype == 'r8') then
          vartype = nf_double
-      else if (xtype .eq. 'C16' .or. xtype .eq. 'c16') then
+      else if (xtype == 'C16' .or. xtype == 'c16') then
          ! complex array = real array with double leading length
          vartype = nf_double
          is_complex = .TRUE.
          dims(1) = 2 * abs(dimlens(1))
-      else if (xtype .eq. 'INT' .or. xtype .eq. 'int') then
+      else if (xtype == 'INT' .or. xtype == 'int') then
          vartype = nf_int
-      else if (xtype .eq. 'LOG' .or. xtype .eq. 'log' .or. xtype .eq. 'BOOL' .or. xtype .eq. 'bool') then
+      else if (xtype == 'LOG' .or. xtype == 'log' .or. xtype == 'BOOL' .or. xtype == 'bool') then
          vartype = nf_int !if nf_byte, MUST use integer*1
          is_logical = .TRUE.
-      else if (xtype .eq. 'R4' .or. xtype .eq. 'r4') then
+      else if (xtype == 'R4' .or. xtype == 'r4') then
          vartype = nf_float
-      else if (xtype .eq. 'C8' .or. xtype .eq. 'c8') then
+      else if (xtype == 'C8' .or. xtype == 'c8') then
          ! complex array = real array with double leading length
          vartype = nf_float
          is_complex = .TRUE.
          dims(1) = 2 * abs(dimlens(1))
-      else if (xtype .eq. 'CHAR' .or. xtype .eq. 'char') then
+      else if (xtype == 'CHAR' .or. xtype == 'char') then
          vartype = nf_char
       end if
 
@@ -873,22 +873,22 @@ CONTAINS
       end do
 
       ! Check ndims <= maxdims
-      if (xtype .eq. 'CHAR' .or. xtype .eq. 'char') then
+      if (xtype == 'CHAR' .or. xtype == 'char') then
          maxdims = 2
       else
          maxdims = 3
       end if
-      if (ndims .gt. maxdims) then
+      if (ndims > maxdims) then
          WRITE (*, 10) ndims, xtype
 10       format('% cdfDefVar --E--  Rank', i3, ' not supported for ', a)
          return
       end if
 
       do i = 1, ndims
-         if (dims(i) .gt. 999999999) then
+         if (dims(i) > 999999999) then
             print *, '% cdfDefVar --E-- dimension >= 1.e9 not supported'
             return
-         else if (dims(i) .lt. 100000) then
+         else if (dims(i) < 100000) then
             write (zdim, '(i5.5)') dims(i)
             dimnams(i) = 'dim_'//zdim
          else
@@ -896,18 +896,18 @@ CONTAINS
             dimnams(i) = 'dim_'//zdim1
          end if
          if (PRESENT(dimname)) then
-            if (SIZE(dimname) .ge. i) then
-               if (LEN_TRIM(dimname(i)) .gt. 0) dimnams(i) = dimname(i)
+            if (SIZE(dimname) >= i) then
+               if (LEN_TRIM(dimname(i)) > 0) dimnams(i) = dimname(i)
             end if
          end if
          status = nf_inq_dimid(ncid, dimnams(i), dimids(i))
-         if (status .ne. nf_noerr) then
+         if (status /= nf_noerr) then
             status = nf_def_dim(ncid, dimnams(i), dims(i), dimids(i))
             call handle_err(status, dimnams(i), 'cdfdef', 'nf_def_dim')
          end if
       end do
 
-      if (status .ne. 0) return
+      if (status /= 0) return
 
       ! replace any embedded blanks or non-alphanumeric characters with underscores
       varnam_noalpha = varnam
@@ -1466,7 +1466,7 @@ CONTAINS
 
       vartype = 'CHAR'
       dims(1) = len(varval); dims(2:3) = 1
-      if (dims(1) .le. 1) dims(1) = -1
+      if (dims(1) <= 1) dims(1) = -1
       call cdfDefVar(ncid, varnam, dims, vartype, ier, dimname)
 
    END SUBROUTINE cdfd_1c

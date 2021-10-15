@@ -40,29 +40,29 @@ CONTAINS
 
 !Find varid
       status = nf_inq_varid(ncid, varnam_noalpha, varid0)
-      if (status .ne. 0) then
+      if (status /= 0) then
          ! perhaps varnam is complex, try...
          status = nf_inq_varid(ncid, trim(varnam_noalpha)//cmplx_name, varid0)
-         if (status .ne. 0) then
+         if (status /= 0) then
             status = nf_inq_varid(ncid, trim(varnam_noalpha)//logical_name, varid0)
          end if
       end if
 
 !  call handle_err(status,varnam,'cdf_setatt','nf_inq_varid')
-      if (status .ne. 0) GO TO 100
+      if (status /= 0) GO TO 100
 
       if (PRESENT(long_name)) then
          status = nf_put_att_text(ncid, varid0, 'long_name', LEN_TRIM(long_name), &
                                   TRIM(long_name))
          CALL handle_err(status, long_name, 'cdf_setatt', 'nf_put_att_text')
-         if (status .ne. 0) GO TO 100
+         if (status /= 0) GO TO 100
       end if
 
       if (PRESENT(units)) then
          status = nf_put_att_text(ncid, varid0, 'units', LEN_TRIM(units), &
                                   TRIM(units))
          CALL handle_err(status, units, 'cdf_setatt', 'nf_put_att_text')
-         if (status .ne. 0) GO TO 100
+         if (status /= 0) GO TO 100
       end if
 
 100   CONTINUE
@@ -182,21 +182,21 @@ CONTAINS
 
 !Find varid0
       status = nf_inq_varid(ncid, varnam_noalpha, varid0)
-      if (status .ne. 0) then
+      if (status /= 0) then
          ! perhaps varnam is complex, try...
          status = nf_inq_varid(ncid, trim(varnam_noalpha)//cmplx_name, varid0)
-         if (status .ne. 0) then
+         if (status /= 0) then
             status = nf_inq_varid(ncid, trim(varnam_noalpha)//logical_name, varid0)
          end if
       end if
 
 !  call handle_err(status,varnam,'cdf_setatt','nf_inq_varid')
-      if (status .ne. 0) GO TO 100
+      if (status /= 0) GO TO 100
 
       if (PRESENT(long_name)) then
          name = ""
          status = nf_get_att_text(ncid, varid0, 'long_name', name)
-         if (status .eq. nf_noerr) then
+         if (status == nf_noerr) then
             long_name = name(1:len(name))
          else
             long_name = ""
@@ -206,7 +206,7 @@ CONTAINS
       if (PRESENT(units)) then
          name = ""
          status = nf_get_att_text(ncid, varid0, 'units', name)
-         if (status .eq. nf_noerr) then
+         if (status == nf_noerr) then
             units = name(1:len(name))
          else
             units = ""
@@ -235,7 +235,7 @@ CONTAINS
       if (PRESENT(ier)) ier = 1
 
       status = nf_get_att_text(ncid, nf_global, 'title', name)
-      if (status .eq. nf_noerr) then
+      if (status == nf_noerr) then
          title = name(1:len(name))
       else
          title = ""

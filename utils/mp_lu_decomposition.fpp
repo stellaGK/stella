@@ -62,7 +62,7 @@ contains
          rdiv = (n - j) / nproc
          rmod = mod(n - j, nproc)
          row_limits(0) = j + 1
-         if (rdiv .eq. 0) then
+         if (rdiv == 0) then
             row_limits(rmod + 1:) = -1
             do k = 1, rmod
                row_limits(k) = row_limits(k - 1) + 1
@@ -70,7 +70,7 @@ contains
          else
             do k = 1, nproc
                row_limits(k) = row_limits(k - 1) + rdiv
-               if (k .le. rmod) row_limits(k) = row_limits(k) + 1
+               if (k <= rmod) row_limits(k) = row_limits(k) + 1
             end do
          end if
 
@@ -78,13 +78,13 @@ contains
          dmax = -1.0
          do k = j, n
             tmp = vv(k) * abs(lu(k, j))
-            if (tmp .gt. dmax) then
+            if (tmp > dmax) then
                dmax = tmp
                imax = k
             end if
          end do
 
-         if (iproc .eq. root) then
+         if (iproc == root) then
             idx(j) = imax
             if (j /= imax) then
                dum = lu(imax, :)

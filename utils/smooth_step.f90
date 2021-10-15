@@ -27,11 +27,11 @@ contains
 
       dV = maxVl - minVl
 
-      if (x .le. 0) then
+      if (x <= 0) then
          smoothstep = minVl
          return
       end if
-      if (x .ge. 1) then
+      if (x >= 1) then
          smoothstep = maxVl
          return
       end if

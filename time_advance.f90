@@ -751,7 +751,7 @@ contains
 
       ! FLAG -- assuming equal spacing in zed!
 
-      if (cfl_dt .lt. 0) cfl_dt = code_dt / cfl_cushion
+      if (cfl_dt < 0) cfl_dt = code_dt / cfl_cushion
 
       if (.not. drifts_implicit) then
          ! get the local max value of wdriftx on each processor
@@ -1255,7 +1255,7 @@ contains
 
       if (.not. restart_time_step) then
 
-         if ((g_exb**2) .gt. epsilon(0.0)) call advance_parallel_flow_shear(rhs)
+         if ((g_exb**2) > epsilon(0.0)) call advance_parallel_flow_shear(rhs)
 
          ! calculate and add mirror term to RHS of GK eqn
          if (include_mirror .and. .not. mirror_implicit) then
@@ -2584,7 +2584,7 @@ contains
                call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, phi(:, :, iz, it))
             end do
             phi(:, :, :, it) = phi(:, :, :, it) / gamtot_drifts
-            if (any(real(gamtot_drifts(1, 1, :)) .lt. epsilon(0.))) phi(1, 1, :, it) = 0.0
+            if (any(real(gamtot_drifts(1, 1, :)) < epsilon(0.))) phi(1, 1, :, it) = 0.0
 
             if (.not. has_electron_species(spec)) then
                ! no need to do anything extra for ky /= 0 because
@@ -2642,15 +2642,15 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g_in
 
-      if (runtype_option_switch .ne. runtype_multibox) return
+      if (runtype_option_switch /= runtype_multibox) return
 
-      if (job .ne. 1) then
+      if (job /= 1) then
          call advance_fields(g_in, phi, apar, dist='gbar')
       end if
 
       call multibox_communicate(g_in)
 
-      if (job .eq. 1) then
+      if (job == 1) then
          fields_updated = .false.
          call advance_fields(g_in, phi, apar, dist='gbar')
       end if

@@ -825,7 +825,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, i, 1, MPI_INTEGER, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -843,7 +843,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -879,7 +879,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, 1, mpireal, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -897,7 +897,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -915,7 +915,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -933,7 +933,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -951,7 +951,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -969,7 +969,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -987,7 +987,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, z, 1, mpicmplx, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -1005,7 +1005,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, z, size(z), mpicmplx, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -1023,7 +1023,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, z, size(z), mpicmplx, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -1041,7 +1041,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, z, size(z), mpicmplx, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -1059,7 +1059,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, z, size(z), mpicmplx, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -1077,7 +1077,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, z, size(z), mpicmplx, MPI_SUM, dest, mp_comm, ierror)
       else
@@ -1260,7 +1260,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, i, 1, MPI_INTEGER, MPI_MAX, dest, mp_comm, ierror)
       else
@@ -1278,7 +1278,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_MAX, dest, mp_comm, ierror)
       else
@@ -1296,7 +1296,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, 1, mpireal, MPI_MAX, dest, mp_comm, ierror)
       else
@@ -1314,7 +1314,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_MAX, dest, mp_comm, ierror)
       else
@@ -1372,7 +1372,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, i, 1, MPI_INTEGER, MPI_MIN, dest, mp_comm, ierror)
       else
@@ -1390,7 +1390,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, i, size(i), MPI_INTEGER, MPI_MIN, dest, mp_comm, ierror)
       else
@@ -1408,7 +1408,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, 1, mpireal, MPI_MIN, dest, mp_comm, ierror)
       else
@@ -1426,7 +1426,7 @@ contains
       integer, intent(in) :: dest
 # ifdef MPI
       integer :: ierror
-      if (iproc .eq. dest) then
+      if (iproc == dest) then
          call mpi_reduce &
             (MPI_IN_PLACE, a, size(a), mpireal, MPI_MIN, dest, mp_comm, ierror)
       else

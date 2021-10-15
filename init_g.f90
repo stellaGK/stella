@@ -63,7 +63,7 @@ contains
       !Determine if restart file contains "/" if so split on this point to give DIR//FILE
       !so restart files are created in DIR//restart_dir//FILE
       ind_slash = index(restart_file, "/", .true.)
-      if (ind_slash .eq. 0) then !No slash present
+      if (ind_slash == 0) then !No slash present
          restart_file = trim(restart_dir)//trim(restart_file)
       else !Slash present
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))
@@ -427,7 +427,7 @@ contains
                      a = ranf() - 0.5
                      b = ranf() - 0.5
                      ! do not populate high k modes with large amplitudes
-                     if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky, ikx, ia, iz) .ge. kmin)) then
+                     if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky, ikx, ia, iz) >= kmin)) then
                         !the following as an extra factor of kmin to offset the Gamma-1 in quasineutrality
                         phi(iky, ikx, iz, it) = cmplx(a, b) * kmin * kmin / kperp2(iky, ikx, ia, iz)
                      else
@@ -638,7 +638,7 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz)
 
          !if((ikx.eq.15.and.iky.eq.5).or.((ikx-nakx).eq.-12.and.iky.eq.3)) then
-         if ((ikx .eq. 1 .and. iky .eq. 2)) then
+         if ((ikx == 1 .and. iky == 2)) then
             gvmu(:, :, ikxkyz) = spec(is)%z * phiinit &
                                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
          end if

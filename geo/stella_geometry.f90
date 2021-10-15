@@ -597,7 +597,7 @@ contains
          (geo_option, geoopts, geo_option_switch, &
           ierr, "geo_option in geo_knobs")
 
-      if (radial_variation .and. runtype_option_switch .eq. runtype_multibox .and. job .ne. 1) then
+      if (radial_variation .and. runtype_option_switch == runtype_multibox .and. job /= 1) then
          geo_option_switch = geo_option_multibox
       end if
 
@@ -811,7 +811,7 @@ contains
       end if
 
       do ix = llim, ulim
-         if (abs(4.0 * a * c * x_in(ix)) .lt. 1.e-6) then
+         if (abs(4.0 * a * c * x_in(ix)) < 1.e-6) then
             rho_out(ix) = -(c * x_in(ix)) / b - a * (c * x_in(ix))**2 / b**3
          else
             rho_out(ix) = (-b + sqrt(b**2 - 4.*a * c * x_in(ix))) / (2.*a)
