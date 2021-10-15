@@ -834,11 +834,11 @@ contains
       if (abs(code_dt) > cfl_dt * cfl_cushion) then
          if (proc0) then
             write (*, *) 'CHANGING TIME STEP:'
-            write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
-            write (*, '(A49,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion ='//REPEAT(' ', 50), cfl_dt * cfl_cushion
+            write (*, '(A16, ES10.2E2)') "   code_dt:"//repeat(' ', 50), code_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//repeat(' ', 50), cfl_cushion
+            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//repeat(' ', 50)
+            write (*, '(A49,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion ='//repeat(' ', 50), cfl_dt * cfl_cushion
          end if
          code_dt = sign(1.0, code_dt) * cfl_dt * cfl_cushion
          call reset_dt
@@ -1642,11 +1642,11 @@ contains
          if (proc0) then
             write (*, *) ' '
             write (*, *) 'CHANGING TIME STEP:'
-            write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
-            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+            write (*, '(A16, ES10.2E2)') "   code_dt:"//repeat(' ', 50), code_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//repeat(' ', 50), cfl_cushion
+            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//repeat(' ', 50), delt_adjust
+            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//repeat(' ', 50)
             write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust =' &
                //repeat(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
@@ -1658,11 +1658,11 @@ contains
          if (proc0) then
             write (*, *) ' '
             write (*, *) 'CHANGING TIME STEP:'
-            write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
-            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+            write (*, '(A16, ES10.2E2)') "   code_dt:"//repeat(' ', 50), code_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//repeat(' ', 50), cfl_cushion
+            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//repeat(' ', 50), delt_adjust
+            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//repeat(' ', 50)
             write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust =' &
                //repeat(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
@@ -1958,11 +1958,11 @@ contains
          if (proc0) then
             write (*, *) ' '
             write (*, *) 'CHANGING TIME STEP:'
-            write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
-            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+            write (*, '(A16, ES10.2E2)') "   code_dt:"//repeat(' ', 50), code_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//repeat(' ', 50), cfl_cushion
+            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//repeat(' ', 50), delt_adjust
+            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//repeat(' ', 50)
             write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust =' &
                //repeat(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
@@ -1974,11 +1974,11 @@ contains
          if (proc0) then
             write (*, *) ' '
             write (*, *) 'CHANGING TIME STEP:'
-            write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
-            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
-            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+            write (*, '(A16, ES10.2E2)') "   code_dt:"//repeat(' ', 50), code_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt
+            write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//repeat(' ', 50), cfl_cushion
+            write (*, '(A16, ES10.2E2)') "   delt_adjust:"//repeat(' ', 50), delt_adjust
+            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//repeat(' ', 50)
             write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust =' &
                //repeat(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '

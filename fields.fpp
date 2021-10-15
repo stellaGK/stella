@@ -42,7 +42,7 @@ contains
 
       use mp, only: sum_allreduce, job, proc0
       use stella_layouts, only: kxkyz_lo
-      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
       use run_parameters, only: fphi, fapar

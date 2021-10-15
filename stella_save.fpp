@@ -102,7 +102,7 @@ contains
       integer, intent(in) :: istep0
       integer, intent(out) :: istatus
       logical, intent(in), optional :: exit_in
-      character(20), INTENT(in), optional :: fileopt
+      character(20), intent(in), optional :: fileopt
 # ifdef NETCDF
       character(306) :: file_proc
       character(10) :: suffix
@@ -146,9 +146,9 @@ contains
          file_proc = trim(restart_file)
 
 !CMR, 5/4/2011: Add optional piece of filename
-         IF (PRESENT(fileopt)) THEN
+         if (present(fileopt)) then
             file_proc = trim(file_proc)//trim(fileopt)
-         END IF
+         end if
 !CMRend
 
 !</HL>  The NETCDF_PARALLEL directives include code for parallel
@@ -157,10 +157,10 @@ contains
 # ifdef NETCDF_PARALLEL
          if (save_many) then
 # endif
-            WRITE (suffix, '(a1,i0)') '.', iproc
+            write (suffix, '(a1,i0)') '.', iproc
 # ifdef NETCDF_PARALLEL
          else
-            WRITE (suffix, *) ''
+            write (suffix, *) ''
          end if
 # endif
 
@@ -181,7 +181,7 @@ contains
 
             call barrier
 ! If using netcdf version 4.1.2 or older replace NF90_MPIIO with NF90_CLOBBER
-            istatus = nf90_create(file_proc, IOR(NF90_HDF5, NF90_MPIIO), ncid, comm=mp_comm, info=mp_info)
+            istatus = nf90_create(file_proc, ior(NF90_HDF5, NF90_MPIIO), ncid, comm=mp_comm, info=mp_info)
          end if
 # endif
 
@@ -775,7 +775,7 @@ contains
 # ifdef NETCDF_PARALLEL
          else
 ! If using netcdf version 4.1.2 deleted NF90_MPIIO and the associated IOR
-            istatus = nf90_open(file_proc, IOR(NF90_NOWRITE, NF90_MPIIO), ncid, comm=mp_comm, info=mp_info)
+            istatus = nf90_open(file_proc, ior(NF90_NOWRITE, NF90_MPIIO), ncid, comm=mp_comm, info=mp_info)
          end if
 # endif
 
