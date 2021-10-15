@@ -152,7 +152,7 @@ contains
 
       do iky = 1, naky
 
-         if (proc0 .and. mat_gen) THEN
+         if (proc0 .and. mat_gen) then
             write (unit=mat_unit) iky, neigen(iky)
          end if
 

@@ -112,8 +112,8 @@ contains
 
       write (*, *) " "
       write (*, *) "  Characteristics of the magnetic field:"
-      write (*, '(A44, I1)') "      Number of field periods (nfp):"//REPEAT(' ', 50), nfp
-      write (*, '(A44, L1)') "      Stellarator-asymmetric? (lasym):"//REPEAT(' ', 50), lasym
+      write (*, '(A44, I1)') "      Number of field periods (nfp):"//repeat(' ', 50), nfp
+      write (*, '(A44, L1)') "      Stellarator-asymmetric? (lasym):"//repeat(' ', 50), lasym
 
       if (.not. allocated(rmnc)) then
          allocate (xm(mnmax)); xm = xm_vmec
@@ -401,7 +401,7 @@ contains
       ! this gives the sign of the edge toroidal flux
       sign_toroidal_flux = int(sign(1.1, edge_toroidal_flux_over_2pi))
 
-      if (verbose) write (*, '(A43, I2)') "      Sign of the toroidal flux from VMEC:"//REPEAT(' ', 50), sign_toroidal_flux
+      if (verbose) write (*, '(A43, I2)') "      Sign of the toroidal flux from VMEC:"//repeat(' ', 50), sign_toroidal_flux
 
       ! Set reference length and magnetic field for stella's normalization,
       ! using the choices made by Pavlos Xanthopoulos in GIST:
@@ -412,8 +412,8 @@ contains
       if (verbose) then
          write (*, *) "  "
          write (*, *) "  Reference values for the stella normalization:"
-         write (*, '(A42, F15.12, A7)') "      Reference length (minor radius a):"//REPEAT(' ', 50), L_reference, " meters"
-         write (*, '(A42, F15.12, A6)') "      Reference magnetic field strength:"//REPEAT(' ', 50), B_reference, " Tesla"
+         write (*, '(A42, F15.12, A7)') "      Reference length (minor radius a):"//repeat(' ', 50), L_reference, " meters"
+         write (*, '(A42, F15.12, A6)') "      Reference magnetic field strength:"//repeat(' ', 50), B_reference, " Tesla"
       end if
 
       ! --------------------------------------------------------------------------------
@@ -629,19 +629,19 @@ contains
       if (verbose) write (*, *) "  Radial-profile functions at the chosen flux surface:"
       iota = iotas(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
              + iotas(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
-      if (verbose) write (*, '(A21, F15.12)') "      iota:"//REPEAT(' ', 50), iota
+      if (verbose) write (*, '(A21, F15.12)') "      iota:"//repeat(' ', 50), iota
       safety_factor_q = 1 / iota
 
       allocate (d_iota_d_s_on_half_grid(ns))
       d_iota_d_s_on_half_grid = 0
       ds = normalized_toroidal_flux_full_grid(2) - normalized_toroidal_flux_full_grid(1)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      ds:"//REPEAT(' ', 50), ds
+      if (verbose) write (*, '(A21, ES20.12E3)') "      ds:"//repeat(' ', 50), ds
       d_iota_d_s_on_half_grid(2:ns) = (iotaf(2:ns) - iotaf(1:ns - 1)) / ds
       d_iota_d_s = &
          d_iota_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + d_iota_d_s_on_half_grid(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
       deallocate (d_iota_d_s_on_half_grid)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      diota/ds:"//REPEAT(' ', 50), d_iota_d_s
+      if (verbose) write (*, '(A21, ES20.12E3)') "      diota/ds:"//repeat(' ', 50), d_iota_d_s
       ! shat = (r/q)(dq/dr) where r = a sqrt(s).
       !      = - (r/iota) (d iota / d r) = -2 (s/iota) (d iota / d s)
       shat = (-2 * normalized_toroidal_flux_used / iota) * d_iota_d_s
@@ -654,7 +654,7 @@ contains
          d_pressure_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + d_pressure_d_s_on_half_grid(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
       deallocate (d_pressure_d_s_on_half_grid)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      dpressure/ds:"//REPEAT(' ', 50), d_pressure_d_s
+      if (verbose) write (*, '(A21, ES20.12E3)') "      dpressure/ds:"//repeat(' ', 50), d_pressure_d_s
       if (verbose) write (*, *) " "
 
       !*********************************************************************

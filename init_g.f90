@@ -62,8 +62,8 @@ contains
 
       !Determine if restart file contains "/" if so split on this point to give DIR//FILE
       !so restart files are created in DIR//restart_dir//FILE
-      ind_slash = index(restart_file, "/", .True.)
-      if (ind_slash .EQ. 0) then !No slash present
+      ind_slash = index(restart_file, "/", .true.)
+      if (ind_slash .eq. 0) then !No slash present
          restart_file = trim(restart_dir)//trim(restart_file)
       else !Slash present
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))

@@ -1452,7 +1452,7 @@ contains
       use kt_grids, only: naky, nakx
       use kt_grids, only: aky, akx, zed0
       use stella_geometry, only: zed_eqarc
-      USE dist_fn_arrays, ONLY: kperp2
+      use dist_fn_arrays, only: kperp2
 
       implicit none
 
