@@ -18,8 +18,8 @@ jobs:
     - name: Fix formatting with fprettify
       run: |
         pip install fprettify
-        $HOME/.local/bin/fprettify --version
-        $HOME/.local/bin/fprettify --config-file .fprettify.conf $(git ls-files | grep -E "\.f[p9][p0]")
+        fprettify --version
+        fprettify --config-file .fprettify.conf $(git ls-files | grep -E "\.f[p9][p0]")
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: "[skip ci] Apply fprettify changes"
