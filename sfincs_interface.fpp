@@ -164,8 +164,9 @@ contains
    end subroutine get_neo_from_sfincs
 
 # ifdef USE_SFINCS
-   subroutine iterate_sfincs_until_electric_field_converged(sfincs_comm, irad, drho, &
-                                                     nrad_max, dPhiHatdrN_best_guess, dphiHatdrN_is_converged, number_of_sfincs_calls_for_convergence)
+   subroutine iterate_sfincs_until_electric_field_converged( &
+      sfincs_comm, irad, drho, nrad_max, dPhiHatdrN_best_guess, &
+      dphiHatdrN_is_converged, number_of_sfincs_calls_for_convergence)
 
       use mp, only: proc0, iproc
 
@@ -961,9 +962,10 @@ contains
             do iz = -nzgrid, nzgrid
                call sfincs_vspace_to_stella_vspace(ialpha, iz, is, h_stella(ialpha, iz + nzgrid + 1, :, :), &
                                                    phi_neoclassical(ialpha, iz), f_neoclassical(ialpha, iz, :, :, is))
-               if (present(dfneo_dalpha)) call sfincs_vspace_to_stella_vspace(ialpha, iz, is, &
-                                                                              dh_stella(ialpha, iz + nzgrid + 1, :, :), dphineo_dalpha(ialpha, iz), &
-                                                                              dfneo_dalpha(ialpha, iz, :, :, is))
+               if (present(dfneo_dalpha)) &
+                  call sfincs_vspace_to_stella_vspace(ialpha, iz, is, &
+                                                      dh_stella(ialpha, iz + nzgrid + 1, :, :), dphineo_dalpha(ialpha, iz), &
+                                                      dfneo_dalpha(ialpha, iz, :, :, is))
             end do
          end do
 
