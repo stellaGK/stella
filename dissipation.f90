@@ -1434,7 +1434,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                bm_rowind = (iv - 1) * nmu + imu
                do imu2 = 1, nmu
                   bm_colind = (iv - 1) * nmu + imu2
-                  if ((max(1, bm_colind - (nmu + 1)) .le. bm_rowind) .and. (bm_rowind .le. min(nvpa * nmu, bm_colind + (nmu + 1)))) then
+                  if ((max(1, bm_colind - (nmu + 1)) <= bm_rowind) .and. (bm_rowind <= min(nvpa * nmu, bm_colind + (nmu + 1)))) then
                      cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) = bb_blcs(iv, imu, imu2, ikxkyz, is)
                   end if
                end do
@@ -1445,7 +1445,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                   bm_rowind = (iv - 1) * nmu + imu
                   do imu2 = 1, nmu
                      bm_colind = nmu + (iv - 1) * nmu + imu2 ! nvpa*nmu - nmu + imu2
-                     if ((max(1, bm_colind - (nmu + 1)) .le. bm_rowind) .and. (bm_rowind .le. min(nvpa * nmu, bm_colind + (nmu + 1)))) then
+                     if ((max(1, bm_colind - (nmu + 1)) <= bm_rowind) .and. (bm_rowind <= min(nvpa * nmu, bm_colind + (nmu + 1)))) then
                         cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) = cc_blcs(iv, imu, imu2, ikxkyz, is)
                      end if
                   end do
@@ -1455,7 +1455,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                   bm_rowind = nmu + (iv - 1) * nmu + imu
                   do imu2 = 1, nmu
                      bm_colind = (iv - 1) * nmu + imu2
-                     if ((max(1, bm_colind - (nmu + 1)) .le. bm_rowind) .and. (bm_rowind .le. min(nvpa * nmu, bm_colind + (nmu + 1)))) then
+                     if ((max(1, bm_colind - (nmu + 1)) <= bm_rowind) .and. (bm_rowind <= min(nvpa * nmu, bm_colind + (nmu + 1)))) then
                     cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) = aa_blcs(1 + iv, imu, imu2, ikxkyz, is)
                      end if
                   end do
@@ -1471,7 +1471,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                   bm_rowind = (iv - 1) * nmu + imu
                   do imu2 = 1, nmu
                      bm_colind = (iv - 1) * nmu + imu2
-                     if ((max(1, bm_colind - (nmu + 1)) .le. bm_rowind) .and. (bm_rowind .le. min(nvpa * nmu, bm_colind + (nmu + 1)))) then
+                     if ((max(1, bm_colind - (nmu + 1)) <= bm_rowind) .and. (bm_rowind <= min(nvpa * nmu, bm_colind + (nmu + 1)))) then
                         cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) = &
                        cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) + bb_blcs(iv, imu, imu2, ikxkyz, isb)
                      end if
@@ -1483,7 +1483,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                      bm_rowind = (iv - 1) * nmu + imu
                      do imu2 = 1, nmu
                         bm_colind = (iv - 1) * nmu + nmu + imu2
-                        if ((max(1, bm_colind - (nmu + 1)) .le. bm_rowind) .and. (bm_rowind .le. min(nvpa * nmu, bm_colind + (nmu + 1)))) then
+                        if ((max(1, bm_colind - (nmu + 1)) <= bm_rowind) .and. (bm_rowind <= min(nvpa * nmu, bm_colind + (nmu + 1)))) then
                            cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) = &
                        cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) + cc_blcs(iv, imu, imu2, ikxkyz, isb)
                         end if
@@ -1494,7 +1494,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                      bm_rowind = (iv - 1) * nmu + nmu + imu
                      do imu2 = 1, nmu
                         bm_colind = (iv - 1) * nmu + imu2
-                        if ((max(1, bm_colind - (nmu + 1)) .le. bm_rowind) .and. (bm_rowind .le. min(nvpa * nmu, bm_colind + (nmu + 1)))) then
+                        if ((max(1, bm_colind - (nmu + 1)) <= bm_rowind) .and. (bm_rowind <= min(nvpa * nmu, bm_colind + (nmu + 1)))) then
                            cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) = &
                    cdiffmat_band(nmu + 1 + nmu + 1 + 1 + bm_rowind - bm_colind, bm_colind, iky, ikx, iz, is) + aa_blcs(1 + iv, imu, imu2, ikxkyz, isb)
                         end if
@@ -1518,7 +1518,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                ! diagonal indices in blockmatrix
                ivv = nmu * (iv - 1) + imu
                imm = ivv
-               if ((max(1, ivv - (nmu + 1)) .le. imm) .and. (imm .le. min(nvpa * nmu, ivv + (nmu + 1)))) then
+               if ((max(1, ivv - (nmu + 1)) <= imm) .and. (imm <= min(nvpa * nmu, ivv + (nmu + 1)))) then
                   ! intra-species:
    cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) &
           + code_dt * cfac * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 * (nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) &
@@ -1548,7 +1548,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       do is = 1, nspec
          do iv = 1, nmu * nvpa
             do imu = 1, nmu * nvpa
-               if ((max(1, iv - (nmu + 1)) .le. imu) .and. (imu .le. min(nvpa * nmu, iv + (nmu + 1)))) then
+               if ((max(1, iv - (nmu + 1)) <= imu) .and. (imu <= min(nvpa * nmu, iv + (nmu + 1)))) then
                   if (iv == imu) then
               cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imu - iv, iv, :, :, :, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imu - iv, iv, :, :, :, is) + 1.
                   end if
@@ -3699,7 +3699,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
-            if (iky .ne. 1 .or. it .ne. 1) cycle
+            if (iky /= 1 .or. it /= 1) cycle
 
             !calculate inverse of vpadiff_response
             call lu_inverse(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), temp_mat)
@@ -3948,7 +3948,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
-            if (iky .ne. 1 .or. it .ne. 1) cycle
+            if (iky /= 1 .or. it /= 1) cycle
 
             !calculate inverse of mudiff_response
             call lu_inverse(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), temp_mat)
@@ -5876,7 +5876,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             it = it_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
 
-            if (iky .ne. 1 .or. is .ne. 1) cycle
+            if (iky /= 1 .or. is /= 1) cycle
 
             tmp2 = flds_zf(ikx, it, :)
             call lu_back_substitution(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), &
@@ -6058,7 +6058,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             it = it_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
 
-            if (iky .ne. 1 .or. is .ne. 1) cycle
+            if (iky /= 1 .or. is /= 1) cycle
 
             tmp2 = flds_zf(ikx, it, :)
             call lu_back_substitution(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), &

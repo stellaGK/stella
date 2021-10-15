@@ -376,7 +376,7 @@ contains
          deallocate (omega_avg)
       end if
 
-      if (mod(istep, nwrite * nc_mult) .eq. 0) then
+      if (mod(istep, nwrite * nc_mult) == 0) then
          if (proc0) then
             if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
             call write_time_nc(nout, code_time)

@@ -162,7 +162,7 @@ contains
          call get_option_value(species_option, specopts, species_option_switch, &
                                ierr, "species_option in species_knobs")
 
-         if (runtype_option_switch .eq. runtype_multibox .and. (job .ne. 1) .and. radial_variation) then
+         if (runtype_option_switch == runtype_multibox .and. (job /= 1) .and. radial_variation) then
             !will need to readjust the species parameters in the left/right boxes
             species_option_switch = species_option_multibox
          end if

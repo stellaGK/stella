@@ -185,14 +185,14 @@ contains
             do ikx = 1, nakx
                if (q_as_x) then
                   kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22
-                  where (kperp2(iky, ikx, :, :) .gt. epsilon(0.0))
+                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
                      dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / kperp2(iky, ikx, :, :)
                   elsewhere
                      dkperp2dr(iky, ikx, :, :) = 0.0
                   end where
                else
                   kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22 / (geo_surf%shat**2)
-                  where (kperp2(iky, ikx, :, :) .gt. epsilon(0.0))
+                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
                      dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / (geo_surf%shat**2 * kperp2(iky, ikx, :, :))
                   elsewhere
                      dkperp2dr(iky, ikx, :, :) = 0.0
@@ -208,7 +208,7 @@ contains
                                            * (dgds2dr + 2.0 * theta0(iky, ikx) * dgds21dr &
                                               + theta0(iky, ikx) * theta0(iky, ikx) * dgds22dr)
                dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
-               if (any(kperp2(iky, ikx, :, :) .lt. epsilon(0.))) dkperp2dr(iky, ikx, :, :) = 0.
+               if (any(kperp2(iky, ikx, :, :) < epsilon(0.))) dkperp2dr(iky, ikx, :, :) = 0.
             end do
          end if
       end do

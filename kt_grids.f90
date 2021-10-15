@@ -311,8 +311,8 @@ contains
       end if
 
       norm = 1.
-      if (nakx .gt. 1) norm = aky(2)
-      if (rhostar .gt. 0.) then
+      if (nakx > 1) norm = aky(2)
+      if (rhostar > 0.) then
          phase_shift_fac = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
       else if (randomize_phase_shift) then
          if (proc0) phase_shift_fac = 2.*pi * ranf() / norm
@@ -347,9 +347,9 @@ contains
       end if
 
       do ikx = 1, nx
-         if (radial_variation .or. runtype_option_switch .eq. runtype_multibox) then
+         if (radial_variation .or. runtype_option_switch == runtype_multibox) then
             if (periodic_variation) then
-               if (ikx .le. nx / 2) then
+               if (ikx <= nx / 2) then
                   x(ikx) = (ikx - 1) * dx - 0.5 * x_shift
                else
                   x(ikx) = x(nx - ikx + 1)
@@ -364,9 +364,9 @@ contains
 
       dx_d = (2 * pi * x0) / nakx
       do ikx = 1, nakx
-         if (radial_variation .or. runtype_option_switch .eq. runtype_multibox) then
+         if (radial_variation .or. runtype_option_switch == runtype_multibox) then
             if (periodic_variation) then
-               if (ikx .le. (nakx + 1) / 2) then
+               if (ikx <= (nakx + 1) / 2) then
                   x_d(ikx) = (ikx - 1) * dx_d - 0.5 * x_shift
                else
                   x_d(ikx) = x_d(nakx - ikx + 1)
@@ -389,8 +389,8 @@ contains
 
       if (radial_variation) call dump_radial_grid
 
-      if (radial_variation .and. (any((rho + geo_surf%rhoc) .lt. 0.0) &
-                                  .or. any((rho + geo_surf%rhoc) .gt. 1.0))) then
+      if (radial_variation .and. (any((rho + geo_surf%rhoc) < 0.0) &
+                                  .or. any((rho + geo_surf%rhoc) > 1.0))) then
          call mp_abort('rho(x) is beyond range [0,1]. Try changing rhostar or q/psi profiles')
       end if
 
@@ -456,7 +456,7 @@ contains
                   = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
             end do
             akx = theta0(1, :) * tfac * aky(1)
-         else if (akx_max > akx_min - zero .or. nakx .eq. 1) then
+         else if (akx_max > akx_min - zero .or. nakx == 1) then
             dkx = 0.0
             if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
             akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)

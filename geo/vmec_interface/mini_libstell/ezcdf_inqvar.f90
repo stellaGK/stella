@@ -48,27 +48,27 @@ CONTAINS
       CALL alpha_numeric(varnam_noalpha)
 
       status = nf_inq_varid(ncid, varnam_noalpha, varid)
-      if (status .ne. 0) then
+      if (status /= 0) then
          ! perhaps varnam is complex, try...
          status = nf_inq_varid(ncid, trim(varnam_noalpha)//cmplx_name, varid)
-         if (status .eq. 0) then
+         if (status == 0) then
             is_complex = .true.
          else
             status = nf_inq_varid(ncid, trim(varnam_noalpha)//logical_name, varid)
-            if (status .eq. 0) is_logical = .true.
+            if (status == 0) is_logical = .true.
          end if
       end if
 
       if (is_complex) varnam_noalpha = trim(varnam_noalpha)//cmplx_name
       if (is_logical) varnam_noalpha = trim(varnam_noalpha)//logical_name
 ! call handle_err(status,varnam_noalpha,'cdfInqVar','nf_inq_varid')
-      if (status .ne. 0) return
+      if (status /= 0) return
 
       status = nf_inq_var(ncid, varid, name, xtype, ndims, dimids, natts)
       call handle_err(status, varnam_noalpha, 'cdfInqVar', 'nf_inq_var')
-      if (status .ne. 0) return
+      if (status /= 0) return
 
-      if (size(dimlens) .lt. ndims) return
+      if (size(dimlens) < ndims) return
       dimlens = 0
 
       select case (xtype)
@@ -131,27 +131,27 @@ CONTAINS
 
       status = nf_inq_varid(ncid, varnam_noalpha, varid)
 !   call handle_err(status,varnam,'cdfgv','nf_inq_varid')
-      if (status .ne. 0) return
+      if (status /= 0) return
       status = nf_inq_var(ncid, varid, name, vartyp, ndims, dimids, atts)
       call handle_err(status, varnam, 'cdfgv', 'nf_inq_var')
-      if (status .ne. 0) return
+      if (status /= 0) return
       ! Verify input dimension is correct
       rank = size(sizes)
       status = 1
-      if (ndims .eq. 3 .and. rank .ne. 3) then
+      if (ndims == 3 .and. rank /= 3) then
          print "('% cdfgv: --E-- The variable ',a,                      &
               &         ' is 3 dimensional')", varnam
          return
-      else if (ndims .eq. 2 .and. rank .ne. 2) then
+      else if (ndims == 2 .and. rank /= 2) then
          print "('% cdfgv: --E-- The variable ',a,                      &
               &         ' is 2 dimensional')", varnam
          return
       end if
-      if (ndims .eq. 0 .and. sizes(1) .ne. 0) then
+      if (ndims == 0 .and. sizes(1) /= 0) then
          print "('% cdfgv: --E-- The variable ',a,                      &
               &           ' is a Scalar')", varnam
          return
-      else if (ndims .eq. 1 .and. rank .ne. 1) then
+      else if (ndims == 1 .and. rank /= 1) then
          print "('% cdfgv: --E-- The variable ',a,                      &
               &           ' is 1 dimensional')",                                 &
               &         varnam
@@ -160,31 +160,31 @@ CONTAINS
       ! Verify data type is matching
       select case (xtype)
       case ('i')
-         if (vartyp .ne. nf_int) then
+         if (vartyp /= nf_int) then
             print "('% cdfgv: --E-- ',a,' is of type Integer !')",      &
                  &             varnam
             return
          end if
       case ('l')
-         if (vartyp .ne. nf_byte) then
+         if (vartyp /= nf_byte) then
             print "('% cdfgv: --E-- ',a,' is of type logical !')",         &
                  &            varnam
             return
          end if
       case ('d')
-         if (vartyp .ne. nf_double) then
+         if (vartyp /= nf_double) then
             print "('% cdfgv: --E-- ',a,' is of type REAL*8 !')",       &
                  &            varnam
             return
          end if
       case ('r')
-         if (vartyp .ne. nf_real) then
+         if (vartyp /= nf_real) then
             print "('% cdfgv: --E-- ',a,' is of type default REAL !')",       &
                  &            varnam
             return
          end if
       case ('c')
-         if (vartyp .ne. nf_char) then
+         if (vartyp /= nf_char) then
             print "('% cdfgv: --E-- ',a,' is of type Character !')",         &
                  &            varnam
             return
@@ -199,7 +199,7 @@ CONTAINS
       ! Check array size is big enough
       select case (ndims)
       case (1)
-         if (dimlens(1) .gt. sizes(1)) then
+         if (dimlens(1) > sizes(1)) then
             print "('% cdfgv: --W-- Output array size =',I6,/           &
                  &           '                is smaller than ',                    &
                  &           a,' size =',I6/,                                       &
@@ -207,7 +207,7 @@ CONTAINS
                  &         sizes(1), varnam, dimlens(1)
          end if
       case (2)
-         if (dimlens(1) .gt. sizes(1) .or. dimlens(2) .gt. sizes(2)) then
+         if (dimlens(1) > sizes(1) .or. dimlens(2) > sizes(2)) then
             print "('% cdfgv: --W-- Output array size =',I6,' *',I6,/      &
                  &           '                is smaller than ',                    &
                  &           a,' size =',I6,' *',I6/,                               &
@@ -215,8 +215,8 @@ CONTAINS
                  &         sizes(1), sizes(2), varnam, dimlens(1), dimlens(2)
          end if
       case (3)
-         if (dimlens(1) .gt. sizes(1) .or. dimlens(2) .gt. sizes(2)         &
-              &   .or. dimlens(3) .gt. sizes(3)) then
+         if (dimlens(1) > sizes(1) .or. dimlens(2) > sizes(2)         &
+              &   .or. dimlens(3) > sizes(3)) then
             print "('% cdfgv: --W-- Output array size =',                  &
                  &          I5,' *',I5,' *',I5/,                                    &
                  &           '                is smaller than ',                    &
@@ -261,11 +261,11 @@ CONTAINS
 
       status = nf_inq_varid(ncid, varnam_noalpha, varid)
 !    call handle_err(status,varnam,'cdfInqV','nf_inq_varid')
-      if (status .ne. 0) return
+      if (status /= 0) return
       status = nf_inq_var(ncid, varid, name, xtype, ndims, dimids, natts)
       call handle_err(status, varnam, 'cdfInqV', 'nf_inq_var')
 
-      if (ndims .gt. size(dimlens)) stop 'dimlens too small in cdfInqV'
+      if (ndims > size(dimlens)) stop 'dimlens too small in cdfInqV'
 
       do i = 1, ndims
          status = nf_inq_dimlen(ncid, dimids(i), dimlens(i))

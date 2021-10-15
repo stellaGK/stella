@@ -383,7 +383,7 @@ contains
       !Determine if '/' is in input name and if so what position
       !in the string is the last one (i.e. split run_name into path_to_file and file)
       ind_slash = index(run_name, "/", .True.)
-      if (ind_slash .EQ. 0) then !No slash in name
+      if (ind_slash == 0) then !No slash in name
          !Original behaviour
          open (unit=out_unit, file="."//trim(run_name)//".in")
       else
@@ -524,7 +524,7 @@ contains
       !Determine if '/' is in input name and if so what position
       !in the string is the last one (i.e. split run_name into path_to_file and file)
       ind_slash = index(run_name, "/", .True.)
-      if (ind_slash .EQ. 0) then !No slash in name
+      if (ind_slash == 0) then !No slash in name
          !Original behaviour
          open (unit=unit, file="."//trim(run_name)//".scratch")
       else

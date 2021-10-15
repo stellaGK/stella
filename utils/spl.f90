@@ -433,8 +433,8 @@ contains
       nm1 = n - 1
       np1 = n + 1
       ierr = 0
-      if (n .le. 1) go to 8
-      if (x(n) .le. x(1)) go to 9
+      if (n <= 1) go to 8
+      if (x(n) <= x(1)) go to 9
 !
 ! denormalize tension factor
 !
@@ -442,40 +442,40 @@ contains
 !
 ! approximate end slopes
 !
-      if (islpsw .ge. 2) go to 1
+      if (islpsw >= 2) go to 1
       slpp1 = slp1
       go to 2
 1     delx1 = x(2) - x(1)
       delx2 = delx1 + delx1
-      if (n .gt. 2) delx2 = x(3) - x(1)
-      if (delx1 .le. 0. .or. delx2 .le. delx1) go to 9
+      if (n > 2) delx2 = x(3) - x(1)
+      if (delx1 <= 0. .or. delx2 <= delx1) go to 9
       call fitp_ceez(delx1, delx2, sigmap, c1, c2, c3, n)
       slpp1 = c1 * y(1) + c2 * y(2)
-      if (n .gt. 2) slpp1 = slpp1 + c3 * y(3)
-2     if (islpsw .eq. 1 .or. islpsw .eq. 3) go to 3
+      if (n > 2) slpp1 = slpp1 + c3 * y(3)
+2     if (islpsw == 1 .or. islpsw == 3) go to 3
       slppn = slpn
       go to 4
 3     delxn = x(n) - x(nm1)
       delxnm = delxn + delxn
-      if (n .gt. 2) delxnm = x(n) - x(n - 2)
-      if (delxn .le. 0. .or. delxnm .le. delxn) go to 9
+      if (n > 2) delxnm = x(n) - x(n - 2)
+      if (delxn <= 0. .or. delxnm <= delxn) go to 9
       call fitp_ceez(-delxn, -delxnm, sigmap, c1, c2, c3, n)
       slppn = c1 * y(n) + c2 * y(nm1)
-      if (n .gt. 2) slppn = slppn + c3 * y(n - 2)
+      if (n > 2) slppn = slppn + c3 * y(n - 2)
 !
 ! set up right hand side and tridiagonal system for yp and
 ! perform forward elimination
 !
 4     delx1 = x(2) - x(1)
-      if (delx1 .le. 0.) go to 9
+      if (delx1 <= 0.) go to 9
       dx1 = (y(2) - y(1)) / delx1
       call fitp_terms(diag1, sdiag1, sigmap, delx1)
       yp(1) = (dx1 - slpp1) / diag1
       temp(1) = sdiag1 / diag1
-      if (n .eq. 2) go to 6
+      if (n == 2) go to 6
       do i = 2, nm1
          delx2 = x(i + 1) - x(i)
-         if (delx2 .le. 0.) go to 9
+         if (delx2 <= 0.) go to 9
          dx2 = (y(i + 1) - y(i)) / delx2
          call fitp_terms(diag2, sdiag2, sigmap, delx2)
          diag = diag1 + diag2 - sdiag1 * temp(i - 1)
@@ -686,7 +686,7 @@ contains
       del2 = x(i) - t
       dels = x(i) - x(im1)
       sum = (y(i) * del1 + y(im1) * del2) / dels
-      if (sigmap .ne. 0.) go to 1
+      if (sigmap /= 0.) go to 1
       fitp_curv2 = sum - del1 * del2 * (yp(i) * (del1 + dels) + yp(im1) * (del2 + dels)) / (6.*dels)
       return
 1     sigdel = sigmap * dels
@@ -763,7 +763,7 @@ contains
       del2 = x(i) - t
       dels = x(i) - x(im1)
       sum = (y(i) - y(im1)) / dels
-      if (sigmap .ne. 0.) go to 1
+      if (sigmap /= 0.) go to 1
       fitp_curvd = sum + (yp(i) * (2.*del1 * del1 - del2 * (del1 + dels)) - &
                           yp(im1) * (2.*del2 * del2 - del1 * (del2 + dels))) &
                    / (6.*dels)
@@ -838,11 +838,11 @@ contains
       xxl = xl
       xxu = xu
       ssign = 1.
-      if (xl .lt. xu) go to 1
+      if (xl < xu) go to 1
       xxl = xu
       xxu = xl
       ssign = -1.
-      if (xl .gt. xu) go to 1
+      if (xl > xu) go to 1
 !
 ! return zero if xl .eq. xu
 !
@@ -855,19 +855,19 @@ contains
       il = ilm1 + 1
       ium1 = fitp_intrvl(xxu, x, n)
       iu = ium1 + 1
-      if (il .eq. iu) go to 8
+      if (il == iu) go to 8
 !
 ! integrate from xxl to x(il)
 !
       sum = 0.
-      if (xxl .eq. x(il)) go to 3
+      if (xxl == x(il)) go to 3
       del1 = xxl - x(ilm1)
       del2 = x(il) - xxl
       dels = x(il) - x(ilm1)
       t1 = (del1 + dels) * del2 / (2.*dels)
       t2 = del2 * del2 / (2.*dels)
       sum = t1 * y(il) + t2 * y(ilm1)
-      if (sigma .eq. 0.) go to 2
+      if (sigma == 0.) go to 2
       call fitp_snhcsh(dummy, c1, sigmap * del1, 2)
       call fitp_snhcsh(dummy, c2, sigmap * del2, 2)
       call fitp_snhcsh(ss, cs, sigmap * dels, 3)
@@ -880,12 +880,12 @@ contains
 !
 ! integrate over interior intervals
 !
-3     if (iu - il .eq. 1) go to 6
+3     if (iu - il == 1) go to 6
       ilp1 = il + 1
       do i = ilp1, ium1
          dels = x(i) - x(i - 1)
          sum = sum + (y(i) + y(i - 1)) * dels / 2.
-         if (sigma .eq. 0.) go to 4
+         if (sigma == 0.) go to 4
          call fitp_snhcsh(ss, cs, sigmap * dels, 3)
          sum = sum + (yp(i) + yp(i - 1)) * dels * (cs - ss / 2.) / (sigmap * sigmap * (1.+ss))
          go to 5
@@ -895,14 +895,14 @@ contains
 !
 ! integrate from x(iu-1) to xxu
 !
-6     if (xxu .eq. x(ium1)) go to 10
+6     if (xxu == x(ium1)) go to 10
       del1 = xxu - x(ium1)
       del2 = x(iu) - xxu
       dels = x(iu) - x(ium1)
       t1 = del1 * del1 / (2.*dels)
       t2 = (del2 + dels) * del1 / (2.*dels)
       sum = sum + t1 * y(iu) + t2 * y(ium1)
-      if (sigma .eq. 0.) go to 7
+      if (sigma == 0.) go to 7
       call fitp_snhcsh(dummy, c1, sigmap * del1, 2)
       call fitp_snhcsh(dummy, c2, sigmap * del2, 2)
       call fitp_snhcsh(ss, cs, sigmap * dels, 3)
@@ -925,7 +925,7 @@ contains
       t1 = (delu1 + dell1) * deli / (2.*dels)
       t2 = (delu2 + dell2) * deli / (2.*dels)
       sum = t1 * y(iu) + t2 * y(ium1)
-      if (sigma .eq. 0.) go to 9
+      if (sigma == 0.) go to 9
       call fitp_snhcsh(dummy, cu1, sigmap * delu1, 2)
       call fitp_snhcsh(dummy, cu2, sigmap * delu2, 2)
       call fitp_snhcsh(dummy, cl1, sigmap * dell1, 2)
@@ -1022,8 +1022,8 @@ contains
       nm1 = n - 1
       np1 = n + 1
       ierr = 0
-      if (n .le. 1) go to 6
-      if (p .le. x(n) - x(1) .or. p .le. 0.) go to 7
+      if (n <= 1) go to 6
+      if (p <= x(n) - x(1) .or. p <= 0.) go to 7
 !
 ! denormalize tension factor
 !
@@ -1036,7 +1036,7 @@ contains
       dx1 = (y(1) - y(n)) / delx1
       call fitp_terms(diag1, sdiag1, sigmap, delx1)
       delx2 = x(2) - x(1)
-      if (delx2 .le. 0.) go to 8
+      if (delx2 <= 0.) go to 8
       dx2 = (y(2) - y(1)) / delx2
       call fitp_terms(diag2, sdiag2, sigmap, delx2)
       diag = diag1 + diag2
@@ -1046,11 +1046,11 @@ contains
       dx1 = dx2
       diag1 = diag2
       sdiag1 = sdiag2
-      if (n .eq. 2) go to 2
+      if (n == 2) go to 2
       do i = 2, nm1
          npi = n + i
          delx2 = x(i + 1) - x(i)
-         if (delx2 .le. 0.) go to 8
+         if (delx2 <= 0.) go to 8
          dx2 = (y(i + 1) - y(i)) / delx2
          call fitp_terms(diag2, sdiag2, sigmap, delx2)
          diag = diag1 + diag2 - sdiag1 * temp(i - 1)
@@ -1066,7 +1066,7 @@ contains
       call fitp_terms(diag2, sdiag2, sigmap, delx2)
       yp(n) = dx2 - dx1
       temp(nm1) = temp(2 * n - 1) - temp(nm1)
-      if (n .eq. 2) go to 4
+      if (n == 2) go to 4
 !
 ! perform first step of back substitution
       !
@@ -1292,7 +1292,7 @@ contains
 ! set up and perform interpolation
 !
       del1 = tp - x(im1)
-      if (im1 .eq. n) go to 1
+      if (im1 == n) go to 1
       del2 = x(i) - tp
       dels = x(i) - x(im1)
       go to 2
@@ -1300,7 +1300,7 @@ contains
       del2 = x(1) + p - tp
       dels = p - (x(n) - x(1))
 2     sum = (y(i) * del1 + y(im1) * del2) / dels
-      if (sigmap .ne. 0.) go to 3
+      if (sigmap /= 0.) go to 3
       fitp_curvp2 = sum - del1 * del2 * (yp(i) * (del1 + dels) + yp(im1) * (del2 + dels)) / (6.*dels)
       return
 3     sigdel = sigmap * dels
@@ -1375,7 +1375,7 @@ contains
 ! set up and perform interpolation
 !
       del1 = tp - x(im1)
-      if (im1 .eq. n) go to 1
+      if (im1 == n) go to 1
       del2 = x(i) - tp
       dels = x(i) - x(im1)
       go to 2
@@ -1383,7 +1383,7 @@ contains
       del2 = x(1) + p - tp
       dels = p - (x(n) - x(1))
 2     sum = (y(i) - y(im1)) / dels
-      if (sigmap .ne. 0.) go to 3
+      if (sigmap /= 0.) go to 3
       fitp_curvpd = sum + (yp(i) * (2.*del1 * del1 - del2 * (del1 + dels)) - &
                            yp(im1) * (2.*del2 * del2 - del1 * (del2 + dels))) &
                     / (6.*dels)
@@ -1466,15 +1466,15 @@ contains
       isign = 1
       ilm1 = fitp_intrvp(xl, x, n, p, xxl)
       lper = int((xl - x(1)) / p)
-      if (xl .lt. x(1)) lper = lper - 1
+      if (xl < x(1)) lper = lper - 1
       ium1 = fitp_intrvp(xu, x, n, p, xxu)
       uper = int((xu - x(1)) / p)
-      if (xu .lt. x(1)) uper = uper - 1
+      if (xu < x(1)) uper = uper - 1
       ideltp = uper - lper
-      bdy = real(ideltp) * (xxu - xxl) .lt. 0.
-      if ((ideltp .eq. 0 .and. xxu .lt. xxl) .or. ideltp .lt. 0) isign = -1
+      bdy = real(ideltp) * (xxu - xxl) < 0.
+      if ((ideltp == 0 .and. xxu < xxl) .or. ideltp < 0) isign = -1
       if (bdy) ideltp = ideltp - isign
-      if (xxu .ge. xxl) go to 1
+      if (xxu >= xxl) go to 1
       xsave = xxl
       xxl = xxu
       xxu = xsave
@@ -1482,29 +1482,29 @@ contains
       ilm1 = ium1
       ium1 = isave
 1     il = ilm1 + 1
-      if (ilm1 .eq. n) il = 1
+      if (ilm1 == n) il = 1
       xil = x(il)
-      if (ilm1 .eq. n) xil = x1pp
+      if (ilm1 == n) xil = x1pp
       iu = ium1 + 1
-      if (ium1 .eq. n) iu = 1
+      if (ium1 == n) iu = 1
       xiu = x(iu)
-      if (ium1 .eq. n) xiu = x1pp
+      if (ium1 == n) xiu = x1pp
       s1 = 0.
-      if (ilm1 .eq. 1 .or. (ideltp .eq. 0 .and. .not. bdy)) go to 4
+      if (ilm1 == 1 .or. (ideltp == 0 .and. .not. bdy)) go to 4
 !
 ! integrate from x(1) to x(ilm1), store in s1
 !
       do i = 2, ilm1
          dels = x(i) - x(i - 1)
          s1 = s1 + (y(i) + y(i - 1)) * dels / 2.
-         if (sigma .eq. 0.) go to 2
+         if (sigma == 0.) go to 2
          call fitp_snhcsh(ss, cs, sigmap * dels, 3)
          s1 = s1 + (yp(i) + yp(i - 1)) * dels * (cs - ss / 2.) / (sigmap * sigmap * (1.+ss))
          cycle
 2        s1 = s1 - (yp(i) + yp(i - 1)) * dels * dels * dels / 24.
       end do
 4     s2 = 0.
-      if (x(ilm1) .ge. xxl .or. (ideltp .eq. 0 .and. .not. bdy)) go to 6
+      if (x(ilm1) >= xxl .or. (ideltp == 0 .and. .not. bdy)) go to 6
 !
 ! integrate from x(ilm1) to xxl, store in s2
 !
@@ -1514,7 +1514,7 @@ contains
       t1 = del1 * del1 / (2.*dels)
       t2 = (del2 + dels) * del1 / (2.*dels)
       s2 = t1 * y(il) + t2 * y(ilm1)
-      if (sigma .eq. 0.) go to 5
+      if (sigma == 0.) go to 5
       call fitp_snhcsh(dummy, c1, sigmap * del1, 2)
       call fitp_snhcsh(dummy, c2, sigmap * del2, 2)
       call fitp_snhcsh(ss, cs, sigmap * dels, 3)
@@ -1526,7 +1526,7 @@ contains
                       + dels * dels) * yp(il) / 12. &
            -t2 * t2 * dels * yp(ilm1) / 6.
 6     s3 = 0.
-      if (xxl .ge. xil .or. (ideltp .eq. 0 .and. bdy) .or. ilm1 .eq. ium1) go to 8
+      if (xxl >= xil .or. (ideltp == 0 .and. bdy) .or. ilm1 == ium1) go to 8
 
 !
 ! integrate from xxl to xil, store in s3
@@ -1537,7 +1537,7 @@ contains
       t1 = (del1 + dels) * del2 / (2.*dels)
       t2 = del2 * del2 / (2.*dels)
       s3 = t1 * y(il) + t2 * y(ilm1)
-      if (sigma .eq. 0.) go to 7
+      if (sigma == 0.) go to 7
       call fitp_snhcsh(dummy, c1, sigmap * del1, 2)
       call fitp_snhcsh(dummy, c2, sigmap * del2, 2)
       call fitp_snhcsh(ss, cs, sigmap * dels, 3)
@@ -1549,7 +1549,7 @@ contains
            -t2 * (del1 * (del2 + dels) + dels * dels) * &
            yp(ilm1) / 12.
 8     s4 = 0.
-      if (ilm1 .ge. ium1 - 1 .or. (ideltp .eq. 0 .and. bdy)) go to 11
+      if (ilm1 >= ium1 - 1 .or. (ideltp == 0 .and. bdy)) go to 11
 !
 ! integrate from xil to x(ium1), store in s4
 !
@@ -1557,14 +1557,14 @@ contains
       do i = ilp1, ium1
          dels = x(i) - x(i - 1)
          s4 = s4 + (y(i) + y(i - 1)) * dels / 2.
-         if (sigma .eq. 0.) go to 9
+         if (sigma == 0.) go to 9
          call fitp_snhcsh(ss, cs, sigmap * dels, 3)
          s4 = s4 + (yp(i) + yp(i - 1)) * dels * (cs - ss / 2.) / (sigmap * sigmap * (1.+ss))
          cycle
 9        s4 = s4 - (yp(i) + yp(i - 1)) * dels * dels * dels / 24.
       end do
 11    s5 = 0.
-      if (x(ium1) .ge. xxu .or. (ideltp .eq. 0 .and. bdy) .or. ilm1 .eq. ium1) go to 13
+      if (x(ium1) >= xxu .or. (ideltp == 0 .and. bdy) .or. ilm1 == ium1) go to 13
 !
 ! integrate from x(ium1) to xxu, store in s5
 !
@@ -1574,7 +1574,7 @@ contains
       t1 = del1 * del1 / (2.*dels)
       t2 = (del2 + dels) * del1 / (2.*dels)
       s5 = t1 * y(iu) + t2 * y(ium1)
-      if (sigma .eq. 0.) go to 12
+      if (sigma == 0.) go to 12
       call fitp_snhcsh(dummy, c1, sigmap * del1, 2)
       call fitp_snhcsh(dummy, c2, sigmap * del2, 2)
       call fitp_snhcsh(ss, cs, sigmap * dels, 3)
@@ -1584,7 +1584,7 @@ contains
       go to 13
 12    s5 = s5 - t1 * (del2 * (del1 + dels) + dels * dels) * yp(iu) / 12.-t2 * t2 * dels * yp(ium1) / 6.
 13    s6 = 0.
-      if (xxu .ge. xiu .or. (ideltp .eq. 0 .and. .not. bdy)) go to 15
+      if (xxu >= xiu .or. (ideltp == 0 .and. .not. bdy)) go to 15
 !
 ! integrate from xxu to xiu, store in s6
 !
@@ -1594,7 +1594,7 @@ contains
       t1 = (del1 + dels) * del2 / (2.*dels)
       t2 = del2 * del2 / (2.*dels)
       s6 = t1 * y(iu) + t2 * y(ium1)
-      if (sigma .eq. 0.) go to 14
+      if (sigma == 0.) go to 14
       call fitp_snhcsh(dummy, c1, sigmap * del1, 2)
       call fitp_snhcsh(dummy, c2, sigmap * del2, 2)
       call fitp_snhcsh(ss, cs, sigmap * dels, 3)
@@ -1604,7 +1604,7 @@ contains
       go to 15
 14    s6 = s6 - t1 * t1 * dels * yp(iu) / 6.-t2 * (del1 * (del2 + dels) + dels * dels) * yp(ium1) / 12.
 15    s7 = 0.
-      if (iu .eq. 1 .or. (ideltp .eq. 0 .and. .not. bdy)) go to 18
+      if (iu == 1 .or. (ideltp == 0 .and. .not. bdy)) go to 18
 !
 ! integrate from xiu to x1pp, store in s7
 !
@@ -1613,18 +1613,18 @@ contains
       do ii = iup1, np1
          im1 = ii - 1
          i = ii
-         if (i .eq. np1) i = 1
+         if (i == np1) i = 1
          dels = x(i) - x(im1)
-         if (dels .le. 0.) dels = dels + p
+         if (dels <= 0.) dels = dels + p
          s7 = s7 + (y(i) + y(im1)) * dels / 2.
-         if (sigma .eq. 0.) go to 16
+         if (sigma == 0.) go to 16
          call fitp_snhcsh(ss, cs, sigmap * dels, 3)
          s7 = s7 + (yp(i) + yp(im1)) * dels * (cs - ss / 2.) / (sigmap * sigmap * (1.+ss))
          cycle
 16       s7 = s7 - (yp(i) + yp(im1)) * dels * dels * dels / 24.
       end do
 18    s8 = 0.
-      if (ilm1 .lt. ium1 .or. (ideltp .eq. 0 .and. bdy)) go to 20
+      if (ilm1 < ium1 .or. (ideltp == 0 .and. bdy)) go to 20
 
 !
 ! integrate from xxl to xxu, store in s8
@@ -1638,7 +1638,7 @@ contains
       t1 = (delu1 + dell1) * deli / (2.*dels)
       t2 = (delu2 + dell2) * deli / (2.*dels)
       s8 = t1 * y(iu) + t2 * y(ium1)
-      if (sigma .eq. 0.) go to 19
+      if (sigma == 0.) go to 19
       call fitp_snhcsh(dummy, cu1, sigmap * delu1, 2)
       call fitp_snhcsh(dummy, cu2, sigmap * delu2, 2)
       call fitp_snhcsh(dummy, cl1, sigmap * dell1, 2)
@@ -1754,7 +1754,7 @@ contains
       nm1 = n - 1
       np1 = n + 1
       ierr = 0
-      if (n .le. 1) go to 11
+      if (n <= 1) go to 11
 !
 ! determine polygonal arclengths
 !
@@ -1770,35 +1770,35 @@ contains
 !
 ! approximate end slopes
 !
-      if (islpsw .ge. 2) go to 2
+      if (islpsw >= 2) go to 2
       slpp1x = cos(slp1)
       slpp1y = sin(slp1)
       go to 4
 2     dels1 = s(2) - s(1)
       dels2 = dels1 + dels1
-      if (n .gt. 2) dels2 = s(3) - s(1)
-      if (dels1 .eq. 0. .or. dels2 .eq. 0.) go to 12
+      if (n > 2) dels2 = s(3) - s(1)
+      if (dels1 == 0. .or. dels2 == 0.) go to 12
       call fitp_ceez(dels1, dels2, sigmap, c1, c2, c3, n)
       sx = c1 * x(1) + c2 * x(2)
       sy = c1 * y(1) + c2 * y(2)
-      if (n .eq. 2) go to 3
+      if (n == 2) go to 3
       sx = sx + c3 * x(3)
       sy = sy + c3 * y(3)
 3     delt = sqrt(sx * sx + sy * sy)
       slpp1x = sx / delt
       slpp1y = sy / delt
-4     if (islpsw .eq. 1 .or. islpsw .eq. 3) go to 5
+4     if (islpsw == 1 .or. islpsw == 3) go to 5
       slppnx = cos(slpn)
       slppny = sin(slpn)
       go to 7
 5     delsn = s(n) - s(nm1)
       delsnm = delsn + delsn
-      if (n .gt. 2) delsnm = s(n) - s(n - 2)
-      if (delsn .eq. 0. .or. delsnm .eq. 0.) go to 12
+      if (n > 2) delsnm = s(n) - s(n - 2)
+      if (delsn == 0. .or. delsnm == 0.) go to 12
       call fitp_ceez(-delsn, -delsnm, sigmap, c1, c2, c3, n)
       sx = c1 * x(n) + c2 * x(nm1)
       sy = c1 * y(n) + c2 * y(nm1)
-      if (n .eq. 2) go to 6
+      if (n == 2) go to 6
       sx = sx + c3 * x(n - 2)
       sy = sy + c3 * y(n - 2)
 6     delt = sqrt(sx * sx + sy * sy)
@@ -1814,10 +1814,10 @@ contains
       xp(1) = (dx1 - slpp1x) / diag1
       yp(1) = (dy1 - slpp1y) / diag1
       temp(1) = sdiag1 / diag1
-      if (n .eq. 2) go to 9
+      if (n == 2) go to 9
       do i = 2, nm1
          dels2 = s(i + 1) - s(i)
-         if (dels2 .eq. 0.) go to 12
+         if (dels2 == 0.) go to 12
          dx2 = (x(i + 1) - x(i)) / dels2
          dy2 = (y(i + 1) - y(i)) / dels2
          call fitp_terms(diag2, sdiag2, sigmap, dels2)
@@ -1932,7 +1932,7 @@ contains
       dels = s(i) - s(im1)
       sumx = (x(i) * del1 + x(im1) * del2) / dels
       sumy = (y(i) * del1 + y(im1) * del2) / dels
-      if (sigmap .ne. 0.) go to 1
+      if (sigmap /= 0.) go to 1
       d = del1 * del2 / (6.*dels)
       c1 = (del1 + dels) * d
       c2 = (del2 + dels) * d
@@ -2038,7 +2038,7 @@ contains
       sumy = (y(i) * del1 + y(im1) * del2) / dels
       sumxt = s(n) * (x(i) - x(im1)) / dels
       sumyt = s(n) * (y(i) - y(im1)) / dels
-      if (sigmap .ne. 0.) go to 1
+      if (sigmap /= 0.) go to 1
       dels6 = 6.*dels
       d = del1 * del2 / dels6
       c1 = -(del1 + dels) * d
@@ -2143,7 +2143,7 @@ contains
       nm1 = n - 1
       np1 = n + 1
       ierr = 0
-      if (n .le. 1) go to 7
+      if (n <= 1) go to 7
 !
 ! determine polygonal arclengths
 !
@@ -2161,12 +2161,12 @@ contains
 ! elements) linear system for xp and yp
 !
       dels1 = s(1)
-      if (dels1 .eq. 0.) go to 8
+      if (dels1 == 0.) go to 8
       dx1 = (x(1) - x(n)) / dels1
       dy1 = (y(1) - y(n)) / dels1
       call fitp_terms(diag1, sdiag1, sigmap, dels1)
       dels2 = s(2) - s(1)
-      if (dels2 .eq. 0.) go to 8
+      if (dels2 == 0.) go to 8
       dx2 = (x(2) - x(1)) / dels2
       dy2 = (y(2) - y(1)) / dels2
       call fitp_terms(diag2, sdiag2, sigmap, dels2)
@@ -2180,11 +2180,11 @@ contains
       dy1 = dy2
       diag1 = diag2
       sdiag1 = sdiag2
-      if (n .eq. 2) go to 3
+      if (n == 2) go to 3
       do i = 2, nm1
          npi = n + i
          dels2 = s(i + 1) - s(i)
-         if (dels2 .eq. 0.) go to 8
+         if (dels2 == 0.) go to 8
          dx2 = (x(i + 1) - x(i)) / dels2
          dy2 = (y(i + 1) - y(i)) / dels2
          call fitp_terms(diag2, sdiag2, sigmap, dels2)
@@ -2206,7 +2206,7 @@ contains
       xp(n) = dx2 - dx1
       yp(n) = dy2 - dy1
       temp(nm1) = temp(2 * n - 1) - temp(nm1)
-      if (n .eq. 2) go to 5
+      if (n == 2) go to 5
 !
 ! perform first step of back substitution
 !
@@ -2307,12 +2307,12 @@ contains
 ! determine interval
 !
       tn = t - real(int(t))
-      if (tn .lt. 0.) tn = tn + 1.
+      if (tn < 0.) tn = tn + 1.
       tn = s(n) * tn + s(1)
       im1 = n
-      if (tn .lt. s(n)) im1 = fitp_intrvl(tn, s, n)
+      if (tn < s(n)) im1 = fitp_intrvl(tn, s, n)
       i = im1 + 1
-      if (i .gt. n) i = 1
+      if (i > n) i = 1
 !
 ! denormalize tension factor
 !
@@ -2321,13 +2321,13 @@ contains
 ! set up and perform interpolation
 !
       si = s(i)
-      if (im1 .eq. n) si = s(n) + s(1)
+      if (im1 == n) si = s(n) + s(1)
       del1 = tn - s(im1)
       del2 = si - tn
       dels = si - s(im1)
       sumx = (x(i) * del1 + x(im1) * del2) / dels
       sumy = (y(i) * del1 + y(im1) * del2) / dels
-      if (sigmap .ne. 0.) go to 1
+      if (sigmap /= 0.) go to 1
       d = del1 * del2 / (6.*dels)
       c1 = (del1 + dels) * d
       c2 = (del2 + dels) * d
@@ -2416,12 +2416,12 @@ contains
 ! determine interval
 !
       tn = t - real(int(t))
-      if (tn .lt. 0.) tn = tn + 1.
+      if (tn < 0.) tn = tn + 1.
       tn = s(n) * tn + s(1)
       im1 = n
-      if (tn .lt. s(n)) im1 = fitp_intrvl(tn, s, n)
+      if (tn < s(n)) im1 = fitp_intrvl(tn, s, n)
       i = im1 + 1
-      if (i .gt. n) i = 1
+      if (i > n) i = 1
 !
 ! denormalize tension factor
 !
@@ -2430,7 +2430,7 @@ contains
 ! set up and perform interpolation
 !
       si = s(i)
-      if (im1 .eq. n) si = s(n) + s(1)
+      if (im1 == n) si = s(n) + s(1)
       del1 = tn - s(im1)
       del2 = si - tn
       dels = si - s(im1)
@@ -2438,7 +2438,7 @@ contains
       sumy = (y(i) * del1 + y(im1) * del2) / dels
       sumxt = s(n) * (x(i) - x(im1)) / dels
       sumyt = s(n) * (y(i) - y(im1)) / dels
-      if (sigmap .ne. 0.) go to 1
+      if (sigmap /= 0.) go to 1
       dels6 = 6.*dels
       d = del1 * del2 / dels6
       c1 = -(del1 + dels) * d
@@ -2608,8 +2608,8 @@ contains
       np1 = n + 1
       npm = n + m
       ierr = 0
-      if (n .le. 1 .or. m .le. 1) go to 46
-      if (y(n) .le. y(1)) go to 47
+      if (n <= 1 .or. m <= 1) go to 46
+      if (y(n) <= y(1)) go to 47
 !
 ! denormalize tension factor in y-direction
 !
@@ -2617,27 +2617,27 @@ contains
 !
 ! obtain y-partial derivatives along y = y(1)
 !
-      if ((islpsw / 8) * 2 .ne. (islpsw / 4)) go to 2
+      if ((islpsw / 8) * 2 /= (islpsw / 4)) go to 2
       do i = 1, m
          zp(i, 1, 1) = zy1(i)
       end do
       go to 5
 2     dely1 = y(2) - y(1)
       dely2 = dely1 + dely1
-      if (n .gt. 2) dely2 = y(3) - y(1)
-      if (dely1 .le. 0. .or. dely2 .le. dely1) go to 47
+      if (n > 2) dely2 = y(3) - y(1)
+      if (dely1 <= 0. .or. dely2 <= dely1) go to 47
       call fitp_ceez(dely1, dely2, sigmay, c1, c2, c3, n)
       do i = 1, m
          zp(i, 1, 1) = c1 * z(i, 1) + c2 * z(i, 2)
       end do
-      if (n .eq. 2) go to 5
+      if (n == 2) go to 5
       do i = 1, m
          zp(i, 1, 1) = zp(i, 1, 1) + c3 * z(i, 3)
       end do
 !
 ! obtain y-partial derivatives along y = y(n)
 !
-5     if ((islpsw / 16) * 2 .ne. (islpsw / 8)) go to 7
+5     if ((islpsw / 16) * 2 /= (islpsw / 8)) go to 7
       do i = 1, m
          npi = n + i
          temp(npi) = zyn(i)
@@ -2645,19 +2645,19 @@ contains
       go to 10
 7     delyn = y(n) - y(nm1)
       delynm = delyn + delyn
-      if (n .gt. 2) delynm = y(n) - y(n - 2)
-      if (delyn .le. 0. .or. delynm .le. delyn) go to 47
+      if (n > 2) delynm = y(n) - y(n - 2)
+      if (delyn <= 0. .or. delynm <= delyn) go to 47
       call fitp_ceez(-delyn, -delynm, sigmay, c1, c2, c3, n)
       do i = 1, m
          npi = n + i
          temp(npi) = c1 * z(i, n) + c2 * z(i, nm1)
       end do
-      if (n .eq. 2) go to 10
+      if (n == 2) go to 10
       do i = 1, m
          npi = n + i
          temp(npi) = temp(npi) + c3 * z(i, n - 2)
       end do
-10    if (x(m) .le. x(1)) go to 47
+10    if (x(m) <= x(1)) go to 47
 !
 ! denormalize tension factor in x-direction
 !
@@ -2665,60 +2665,60 @@ contains
 !
 ! obtain x-partial derivatives along x = x(1)
 !
-      if ((islpsw / 2) * 2 .ne. islpsw) go to 12
+      if ((islpsw / 2) * 2 /= islpsw) go to 12
       do j = 1, n
          zp(1, j, 2) = zx1(j)
       end do
-      if ((islpsw / 32) * 2 .eq. (islpsw / 16) .and. (islpsw / 128) * 2 .eq. (islpsw / 64)) go to 15
+      if ((islpsw / 32) * 2 == (islpsw / 16) .and. (islpsw / 128) * 2 == (islpsw / 64)) go to 15
 12    delx1 = x(2) - x(1)
       delx2 = delx1 + delx1
-      if (m .gt. 2) delx2 = x(3) - x(1)
-      if (delx1 .le. 0. .or. delx2 .le. delx1) go to 47
+      if (m > 2) delx2 = x(3) - x(1)
+      if (delx1 <= 0. .or. delx2 <= delx1) go to 47
       call fitp_ceez(delx1, delx2, sigmax, c1, c2, c3, m)
-      if ((islpsw / 2) * 2 .eq. islpsw) go to 15
+      if ((islpsw / 2) * 2 == islpsw) go to 15
       do j = 1, n
          zp(1, j, 2) = c1 * z(1, j) + c2 * z(2, j)
       end do
-      if (m .eq. 2) go to 15
+      if (m == 2) go to 15
       do j = 1, n
          zp(1, j, 2) = zp(1, j, 2) + c3 * z(3, j)
       end do
 !
 ! obtain x-y-partial derivative at (x(1),y(1))
 !
-15    if ((islpsw / 32) * 2 .ne. (islpsw / 16)) go to 16
+15    if ((islpsw / 32) * 2 /= (islpsw / 16)) go to 16
       zp(1, 1, 3) = zxy11
       go to 17
 16    zp(1, 1, 3) = c1 * zp(1, 1, 1) + c2 * zp(2, 1, 1)
-      if (m .gt. 2) zp(1, 1, 3) = zp(1, 1, 3) + c3 * zp(3, 1, 1)
+      if (m > 2) zp(1, 1, 3) = zp(1, 1, 3) + c3 * zp(3, 1, 1)
 !
 ! obtain x-y-partial derivative at (x(1),y(n))
 !
-17    if ((islpsw / 128) * 2 .ne. (islpsw / 64)) go to 18
+17    if ((islpsw / 128) * 2 /= (islpsw / 64)) go to 18
       zxy1ns = zxy1n
       go to 19
 18    zxy1ns = c1 * temp(n + 1) + c2 * temp(n + 2)
-      if (m .gt. 2) zxy1ns = zxy1ns + c3 * temp(n + 3)
+      if (m > 2) zxy1ns = zxy1ns + c3 * temp(n + 3)
 !
 ! obtain x-partial derivative along x = x(m)
 !
-19    if ((islpsw / 4) * 2 .ne. (islpsw / 2)) go to 21
+19    if ((islpsw / 4) * 2 /= (islpsw / 2)) go to 21
       do j = 1, n
          npmpj = npm + j
          temp(npmpj) = zxm(j)
       end do
-      if ((islpsw / 64) * 2 .eq. (islpsw / 32) .and. (islpsw / 256) * 2 .eq. (islpsw / 128)) go to 24
+      if ((islpsw / 64) * 2 == (islpsw / 32) .and. (islpsw / 256) * 2 == (islpsw / 128)) go to 24
 21    delxm = x(m) - x(mm1)
       delxmm = delxm + delxm
-      if (m .gt. 2) delxmm = x(m) - x(m - 2)
-      if (delxm .le. 0. .or. delxmm .le. delxm) go to 47
+      if (m > 2) delxmm = x(m) - x(m - 2)
+      if (delxm <= 0. .or. delxmm <= delxm) go to 47
       call fitp_ceez(-delxm, -delxmm, sigmax, c1, c2, c3, m)
-      if ((islpsw / 4) * 2 .eq. (islpsw / 2)) go to 24
+      if ((islpsw / 4) * 2 == (islpsw / 2)) go to 24
       do j = 1, n
          npmpj = npm + j
          temp(npmpj) = c1 * z(m, j) + c2 * z(mm1, j)
       end do
-      if (m .eq. 2) go to 24
+      if (m == 2) go to 24
       do j = 1, n
          npmpj = npm + j
          temp(npmpj) = temp(npmpj) + c3 * z(m - 2, j)
@@ -2726,25 +2726,25 @@ contains
 !
 ! obtain x-y-partial derivative at (x(m),y(1))
 !
-24    if ((islpsw / 64) * 2 .ne. (islpsw / 32)) go to 25
+24    if ((islpsw / 64) * 2 /= (islpsw / 32)) go to 25
       zp(m, 1, 3) = zxym1
       go to 26
 25    zp(m, 1, 3) = c1 * zp(m, 1, 1) + c2 * zp(mm1, 1, 1)
-      if (m .gt. 2) zp(m, 1, 3) = zp(m, 1, 3) + c3 * zp(m - 2, 1, 1)
+      if (m > 2) zp(m, 1, 3) = zp(m, 1, 3) + c3 * zp(m - 2, 1, 1)
 !
 ! obtain x-y-partial derivative at (x(m),y(n))
 !
-26    if ((islpsw / 256) * 2 .ne. (islpsw / 128)) go to 27
+26    if ((islpsw / 256) * 2 /= (islpsw / 128)) go to 27
       zxymns = zxymn
       go to 28
 27    zxymns = c1 * temp(npm) + c2 * temp(npm - 1)
-      if (m .gt. 2) zxymns = zxymns + c3 * temp(npm - 2)
+      if (m > 2) zxymns = zxymns + c3 * temp(npm - 2)
 !
 ! set up right hand sides and tridiagonal system for y-grid
 ! perform forward elimination
 !
 28    del1 = y(2) - y(1)
-      if (del1 .le. 0.) go to 47
+      if (del1 <= 0.) go to 47
       deli = 1./del1
       do i = 1, m
          zp(i, 2, 1) = deli * (z(i, 2) - z(i, 1))
@@ -2759,13 +2759,13 @@ contains
       zp(1, 1, 3) = diagi * (zp(1, 2, 3) - zp(1, 1, 3))
       zp(m, 1, 3) = diagi * (zp(m, 2, 3) - zp(m, 1, 3))
       temp(1) = diagi * sdiag1
-      if (n .eq. 2) go to 34
+      if (n == 2) go to 34
       do j = 2, nm1
          jm1 = j - 1
          jp1 = j + 1
          npmpj = npm + j
          del2 = y(jp1) - y(j)
-         if (del2 .le. 0.) go to 47
+         if (del2 <= 0.) go to 47
          deli = 1./del2
          do i = 1, m
             zp(i, jp1, 1) = deli * (z(i, jp1) - z(i, j))
@@ -2808,7 +2808,7 @@ contains
 ! perform forward elimination
 !
       del1 = x(2) - x(1)
-      if (del1 .le. 0.) go to 47
+      if (del1 <= 0.) go to 47
       deli = 1./del1
       do j = 1, n
          zp(2, j, 2) = deli * (z(2, j) - z(1, j))
@@ -2821,13 +2821,13 @@ contains
          zp(1, j, 3) = diagi * (zp(2, j, 3) - zp(1, j, 3))
       end do
       temp(n + 1) = diagi * sdiag1
-      if (m .eq. 2) go to 43
+      if (m == 2) go to 43
       do i = 2, mm1
          im1 = i - 1
          ip1 = i + 1
          npi = n + i
          del2 = x(ip1) - x(i)
-         if (del2 .le. 0.) go to 47
+         if (del2 <= 0.) go to 47
          deli = 1./del2
          do j = 1, n
             zp(ip1, j, 2) = deli * (z(ip1, j) - z(i, j))
@@ -2966,7 +2966,7 @@ contains
       del1 = yy - y(jm1)
       del2 = y(j) - yy
       dels = y(j) - y(jm1)
-      if (sigmay .ne. 0.) go to 1
+      if (sigmay /= 0.) go to 1
 !
 ! perform four interpolations in y-direction
 !
@@ -2988,7 +2988,7 @@ contains
 2     del1 = xx - x(im1)
       del2 = x(i) - xx
       dels = x(i) - x(im1)
-      if (sigmax .ne. 0.) go to 3
+      if (sigmax /= 0.) go to 3
       fitp_surf2 = hermz(zim1, zi, zxxim1, zxxi)
       return
 3     call fitp_snhcsh(sinhm1, dummy, sigmax * del1, -1)
@@ -3043,8 +3043,8 @@ contains
       integer n
       real delm, delp, sinhmp, denom, sinhmm, del, dummy, coshm2, coshm1
 
-      if (n .eq. 2) go to 2
-      if (sigma .ne. 0.) go to 1
+      if (n == 2) go to 2
+      if (sigma /= 0.) go to 1
       del = del2 - del1
 !
 ! tension .eq. 0.
@@ -3199,10 +3199,10 @@ contains
       integer im1
       real su, alphap, betap, betapp
 
-      if (n .lt. 2) go to 25
-      if (s .lt. 0.) go to 26
-      if (eps .lt. 0. .or. eps .gt. 1.) go to 27
-      if (p .le. x(n) - x(1)) go to 30
+      if (n < 2) go to 25
+      if (s < 0.) go to 26
+      if (eps < 0. .or. eps > 1.) go to 27
+      if (p <= x(n) - x(1)) go to 30
       ierr = 0
       q = 0.
       rsd1(1) = 0.
@@ -3227,10 +3227,10 @@ contains
       hsd1(1) = 1./delxi1
       do i = 1, n
          ip1 = i + 1
-         if (i .eq. n) ip1 = 1
+         if (i == n) ip1 = 1
          delxi = x(ip1) - x(i)
-         if (i .eq. n) delxi = x(1) + p - x(n)
-         if (delxi .le. 0.) go to 28
+         if (i == n) delxi = x(1) + p - x(n)
+         if (delxi <= 0.) go to 28
          delyi = (y(ip1) - y(i)) / delxi
          ys(i) = delyi - delyi1
          call fitp_terms(di, tsd1(ip1), sigmap, delxi)
@@ -3242,7 +3242,7 @@ contains
          dim1 = di
       end do
       hsd11 = hsd1(1)
-      if (n .ge. 3) go to 2
+      if (n >= 3) go to 2
       tsd1(2) = tsd1(1) + tsd1(2)
       tsd1(1) = 0.
       hsd1(2) = hsd1(1) + hsd1(2)
@@ -3252,8 +3252,8 @@ contains
 !
 2     sl = s * (1.-eps)
       su = s * (1.+eps)
-      if (d(1) .le. 0.) go to 29
-      if (isw .eq. 1) go to 5
+      if (d(1) <= 0.) go to 29
+      if (isw == 1) go to 5
 !
 ! form h matrix - d array
 !
@@ -3268,11 +3268,11 @@ contains
          sumd = sumd + 1./disq
          sumy = sumy + y(i) / disq
          ip1 = i + 1
-         if (i .eq. n) ip1 = 1
+         if (i == n) ip1 = 1
          alpha = hd(i) * disq
-         if (d(ip1) .le. 0.) go to 29
+         if (d(ip1) <= 0.) go to 29
          hsd1ip = hsd1(ip1)
-         if (i .eq. n) hsd1ip = hsd11
+         if (i == n) hsd1ip = hsd11
          beta = hsd1ip * d(ip1) * d(ip1)
          hd(i) = (hsd1(i) * d(im1))**2 + alpha * hd(i) + beta * hsd1ip
          hsd2(i) = hsd1(i) * betapp
@@ -3282,7 +3282,7 @@ contains
          betapp = betap
          betap = beta
       end do
-      if (n .eq. 3) hsd1(3) = hsd1(3) + hsd2(2)
+      if (n == 3) hsd1(3) = hsd1(3) + hsd2(2)
 !
 ! test for straight line fit
 !
@@ -3291,7 +3291,7 @@ contains
       do i = 1, n
          sum = sum + ((y(i) - con) / d(i))**2
       end do
-      if (sum .le. su) go to 23
+      if (sum <= su) go to 23
       go to 8
 !
 ! form h matrix - d constant
@@ -3304,7 +3304,7 @@ contains
       do i = 1, n
          sumy = sumy + y(i)
          hsd1ip = hsd11
-         if (i .lt. n) hsd1ip = hsd1(i + 1)
+         if (i < n) hsd1ip = hsd1(i + 1)
          hdi = hd(i)
          hd(i) = hsd1(i) * hsd1(i) + hdi * hdi + hsd1ip * hsd1ip
          hsd2(i) = hsd1(i) * hsd1p
@@ -3312,7 +3312,7 @@ contains
          hsd1(i) = hsd1p * (hdi + hdim1)
          hdim1 = hdi
       end do
-      if (n .eq. 3) hsd1(3) = hsd1(3) + hsd2(2)
+      if (n == 3) hsd1(3) = hsd1(3) + hsd2(2)
 !
 ! test for straight line fit
 !
@@ -3321,7 +3321,7 @@ contains
       do i = 1, n
          sum = sum + (y(i) - con)**2
       end do
-      if (sum .le. su) go to 23
+      if (sum <= su) go to 23
 !
 ! top of iteration
 ! cholesky factorization of q*t+h into r
@@ -3340,8 +3340,8 @@ contains
       sumnm1 = 0.
       sum2 = 0.
       sumn = 0.
-      if (n .eq. 3) go to 11
-      if (n .eq. 2) go to 12
+      if (n == 3) go to 11
+      if (n == 2) go to 12
 !
 ! i = 2
 !
@@ -3349,7 +3349,7 @@ contains
       rnm1(2) = -rnm1(1) * rsd1(2)
       rn(2) = hsd2(2) - rn(1) * rsd1(2)
       ysp(2) = ys(2) - rsd1(2) * ysp(1)
-      if (n .eq. 4) go to 10
+      if (n == 4) go to 10
       do i = 3, nm2
          rsd2i = hsd2(i)
          rsd1i = q * tsd1(i) + hsd1(i) - rsd2i * rsd1(i - 1)
@@ -3412,14 +3412,14 @@ contains
 !
       rdn = q * td(n) + hd(n) - sumn
       rd(n) = 0.
-      if (rdn .gt. 0.) rd(n) = 1./rdn
+      if (rdn > 0.) rd(n) = 1./rdn
       ysp(n) = yspn
 !
 ! back solve of r(transpose)* r * ysp = ys
 !
       ysp(n) = rd(n) * ysp(n)
       ysp(nm1) = rd(nm1) * ysp(nm1) - rn(nm1) * ysp(n)
-      if (n .eq. 2) go to 14
+      if (n == 2) go to 14
       yspn = ysp(n)
       yspnm1 = ysp(nm1)
       do ibak = 1, nm2
@@ -3428,7 +3428,7 @@ contains
       end do
 14    sum = 0.
       delyi1 = (ysp(1) - ysp(n)) / (x(1) + p - x(n))
-      if (isw .eq. 1) go to 16
+      if (isw == 1) go to 16
 !
 ! calculation of residual norm
 !  - d array
@@ -3458,7 +3458,7 @@ contains
 !
 ! test for convergence
 !
-      if (sum .le. su .and. sum .ge. sl .and. q .gt. 0.) go to 21
+      if (sum <= su .and. sum >= sl .and. q > 0.) go to 21
 !
 ! calculation of newton correction
 !
@@ -3467,7 +3467,7 @@ contains
       rnm1sm = 0.
       rnsm = 0.
       im1 = n
-      if (n .eq. 2) go to 20
+      if (n == 2) go to 20
       wim2 = 0.
       wim1 = 0.
       do i = 1, nm2
@@ -3490,12 +3490,12 @@ contains
       f = f + tui * ysp(n)
       g = g + wi * wi * rd(n)
       h = f - q * g
-      if (h .le. 0. .and. q .gt. 0.) go to 21
+      if (h <= 0. .and. q > 0.) go to 21
 !
 ! update q - newton step
 !
       step = (sum - sqrt(sum * sl)) / h
-      if (sl .ne. 0.) step = step * sqrt(sum / sl)
+      if (sl /= 0.) step = step * sqrt(sum / sl)
       q = q + step
       go to 8
 !
@@ -3660,16 +3660,16 @@ contains
       integer i
       real di, delyi
 
-      if (n .lt. 2) go to 16
-      if (s .lt. 0.) go to 17
-      if (eps .lt. 0. .or. eps .gt. 1.) go to 18
+      if (n < 2) go to 16
+      if (s < 0.) go to 17
+      if (eps < 0. .or. eps > 1.) go to 18
       ierr = 0
       p = 0.
       v(1) = 0.
       v(n) = 0.
       ysp(1) = 0.
       ysp(n) = 0.
-      if (n .eq. 2) go to 14
+      if (n == 2) go to 14
       rsd1(1) = 0.
       rd(1) = 0.
       rsd2(n) = 0.
@@ -3689,7 +3689,7 @@ contains
       dim1 = 0.
       do i = 1, nm1
          delxi = x(i + 1) - x(i)
-         if (delxi .le. 0.) go to 19
+         if (delxi <= 0.) go to 19
          delyi = (y(i + 1) - y(i)) / delxi
          ys(i) = delyi - delyi1
          call fitp_terms(di, tsd1(i + 1), sigmap, delxi)
@@ -3705,17 +3705,17 @@ contains
 !
       sl = s * (1.-eps)
       su = s * (1.+eps)
-      if (isw .eq. 1) go to 3
+      if (isw == 1) go to 3
 !
 ! form h matrix - d array
 !
-      if (d(1) .le. 0. .or. d(2) .le. 0.) go to 20
+      if (d(1) <= 0. .or. d(2) <= 0.) go to 20
       betapp = 0.
       betap = 0.
       alphap = 0.
       do i = 2, nm1
          alpha = hd(i) * d(i) * d(i)
-         if (d(i + 1) .le. 0.) go to 20
+         if (d(i + 1) <= 0.) go to 20
          beta = hsd1(i + 1) * d(i + 1) * d(i + 1)
          hd(i) = (hsd1(i) * d(i - 1))**2 + alpha * hd(i) + beta * hsd1(i + 1)
          hsd2(i) = hsd1(i) * betapp
@@ -3728,7 +3728,7 @@ contains
 !
 ! form h matrix - d constant
 !
-3     if (d(1) .le. 0.) go to 20
+3     if (d(1) <= 0.) go to 20
       sl = d(1) * d(1) * sl
       su = d(1) * d(1) * su
       hsd1p = 0.
@@ -3759,14 +3759,14 @@ contains
 ! back solve of r(transpose)* r * ysp = ys
 !
       ysp(nm1) = rd(nm1) * ysp(nm1)
-      if (n .eq. 3) go to 8
+      if (n == 3) go to 8
       do ibak = 1, nm3
          i = nm1 - ibak
          ysp(i) = rd(i) * ysp(i) - rsd1(i + 1) * ysp(i + 1) - rsd2(i + 2) * ysp(i + 2)
       end do
 8     sum = 0.
       delyi1 = 0.
-      if (isw .eq. 1) go to 10
+      if (isw == 1) go to 10
 !
 ! calculation of residual norm
 !  - d array
@@ -3794,7 +3794,7 @@ contains
 !
 ! test for convergence
 !
-      if (sum .le. su) go to 14
+      if (sum <= su) go to 14
 !
 ! calculation of newton correction
 !
@@ -3811,12 +3811,12 @@ contains
          wim1 = wi
       end do
       h = f - p * g
-      if (h .le. 0.) go to 14
+      if (h <= 0.) go to 14
 !
 ! update p - newton step
 !
       step = (sum - sqrt(sum * sl)) / h
-      if (sl .ne. 0.) step = step * sqrt(sum / sl)
+      if (sl /= 0.) step = step * sqrt(sum / sl)
       p = p + step
       go to 5
 !
@@ -3899,12 +3899,12 @@ contains
 !
 ! check for illegal i
 !
-      if (i .ge. n) i = n / 2
+      if (i >= n) i = n / 2
 !
 ! check old interval and extremes
 !
-      if (tt .lt. x(i)) then
-         if (tt .le. x(2)) then
+      if (tt < x(i)) then
+         if (tt <= x(2)) then
             i = 1
             fitp_intrvl = 1
             return
@@ -3912,10 +3912,10 @@ contains
             il = 2
             ih = i
          end if
-      else if (tt .le. x(i + 1)) then
+      else if (tt <= x(i + 1)) then
          fitp_intrvl = i
          return
-      else if (tt .ge. x(n - 1)) then
+      else if (tt >= x(n - 1)) then
          i = n - 1
          fitp_intrvl = n - 1
          return
@@ -3927,9 +3927,9 @@ contains
 ! binary search loop
 !
 1     i = (il + ih) / 2
-      if (tt .lt. x(i)) then
+      if (tt < x(i)) then
          ih = i
-      else if (tt .gt. x(i + 1)) then
+      else if (tt > x(i + 1)) then
          il = i + 1
       else
          fitp_intrvl = i
@@ -3988,17 +3988,17 @@ contains
 
       nper = int((t - x(1)) / p)
       tp = t - real(nper) * p
-      if (tp .lt. x(1)) tp = tp + p
+      if (tp < x(1)) tp = tp + p
       tt = tp
 !
 ! check for illegal i
 !
-      if (i .ge. n) i = n / 2
+      if (i >= n) i = n / 2
 !
 ! check old interval and extremes
 !
-      if (tt .lt. x(i)) then
-         if (tt .le. x(2)) then
+      if (tt < x(i)) then
+         if (tt <= x(2)) then
             i = 1
             fitp_intrvp = 1
             return
@@ -4006,10 +4006,10 @@ contains
             il = 2
             ih = i
          end if
-      else if (tt .le. x(i + 1)) then
+      else if (tt <= x(i + 1)) then
          fitp_intrvp = i
          return
-      else if (tt .ge. x(n)) then
+      else if (tt >= x(n)) then
          i = n
          fitp_intrvp = n
          return
@@ -4021,9 +4021,9 @@ contains
 ! binary search loop
 !
 1     i = (il + ih) / 2
-      if (tt .lt. x(i)) then
+      if (tt < x(i)) then
          ih = i
-      else if (tt .gt. x(i + 1)) then
+      else if (tt > x(i + 1)) then
          il = i + 1
       else
          fitp_intrvp = i
@@ -4091,13 +4091,13 @@ contains
       data cp4/.2982628e-6/, cp3/.2472673e-4/, cp2/.1388967e-2/, cp1/.4166665e-1/, cp0/.5000000e0/
 
       ax = abs(x)
-      if (isw .ge. 0) go to 5
+      if (isw >= 0) go to 5
 !
 ! sinhm approximation
 !
-      if (ax .gt. 4.45) go to 2
+      if (ax > 4.45) go to 2
       xs = ax * ax
-      if (ax .gt. 2.3) go to 1
+      if (ax > 2.3) go to 1
 !
 ! sinhm approximation on (0.,2.3)
 !
@@ -4108,14 +4108,14 @@ contains
 !
 1     sinhm = xs * ((((sp24 * xs + sp23) * xs + sp22) * xs + sp21) * xs + sp20)
       return
-2     if (ax .gt. 7.65) go to 3
+2     if (ax > 7.65) go to 3
 !
 ! sinhm approximation on (4.45,7.65)
 !
       xs = ax * ax
       sinhm = xs * (((sp33 * xs + sp32) * xs + sp31) * xs + 1.) / ((sq32 * xs + sq31) * xs + sq30)
       return
-3     if (ax .gt. 10.1) go to 4
+3     if (ax > 10.1) go to 4
 !
 ! sinhm approximation on (7.65,10.1)
 !
@@ -4130,27 +4130,27 @@ contains
 !
 ! coshm and (possibly) sinhm approximation
 !
-5     if (isw .ge. 2) go to 7
-      if (ax .gt. 2.3) go to 6
+5     if (isw >= 2) go to 7
+      if (ax > 2.3) go to 6
       xs = ax * ax
       coshm = xs * ((((cp4 * xs + cp3) * xs + cp2) * xs + cp1) * xs + cp0)
-      if (isw .eq. 0) sinhm = xs * (((sp13 * xs + sp12) * xs + sp11) * xs + sp10)
+      if (isw == 0) sinhm = xs * (((sp13 * xs + sp12) * xs + sp11) * xs + sp10)
       return
 6     expx = exp(ax)
       coshm = (expx + 1./expx) / 2.-1.
-      if (isw .eq. 0) sinhm = (expx - 1./expx) / (ax + ax) - 1.
+      if (isw == 0) sinhm = (expx - 1./expx) / (ax + ax) - 1.
       return
 !
 ! coshmm and (possibly) sinhm approximation
 !
 7     xs = ax * ax
-      if (ax .gt. 2.3) go to 8
+      if (ax > 2.3) go to 8
       coshm = xs * (((cp4 * xs + cp3) * xs + cp2) * xs + cp1)
-      if (isw .eq. 3) sinhm = xs * (((sp13 * xs + sp12) * xs + sp11) * xs + sp10)
+      if (isw == 3) sinhm = xs * (((sp13 * xs + sp12) * xs + sp11) * xs + sp10)
       return
 8     expx = exp(ax)
       coshm = ((expx + 1./expx - xs) / 2.-1.) / xs
-      if (isw .eq. 3) sinhm = (expx - 1./expx) / (ax + ax) - 1.
+      if (isw == 3) sinhm = (expx - 1./expx) / (ax + ax) - 1.
       return
    end subroutine fitp_snhcsh
    subroutine fitp_terms(diag, sdiag, sigma, del)
@@ -4194,7 +4194,7 @@ contains
 !-----------------------------------------------------------
       real coshm, denom, sigdel, sinhm
 
-      if (sigma .ne. 0.) go to 1
+      if (sigma /= 0.) go to 1
       diag = del / 3.
       sdiag = del / 6.
       return
@@ -4212,7 +4212,7 @@ contains
 !
 ! Not quite right for non-uniform r mesh
 !
-      if (iside .eq. 1) then
+      if (iside == 1) then
          dedge = -(3.*a(1) - 4.*a(2) + a(3)) / (r(3) - r(1))
       else
          dedge = (3.*a(iside) - 4.*a(iside - 1) + a(iside - 2)) / (r(iside) - r(iside - 2))

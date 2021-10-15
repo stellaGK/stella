@@ -84,16 +84,16 @@ contains
       fac = 1.
       if (from_zero) fac = 0.
 
-      if (int_krook .lt. 0.) int_krook = fac * tcorr_source
-      if (int_proj .lt. 0.) int_proj = fac * tcorr_source
+      if (int_krook < 0.) int_krook = fac * tcorr_source
+      if (int_proj < 0.) int_proj = fac * tcorr_source
 
       include_qn_source = .false.
-      if (fphi > epsilon(0.0) .and. radial_variation .and. ky_solve_radial .gt. 0) then
+      if (fphi > epsilon(0.0) .and. radial_variation .and. ky_solve_radial > 0) then
          has_elec = has_electron_species(spec)
          adia_elec = .not. has_elec .and. zonal_mode(1) &
                      .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
          if (adia_elec) then
-            if (runtype_option_switch .ne. runtype_multibox .or. (job .eq. 1 .and. .not. ky_solve_real)) then
+            if (runtype_option_switch /= runtype_multibox .or. (job == 1 .and. .not. ky_solve_real)) then
                include_qn_source = .true.
             end if
          end if
@@ -134,7 +134,7 @@ contains
          in_file = input_unit_exist("sources", dexist)
          if (dexist) read (unit=in_file, nml=sources)
 
-         if (tcorr_source_qn .lt. 0) tcorr_source_qn = tcorr_source
+         if (tcorr_source_qn < 0) tcorr_source_qn = tcorr_source
       end if
 
       ikxmax_source = min(ikxmax_source, ikx_max)
@@ -184,7 +184,7 @@ contains
       if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
 #if defined MPI && defined ISO_C_BINDING
-      if (qn_window .ne. MPI_WIN_NULL) call mpi_win_free(qn_window, ierr)
+      if (qn_window /= MPI_WIN_NULL) call mpi_win_free(qn_window, ierr)
 #else
       if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
       if (associated(phizf_solve%idx)) deallocate (phizf_solve%idx)
@@ -233,7 +233,7 @@ contains
                   g1x = 0.
                   call transform_kx2x_unpadded(g0k, g0x)
                   do ikx = 1, ikxmax_source
-                     if (ikx .eq. 1) then
+                     if (ikx == 1) then
                         basis_func = 1.0
                         tmp = sum(g0x(1, (copy_size + 1):(nakx - copy_size))) / real(npts)
                      else
@@ -242,7 +242,7 @@ contains
                         end do
                         tmp = 2.0 * sum(basis_func * g0x(1, (copy_size + 1):(nakx - copy_size))) / real(npts + 1)
                      end if
-                     if (tcorr_source .gt. epsilon(0.0)) then
+                     if (tcorr_source > epsilon(0.0)) then
                         tmp = (code_dt * tmp + exp_fac * int_krook * g_krook(ikx, iz, it, ivmu)) &
                               / (code_dt + exp_fac * int_krook)
                      end if
@@ -261,10 +261,10 @@ contains
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   do ikx = 1, nakx
-                     if (abs(akx(ikx)) .gt. akx(ikxmax_source)) cycle
+                     if (abs(akx(ikx)) > akx(ikxmax_source)) cycle
                      tmp = g(1, ikx, iz, it, ivmu)
-                     if (krook_odd .and. abs(akx(ikx)) .gt. epsilon(0.0)) tmp = zi * aimag(tmp)
-                     if (tcorr_source .le. epsilon(0.0)) then
+                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
+                     if (tcorr_source <= epsilon(0.0)) then
                         gke_rhs(1, ikx, iz, it, ivmu) = gke_rhs(1, ikx, iz, it, ivmu) - code_dt * nu_krook * tmp
                      else
                         gke_rhs(1, ikx, iz, it, ivmu) = gke_rhs(1, ikx, iz, it, ivmu) - code_dt * nu_krook &
@@ -316,7 +316,7 @@ contains
                   g0k(1, :) = g(1, :, iz, it, ivmu)
                   call transform_kx2x_unpadded(g0k, g0x)
                   do ikx = 1, ikxmax_source
-                     if (ikx .eq. 1) then
+                     if (ikx == 1) then
                         tmp = sum(g0x(1, (copy_size + 1):(nakx - copy_size))) / real(npts)
                      else
                         tmp = 0.
@@ -338,7 +338,7 @@ contains
                do iz = -nzgrid, nzgrid
                   do ikx = 1, nakx
                      tmp = g(1, ikx, iz, it, ivmu)
-                     if (krook_odd .and. abs(akx(ikx)) .gt. epsilon(0.0)) tmp = zi * aimag(tmp)
+                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
                      g_krook(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_krook_old * g_krook(ikx, iz, it, ivmu)) / int_krook
                   end do
                end do
@@ -385,7 +385,7 @@ contains
                   call transform_kx2x_unpadded(g0k, g0x)
                   do ikx = 1, ikxmax_source
                      !physical region should have an odd number of collocation points
-                     if (ikx .eq. 1) then
+                     if (ikx == 1) then
                         basis_func = 1.0
                         tmp = sum(g0x(1, (copy_size + 1):(nakx - copy_size))) / real(npts)
                      else
@@ -398,7 +398,7 @@ contains
                         end do
                         tmp = 2.0 * sum(basis_func * g0x(1, (copy_size + 1):(nakx - copy_size))) / real(npts + 1)
                      end if
-                     if (tcorr_source .gt. epsilon(0.)) then
+                     if (tcorr_source > epsilon(0.)) then
                         tmp = (code_dt * tmp + exp_fac * int_proj * g_proj(ikx, iz, it, ivmu)) &
                               / (code_dt + exp_fac * int_proj)
                         g_proj(ikx, iz, it, ivmu) = tmp
@@ -418,19 +418,19 @@ contains
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   do ikx = 1, nakx
-                     if (abs(akx(ikx)) .gt. akx(ikxmax_source)) then
+                     if (abs(akx(ikx)) > akx(ikxmax_source)) then
                         g(ikx, iz, it, ivmu) = 0.0
                      else
                         tmp = g(ikx, iz, it, ivmu)
-                        if (krook_odd .and. abs(akx(ikx)) .gt. epsilon(0.0)) tmp = zi * aimag(tmp)
-                        if (tcorr_source .le. epsilon(0.)) then
+                        if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
+                        if (tcorr_source <= epsilon(0.)) then
                            g(ikx, iz, it, ivmu) = tmp
                         else
                            g(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_proj * g_proj(ikx, iz, it, ivmu)) &
                                                   / (code_dt + exp_fac * int_proj)
                         end if
                      end if
-                     if (krook_odd .and. abs(akx(ikx)) .gt. epsilon(0.0)) then
+                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) then
                         g_proj(ikx, iz, it, ivmu) = zi * aimag(g(ikx, iz, it, ivmu))
                      else
                         g_proj(ikx, iz, it, ivmu) = g(ikx, iz, it, ivmu)
@@ -487,7 +487,7 @@ contains
       if (include_qn_source) then
          nmat_zf = nakx * (nztot - 1)
 #if defined MPI && ISO_C_BINDING
-         if (qn_window .eq. MPI_WIN_NULL) then
+         if (qn_window == MPI_WIN_NULL) then
             prior_focus = curr_focus
             call scope(sharedsubprocs)
             win_size = 0
@@ -560,7 +560,7 @@ contains
                   call transform_x2kx_unpadded(g0x, g0k)
 
                   !set the gauge potential
-                  if (jkx .eq. 1) g0k(1, 1) = 0.
+                  if (jkx == 1) g0k(1, 1) = 0.
 
                   do ikx = 1, nakx
                      g1k(1, ikx) = sum(c_mat(ikx, :) * g0k(1, :))
@@ -597,7 +597,7 @@ contains
 
                   call transform_x2kx_unpadded(g0x, g0k)
 
-                  if (tcorr_source_qn .gt. epsilon(0.)) then
+                  if (tcorr_source_qn > epsilon(0.)) then
                      g0k = (1.-exp_fac_qn) * g0k
                   end if
 
@@ -639,7 +639,7 @@ contains
 
       implicit none
 
-      if (tcorr_source_qn .lt. epsilon(0.)) then
+      if (tcorr_source_qn < epsilon(0.)) then
          phi_proj = phi_proj_stage
       else
          phi_proj = exp_fac_qn * phi_proj + (1.-exp_fac_qn) * phi_proj_stage

@@ -51,11 +51,11 @@ contains
       flow_shear_initialized = .true.
 
       if (abs(g_exb * g_exbfac) > epsilon(0.)) prp_shear_enabled = .true.
-      if (runtype_option_switch .eq. runtype_multibox .and. job .eq. 1) then
+      if (runtype_option_switch == runtype_multibox .and. job == 1) then
          hammett_flow_shear = .false.
       end if
 
-      if (runtype_option_switch .eq. runtype_multibox) then
+      if (runtype_option_switch == runtype_multibox) then
          call scope(crossdomprocs)
          if (job == 1) then
             call send(g_exbfac * g_exb * x(1), 0, 120)
@@ -119,7 +119,7 @@ contains
          shift_state = 0.
       end if
 
-      if (nakx .gt. 1 .and. abs(g_exb * g_exbfac) .gt. 0) then
+      if (nakx > 1 .and. abs(g_exb * g_exbfac) > 0) then
          shift_times = abs(akx(2) / (aky * g_exb * g_exbfac))
       end if
       if (zonal_mode(1)) shift_times(1) = huge(0.)
@@ -263,7 +263,7 @@ contains
       shift_state = shift_state + code_dt
       if (zonal_mode(1)) shift_state(1) = 0.
 
-      if (runtype_option_switch .eq. runtype_multibox) then
+      if (runtype_option_switch == runtype_multibox) then
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid

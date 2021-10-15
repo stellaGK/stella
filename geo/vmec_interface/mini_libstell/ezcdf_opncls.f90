@@ -41,19 +41,19 @@ CONTAINS
       integer, optional, intent(out) :: ier
       integer :: status
 
-      if (opt .eq. 'w' .or. opt .eq. 'W') then
+      if (opt == 'w' .or. opt == 'W') then
          ! New file... start in "define mode".
          status = nf_create(filename, IOR(NF_CLOBBER, NF_64BIT_OFFSET), ncid)
          call handle_err(status, filename, 'cdfcrt', 'nf_create')
-      else if (opt .eq. 'm' .or. opt .eq. 'M') then
+      else if (opt == 'm' .or. opt == 'M') then
          ! Open existing file for read/write modifications...
          status = nf_open(filename, nf_write, ncid)
          call handle_err(status, filename, 'cdfopn', 'nf_open')
-      else if (opt .eq. 'a' .or. opt .eq. 'A') then
+      else if (opt == 'a' .or. opt == 'A') then
          ! Open existing file for read/write modifications...
          status = nf_open(filename, nf_write, ncid)
          call handle_err(status, filename, 'cdfopn', 'nf_open')
-         if (status .eq. NF_NOERR) then
+         if (status == NF_NOERR) then
             status = nf_redef(ncid)  ! start in "define mode".
             call handle_err(status, filename, 'cdfopn', 'nf_redef')
          end if
@@ -63,7 +63,7 @@ CONTAINS
          call handle_err(status, filename, 'cdfopn', 'nf_open')
       end if
       if (PRESENT(ier)) then
-         if (status .ne. NF_NOERR) then
+         if (status /= NF_NOERR) then
             ier = 1
          else
             ier = 0

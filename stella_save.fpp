@@ -137,7 +137,7 @@ contains
 
       if (n_elements <= 0) return
 
-      has_vmulo = nvmulo_elements .gt. 0 .or. .not. save_many
+      has_vmulo = nvmulo_elements > 0 .or. .not. save_many
 
       if (.not. initialized) then
 
@@ -174,7 +174,7 @@ contains
          else
             call barrier
 
-            if (iproc .eq. 0) then
+            if (iproc == 0) then
                open (unit=tmpunit, file=file_proc)
                close (unit=tmpunit, status='delete')
             end if
@@ -255,7 +255,7 @@ contains
 # ifdef NETCDF_PARALLEL
             if (save_many) then
 # endif
-               if (nvmulo_elements .gt. 0) then
+               if (nvmulo_elements > 0) then
                   istatus = nf90_def_dim(ncid, "gvmulo", nvmulo_elements, gvmuloid)
                   if (istatus /= NF90_NOERR) then
                      ierr = error_unit()
@@ -355,7 +355,7 @@ contains
 
             end if
 
-            if (include_qn_source .and. iproc .eq. 0) then
+            if (include_qn_source .and. iproc == 0) then
                istatus = nf90_def_var(ncid, "phiprojr", netcdf_real, &
                                       (/kxid, zedid, tubeid/), phiprojr_id)
                if (istatus /= NF90_NOERR) then
@@ -648,7 +648,7 @@ contains
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
          end if
 
-         if (include_qn_source .and. iproc .eq. 0) then
+         if (include_qn_source .and. iproc == 0) then
             if (.not. allocated(pptmpr)) &
                allocate (pptmpr(nakx, -nzgrid:nzgrid, ntubes))
             if (.not. allocated(pptmpi)) &
@@ -760,7 +760,7 @@ contains
 
       if (n_elements <= 0) return
 
-      has_vmulo = nvmulo_elements .gt. 0 .or. .not. read_many
+      has_vmulo = nvmulo_elements > 0 .or. .not. read_many
 
       if (.not. initialized) then
 !       initialized = .true.
@@ -872,7 +872,7 @@ contains
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='proji')
          end if
 
-         if (include_qn_source .and. iproc .eq. 0) then
+         if (include_qn_source .and. iproc == 0) then
             istatus = nf90_inq_varid(ncid, "phiprojr", phiprojr_id)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='phiprojr')
 
@@ -1019,7 +1019,7 @@ contains
 
       end if
 
-      if (include_qn_source .and. iproc .eq. 0) then
+      if (include_qn_source .and. iproc == 0) then
          if (.not. allocated(pptmpr)) allocate (pptmpr(nakx, -nzgrid:nzgrid, ntubes))
          if (.not. allocated(pptmpi)) allocate (pptmpi(nakx, -nzgrid:nzgrid, ntubes))
 

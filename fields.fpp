@@ -215,16 +215,16 @@ contains
             end if
          end if
 
-         if (radial_variation .and. ky_solve_radial .gt. 0) then
+         if (radial_variation .and. ky_solve_radial > 0) then
 
             has_elec = has_electron_species(spec)
             adia_elec = .not. has_elec .and. zonal_mode(1) &
                         .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
-            if (runtype_option_switch .eq. runtype_multibox .and. job .eq. 1 .and. ky_solve_real) then
+            if (runtype_option_switch == runtype_multibox .and. job == 1 .and. ky_solve_real) then
                call init_mb_get_phi(has_elec, adia_elec, efac, efacp)
-            elseif (runtype_option_switch .ne. runtype_multibox .or. &
-                    (job .eq. 1 .and. .not. ky_solve_real)) then
+            elseif (runtype_option_switch /= runtype_multibox .or. &
+                    (job == 1 .and. .not. ky_solve_real)) then
                allocate (g0k(1, nakx))
                allocate (g0x(1, nakx))
 
@@ -232,7 +232,7 @@ contains
 
                do iky = 1, min(ky_solve_radial, naky)
                   zmi = 0
-                  if (iky .eq. 1) zmi = zm !zero mode may or may not be included in matrix
+                  if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
                   do iz = -nzgrid, nzgrid
                      if (.not. associated(phi_solve(iky, iz)%zloc)) &
                         allocate (phi_solve(iky, iz)%zloc(nakx - zmi, nakx - zmi))
@@ -852,7 +852,7 @@ contains
       ia = 1
       has_elec = has_electron_species(spec)
       adia_elec = .not. has_elec &
-                  .and. adiabatic_option_switch .eq. adiabatic_option_fieldlineavg
+                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
       if (dist == 'h') then
@@ -877,11 +877,11 @@ contains
 !           end do
 !        end do
 !        deallocate (phi_swap)
-         else if ((radial_variation .and. ky_solve_radial .gt. 0 &
-                   .and. runtype_option_switch .ne. runtype_multibox) &
+         else if ((radial_variation .and. ky_solve_radial > 0 &
+                   .and. runtype_option_switch /= runtype_multibox) &
                   .or. &!DSO -> sorry for this if statement
-                  (radial_variation .and. ky_solve_radial .gt. 0 .and. job .eq. 1 &
-                   .and. runtype_option_switch .eq. runtype_multibox &
+                  (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
+                   .and. runtype_option_switch == runtype_multibox &
                    .and. .not. ky_solve_real)) then
             allocate (g0k(1, nakx))
             allocate (g0x(1, nakx))
@@ -894,25 +894,25 @@ contains
                         phi(iky, :, iz, it) = phi(iky, :, iz, it) / gamtot(iky, :, iz)
                      elseif (.not. (adia_elec .and. zonal_mode(iky))) then
                         zmi = 0
-                        if (iky .eq. 1) zmi = zm !zero mode may or may not be included in matrix
+                        if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
                         call lu_back_substitution(phi_solve(iky, iz)%zloc, &
                                                   phi_solve(iky, iz)%idx, phi(iky, (1 + zmi):, iz, it))
-                        if (zmi .gt. 0) phi(iky, zmi, iz, it) = 0.0
+                        if (zmi > 0) phi(iky, zmi, iz, it) = 0.0
                      end if
                   end do
                end do
             end do
 
-            if (ky_solve_radial .eq. 0 .and. any(gamtot(1, 1, :) .lt. epsilon(0.))) &
+            if (ky_solve_radial == 0 .and. any(gamtot(1, 1, :) < epsilon(0.))) &
                phi(1, 1, :, :) = 0.0
 
             deallocate (g0k, g0x, g0a)
-         else if (radial_variation .and. ky_solve_radial .gt. 0 .and. job .eq. 1 &
-                  .and. runtype_option_switch .eq. runtype_multibox) then
+         else if (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
+                  .and. runtype_option_switch == runtype_multibox) then
             call mb_get_phi(phi, has_elec, adia_elec)
          else
             phi = phi / spread(gamtot, 4, ntubes)
-            if (any(gamtot(1, 1, :) .lt. epsilon(0.))) phi(1, 1, :, :) = 0.0
+            if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
          end if
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
@@ -920,7 +920,7 @@ contains
          return
       end if
 
-      if (any(gamtot(1, 1, :) .lt. epsilon(0.))) phi(1, 1, :, :) = 0.0
+      if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
 
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
@@ -934,14 +934,14 @@ contains
                end do
             end do
          else if (dist == 'gbar') then
-            if (radial_variation .and. ky_solve_radial .gt. 0 .and. job .eq. 1 &
-                .and. runtype_option_switch .eq. runtype_multibox .and. ky_solve_real) then
+            if (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
+                .and. runtype_option_switch == runtype_multibox .and. ky_solve_real) then
                !this is already taken care of in mb_get_phi
-            elseif ((radial_variation .and. ky_solve_radial .gt. 0 &
-                     .and. runtype_option_switch .ne. runtype_multibox) &
+            elseif ((radial_variation .and. ky_solve_radial > 0 &
+                     .and. runtype_option_switch /= runtype_multibox) &
                     .or. &
-                    (radial_variation .and. ky_solve_radial .gt. 0 .and. job .eq. 1 &
-                     .and. runtype_option_switch .eq. runtype_multibox &
+                    (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
+                     .and. runtype_option_switch == runtype_multibox &
                      .and. .not. ky_solve_real)) then
                allocate (g0k(1, nakx))
                allocate (g1k(1, nakx))
@@ -969,7 +969,7 @@ contains
                   end do
 
                   phi_proj_stage(:, 1, it) = g1k(1, :)
-                  if (tcorr_source_qn .lt. epsilon(0.0)) then
+                  if (tcorr_source_qn < epsilon(0.0)) then
                      do iz = -nzgrid, nzgrid - 1
                         phi(1, :, iz, it) = phi(1, :, iz, it) - g1k(1, :)
                      end do
