@@ -23,6 +23,8 @@ module run_parameters
   public :: zed_upwind, vpa_upwind, time_upwind
   public :: fields_kxkyz, mat_gen, mat_read
   public :: rng_seed
+  public :: add_nl_source_in_real_space
+  public :: no_extra_padding
 
   private
 
@@ -37,6 +39,8 @@ module run_parameters
   logical :: stream_matrix_inversion
   logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_semi_lagrange_non_interp, no_advection_option
   logical :: use_leapfrog_splitting
+  logical :: add_nl_source_in_real_space
+  logical :: no_extra_padding
   logical :: leapfrog_nonlinear, leapfrog_drifts
   logical :: nisl_nonlinear
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
@@ -97,7 +101,8 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option, &
-         ky_solve_radial, ky_solve_real, leapfrog_nonlinear, leapfrog_drifts, nisl_nonlinear
+         ky_solve_radial, ky_solve_real, leapfrog_nonlinear, leapfrog_drifts, nisl_nonlinear, add_nl_source_in_real_space, &
+         no_extra_padding
 
     if (proc0) then
        fphi = 1.0
@@ -117,6 +122,8 @@ contains
        leapfrog_nonlinear = .false.
        leapfrog_drifts = .false.
        nisl_nonlinear = .false.
+       add_nl_source_in_real_space = .true.
+       no_extra_padding = .false.
        delt_option = 'default'
        lu_option = 'default'
        zed_upwind = 0.02
@@ -193,6 +200,8 @@ contains
     call broadcast (ky_solve_real)
     call broadcast (mat_gen)
     call broadcast (mat_read)
+    call broadcast (add_nl_source_in_real_space)
+    call broadcast (no_extra_padding)
 
     if (.not.include_mirror) mirror_implicit = .false.
 

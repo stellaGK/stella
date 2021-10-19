@@ -1704,6 +1704,7 @@ contains
     use kt_grids, only: akx, aky, rho_clamped
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+    use physics_flags, only: override_vexb, vexb_x, vexb_y
     use kt_grids, only: x, y, swap_kxky, swap_kxky_back
     use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -1763,9 +1764,13 @@ contains
                g0k = g0k - g_exb*g_exbfac*spread(shift_state,2,nakx)*g0a
              endif
              call forward_transform(g0k,g1xy)
-
-             g1xy = g1xy*exb_nonlin_fac
-             bracket = g0xy*g1xy
+             if (override_vexb) then
+               g1xy = vexb_y
+               bracket = - g0xy*g1xy ! -ve sign because we're on the RHS
+             else
+               g1xy = g1xy*exb_nonlin_fac
+               bracket = g0xy*g1xy
+             end if
 
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*aky(naky)))
 
@@ -1789,8 +1794,13 @@ contains
              call forward_transform(g0k,g0xy)
              call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
              call forward_transform(g0k,g1xy)
-             g1xy = g1xy*exb_nonlin_fac
-             bracket = bracket - g0xy*g1xy
+             if (override_vexb) then
+               g1xy = vexb_x
+               bracket = bracket - g0xy*g1xy ! -ve sign because we're on the RHS
+             else
+               g1xy = g1xy*exb_nonlin_fac
+               bracket = bracket - g0xy*g1xy
+             end if
 
              cfl_dt = min(cfl_dt,2.*pi/(maxval(abs(g1xy))*akx(ikx_max)))
 
@@ -1942,6 +1952,7 @@ contains
     use run_parameters, only: fphi
     use physics_flags, only: override_vexb, vexb_x, vexb_y
     use physics_parameters, only: g_exb, g_exbfac
+    use run_parameters, only: add_nl_source_in_real_space, no_extra_padding
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac, gfac, dxdXcoord, dydalpha
     use kt_grids, only: nakx, naky, nx, ny, ikx_max
@@ -1958,9 +1969,9 @@ contains
     logical, optional, intent(in) :: single_step  ! First timestep or from restart needs the single-step version
 
     !complex, dimension (:,:,:,:,:), allocatable :: gout, g
-    complex, dimension (:,:), allocatable :: g0k, g0k_swap!, g0k_swap_extra_padding
+    complex, dimension (:,:), allocatable :: g0k, g0k_swap, rhs_array_fourier !, g0k_swap_extra_padding
     complex, dimension (:,:), allocatable :: g0kxy, g0kxy_extra_padding
-    real, dimension (:,:), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy, dgold_dx_normal!, bracket
+    real, dimension (:,:), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy, dgold_dx_normal, dgold_dy_normal, rhs_array!, bracket
 
     integer :: ivmu, iz, it, ia, imu, is, ix, iy, p, q, xidx_departure, yidx_departure, yidx_for_upsampled_array, xidx_for_upsampled_array
     logical :: yfirst
@@ -1974,13 +1985,18 @@ contains
     ! Assume no perp shear; yfirst = true
 
     allocate (g0k(naky,nakx))
+    allocate (rhs_array_fourier(naky,nakx))
     allocate (dgold_dx(2*ny,2*nx))
-    allocate (dgold_dx_normal(ny,nx))
+    if (no_extra_padding) then
+      allocate (dgold_dx_normal(ny,nx))
+      allocate (dgold_dy_normal(ny,nx))
+    end if
     allocate (dgold_dy(2*ny,2*nx))
     allocate (vchiold_x(2*ny,2*nx))
     allocate (vchiold_y(2*ny,2*nx))
     allocate (golderxy(ny,nx))
     allocate (gnewxy(ny,nx))
+    allocate (rhs_array(ny,nx))
     !allocate (bracket(ny,nx))
 
     allocate (g0k_swap(2*naky-1,ikx_max))
@@ -1991,6 +2007,7 @@ contains
     ! write(*,*) "akx = ", akx
     ! write(*,*) "x = ", x
     ! write(*,*) "dx, dy, x0, y0 = ", dx, dy, x0, y0
+    ! stop "Stopping now"
     !write(*,*) ""
     ia=1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -2006,9 +2023,14 @@ contains
           ! 4) golder(x,y) = golder(x-p*dx,y-q*dy) + 2*rhs{gold(x-p*dx/2,y-q*dy/2)}
           ! 5) F.T. golder to get golder(kx,ky)
 
+
           ! Step 1) Get dgold/dx(x,y), dgold/dy(x,y), vchiold_x(x,y), vchiold_y(x,y)
           call get_dgdy (gold(:,:,iz,it,ivmu), g0k)
-          call forward_transform_extra_padding(g0k,dgold_dy)
+          if (no_extra_padding) then
+            call forward_transform(g0k,dgold_dy_normal)
+          else
+            call forward_transform_extra_padding(g0k,dgold_dy)
+          end if
           ! For testing - get dg/dy in the non-upsampled and upsampled forms and print
           ! call forward_transform(g0k,golderxy)
           ! write(*,*) "dgold_dy (no extra padding) = ", golderxy
@@ -2026,8 +2048,11 @@ contains
           !dgold_dy =  dgold_dy*dydalpha
 
           call get_dgdx (gold(:,:,iz,it,ivmu), g0k)
-          call forward_transform_extra_padding(g0k,dgold_dx)
-          call forward_transform(g0k,dgold_dx_normal)
+          if (no_extra_padding) then
+            call forward_transform(g0k,dgold_dx_normal)
+          else
+            call forward_transform_extra_padding(g0k,dgold_dx)
+          end if
           ! TODO: Check phi and apar are corresponding to phi_old
           call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
           call forward_transform_extra_padding(g0k,vchiold_x)
@@ -2039,6 +2064,8 @@ contains
           ! vchiold_y = vchiold_y(x,y)
 
           ! Step 2) Get golder(x,y)
+          !!! Deprecated - store the original golder in rhs_array_fourier
+          !rhs_array_fourier = golder(:,:,iz,it,ivmu)
           call forward_transform(golder(:,:,iz,it,ivmu),golderxy)
 
           ! if ((iz == 1) .and. (ivmu == 1) ) then
@@ -2049,6 +2076,8 @@ contains
 
           max_velocity_x = dx/(4*code_dt)
           max_velocity_y = dy/(4*code_dt)
+          !! write(*,*) "max_velocity_x, max_velocity_y = ", max_velocity_x, max_velocity_y
+          !!  max_velocity_x, max_velocity_y =    15.703517587939697        11.219973762820690
 
           ! Hack: force velocities to be some constant
           ! vchiold_y = 0
@@ -2109,29 +2138,77 @@ contains
               !  ! elif n_timesteps == 2:
               ! The 3-step version
               !write(*,*) "dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx(yidx, xidx) = ", dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx_normal(iy,ix)
-              rhs = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
-                      + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
-              gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs
+
+              !!! Original implemenation  - calculate RHS, then update g on an idx-by-idx basis
+
+              if (.not. no_extra_padding) then
+                !! "Correct" RHS implementation; use upsampled dg/dx, dg/dy
+                ! -ve sign because it's on the RHS
+                rhs = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
+                        + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
+              else
+                !! Implementation which should be equivalent to the "Leapfrog" implementation
+                !! Only valid if no SL
+                if ((p .ne. 0) .or. (q .ne. 0)) then
+                  write(*,*) "p, q = ", p, q
+                  stop "stopping"
+                end if
+                if ((yidx_departure .ne. iy) .or. (xidx_departure .ne. ix) ) then
+                  write(*,*) "yidx_departure, iy, xidx_departure, ix = ", yidx_departure, iy, xidx_departure, ix
+                  stop "stopping"
+                end if
+                rhs = -2*code_dt*(velocity_x * dgold_dx_normal(iy, ix) &
+                        + velocity_y * dgold_dy_normal(iy, ix) )
+              end if
+              if (add_nl_source_in_real_space) then
+                gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs
+              else
+                rhs_array(iy,ix) = rhs
+                gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure)
+              end if
+              !!! A new implementation - Calculate the RHS as an array, and add it at the
+              !!! end. Allows easier checking between RHS implementation in real vs Fourier space.
+              ! rhs(iy, ix) = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
+              !         + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
+              ! gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs(iy,ix)
             end do
           end do
           !! Invert to get golder(kx,ky)
           call transform_x2kx (gnewxy, g0kxy)
           call transform_y2ky (g0kxy, g0k_swap)
           call swap_kxky_back (g0k_swap, golder(:,:,iz,it,ivmu))
+          !!! Deprecated
+          ! For diagnostic purposes; store (gnew - golder) in g0k
+          !g0k = golder(:,:,iz,it,ivmu) - rhs_array_fourier
+          ! write(*,*) "gnew(:,:,iz,it,ivmu) - golder(:,:,iz,it,ivmu) = ", golder(:,:,iz,it,ivmu) - rhs_array_fourier
+          !!!
+          !! Invert rhs_array to get rhs_array in Fourier space
+          if (.not. add_nl_source_in_real_space) then
+            call transform_x2kx (rhs_array, g0kxy)
+            call transform_y2ky (g0kxy, g0k_swap)
+            call swap_kxky_back (g0k_swap, rhs_array_fourier)
+            golder(:,:,iz,it,ivmu) = golder(:,:,iz,it,ivmu) + rhs_array_fourier
+          end if
+          !write(*,*) "rhs_array_fourier = ", rhs_array_fourier
           !write(*,*) "AFTER golder(:,:,iz,it,ivmu) = ", golder(:,:,iz,it,ivmu)
+          !write(*,*) "maxval(abs((delta g (Fourier) - rhs (Fourier))/rhs (Fourier)))) = ", maxval(abs((g0k - rhs_array_fourier)/rhs_array_fourier))
           !stop "Stopping early"
         end do
       end do
       ! ! enforce periodicity for zonal mode
       ! ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
       ! ! AND MAY INDEED BE THE WRONG THING TO DO
-      ! golder(1,:,-nzgrid,:,ivmu) = 0.5*(golder(1,:,nzgrid,:,ivmu)+golder(1,:,-nzgrid,:,ivmu))
-      ! golder(1,:,nzgrid,:,ivmu) = golder(1,:,-nzgrid,:,ivmu)
+      golder(1,:,-nzgrid,:,ivmu) = 0.5*(golder(1,:,nzgrid,:,ivmu)+golder(1,:,-nzgrid,:,ivmu))
+      golder(1,:,nzgrid,:,ivmu) = golder(1,:,-nzgrid,:,ivmu)
     end do
 
     deallocate (g0k, dgold_dx, dgold_dy, vchiold_x, vchiold_y, golderxy)
     if (allocated(g0k_swap)) deallocate(g0k_swap)
     if (allocated(g0kxy)) deallocate(g0kxy)
+    if (allocated(rhs_array_fourier)) deallocate(rhs_array_fourier)
+    if (allocated(rhs_array)) deallocate(rhs_array)
+    if (allocated(dgold_dx_normal)) deallocate(dgold_dx_normal)
+    if (allocated(dgold_dy_normal)) deallocate(dgold_dy_normal)
 
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 
