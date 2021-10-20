@@ -1080,8 +1080,24 @@ contains
         ! use operator splitting to separately evolve
         ! all terms treated implicitly
         if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
+
+        ! Apply the nonlinearity using single-step NISL, if required
+        if (nisl_nonlinear) then
+          call advance_fields (gnew, phi, apar, dist='gbar')
+          ! write(*,*) "Taking a single step with NISL"
+          ! Are we allowed to pass in the same argument twice?
+          ! To avoid passing in gnew twice to the subroutine, which may be bad practice,
+          ! set gold=gnew and pass in gold as the intent(in) variable.
+          gold = gnew
+          call advance_ExB_nonlinearity_nisl(gold, gnew, single_step=.True.)
+        end if
       else
-        !write(*,*) "flip_flop!"
+        if (nisl_nonlinear) then
+          call advance_fields (gnew, phi, apar, dist='gbar')
+          write(*,*) "Taking a single step with NISL"
+          ! Are we allowed to pass in the same argument twice?
+          call advance_ExB_nonlinearity_nisl(gnew, gnew, single_step=.True.)
+        end if
         reverse_implicit_order = .true.
         if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
         call advance_explicit (gnew, restart_time_step)
@@ -1443,11 +1459,10 @@ contains
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     ! We want to calculate the nonlinear term here if the following is true:
     !  (1) nonlinear = .true.
-    !  (2) (nisl_nonlinear = .false. and leapfrog_nonlinear = .false.) UNLESS
-    !    leapfrog_this_timestep = .false.
+    !  (2) Either (leapfrog_nonlinear = .false. and nisl_nonlinear = .false.) or (leapfrog_nonlinear = .true. and leapfrog_this_timestep = .false.)
     if (nonlinear) then
-      if ( (.not. leapfrog_this_timestep) .or. (.not. nisl_nonlinear &
-        .and. .not. leapfrog_nonlinear)) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+      if ( ((.not. leapfrog_nonlinear) .and. (.not. nisl_nonlinear)) &
+        .or. (leapfrog_nonlinear .and. (.not. leapfrog_this_timestep))) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
     end if
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
@@ -1729,7 +1744,7 @@ contains
 
     restart_time_step = .false.
     yfirst = .not.prp_shear_enabled
-
+    !write(*,*) "In advance_ExB_nonlinearity"
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0xy(ny,nx))
@@ -1975,6 +1990,7 @@ contains
 
     integer :: ivmu, iz, it, ia, imu, is, ix, iy, p, q, xidx_departure, yidx_departure, yidx_for_upsampled_array, xidx_for_upsampled_array
     logical :: yfirst
+    logical :: single_step_local
     real :: y_departure, x_departure, yval, xval, rhs, velocity_x, velocity_y
     real :: max_velocity_x, max_velocity_y
     ! alpha-component of magnetic drift (requires ky -> y)
@@ -1983,6 +1999,9 @@ contains
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
     ! Assume no perp shear; yfirst = true
+
+    single_step_local = .false.
+    if(present(single_step)) single_step_local = single_step
 
     allocate (g0k(naky,nakx))
     allocate (rhs_array_fourier(naky,nakx))
@@ -2074,8 +2093,13 @@ contains
           !!! Write everything to file
           !call write_nonlinear_data_to_file(ny, nx, naky, nakx, golder(:,:,iz,it,ivmu), golderxy, dgold_dy, dgold_dx, vchiold_y, vchiold_x)
 
-          max_velocity_x = dx/(4*code_dt)
-          max_velocity_y = dy/(4*code_dt)
+          if (single_step_local) then
+            max_velocity_x = dx/(2*code_dt)
+            max_velocity_y = dy/(2*code_dt)
+          else
+            max_velocity_x = dx/(4*code_dt)
+            max_velocity_y = dy/(4*code_dt)
+          end if
           !! write(*,*) "max_velocity_x, max_velocity_y = ", max_velocity_x, max_velocity_y
           !!  max_velocity_x, max_velocity_y =    15.703517587939697        11.219973762820690
 
@@ -2094,28 +2118,73 @@ contains
             do ix = 1, nx
               ! yval = y(iy)
               ! xval = x(ix)
-              call get_approx_departure_point(vchiold_y, vchiold_x, iy, ix, y_departure, x_departure)
+              call get_approx_departure_point(vchiold_y, vchiold_x, iy, ix, y_departure, x_departure, single_step_local)
               !write(*,*) "y,x,y_departure,x_departure) = ", y(iy),x(ix),y_departure,x_departure
-              velocity_x = (x(ix) - x_departure)/(2*code_dt)
-              velocity_y = (y(iy) - y_departure)/(2*code_dt)
+              if (single_step_local) then
+                velocity_x = (x(ix) - x_departure)/(code_dt)
+                velocity_y = (y(iy) - y_departure)/(code_dt)
+                ! write(*,*) "y(iy), y_departure = ", y(iy), y_departure
+                ! write(*,*) "x(iy), x_departure = ", x(iy), x_departure
+                ! write(*,*) "velocity_y, velocity_x = ", velocity_y, velocity_x
+
+              else
+                velocity_x = (x(ix) - x_departure)/(2*code_dt)
+                velocity_y = (y(iy) - y_departure)/(2*code_dt)
+              end if
+
+              ! Check velocities are sensible
+              if (override_vexb) then
+                if (abs(velocity_x - vexb_x) > 1E-10) then
+                  write(*,*) "velocity_x, vexb_x = ", velocity_x, vexb_x
+                  stop "Aborting"
+                end if
+                if (abs(velocity_y - vexb_y) > 1E-10) then
+                  write(*,*) "velocity_y, vexb_y = ", velocity_y, vexb_y
+                  stop "Aborting"
+                end if
+              end if
               p = nint((x(ix) - x_departure)/dx)
               q = nint((y(iy) - y_departure)/dy)
               ! if ((p .ne. 0) .or. (q .ne. 0)) then
-              !   write(*,*) "p, q = ", p, q
+              !write(*,*) "p, q = ", p, q
               ! end if
               ! Find idxs of gridpoint closest to departure point.
               ! Normal idxs must be in the range(1,2,3,...,nx(or ny))
               ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
               xidx_departure = modulo((ix - p - 1),nx) + 1
               yidx_departure = modulo((iy - q - 1),ny) + 1
-              xidx_for_upsampled_array = modulo((2*ix - p - 2),(2*nx)) + 1
-              yidx_for_upsampled_array = modulo((2*iy - q - 2),(2*ny)) + 1
+              if (single_step_local) then
+                ! These idxs are at the time location told, which is the same
+                ! as the time location of the g which we're evolving (although it's
+                ! called golder). So e.g. for ix=10, p=1, we'd want xidx_departure=9 and
+                ! xidx_for_upsampled_array = 18.
+                ! So the formula is xidx_for_upsampled_array=(2*ix - 2*p), but correctly moduloed such that
+                ! it lies in the range (1,2,3,...,2*nx)
+                xidx_for_upsampled_array = modulo((2*ix - 2*p - 2),(2*nx)) + 1
+                yidx_for_upsampled_array = modulo((2*iy - 2*q - 2),(2*ny)) + 1
+              else
+                ! These idxs are halfway between the 2 time locations (tolder, tnew)
+                ! So e.g. for ix=10, p=1, we'd want xidx_departure=9 and
+                ! xidx_for_upsampled_array = 19, because the upsampled idxs
+                ! for ix=10 and 9 are 20 and 18 respectively.
+                ! So the formula is xidx_for_upsampled_array=(2*ix - p), but correctly moduloed such that
+                ! it lies in the range (1,2,3,...,2*nx)
+                xidx_for_upsampled_array = modulo((2*ix - p - 2),(2*nx)) + 1
+                yidx_for_upsampled_array = modulo((2*iy - q - 2),(2*ny)) + 1
+              end if
               ! write(*,*) "ix, xidx_departure, xidx_for_upsampled_array = ", ix, xidx_departure, xidx_for_upsampled_array
               ! write(*,*) "iy, yidx_departure, yidx_for_upsampled_array = ", iy, yidx_departure, yidx_for_upsampled_array
 
               ! Residual velocities
-              velocity_x = velocity_x - p*dx/(2*code_dt)
-              velocity_y = velocity_y - q*dy/(2*code_dt)
+              if (single_step_local) then
+                velocity_x = velocity_x - p*dx/(code_dt)
+                velocity_y = velocity_y - q*dy/(code_dt)
+                ! write(*,*) "velocity_x, velocity_y = ", velocity_x, velocity_y
+                ! stop "Stopping"
+              else
+                velocity_x = velocity_x - p*dx/(2*code_dt)
+                velocity_y = velocity_y - q*dy/(2*code_dt)
+              end if
               !write(*,*) "velocity_x, velocity_y = ", velocity_x, velocity_y
 
               ! Can we check velocity_x, velocity_y to see if they're breaking a CFL condition?
@@ -2131,34 +2200,40 @@ contains
                 stop "Stopping early"
               end if
               !! Update golder(x,y)
-              !  !   if n_timesteps == 1:
-              !  !     ## The single-step version:
-              !  !     rhs_array = - dt* (vchiresidual_x * dgold_dx_array[yidx_for_norm_array, xidx_for_norm_array]
-              !  !                     + vchiresidual_y * dgold_dy_array[yidx_for_norm_array, xidx_for_norm_array] )
-              !  ! elif n_timesteps == 2:
-              ! The 3-step version
-              !write(*,*) "dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx(yidx, xidx) = ", dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx_normal(iy,ix)
-
-              !!! Original implemenation  - calculate RHS, then update g on an idx-by-idx basis
-
-              if (.not. no_extra_padding) then
-                !! "Correct" RHS implementation; use upsampled dg/dx, dg/dy
-                ! -ve sign because it's on the RHS
-                rhs = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
+              if (single_step_local) then
+                !write(*,*) "In single step"
+                if (no_extra_padding) then
+                  write(*,*) "Options no_extra_padding,  not yet implemented for the single-step version"
+                  stop "Stopping early"
+                end if
+                !  The single-step version: We only have one timestep to work with.
+                rhs = - code_dt * (velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
                         + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
               else
-                !! Implementation which should be equivalent to the "Leapfrog" implementation
-                !! Only valid if no SL
-                if ((p .ne. 0) .or. (q .ne. 0)) then
-                  write(*,*) "p, q = ", p, q
-                  stop "stopping"
+                ! The 3-step version
+                !write(*,*) "dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx(yidx, xidx) = ", dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx_normal(iy,ix)
+
+                !!! Original implemenation  - calculate RHS, then update g on an idx-by-idx basis
+
+                if (.not. no_extra_padding) then
+                  !! "Correct" RHS implementation; use upsampled dg/dx, dg/dy
+                  ! -ve sign because it's on the RHS
+                  rhs = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
+                          + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
+                else
+                  !! Implementation which should be equivalent to the "Leapfrog" implementation
+                  !! Only valid if no SL
+                  if ((p .ne. 0) .or. (q .ne. 0)) then
+                    write(*,*) "p, q = ", p, q
+                    stop "stopping"
+                  end if
+                  if ((yidx_departure .ne. iy) .or. (xidx_departure .ne. ix) ) then
+                    write(*,*) "yidx_departure, iy, xidx_departure, ix = ", yidx_departure, iy, xidx_departure, ix
+                    stop "stopping"
+                  end if
+                  rhs = -2*code_dt*(velocity_x * dgold_dx_normal(iy, ix) &
+                          + velocity_y * dgold_dy_normal(iy, ix) )
                 end if
-                if ((yidx_departure .ne. iy) .or. (xidx_departure .ne. ix) ) then
-                  write(*,*) "yidx_departure, iy, xidx_departure, ix = ", yidx_departure, iy, xidx_departure, ix
-                  stop "stopping"
-                end if
-                rhs = -2*code_dt*(velocity_x * dgold_dx_normal(iy, ix) &
-                        + velocity_y * dgold_dy_normal(iy, ix) )
               end if
               if (add_nl_source_in_real_space) then
                 gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs
@@ -2173,6 +2248,7 @@ contains
               ! gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs(iy,ix)
             end do
           end do
+          !stop "Stopping early"
           !! Invert to get golder(kx,ky)
           call transform_x2kx (gnewxy, g0kxy)
           call transform_y2ky (g0kxy, g0k_swap)
@@ -2279,7 +2355,7 @@ contains
 
     end subroutine forward_transform_extra_padding
 
-    subroutine get_approx_departure_point (vy_upsampled, vx_upsampled, y_idx, x_idx, y_departure, x_departure)
+    subroutine get_approx_departure_point (vy_upsampled, vx_upsampled, y_idx, x_idx, y_departure, x_departure, single_step)
 
       use kt_grids, only: x, y
       use kt_grids, only: dx, dy
@@ -2289,6 +2365,7 @@ contains
 
       real, dimension(:,:), intent (in) :: vy_upsampled, vx_upsampled
       integer, intent (in) :: y_idx, x_idx
+      logical, intent(in) :: single_step
       !real, intent (in) :: y_in, x_in
       real, intent (out) :: y_departure, x_departure
 
@@ -2317,7 +2394,11 @@ contains
       upsampled_xidx = 2*x_idx - 1
       upsampled_yidx = 2*y_idx - 1
 
-      time_remaining = 2*code_dt
+      if (single_step) then
+        time_remaining = code_dt
+      else
+        time_remaining = 2*code_dt
+      end if
       counter=0
       do while ((time_remaining > 0) .and. (counter < max_iterations))
         counter = counter + 1
@@ -2367,7 +2448,7 @@ contains
             ! position of the particle and the periodic position of the
             ! particle.
             y_departure = (yboundary - u_y*very_small_dt )   ! slightly overstep, so we're definitely in the next cell
-            x_departure = (xboundary - u_x * (ydist_dt + very_small_dt))
+            x_departure = (x_departure - u_x * (ydist_dt + very_small_dt))
 
             ! Update the values of u_x, u_y
             if (u_y > 0) then
@@ -2404,7 +2485,7 @@ contains
           else
             ! Hit the boundary in x
             x_departure = (xboundary - u_x*very_small_dt)    ! slightly overstep, so we're definitely in the next cell
-            y_departure = (yboundary - u_y*(xdist_dt + very_small_dt))
+            y_departure = (y_departure - u_y*(xdist_dt + very_small_dt))
 
             ! Update the values of u_x, u_y
             if (u_x > 0) then
