@@ -1158,13 +1158,13 @@ contains
        g2(:,:,:,:,ivmu) = (g1(:,:,:,:,ivmu) + ztmax(iv,is) &
             * spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx) &
             * maxwell_fac(is)*(aj0x(:,:,:,ivmu)**2-1.0),4,ntubes)*phi*fphi) &
-            *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes))/1.5
+            *(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)-1.5)/1.5
        if(radial_variation) then
          do it = 1, ntubes
            do iz= -nzgrid, nzgrid
              !phi
              g0k = ztmax(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
-               *(vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
+               *(vpa(iv)**2 + vperp2(ia,iz,imu) - 1.5)/1.5 &
                *(aj0x(:,:,iz,ivmu)**2-1.0)*phi(:,:,iz,it)*fphi &
                *(-spec(is)%tprim*(vpa(iv)**2+vperp2(ia,iz,imu)-2.5) &
                  -spec(is)%fprim+(dBdrho(iz)/bmag(ia,iz))*(1.0 - 2.0*mu(imu)*bmag(ia,iz)) &
@@ -1172,22 +1172,22 @@ contains
                  * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                  * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                     /(aj0x(:,:,iz,ivmu)**2 - 1.0 + zero) &
-                 + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+                 + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)-1.5))
 
 
              !g
-             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu))/1.5 &
+             g0k = g0k + g1(:,:,iz,it,ivmu)*(vpa(iv)**2+vperp2(ia,iz,imu)-1.5)/1.5 &
                * (-0.5*aj1x(:,:,iz,ivmu)/aj0x(:,:,iz,ivmu)*(spec(is)%smz)**2 &
                * (kperp2(:,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
                * (dkperp2dr(:,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
                  + dBdrho(iz)/bmag(ia,iz) &
-                 + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)))
+                 + 2.0*mu(imu)*dBdrho(iz)/(vpa(iv)**2+vperp2(ia,iz,imu)-1.5))
 
              call multiply_by_rho(g0k)
 
              !phi QN
              g0k = g0k + fphi*ztmax(iv,is)*maxwell_mu(ia,iz,imu,is) &
-               * (vpa(iv)**2 + vperp2(ia,iz,imu))/1.5 &
+               * (vpa(iv)**2 + vperp2(ia,iz,imu)-1.5)/1.5 &
                * maxwell_fac(is)*(aj0x(:,:,iz,ivmu)**2-1.0)*phi_corr_QN(:,:,iz,it)
 
              g2(:,:,iz,it,ivmu) = g2(:,:,iz,it,ivmu) + g0k
