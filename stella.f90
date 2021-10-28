@@ -357,10 +357,9 @@ contains
       write (*,*) '                       Version ', VERNUM
       write (*,*) '                        ', VERDATE
       write (*,*) ' '
-      write (*,*) '                   Add author names.,'
-      write (*,*) '                  More author names...,'
+      write (*,*) '                     the stella team'
       write (*,*) ' '
-      write (*,*) '                   Add institutions...'
+      write (*,*) '                   University of Oxford'
       write (*,*) ' '
       write (*,*) ' '
       write (*,'(A)') "############################################################"

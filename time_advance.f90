@@ -910,7 +910,7 @@ contains
     use dist_fn_arrays, only: gold, gnew
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
-    use fields, only: advance_fields
+    use fields, only: advance_fields, fields_updated
     use stella_time, only: code_dt
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
@@ -961,16 +961,17 @@ contains
       call project_out_zero(g1)
       gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g1
       deallocate (g1)
+      fields_updated = .false.
     end if
-
-    !update the delay parameters for the Krook operator
-    if(include_krook_operator) call update_tcorr_krook(gnew)
-    if(include_qn_source) call update_quasineutrality_source
 
     gold = gnew
 
     ! Ensure fields are updated so that omega calculation is correct.
     call advance_fields (gnew, phi, apar, dist='gbar')
+
+    !update the delay parameters for the Krook operator
+    if(include_krook_operator) call update_tcorr_krook(gnew)
+    if(include_qn_source) call update_quasineutrality_source
 
   end subroutine advance_stella
 
