@@ -1090,6 +1090,8 @@ contains
           ! set gold=gnew and pass in gold as the intent(in) variable.
           gold = gnew
           call advance_ExB_nonlinearity_nisl(gold, gnew, single_step=.True.)
+          ! gnew has been updated, so need to update fields.
+          fields_updated = .false.
         end if
       else
         if (nisl_nonlinear) then
@@ -2133,6 +2135,7 @@ contains
               end if
 
               ! Check velocities are sensible
+              ! Is this tolerance too high?
               if (override_vexb) then
                 if (abs(velocity_x - vexb_x) > 1E-10) then
                   write(*,*) "velocity_x, vexb_x = ", velocity_x, vexb_x
@@ -2145,6 +2148,16 @@ contains
               end if
               p = nint((x(ix) - x_departure)/dx)
               q = nint((y(iy) - y_departure)/dy)
+
+              if (override_vexb) then
+                if (p == 0) then
+                  velocity_x = vexb_x
+                end if
+
+                if (q == 0) then
+                  velocity_y = vexb_y
+                end if
+              end if
               ! if ((p .ne. 0) .or. (q .ne. 0)) then
               !write(*,*) "p, q = ", p, q
               ! end if
@@ -2179,8 +2192,6 @@ contains
               if (single_step_local) then
                 velocity_x = velocity_x - p*dx/(code_dt)
                 velocity_y = velocity_y - q*dy/(code_dt)
-                ! write(*,*) "velocity_x, velocity_y = ", velocity_x, velocity_y
-                ! stop "Stopping"
               else
                 velocity_x = velocity_x - p*dx/(2*code_dt)
                 velocity_y = velocity_y - q*dy/(2*code_dt)
@@ -2201,7 +2212,6 @@ contains
               end if
               !! Update golder(x,y)
               if (single_step_local) then
-                !write(*,*) "In single step"
                 if (no_extra_padding) then
                   write(*,*) "Options no_extra_padding,  not yet implemented for the single-step version"
                   stop "Stopping early"
