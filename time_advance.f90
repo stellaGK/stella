@@ -922,8 +922,6 @@ contains
     use file_utils, only: runtype_option_switch, runtype_multibox
     use multibox, only: include_multibox_krook
 
-
-
     implicit none
 
     integer, intent (in) :: istep
@@ -1081,25 +1079,27 @@ contains
         ! all terms treated implicitly
         if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
 
-        ! Apply the nonlinearity using single-step NISL, if required
-        if (nisl_nonlinear) then
-          call advance_fields (gnew, phi, apar, dist='gbar')
-          ! write(*,*) "Taking a single step with NISL"
-          ! Are we allowed to pass in the same argument twice?
-          ! To avoid passing in gnew twice to the subroutine, which may be bad practice,
-          ! set gold=gnew and pass in gold as the intent(in) variable.
-          gold = gnew
-          call advance_ExB_nonlinearity_nisl(gold, gnew, single_step=.True.)
-          ! gnew has been updated, so need to update fields.
-          fields_updated = .false.
-        end if
+        ! ! Apply the nonlinearity using single-step NISL, if required
+        ! !!! Deprecated: unconditionally unstable
+        ! if (nisl_nonlinear) then
+        !   call advance_fields (gnew, phi, apar, dist='gbar')
+        !   ! write(*,*) "Taking a single step with NISL"
+        !   ! Are we allowed to pass in the same argument twice?
+        !   ! To avoid passing in gnew twice to the subroutine, which may be bad practice,
+        !   ! set gold=gnew and pass in gold as the intent(in) variable.
+        !   gold = gnew
+        !   call advance_ExB_nonlinearity_nisl(gold, gnew, single_step=.True.)
+        !   ! gnew has been updated, so need to update fields.
+        !   fields_updated = .false.
+        ! end if
       else
-        if (nisl_nonlinear) then
-          call advance_fields (gnew, phi, apar, dist='gbar')
-          write(*,*) "Taking a single step with NISL"
-          ! Are we allowed to pass in the same argument twice?
-          call advance_ExB_nonlinearity_nisl(gnew, gnew, single_step=.True.)
-        end if
+        ! !!! Deprecated: unconditionally unstable
+        ! if (nisl_nonlinear) then
+        !   call advance_fields (gnew, phi, apar, dist='gbar')
+        !   write(*,*) "Taking a single step with NISL"
+        !   ! Are we allowed to pass in the same argument twice?
+        !   call advance_ExB_nonlinearity_nisl(gnew, gnew, single_step=.True.)
+        ! end if
         reverse_implicit_order = .true.
         if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
         call advance_explicit (gnew, restart_time_step)
@@ -1461,10 +1461,10 @@ contains
     ! and thus recomputation of mirror, wdrift, wstar, and parstream
     ! We want to calculate the nonlinear term here if the following is true:
     !  (1) nonlinear = .true.
-    !  (2) Either (leapfrog_nonlinear = .false. and nisl_nonlinear = .false.) or (leapfrog_nonlinear = .true. and leapfrog_this_timestep = .false.)
+    !  (2) Either (leapfrog_nonlinear = .false. and nisl_nonlinear = .false.) or (leapfrog_this_timestep = .false.)
     if (nonlinear) then
       if ( ((.not. leapfrog_nonlinear) .and. (.not. nisl_nonlinear)) &
-        .or. (leapfrog_nonlinear .and. (.not. leapfrog_this_timestep))) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
+        .or. ( .not. leapfrog_this_timestep)) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
     end if
 
     if (include_parallel_nonlinearity .and. .not.restart_time_step) &
@@ -1478,11 +1478,6 @@ contains
        if (include_mirror.and..not.mirror_implicit) then
           call advance_mirror_explicit (gin, rhs)
        end if
-
-       ! Calculate drifts here if the following is true:
-       !  (1) nonlinear = .true.
-       !  (2) (nisl_nonlinear = .false. and leapfrog_nonlinear = .false.) UNLESS
-       !    leapfrog_this_timestep = .false.
 
        if ((include_drifts .and. .not. drifts_implicit) .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
          !write(*,*) "Advancing drifts in the explicit way."
@@ -1746,7 +1741,7 @@ contains
 
     restart_time_step = .false.
     yfirst = .not.prp_shear_enabled
-    !write(*,*) "In advance_ExB_nonlinearity"
+    write(*,*) "In advance_ExB_nonlinearity"
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0xy(ny,nx))
@@ -2137,11 +2132,11 @@ contains
               ! Check velocities are sensible
               ! Is this tolerance too high?
               if (override_vexb) then
-                if (abs(velocity_x - vexb_x) > 1E-10) then
+                if (abs(velocity_x - vexb_x) > 1E-12) then
                   write(*,*) "velocity_x, vexb_x = ", velocity_x, vexb_x
                   stop "Aborting"
                 end if
-                if (abs(velocity_y - vexb_y) > 1E-10) then
+                if (abs(velocity_y - vexb_y) > 1E-12) then
                   write(*,*) "velocity_y, vexb_y = ", velocity_y, vexb_y
                   stop "Aborting"
                 end if
