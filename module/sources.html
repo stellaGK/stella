@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.2% of total for modules and submodules.">433 statements</a>
+    title=" 1.4% of total for modules and submodules.">529 statements</a>
      </li> 
      
      
@@ -193,6 +193,10 @@
       
       <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
       
+      <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
+      
+      <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
+      
       <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-tcorr_source">tcorr_source</a>
@@ -212,6 +216,8 @@
       <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-include_qn_source">include_qn_source</a>
+      
+      <a class="list-group-item" href="../module/sources.html#variable-time_sources">time_sources</a>
       
     </div>
   </div>
@@ -236,7 +242,7 @@
       
       <a class="list-group-item" href="../module/sources.html#proc-init_sources">init_sources</a>
       
-      <a class="list-group-item" href="../module/sources.html#proc-read_parameters~6">read_parameters</a>
+      <a class="list-group-item" href="../module/sources.html#proc-read_parameters~12">read_parameters</a>
       
       <a class="list-group-item" href="../module/sources.html#proc-init_source_timeaverage">init_source_timeaverage</a>
       
@@ -245,6 +251,10 @@
       <a class="list-group-item" href="../module/sources.html#proc-add_krook_operator">add_krook_operator</a>
       
       <a class="list-group-item" href="../module/sources.html#proc-update_tcorr_krook">update_tcorr_krook</a>
+      
+      <a class="list-group-item" href="../module/sources.html#proc-enforce_momentum_conservation">enforce_momentum_conservation</a>
+      
+      <a class="list-group-item" href="../module/sources.html#proc-enforce_density_conservation">enforce_density_conservation</a>
       
       <a class="list-group-item" href="../module/sources.html#proc-project_out_zero">project_out_zero</a>
       
@@ -304,6 +314,10 @@
       
       <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
       
+      <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
+      
+      <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
+      
       <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-tcorr_source">tcorr_source</a>
@@ -323,6 +337,8 @@
       <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-include_qn_source">include_qn_source</a>
+      
+      <a class="list-group-item" href="../module/sources.html#variable-time_sources">time_sources</a>
       
     </div>
   </div>
@@ -347,7 +363,7 @@
       
       <a class="list-group-item" href="../module/sources.html#proc-init_sources">init_sources</a>
       
-      <a class="list-group-item" href="../module/sources.html#proc-read_parameters~6">read_parameters</a>
+      <a class="list-group-item" href="../module/sources.html#proc-read_parameters~12">read_parameters</a>
       
       <a class="list-group-item" href="../module/sources.html#proc-init_source_timeaverage">init_source_timeaverage</a>
       
@@ -356,6 +372,10 @@
       <a class="list-group-item" href="../module/sources.html#proc-add_krook_operator">add_krook_operator</a>
       
       <a class="list-group-item" href="../module/sources.html#proc-update_tcorr_krook">update_tcorr_krook</a>
+      
+      <a class="list-group-item" href="../module/sources.html#proc-enforce_momentum_conservation">enforce_momentum_conservation</a>
+      
+      <a class="list-group-item" href="../module/sources.html#proc-enforce_density_conservation">enforce_density_conservation</a>
       
       <a class="list-group-item" href="../module/sources.html#proc-project_out_zero">project_out_zero</a>
       
@@ -475,6 +495,34 @@
   <td>private</td>
   <td></td><td>::</td>
   <td><strong>from_zero</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-conserve_momentum"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>conserve_momentum</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-conserve_density"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>conserve_density</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -618,6 +666,20 @@
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-time_sources"></span>real,</td>
+  
+  <td>private,</td>
+  <td>dimension (2,1)</td><td>::</td>
+  <td><strong>time_sources</strong></td><td> =</td><td>0.</td><td></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -663,8 +725,8 @@ public subroutine <a href='../proc/init_sources.html'>init_sources</a>()
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~6"></span><h3>
-private subroutine <a href='../proc/read_parameters~6.html'>read_parameters</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~12"></span><h3>
+private subroutine <a href='../proc/read_parameters~12.html'>read_parameters</a>()
     
     
    
@@ -762,7 +824,7 @@ public subroutine <a href='../proc/add_krook_operator.html'>add_krook_operator</
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), target</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -828,8 +890,125 @@ public subroutine <a href='../proc/update_tcorr_krook.html'>update_tcorr_krook</
   <td>intent(in),</td>
   <td></td>
   
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), target</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-enforce_momentum_conservation"></span><h3>
+private subroutine <a href='../proc/enforce_momentum_conservation.html'>enforce_momentum_conservation</a>(g, g_work)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
   <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g_work</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-enforce_density_conservation"></span><h3>
+private subroutine <a href='../proc/enforce_density_conservation.html'>enforce_density_conservation</a>(g_work)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g_work</strong></td><td></td>
   
 </tr>
 
@@ -954,13 +1133,13 @@ public subroutine <a href='../proc/update_quasineutrality_source.html'>update_qu
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-54-g779f3bdc</small></p>
+                                          <br /><small>v0.3-55-gb563ad3a</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-10-28T14:14:35.266181 
+             on 2021-11-03T18:18:52.726787 
             
           </p>
         </div>
