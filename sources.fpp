@@ -469,7 +469,7 @@ contains
 !            endif
 !            gyro_g(:,ivmu) = gyro_g(:,ivmu) + g0k(1,:)
           do ikx = 1, nakx
-            call integrate_species (gyro_g(ikx,:), iz, spec%z*spec%dens_psi0,g0k(1,ikx),reduce_in=.false.)
+            call integrate_species (gyro_g(ikx,:), iz, spec%dens_psi0,g0k(1,ikx),reduce_in=.false.)
           enddo
         enddo
 
@@ -478,8 +478,8 @@ contains
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           is = is_idx(vmu_lo,ivmu)
           imu = imu_idx(vmu_lo,ivmu)
-          g_work(:,:,iz,it,ivmu) = g_work(:,:,iz,it,ivmu) & 
-                        - maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)*g0k
+          g_work(1,:,iz,it,ivmu) = g_work(1,:,iz,it,ivmu) &
+                        - maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)*g0k(1,:)
 
         enddo
       enddo
