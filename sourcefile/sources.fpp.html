@@ -744,7 +744,7 @@
 <a name="ln-469"></a><span class="c">!            endif</span>
 <a name="ln-470"></a><span class="c">!            gyro_g(:,ivmu) = gyro_g(:,ivmu) + g0k(1,:)</span>
 <a name="ln-471"></a>          <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
-<a name="ln-472"></a>            <span class="k">call </span><span class="n">integrate_species</span> <span class="p">(</span><span class="n">gyro_g</span><span class="p">(</span><span class="n">ikx</span><span class="p">,:),</span> <span class="n">iz</span><span class="p">,</span> <span class="n">spec</span><span class="p">%</span><span class="n">z</span><span class="o">*</span><span class="n">spec</span><span class="p">%</span><span class="n">dens_psi0</span><span class="p">,</span><span class="n">g0k</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ikx</span><span class="p">),</span><span class="n">reduce_in</span><span class="o">=</span><span class="p">.</span><span class="n">false</span><span class="p">.)</span>
+<a name="ln-472"></a>            <span class="k">call </span><span class="n">integrate_species</span> <span class="p">(</span><span class="n">gyro_g</span><span class="p">(</span><span class="n">ikx</span><span class="p">,:),</span> <span class="n">iz</span><span class="p">,</span> <span class="n">spec</span><span class="p">%</span><span class="n">dens_psi0</span><span class="p">,</span><span class="n">g0k</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ikx</span><span class="p">),</span><span class="n">reduce_in</span><span class="o">=</span><span class="p">.</span><span class="n">false</span><span class="p">.)</span>
 <a name="ln-473"></a>          <span class="n">enddo</span>
 <a name="ln-474"></a>        <span class="n">enddo</span>
 <a name="ln-475"></a>
@@ -753,8 +753,8 @@
 <a name="ln-478"></a>        <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
 <a name="ln-479"></a>          <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
 <a name="ln-480"></a>          <span class="n">imu</span> <span class="o">=</span> <span class="n">imu_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-481"></a>          <span class="n">g_work</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span> <span class="o">=</span> <span class="n">g_work</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span> <span class="p">&amp;</span> 
-<a name="ln-482"></a>                        <span class="o">-</span> <span class="n">maxwell_vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">,</span><span class="k">is</span><span class="p">)</span><span class="o">*</span><span class="n">maxwell_mu</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">imu</span><span class="p">,</span><span class="k">is</span><span class="p">)</span><span class="o">*</span><span class="n">maxwell_fac</span><span class="p">(</span><span class="k">is</span><span class="p">)</span><span class="o">*</span><span class="n">g0k</span>
+<a name="ln-481"></a>          <span class="n">g_work</span><span class="p">(</span><span class="mi">1</span><span class="p">,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span> <span class="o">=</span> <span class="n">g_work</span><span class="p">(</span><span class="mi">1</span><span class="p">,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-482"></a>                        <span class="o">-</span> <span class="n">maxwell_vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">,</span><span class="k">is</span><span class="p">)</span><span class="o">*</span><span class="n">maxwell_mu</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">imu</span><span class="p">,</span><span class="k">is</span><span class="p">)</span><span class="o">*</span><span class="n">maxwell_fac</span><span class="p">(</span><span class="k">is</span><span class="p">)</span><span class="o">*</span><span class="n">g0k</span><span class="p">(</span><span class="mi">1</span><span class="p">,:)</span>
 <a name="ln-483"></a>
 <a name="ln-484"></a>        <span class="n">enddo</span>
 <a name="ln-485"></a>      <span class="n">enddo</span>
@@ -1078,13 +1078,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-55-gb563ad3a</small></p>
+                                          <br /><small>v0.3-56-g7af34eea</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-03T18:18:52.726787 
+             on 2021-11-04T11:03:37.716876 
             
           </p>
         </div>
