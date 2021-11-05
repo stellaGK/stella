@@ -19,7 +19,7 @@ module init_g
        ginitopt_noise = 2, ginitopt_restart_many = 3, &
        ginitopt_kpar = 4, ginitopt_nltest = 5, &
        ginitopt_kxtest = 6, ginitopt_rh = 7, &
-       ginitopt_remap = 8
+       ginitopt_remap = 8, ginitopt_single_mode = 9
 
   real :: width0, phiinit, imfac, refac, zf_init
   real :: den0, upar0, tpar0, tperp0
@@ -123,16 +123,18 @@ contains
      case (ginitopt_remap)
         call ginit_remap
     case (ginitopt_restart_many)
-       call ginit_restart_many 
+       call ginit_restart_many
        call init_tstart (tstart, istep0, istatus)
        restarted = .true.
        scale = 1.
+    case (ginitopt_single_mode)
+      call ginit_single_mode
 !    case (ginitopt_nltest)
 !       call ginit_nltest
 !    case (ginitopt_kxtest)
 !       call ginit_kxtest
     end select
-    
+
   end subroutine ginit
 
   subroutine read_parameters
@@ -142,7 +144,7 @@ contains
 
     implicit none
 
-    type (text_option), dimension (8), parameter :: ginitopts = &
+    type (text_option), dimension (9), parameter :: ginitopts = &
          (/ text_option('default', ginitopt_default), &
             text_option('noise', ginitopt_noise), &
             text_option('many', ginitopt_restart_many), &
@@ -150,7 +152,8 @@ contains
             text_option('kxtest', ginitopt_kxtest), &
             text_option('kpar', ginitopt_kpar), &
             text_option('rh', ginitopt_rh), &
-            text_option('remap', ginitopt_remap) &
+            text_option('remap', ginitopt_remap), &
+            text_option('single_mode', ginitopt_single_mode) &
             /)
     character(20) :: ginit_option
     namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
@@ -237,13 +240,13 @@ contains
        end do
     end if
 
+    write(*,*) "Default initialisation"
     if (chop_side) then
        if (left) phi(:,:,:-1) = 0.0
        if (right) phi(:,:,1:) = 0.0
     end if
 
     if (reality .and. zonal_mode(1)) phi(1,:,:) = 0.0
-
     ia = 1
 
     gvmu = 0.
@@ -258,6 +261,35 @@ contains
     end do
 
   end subroutine ginit_default
+
+  subroutine ginit_single_mode
+
+    use constants, only: zi
+    use dist_fn_arrays, only: gvmu
+    use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+
+    implicit none
+
+    integer :: ikxkyz
+    integer :: iz, iky, ikx, is, ia, ikx_target, iky_target
+
+    gvmu = 0.
+    ikx_target = 3
+    iky_target = 3
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       if ((ikx .eq. ikx_target) .and. (iky .eq. iky_target)) then
+         gvmu(:,:,ikxkyz) = phiinit
+       end if
+       ! gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z) &
+       !      * (den0 + 2.0*zi*spread(vpa,2,nmu)*upar0) &
+       !      * spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)*maxwell_fac(is)
+    end do
+
+  end subroutine ginit_single_mode
 
   ! initialize two kys and kx=0
 !   subroutine ginit_nltest
@@ -288,7 +320,7 @@ contains
 !     do ig = -nzgrid, nzgrid
 !        phi(ig,2,2) = 1.0!exp(-((theta(ig)-theta0(2,2))/width0)**2)*cmplx(1.0,1.0)
 !     end do
-    
+
 !     gnew = 0.0
 !     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
 !        iv = iv_idx(gxyz_lo,iglo)
@@ -335,9 +367,9 @@ contains
 !   end subroutine ginit_kxtest
 
 !   !> Initialise with only the kparallel = 0 mode.
-  
+
 !   subroutine single_initial_kx(phi)
-!     use zgrid, only: nzgrid 
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 !     use mp, only: mp_abort
 !     implicit none
@@ -350,11 +382,11 @@ contains
 !     end if
 
 !     do it = 1, ntheta0
-!       if (it .ne. ikx_init) then 
+!       if (it .ne. ikx_init) then
 !          do ik = 1, naky
 !             do ig = -nzgrid, nzgrid
 !                a = 0.0
-!                b = 0.0 
+!                b = 0.0
 !                phi(ig,it,ik) = cmplx(a,b)
 !              end do
 !          end do
@@ -418,7 +450,7 @@ contains
          call scope(subprocs)
        end if
 
-       ! keep old (ikx, iky) loop order to get old results exactly: 
+       ! keep old (ikx, iky) loop order to get old results exactly:
        !Fill phi with random (complex) numbers between -0.5 and 0.5
        do ikx = 1, nakx
           do iky = 1, naky
@@ -457,18 +489,18 @@ contains
        if (zonal_mode(1)) then
           !Apply scaling factor
           phi(1,:,:,:) = phi(1,:,:,:)*zf_init
-          
+
           !Set ky=kx=0.0 mode to zero in amplitude
           phi(1,1,:,:) = 0.0
        end if
-       
+
        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
        if (reality) then
           do ikx = nakx/2+2, nakx
              phi(1,ikx,:,:) = conjg(phi(1,nakx-ikx+2,:,:))
           enddo
        end if
-       
+
     end if
 
     do iky = 1, naky
@@ -490,7 +522,7 @@ contains
           end if
        end do
     end do
-    
+
     call broadcast (phi)
 
     !Now set g using data in phi
@@ -524,7 +556,7 @@ contains
     real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ikxkyz
     integer :: iz, iky, ikx, imu, iv, ia, is
-    
+
     phi = 0.
     odd = 0.
     if (width0 > 0.) then
@@ -543,14 +575,14 @@ contains
           phi(:,:,1:) = 0.0
        end if
     end if
-    
+
     odd = zi * phi
-    
-    dfac     = den0   + den1 * cos(zed) + den2 * cos(2.*zed) 
-    ufac     = upar0  + upar1* sin(zed) + upar2* sin(2.*zed) 
-    tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed) 
-    tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed) 
-    
+
+    dfac     = den0   + den1 * cos(zed) + den2 * cos(2.*zed)
+    ufac     = upar0  + upar1* sin(zed) + upar2* sin(2.*zed)
+    tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed)
+    tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed)
+
     ia = 1
     ! charge dependence keeps initial Phi from being too small
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -575,13 +607,13 @@ contains
 !    if (has_electron_species(spec)) then
 !       call flae (gold, gnew)
 !       gold = gold - gnew
-!    end if   
+!    end if
 !    gnew = gold
 
   end subroutine ginit_kpar
 
   subroutine ginit_rh
-    
+
     use species, only: spec
     use dist_fn_arrays, only: gvmu, kperp2
     use stella_layouts, only: kxkyz_lo
@@ -591,20 +623,20 @@ contains
     use kt_grids, only: akx
 
     implicit none
-    
+
     integer :: ikxkyz, iky, ikx, iz, is, ia
-    
+
     ! initialize g to be a Maxwellian with a constant density perturbation
 
     gvmu = 0.
-    
+
     ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       
+
        if(abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
          gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
             * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
@@ -652,7 +684,7 @@ contains
     use stella_save, only: stella_restore
     use mp, only: proc0
     use file_utils, only: error_unit
-    
+
     implicit none
 
     integer :: istatus, ierr
@@ -677,7 +709,7 @@ contains
 
 !   subroutine flae (g, gavg)
 
-!     use species, only: spec, electron_species 
+!     use species, only: spec, electron_species
 !     use zgrid, only: nzgrid, delthet, jacob
 !     use kt_grids, only: aky, ntheta0
 !     use vpamu_grids, only: nvgrid
@@ -687,11 +719,11 @@ contains
 
 !     real :: wgt
 !     integer :: iglo, it, ik
-    
+
 !     gavg = 0.
 !     wgt = 1./sum(delthet*jacob)
 
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc       
+!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
 !        if (spec(is_idx(gxyz_lo, iglo))%type /= electron_species) cycle
 !        ik = 1
 !        if (aky(ik) > epsilon(0.)) cycle
@@ -699,7 +731,7 @@ contains
 !           gavg(:,it,ik,iglo) = sum(g(:,it,ik,iglo)*delthet*jacob)*wgt
 !        end do
 !     end do
-    
+
 !   end subroutine flae
 
   subroutine finish_init_g

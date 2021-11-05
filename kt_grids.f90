@@ -1,4 +1,4 @@
-! Set up the perpendicular wavenumbers by calling the appropriate sub-modules. 
+! Set up the perpendicular wavenumbers by calling the appropriate sub-modules.
 module kt_grids
 
   implicit none
@@ -9,7 +9,7 @@ module kt_grids
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
   public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
-  public :: x, x_d
+  public :: x, x_d, y
   public :: rho, rho_d, rho_clamped, rho_d_clamped
   public :: nalpha
   public :: ikx_max, naky_all
@@ -30,7 +30,7 @@ module kt_grids
 
   real, dimension (:,:), allocatable :: theta0, zed0
   real, dimension (:), allocatable :: aky, akx
-  real, dimension (:), allocatable :: x, x_d
+  real, dimension (:), allocatable :: x, x_d, y
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
   complex, dimension (:,:), allocatable :: g0x
   real :: dx, dy, dkx, dky, dx_d
@@ -58,7 +58,7 @@ module kt_grids
   logical :: box
 
 contains
-  
+
   subroutine read_kt_grids_parameters
 
     use mp, only: proc0
@@ -97,19 +97,19 @@ contains
          text_option('box', gridopt_box), &
          text_option('annulus', gridopt_box), &
          text_option('nonlinear', gridopt_box) /)
-    
+
     integer :: ierr, in_file
     logical :: nml_exist
-    
+
     grid_option = 'default'
-    
+
     in_file = input_unit_exist ("kt_grids_knobs", nml_exist)
     if (nml_exist) read (unit=in_file, nml=kt_grids_knobs)
-    
+
     ierr = error_unit()
     call get_option_value (grid_option, gridopts, gridopt_switch, &
          ierr, "grid_option in kt_grids_knobs")
-    
+
   end subroutine read_grid_option
 
   subroutine read_kt_grids_box
@@ -179,14 +179,14 @@ contains
     akx_min = 0.0
     akx_max = -1.0
     theta0_min = 0.0
-    theta0_max = -1.0    
+    theta0_max = -1.0
 
     in_file = input_unit_exist ("kt_grids_range_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_range_parameters)
 
   end subroutine read_kt_grids_range
 
-  subroutine init_kt_grids 
+  subroutine init_kt_grids
 
     use common_types, only: flux_surface_type
     use zgrid, only: init_zgrid
@@ -200,9 +200,9 @@ contains
 
     select case (gridopt_switch)
     case (gridopt_range)
-       call init_kt_grids_range 
+       call init_kt_grids_range
     case (gridopt_box)
-       call init_kt_grids_box 
+       call init_kt_grids_box
     end select
 
     ! determine if iky corresponds to zonal mode
@@ -221,13 +221,14 @@ contains
     use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
     use stella_geometry, only: q_as_x, get_x_to_rho, dxdXcoord, drhodpsi
     use physics_parameters, only: rhostar
+    use run_parameters, only: nisl_nonlinear
     use physics_flags, only: full_flux_surface, radial_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
     use zgrid, only: shat_zero, nperiod
     use ran, only: ranf
 
     implicit none
-    
+
     integer :: ikx, iky
     real :: x_shift, dqdrho, pfac, norm
 
@@ -235,7 +236,7 @@ contains
 
     ! set jtwist and y0 for cases where they have not been specified
     ! and for which it makes sense to set them automatically
-    if (jtwist < 1) then 
+    if (jtwist < 1) then
       jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
       jtwist = max(1,int(jtwistfac*jtwist+0.5))
     endif
@@ -262,7 +263,7 @@ contains
 
     ! get the grid spacing in ky and then in kx using twist-and-shift BC
     dky = 1./y0
-    ! non-quantized b/c assumed to be periodic instead 
+    ! non-quantized b/c assumed to be periodic instead
     ! of linked boundary conditions if zero magnetic shear
     if (abs(geo_surf%shat) <= shat_zero) then
        dkx = dky / real(jtwist)
@@ -330,6 +331,9 @@ contains
     if(.not.allocated(rho_d)) allocate (rho_d(nakx))
     if(.not.allocated(rho_clamped)) allocate (rho_clamped(nx))
     if(.not.allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx))
+    if (nisl_nonlinear) then
+      if(.not.allocated(y)) allocate (y(ny))
+    end if
 
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
@@ -364,6 +368,16 @@ contains
       endif
     enddo
 
+    if (nisl_nonlinear) then
+      do iky = 1, ny
+        if (radial_variation.or.runtype_option_switch.eq.runtype_multibox) then
+          call mp_abort("radial variation and runtype_multibox not currently implemented in NISL")
+        else
+          y(iky) = (iky-1)*dy
+        endif
+      enddo
+    end if
+
     dx_d = (2*pi*x0)/nakx
     do ikx = 1, nakx
       if (radial_variation.or.runtype_option_switch.eq.runtype_multibox) then
@@ -391,7 +405,7 @@ contains
 
     if(radial_variation) call dump_radial_grid
 
-    if(radial_variation.and.(any((rho+geo_surf%rhoc).lt.0.0) & 
+    if(radial_variation.and.(any((rho+geo_surf%rhoc).lt.0.0) &
                              .or.any((rho+geo_surf%rhoc).gt.1.0))) then
       call mp_abort ('rho(x) is beyond range [0,1]. Try changing rhostar or q/psi profiles')
     endif
@@ -452,7 +466,7 @@ contains
           theta0_max = akx_max/(tfac*aky(1))
           dtheta0 = 0.0
           if (nakx > 1) dtheta0 = (theta0_max - theta0_min)/real(nakx - 1)
-          
+
           do j = 1, naky
              theta0(j,:) &
                   = (/ (theta0_min + dtheta0*real(i), i=0,nakx-1) /)
@@ -480,7 +494,7 @@ contains
        else
           call mp_abort ('ky=0 is inconsistent with kx_min different from kx_max. aborting.')
        end if
-       
+
     else
        ! here assume boundary_option .eq. 'periodic'
        ! used for periodic finite kx ballooning space runs with shat=0
@@ -537,7 +551,7 @@ contains
     filename = trim(trim(run_name)//'.radial_grid')
     open (1047,file=filename,status='unknown')
     if(q_as_x) then
-      write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') & 
+      write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') &
             '#dxdXcoord = ', dxdXcoord, &
             ' q    = '  , geo_surf%qinp, &
             ' dqdr = '  , geo_surf%shat*geo_surf%qinp/geo_surf%rhoc, &
@@ -550,7 +564,7 @@ contains
           rho(ix) + geo_surf%rhoc
       enddo
     else
-      write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') & 
+      write (1047,'(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') &
             '#dxdXcoord = ', dxdXcoord, &
             ' dpsidr    = ' , 1.0/drhodpsi, &
             ' d2psidr2 = '  , geo_surf%d2psidr2
@@ -734,7 +748,7 @@ contains
     end do
 
   end subroutine swap_kxky_back_ordered
-  
+
   subroutine communicate_ktgrids_multibox
       use job_manage, only: njobs
       use mp, only: job, scope, &
@@ -808,4 +822,3 @@ contains
   end subroutine multiply_by_rho
 
 end module kt_grids
-

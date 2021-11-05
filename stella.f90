@@ -207,14 +207,14 @@ contains
     call init_stella_layouts
     if (debug) write (6,*) 'stella::init_stella::init_kt_grids'
     call init_kt_grids
-    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity & 
+    !if (nonlinear .or. full_flux_surface .or. include_parallel_nonlinearity &
     !    .or. radial_variation .or. (g_exb*g_exb).gt.epsilon(0.0).or. &
     !    runtype_option_switch.eq.runtype_multibox) then
     needs_transforms = .false.
     if(nonlinear.or.include_parallel_nonlinearity) needs_transforms = .true.
     if(radial_variation.or.full_flux_surface)      needs_transforms = .true.
     if(runtype_option_switch.eq.runtype_multibox)  needs_transforms = .true.
-    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) & 
+    if(abs(g_exb*g_exbfac).gt.epsilon(0.).and..not.hammett_flow_shear) &
       needs_transforms = .true.
     if (needs_transforms) then
        if (debug) write (*,*) "stella::init_stella::init_transforms"
