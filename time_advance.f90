@@ -750,7 +750,11 @@ contains
 
     ! FLAG -- assuming equal spacing in zed!
 
-    if (cfl_dt.lt.0) cfl_dt = code_dt/cfl_cushion
+    ! Bob: Not clear why cfl_dt is set this way. If no terms are explicit, then
+    ! cfl_dt is arbitrarily large (there's no CFL constraint).
+    ! if (cfl_dt.lt.0) cfl_dt = code_dt/cfl_cushion
+    ! Replace with very large number
+    if (cfl_dt.lt.0) cfl_dt = 99999E99
 
     if(.not.drifts_implicit) then
       ! get the local max value of wdriftx on each processor
@@ -1015,7 +1019,7 @@ contains
 
       if (.not. restart_time_step) then
         ! NB reverse_implicit_order is .false. at this point
-        if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, golder)
+        if (.not.none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, golder)
         ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
         ! operators) and gnew = g^{n}. It returns gnew = golder + 2*rhs(gnew)
         ! To get rhs(gnew), we need the fields at gnew; set the flag to ensure
@@ -1028,7 +1032,7 @@ contains
 
         if (.not. restart_time_step) then
           reverse_implicit_order = .true.  ! Swap the order in which we apply the implicit operators
-          if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, golder)
+          if (.not.none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, golder)
           if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
         end if
       end if
@@ -1050,26 +1054,144 @@ contains
       end if
     end if
 
-    ! Perform the Lie or flip-flopping step until we've done it without the
-    ! timestep changing.
-    do while (.not. time_advance_successful)
-      !write(*,*) "In .not. time_advance_successful!"
-      ! If we've already attempted a time advance then we've updated gnew,
-      ! so reset it now.
-      gnew = gold
-      ! Ensure fields are consistent with gnew.
+    if ((nisl_nonlinear) .and. (istep .eq. 1) )then
+      call advance_initial_nisl_step()
+
+    else
+      ! Perform the Lie or flip-flopping step until we've done it without the
+      ! timestep changing.
+      ! If we're using NISL for the ExB nonlinearity, we want to take many steps
+
+      ! with RK3, such that in each RK3 step the CFL constraint is not violated,
+      ! but the RK3 steps all add up to a step of code_dt
+      do while (.not. time_advance_successful)
+        write(*,*) "XXXXX Not doing the initial step but time advance unsucessful"
+        !write(*,*) "In .not. time_advance_successful!"
+        ! If we've already attempted a time advance then we've updated gnew,
+        ! so reset it now.
+        gnew = gold
+        ! Ensure fields are consistent with gnew.
+        call advance_fields (gnew, phi, apar, dist='gbar')
+
+
+        ! Reset the flag that checks if we've reset dt
+        restart_time_step = .false. ! Becomes true if we reset dt
+
+        ! reverse the order of operations every time step
+        ! as part of alternating direction operator splitting
+        ! this is needed to ensure 2nd order accuracy in time
+        if (mod(istep,2)==1 .or. .not.flip_flop) then
+          !write(*,*) ".not. flip_flop!"
+          reverse_implicit_order = .false.
+          ! advance the explicit parts of the GKE
+          call advance_explicit (gnew, restart_time_step)
+
+          ! enforce periodicity for zonal mode
+          !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
+
+          ! use operator splitting to separately evolve
+          ! all terms treated implicitly
+          if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, gnew)
+
+        else
+          reverse_implicit_order = .true.
+          if (.not.none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, gnew)
+          call advance_explicit (gnew, restart_time_step)
+        end if
+
+        if (.not. restart_time_step) then
+          !write(*,*) "Normal step, restart_time_step false"
+          time_advance_successful = .true.
+        else
+          !write(*,*) "Normal step, restart_time_step true"
+          ! We're discarding changes to gnew and starting over, so fields will
+          ! need to be re-calculated
+          fields_updated = .false.
+        end if
+      end do
+
+      if(remove_zero_projection) then
+        allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
+        call project_out_zero(g1)
+        gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
+        deallocate (g1)
+      end if
+
+      !update the delay parameters for the Krook operator
+      if(include_krook_operator) call update_delay_krook(gnew)
+
+      golder = gold
+      gold = gnew
+
+      ! Ensure fields are updated so that omega calculation is correct.
       call advance_fields (gnew, phi, apar, dist='gbar')
+    end if
 
-      ! Reset the flag that checks if we've reset dt
-      restart_time_step = .false. ! Becomes true if we reset dt
+  end subroutine advance_stella
 
-      ! reverse the order of operations every time step
-      ! as part of alternating direction operator splitting
-      ! this is needed to ensure 2nd order accuracy in time
-      if (mod(istep,2)==1 .or. .not.flip_flop) then
-        !write(*,*) ".not. flip_flop!"
+  subroutine advance_initial_nisl_step()
+
+    ! TODO: Get rid of unneeded variables
+    use dist_fn_arrays, only: gold, gnew
+    use fields_arrays, only: phi, apar
+    use fields_arrays, only: phi_old
+    use fields, only: advance_fields, fields_updated
+    use run_parameters, only: none_implicit, use_leapfrog_splitting, nisl_nonlinear
+    use run_parameters, only:  leapfrog_drifts, leapfrog_nonlinear
+    use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+    use physics_flags, only: nonlinear
+    use physics_flags, only: include_parallel_nonlinearity
+    use physics_flags, only: include_mirror
+    use physics_flags, only: include_drifts
+    use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: full_flux_surface, radial_variation
+    use physics_parameters, only: g_exb
+    use stella_time, only: code_dt
+    use multibox, only: RK_step
+    use dissipation, only: include_krook_operator, update_delay_krook
+    use dissipation, only: remove_zero_projection, project_out_zero
+    use zgrid, only: nzgrid, ntubes
+    use kt_grids, only: nakx
+    use stella_layouts, only: vmu_lo
+    use dissipation, only: include_collisions, collisions_implicit
+    use dissipation, only: include_krook_operator
+    use file_utils, only: runtype_option_switch, runtype_multibox
+    use multibox, only: include_multibox_krook
+
+    implicit none
+
+    complex, allocatable, dimension (:,:,:,:) :: g1
+    logical  :: restart_time_step, time_advance_successful, reverse_implicit_order
+    real :: total_dt, nisl_step_dt, tolerance
+
+    !!! Take a series of steps using an explicit calculation of the nonlinear term.
+    !!! We don't know how many steps this will be, because the CFL constraint
+    !!! depends upon how big vexb is.
+    write(*,*) "In advance_initial_nisl_step"
+    total_dt = 0
+
+    ! We may end up changing dt, but at the end we need to change delt back to the
+    ! original value, so store original value
+    nisl_step_dt = code_dt
+
+    ! Advance until total_dt = nisl_step_dt
+    ! Include a tolerance in case the series of smaller dts are
+    ! ~ machine precision less than code_dt
+    tolerance = 1E-9
+    do while (total_dt .lt. (nisl_step_dt-tolerance))
+      write(*,*) "total_dt = ", total_dt
+      write(*,*) "(nisl_step_dt-tolerance) = ", (nisl_step_dt-tolerance)
+      ! Take a single time step. As before, keep going until
+      ! restart_time_step = .false.
+      time_advance_successful = .false.
+      do while (.not. time_advance_successful)
+        write(*,*) "Trying to take a step"
+        ! We're definitely not flip-flopping here, so no need to
+        ! reverse order of operations
         reverse_implicit_order = .false.
         ! advance the explicit parts of the GKE
+        !
         call advance_explicit (gnew, restart_time_step)
 
         ! enforce periodicity for zonal mode
@@ -1077,63 +1199,56 @@ contains
 
         ! use operator splitting to separately evolve
         ! all terms treated implicitly
-        if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
+        if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, gnew)
 
-        ! ! Apply the nonlinearity using single-step NISL, if required
-        ! !!! Deprecated: unconditionally unstable
-        ! if (nisl_nonlinear) then
-        !   call advance_fields (gnew, phi, apar, dist='gbar')
-        !   ! write(*,*) "Taking a single step with NISL"
-        !   ! Are we allowed to pass in the same argument twice?
-        !   ! To avoid passing in gnew twice to the subroutine, which may be bad practice,
-        !   ! set gold=gnew and pass in gold as the intent(in) variable.
-        !   gold = gnew
-        !   call advance_ExB_nonlinearity_nisl(gold, gnew, single_step=.True.)
-        !   ! gnew has been updated, so need to update fields.
-        !   fields_updated = .false.
-        ! end if
-      else
-        ! !!! Deprecated: unconditionally unstable
-        ! if (nisl_nonlinear) then
-        !   call advance_fields (gnew, phi, apar, dist='gbar')
-        !   write(*,*) "Taking a single step with NISL"
-        !   ! Are we allowed to pass in the same argument twice?
-        !   call advance_ExB_nonlinearity_nisl(gnew, gnew, single_step=.True.)
-        ! end if
-        reverse_implicit_order = .true.
-        if (.not.none_implicit) call advance_implicit (istep, phi, apar, reverse_implicit_order, gnew)
-        call advance_explicit (gnew, restart_time_step)
+        if (.not. restart_time_step) then
+          write(*,*) "Successful step"
+          !write(*,*) "Normal step, restart_time_step false"
+          time_advance_successful = .true.
+        else
+          write(*,*) "restart_time_step; unsuccessful step"
+          !write(*,*) "Normal step, restart_time_step true"
+          ! We're discarding changes to gnew and starting over, so fields will
+          ! need to be re-calculated
+          fields_updated = .false.
+        end if
+      end do
+
+      if(remove_zero_projection) then
+        allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
+        call project_out_zero(g1)
+        gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
+        deallocate (g1)
       end if
 
-      if (.not. restart_time_step) then
-        !write(*,*) "Normal step, restart_time_step false"
-        time_advance_successful = .true.
-      else
-        !write(*,*) "Normal step, restart_time_step true"
-        ! We're discarding changes to gnew and starting over, so fields will
-        ! need to be re-calculated
-        fields_updated = .false.
-      end if
+      !update the delay parameters for the Krook operator
+      ! Bob: What does this do and does it need to be done?
+      if(include_krook_operator) call update_delay_krook(gnew)
+
+      ! Update gold. We don't need to update golder because it's not used here,
+      ! and we don't want to update it because we want to use g(t=0) as golder
+      ! in subsequent steps
+      gold = gnew
+
+      ! Ensure fields are updated so that omega calculation is correct.
+      call advance_fields (gnew, phi, apar, dist='gbar')
+
+      ! Update the total time advanced
+      total_dt = total_dt + code_dt
+      write(*,*) "Incremented total_dt. total_dt = ", total_dt
     end do
 
-    if(remove_zero_projection) then
-      allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g1 = gnew(1,:,:,:,:) - gold(1,:,:,:,:)
-      call project_out_zero(g1)
-      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - g1
-      deallocate (g1)
+    ! We've now taken a series of steps and have gold, corresponding to
+    ! g(t=nisl_step_dt). If the timestep has been changed, change it back
+    ! to nisl_step_dt
+    if (code_dt .lt. nisl_step_dt) then
+      write(*,*) "Changing dt back to nisl_step_dt"
+      code_dt = nisl_step_dt
+      call reset_dt
     end if
 
-    !update the delay parameters for the Krook operator
-    if(include_krook_operator) call update_delay_krook(gnew)
-
-    golder = gold
-    gold = gnew
-
-    ! Ensure fields are updated so that omega calculation is correct.
-    call advance_fields (gnew, phi, apar, dist='gbar')
-
-  end subroutine advance_stella
+  end subroutine advance_initial_nisl_step
 
 !  subroutine advance_explicit (phi, apar, g)
   subroutine advance_explicit (g, restart_time_step)
@@ -1152,7 +1267,7 @@ contains
     logical, intent (in out) :: restart_time_step
 
     integer :: ivmu, iv, sgn, iky
-
+    write(*,*) "In advanc explicit"
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
@@ -1445,7 +1560,7 @@ contains
     else
        rhs => rhs_ky
     end if
-    !write(*,*) "In solve_gke"
+    write(*,*) "In solve_gke"
     ! start with gbar in k-space and (ky,kx,z) local
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
@@ -1463,6 +1578,7 @@ contains
     !  (1) nonlinear = .true.
     !  (2) Either (leapfrog_nonlinear = .false. and nisl_nonlinear = .false.) or (leapfrog_this_timestep = .false.)
     if (nonlinear) then
+      write(*,*) "leapfrog_this_timestep = ", leapfrog_this_timestep
       if ( ((.not. leapfrog_nonlinear) .and. (.not. nisl_nonlinear)) &
         .or. ( .not. leapfrog_this_timestep)) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
     end if
@@ -1858,7 +1974,7 @@ contains
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 
     call min_allreduce (cfl_dt)
-
+    write(*,*) "CFL dt = ", cfl_dt
     if(runtype_option_switch == runtype_multibox) call scope(subprocs)
 
 
@@ -1995,6 +2111,7 @@ contains
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
+    !write(*,*) "In advance_exb_nonlinearity_nisl"
     ! Assume no perp shear; yfirst = true
 
     single_step_local = .false.
@@ -3160,7 +3277,7 @@ contains
 
   end subroutine add_wstar_term
 
-  subroutine advance_implicit (istep, phi, apar, reverse_implicit_order, g)
+  subroutine advance_implicit (phi, apar, reverse_implicit_order, g)
 !  subroutine advance_implicit (phi, apar, g)
 
     use mp, only: proc0
@@ -3183,7 +3300,6 @@ contains
 
     implicit none
 
-    integer, intent (in) :: istep
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi, apar
     logical, intent(in) :: reverse_implicit_order
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
@@ -3348,7 +3464,6 @@ contains
     complex, dimension (:,:,:), allocatable :: gyro_g
 
     ia = 1
-    write(*,*) "In advance_drifts_implicit, this is wrong"
     allocate (wd_g(naky,nakx))
     allocate (wd_phi(naky,nakx))
     allocate (wstr(naky,nakx))
