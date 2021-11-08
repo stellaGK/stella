@@ -360,9 +360,9 @@ contains
                 enddo
                 tmp = 2.0*tmp/real(npts+1)
               endif
+              g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu)) &
+                                        /int_krook
             enddo
-            g_krook(ikx,iz,it,ivmu) = (code_dt*tmp + exp_fac*int_krook_old*g_krook(ikx,iz,it,ivmu)) &
-                                      /int_krook
           enddo
         enddo
       enddo
