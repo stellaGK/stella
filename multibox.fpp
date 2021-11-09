@@ -20,6 +20,7 @@ module multibox
   public :: kx0_L, kx0_R
   public :: RK_step, comm_at_init
   public :: include_multibox_krook
+  public :: time_multibox
   public :: phi_buffer0, phi_buffer1
 
 
@@ -32,6 +33,8 @@ module multibox
   real,    dimension (:), allocatable :: krook_fac
   real,    dimension (:), allocatable :: b_mat
   real, dimension(:), allocatable :: x_mb, rho_mb, rho_mb_clamped
+
+  real, dimension (2,2) :: time_multibox = 0.
 
   real :: dx_mb
 
@@ -463,7 +466,7 @@ contains
     use file_utils, only: runtype_option_switch, runtype_multibox
     use file_utils, only: get_unused_unit
     use fields_arrays, only: phi, phi_corr_QN, shift_state
-    use job_manage, only: njobs
+    use job_manage, only: njobs, time_message
     use physics_flags, only: radial_variation,prp_shear_enabled, hammett_flow_shear
     use physics_parameters, only: g_exb, g_exbfac
     use stella_layouts, only: vmu_lo
@@ -491,6 +494,9 @@ contains
     if(runtype_option_switch /= runtype_multibox) return
     if(LR_debug_switch /= LR_debug_option_default) return
     if(njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
+
+
+    if (proc0) call time_message(.false.,time_multibox(:,1), ' mb_comm')
 
     allocate (prefac(naky,x_fft_size)); prefac = 1.0
     
@@ -681,6 +687,8 @@ contains
 
     deallocate (prefac)
 
+    if (proc0) call time_message(.false.,time_multibox(:,1), ' mb_comm')
+
 #endif
   end subroutine multibox_communicate
 
@@ -690,7 +698,8 @@ contains
     use stella_layouts, only: vmu_lo
     use kt_grids, only:  nakx, naky, periodic_variation
     use zgrid, only: nzgrid, ntubes
-    use mp, only: job
+    use mp, only: job, proc0
+    use job_manage, only: time_message
 
 
     implicit none
@@ -703,6 +712,8 @@ contains
 
     complex, allocatable, dimension (:,:) :: g0x, g0k
     if(job /= 1) return
+
+    if (proc0) call time_message(.false.,time_multibox(:,2), ' mb_krook')
 
     allocate (g0k(naky,nakx))
     allocate (g0x(naky,x_fft_size))
@@ -743,6 +754,8 @@ contains
     enddo
 
     deallocate(g0k,g0x)
+
+    if (proc0) call time_message(.false.,time_multibox(:,2), ' mb_krook')
 
   end subroutine add_multibox_krook
 

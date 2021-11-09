@@ -154,8 +154,6 @@ contains
        ! initialize file i/o
        if (debug) write (*,*) 'stella::init_stella::init_file_utils'
        call init_file_utils (list)
-       call time_message(.false.,time_total,' Total')
-       call time_message(.false.,time_init,' Initialization')
     end if
 
     call broadcast (list)
@@ -164,6 +162,11 @@ contains
 
     !proc0 may have changed
     debug = debug .and. proc0
+
+    if (proc0) then
+       call time_message(.false.,time_total,' Total')
+       call time_message(.false.,time_init,' Initialization')
+    endif
 
     if (proc0) cbuff = trim(run_name)
     call broadcast (cbuff)
@@ -394,7 +397,7 @@ contains
     use parallel_streaming, only: time_parallel_streaming
     use mirror_terms, only: time_mirror
     use dissipation, only: time_collisions
-    use sources, only: finish_sources
+    use sources, only: finish_sources, time_sources
     use init_g, only: finish_init_g
     use dist_fn, only: finish_dist_fn
     use dist_redistribute, only: finish_redistribute
@@ -407,6 +410,7 @@ contains
     use vpamu_grids, only: finish_vpamu_grids
     use kt_grids, only: finish_kt_grids
     use volume_averages, only: finish_volume_averages
+    use multibox, only: finish_multibox, time_multibox
 
     implicit none
 
@@ -426,6 +430,8 @@ contains
     call finish_volume_averages
     if (debug) write (*,*) 'stella::finish_stella::finish_extended_zgrid'
     call finish_extended_zgrid
+    if (debug) write (*,*) 'stella::finish_stella::finish_multibox'
+    call finish_multibox
     if (debug) write (*,*) 'stella::finish_stella::finish_dist_fn'
     call finish_dist_fn
     if (debug) write (*,*) 'stella::finish_stella::finish_redistribute'
@@ -471,10 +477,14 @@ contains
        write (*,fmt=101) 'wstar:', time_gke(1,6)/60., 'min'
        write (*,fmt=101) 'collisions:', time_collisions(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_collisions(1,2)/60., 'min'
+       write (*,fmt=101) 'sources:', time_sources(1,1)/60., 'min'
+       write (*,fmt=101) '(redistribute):', time_sources(1,2)/60., 'min'
        write (*,fmt=101) 'ExB nonlin:', time_gke(1,7)/60., 'min'
        write (*,fmt=101) 'parallel nonlin:', time_parallel_nl(1,1)/60., 'min'
        write (*,fmt=101) '(redistribute):', time_parallel_nl(1,2)/60., 'min'
        write (*,fmt=101) 'radial var:', time_gke(1,10)/60., 'min'
+       write (*,fmt=101) 'multibox comm:', time_multibox(1,1)/60., 'min'
+       write (*,fmt=101) 'multibox krook:', time_multibox(1,2)/60., 'min'
        write (*,fmt=101) 'total implicit: ', time_gke(1,9)/60., 'min'
        write (*,fmt=101) 'total explicit: ', time_gke(1,8)/60., 'min'
        write (*,fmt=101) 'total:', time_total(1)/60., 'min'
