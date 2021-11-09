@@ -18,6 +18,7 @@ module sources
   public :: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
   public :: int_krook, int_proj
   public :: qn_source_initialized
+  public :: time_sources
 #if defined MPI && defined ISO_C_BINDING
   public :: qn_window
 #endif
@@ -40,7 +41,7 @@ module sources
   integer :: qn_window = MPI_WIN_NULL
 #endif
 
-  real, dimension (2,1) :: time_sources = 0.
+  real, dimension (2,2) :: time_sources = 0.
 
 contains
 
@@ -209,6 +210,8 @@ contains
 
   subroutine add_krook_operator (g, gke_rhs)
 
+    use mp, only: proc0
+    use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use constants, only: pi, zi
     use kt_grids, only: naky, akx, nakx, zonal_mode
@@ -234,6 +237,8 @@ contains
 
     ia = 1
     if (.not.zonal_mode(1)) return
+
+    if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
 
     g_work => g
     if (conserve_momentum.or.conserve_density) then
@@ -301,10 +306,14 @@ contains
       enddo
     endif
 
+    if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
+
   end subroutine add_krook_operator
 
   subroutine update_tcorr_krook (g)
 
+    use mp, only: proc0
+    use job_manage, only: time_message
     use constants, only: pi, zi
     use dist_fn_arrays, only: g_krook, g_symm
     use zgrid, only: nzgrid, ntubes
@@ -326,6 +335,8 @@ contains
     complex :: tmp
 
     if(.not.zonal_mode(1)) return
+
+    if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
 
     ia = 1
 
@@ -381,6 +392,8 @@ contains
       enddo
     endif
 
+    if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
+
   end subroutine update_tcorr_krook
 
 
@@ -405,9 +418,9 @@ contains
     complex :: tmp
 
 
-    if (proc0) call time_message(.false.,time_sources(:,1), ' source_redist')
+    if (proc0) call time_message(.false.,time_sources(:,2), ' source_redist')
     call scatter (kxkyz2vmu, g, gvmu)
-    if (proc0) call time_message(.false.,time_sources(:,1), ' source_redist')
+    if (proc0) call time_message(.false.,time_sources(:,2), ' source_redist')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
       do imu = 1, nmu
@@ -420,9 +433,9 @@ contains
       end do
     end do
 
-    if (proc0) call time_message(.false.,time_sources(:,1), ' source_redist')
+    if (proc0) call time_message(.false.,time_sources(:,2), ' source_redist')
     call gather (kxkyz2vmu, gvmu, g_work)
-    if (proc0) call time_message(.false.,time_sources(:,1), ' source_redist')
+    if (proc0) call time_message(.false.,time_sources(:,2), ' source_redist')
 
   end subroutine enforce_momentum_conservation
 
@@ -491,6 +504,8 @@ contains
 
   subroutine project_out_zero (g)
 
+    use mp, only: proc0
+    use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use constants, only: pi, zi
     use kt_grids, only: zonal_mode, akx, nakx
@@ -512,6 +527,8 @@ contains
 
     ia = 1
     if(.not.zonal_mode(1)) return
+
+    if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
 
     if (exclude_boundary_regions) then
       npts = nakx - 2*copy_size
@@ -584,6 +601,8 @@ contains
     endif
 
     int_proj = code_dt + exp_fac*int_proj
+
+    if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
 
   end subroutine project_out_zero
 
