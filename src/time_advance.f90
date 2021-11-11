@@ -911,20 +911,16 @@ contains
     use fields_arrays, only: phi, apar
     use fields_arrays, only: phi_old
     use fields, only: advance_fields, fields_updated
-    use stella_time, only: code_dt
     use run_parameters, only: fully_explicit
     use multibox, only: RK_step
     use sources, only: include_krook_operator, update_tcorr_krook
     use sources, only: include_qn_source, update_quasineutrality_source
     use sources, only: remove_zero_projection, project_out_zero
-    use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx
-    use stella_layouts, only: vmu_lo
 
     implicit none
 
     integer, intent (in) :: istep
-    complex, allocatable, dimension (:,:,:,:) :: g1
 
     if(.not.RK_step) then
       if (debug) write (*,*) 'time_advance::multibox'
@@ -955,12 +951,7 @@ contains
     end if
 
     if(remove_zero_projection) then
-      allocate (g1(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      !divide by code_dt to ensure time averaging is performed correctly
-      g1 = (gnew(1,:,:,:,:) - gold(1,:,:,:,:))/code_dt
-      call project_out_zero(g1)
-      gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g1
-      deallocate (g1)
+      call project_out_zero(gold, gnew)
       fields_updated = .false.
     end if
 

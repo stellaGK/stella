@@ -225,7 +225,7 @@ contains
     implicit none
 
     complex :: tmp
-    integer :: ikx, iky, jkx, iz, it, ia, ivmu, npts
+    integer :: ikx, jkx, iz, it, ia, ivmu, npts
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in), target :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gke_rhs
@@ -243,11 +243,11 @@ contains
     g_work => g
     if (conserve_momentum.or.conserve_density) then
       g_work => g_symm
-      if (.not.conserve_momentum) g_work = g
+      g_work = g
     endif
 
-    if (conserve_momentum) call enforce_momentum_conservation (g, g_work)
-    if (conserve_density) call enforce_density_conservation (g_work)
+    if (conserve_momentum) call enforce_momentum_conservation (g_work)
+    if (conserve_density)  call enforce_density_conservation (g_work(1,:,:,:,:))
     
     if (exclude_boundary_regions) then
       npts = nakx - 2*copy_size
@@ -343,11 +343,11 @@ contains
     g_work => g
     if (conserve_momentum.or.conserve_density) then
       g_work => g_symm
-      if (.not.conserve_momentum) g_work = g
+      g_work = g
     endif
 
-    if (conserve_momentum) call enforce_momentum_conservation (g, g_work)
-    if (conserve_density) call enforce_density_conservation (g_work)
+    if (conserve_momentum) call enforce_momentum_conservation (g_work)
+    if (conserve_density)  call enforce_density_conservation (g_work(1,:,:,:,:))
 
     int_krook_old = int_krook
     int_krook =  code_dt + exp_fac*int_krook_old
@@ -397,7 +397,7 @@ contains
   end subroutine update_tcorr_krook
 
 
-  subroutine enforce_momentum_conservation (g, g_work)
+  subroutine enforce_momentum_conservation (g_work)
 
     use mp, only: proc0
     use job_manage, only: time_message
@@ -411,15 +411,14 @@ contains
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: g
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (out) :: g_work
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g_work
 
-    integer :: ikxkyz, imu, iv, iv2, is
+    integer :: ikxkyz, imu, iv, iv2
     complex :: tmp
 
 
     if (proc0) call time_message(.false.,time_sources(:,2), ' source_redist')
-    call scatter (kxkyz2vmu, g, gvmu)
+    call scatter (kxkyz2vmu, g_work, gvmu)
     if (proc0) call time_message(.false.,time_sources(:,2), ' source_redist')
 
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -443,66 +442,92 @@ contains
 
     use mp, only: sum_allreduce
     use species, only: spec, nspec
-    use vpamu_grids , only: integrate_species
+    use physics_flags, only: radial_variation
+    use vpamu_grids , only: integrate_species, mu, vpa, vperp2
     use vpamu_grids , only: maxwell_vpa, maxwell_mu, maxwell_fac
-    use kt_grids, only: nakx
+    use kt_grids, only: nakx, rho_d_clamped
     use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
+    use stella_geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
     use gyro_averages, only: gyro_average, aj0x, aj1x
+    use dist_fn_arrays, only: kperp2, dkperp2dr
     use zgrid, only: nzgrid, ntubes
+    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g_work
-    integer :: ikxkyz, ia, ikx, it, iz, imu, iv, ivmu, is
+    complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g_work
+    integer :: ia, ikx, it, iz, imu, iv, ivmu, is
 
-    complex, dimension (:,:), allocatable :: gyro_g, g0k
+    complex, dimension (:,:), allocatable :: gyro_g, g0k, g0x
+    complex, dimension (:), allocatable :: g_fsa
+    real :: energy
 
     ia = 1
 
     allocate (gyro_g(nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     allocate (g0k(1,nakx))
+    allocate (g0x(1,nakx))
+    allocate (g_fsa(nakx)); g_fsa = 0.
+
     do it = 1, ntubes
       do iz = -nzgrid, nzgrid
-        g0k = 0.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           is = is_idx(vmu_lo,ivmu)
           imu = imu_idx(vmu_lo,ivmu)
           iv = iv_idx(vmu_lo,ivmu)
-          gyro_g(:,ivmu) = g_work(1,:,iz,it,ivmu)*aj0x(1,:,iz,ivmu)
-!         g0k = 0.0
-!         if(radial_variation) then
-!                g0k(iky,:) = gyro_g(iky,:,ivmu) &
-!                    * (-0.5*aj1x(iky,:,iz,ivmu)/aj0x(iky,:,iz,ivmu)*(spec(is)%smz)**2 &
-!                    * (kperp2(iky,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
-!                    * (dkperp2dr(iky,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
-!                    + dBdrho(iz)/bmag(ia,iz))
+          gyro_g(:,ivmu) = g_work(:,iz,it,ivmu)*aj0x(1,:,iz,ivmu)
+          g0k = 0.0
+          if(radial_variation) then
+            g0k(1,:) = gyro_g(:,ivmu) &
+                     * (-0.5*aj1x(1,:,iz,ivmu)/aj0x(1,:,iz,ivmu)*(spec(is)%smz)**2 &
+                     * (kperp2(1,:,ia,iz)*vperp2(ia,iz,imu)/bmag(ia,iz)**2) &
+                     * (dkperp2dr(1,:,ia,iz) - dBdrho(iz)/bmag(ia,iz)) &
+                     + dBdrho(iz)/bmag(ia,iz))
 
-!              end do
-!              call multiply_by_rho(g0k)
-!            endif
-!            gyro_g(:,ivmu) = gyro_g(:,ivmu) + g0k(1,:)
-          do ikx = 1, nakx
-            call integrate_species (gyro_g(ikx,:), iz, spec%dens_psi0,g0k(1,ikx),reduce_in=.false.)
-          enddo
+            call transform_kx2x_unpadded (g0k,g0x)
+            g0x(1,:) = rho_d_clamped*g0x(1,:)
+            call transform_x2kx_unpadded (g0x,g0k)
+          endif
+          gyro_g(:,ivmu) = gyro_g(:,ivmu) + g0k(1,:)
         enddo
 
+        do ikx = 1, nakx
+          call integrate_species (gyro_g(ikx,:), iz, spec%dens_psi0,g0k(1,ikx),reduce_in=.false.)
+        enddo
         call sum_allreduce (g0k)
 
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          is = is_idx(vmu_lo,ivmu)
-          imu = imu_idx(vmu_lo,ivmu)
-          g_work(1,:,iz,it,ivmu) = g_work(1,:,iz,it,ivmu) &
-                        - maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)*g0k(1,:)
+        !we now have delta n. Flux surface average
+        call transform_kx2x_unpadded (g0k,g0x)
+        g_fsa = g_fsa + dl_over_b(ia,iz)*g0x(1,:)
+        if(radial_variation) g_fsa = g_fsa + d_dl_over_b_drho(ia,iz)*rho_d_clamped*g0x(1,:)
+      enddo
+    enddo
+    g_fsa = g_fsa/ntubes
 
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      is = is_idx(vmu_lo,ivmu)
+      imu = imu_idx(vmu_lo,ivmu)
+      iv = iv_idx(vmu_lo,ivmu)
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          g0x(1,:) = g_fsa
+          !multiply by f0
+          g0x(1,:) = g0x(1,:)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
+          if (radial_variation) then !variation in the density cancels
+            energy = (vpa(iv)**2 + vperp2(ia,iz,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+            g0x(1,:) = g0x(1,:)*(1.0 - rho_d_clamped*(spec(is)%tprim*(energy-1.5) + 2.*mu(imu)*dBdrho(iz)))
+          endif
+
+          call transform_x2kx_unpadded(g0x,g0k)
+          g_work(:,iz,it,ivmu) = g_work(:,iz,it,ivmu) - g0k(1,:)
         enddo
       enddo
     enddo
-    deallocate (gyro_g,g0k)
+    deallocate (gyro_g,g0k,g0x,g_fsa)
 
   end subroutine enforce_density_conservation
   
-
-  subroutine project_out_zero (g)
+  subroutine project_out_zero (gold, gnew)
 
     use mp, only: proc0
     use job_manage, only: time_message
@@ -511,7 +536,7 @@ contains
     use kt_grids, only: zonal_mode, akx, nakx
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
-    use dist_fn_arrays, only: g_proj
+    use dist_fn_arrays, only: g_proj, g_symm
     use multibox, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -523,12 +548,29 @@ contains
 
     complex, dimension (:,:), allocatable :: g0k, g0x, g1x
     real, dimension (:), allocatable :: basis_func
-    complex, dimension (:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: g
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (in) :: gold
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:),  intent (inout) :: gnew
+    complex, allocatable, dimension (:,:,:,:) :: g
 
     ia = 1
     if(.not.zonal_mode(1)) return
 
     if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
+
+    allocate (g(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+    !divide by code_dt to ensure time averaging is performed correctly
+    if (conserve_momentum) then
+      g_symm = (gnew - gold)/code_dt
+      call enforce_momentum_conservation (g_symm)
+      g = g_symm(1,:,:,:,:)
+
+    else
+      g = (gnew(1,:,:,:,:) - gold(1,:,:,:,:))/code_dt
+    endif
+
+    if (conserve_density) call enforce_density_conservation (g)
+
 
     if (exclude_boundary_regions) then
       npts = nakx - 2*copy_size
@@ -601,6 +643,10 @@ contains
     endif
 
     int_proj = code_dt + exp_fac*int_proj
+
+    gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g
+
+    deallocate (g)
 
     if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
 
