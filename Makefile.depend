@@ -388,20 +388,25 @@ sources.o: \
 	 constants.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
+	 dist_redistribute.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 gyro_averages.o \
+	 job_manage.o \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 multibox.o \
 	 physics_flags.o \
+	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
 	 common_types.o \
