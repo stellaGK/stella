@@ -46,7 +46,7 @@ contains
 
     implicit none
 
-    integer :: iseg, iky, ie, ntg, ikx, it
+    integer :: iseg, iky, ie, ikx, it
     integer :: nseg_max, neigen_max
     integer, dimension (:), allocatable :: ikx_shift_end
     integer, dimension (:,:), allocatable :: ikx_shift
@@ -55,8 +55,6 @@ contains
     if (extended_zgrid_initialized) return
     extended_zgrid_initialized = .true.
     
-    ntg = nzed/2
-
     if (.not. allocated(neigen)) allocate (neigen(naky))
     if (.not. allocated(periodic)) allocate (periodic(naky)) ; periodic = .false.
     if (.not. allocated(phase_shift)) allocate (phase_shift(naky)); phase_shift = 1.

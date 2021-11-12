@@ -95,4 +95,9 @@ module common_types
      complex, dimension (:), pointer :: fourier => null()
   end type coupled_alpha_type
 
+  type gam0_ffs_type
+     integer, dimension (:), pointer :: pivot_index => null()
+     complex, dimension (:,:), pointer :: matrix => null()
+  end type gam0_ffs_type
+  
 end module common_types

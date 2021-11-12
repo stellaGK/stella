@@ -261,7 +261,6 @@ contains
             & c(k + 8)) * t + c(k + 9)) * t + c(k + 10)) * t + &
             & c(k + 11)) * t + c(k + 12)) * t + c(k + 13)
     else
-
        v = 24. / w
        t = v * v
        k = 13 * (int(t))

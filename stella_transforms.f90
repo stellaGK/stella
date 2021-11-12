@@ -551,6 +551,10 @@ contains
 
   end subroutine transform_kalpha2alpha
 
+  ! input galph array is real and contains values on the padded alpha grid
+  ! gkalph is output array; it contains the Fourier coefficients of galph
+  ! for positive ky values only (reality can be used to obtain the negative ky coefs)
+  ! the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-aliasing
   subroutine transform_alpha2kalpha (galph, gkalph)
 
     use stella_layouts, only: vmu_lo
