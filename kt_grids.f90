@@ -227,11 +227,10 @@ contains
        call init_kt_grids_box 
     end select
 
-    ! determine if iky corresponds to zonal mode
+    !> determine if iky corresponds to zonal mode
     if (.not.allocated(zonal_mode)) allocate (zonal_mode(naky))
     zonal_mode = .false.
     if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
-
 
   end subroutine init_kt_grids
 
@@ -256,20 +255,20 @@ contains
 
     box = .true.
 
-    ! set jtwist and y0 for cases where they have not been specified
-    ! and for which it makes sense to set them automatically
+    !> set jtwist and y0 for cases where they have not been specified
+    !> and for which it makes sense to set them automatically
     if (jtwist < 1) then 
       jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
       jtwist = max(1,int(jtwistfac*jtwist+0.5))
     endif
-    ! signed version of jtwist, with sign determined by, e.g., magnetic shear
+    !> signed version of jtwist, with sign determined by, e.g., magnetic shear
     ikx_twist_shift = -jtwist*int(sign(1.0,twist_and_shift_geo_fac))
 
     if (y0 < 0.) then
        if (full_flux_surface) then
-          ! if simulating a flux annulus, then
-          ! y0 determined by the physical
-          ! extent of the device
+          !> if simulating a flux annulus, then
+          !> y0 determined by the physical
+          !> extent of the device
           if (rhostar > 0.) then
              !y0 = 1./(rhostar*geo_surf%rhotor)
              y0 = geo_surf%rhotor/rhostar
@@ -277,18 +276,19 @@ contains
              call mp_abort ('must set rhostar if simulating a full flux surface. aborting.')
           end if
        else
-          ! if simulating a flux tube
-          ! makes no sense to have y0 < 0.0
-          ! so abort
+          !> if simulating a flux tube
+          !> makes no sense to have y0 < 0.0
+          !> so abort
           call mp_abort ('y0 negative only makes sense when simulating a flux annulus.  aborting.')
        end if
     end if
 
-    ! get the grid spacing in ky and then in kx using twist-and-shift BC
+    !> get the grid spacing in ky and then in kx using twist-and-shift BC
     dky = 1./y0
-    ! non-quantized b/c assumed to be periodic instead 
-    ! of linked boundary conditions if zero magnetic shear
+    !> non-quantized b/c assumed to be periodic instead 
+    !> of linked boundary conditions if zero magnetic shear
     if (abs(geo_surf%shat) <= shat_zero) then
+       !> MAB: this seems overly restrictive; should not need to pick dky to be an integer multiple of dkx
        dkx = dky / real(jtwist)
     else
        dkx = (2*nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
@@ -296,49 +296,53 @@ contains
 
     x0 = 1./dkx
 
-    ! ky goes from zero to ky_max
+    !> ky goes from zero to ky_max
     do iky = 1, naky
        aky(iky) = real(iky-1)*dky
     end do
 
-    ! get the ikx index corresponding to kx_max
+    !> get the ikx index corresponding to kx_max
     ikx_max = nakx/2+1
 
-    ! first set arrays equal for ky >= 0
+    !> aky_all contains all ky values (positive and negative),
+    !> stored in the same order as akx (0 -> ky_max, -ky_max -> -dky)
+    !> first set arrays equal for ky >= 0
     aky_all(:naky) = aky
+    !> aky_all_ordered contains all ky values, stored from
+    !> most negative to most positive (-ky_max -> ky_max)
     aky_all_ordered(naky:naky_all) = aky
-    ! next fill in ky < 0
+    !> next fill in ky < 0
     do iky = naky+1, naky_all
-       ! this is the ky index corresponding to +ky in original array
+       !> this is the ky index corresponding to +ky in original array
        ikyneg = naky_all-iky+2
        aky_all(iky) = -aky(ikyneg)
     end do
     aky_all_ordered(:naky-1) = aky_all(naky+1:)
     
-    ! kx goes from zero to kx_max down to zero...
+    !> kx goes from zero to kx_max down to zero...
     do ikx = 1, ikx_max
        akx(ikx) = real(ikx-1)*dkx
     end do
-    ! and then from -kx_max to -|kx_min|
+    !> and then from -kx_max to -|kx_min|
     do ikx = ikx_max+1, nakx
        akx(ikx) = real(ikx-nakx-1)*dkx
     end do
 
-    ! set theta0=0 for ky=0
+    !> set theta0=0 for ky=0
     theta0(1,:) = 0.0
     if (q_as_x) then
        do ikx = 1, nakx
-          ! theta0 = kx/ky
+          !> theta0 = kx/ky
           theta0(2:,ikx) = akx(ikx)/aky(2:)
        end do
     else if (abs(geo_surf%shat) > shat_zero) then
        do ikx = 1, nakx
-          ! theta0 = kx/ky/shat
+          !> theta0 = kx/ky/shat
           theta0(2:,ikx) = akx(ikx)/(aky(2:)*geo_surf%shat)
        end do
     else
        do ikx = 1, nakx
-          ! if shat=0, theta0 is meaningless, so be careful
+          !> if shat=0, theta0 is meaningless, so be careful
           theta0(2:,ikx) = - akx(ikx)/aky(2:)
        end do
     end if
@@ -354,8 +358,10 @@ contains
       phase_shift_fac = phase_shift_fac/norm
     endif
 
-
-    ! for radial variation
+    !> MAB: a lot of the radial variation coding below should probably be tidied away
+    !> into one or more separate subroutines
+    
+    !> for radial variation
     if(.not.allocated(x_d)) allocate (x_d(nakx))
     if(.not.allocated(rho)) allocate (rho(nx))
     if(.not.allocated(rho_d)) allocate (rho_d(nakx))
