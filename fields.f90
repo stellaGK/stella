@@ -677,16 +677,16 @@ contains
 
     if (fields_updated) return
 
-    ! time the communications + field solve
+    !> time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
     if (fields_kxkyz) then
-       ! first gather (vpa,mu) onto processor for v-space operations
-       ! v-space operations are field solve, dg/dvpa, and collisions
+       !> first gather (vpa,mu) onto processor for v-space operations
+       !> v-space operations are field solve, dg/dvpa, and collisions
        if (debug) write (*,*) 'dist_fn::advance_stella::scatter'
        if (proc0) call time_message(.false.,time_field_solve(:,2),' fields_redist')
        call scatter (kxkyz2vmu, g, gvmu)
        if (proc0) call time_message(.false.,time_field_solve(:,2),' fields_redist')
-       ! given gvmu with vpa and mu local, calculate the corresponding fields
+       !> given gvmu with vpa and mu local, calculate the corresponding fields
        if (debug) write (*,*) 'dist_fn::advance_stella::get_fields'
        call get_fields (gvmu, phi, apar, dist)
     else
@@ -697,10 +697,10 @@ contains
        end if
     end if
 
-    ! set a flag to indicate that the fields have been updated
-    ! this helps avoid unnecessary field solves
+    !> set a flag to indicate that the fields have been updated
+    !> this helps avoid unnecessary field solves
     fields_updated = .true.
-    ! time the communications + field solve
+    !> time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
 
   end subroutine advance_fields
@@ -925,32 +925,32 @@ contains
     complex, dimension (:,:,:), allocatable :: phi_swap, rhs
     
     if (fphi > epsilon(0.0)) then
-       ! calculate the contribution to quasineutrality coming from the velocity space
-       ! integration of the guiding centre distribution function g;
-       ! the sign is consistent with phi appearing on the LHS of the eqn and int g appearing on the RHS.
-       ! this is returned in phi
+       !> calculate the contribution to quasineutrality coming from the velocity space
+       !> integration of the guiding centre distribution function g;
+       !> the sign is consistent with phi appearing on the LHS of the eqn and int g appearing on the RHS.
+       !> this is returned in phi
        call get_g_integral_contribution (g, rhs)
-       ! use sum_s int d3v <g> and QN to solve for phi
-       ! NB: assuming here that ntubes = 1 for FFS sim
+       !> use sum_s int d3v <g> and QN to solve for phi
+       !> NB: assuming here that ntubes = 1 for FFS sim
        call get_phi_ffs (rhs, phi(:,:,:,1))
-       ! if using a modified Boltzmann response for the electrons, then phi
-       ! at this stage is the 'inhomogeneous' part of phi.
+       !> if using a modified Boltzmann response for the electrons, then phi
+       !> at this stage is the 'inhomogeneous' part of phi.
        if (modified_adiabatic_electrons) then
-          ! first must get phi on grid that includes positive and negative ky (but only positive kx)
+          !> first must get phi on grid that includes positive and negative ky (but only positive kx)
           allocate (phi_swap(naky_all,ikx_max,-nzgrid:nzgrid))
           do iz = -nzgrid, nzgrid
              call swap_kxky_ordered (phi(:,:,iz,1), phi_swap(:,:,iz))
           end do
-          ! calculate the flux surface average of this phi_inhomogeneous
+          !> calculate the flux surface average of this phi_inhomogeneous
           allocate (phi_fsa(nakx))
           do ikx = 1, nakx
              call flux_surface_average_ffs (phi_swap(:,ikx,:), jacobian_ky, phi_fsa(ikx))
           end do
-          ! use the flux surface average of phi_inhomogeneous, together with the
-          ! adiabatic_response_factor, to obtain the flux-surface-averaged phi
+          !> use the flux surface average of phi_inhomogeneous, together with the
+          !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
           phi_fsa = phi_fsa * adiabatic_response_factor
-          ! use the computed flux surface average of phi as an additional sosurce in quasineutrality
-          ! to obtain the electrostatic potential; only affects the ky=0 component of QN
+          !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
+          !> to obtain the electrostatic potential; only affects the ky=0 component of QN
           do ikx = 1, nakx
              rhs(1,ikx,:) = rhs(1,ikx,:) - phi_fsa(ikx)*tite/nine
           end do
@@ -986,23 +986,23 @@ contains
       complex, dimension (:,:,:), allocatable :: gyro_g
       
       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      ! loop over zed location within flux tube
+      !> loop over zed location within flux tube
       do iz = -nzgrid, nzgrid
-         ! loop over super-index ivmu, which include vpa, mu and spec
+         !> loop over super-index ivmu, which include vpa, mu and spec
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            ! gyroaverage the distribution function g at each phase space location
+            !> gyroaverage the distribution function g at each phase space location
             call gyro_average (g(:,:,iz,it,ivmu), gyro_g(:,:,ivmu), j0_B_maxwell_ffs(:,:,iz,ivmu))
          end do
-         ! integrate <g> over velocity space and sum over species within each processor
-         ! as v-space and species possibly spread over processors, wlil need to
-         ! gather sums from each proceessor and sum them all together below
-         ! minus sign on gyro_g accounts for fact that we want int g on RHS of equation
+         !> integrate <g> over velocity space and sum over species within each processor
+         !> as v-space and species possibly spread over processors, wlil need to
+         !> gather sums from each proceessor and sum them all together below
+         !> minus sign on gyro_g accounts for fact that we want int g on RHS of equation
          call integrate_species_ffs (-gyro_g, spec%z*spec%dens_psi0, rhs(:,:,iz), reduce_in=.false.)
       end do
-      ! gather sub-sums from each processor and add them together
-      ! store result in phi, which will be further modified below to account for polarization term
+      !> gather sub-sums from each processor and add them together
+      !> store result in phi, which will be further modified below to account for polarization term
       call sum_allreduce(rhs)
-      ! no longer need <g>, so deallocate
+      !> no longer need <g>, so deallocate
       deallocate (gyro_g)
       
     end subroutine get_g_integral_contribution
@@ -1356,18 +1356,18 @@ contains
     integer :: iz
     complex, dimension (:,:,:), allocatable :: rhs_swap
 
-    ! change from rhs defined on grid with ky >=0 and kx from 0,...,kxmax,-kxmax,...,-dkx
-    ! to rhs_swap defined on grid with ky = -kymax,...,kymax and kx >= 0
+    !> change from rhs defined on grid with ky >=0 and kx from 0,...,kxmax,-kxmax,...,-dkx
+    !> to rhs_swap defined on grid with ky = -kymax,...,kymax and kx >= 0
     do iz = -nzgrid, nzgrid
        call swap_kxky_ordered (rhs(:,:,iz), rhs_swap(:,:,iz))
     end do
 
-    ! solve sum_s Z_s int d^3v <g> + gam0*phi = 0
-    ! where -sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
-    ! and then rhs_swap is over-written with the solution to the linear system
+    !> solve sum_s Z_s int d^3v <g> + gam0*phi = 0
+    !> where -sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
+    !> and then rhs_swap is over-written with the solution to the linear system
     call band_lu_solve_ffs (lu_gam0_ffs, rhs_swap)
 
-    ! swap back from the ordered grid in ky to the original (kx,ky) grid
+    !> swap back from the ordered grid in ky to the original (kx,ky) grid
     do iz = -nzgrid, nzgrid
        call swap_kxky_back_ordered (rhs_swap(:,:,iz), phi(:,:,iz))
     end do
