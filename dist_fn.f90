@@ -4,8 +4,8 @@ module dist_fn
 
   public :: init_gxyz
   public :: init_dist_fn, finish_dist_fn
-  public :: adiabatic_option_switch
-  public :: adiabatic_option_fieldlineavg
+!  public :: adiabatic_option_switch
+!  public :: adiabatic_option_fieldlineavg
 
   private
   
@@ -14,12 +14,12 @@ module dist_fn
   logical :: kp2init = .false.
   logical :: vp2init = .false.
 !  logical :: bessinit = .false.
-  logical :: readinit = .false.
+!  logical :: readinit = .false.
 
-  integer :: adiabatic_option_switch
-  integer, parameter :: adiabatic_option_default = 1, &
-       adiabatic_option_zero = 2, &
-       adiabatic_option_fieldlineavg = 3
+!  integer :: adiabatic_option_switch
+!  integer, parameter :: adiabatic_option_default = 1, &
+!       adiabatic_option_zero = 2, &
+!       adiabatic_option_fieldlineavg = 3
 
   logical :: debug = .false.
 
@@ -107,8 +107,8 @@ contains
 
     debug = debug .and. proc0
     
-    if (debug) write (*,*) 'dist_fn::init_dist_fn::read_parameters'
-    call read_parameters
+!    if (debug) write (*,*) 'dist_fn::init_dist_fn::read_parameters'
+!    call read_parameters
     if (debug) write (*,*) 'dist_fn::init_dist_fn::allocate_arrays'
     call allocate_arrays
     if (debug) write (*,*) 'dist_fn::init_dist_fn::init_kperp2'
@@ -120,47 +120,47 @@ contains
 
   end subroutine init_dist_fn
 
-  subroutine read_parameters
+  ! subroutine read_parameters
 
-    use file_utils, only: error_unit, input_unit_exist
-    use text_options, only: text_option, get_option_value
-    use mp, only: proc0, broadcast
+  !   use file_utils, only: error_unit, input_unit_exist
+  !   use text_options, only: text_option, get_option_value
+  !   use mp, only: proc0, broadcast
 
-    implicit none
+  !   implicit none
 
-    logical :: dfexist
+  !   logical :: dfexist
 
-    type (text_option), dimension (6), parameter :: adiabaticopts = &
-         (/ text_option('default', adiabatic_option_default), &
-            text_option('no-field-line-average-term', adiabatic_option_default), &
-            text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
-            text_option('iphi00=0', adiabatic_option_default), &
-            text_option('iphi00=1', adiabatic_option_default), &
-            text_option('iphi00=2', adiabatic_option_fieldlineavg) /)
-    character(30) :: adiabatic_option
+  !   type (text_option), dimension (6), parameter :: adiabaticopts = &
+  !        (/ text_option('default', adiabatic_option_default), &
+  !           text_option('no-field-line-average-term', adiabatic_option_default), &
+  !           text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
+  !           text_option('iphi00=0', adiabatic_option_default), &
+  !           text_option('iphi00=1', adiabatic_option_default), &
+  !           text_option('iphi00=2', adiabatic_option_fieldlineavg) /)
+  !   character(30) :: adiabatic_option
             
-    namelist /dist_fn_knobs/ adiabatic_option
+  !   namelist /dist_fn_knobs/ adiabatic_option
 
-    integer :: ierr, in_file
+  !   integer :: ierr, in_file
 
-    if (readinit) return
-    readinit = .true.
+  !   if (readinit) return
+  !   readinit = .true.
 
-    if (proc0) then
-       adiabatic_option = 'default'
+  !   if (proc0) then
+  !      adiabatic_option = 'default'
 
-       in_file = input_unit_exist("dist_fn_knobs", dfexist)
-       if (dfexist) read (unit=in_file, nml=dist_fn_knobs)
+  !      in_file = input_unit_exist("dist_fn_knobs", dfexist)
+  !      if (dfexist) read (unit=in_file, nml=dist_fn_knobs)
 
-       ierr = error_unit()
-       call get_option_value &
-            (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
-            ierr, "adiabatic_option in dist_fn_knobs")
-    end if
+  !      ierr = error_unit()
+  !      call get_option_value &
+  !           (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
+  !           ierr, "adiabatic_option in dist_fn_knobs")
+  !   end if
 
-    call broadcast (adiabatic_option_switch)
+  !   call broadcast (adiabatic_option_switch)
 
-  end subroutine read_parameters 
+  ! end subroutine read_parameters 
 
   subroutine init_kperp2
 
@@ -217,22 +217,16 @@ contains
           end do
        end if
     end do
+
+    ! NB: should really avoid this by using higher resolution when reading in VMEC geometry and then
+    ! NB: course-graining if necessary to map onto lower-resolution stella grid
+    ! ensure kperp2 is positive everywhere (only might go negative if using full-flux-surface due to interpolation)
+    where (kperp2 < 0.0)
+       kperp2 = 0.0
+    end where
     
     call enforce_single_valued_kperp2
 
-!   filename=trim(run_name)//".kperp2"
-!   open (1232,file=trim(filename),status='unknown')
-!   ia=1
-!   do iz=-nzgrid,nzgrid
-!     do ikx=1, naky
-!       do iky = 1, 1
-!         write(1232,'(2e15.8)') kperp2(iky,ikx,ia,iz), dkperp2dr(iky,ikx,ia,iz)
-!       enddo
-!     enddo
-!   enddo
-!   close (1232)
-
-    
   end subroutine init_kperp2
 
   subroutine enforce_single_valued_kperp2
@@ -324,7 +318,7 @@ contains
     call deallocate_arrays
 
     dist_fn_initialized = .false.
-    readinit = .false.
+!    readinit = .false.
     gxyz_initialized = .false.
 
   end subroutine finish_dist_fn

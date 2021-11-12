@@ -391,8 +391,8 @@ contains
     use vpamu_grids, only: integrate_species
     use species, only: spec
     use kt_grids, only: naky, nakx, aky, akx, zonal_mode
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
 
     implicit none
 
@@ -2517,8 +2517,8 @@ contains
     use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
     use dist_fn_arrays, only: wdriftx_g, wdrifty_g
     use dist_fn_arrays, only: wstar
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
     use gyro_averages, only: aj0x, gyro_average
     use kt_grids, only: akx, aky, nakx, naky, zonal_mode
     use zgrid, only: nzgrid, ntubes
