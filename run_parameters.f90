@@ -25,6 +25,8 @@ module run_parameters
   public :: rng_seed
   public :: add_nl_source_in_real_space
   public :: no_extra_padding
+  public :: exact_exb_nonlinear_solution
+  public :: exact_exb_nonlinear_solution_first_step
 
   private
 
@@ -45,6 +47,8 @@ module run_parameters
   logical :: nisl_nonlinear
   LOGICAL :: fields_kxkyz, mat_gen, mat_read
   logical :: ky_solve_real
+  logical :: exact_exb_nonlinear_solution
+  logical :: exact_exb_nonlinear_solution_first_step
   real :: avail_cpu_time
   integer :: nstep, ky_solve_radial
   integer :: rng_seed
@@ -102,7 +106,7 @@ contains
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, mirror_semi_lagrange_non_interp, no_advection_option, &
          ky_solve_radial, ky_solve_real, leapfrog_nonlinear, leapfrog_drifts, nisl_nonlinear, add_nl_source_in_real_space, &
-         no_extra_padding
+         no_extra_padding, exact_exb_nonlinear_solution, exact_exb_nonlinear_solution_first_step
 
     if (proc0) then
        fphi = 1.0
@@ -137,6 +141,8 @@ contains
        ky_solve_real   = .false.
        mat_gen = .true.
        mat_read = .false.
+       exact_exb_nonlinear_solution = .false.
+       exact_exb_nonlinear_solution_first_step = .false.
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
@@ -202,6 +208,8 @@ contains
     call broadcast (mat_read)
     call broadcast (add_nl_source_in_real_space)
     call broadcast (no_extra_padding)
+    call broadcast (exact_exb_nonlinear_solution)
+    call broadcast (exact_exb_nonlinear_solution_first_step)
 
     if (.not.include_mirror) mirror_implicit = .false.
 
