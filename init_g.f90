@@ -105,6 +105,8 @@ contains
   subroutine ginit (restarted,istep0)
 
     use stella_save, only: init_tstart
+    use physics_flags, only: full_flux_surface
+    
     logical, intent (out) :: restarted
     integer, intent (out) :: istep0
     integer :: istatus
@@ -132,6 +134,12 @@ contains
 !    case (ginitopt_kxtest)
 !       call ginit_kxtest
     end select
+
+    !> if simulating a full flux surface, g is normalized by F0 (which is not the case otherwise)
+    !> unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
+    if (full_flux_surface .and. ginitopt_switch /= ginitopt_restart_many) then
+       call normalize_by_maxwellian
+    end if
     
   end subroutine ginit
 
@@ -669,6 +677,30 @@ contains
 
   end subroutine ginit_restart_many
 
+  subroutine normalize_by_maxwellian
+
+    use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
+    use dist_fn_arrays, only: gvmu
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
+    
+    implicit none
+
+    integer :: ia
+    integer :: ikxkyz, iz, is
+    
+    !> gvmu is initialised with a Maxwellian weighting for flux tube simulations,
+    !> with the Maxwellian evaluated at ia = 1
+    !> we are undoing that weighting here, so also need to use ia = 1
+    ia = 1
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) / (spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)*maxwell_fac(is))
+    end do
+       
+  end subroutine normalize_by_maxwellian
+  
   subroutine reset_init
 
     ginitopt_switch = ginitopt_restart_many
