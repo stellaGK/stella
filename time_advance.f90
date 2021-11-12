@@ -101,11 +101,15 @@ contains
     !> if solving implicitly
     if (debug) write (6,*) 'time_advance::init_time_advance::init_mirror'
     call init_mirror
-    
+    !> calculate the term multiplying dg/dz in the parallel streaming term
+    !> and set up the tridiagonal matrix to be inverted if solving implicitly
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parstream'
     call init_parallel_streaming
+    !> allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
+    !> in the magnetic drift terms
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wdrift'
     call init_wdrift
+    !> allocate and calculate the factor multiplying dphi/dy in the gradient drive term
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wstar'
     call init_wstar
     if (debug) write (6,*) 'time_advance::init_time_advance::init_flow_shear'
@@ -234,7 +238,7 @@ contains
 
     implicit none
 
-    integer :: ivmu, iv, imu, is, ia
+    integer :: ivmu, iv, imu, is
     real :: fac
     real, dimension (:,:), allocatable :: wcvdrifty, wgbdrifty
     real, dimension (:,:), allocatable :: wcvdriftx, wgbdriftx
@@ -242,21 +246,25 @@ contains
     if (wdriftinit) return
     wdriftinit = .true.
 
+    !> allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
     if (.not.allocated(wdriftx_phi)) then
-      allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      wdriftx_phi = 0.0
+       allocate (wdriftx_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       wdriftx_phi = 0.0
     endif
+    !> allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
     if (.not.allocated(wdrifty_phi)) then
-      allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      wdrifty_phi = 0.0
+       allocate (wdrifty_phi(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       wdrifty_phi = 0.0
     endif
+    !> allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
     if (.not.allocated(wdriftx_g)) then
-      allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      wdriftx_g = 0.0
+       allocate (wdriftx_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       wdriftx_g = 0.0
     endif
+    !> allocate wdrifty_g, the factor multiplying dg/dy in the magnetic drift term
     if (.not.allocated(wdrifty_g)) then
-      allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      wdrifty_g = 0.0
+       allocate (wdrifty_g(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       wdrifty_g = 0.0
     endif
 
     allocate (wcvdrifty(nalpha,-nzgrid:nzgrid))
@@ -264,7 +272,6 @@ contains
     allocate (wcvdriftx(nalpha,-nzgrid:nzgrid))
     allocate (wgbdriftx(nalpha,-nzgrid:nzgrid))
 
-    ia = 1
     ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        iv = iv_idx(vmu_lo,ivmu)
@@ -272,15 +279,15 @@ contains
        is = is_idx(vmu_lo,ivmu)
 
        fac = -ydriftknob*0.5*code_dt*spec(is)%tz_psi0
-       ! this is the curvature drift piece of wdrifty with missing factor of vpa
-       ! vpa factor is missing to avoid singularity when including
-       ! non-Maxwellian corrections to equilibrium
+       !> this is the curvature drift piece of wdrifty with missing factor of vpa
+       !> vpa factor is missing to avoid singularity when including
+       !> non-Maxwellian corrections to equilibrium
        wcvdrifty = fac*cvdrift*vpa(iv)
-       ! this is the grad-B drift piece of wdrifty
+       !> this is the grad-B drift piece of wdrifty
        wgbdrifty = fac*gbdrift*0.5*vperp2(:,:,imu)
        wdrifty_g(:,:,ivmu) = wcvdrifty*vpa(iv) + wgbdrifty
-       ! if including neoclassical correction to equilibrium Maxwellian,
-       ! then add in v_E^{nc} . grad y dg/dy coefficient here
+       !> if including neoclassical correction to equilibrium Maxwellian,
+       !> then add in v_E^{nc} . grad y dg/dy coefficient here
        if (include_neoclassical_terms) then
           wdrifty_g(:,:,ivmu) = wdrifty_g(:,:,ivmu)+code_dt*0.5*(gds23*dphineo_dzed &
                + drhodpsi*dydalpha*dphineo_drho)
@@ -288,47 +295,47 @@ contains
 
        wdrifty_phi(:,:,ivmu) = spec(is)%zt*(wgbdrifty + wcvdrifty*vpa(iv)) &
             * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
-       ! if including neoclassical corrections to equilibrium,
-       ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
-       ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
+       !> if including neoclassical corrections to equilibrium,
+       !> add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
+       !> and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
        if (include_neoclassical_terms) then
           wdrifty_phi(:,:,ivmu) = wdrifty_phi(:,:,ivmu) &
                - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdrifty &
                - code_dt*0.5*dfneo_dzed(:,:,ivmu)*gds23
        end if
 
-       if(q_as_x) then
-         fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0
+       if (q_as_x) then
+          fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0
        else
-         fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0/geo_surf%shat
-       endif
-       ! this is the curvature drift piece of wdriftx with missing factor of vpa
-       ! vpa factor is missing to avoid singularity when including
-       ! non-Maxwellian corrections to equilibrium
+          fac = -xdriftknob*0.5*code_dt*spec(is)%tz_psi0/geo_surf%shat
+       end if
+       !> this is the curvature drift piece of wdriftx with missing factor of vpa
+       !> vpa factor is missing to avoid singularity when including
+       !> non-Maxwellian corrections to equilibrium
        wcvdriftx = fac*cvdrift0*vpa(iv)
-       ! this is the grad-B drift piece of wdriftx
+       !> this is the grad-B drift piece of wdriftx
        wgbdriftx = fac*gbdrift0*0.5*vperp2(:,:,imu)
        wdriftx_g(:,:,ivmu) = wcvdriftx*vpa(iv) + wgbdriftx
-       ! if including neoclassical correction to equilibrium Maxwellian,
-       ! then add in v_E^{nc} . grad x dg/dx coefficient here
+       !> if including neoclassical correction to equilibrium Maxwellian,
+       !> then add in v_E^{nc} . grad x dg/dx coefficient here
        if (include_neoclassical_terms) then
           wdriftx_g(:,:,ivmu) = wdriftx_g(:,:,ivmu)+code_dt*0.5*(gds24*dphineo_dzed &
                - dxdXcoord*dphineo_dalpha)
        end if
        wdriftx_phi(:,:,ivmu) = spec(is)%zt*(wgbdriftx + wcvdriftx*vpa(iv)) &
             * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is)
-       ! if including neoclassical corrections to equilibrium,
-       ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
-       ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
-       ! and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
+       !> if including neoclassical corrections to equilibrium,
+       !> add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
+       !> and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
+       !> and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
        if (include_neoclassical_terms) then
           wdriftx_phi(:,:,ivmu) = wdriftx_phi(:,:,ivmu) &
                - 0.5*spec(is)%zt*dfneo_dvpa(:,:,ivmu)*wcvdriftx &
                + code_dt*0.5*(dfneo_dalpha(:,:,ivmu)*dxdXcoord-dfneo_dzed(:,:,ivmu)*gds24)
        end if
-
+       
     end do
-
+    
     deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
   end subroutine init_wdrift
@@ -355,7 +362,7 @@ contains
 
     if (wstarinit) return
     wstarinit = .true.
-
+    
     if (.not.allocated(wstar)) &
          allocate (wstar(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; wstar = 0.0
 

@@ -74,39 +74,39 @@ contains
 
 
     if(radial_variation) then
-      allocate (energy(-nzgrid:nzgrid))
-
-      if(.not.allocated(stream_rad_var1)) then 
-        allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
-      endif
-      if(.not.allocated(stream_rad_var2)) then 
-        allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        stream_rad_var2 = 0.0
-      endif
-      ia=1
-      stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
+       allocate (energy(-nzgrid:nzgrid))
+       
+       if(.not.allocated(stream_rad_var1)) then 
+          allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
+       endif
+       if(.not.allocated(stream_rad_var2)) then 
+          allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          stream_rad_var2 = 0.0
+       endif
+       ia=1
+       stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
             * gfac*spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        is  = is_idx(vmu_lo,ivmu)
-        imu = imu_idx(vmu_lo,ivmu)
-        iv  = iv_idx(vmu_lo,ivmu)
-        energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
-        stream_rad_var2(ia,:,ivmu) = &
-                +code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
-                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
-                *(  pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
-                  + gfac*2*mu(imu)*dBdrho)
-      enddo
-      deallocate (energy)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is  = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv  = iv_idx(vmu_lo,ivmu)
+          energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+          stream_rad_var2(ia,:,ivmu) = &
+               +code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
+               *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
+               *(  pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
+               + gfac*2*mu(imu)*dBdrho)
+       enddo
+       deallocate (energy)
     endif
 
-    ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
-    ! NB: stream_sign = -1 corresponds to positive advection velocity
+    !> stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
+    !> NB: stream_sign = -1 corresponds to positive advection velocity
+    !> only need to consider iz=0 and is=1 because z and species dependences
+    !> do not lead to change in sign of the streaming pre-factor
     do iv = 1, nvpa
        stream_sign(iv) = int(sign(1.0,stream(0,iv,1)))
     end do
-    ! vpa = 0 is special case
-!    stream_sign(0) = 0
 
     if (stream_implicit .or. driftkinetic_implicit) then
        call init_invert_stream_operator
@@ -119,9 +119,9 @@ contains
        end do
        if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
        gradpar_c = spread(gradpar,2,3)
-       ! get gradpar centred in zed for negative vpa (affects upwinding)
+       !> get gradpar centred in zed for negative vpa (affects upwinding)
        call center_zed(1,gradpar_c(:,-stream_sign(1)))
-       ! get gradpar centred in zed for positive vpa (affects upwinding)
+       !> get gradpar centred in zed for positive vpa (affects upwinding)
        call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
        stream = stream_c
     end if

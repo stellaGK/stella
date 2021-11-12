@@ -28,14 +28,14 @@ program stella
   real, dimension (2) :: time_diagnostics = 0.
   real, dimension (2) :: time_total = 0.
 
-  ! Initiate stella
+  !> Initialize stella
   call init_stella(istep0, VERNUM, VERDATE)
 
-  ! Diagnose stella
+  !> Diagnose stella
   if (debug) write(*,*) 'stella::diagnose_stella'
   if (istep0.eq.0) call diagnose_stella (istep0)
 
-  ! Advance stella until istep=nstep
+  !> Advance stella until istep=nstep
   if (debug) write(*,*) 'stella::advance_stella'
   do istep = (istep0+1), nstep
      if (debug) write(*,*) 'istep = ', istep
@@ -54,7 +54,7 @@ program stella
      call flush_output_file (ierr)
   end do
 
-  ! Finish stella
+  !> Finish stella
   if (debug) write(*,*) 'stella::finish_stella'
   call finish_stella(last_call=.true.)
 
@@ -297,6 +297,8 @@ contains
     !> set the internal time step size variable code_dt from the input variable delt 
     if (debug) write(6,*) "stella::init_stella::init_delt"
     call init_delt(delt)
+    !> allocate and calculate arrays needed for the mirror, parallel streaming,
+    !> magnetic drifts, gradient drive, etc. terms during time advance
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
     call init_time_advance
     if (stream_implicit .or. driftkinetic_implicit) then
@@ -309,8 +311,8 @@ contains
        end if
     end if
 
+    !> get initial field from initial distribution function
     if (debug) write (6,*) 'stella::init_stella::get_fields'
-    ! get initial field from initial distribution function
     call advance_fields (gnew, phi, apar, dist='gbar')
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
@@ -324,21 +326,23 @@ contains
 
     ! FLAG - the following code should probably go elsewhere
     if(.not.restarted.and.scale_to_phiinit) then
-      call volume_average(phi,phi2)
-      if(runtype_option_switch.eq.runtype_multibox) then
-        call scope(crossdomprocs)
-        call sum_allreduce(phi2)
-        call scope(subprocs)
-        phi2=phi2/njobs
-      endif
-      rescale=phiinit/sqrt(phi2)
-      phi  = rescale*phi
-      gnew = rescale*gnew
-      gvmu = rescale*gvmu
+       call volume_average(phi,phi2)
+       if(runtype_option_switch.eq.runtype_multibox) then
+          call scope(crossdomprocs)
+          call sum_allreduce(phi2)
+          call scope(subprocs)
+          phi2=phi2/njobs
+       endif
+       rescale=phiinit/sqrt(phi2)
+       phi  = rescale*phi
+       gnew = rescale*gnew
+       gvmu = rescale*gvmu
     endif
-
+    !> read stella_diagnostics_knob namelist from the input file,
+    !> open ascii output files and initialise the neetcdf file with extension .out.nc
     if (debug) write (6,*) 'stella::init_stella::init_stella_diagnostics'
     call init_stella_diagnostics (restarted,tstart)
+    !> initialise the code_time
     if (debug) write (6,*) 'stella::init_stella::init_tstart'
     call init_tstart (tstart)
 
@@ -347,7 +351,7 @@ contains
 
     !> Add a header to the output file
     call print_header
-    
+    !> stop the timing of the initialization
     if (proc0) call time_message(.false.,time_init,' Initialization')
     
   end subroutine init_stella

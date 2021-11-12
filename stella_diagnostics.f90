@@ -71,7 +71,7 @@ contains
     ! Only debug on the first processor
     debug = debug .and. proc0
 
-    ! Make sure the other routines are intialized
+    !> Make sure the other routines are intialized
     call init_zgrid
     call init_physics_parameters
     call init_kt_grids
@@ -80,11 +80,11 @@ contains
     call init_init_g
     call init_dist_fn
 
-    ! Read the namelist "stella_diagnostics_knobs" in the input file
+    !> Read the namelist "stella_diagnostics_knobs" in the input file
     call read_parameters
     call allocate_arrays
 
-    ! Broadcast the variables to all processors
+    !> Broadcast the variables to all processors
     call broadcast (nwrite)
     call broadcast (navg)
     call broadcast (nsave)
@@ -99,15 +99,15 @@ contains
     call broadcast (write_fluxes_kxkyz)
     call broadcast (flux_norm)
 
-    ! Initiate the netcdf file with extension '.out.nc'
+    !> Initiate the netcdf file with extension '.out.nc'
     call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
          write_fluxes_kxkyz)
 
-    ! Open the '.out', '.fluxes' and '.omega' file
+    !> Open the '.out', '.fluxes' and '.omega' file
     if (proc0) call open_loop_ascii_files (restart)
 
-    ! Get the final position [[nout]] of the time axis in the netcdf file
+    !> Get the final position [[nout]] of the time axis in the netcdf file
     if (proc0) call get_nout (tstart,nout)
     call broadcast (nout)
 
