@@ -1067,8 +1067,6 @@ contains
       ! with RK3, such that in each RK3 step the CFL constraint is not violated,
       ! but the RK3 steps all add up to a step of code_dt
       do while (.not. time_advance_successful)
-        write(*,*) "XXXXX Not doing the initial step but time advance unsucessful"
-        !write(*,*) "In .not. time_advance_successful!"
         ! If we've already attempted a time advance then we've updated gnew,
         ! so reset it now.
         gnew = gold
@@ -1191,8 +1189,9 @@ contains
       ! ~ machine precision less than code_dt
       tolerance = 1E-9
       do while (total_dt .lt. (nisl_step_dt-tolerance))
-        write(*,*) "total_dt = ", total_dt
-        write(*,*) "(nisl_step_dt-tolerance) = ", (nisl_step_dt-tolerance)
+        ! write(*,*) "total_dt = ", total_dt
+        ! write(*,*) "(nisl_step_dt-tolerance) = ", (nisl_step_dt-tolerance)
+        !write(*,*) "BEFORE gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
         ! Take a single time step. As before, keep going until
         ! restart_time_step = .false.
         time_advance_successful = .false.
@@ -1218,7 +1217,8 @@ contains
             time_advance_successful = .true.
           else
             write(*,*) "restart_time_step; unsuccessful step"
-            !write(*,*) "Normal step, restart_time_step true"
+            ! Because we're unsuccessful, need to revert gnew to gold
+            gnew = gold
             ! We're discarding changes to gnew and starting over, so fields will
             ! need to be re-calculated
             fields_updated = .false.
@@ -1244,7 +1244,7 @@ contains
 
         ! Ensure fields are updated so that omega calculation is correct.
         call advance_fields (gnew, phi, apar, dist='gbar')
-
+        !write(*,*) "AFTER gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
         ! Update the total time advanced
         total_dt = total_dt + code_dt
         write(*,*) "Incremented total_dt. total_dt = ", total_dt
@@ -1279,7 +1279,6 @@ contains
     logical, intent (in out) :: restart_time_step
 
     integer :: ivmu, iv, sgn, iky
-    write(*,*) "In advanc explicit"
     ! start the timer for the explicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,8),' explicit')
 
@@ -1576,7 +1575,6 @@ contains
     else
        rhs => rhs_ky
     end if
-    write(*,*) "In solve_gke"
     ! start with gbar in k-space and (ky,kx,z) local
     ! obtain fields corresponding to gbar
     call advance_fields (gin, phi, apar, dist='gbar')
@@ -1594,7 +1592,6 @@ contains
     !  (1) nonlinear = .true.
     !  (2) Either (leapfrog_nonlinear = .false. and nisl_nonlinear = .false.) or (leapfrog_this_timestep = .false.)
     if (nonlinear) then
-      write(*,*) "leapfrog_this_timestep = ", leapfrog_this_timestep
       if ( ((.not. leapfrog_nonlinear) .and. (.not. nisl_nonlinear)) &
         .or. ( .not. leapfrog_this_timestep)) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
     end if
@@ -1840,7 +1837,7 @@ contains
     use stella_transforms, only: transform_y2ky,transform_x2kx
     use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
     use stella_time, only: cfl_dt, code_dt, code_dt_max
-    use run_parameters, only: cfl_cushion, delt_adjust, fphi
+    use run_parameters, only: cfl_cushion, delt_adjust, fphi, nisl_nonlinear
     use physics_parameters, only: g_exb, g_exbfac
     use zgrid, only: nzgrid, ntubes
     use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
@@ -1873,7 +1870,7 @@ contains
 
     restart_time_step = .false.
     yfirst = .not.prp_shear_enabled
-    write(*,*) "In advance_ExB_nonlinearity"
+    !write(*,*) "In advance_ExB_nonlinearity"
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0xy(ny,nx))
@@ -1990,12 +1987,13 @@ contains
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 
     call min_allreduce (cfl_dt)
-    write(*,*) "CFL dt = ", cfl_dt
+    !write(*,*) "CFL dt = ", cfl_dt
     if(runtype_option_switch == runtype_multibox) call scope(subprocs)
 
 
     if (code_dt > cfl_dt*cfl_cushion) then
-       if (proc0) then
+      if (.not. nisl_nonlinear) then
+        if (proc0) then
           write (*,*) ' '
           write (*,*) 'CHANGING TIME STEP:'
           write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
@@ -2005,12 +2003,31 @@ contains
           write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
           write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
           write(*,*) ' '
-       end if
-       code_dt = cfl_dt*cfl_cushion/delt_adjust
-       call reset_dt
-       restart_time_step = .true.
+        end if
+        code_dt = cfl_dt*cfl_cushion/delt_adjust
+      else
+        !!! If we're using NISL, then we hit this branch only when we start (when we're
+        !!! taking the first timesteps explictly to start the Leapfrog-like NISL.)
+        !!! Rather than setting code_dt = cfl_dt*cfl_cushion/delt_adjust, we want to
+        !!! set it to so that old_dt = N*new_dt for integer N.
+        write(*,*) "Resetting timestep, but for NISL"
+        ! Want new_dt <= cfl_dt*cfl_cushion and old_dt = N*new_dt for integer N
+        !max_dt = cfl_dt*cfl_cushion
+        ! Want
+        write(*,*) "Before recalculation code_dt = ", code_dt
+        write(*,*) "Before recalculation (cfl_dt*cfl_cushion) = ", (cfl_dt*cfl_cushion)
+        code_dt = code_dt / ceiling(code_dt/(cfl_dt*cfl_cushion))
+        write(*,*) "After recalculation code_dt = ", code_dt
+        !stop "Stopping"
+      end if
+
+      call reset_dt
+      restart_time_step = .true.
+
     else if (code_dt < min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)) then
-       if (proc0) then
+      ! If NISL, we don't want this to adjust
+      if (.not. nisl_nonlinear) then
+        if (proc0) then
           write (*,*) ' '
           write (*,*) 'CHANGING TIME STEP:'
           write (*,'(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ',50),code_dt
@@ -2020,11 +2037,12 @@ contains
           write (*,'(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ',50)
           write (*,'(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ',50), cfl_dt*cfl_cushion/delt_adjust
           write(*,*) ' '
-       end if
-       code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
-       call reset_dt
-       ! FLAG -- NOT SURE THIS IS CORRECT
-       gout = code_dt*gout
+        end if
+         code_dt = min(cfl_dt*cfl_cushion/delt_adjust,code_dt_max)
+         call reset_dt
+         ! FLAG -- NOT SURE THIS IS CORRECT
+         gout = code_dt*gout
+      end if
     else
        gout = code_dt*gout
     end if
@@ -2187,6 +2205,7 @@ contains
     real, dimension (:,:), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy, dgold_dx_normal, dgold_dy_normal, rhs_array!, bracket
 
     integer :: ivmu, iz, it, ia, imu, is, ix, iy, p, q, xidx_departure, yidx_departure, yidx_for_upsampled_array, xidx_for_upsampled_array
+    integer :: upsampled_xidx, upsampled_yidx
     logical :: yfirst
     logical :: single_step_local
     real :: y_departure, x_departure, yval, xval, rhs, velocity_x, velocity_y
@@ -2310,16 +2329,14 @@ contains
             do ix = 1, nx
               ! yval = y(iy)
               ! xval = x(ix)
-              call get_approx_departure_point(vchiold_y, vchiold_x, iy, ix, y_departure, x_departure, single_step_local)
-              !write(*,*) "y,x,y_departure,x_departure) = ", y(iy),x(ix),y_departure,x_departure
-              if (single_step_local) then
-                velocity_x = (x(ix) - x_departure)/(code_dt)
-                velocity_y = (y(iy) - y_departure)/(code_dt)
-                ! write(*,*) "y(iy), y_departure = ", y(iy), y_departure
-                ! write(*,*) "x(iy), x_departure = ", x(iy), x_departure
-                ! write(*,*) "velocity_y, velocity_x = ", velocity_y, velocity_x
-
+              if (override_vexb) then
+                velocity_x = vexb_x
+                velocity_y = vexb_y
+                x_departure = x(ix) - 2*velocity_x*code_dt
+                y_departure = y(iy) - 2*velocity_y*code_dt
               else
+                call get_approx_departure_point(vchiold_y, vchiold_x, iy, ix, y_departure, x_departure, single_step_local)
+                !write(*,*) "y,x,y_departure,x_departure) = ", y(iy),x(ix),y_departure,x_departure
                 velocity_x = (x(ix) - x_departure)/(2*code_dt)
                 velocity_y = (y(iy) - y_departure)/(2*code_dt)
               end if
@@ -2348,9 +2365,23 @@ contains
                   velocity_y = vexb_y
                 end if
               end if
-              ! if ((p .ne. 0) .or. (q .ne. 0)) then
-              !write(*,*) "p, q = ", p, q
-              ! end if
+              if ((p .ne. 0) .or. (q .ne. 0)) then
+                ! write(*,*) "p, q = ", p, q
+                ! stop "stopping"
+              else
+                upsampled_xidx = 2*ix - 1
+                upsampled_yidx = 2*iy - 1
+                if (abs(vchiold_x(upsampled_yidx, upsampled_xidx) - velocity_x) > 10) then
+                  !write(*,*) "ix, iy, ivmu = ", ix, iy, ivmu
+                  write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(upsampled_yidx, upsampled_xidx), velocity_x
+                  !stop "Aborting"
+                end if
+                if (abs(vchiold_y(upsampled_yidx, upsampled_xidx) - velocity_y) > 10) then
+                  !write(*,*) "ix, iy, ivmu = ", ix, iy, ivmu
+                  write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(upsampled_yidx, upsampled_xidx), velocity_y
+                  !stop "Aborting"
+                end if
+              end if
               ! Find idxs of gridpoint closest to departure point.
               ! Normal idxs must be in the range(1,2,3,...,nx(or ny))
               ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
@@ -2581,8 +2612,6 @@ contains
       max_iterations = 100
       very_small_dt = 1E-12
 
-      u_x = vx_upsampled(y_idx,x_idx)
-      u_y = vy_upsampled(y_idx,x_idx)
 
       ! Ordinary xidxs are (1, 2, 3, 4, . . ., nx)
       ! Upsampled range of xidxs is (1, 2, 3, 4, . . ., 2*nx)
@@ -2595,12 +2624,15 @@ contains
       ! Likewise for y upsampling
       upsampled_xidx = 2*x_idx - 1
       upsampled_yidx = 2*y_idx - 1
-
+      u_x = vx_upsampled(upsampled_yidx,upsampled_xidx)
+      u_y = vy_upsampled(upsampled_yidx,upsampled_xidx)
+      !write(*,*) "u_x, u_y = ", u_x, u_y
       if (single_step) then
         time_remaining = code_dt
       else
         time_remaining = 2*code_dt
       end if
+      !write(*,*) "time_remaining = ", time_remaining
       counter=0
       do while ((time_remaining > 0) .and. (counter < max_iterations))
         counter = counter + 1
@@ -2643,7 +2675,6 @@ contains
           x_departure = (x_departure - u_x * time_remaining)
           time_remaining = 0
         else
-          !write(*,*) "2*code_dt, xdist_dt, ydist_dt = ", 2*code_dt, xdist_dt, ydist_dt
           ! Hit the next boundary before we run out of time.
           if (ydist_dt < xdist_dt) then
             ! We've hit the boundary in y - update the non-periodic
