@@ -84,14 +84,24 @@ contains
 
     debug = debug .and. proc0
 
+    !> read time_advance_knobs namelist from the input file;
+    !> sets the explicit time advance option, as well as allows for scaling of
+    !> the x and y components of the magnetic drifts and of the drive term
     if (debug) write (6,*) 'time_advance::init_time_advance::read_parameters'
     call read_parameters
+    !> allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
     if (debug) write (6,*) 'time_advance::init_time_advance::allocate_arrays'
     call allocate_arrays
+    !> set up neoclassical corrections to the equilibrium Maxwellian;
+    !> only calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
     if (debug) write (6,*) 'time_advance::init_time_advance::init_neoclassical_terms'
     call init_neoclassical_terms
+    !> calculate the term multiplying dg/dvpa in the mirror term
+    !> and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
+    !> if solving implicitly
     if (debug) write (6,*) 'time_advance::init_time_advance::init_mirror'
     call init_mirror
+    
     if (debug) write (6,*) 'time_advance::init_time_advance::init_parstream'
     call init_parallel_streaming
     if (debug) write (6,*) 'time_advance::init_time_advance::init_wdrift'
