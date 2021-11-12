@@ -152,11 +152,12 @@ contains
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_box_parameters)
 
-    ! get the number of de-aliased modes in y and x
+    ! get the number of de-aliased modes in y and x, using reality to halve the number of ky modes
     naky = (ny-1)/3 + 1
     nakx = 2*((nx-1)/3) +  1
 
-    ! get the total number of ky values, including negative ky
+    ! get the total number of ky values, including negative ky;
+    ! this is approximately 2/3 ny because ny includes padding to avoid aliasing
     naky_all = 2*naky-1
 
     reality = .true.

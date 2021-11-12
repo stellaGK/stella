@@ -647,29 +647,23 @@ contains
 
   end subroutine integrate_species_vmu_block_real
 
-  subroutine integrate_species_ffs(g, weights, pout, ia_in, reduce_in)
+  subroutine integrate_species_ffs(g, weights, pout, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
     implicit none
 
-    integer :: ivmu, iv, is, imu, ia
+    integer :: ivmu, iv, is, imu
     logical :: reduce
 
     complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
-    integer, intent (in), optional :: ia_in
     logical, intent (in), optional :: reduce_in
     real, dimension (:), intent (in) :: weights
     complex, dimension (:,:), intent (out) :: pout
 
-    pout =0.
+    pout = 0.
 
-    if (present(ia_in)) then
-       ia = ia_in
-    else
-       ia = 1
-    end if
     if (present(reduce_in)) then
        reduce = reduce_in
     else
