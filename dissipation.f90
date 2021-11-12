@@ -3543,8 +3543,8 @@ subroutine get_psi_response (ll, mm, jj, isa, response)
     use dist_fn_arrays, only: gvmu
     use gyro_averages, only: aj0v
     use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
 
     implicit none
 
@@ -3795,8 +3795,8 @@ subroutine get_psi_response (ll, mm, jj, isa, response)
     use dist_fn_arrays, only: gvmu, kperp2
     use gyro_averages, only: aj0v, aj1v
     use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
 
     implicit none
 
@@ -6057,8 +6057,8 @@ subroutine get_psi_response (ll, mm, jj, isa, response)
     use g_tofrom_h, only: g_to_h
     use gyro_averages, only: aj0v
     use fields, only: get_fields, efac, gamtot_h
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
 
     implicit none
 
@@ -6222,8 +6222,8 @@ subroutine get_psi_response (ll, mm, jj, isa, response)
     use g_tofrom_h, only: g_to_h
     use fields, only: get_fields, efac, gamtot_h
     use stella_geometry, only: bmag, dl_over_b
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
 
     ! TMP FOR TESTING
 !    use vpamu_grids, only: mu

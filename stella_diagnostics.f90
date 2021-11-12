@@ -1206,7 +1206,7 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
     use stella_geometry, only: bmag, dBdrho
-    use gyro_averages, only: gyro_average, j0_over_B_ffs
+    use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
     use fields_arrays, only: phi
     use run_parameters, only: fphi
     use physics_flags, only: full_flux_surface
@@ -1227,7 +1227,7 @@ contains
     ! calculate the integrand appearing in the integral for the guiding centre density
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        ! obtain the k_alpha component of <g>_r/B(alpha) that appears in the integral for the guiding centre density
-       call gyro_average (g(:,:,:,:,ivmu), g1(:,:,:,:,ivmu), j0_over_B_ffs(:,:,:,ivmu))
+       call gyro_average (g(:,:,:,:,ivmu), g1(:,:,:,:,ivmu), j0_B_maxwell_ffs(:,:,:,ivmu))
     end do
     ! integrate over v-space to get the guiding centre density
     ! note that the 1/B factor has already been accounted for in g1

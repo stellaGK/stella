@@ -6,7 +6,8 @@ module gyro_averages
   public :: init_bessel, finish_bessel
   public :: gyro_average
   public :: gyro_average_j1
-  public :: j0_over_B_ffs, j0_ffs, gam0_ffs
+  public :: j0_B_maxwell_ffs, j0_ffs
+  public :: band_lu_solve_ffs, band_lu_factorisation_ffs
   
   private
 
@@ -31,15 +32,9 @@ module gyro_averages
   real, dimension (:,:), allocatable :: aj0v, aj1v
   ! (nmu, -kxkyz-layout-)
 
-!  integer, dimension (:,:,:,:), allocatable :: ia_max_aj0a
-!  complex, dimension (:,:,:,:,:), allocatable :: aj0a
-
-  type (coupled_alpha_type), dimension (:,:,:,:), allocatable :: j0_ffs, j0_over_B_ffs
-  type (coupled_alpha_type), dimension (:,:,:), allocatable :: gam0_ffs
+  !  type (coupled_alpha_type), dimension (:,:,:,:), allocatable :: j0_ffs, j0_over_B_ffs
+  type (coupled_alpha_type), dimension (:,:,:,:), allocatable :: j0_ffs, j0_B_maxwell_ffs
   
-!  complex, dimension (:,:,:,:), allocatable :: lu_gam0a
-!  integer, dimension (:), allocatable :: lu_gam0a_idx
-
   logical :: bessinit = .false.
 
   logical :: debug = .false.
@@ -51,16 +46,18 @@ contains
     use mp, only: sum_allreduce, proc0
     use dist_fn_arrays, only: kperp2
     use physics_flags, only: full_flux_surface
+    use physics_parameters, only: nine, tite
     use species, only: spec, nspec
+    use species, only: modified_adiabatic_electrons
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid, nztot
     use vpamu_grids, only: vperp2, nmu, nvpa
     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-!    use vpamu_grids, only: integrate_vmu
     use vpamu_grids, only: integrate_species
     use kt_grids, only: naky, nakx, nalpha
     use kt_grids, only: naky_all, ikx_max
     use kt_grids, only: swap_kxky_ordered
+    use kt_grids, only: aky_all_ordered, akx, aky
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx, iv_idx
     use spfunc, only: j0, j1
@@ -72,16 +69,15 @@ contains
     integer :: iz, iky, ikx, imu, is, ia, iv
     integer :: ikxkyz, ivmu
     real :: arg!, dum
-    integer :: ia_max_j0_count, ia_max_j0_over_B_count, ia_max_gam0_count
-    real :: ia_max_j0_reduction_factor, ia_max_j0_over_B_reduction_factor, ia_max_gam0_reduction_factor
+    integer :: ia_max_j0_count, ia_max_j0_B_maxwell_count
+    real :: ia_max_j0_reduction_factor, ia_max_j0_B_maxwell_reduction_factor
 
     real, dimension (:), allocatable :: wgts
-    real, dimension (:), allocatable :: aj0_alpha, j0_over_B
-    complex, dimension (:), allocatable :: aj0_kalpha, j0_over_B_kalpha, gam0_kalpha
-    real, dimension (:), allocatable :: gam0_alpha
+    real, dimension (:), allocatable :: aj0_alpha, j0_B_maxwell
+    complex, dimension (:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
     real, dimension (:,:,:), allocatable :: kperp2_swap
 
-!    integer :: j0_ffs_unit, j0_over_B_ffs_unit, gam0_ffs_unit
+!    integer :: j0_ffs_unit, j0_over_B_ffs_unit
 
     if (bessinit) return
     bessinit = .true.
@@ -115,30 +111,27 @@ contains
     if (full_flux_surface) then
 !       call open_output_file (j0_ffs_unit, '.j0_ffs')
 !       call open_output_file (j0_over_B_ffs_unit, '.j0_over_B_ffs')
-!       call open_output_file (gam0_ffs_unit, '.gam0_ffs')
        
        ! wgts are species-dependent factors appearing in Gamma0 factor
        allocate (wgts(nspec))
        wgts = spec%dens*spec%z**2/spec%temp
 
        if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::allocate_arrays'
+       ! aj0_alpha will contain J_0 as a function of k_alpha and alpha
+       allocate (aj0_alpha(nalpha))
        allocate (aj0_kalpha(naky))
-       ! j0_over_B will contain J_0/B as a function of k_alpha and alpha
-       allocate (j0_over_B(nalpha))
-       allocate (j0_over_B_kalpha(naky))
-       allocate (gam0_kalpha(naky))
+       ! j0_B_maxwell will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
+       allocate (j0_B_maxwell(nalpha))
+       allocate (j0_B_maxwell_kalpha(naky))
        allocate (kperp2_swap(naky_all,ikx_max,nalpha))
        if (.not.allocated(j0_ffs)) then
           allocate(j0_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        end if
-       if (.not.allocated(j0_over_B_ffs)) then
-          allocate(j0_over_B_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       end if
-       if (.not.allocated(gam0_ffs)) then
-          allocate(gam0_ffs(naky_all,ikx_max,-nzgrid:nzgrid))
+       if (.not.allocated(j0_B_maxwell_ffs)) then
+          allocate(j0_B_maxwell_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        end if
 
-       ia_max_j0_count = 0 ; ia_max_j0_over_B_count = 0 ; ia_max_gam0_count = 0
+       ia_max_j0_count = 0 ; ia_max_j0_B_maxwell_count = 0
        do iz = -nzgrid, nzgrid
           write (*,*) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
           ! for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
@@ -148,11 +141,10 @@ contains
           do ia = 1, nalpha
              call swap_kxky_ordered (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
           end do
-          ! aj0_alpha will contain J_0 as a function of k_alpha and alpha
-          allocate (aj0_alpha(nalpha))
           if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::j0_loop'
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              is = is_idx(vmu_lo,ivmu)
+             iv = iv_idx(vmu_lo,ivmu)
              imu = imu_idx(vmu_lo,ivmu)
              do ikx = 1, ikx_max
                 do iky = 1, naky_all
@@ -161,131 +153,66 @@ contains
                       arg = spec(is)%bess_fac*spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
                       ! compute the value of the Bessel function J0 corresponding to argument arg
                       aj0_alpha(ia) = j0(arg)
-                      ! compute J_0/B, needed when integrating g over v-space in Maxwell's equations, due to 1/B in v-space Jacobian
-                      j0_over_B(ia) = aj0_alpha(ia)/bmag(ia,iz)
+                      ! compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
+                      ! due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
+                      j0_B_maxwell(ia) = aj0_alpha(ia)*bmag(ia,iz)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
                    end do
-                   ! fourier transform aj0_alpha and j0_over_B.
-                   ! note that fourier coefficients aj0_kalpha and j0_over_B_kalpha have
+                   ! fourier transform aj0_alpha and j0_B_maxwell.
+                   ! note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
                    ! been filtered to avoid aliasing
-                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::transform_alpha2kalpha'
                    call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
-                   call transform_alpha2kalpha (j0_over_B, j0_over_B_kalpha)
+                   call transform_alpha2kalpha (j0_B_maxwell, j0_B_maxwell_kalpha)
                    ! given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                    ! called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                    !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
 !                   ! TMP FOR TESTING
 !                   j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                    call find_max_required_kalpha_index (aj0_kalpha, j0_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
-                   ! given the Fourier coefficients j0_over_B_kalpha, calculate the minimum number of coefficients needed,
-                   ! called j0_over_B_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                   call find_max_required_kalpha_index (j0_over_B_kalpha, j0_over_B_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
+                   ! given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
+                   ! called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+                   call find_max_required_kalpha_index (j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
                    ! keep track of the total number of coefficients that must be retained across different phase space points
                    ia_max_j0_count = ia_max_j0_count + j0_ffs(iky,ikx,iz,ivmu)%max_idx
                    ! keep track of the total number of coefficients that must be retained across different phase space points
-                   ia_max_j0_over_B_count = ia_max_j0_over_B_count + j0_over_B_ffs(iky,ikx,iz,ivmu)%max_idx
+                   !                   ia_max_j0_over_B_count = ia_max_j0_over_B_count + j0_over_B_ffs(iky,ikx,iz,ivmu)%max_idx
+                   ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx
                    ! allocate array to hold the reduced number of Fourier coefficients
                    if (.not.associated(j0_ffs(iky,ikx,iz,ivmu)%fourier)) &
                         allocate (j0_ffs(iky,ikx,iz,ivmu)%fourier(j0_ffs(iky,ikx,iz,ivmu)%max_idx))
                    ! fill the array with the requisite coefficients
                    j0_ffs(iky,ikx,iz,ivmu)%fourier = aj0_kalpha(:j0_ffs(iky,ikx,iz,ivmu)%max_idx)
 !                   call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
-                   ! allocate array to hold the reduced number of Fourier coefficients
-                   if (.not.associated(j0_over_B_ffs(iky,ikx,iz,ivmu)%fourier)) &
-                        allocate (j0_over_B_ffs(iky,ikx,iz,ivmu)%fourier(j0_over_B_ffs(iky,ikx,iz,ivmu)%max_idx))
+                   if (.not.associated(j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier)) &
+                        allocate (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier(j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx))
                    ! fill the array with the requisite coefficients
-                   j0_over_B_ffs(iky,ikx,iz,ivmu)%fourier = j0_over_B_kalpha(:j0_over_B_ffs(iky,ikx,iz,ivmu)%max_idx)
-!                   call test_ffs_bessel_coefs (j0_over_B_ffs(iky,ikx,iz,ivmu)%fourier, j0_over_B, iky, ikx, iz, j0_over_B_ffs_unit, ivmu)
+                   j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx)
+!                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
                 end do
              end do
           end do
-          ! aj0_alpha will be re-used below with a different size so deallocate and re-allocate below
-          deallocate (aj0_alpha)
-
-          ! calculate the reduced set of Fourier coefficients needed to accurately represent \Gamma_0,
-          ! the term associated with the polarization density that appears in quasineutrality
-
-          ! re-use aj0_alpha array, and allocate new gam0_alpha array
-          allocate (aj0_alpha(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-          allocate (gam0_alpha(nalpha))
-          ! in calculating the Fourier coefficients for Gamma_0, change loop orders
-          ! so that inner loop is over ivmu super-index;
-          ! this is done because we must integrate over v-space and sum over species,
-          ! and we want to minimise memory usage where possible (so, e.g., aj0_alpha need
-          ! only be a function of ivmu and can be over-written for each (ia,iky,ikx)).
-          if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::gam0_loop'
-          do ikx = 1, ikx_max
-             do iky = 1, naky_all
-                do ia = 1, nalpha
-                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::gam0_loop::aj0_alpha'
-                   ! get J0 for all vpar, mu, spec values
-                   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                      is = is_idx(vmu_lo,ivmu)
-                      imu = imu_idx(vmu_lo,ivmu)
-                      iv = iv_idx(vmu_lo,ivmu)
-                      ! calculate the argument of the Bessel function J0
-                      arg = spec(is)%bess_fac*spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
-                      ! compute J0 corresponding to the given argument arg
-                      aj0_alpha(ivmu) = j0(arg)
-                      ! form coefficient needed to calculate 1-Gamma_0
-                      aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2) &
-                           * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
-                   end do
-
-                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::gam0_loop::integrate_species'
-                   ! calculate gamma0(kalpha,alpha,...) = sum_s Zs^2 * ns / Ts int d3v (1-J0^2)*F_{Maxwellian}
-                   ! note that v-space Jacobian contains alpha-dependent factor, B(z,alpha),
-                   ! but this is not a problem as we have yet to transform from alpha to k_alpha
-                   call integrate_species (aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
-                end do
-                !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::gam0_loop::transform_alpha2kalpha'
-                ! fourier transform Gamma_0(alpha) from alpha to k_alpha space
-                call transform_alpha2kalpha (gam0_alpha, gam0_kalpha)
-                ! find the minimum number of Fourier coefficients contained in gam0_kalpha
-                ! that must be retained to ensure that the relative error in the total spectral energy
-                ! is below a specified tolerance (~1 percent)
-                call find_max_required_kalpha_index (gam0_kalpha, gam0_ffs(iky,ikx,iz)%max_idx)
-                ! keep track of the total number of coefficients that must be retained across different phase space points
-                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky,ikx,iz)%max_idx
-                ! allocate array to hold the reduced number of Fourier coefficients
-                if (.not.associated(gam0_ffs(iky,ikx,iz)%fourier)) &
-                     allocate (gam0_ffs(iky,ikx,iz)%fourier(gam0_ffs(iky,ikx,iz)%max_idx))
-                ! fill the array with the requisite coefficients
-                gam0_ffs(iky,ikx,iz)%fourier = gam0_kalpha(:gam0_ffs(iky,ikx,iz)%max_idx)
-!                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
-             end do
-          end do
-          ! no longer neeed aj0_alpha and gam0_alpha, so deallocate to free up memory
-          deallocate (aj0_alpha, gam0_alpha)
        end do
-       deallocate (j0_over_B, j0_over_B_kalpha)
-
-!       lu_gam0a = gam0a
-!       call lu_decomposition (lu_gam0a, lu_gam0a_idx, dum)
+       deallocate (aj0_alpha, j0_B_maxwell, j0_B_maxwell_kalpha)
 
        ! calculate the reduction factor of Fourier modes
        ! used to represent J0
        call sum_allreduce (ia_max_j0_count)
-       !       ia_max_j0_reduction_factor = real(ia_max_j0_count)/real(naky*nakx*nztot*nmu*nvpa*nspec*naky)
        ia_max_j0_reduction_factor = real(ia_max_j0_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
-       call sum_allreduce (ia_max_j0_over_B_count)
-       ia_max_j0_over_B_reduction_factor = real(ia_max_j0_over_B_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
-       call sum_allreduce (ia_max_gam0_count)
-       ia_max_gam0_reduction_factor = real(ia_max_gam0_count)/real(naky*ikx_max*nztot*naky_all)
+       call sum_allreduce (ia_max_j0_B_maxwell_count)
+       ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
 
        if (proc0) then
           write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor*naky, 'out of ', naky
-          write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))/B(alpha)=', ia_max_j0_over_B_reduction_factor*naky, 'out of ', naky
-          write (*,*) 'average number of k-alphas needed to represent Gamma0(kperp(alpha))=', ia_max_gam0_reduction_factor*naky, 'out of ', naky
+          write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))*B(alpha)*exp(-v^2)=', &
+               ia_max_j0_B_maxwell_reduction_factor*naky, 'out of ', naky
           write (*,*)
        end if
 
        deallocate (wgts)
-       deallocate (aj0_kalpha, gam0_kalpha)
+       deallocate (aj0_kalpha)
        deallocate (kperp2_swap)
 
        !       call close_output_file (j0_ffs_unit)
-       !       call close_output_file (gam0_ffs_unit)
-!       call close_output_file (j0_over_B_ffs_unit)
+!       call close_output_file (j0_B_maxwell_ffs_unit)
     else
        if (.not.allocated(aj0x)) then
           allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -317,7 +244,7 @@ contains
 !    call test_gyro_average
 
   contains
-
+    
     ! inverse fourier transform coefs%fourier for several phase space points and compare with
     ! unfiltered version in alpha-space
     subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
@@ -551,7 +478,7 @@ contains
          write (43,*) 'gyroradius: ', gyroradius, 'analytical: ', j0(50.*gyroradius/(x0*x_displacement_fac(1,iz)))
       end do
       ! TMP FOR TESTING
-      stop
+!      stop
 
       deallocate (fld_yx, fld_ykx)
       deallocate (fld_kykx_swapped, fld_kykx)
@@ -626,9 +553,7 @@ contains
     if (allocated(aj0x)) deallocate (aj0x)
     if (allocated(aj1x)) deallocate (aj1x)
     if (allocated(j0_ffs)) deallocate (j0_ffs)
-    if (allocated(gam0_ffs)) deallocate (gam0_ffs)
-    if (allocated(j0_over_B_ffs)) deallocate (j0_over_B_ffs)
-!    if (allocated(lu_gam0a)) deallocate (lu_gam0a)
+    if (allocated(j0_B_maxwell_ffs)) deallocate (j0_B_maxwell_ffs)
 
     bessinit = .false.
 
@@ -836,4 +761,179 @@ contains
 
   end subroutine gyro_average_j1_vmu_local
 
+  subroutine band_lu_solve_ffs (lu, solvec)
+
+    use common_types, only: gam0_ffs_type
+    use zgrid, only: nzgrid
+    use kt_grids, only: ikx_max
+
+    implicit none
+
+    type (gam0_ffs_type), dimension (:,-nzgrid:), intent (in) :: lu
+    complex, dimension (:,:,-nzgrid:), intent (in out) :: solvec
+
+    integer :: ikx, iz
+
+    do iz = -nzgrid, nzgrid
+       do ikx = 1, ikx_max
+          call band_lu_solve_ffs_single (lu(ikx,iz), solvec(:,ikx,iz))
+       end do
+    end do
+    
+  end subroutine band_lu_solve_ffs
+  
+  subroutine band_lu_solve_ffs_single (lu, solvec)
+    
+    use common_types, only: gam0_ffs_type
+    use kt_grids, only: naky_all, naky
+    
+    implicit none
+    
+    type (gam0_ffs_type), intent (in) :: lu
+    complex, dimension (:), intent (in out) :: solvec
+    
+    integer :: n, nsubdiag, nsupdiag, nrhs
+    integer :: info
+    complex, dimension (:,:), allocatable :: solmat
+    
+    ! n is the order of the matrix for which we have the LU factorisation
+    n = size(lu%pivot_index)
+    ! nsubdiag and nsupdiag are the number of sub- and super-diagonals within the band of the matrix to be decomposed
+    nsubdiag = naky - 1 ; nsupdiag = naky - 1
+    ! nrhs is the number of right-hand sides of the matrix equation lu%matrix * solvec = rhs for which to solve
+    nrhs = 1
+    ! initialise solmat = rhs, as it will be overwritten by zgbtrs below
+    allocate(solmat(size(solvec),1))
+    solmat(:,1) = solvec
+    
+    call zgbtrs ('N', n, nsubdiag, nsupdiag, nrhs, lu%matrix, size(lu%matrix,1), lu%pivot_index, solmat, size(solmat,1), info)
+    
+    solvec = solmat(:,1)
+    
+    deallocate (solmat)
+    
+  end subroutine band_lu_solve_ffs_single
+
+  subroutine band_lu_factorisation_ffs (gam0, lu_gam0)
+    
+    use common_types, only: coupled_alpha_type, gam0_ffs_type
+    use zgrid, only: nzgrid
+    use kt_grids, only: ikx_max, naky_all, naky
+    
+    implicit none
+    
+    type (coupled_alpha_type), dimension (:,:,-nzgrid:), intent (in) :: gam0
+    type (gam0_ffs_type), dimension (:,-nzgrid:), intent (out) :: lu_gam0
+    
+    integer :: iky, ikx, iz
+    
+    complex, dimension (:,:), allocatable :: gam0tmp
+    
+    allocate (gam0tmp(naky,naky_all))
+    
+    do ikx = 1, ikx_max
+       do iz = -nzgrid, nzgrid
+          ! create array from Fourier coefficients of Gamma_0(ky,y)
+          do iky = 1, naky_all
+             gam0tmp(:,iky) = gam0(iky,ikx,iz)%fourier
+          end do
+          call band_lu_factorisation_single (gam0tmp, lu_gam0(ikx,iz))
+       end do
+    end do
+    
+    deallocate (gam0tmp)
+    
+  end subroutine band_lu_factorisation_ffs
+  
+  subroutine band_lu_factorisation_single (gam0, lu_gam0)
+    
+    use common_types, only: gam0_ffs_type
+    use kt_grids, only: naky, naky_all
+    
+    implicit none
+    
+    complex, dimension (:,:), intent (in) :: gam0
+    type (gam0_ffs_type), intent (out) :: lu_gam0
+    
+    integer :: nrows, ncols, nsubdiag, nsupdiag, leading_dim
+    integer :: info
+    integer :: i, imod
+    
+    ! nrows and ncols are the number of rows and columns of the matrix to be LU-decomposed (variant of gam0)
+    ! this matrix is naky_all x naky_all
+    nrows = naky_all ; ncols = naky_all
+    ! nsubdiag and nsupdiag are the number of sub- and super-diagonals within the band of the matrix to be decomposed
+    nsubdiag = naky - 1 ; nsupdiag = naky - 1
+    ! leading_dim is the 'leading dimension' of the lu_gam0 array
+    leading_dim = 2*nsubdiag + nsupdiag + 1
+    
+    ! lu_gam0 is a re-arranged version of gam0 on entry, and on exit contains details of LU factorisation
+    ! that can be used by zgbtrs to solve the linear system gam0 * phi = rhs
+    if (.not.associated(lu_gam0%matrix)) then
+       allocate(lu_gam0%matrix(leading_dim,ncols))
+       ! initialise first nsubdiag rows to zero, as they are unused
+       lu_gam0%matrix(:nsubdiag,:) = 0.0
+       ! fill next supdiag rows using elements from super-diagonals
+       ! using reality of gam0 to set fourier(ky < 0) = conjg(fourier(ky > 0))
+       do i = 1, nsupdiag
+          imod = naky - i + 1
+          lu_gam0%matrix(nsubdiag+i,imod:) = conjg(gam0(imod,imod:))
+          ! fill unused entries with zero
+          lu_gam0%matrix(nsubdiag+i,:imod-1) = 0.0
+       end do
+       ! fill next row using main diagonal entries
+       lu_gam0%matrix(nsubdiag+nsupdiag+1,:) = gam0(1,:)
+       ! fill remaining nsubdiag rows using elements from sub-diagonals
+       do i = 1, nsubdiag
+          imod = naky + i - 1
+          lu_gam0%matrix(leading_dim-i+1,:imod) = gam0(naky-i+1,:imod)
+          ! fill unused entries with zeroes
+          lu_gam0%matrix(leading_dim-i+1,imod+1:) = 0.0
+       end do
+    end if
+
+    if (.not.associated(lu_gam0%pivot_index)) allocate(lu_gam0%pivot_index(min(nrows,ncols)))
+    ! overwrites lu_gam0%matrix with information needed to solve the linear system gam0 * phi = rhs;
+    ! also returns pivot_index, with pivot_index(i) giving the row of the matrix interchanged with the ith row,
+    ! and info, which should be zero if the LU factorisation is successful
+    call zgbtrf(nrows, ncols, nsubdiag, nsupdiag, lu_gam0%matrix, leading_dim, lu_gam0%pivot_index, info)
+    
+  end subroutine band_lu_factorisation_single
+  
+  subroutine test_band_lu_factorisation (gam0, lu_gam0)
+    
+    use common_types, only: coupled_alpha_type, gam0_ffs_type
+    use zgrid, only: nzgrid
+    use kt_grids, only: naky_all, naky
+    
+    implicit none
+    
+    type (coupled_alpha_type), dimension (:,:,-nzgrid:), intent (in) :: gam0
+    type (gam0_ffs_type), dimension (:,-nzgrid:), intent (out) :: lu_gam0
+    
+    integer :: iky, ikx, ikyp, iz
+    complex, dimension (naky_all) :: solvec
+    
+    ikx = 1 ; iz = -nzgrid
+    do iky = 1, naky_all
+       do ikyp = 1, naky
+          gam0(iky,ikx,iz)%fourier(ikyp) = iky-naky + ikyp-1
+       end do
+    end do
+    
+    call band_lu_factorisation_ffs (gam0, lu_gam0)
+    
+    do iky = 1, naky_all
+       solvec(iky) = iky
+    end do
+    
+    call band_lu_solve_ffs_single (lu_gam0(ikx,iz), solvec)
+    
+    do iky = 1, naky_all
+       write (*,*) 'iky: ', iky, 'solution: ', solvec(iky)
+    end do
+    stop
+    
+  end subroutine test_band_lu_factorisation
+  
 end module gyro_averages
