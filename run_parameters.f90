@@ -186,16 +186,26 @@ contains
        fully_explicit = .true.
     end if
 
-    if (fields_kxkyz .and. full_flux_surface) then
-       write (*,*)
-       write (*,*) 'WARNING!!!'
-       write (*,*) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
-       write (*,*) 'Forcing fields_kxkyz=F.'
-       write (*,*) 'WARNING!!!'
-       write (*,*)
-       fields_kxkyz = .false.
+    !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
+    if (full_flux_surface) then
+       if (fields_kxkyz) then
+          write (*,*)
+          write (*,*) '!!!WARNING!!!'
+          write (*,*) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
+          write (*,*) 'Forcing fields_kxkyz=F.'
+          write (*,*) '!!!WARNING!!!'
+          write (*,*)
+          fields_kxkyz = .false.
+       end if
+       if (mirror_semi_lagrange) then
+          write (*,*)
+          write (*,*) '!!!WARNING!!!'
+          write (*,*) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
+          write (*,*) 'Forcing mirror_semi_lagrange=F.'
+          write (*,*) '!!!WARNING!!!'
+       end if
     end if
-
+    
   end subroutine read_parameters
 
   subroutine finish_run_parameters

@@ -280,18 +280,21 @@ contains
     !> solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
     if (debug) write (6,*) 'stella::init_stella::init_fields'
     call init_fields
-
+    !> initialise the distribution function in the kxkyz_lo and store in gvmu
     if (debug) write(6,*) "stella::init_stella::ginit"
     call ginit (restarted,istep0)
+    !> use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
+    !> stored in gnew and copied to gold
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz (restarted)
-
+    !> if initializing from restart file, set the initial time step size appropriately
     if(restarted.and.delt_option_switch == delt_option_auto) then
-      delt_saved = delt
-      if (debug) write(6,*) "stella::init_stella::init_dt"
-      call init_dt(delt_saved, istatus)
-      if(istatus == 0) delt = delt_saved
+       delt_saved = delt
+       if (debug) write(6,*) "stella::init_stella::init_dt"
+       call init_dt(delt_saved, istatus)
+       if(istatus == 0) delt = delt_saved
     endif
+    !> set the internal time step size variable code_dt from the input variable delt 
     if (debug) write(6,*) "stella::init_stella::init_delt"
     call init_delt(delt)
     if (debug) write (6,*) 'stella::init_stella::init_time_advance'
