@@ -61,7 +61,9 @@ contains
     end if
        
   end subroutine init_fields
-  
+
+  !> MAB: would be tidier if the code related to radial profile variation
+  !> were gathered into a separate subroutine or subroutines
   subroutine init_fields_fluxtube
 
     use mp, only: sum_allreduce, job
@@ -369,19 +371,6 @@ contains
 
        deallocate (g0)
     end if
-
-!    filename=trim(run_name)//".gamtot"
-!    open(3636,file=trim(filename),status='unknown')
-!    do iky = 1, naky
-!      do ikx = 1, nakx
-!        do iz = -nzgrid,nzgrid
-!          write(3636,'(4e25.8)') gamtot(iky,ikx,iz), dgamtotdr(iky,ikx,iz), &
-!                                 gamtot3(ikx,iz), dgamtot3dr(ikx,iz)
-!        enddo
-!      enddo
-!    enddo
-!    close(3636)
-
 
 !    if (wstar_implicit) call init_get_fields_wstar
 

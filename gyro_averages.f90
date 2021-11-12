@@ -32,7 +32,6 @@ module gyro_averages
   real, dimension (:,:), allocatable :: aj0v, aj1v
   ! (nmu, -kxkyz-layout-)
 
-  !  type (coupled_alpha_type), dimension (:,:,:,:), allocatable :: j0_ffs, j0_over_B_ffs
   type (coupled_alpha_type), dimension (:,:,:,:), allocatable :: j0_ffs, j0_B_maxwell_ffs
   
   logical :: bessinit = .false.
@@ -43,41 +42,23 @@ contains
 
   subroutine init_bessel
 
-    use mp, only: sum_allreduce, proc0
     use dist_fn_arrays, only: kperp2
     use physics_flags, only: full_flux_surface
-    use physics_parameters, only: nine, tite
     use species, only: spec, nspec
-    use species, only: modified_adiabatic_electrons
     use stella_geometry, only: bmag
-    use zgrid, only: nzgrid, nztot
+    use zgrid, only: nzgrid
     use vpamu_grids, only: vperp2, nmu, nvpa
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-    use vpamu_grids, only: integrate_species
-    use kt_grids, only: naky, nakx, nalpha
-    use kt_grids, only: naky_all, ikx_max
-    use kt_grids, only: swap_kxky_ordered
-    use kt_grids, only: aky_all_ordered, akx, aky
+    use kt_grids, only: naky, nakx
+    use kt_grids, only: akx, aky
     use stella_layouts, only: kxkyz_lo, vmu_lo
-    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx, iv_idx
+    use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
     use spfunc, only: j0, j1
-    use stella_transforms, only: transform_alpha2kalpha
-    use file_utils, only: open_output_file, close_output_file
     
     implicit none
 
     integer :: iz, iky, ikx, imu, is, ia, iv
     integer :: ikxkyz, ivmu
-    real :: arg!, dum
-    integer :: ia_max_j0_count, ia_max_j0_B_maxwell_count
-    real :: ia_max_j0_reduction_factor, ia_max_j0_B_maxwell_reduction_factor
-
-    real, dimension (:), allocatable :: wgts
-    real, dimension (:), allocatable :: aj0_alpha, j0_B_maxwell
-    complex, dimension (:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
-    real, dimension (:,:,:), allocatable :: kperp2_swap
-
-!    integer :: j0_ffs_unit, j0_over_B_ffs_unit
+    real :: arg
 
     if (bessinit) return
     bessinit = .true.
@@ -109,110 +90,7 @@ contains
 
     if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface'
     if (full_flux_surface) then
-!       call open_output_file (j0_ffs_unit, '.j0_ffs')
-!       call open_output_file (j0_over_B_ffs_unit, '.j0_over_B_ffs')
-       
-       ! wgts are species-dependent factors appearing in Gamma0 factor
-       allocate (wgts(nspec))
-       wgts = spec%dens*spec%z**2/spec%temp
-
-       if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::allocate_arrays'
-       ! aj0_alpha will contain J_0 as a function of k_alpha and alpha
-       allocate (aj0_alpha(nalpha))
-       allocate (aj0_kalpha(naky))
-       ! j0_B_maxwell will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
-       allocate (j0_B_maxwell(nalpha))
-       allocate (j0_B_maxwell_kalpha(naky))
-       allocate (kperp2_swap(naky_all,ikx_max,nalpha))
-       if (.not.allocated(j0_ffs)) then
-          allocate(j0_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       end if
-       if (.not.allocated(j0_B_maxwell_ffs)) then
-          allocate(j0_B_maxwell_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       end if
-
-       ia_max_j0_count = 0 ; ia_max_j0_B_maxwell_count = 0
-       do iz = -nzgrid, nzgrid
-          write (*,*) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
-          ! for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
-          ! and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
-          ! this makes later convolutions involving sums over all ky more straightforward
-          if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::swap_kxky'
-          do ia = 1, nalpha
-             call swap_kxky_ordered (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
-          end do
-          if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::j0_loop'
-          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             is = is_idx(vmu_lo,ivmu)
-             iv = iv_idx(vmu_lo,ivmu)
-             imu = imu_idx(vmu_lo,ivmu)
-             do ikx = 1, ikx_max
-                do iky = 1, naky_all
-                   do ia = 1, nalpha
-                      ! calculate the argument of the Bessel function, which depends on both alpha and k_alpha
-                      arg = spec(is)%bess_fac*spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
-                      ! compute the value of the Bessel function J0 corresponding to argument arg
-                      aj0_alpha(ia) = j0(arg)
-                      ! compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
-                      ! due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
-                      j0_B_maxwell(ia) = aj0_alpha(ia)*bmag(ia,iz)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
-                   end do
-                   ! fourier transform aj0_alpha and j0_B_maxwell.
-                   ! note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
-                   ! been filtered to avoid aliasing
-                   call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
-                   call transform_alpha2kalpha (j0_B_maxwell, j0_B_maxwell_kalpha)
-                   ! given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
-                   ! called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
-!                   ! TMP FOR TESTING
-!                   j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
-                   call find_max_required_kalpha_index (aj0_kalpha, j0_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
-                   ! given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
-                   ! called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                   call find_max_required_kalpha_index (j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
-                   ! keep track of the total number of coefficients that must be retained across different phase space points
-                   ia_max_j0_count = ia_max_j0_count + j0_ffs(iky,ikx,iz,ivmu)%max_idx
-                   ! keep track of the total number of coefficients that must be retained across different phase space points
-                   !                   ia_max_j0_over_B_count = ia_max_j0_over_B_count + j0_over_B_ffs(iky,ikx,iz,ivmu)%max_idx
-                   ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx
-                   ! allocate array to hold the reduced number of Fourier coefficients
-                   if (.not.associated(j0_ffs(iky,ikx,iz,ivmu)%fourier)) &
-                        allocate (j0_ffs(iky,ikx,iz,ivmu)%fourier(j0_ffs(iky,ikx,iz,ivmu)%max_idx))
-                   ! fill the array with the requisite coefficients
-                   j0_ffs(iky,ikx,iz,ivmu)%fourier = aj0_kalpha(:j0_ffs(iky,ikx,iz,ivmu)%max_idx)
-!                   call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
-                   if (.not.associated(j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier)) &
-                        allocate (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier(j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx))
-                   ! fill the array with the requisite coefficients
-                   j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx)
-!                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
-                end do
-             end do
-          end do
-       end do
-       deallocate (aj0_alpha, j0_B_maxwell, j0_B_maxwell_kalpha)
-
-       ! calculate the reduction factor of Fourier modes
-       ! used to represent J0
-       call sum_allreduce (ia_max_j0_count)
-       ia_max_j0_reduction_factor = real(ia_max_j0_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
-       call sum_allreduce (ia_max_j0_B_maxwell_count)
-       ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
-
-       if (proc0) then
-          write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor*naky, 'out of ', naky
-          write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))*B(alpha)*exp(-v^2)=', &
-               ia_max_j0_B_maxwell_reduction_factor*naky, 'out of ', naky
-          write (*,*)
-       end if
-
-       deallocate (wgts)
-       deallocate (aj0_kalpha)
-       deallocate (kperp2_swap)
-
-       !       call close_output_file (j0_ffs_unit)
-!       call close_output_file (j0_B_maxwell_ffs_unit)
+       call init_bessel_ffs
     else
        if (.not.allocated(aj0x)) then
           allocate (aj0x(naky,nakx,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -242,125 +120,9 @@ contains
     end if
     if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_average'
 !    call test_gyro_average
-
-  contains
     
-    ! inverse fourier transform coefs%fourier for several phase space points and compare with
-    ! unfiltered version in alpha-space
-    subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
-
-      use stella_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
-      
-      implicit none
-
-      complex, dimension (:), intent (in) :: coefs
-      real, dimension (:), intent (in) :: f_alpha
-      integer, intent (in) :: iky, ikx, iz
-      integer, intent (in) :: unit
-      integer, intent (in), optional :: ivmu
-      
-      integer :: iv, imu, is
-
-      if (present(ivmu)) then
-         ! coefficients should all be independent of vpa, so only do comparison for one vpa point
-         iv = iv_idx(vmu_lo,ivmu)
-         if (iv == 1) then
-            ! only sample subset of mu locations
-            imu = imu_idx(vmu_lo,ivmu)
-            if (mod(imu-1,nmu/2-1)==0) then
-               is = is_idx(vmu_lo,ivmu)
-               call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
-            end if
-         end if
-      else
-         call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit)
-      end if
-         
-    end subroutine test_ffs_bessel_coefs
-
-    subroutine test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
-
-      use constants, only: pi
-      use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nalpha, aky_all_ordered
-      use vpamu_grids, only: mu
-      use stella_transforms, only: transform_kalpha2alpha
-      use stella_geometry, only: alpha
-      
-      implicit none
-
-      complex, dimension (:), intent (in) :: coefs
-      real, dimension (:), intent (in) :: f_alpha
-      integer, intent (in) :: iky, ikx, iz
-      integer, intent (in) :: unit
-      integer, intent (in), optional :: iv, imu, is
-      
-      complex, dimension (:), allocatable :: coefs_padded
-      real, dimension (:), allocatable :: f_alpha_approx
-
-      integer :: ia
-      integer :: max_idx
-      real :: relative_error
-      real, parameter :: minval = 1.0e-3
-      
-      ! only sample a subset of z locations
-      if (mod(iz,nzgrid/2)==0) then
-         ! consider only kx = 0
-         if (ikx == 1) then
-            allocate (coefs_padded(naky))
-            allocate (f_alpha_approx(nalpha))
-            ! initialize the padded coefficient array to zero
-            coefs_padded = 0.0
-            ! fill in non-zero entries with truncated Fourier coefficients
-            max_idx = size(coefs)
-            coefs_padded(:max_idx) = coefs
-            ! inverse Fourier transform to get alpha-dependent function
-            call transform_kalpha2alpha (coefs_padded, f_alpha_approx)
-            if (present(iv)) then
-               do ia = 1, nalpha
-                  relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-                  write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
-                       relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
-               end do
-               ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
-               ia = 1
-               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-               !if (abs(f_alpha(ia)) > minval) then
-               !   relative_error = abs((f_alpha(ia)-f_alpha_approx(ia))/f_alpha(ia))
-               !else
-               !   relative_error = abs(f_alpha(ia)-f_alpha_approx(ia))
-               !end if
-               write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
-                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
-            else
-               do ia = 1, nalpha
-                  relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-                  !if (abs(f_alpha(ia)) > minval) then
-                  !   relative_error = abs((f_alpha(ia)-f_alpha_approx(ia))/f_alpha(ia))
-                  !else
-                  !   relative_error = abs(f_alpha(ia)-f_alpha_approx(ia))
-                  !end if
-                  write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
-                       relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
-               end do
-               ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
-               ia = 1
-               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-               !if (abs(f_alpha(ia)) > minval) then
-               !   relative_error = abs((f_alpha(ia)-f_alpha_approx(ia))/f_alpha(ia))
-               !else
-               !   relative_error = abs(f_alpha(ia)-f_alpha_approx(ia))
-               !end if
-               write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
-                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
-            end if
-            write (unit,*)
-            deallocate (coefs_padded, f_alpha_approx)
-         end if
-      end if
-      
-    end subroutine test_ffs_bessel_coefs_subset
-
+  contains
+        
     ! set up field that varies as x^2 = rho^2 * cos(angle)^2,
     ! with rho the distance from the origin, and 'angle' is the angle made with the horizontal
     ! if considering a particle at x=0, then rho is thee gyro-radius and angle is the gyro-angle
@@ -488,6 +250,245 @@ contains
       
   end subroutine init_bessel
 
+  subroutine init_bessel_ffs
+
+    use mp, only: sum_allreduce, proc0
+    use spfunc, only: j0
+    use stella_layouts, only: vmu_lo
+    use stella_layouts, only: iv_idx, imu_idx, is_idx
+    use stella_transforms, only: transform_alpha2kalpha
+    use species, only: nspec, spec
+    use stella_geometry, only: bmag
+    use zgrid, only: nzgrid, nztot
+    use vpamu_grids, only: nmu, nvpa
+    use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
+    use kt_grids, only: nalpha, naky, naky_all, ikx_max
+    use kt_grids, only: swap_kxky_ordered
+    use dist_fn_arrays, only: kperp2
+    
+    implicit none
+    
+    !    integer :: j0_ffs_unit, j0_B_maxwell_ffs_unit
+    integer :: iky, ikx, ia, iz
+    integer :: ivmu, iv, imu, is
+    integer :: ia_max_j0_count, ia_max_j0_B_maxwell_count
+    real :: arg
+    real :: ia_max_j0_reduction_factor, ia_max_j0_B_maxwell_reduction_factor
+    real, dimension (:), allocatable :: wgts
+    real, dimension (:), allocatable :: aj0_alpha, j0_B_maxwell
+    real, dimension (:,:,:), allocatable :: kperp2_swap
+    complex, dimension (:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
+    
+    !       call open_output_file (j0_ffs_unit, '.j0_ffs')
+    !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
+    
+    ! wgts are species-dependent factors appearing in Gamma0 factor
+    allocate (wgts(nspec))
+    wgts = spec%dens*spec%z**2/spec%temp
+    
+    if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::allocate_arrays'
+    !> aj0_alpha will contain J_0 as a function of k_alpha and alpha
+    allocate (aj0_alpha(nalpha))
+    allocate (aj0_kalpha(naky))
+    !> j0_B_maxwell will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
+    allocate (j0_B_maxwell(nalpha))
+    allocate (j0_B_maxwell_kalpha(naky))
+    allocate (kperp2_swap(naky_all,ikx_max,nalpha))
+    if (.not.allocated(j0_ffs)) then
+       allocate(j0_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    end if
+    if (.not.allocated(j0_B_maxwell_ffs)) then
+       allocate(j0_B_maxwell_ffs(naky_all,ikx_max,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+    end if
+    
+    ia_max_j0_count = 0 ; ia_max_j0_B_maxwell_count = 0
+    do iz = -nzgrid, nzgrid
+       write (*,*) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
+       !> for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
+       !> and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
+       !> this makes later convolutions involving sums over all ky more straightforward
+       if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::swap_kxky'
+       do ia = 1, nalpha
+          call swap_kxky_ordered (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
+       end do
+       if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::j0_loop'
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo,ivmu)
+          iv = iv_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          do ikx = 1, ikx_max
+             do iky = 1, naky_all
+                do ia = 1, nalpha
+                   !> calculate the argument of the Bessel function, which depends on both alpha and k_alpha
+                   arg = spec(is)%bess_fac*spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
+                   ! compute the value of the Bessel function J0 corresponding to argument arg
+                   aj0_alpha(ia) = j0(arg)
+                   !> compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
+                   !> due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
+                   j0_B_maxwell(ia) = aj0_alpha(ia)*bmag(ia,iz)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)
+                end do
+                !> fourier transform aj0_alpha and j0_B_maxwell.
+                !> note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
+                !> been filtered to avoid aliasing
+                call transform_alpha2kalpha (aj0_alpha, aj0_kalpha)
+                call transform_alpha2kalpha (j0_B_maxwell, j0_B_maxwell_kalpha)
+                !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
+                !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+                !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
+                !                   ! TMP FOR TESTING
+                !                   j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
+                call find_max_required_kalpha_index (aj0_kalpha, j0_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
+                !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
+                !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+                call find_max_required_kalpha_index (j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
+                !> keep track of the total number of coefficients that must be retained across different phase space points
+                ia_max_j0_count = ia_max_j0_count + j0_ffs(iky,ikx,iz,ivmu)%max_idx
+                !> keep track of the total number of coefficients that must be retained across different phase space points
+                ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx
+                !> allocate array to hold the reduced number of Fourier coefficients
+                if (.not.associated(j0_ffs(iky,ikx,iz,ivmu)%fourier)) &
+                     allocate (j0_ffs(iky,ikx,iz,ivmu)%fourier(j0_ffs(iky,ikx,iz,ivmu)%max_idx))
+                !> fill the array with the requisite coefficients
+                j0_ffs(iky,ikx,iz,ivmu)%fourier = aj0_kalpha(:j0_ffs(iky,ikx,iz,ivmu)%max_idx)
+                !                   call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
+                if (.not.associated(j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier)) &
+                     allocate (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier(j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx))
+                !> fill the array with the requisite coefficients
+                j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%max_idx)
+                !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
+             end do
+          end do
+       end do
+    end do
+    deallocate (aj0_alpha, j0_B_maxwell, j0_B_maxwell_kalpha)
+
+    !> calculate the reduction factor of Fourier modes
+    !> used to represent J0
+    call sum_allreduce (ia_max_j0_count)
+    ia_max_j0_reduction_factor = real(ia_max_j0_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
+    call sum_allreduce (ia_max_j0_B_maxwell_count)
+    ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count)/real(naky*ikx_max*nztot*nmu*nvpa*nspec*naky_all)
+
+    if (proc0) then
+       write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor*naky, 'out of ', naky
+       write (*,*) 'average number of k-alphas needed to represent J0(kperp(alpha))*B(alpha)*exp(-v^2)=', &
+            ia_max_j0_B_maxwell_reduction_factor*naky, 'out of ', naky
+       write (*,*)
+    end if
+
+    deallocate (wgts)
+    deallocate (aj0_kalpha)
+    deallocate (kperp2_swap)
+
+    !       call close_output_file (j0_ffs_unit)
+    !       call close_output_file (j0_B_maxwell_ffs_unit)
+
+  contains
+
+    !> inverse fourier transform coefs%fourier for several phase space points and compare with
+    !> unfiltered version in alpha-space
+    subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
+      
+      use stella_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
+      
+      implicit none
+      
+      complex, dimension (:), intent (in) :: coefs
+      real, dimension (:), intent (in) :: f_alpha
+      integer, intent (in) :: iky, ikx, iz
+      integer, intent (in) :: unit
+      integer, intent (in), optional :: ivmu
+      
+      integer :: iv, imu, is
+      
+      if (present(ivmu)) then
+         !> coefficients should all be independent of vpa, so only do comparison for one vpa point
+         iv = iv_idx(vmu_lo,ivmu)
+         if (iv == 1) then
+            !> only sample subset of mu locations
+            imu = imu_idx(vmu_lo,ivmu)
+            if (mod(imu-1,nmu/2-1)==0) then
+               is = is_idx(vmu_lo,ivmu)
+               call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
+            end if
+         end if
+      else
+         call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit)
+      end if
+         
+    end subroutine test_ffs_bessel_coefs
+
+    subroutine test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
+
+      use constants, only: pi
+      use zgrid, only: nzgrid, zed
+      use kt_grids, only: naky, nalpha, aky_all_ordered
+      use vpamu_grids, only: mu
+      use stella_transforms, only: transform_kalpha2alpha
+      use stella_geometry, only: alpha
+      
+      implicit none
+
+      complex, dimension (:), intent (in) :: coefs
+      real, dimension (:), intent (in) :: f_alpha
+      integer, intent (in) :: iky, ikx, iz
+      integer, intent (in) :: unit
+      integer, intent (in), optional :: iv, imu, is
+      
+      complex, dimension (:), allocatable :: coefs_padded
+      real, dimension (:), allocatable :: f_alpha_approx
+
+      integer :: ia
+      integer :: max_idx
+      real :: relative_error
+      real, parameter :: minval = 1.0e-3
+      
+      ! only sample a subset of z locations
+      if (mod(iz,nzgrid/2)==0) then
+         ! consider only kx = 0
+         if (ikx == 1) then
+            allocate (coefs_padded(naky))
+            allocate (f_alpha_approx(nalpha))
+            ! initialize the padded coefficient array to zero
+            coefs_padded = 0.0
+            ! fill in non-zero entries with truncated Fourier coefficients
+            max_idx = size(coefs)
+            coefs_padded(:max_idx) = coefs
+            ! inverse Fourier transform to get alpha-dependent function
+            call transform_kalpha2alpha (coefs_padded, f_alpha_approx)
+            if (present(iv)) then
+               do ia = 1, nalpha
+                  relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+                  write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
+                       relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
+               end do
+               ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
+               ia = 1
+               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+               write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
+                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
+            else
+               do ia = 1, nalpha
+                  relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+                  write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
+                       relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
+               end do
+               ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
+               ia = 1
+               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+               write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
+                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
+            end if
+            write (unit,*)
+            deallocate (coefs_padded, f_alpha_approx)
+         end if
+      end if
+      
+    end subroutine test_ffs_bessel_coefs_subset
+    
+  end subroutine init_bessel_ffs
+
+  
   ! subroutine takes a set of Fourier coefficients (ft)
   ! and returns the minimum number of coeffients that must be retained (idx)
   ! to ensure that the relative error in the total spectral energy is

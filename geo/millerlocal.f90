@@ -805,7 +805,6 @@ contains
     deallocate (bmag)
     deallocate (gradpar)
 
-
     deallocate (gds2)
     deallocate (gds21)
     deallocate (gds22)
