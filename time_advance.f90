@@ -2372,12 +2372,10 @@ contains
                 upsampled_xidx = 2*ix - 1
                 upsampled_yidx = 2*iy - 1
                 if (abs(vchiold_x(upsampled_yidx, upsampled_xidx) - velocity_x) > 10) then
-                  !write(*,*) "ix, iy, ivmu = ", ix, iy, ivmu
                   write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(upsampled_yidx, upsampled_xidx), velocity_x
                   !stop "Aborting"
                 end if
                 if (abs(vchiold_y(upsampled_yidx, upsampled_xidx) - velocity_y) > 10) then
-                  !write(*,*) "ix, iy, ivmu = ", ix, iy, ivmu
                   write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(upsampled_yidx, upsampled_xidx), velocity_y
                   !stop "Aborting"
                 end if
@@ -2406,8 +2404,6 @@ contains
                 xidx_for_upsampled_array = modulo((2*ix - p - 2),(2*nx)) + 1
                 yidx_for_upsampled_array = modulo((2*iy - q - 2),(2*ny)) + 1
               end if
-              ! write(*,*) "ix, xidx_departure, xidx_for_upsampled_array = ", ix, xidx_departure, xidx_for_upsampled_array
-              ! write(*,*) "iy, yidx_departure, yidx_for_upsampled_array = ", iy, yidx_departure, yidx_for_upsampled_array
 
               ! Residual velocities
               if (single_step_local) then
@@ -2417,7 +2413,6 @@ contains
                 velocity_x = velocity_x - p*dx/(2*code_dt)
                 velocity_y = velocity_y - q*dy/(2*code_dt)
               end if
-              !write(*,*) "velocity_x, velocity_y = ", velocity_x, velocity_y
 
               ! Can we check velocity_x, velocity_y to see if they're breaking a CFL condition?
               ! Are the residual velocities larger than expected?
