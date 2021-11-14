@@ -3,7 +3,7 @@ program stella
   use mp, only: proc0
   use redistribute, only: scatter
   use job_manage, only: time_message, checkstop, job_fork
-  use run_parameters, only: nstep, fphi, fapar
+  use run_parameters, only: nstep, tend, fphi, fapar
   use stella_time, only: update_time, code_time, code_dt
   use dist_redistribute, only: kxkyz2vmu
   use time_advance, only: advance_stella
@@ -47,7 +47,8 @@ program stella
 
   ! Advance stella until istep=nstep
   if (debug) write(*,*) 'stella::advance_stella'
-  do istep = (istep0+1), nstep
+  istep = istep0+1
+  do while ((code_time<=tend .AND. tend>0) .OR. (istep<=nstep .AND. nstep>0)) 
      if (debug) write(*,*) 'istep = ', istep
      if (mod(istep,10)==0) call checkstop (stop_stella)
      if (stop_stella) exit
@@ -62,6 +63,7 @@ program stella
      call time_message(.false.,time_diagnostics,' diagnostics')
      ierr = error_unit()
      call flush_output_file (ierr)
+     istep = istep+1
   end do
 
   ! Finish stella
