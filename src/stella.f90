@@ -3,7 +3,7 @@ program stella
   use mp, only: proc0
   use redistribute, only: scatter
   use job_manage, only: time_message, checkstop, job_fork
-  use run_parameters, only: nstep, fphi, fapar
+  use run_parameters, only: nstep, tend, fphi, fapar
   use stella_time, only: update_time, code_time, code_dt
   use dist_redistribute, only: kxkyz2vmu
   use time_advance, only: advance_stella
@@ -47,7 +47,8 @@ program stella
 
   ! Advance stella until istep=nstep
   if (debug) write(*,*) 'stella::advance_stella'
-  do istep = (istep0+1), nstep
+  istep = istep0+1
+  do while ((code_time<=tend .AND. tend>0) .OR. (istep<=nstep .AND. nstep>0)) 
      if (debug) write(*,*) 'istep = ', istep
      if (mod(istep,10)==0) call checkstop (stop_stella)
      if (stop_stella) exit
@@ -62,6 +63,7 @@ program stella
      call time_message(.false.,time_diagnostics,' diagnostics')
      ierr = error_unit()
      call flush_output_file (ierr)
+     istep = istep+1
   end do
 
   ! Finish stella
@@ -344,7 +346,6 @@ contains
     if (proc0) then
       write (*,*) ' '
       write (*,*) ' '
-      write (*,*) ''//achar(27)//'[32m'
       write (*,*) "            I8            ,dPYb, ,dPYb,            "
       write (*,*) "            I8            IP'`Yb IP'`Yb            "
       write (*,*) "         88888888         I8  8I I8  8I            "
@@ -354,13 +355,12 @@ contains
       write (*,*) " ,8'  Yb   ,I8,  I8, ,8I  I8P    I8P    i8'    ,8I "
       write (*,*) ",8'_   8) ,d88b, `YbadP' ,d8b,_ ,d8b,_ ,d8,   ,d8b,"
       write (*,*) 'P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
-      write (*,*) ''//achar(27)//'[0m'
       write (*,*) ' '
       write (*,*) ' '
       write (*,*) '                       Version ', VERNUM
       write (*,*) '                        ', VERDATE
       write (*,*) ' '
-      write (*,*) '                     the stella team'
+      write (*,*) '                     The stella team'
       write (*,*) ' '
       write (*,*) '                   University of Oxford'
       write (*,*) ' '
