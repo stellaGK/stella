@@ -134,6 +134,17 @@ contains
        call get_option_value &
             (lu_option, lu_opts, lu_option_switch, ierr, &
             "lu_option in knobs")
+            
+       if (tend<0 .and. nstep<0) then   
+          ierr = error_unit()
+          write (ierr,*) ''
+          write (ierr,*) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
+          write (ierr,*) 'Aborting.'
+          write (*,*) ''
+          write (*,*) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
+          write (*,*) 'Aborting.'
+          stop
+       end if
 
     end if
 
