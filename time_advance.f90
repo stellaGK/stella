@@ -2229,8 +2229,8 @@ contains
       allocate (dgold_dy_normal(ny,nx))
     end if
     allocate (dgold_dy(2*ny,2*nx))
-    allocate (vchiold_x(2*ny,2*nx))
-    allocate (vchiold_y(2*ny,2*nx))
+    allocate (vchiold_x(ny,nx))
+    allocate (vchiold_y(ny,nx))
     allocate (golderxy(ny,nx))
     allocate (gnewxy(ny,nx))
     allocate (rhs_array(ny,nx))
@@ -2275,9 +2275,8 @@ contains
           ! write(*,*) "dgold_dy (extra padding) = ", dgold_dy
           ! stop "Stopping"
 
-          ! TODO: Check phi and apar are corresponding to phi_old
           call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-          call forward_transform_extra_padding(g0k,vchiold_y)
+          call forward_transform(g0k,vchiold_y)
 
           ! NB we haven't flipped the signs (in contrast to advance_exb_nonlinearity)
           ! because this is the actual velocity - we haven't moved to the RHS yet.
@@ -2289,9 +2288,8 @@ contains
           else
             call forward_transform_extra_padding(g0k,dgold_dx)
           end if
-          ! TODO: Check phi and apar are corresponding to phi_old
           call get_dchidy (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
-          call forward_transform_extra_padding(g0k,vchiold_x)
+          call forward_transform(g0k,vchiold_x)
 
           vchiold_x = vchiold_x*exb_nonlin_fac
 
@@ -2369,14 +2367,12 @@ contains
                 ! write(*,*) "p, q = ", p, q
                 ! stop "stopping"
               else
-                upsampled_xidx = 2*ix - 1
-                upsampled_yidx = 2*iy - 1
-                if (abs(vchiold_x(upsampled_yidx, upsampled_xidx) - velocity_x) > 10) then
-                  write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(upsampled_yidx, upsampled_xidx), velocity_x
+                if (abs(vchiold_x(iy, ix) - velocity_x) > 10) then
+                  write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(iy, ix), velocity_x
                   !stop "Aborting"
                 end if
-                if (abs(vchiold_y(upsampled_yidx, upsampled_xidx) - velocity_y) > 10) then
-                  write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(upsampled_yidx, upsampled_xidx), velocity_y
+                if (abs(vchiold_y(iy, ix) - velocity_y) > 10) then
+                  write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(iy, ix), velocity_y
                   !stop "Aborting"
                 end if
               end if
@@ -2583,7 +2579,7 @@ contains
 
     end subroutine forward_transform_extra_padding
 
-    subroutine get_approx_departure_point (vy_upsampled, vx_upsampled, y_idx, x_idx, y_departure, x_departure, single_step)
+    subroutine get_approx_departure_point (vy, vx, yidx_in, xidx_in, y_departure, x_departure, single_step)
 
       use kt_grids, only: x, y
       use kt_grids, only: dx, dy
@@ -2591,59 +2587,61 @@ contains
 
       implicit none
 
-      real, dimension(:,:), intent (in) :: vy_upsampled, vx_upsampled
-      integer, intent (in) :: y_idx, x_idx
+      real, dimension(:,:), intent (in) :: vy, vx
+      integer, intent (in) :: yidx_in, xidx_in
       logical, intent(in) :: single_step
       !real, intent (in) :: y_in, x_in
       real, intent (out) :: y_departure, x_departure
 
-      integer :: max_iterations, counter, upsampled_xidx, upsampled_yidx
+      integer :: max_iterations, counter, xidx, yidx
       real :: u_x, u_y, u_y_new, u_x_new, time_remaining, xboundary, yboundary, xnorm, ynorm
       real :: min_vy_magnitude, ydist_dt, min_vx_magnitude, xdist_dt, very_small_dt
 
-      y_departure = y(y_idx)
-      x_departure = x(x_idx)
+      y_departure = y(yidx_in)
+      x_departure = x(xidx_in)
 
       max_iterations = 100
       very_small_dt = 1E-12
 
-
-      ! Ordinary xidxs are (1, 2, 3, 4, . . ., nx)
-      ! Upsampled range of xidxs is (1, 2, 3, 4, . . ., 2*nx)
-      ! Ordinary and upsampled xidxs correspond to each other like
-      ! x_idx             upsampled_xidx
-      ! 1                   1
-      ! 2                   3
-      ! 3                   5
-      ! n                   2n-1
-      ! Likewise for y upsampling
-      upsampled_xidx = 2*x_idx - 1
-      upsampled_yidx = 2*y_idx - 1
-      u_x = vx_upsampled(upsampled_yidx,upsampled_xidx)
-      u_y = vy_upsampled(upsampled_yidx,upsampled_xidx)
-      !write(*,*) "u_x, u_y = ", u_x, u_y
+      xidx = xidx_in
+      yidx = yidx_in
+      u_x = vx(yidx,xidx)
+      u_y = vy(yidx,xidx)
       if (single_step) then
         time_remaining = code_dt
       else
         time_remaining = 2*code_dt
       end if
-      !write(*,*) "time_remaining = ", time_remaining
+
       counter=0
       do while ((time_remaining > 0) .and. (counter < max_iterations))
         counter = counter + 1
-        ! Take a step in (x,y) based on the velocity at [x, y, t^n].
-        xnorm = (2*x_departure/dx - 0.5); ynorm = (2*y_departure/dy - 0.5)
+        !!! Take a step in (x,y) based on the velocity at [x, y, t^n].
+
+        !!! Find the boundaries in x and y (at which the cell velocity changes)
+        !! Old - velocities upsampled, which means the cells are dx/2 * dy/2.
+        !! Cell boundaries at -dx/4, dx/4, 3dx/4, . . .
+        ! xnorm = (2*x_departure/dx - 0.5); ynorm = (2*y_departure/dy - 0.5)
+
+        !! New - velocities not upsampled, so cells are dx*dy. Cell boundaries
+        !! at -dx/2, dx/2, 3dx/2, . . .
+        ! "Normalised" x value & y value. This is an integer when we're
+        ! sitting on a cell boundary.
+        xnorm = (x_departure/dx - 0.5); ynorm = (y_departure/dy - 0.5)
+
         ! Our boundaries are nonperiodic.
         if (u_x > 0) then
-          xboundary = ((floor(xnorm) + 0.5) * dx/2)
+          ! floor/ceiling gets us the normalised x value of the nearest
+          ! cell boundary. We then convert back to "ordinary" x value.
+          xboundary = ((floor(xnorm) + 0.5) * dx)
         else
-          xboundary = ((ceiling(xnorm)  + 0.5) * dx/2)
+          xboundary = ((ceiling(xnorm)  + 0.5) * dx)
         end if
 
         if (u_y > 0) then
-          yboundary = ((floor(ynorm) + 0.5) * dy/2)
+          yboundary = ((floor(ynorm) + 0.5) * dy)
         else
-          yboundary = ((ceiling(ynorm)  + 0.5) * dy/2)
+          yboundary = ((ceiling(ynorm)  + 0.5) * dy)
         end if
 
         ! Calculate the time required to reach the nearest boundaries in y and x
@@ -2682,25 +2680,25 @@ contains
             if (u_y > 0) then
               ! +ve u_y, so going back in time we're going in the -ve y direction; our new cell is
               ! below the old cell
-              upsampled_yidx = upsampled_yidx - 1
+              yidx = yidx - 1
             else
               ! -ve u_y, so going back in time we're going in the +ve y direction; our new cell is
               ! below the old cell
-              upsampled_yidx =upsampled_yidx + 1
+              yidx = yidx + 1
             end if
 
-            ! The upsampled_yidx range is (1, 2, 3, . . . 2*ny), so anything
+            ! The yidx range is (1, 2, 3, . . . ny), so anything
             ! beyond this range must be mapped into this range using periodicity
-            ! modulo operation maps into range(0, 2*ny-1), so need to correct for this
-            upsampled_yidx = modulo((upsampled_yidx - 1),(2*ny))+1
+            ! modulo operation maps into range(0, ny-1), so need to correct for this
+            yidx = modulo((yidx - 1),(ny))+1
 
             ! Update the velocities
-            u_x = vx_upsampled(upsampled_yidx, upsampled_xidx)
+            u_x = vx(yidx, xidx)
             ! Update u_y, but if the sign is different, we're going to
             ! bounce back and forth (this indicates the velocity falling
             ! to zero somewhere between the 2 cell centres). To avoid the "bouncing",
             ! set velocity to zero.
-            u_y_new = vy_upsampled(upsampled_yidx, upsampled_xidx)
+            u_y_new = vy(yidx, xidx)
             if ((u_y * u_y_new) < 0) then
               ! Opposite signs, so set u_y=0
               u_y=0
@@ -2719,27 +2717,27 @@ contains
             if (u_x > 0) then
               ! +ve u_x, so going back in time we're going in the -ve x direction; our new cell is
               ! to the left of the old cell
-              upsampled_xidx = upsampled_xidx - 1
+              xidx = xidx - 1
             else
               ! -ve u_y, so going back in time we're going in the +ve y direction; our new cell is
               ! below the old cell
-              upsampled_xidx = upsampled_xidx + 1
+              xidx = xidx + 1
             end if
 
-            ! The upsampled_xidx range is (1, 2, 3, . . . 2*nx), so anything
+            ! The xidx range is (1, 2, 3, . . . nx), so anything
             ! beyond this range must be mapped into this range using periodicity
-            ! modulo operation maps into range(0, 2*nx-1), so need to correct for this
-            upsampled_xidx = modulo((upsampled_xidx - 1),(2*nx))+1
+            ! modulo operation maps into range(0, nx-1), so need to correct for this
+            xidx = modulo((xidx - 1),(nx))+1
 
             ! Update velocities
-            u_y = vy_upsampled(upsampled_yidx, upsampled_xidx)
+            u_y = vy(yidx, xidx)
             ! Update u_x, but if the sign is different, we're going to
             ! bounce back and forth (this indicates the velocity falling
             ! to zero somewhere between the 2 cell centres). To avoid the "bouncing",
             ! set velocity to zero.
-            u_x_new = vx_upsampled(upsampled_yidx, upsampled_xidx)
+            u_x_new = vx(yidx, xidx)
             if ((u_x * u_x_new) < 0) then
-              ! Opposite signs, so set u_y=0
+              ! Opposite signs, so set u_x=0 (ux passes through zero)
               u_x=0
             else
                 u_x = u_x_new
