@@ -159,6 +159,7 @@ fields.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 fields_arrays.o: \
@@ -203,11 +204,9 @@ gyro_averages.o: \
 	 common_types.o \
 	 constants.o \
 	 dist_fn_arrays.o \
-	 file_utils.o \
 	 kt_grids.o \
 	 mp.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 species.o \
 	 spfunc.o \
 	 stella_geometry.o \
@@ -222,6 +221,7 @@ init_g.o: \
 	 file_utils.o \
 	 kt_grids.o \
 	 mp.o \
+	 physics_flags.o \
 	 ran.o \
 	 species.o \
 	 stella_layouts.o \
@@ -553,7 +553,9 @@ vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
 volume_averages.o: \
 	 kt_grids.o \
+	 physics_flags.o \
 	 stella_geometry.o \
+	 stella_transforms.o \
 	 zgrid.o 
 vpamu_grids.o: \
 	 constants.o \

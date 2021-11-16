@@ -18,6 +18,7 @@ module gyro_averages
      module procedure gyro_average_vmus_nonlocal
      module procedure gyro_average_ffs_kxky_local
      module procedure gyro_average_ffs_kxkyz_local
+     module procedure gyro_average_ffs
   end interface gyro_average
 
   interface gyro_average_j1
@@ -687,6 +688,26 @@ contains
     end do
 
   end subroutine gyro_average_ffs_kxkyz_local
+
+  subroutine gyro_average_ffs (dist, gyro_dist, coefs)
+
+    use common_types, only: coupled_alpha_type
+    use stella_layouts, only: vmu_lo
+    use zgrid, only: nzgrid
+    
+    implicit none
+
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: dist
+    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: gyro_dist
+    type (coupled_alpha_type), dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: coefs
+    
+    integer :: ivmu
+
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       call gyro_average (dist(:,:,:,:,ivmu), gyro_dist(:,:,:,:,ivmu), coefs(:,:,:,ivmu))
+    end do
+    
+  end subroutine gyro_average_ffs
   
   subroutine gyro_average_vmu_local (distfn, ikxkyz, gyro_distfn)
 
