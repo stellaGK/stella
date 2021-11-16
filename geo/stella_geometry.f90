@@ -6,7 +6,7 @@ module stella_geometry
 
   public :: init_geometry, finish_init_geometry, finish_geometry
   public :: communicate_geo_multibox
-  public :: grho
+  public :: grho, grad_x
   public :: bmag, dbdzed, btor, bmag_psi0
   public :: gradpar, gradpar_eqarc, zed_eqarc
   public :: cvdrift, cvdrift0
@@ -56,14 +56,14 @@ module stella_geometry
   real, dimension (:,:), allocatable :: dgds2dr, dgds21dr
   real, dimension (:,:), allocatable :: dgds22dr
   real, dimension (:,:), allocatable :: theta_vmec
-  real, dimension (:,:), allocatable :: jacob, djacdrho, grho
+  real, dimension (:,:), allocatable :: jacob, djacdrho, grho, grad_x
   real, dimension (:,:), allocatable :: dl_over_b, d_dl_over_b_drho
   real, dimension (:,:), allocatable :: x_displacement_fac
   real, dimension (:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
   real, dimension (:), allocatable :: btor, Rmajor
   real, dimension (:), allocatable :: alpha
   real, dimension (:,:), allocatable :: zeta
-
+  
   integer :: geo_option_switch
   integer, parameter :: geo_option_local = 1
   integer, parameter :: geo_option_inputprof = 2
@@ -160,6 +160,9 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
+          !> | grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+          !> = q/rho * dpsidrho * grho
+          grad_x = grho*dxdXcoord*dpsidrho_psi0
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
@@ -206,6 +209,9 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign/drhodpsi_psi0
+          !> | grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+          !> = q/rho * dpsidrho * grho
+          grad_x = grho*dxdXcoord*dpsidrho_psi0
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
@@ -248,6 +254,9 @@ contains
           ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*dpsidrho
+          !> | grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+          !> = q/rho * dpsidrho * grho
+          grad_x = grho*dxdXcoord*dpsidrho_psi0
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
           ! to be used for twist-and-shift BC
@@ -298,6 +307,9 @@ contains
           twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*drhodpsi*dydalpha/(geo_surf%qinp*dxdXcoord*geo_surf%rhotor) &
                * field_period_ratio
 
+          ! grad_x = | grad x |
+          grad_x = sqrt(abs(grad_psi_grad_psi * dxdXcoord**2))
+
           ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
           ! note that rhotor = sqrt(psi/psi_LCFS)
           gds2 = grad_alpha_grad_alpha * dydalpha**2
@@ -305,8 +317,9 @@ contains
           ! NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
           gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdXcoord * dydalpha
           ! gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
-          gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
-
+          gds22 = (geo_surf%shat * grad_x)**2
+          !gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
+          
           ! gbdrift_alpha and cvdrift_alpha contain
           ! the grad-B and curvature drifts projected onto
           ! the grad alpha direction
@@ -324,6 +337,7 @@ contains
           call deallocate_temporary_arrays
        end select
 
+          
        if (overwrite_geometry) call overwrite_selected_geometric_coefficients (nalpha)
 
        ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
@@ -354,8 +368,15 @@ contains
     !            not be correct if d2qdrho != 0
     dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
 
-    jacob = 1.0/abs(drhodpsi*spread(gradpar,1,nalpha)*bmag)
+    ! this old definition of jacob should have been fine, as it was only ever used in both the numerator
+    ! and denominator of averages -- and do any constant factors cancelled out
+    !jacob = 1.0/abs(drhodpsi*spread(gradpar,1,nalpha)*bmag)
 
+    !> jacob is the Jacobian from Cartesian coordinates to (y,x,z) coordinates
+    !> is ((grad y x grad x) . grad z)^(-1) = Lref*(dalpha/dy)*(dpsi/dx)/(Lref*Bref)*(B/Bref . grad z)^(-1)
+    !> Lref*(dalpha/dy) = 1/dydalpha; (dpsi/dx)/(Lref*Bref) = 1 / dxdXcoord ; (B/Bref . grad z) = gradpar*bmag
+    jacob = 1.0/(dydalpha*dxdXcoord*spread(gradpar,1,nalpha)*bmag)
+    
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
 
@@ -529,6 +550,7 @@ contains
     if (.not.allocated(jacob)) allocate (jacob(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(djacdrho)) allocate (djacdrho(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(grho)) allocate (grho(nalpha,-nzgrid:nzgrid))
+    if (.not.allocated(grad_x)) allocate (grad_x(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dl_over_b)) allocate (dl_over_b(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha,-nzgrid:nzgrid))
 
@@ -544,7 +566,7 @@ contains
     if (.not.allocated(zeta)) allocate (zeta(nalpha,-nzgrid:nzgrid)) ; zeta = 0.
 
     if (.not.allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha,-nzgrid:nzgrid)) ; x_displacement_fac = 0.
-    
+
   end subroutine allocate_arrays
 
   subroutine read_parameters
@@ -621,6 +643,7 @@ contains
     call broadcast (exb_nonlin_fac_p)
     call broadcast (dIdrho)
     call broadcast (grho)
+    call broadcast (grad_x)
     call broadcast (bmag)
     call broadcast (bmag_psi0)
     call broadcast (btor)
@@ -881,6 +904,7 @@ contains
 
     if (allocated(zed_eqarc)) deallocate (zed_eqarc)
     if (allocated(grho)) deallocate (grho)
+    if (allocated(grad_x)) deallocate (grad_x)
     if (allocated(bmag)) deallocate (bmag)
     if (allocated(bmag_psi0)) deallocate (bmag_psi0)
     if (allocated(btor)) deallocate (btor)
