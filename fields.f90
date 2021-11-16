@@ -31,7 +31,7 @@ module fields
   type (coupled_alpha_type), dimension (:,:,:), allocatable :: gam0_ffs
   type (gam0_ffs_type), dimension (:,:), allocatable :: lu_gam0_ffs
   complex, dimension (:), allocatable :: adiabatic_response_factor
-  complex, dimension (:,:), allocatable :: jacobian_ky
+!  complex, dimension (:,:), allocatable :: jacobian_ky
   
   logical :: fields_updated = .false.
   logical :: fields_initialized = .false.
@@ -508,6 +508,7 @@ contains
     use stella_geometry, only: jacob
     use kt_grids, only: naky, naky_all, ikx_max
     use gyro_averages, only: band_lu_solve_ffs
+    use volume_averages, only: flux_surface_average_ffs!, jacobian_ky
     
     implicit none
 
@@ -515,7 +516,7 @@ contains
     complex, dimension (:,:,:), allocatable :: adiabatic_response_vector
     
     allocate (adiabatic_response_vector(naky_all,ikx_max,-nzgrid:nzgrid))
-    if (.not.allocated(jacobian_ky)) allocate (jacobian_ky(naky,-nzgrid:nzgrid))
+!    if (.not.allocated(jacobian_ky)) allocate (jacobian_ky(naky,-nzgrid:nzgrid))
     if (.not.allocated(adiabatic_response_factor)) allocate (adiabatic_response_factor(ikx_max))
     
     ! adiabatic_response_vector is initialised to be the rhs of the equation for the
@@ -526,15 +527,16 @@ contains
     ! pass in the rhs and overwrite with the solution for phi_homogeneous
     call band_lu_solve_ffs (lu_gam0_ffs, adiabatic_response_vector)
 
-    ! calculate the Fourier coefficients in y of the Jacobian
-    ! this is needed in the computation of the flux surface average of phi
-    do iz = -nzgrid, nzgrid
-       call transform_alpha2kalpha (jacob(:,iz), jacobian_ky(:,iz))
-    end do
+!    ! calculate the Fourier coefficients in y of the Jacobian
+!    ! this is needed in the computation of the flux surface average of phi
+!    do iz = -nzgrid, nzgrid
+!       call transform_alpha2kalpha (jacob(:,iz), jacobian_ky(:,iz))
+!    end do
 
     ! obtain the flux surface average of the response vector
     do ikx = 1, ikx_max
-       call flux_surface_average_ffs (adiabatic_response_vector(:,ikx,:), jacobian_ky, adiabatic_response_factor(ikx))
+       !       call flux_surface_average_ffs (adiabatic_response_vector(:,ikx,:), jacobian_ky, adiabatic_response_factor(ikx))
+       call flux_surface_average_ffs (adiabatic_response_vector(:,ikx,:), adiabatic_response_factor(ikx))
     end do
     adiabatic_response_factor = 1.0 / (1.0 - adiabatic_response_factor)
        
@@ -542,50 +544,50 @@ contains
     
   end subroutine init_adiabatic_response_factor
 
-  subroutine flux_surface_average_ffs (no_fsa, jacobian_ky, fsa)
+  ! subroutine flux_surface_average_ffs (no_fsa, jacobian_ky, fsa)
 
-    use zgrid, only: nzgrid, delzed
-    use stella_geometry, only: jacob
-    use kt_grids, only: naky, naky_all, nalpha
-    use kt_grids, only: dy
+  !   use zgrid, only: nzgrid, delzed
+  !   use stella_geometry, only: jacob
+  !   use kt_grids, only: naky, naky_all, nalpha
+  !   use kt_grids, only: dy
     
-    implicit none
+  !   implicit none
 
-    complex, dimension (:,-nzgrid:), intent (in) :: no_fsa, jacobian_ky
-    complex, intent (out) :: fsa
+  !   complex, dimension (:,-nzgrid:), intent (in) :: no_fsa, jacobian_ky
+  !   complex, intent (out) :: fsa
 
-    integer :: iky, ikymod, iz
-    real :: area
+  !   integer :: iky, ikymod, iz
+  !   real :: area
 
-    ! the the normalising factor int dy dz Jacobian
-    area = sum(spread(delzed*dy,1,nalpha)*jacob)
+  !   ! the the normalising factor int dy dz Jacobian
+  !   area = sum(spread(delzed*dy,1,nalpha)*jacob)
 
-    fsa  = 0.0
-    ! get contribution from negative ky values
-    ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
-    do iky = 1, naky-1
-       ! jacobian_ky only defined for positive ky values
-       ! use reality of the jacobian to fill in negative ky values
-       ! i.e., jacobian_ky(-ky) = conjg(jacobian_ky(ky))
-       ! ikymod runs from naky down to 2, which corresponds
-       ! to ky values in jacobian_ky from kymax down to dky
-       ikymod = naky-iky+1
-       ! for each ky, add the integral over zed
-       fsa = fsa + sum(delzed*no_fsa(iky,:)*jacobian_ky(ikymod,:))
-    end do
-    ! get contribution from zero and positive ky values
-    ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
-    do iky = naky, naky_all
-       ! ikymod runs from 1 to naky
-       ! ikymod = 1 corresponds to ky=0 for jacobian_ky and ikymod=naky to ky=kymax
-       ikymod = iky - naky + 1
-       ! for each ky, add the integral over zed
-       fsa = fsa + sum(delzed*no_fsa(iky,:)*conjg(jacobian_ky(ikymod,:)))
-    end do
-    ! normalise by the flux surface area
-    fsa = fsa/area
+  !   fsa  = 0.0
+  !   ! get contribution from negative ky values
+  !   ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
+  !   do iky = 1, naky-1
+  !      ! jacobian_ky only defined for positive ky values
+  !      ! use reality of the jacobian to fill in negative ky values
+  !      ! i.e., jacobian_ky(-ky) = conjg(jacobian_ky(ky))
+  !      ! ikymod runs from naky down to 2, which corresponds
+  !      ! to ky values in jacobian_ky from kymax down to dky
+  !      ikymod = naky-iky+1
+  !      ! for each ky, add the integral over zed
+  !      fsa = fsa + sum(delzed*no_fsa(iky,:)*jacobian_ky(ikymod,:))
+  !   end do
+  !   ! get contribution from zero and positive ky values
+  !   ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
+  !   do iky = naky, naky_all
+  !      ! ikymod runs from 1 to naky
+  !      ! ikymod = 1 corresponds to ky=0 for jacobian_ky and ikymod=naky to ky=kymax
+  !      ikymod = iky - naky + 1
+  !      ! for each ky, add the integral over zed
+  !      fsa = fsa + sum(delzed*no_fsa(iky,:)*conjg(jacobian_ky(ikymod,:)))
+  !   end do
+  !   ! normalise by the flux surface area
+  !   fsa = fsa/area
     
-  end subroutine flux_surface_average_ffs
+  ! end subroutine flux_surface_average_ffs
   
   subroutine allocate_arrays
 
@@ -679,6 +681,7 @@ contains
 
     !> time the communications + field solve
     if (proc0) call time_message(.false.,time_field_solve(:,1),' fields')
+    !> fields_kxkyz = F is the default
     if (fields_kxkyz) then
        !> first gather (vpa,mu) onto processor for v-space operations
        !> v-space operations are field solve, dg/dvpa, and collisions
@@ -914,7 +917,8 @@ contains
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ikx_max, naky_all
     use kt_grids, only: swap_kxky_ordered
-
+    use volume_averages, only: flux_surface_average_ffs
+    
     implicit none
     
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
@@ -944,7 +948,8 @@ contains
           !> calculate the flux surface average of this phi_inhomogeneous
           allocate (phi_fsa(nakx))
           do ikx = 1, nakx
-             call flux_surface_average_ffs (phi_swap(:,ikx,:), jacobian_ky, phi_fsa(ikx))
+             !             call flux_surface_average_ffs (phi_swap(:,ikx,:), jacobian_ky, phi_fsa(ikx))
+             call flux_surface_average_ffs (phi_swap(:,ikx,:), phi_fsa(ikx))
           end do
           !> use the flux surface average of phi_inhomogeneous, together with the
           !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
@@ -1198,30 +1203,11 @@ contains
     if (dist == 'h') then
        phi = phi/gamtot_h
     else if (dist == 'gbar') then
-       if (full_flux_surface) then
-!        ! need to invert 1-gamma0 operator
-!        allocate (phi_swap(naky_all,ikx_max))
-!        do it = 1, ntubes
-!           do iz = -nzgrid, nzgrid
-!              call swap_kxky_ordered (phi, phi_swap)
-!              do ikx = 1, ikx_max
-!                 ! if ky values uncoupled, then obtain phi by simple divide
-!                 if (maxval(ia_max_gam0a(:,ikx,iz)) == 1) then
-!                    phi_swap(:,ikx) = phi_swap(:,ikx)/gam0a(1,:,ikx,iz)
-!                 else
-!                    ! for ky values that require info from other ky values
-!                    ! must solve linear system
-!                    call 
-!                 end if
-!              end do
-!           end do
-!        end do
-!        deallocate (phi_swap)
-       else if ((radial_variation.and.ky_solve_radial.gt.0                & 
-                 .and.runtype_option_switch.ne.runtype_multibox)          &
-                                      .or.                               &!DSO -> sorry for this if statement
-               (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1   &
-                .and.runtype_option_switch.eq.runtype_multibox           &
+       if ((radial_variation.and.ky_solve_radial.gt.0                & 
+            .and.runtype_option_switch.ne.runtype_multibox)          &
+                                      .or.                           &!DSO -> sorry for this if statement
+           (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1   &
+                .and.runtype_option_switch.eq.runtype_multibox       &
                 .and..not.ky_solve_real)) then
           allocate (g0k(1,nakx))
           allocate (g0x(1,nakx))
@@ -1243,24 +1229,24 @@ contains
              enddo
           enddo
           
-         if(ky_solve_radial.eq.0.and.any(gamtot(1,1,:).lt.epsilon(0.))) &
-              phi(1,1,:,:) = 0.0
-
-         deallocate (g0k,g0x,g0a)
-      else if (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1 &
-           .and.runtype_option_switch.eq.runtype_multibox) then
-         call mb_get_phi(phi,has_elec,adia_elec)
-      else
-         ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
-         phi = phi/spread(gamtot,4,ntubes)
-         if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
-      end if
-   else 
-      if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
-      call mp_abort ('unknown dist option in get_fields. aborting')
-      return 
-   end if
-
+          if(ky_solve_radial.eq.0.and.any(gamtot(1,1,:).lt.epsilon(0.))) &
+               phi(1,1,:,:) = 0.0
+          
+          deallocate (g0k,g0x,g0a)
+       else if (radial_variation.and.ky_solve_radial.gt.0.and.job.eq.1 &
+            .and.runtype_option_switch.eq.runtype_multibox) then
+          call mb_get_phi(phi,has_elec,adia_elec)
+       else
+          ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
+          phi = phi/spread(gamtot,4,ntubes)
+          if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
+       end if
+    else 
+       if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+       call mp_abort ('unknown dist option in get_fields. aborting')
+       return 
+    end if
+    
    if(any(gamtot(1,1,:).lt.epsilon(0.))) phi(1,1,:,:) = 0.0
 
 
@@ -1637,7 +1623,7 @@ contains
     if (allocated(gam0_ffs)) deallocate (gam0_ffs)
     if (allocated(lu_gam0_ffs)) deallocate (lu_gam0_ffs)
     if (allocated(adiabatic_response_factor)) deallocate (adiabatic_response_factor)
-    if (allocated(jacobian_ky)) deallocate (jacobian_ky)
+!    if (allocated(jacobian_ky)) deallocate (jacobian_ky)
     
     fields_initialized = .false.
 
