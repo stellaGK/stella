@@ -5,7 +5,8 @@ module vpamu_grids
   public :: init_vpamu_grids, finish_vpamu_grids
   public :: read_vpamu_grids_parameters
   public :: calculate_velocity_integrals
-  public :: integrate_vmu, integrate_species, integrate_species_ffs
+  public :: integrate_vmu, integrate_species
+  public :: integrate_species_ffs, integrate_vmu_ffs
   public :: integrate_mu
   public :: vpa, nvgrid, nvpa
   public :: wgts_vpa, dvpa
@@ -677,6 +678,82 @@ contains
     if (reduce) call sum_allreduce (pout)
 
   end subroutine integrate_species_ffs
+
+  subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
+
+    use mp, only: sum_allreduce
+    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    use zgrid, only: nzgrid
+    
+    implicit none
+
+    complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
+    real, dimension (:), intent (in) :: weights
+    integer, intent (in) :: ia, iz
+    complex, dimension (:), intent (out) :: pout
+    logical, intent (in), optional :: reduce_in
+
+    integer :: ivmu, iv, is, imu
+    logical :: reduce
+
+    pout = 0.
+
+    if (present(reduce_in)) then
+       reduce = reduce_in
+    else
+       reduce = .true.
+    end if
+
+    !> NB: for FFS, assume that there is only one flux annulus
+    !> the inclusion of the Maxwellian term below is due to the fact that
+    !> g/F is evolved for FFS
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       pout(is) = pout(is) + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is) &
+            * maxwell_mu(ia,iz,imu,is)*maxwell_vpa(iv,is)
+    end do
+
+    if (reduce) call sum_allreduce (pout)
+
+  end subroutine integrate_vmu_ffs
+  
+  ! subroutine integrate_vmu_ffs(g, weights, pout, reduce_in)
+
+  !   use mp, only: sum_allreduce
+  !   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+  !   use zgrid, only: nzgrid
+    
+  !   implicit none
+
+  !   integer :: ivmu, iv, is, imu
+  !   logical :: reduce
+
+  !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
+  !   logical, intent (in), optional :: reduce_in
+  !   real, dimension (:), intent (in) :: weights
+  !   complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: pout
+
+  !   pout = 0.
+
+  !   if (present(reduce_in)) then
+  !      reduce = reduce_in
+  !   else
+  !      reduce = .true.
+  !   end if
+
+  !   !> NB: for FFS, assume that there is only one flux annulus
+  !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+  !      iv = iv_idx(vmu_lo,ivmu)
+  !      imu = imu_idx(vmu_lo,ivmu)
+  !      is = is_idx(vmu_lo,ivmu)
+  !      pout(:,:,:,:,is) = pout(:,:,:,:,is) + 2.0*wgts_mu_bare(imu)*wgts_vpa(iv)*g(:,:,:,:,ivmu)*weights(is)
+  !   end do
+
+  !   if (reduce) call sum_allreduce (pout)
+
+  ! end subroutine integrate_vmu_ffs
 
   subroutine finish_vpa_grid
 
