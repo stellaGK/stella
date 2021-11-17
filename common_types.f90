@@ -12,7 +12,7 @@ module common_types
   type :: kxyz_layout_type
      sequence
      integer :: iproc
-     integer :: nzgrid, nzed, ntubes, ny, naky, nakx, nvgrid, nvpa, nmu, nspec
+     integer :: nzgrid, nzed, ntubes, ny, naky, nakx, ikx_max, nvgrid, nvpa, nmu, nspec
      integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
   end type kxyz_layout_type
 

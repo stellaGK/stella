@@ -1498,6 +1498,7 @@ contains
     
   end subroutine get_radial_correction
 
+  !> compute d<chi>/dy in (ky,kx,z,tube) space
   subroutine get_dchidy_4d (phi, apar, dchidy)
 
     use constants, only: zi
@@ -1532,6 +1533,7 @@ contains
 
   end subroutine get_dchidy_4d
 
+  !> compute d<chi>/dy in (ky,kx) space
   subroutine get_dchidy_2d (iz, ivmu, phi, apar, dchidy)
 
     use constants, only: zi
@@ -1564,6 +1566,7 @@ contains
 
   end subroutine get_dchidy_2d
 
+  !> compute d<chi>/dx in (ky,kx) space
   subroutine get_dchidx (iz, ivmu, phi, apar, dchidx)
 
     use constants, only: zi

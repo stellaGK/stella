@@ -267,16 +267,16 @@ contains
           zeta(1,:) = zed*geo_surf%qinp
 
        case (geo_option_vmec)
-          ! read in input parameters for vmec
-          ! nalpha may be specified via input file
+          !> read in input parameters for vmec
+          !> nalpha may be specified via input file
           if (debug) write (*,*) 'init_geometry::read_vmec_parameters'
           call read_vmec_parameters
-          ! allocate geometry arrays
+          !> allocate geometry arrays
           if (debug) write (*,*) 'init_geometry::allocate_arrays'
           call allocate_arrays (nalpha, nzgrid)
           if (debug) write (*,*) 'init_geometry::allocate_temporary_arrays'
           call allocate_temporary_arrays (nalpha, nzgrid)
-          ! get geometry coefficients from vmec
+          !> get geometry coefficients from vmec
           if (debug) write (*,*) 'init_geometry::get_vmec_geo'
           call get_vmec_geo (nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
                grad_alpha_grad_psi, grad_psi_grad_psi, &
@@ -284,53 +284,53 @@ contains
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
                field_period_ratio, x_displacement_fac)
-          ! Bref = 2*abs(psi_tor_LCFS)/a^2
-          ! a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
-          ! psi = -psi_tor
-          ! dxdXcoord = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
+          !> Bref = 2*abs(psi_tor_LCFS)/a^2
+          !> a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
+          !> psi = -psi_tor
+          !> dxdXcoord = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
           dxdXcoord_sign = -1
           dxdXcoord = dxdXcoord_sign*sign_torflux/geo_surf%rhotor
-          ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
+          !> dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
           dydalpha_sign = 1
           dydalpha = dydalpha_sign*geo_surf%rhotor
-          ! if using vmec, rho = sqrt(psitor/psitor_lcfs)
-          ! psiN = -psitor/(aref**2*Bref)
-          ! so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
+          !> if using vmec, rho = sqrt(psitor/psitor_lcfs)
+          !> psiN = -psitor/(aref**2*Bref)
+          !> so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
           drhodpsi = dxdXcoord_sign*sign_torflux/geo_surf%rhotor
           drhodpsi_psi0 = drhodpsi
           bmag_psi0 = bmag
 
-          ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
-          ! minus its sign gives the direction of the shift in kx
-          ! to be used for twist-and-shift BC
+          !> abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+          !> minus its sign gives the direction of the shift in kx
+          !> to be used for twist-and-shift BC
 !          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
           twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*drhodpsi*dydalpha/(geo_surf%qinp*dxdXcoord*geo_surf%rhotor) &
                * field_period_ratio
 
-          ! grad_x = | grad x |
+          !> grad_x = | grad x |
           grad_x = sqrt(abs(grad_psi_grad_psi * dxdXcoord**2))
 
-          ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
-          ! note that rhotor = sqrt(psi/psi_LCFS)
+          !> gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
+          !> note that rhotor = sqrt(psi/psi_LCFS)
           gds2 = grad_alpha_grad_alpha * dydalpha**2
-          ! gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
-          ! NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
+          !> gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
+          !> NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
           gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdXcoord * dydalpha
-          ! gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
+          !> gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
           gds22 = (geo_surf%shat * grad_x)**2
           !gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
           
-          ! gbdrift_alpha and cvdrift_alpha contain
-          ! the grad-B and curvature drifts projected onto
-          ! the grad alpha direction
-          ! need the projections on grad y
+          !> gbdrift_alpha and cvdrift_alpha contain
+          !> the grad-B and curvature drifts projected onto
+          !> the grad alpha direction
+          !> need the projections on grad y
           gbdrift = gbdrift_alpha * dydalpha
           cvdrift = cvdrift_alpha * dydalpha
 
-          ! gbdrift0_psi and cvdrift0_psi contain
-          ! the grad-B and curvature drifts projected onto
-          ! the grad psi direction
-          ! need the projections on grad x
+          !> gbdrift0_psi and cvdrift0_psi contain
+          !> the grad-B and curvature drifts projected onto
+          !> the grad psi direction
+          !> need the projections on grad x
           gbdrift0 = gbdrift0_psi * dxdXcoord
           cvdrift0 = cvdrift0_psi * dxdXcoord
 

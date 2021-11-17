@@ -563,18 +563,28 @@ contains
 
   subroutine gyro_average_kxky_local (field, iz, ivmu, gyro_field)
 
+    use physics_flags, only: full_flux_surface
+    
     implicit none
 
     complex, dimension (:,:), intent (in) :: field
     integer, intent (in) :: iz, ivmu
     complex, dimension (:,:), intent (out) :: gyro_field
 
-    gyro_field = aj0x(:,:,iz,ivmu)*field
+    if (full_flux_surface) then
+       !> if simulating a full flux surface, the alpha dependence present
+       !> in kperp makes gyro-averaging non-local in k-space
+       call gyro_average (field, gyro_field, j0_ffs(:,:,iz,ivmu))
+    else
+       !> if simulating a flux tube, a gyro-average is local in k-space
+       gyro_field = aj0x(:,:,iz,ivmu)*field
+    end if
 
   end subroutine gyro_average_kxky_local
 
   subroutine gyro_average_kxkyz_local (field, ivmu, gyro_field)
 
+    use physics_flags, only: full_flux_surface
     use zgrid, only: nzgrid, ntubes
 
     implicit none
@@ -583,8 +593,15 @@ contains
     integer, intent (in) :: ivmu
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_field
 
-    gyro_field = spread(aj0x(:,:,:,ivmu),4,ntubes)*field
-
+    if (full_flux_surface) then
+       !> if simulating a full flux surface, the alpha dependence present
+       !> in kperp makes gyro-averaging non-local in k-space
+       call gyro_average (field, gyro_field, j0_ffs(:,:,:,ivmu))
+    else
+       !> if simulating a flux tube, a gyro-average is local in k-space
+       gyro_field = spread(aj0x(:,:,:,ivmu),4,ntubes)*field
+    end if
+       
   end subroutine gyro_average_kxkyz_local
 
   subroutine gyro_average_ffs_kxky_local (field, gyro_field, coefs)
