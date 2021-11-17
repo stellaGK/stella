@@ -7,7 +7,7 @@ module run_parameters
   public :: init_run_parameters, finish_run_parameters
   public :: fphi, fapar, fbpar
   public :: code_delt_max
-  public :: nstep, delt
+  public :: nstep, tend, delt
   public :: cfl_cushion, delt_adjust
   public :: avail_cpu_time
   public :: stream_implicit, mirror_implicit
@@ -26,7 +26,7 @@ module run_parameters
 
   real :: cfl_cushion, delt_adjust
   real :: fphi, fapar, fbpar
-  real :: delt, code_delt_max
+  real :: delt, tend, code_delt_max
   real :: zed_upwind, vpa_upwind, time_upwind
   logical :: stream_implicit, mirror_implicit
   logical :: driftkinetic_implicit
@@ -83,7 +83,7 @@ contains
 
     integer :: ierr, in_file
 
-    namelist /knobs/ fphi, fapar, fbpar, delt, nstep, &
+    namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
          delt_option, lu_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
@@ -120,6 +120,8 @@ contains
        ky_solve_real   = .false.
        mat_gen = .true.
        mat_read = .false.
+       tend = -1.0
+       nstep = -1
 
        in_file = input_unit_exist("knobs", knexist)
        if (knexist) read (unit=in_file, nml=knobs)
@@ -132,6 +134,17 @@ contains
        call get_option_value &
             (lu_option, lu_opts, lu_option_switch, ierr, &
             "lu_option in knobs")
+            
+       if (tend<0 .and. nstep<0) then   
+          ierr = error_unit()
+          write (ierr,*) ''
+          write (ierr,*) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
+          write (ierr,*) 'Aborting.'
+          write (*,*) ''
+          write (*,*) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
+          write (*,*) 'Aborting.'
+          stop
+       end if
 
     end if
 
@@ -156,6 +169,7 @@ contains
     call broadcast (vpa_upwind)
     call broadcast (time_upwind)
     call broadcast (nstep)
+    call broadcast (tend)
     call broadcast (avail_cpu_time)
     call broadcast (rng_seed)
     call broadcast (ky_solve_radial)
