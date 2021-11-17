@@ -196,10 +196,10 @@ contains
        !> in y-space rather than ky-space due to alpha-dependence of coefficients
        if (full_flux_surface) then
           llim = kxyz_lo%llim_proc
-          ulim = kxyz_lo%ulim_proc
+          ulim = kxyz_lo%ulim_alloc
        else
           llim = kxkyz_lo%llim_proc
-          ulim = kxkyz_lo%ulim_proc
+          ulim = kxkyz_lo%ulim_alloc
        end if
 
        allocate(mirror_tri_a(nvpa,nmu,llim:ulim)) ; mirror_tri_a = 0.
@@ -273,6 +273,8 @@ contains
 
   end subroutine init_invert_mirror_operator
 
+  !> advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
+  !> due to the mirror force term; it treats all terms explicitly in time
   subroutine advance_mirror_explicit (g, gout)
 
     use mp, only: proc0
@@ -280,15 +282,16 @@ contains
     use dist_fn_arrays, only: gvmu
     use job_manage, only: time_message
     use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
+    use stella_layouts, only: iv_idx, is_idx
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
     use physics_flags, only: full_flux_surface
-    use kt_grids, only: nakx, naky, ny
+    use kt_grids, only: nakx, naky, ny, ikx_max
     use vpamu_grids, only: nvpa, nmu
-    use vpamu_grids, only: vpa
+    use vpamu_grids, only: vpa, maxwell_vpa
     use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
-
+    
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
@@ -297,34 +300,45 @@ contains
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:,:), allocatable :: g0x
     complex, dimension (:,:), allocatable :: dgdv
-    
-    integer :: iv, ikxyz
+
+    integer :: ikxyz
+    integer :: ivmu, iv, is
 
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
 
     if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-       allocate (g0x(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0x(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        allocate (dgdv(nvpa,nmu))
        
-       ! for upwinding of vpa, need to evaluate dg/dvpa in y-space
-       ! this is necessary because the advection speed contains dB/dz, which depends on y
-       ! first must take g(ky) and transform to g(y)
+       !> for upwinding of vpa, need to evaluate dg/dvpa in y-space
+       !> this is necessary because the advection speed contains dB/dz, which depends on y
+       !> first must take g(ky,kx) and transform to g(y,kx)
        call transform_ky2y (g, g0x)
-       ! second, remap g so velocities are local
+       !> second, remap g so velocities are local
        call scatter (kxyz2vmu, g0x, g0v)
-       ! next, calculate dg/dvpa
+       !> next, calculate dg/dvpa;
+       !> we enforce a boundary condition on <f>, but with full_flux_surface = T,
+       !> g = <f> / F, so we use the chain rule to get two terms:
+       !> one with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
        do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
           dgdv = g0v(:,:,ikxyz)
-          call get_dgdvpa_annulus (dgdv, ikxyz)
+          !> get d <f> / dvpa
+          call get_dgdvpa_ffs (dgdv, ikxyz)
           do iv = 1, nvpa
              g0v(iv,:,ikxyz) = dgdv(iv,:) + 2.0*vpa(iv)*g0v(iv,:,ikxyz)
           end do
        end do
-       ! then take the results and remap again so y,kx,z local.
+       !> then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
-       ! finally add the mirror term to the RHS of the GK eqn
-       call add_mirror_term_annulus (g0x, gout)
+       !> multiply the result by exp(vpa^2) to convert from <f> to <f> / F
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          iv = iv_idx(vmu_lo,ivmu)
+          is = is_idx(vmu_lo,ivmu)
+          g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv,is)
+       end do
+       !> finally add the mirror term to the RHS of the GK eqn
+       call add_mirror_term_ffs (g0x, gout)
        deallocate (dgdv)
     else
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -417,7 +431,7 @@ contains
 
   end subroutine add_mirror_radial_variation
 
-  subroutine get_dgdvpa_annulus (g, ikxyz)
+  subroutine get_dgdvpa_ffs (g, ikxyz)
 
     use finite_differences, only: third_order_upwind
     use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
@@ -442,7 +456,7 @@ contains
     end do
     deallocate (tmp)
 
-  end subroutine get_dgdvpa_annulus
+  end subroutine get_dgdvpa_ffs
 
   subroutine get_dgdvpa_explicit (g)
 
@@ -493,12 +507,12 @@ contains
 
   end subroutine add_mirror_term
 
-  subroutine add_mirror_term_annulus (g, src)
+  subroutine add_mirror_term_ffs (g, src)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx
+    use kt_grids, only: ikx_max
 
     implicit none
 
@@ -510,10 +524,10 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(mirror(:,:,imu,is),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(mirror(:,:,imu,is),2,ikx_max),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_mirror_term_annulus
+  end subroutine add_mirror_term_ffs
 
   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
   subroutine advance_mirror_implicit (collisions_implicit, g)
