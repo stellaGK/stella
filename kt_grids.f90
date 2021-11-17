@@ -312,7 +312,7 @@ contains
     end if
 
     norm = 1.
-    if (nakx.gt.1) norm = aky(2)
+    if (naky.gt.1) norm = aky(2)
     if (rhostar.gt.0.) then
       phase_shift_fac =-2.*pi*(2*nperiod-1)*geo_surf%qinp_psi0*dydalpha/rhostar
     else if (randomize_phase_shift) then
