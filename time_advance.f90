@@ -321,9 +321,6 @@ contains
 
     end do
 
-    write(*,*) "wdrifty_phi(1,:,10) = ", wdrifty_phi(1,:,10)
-    write(*,*) "wdriftx_phi(1,:,10) = ", wdriftx_phi(1,:,10)
-
     deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
   end subroutine init_wdrift
@@ -372,7 +369,7 @@ contains
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
-    write(*,*) "wstar(1,:,10) = ", wstar(1,:,10)
+
     deallocate (energy)
 
   end subroutine init_wstar
