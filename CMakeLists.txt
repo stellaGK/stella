@@ -79,6 +79,7 @@ set(STELLA_SOURCES_fpp
   sources.fpp
   stella_io.fpp
   stella_save.fpp
+  zf_diagnostics.fpp
 )
 set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
   Fortran_PREPROCESS ON
