@@ -62,6 +62,7 @@ stella_mod = \
 	 vmec_to_stella_geometry_interface.o \
 	 volume_averages.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 
 test_vmec_to_stella_geometry_interface_mod = \
@@ -284,6 +285,7 @@ mirror_terms.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 mp.o: \
 	 constants.o \
@@ -343,6 +345,7 @@ parallel_streaming.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 physics_flags.o: \
 	 file_utils.o \
@@ -359,7 +362,6 @@ response_matrix.o: \
 	 common_types.o \
 	 dist_fn.o \
 	 extended_zgrid.o \
-	 fields.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
 	 job_manage.o \
@@ -484,6 +486,7 @@ stella_diagnostics.o: \
 	 stella_transforms.o \
 	 volume_averages.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 stella_geometry.o: \
 	 common_types.o \
@@ -511,6 +514,7 @@ stella_io.o: \
 	 species.o \
 	 stella_geometry.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 stella_layouts.o: \
 	 common_types.o \
@@ -572,6 +576,7 @@ time_advance.o: \
 	 stella_transforms.o \
 	 text_options.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 vmec_geo.o: \
 	 common_types.o \
@@ -599,6 +604,28 @@ vpamu_grids.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 zgrid.o 
+zf_diagnostics.o: \
+	 dist_fn.o \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 linear_solve.o \
+	 mp.o \
+	 mp_lu_decomposition.o \
+	 multibox.o \
+	 physics_flags.o \
+	 run_parameters.o \
+	 sources.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 vpamu_grids.o \
 	 zgrid.o 
 zgrid.o: \
 	 constants.o \
