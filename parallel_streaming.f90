@@ -186,6 +186,7 @@ contains
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use run_parameters, only: driftkinetic_implicit
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_prl_str
 
     implicit none
 
@@ -196,6 +197,8 @@ contains
     integer :: ivmu, iv, imu, is, ia, iz, it
     complex, dimension (:,:,:,:), allocatable :: g0, dgphi_dz
     complex, dimension (:,:,:,:), allocatable :: g0y, g1y
+
+    call clear_zf_staging_array
     
     ! if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
     ! if full flux surface (flux annulus), will need to calculate in y space
@@ -284,6 +287,8 @@ contains
 
     ! finish timing the subroutine
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
+
+    call calculate_zf_stress (zf_prl_str)
 
   end subroutine advance_parallel_streaming_explicit
 
@@ -494,10 +499,12 @@ contains
 
   subroutine add_stream_term (g, ivmu, src)
 
+    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
+    use zf_diagnostics, only: zf_staging
 
     implicit none
 
@@ -510,10 +517,11 @@ contains
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
     src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
+    zf_staging(:,:,:,ivmu) = spread(spread(stream(:,iv,is),2,nakx),3,ntubes)*g(1,:,:,:)/code_dt
 
   end subroutine add_stream_term
 
-    subroutine add_stream_term_annulus (g, ivmu, src)
+  subroutine add_stream_term_annulus (g, ivmu, src)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx

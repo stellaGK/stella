@@ -1356,6 +1356,7 @@ contains
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_mgny_drft
 
     implicit none
 
@@ -1369,6 +1370,8 @@ contains
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
+
+    call clear_zf_staging_array
 
     allocate (dphidy(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -1407,6 +1410,8 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
+    call calculate_zf_stress (zf_mgny_drft)
+
   end subroutine advance_wdrifty_explicit
 
   subroutine advance_wdriftx_explicit (g, phi, gout)
@@ -1420,6 +1425,7 @@ contains
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_mgnx_drft
 
     implicit none
 
@@ -1433,6 +1439,8 @@ contains
 
     ! psi-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
+
+    call clear_zf_staging_array
 
     ! do not calculate if wdriftx terms are all zero
     if (maxval(abs(akx))<epsilon(0.)) then
@@ -1476,6 +1484,8 @@ contains
     deallocate (g0k, dphidx)
 
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
+
+    call calculate_zf_stress (zf_mgnx_drft)
 
   end subroutine advance_wdriftx_explicit
 
@@ -2191,9 +2201,11 @@ contains
 
   subroutine add_dg_term (g, wdrift_in, src)
 
+    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
+    use zf_diagnostics, only: zf_staging
 
     implicit none
 
@@ -2206,6 +2218,8 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
             + spread(spread(spread(wdrift_in(:,ivmu),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+       zf_staging(:,:,:,ivmu) = zf_staging(:,:,:,ivmu) &
+            + spread(spread(wdrift_in(:,ivmu),1,nakx),3,ntubes)*g(1,:,:,:,ivmu)/code_dt
     end do
 
   end subroutine add_dg_term
@@ -2281,9 +2295,11 @@ contains
 
   subroutine add_dphi_term (g, wdrift, src)
 
+    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
+    use zf_diagnostics, only: zf_staging
 
     implicit none
 
@@ -2296,6 +2312,8 @@ contains
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
             + spread(spread(spread(wdrift(:,ivmu),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+       zf_staging(:,:,:,ivmu) = zf_staging(:,:,:,ivmu) &
+            + spread(spread(wdrift(:,ivmu),1,nakx),3,ntubes)*g(1,:,:,:,ivmu)/code_dt
     end do
 
   end subroutine add_dphi_term

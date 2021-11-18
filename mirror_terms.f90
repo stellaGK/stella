@@ -277,6 +277,7 @@ contains
     use vpamu_grids, only: vpa
     use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_mirror
 
     implicit none
 
@@ -290,6 +291,8 @@ contains
     integer :: iv, ikxyz
 
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
+
+    call clear_zf_staging_array
 
     if (full_flux_surface) then
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
@@ -337,6 +340,8 @@ contains
     deallocate (g0x, g0v)
 
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
+
+    call calculate_zf_stress (zf_mirror)
 
   end subroutine advance_mirror_explicit
 
@@ -462,10 +467,12 @@ contains
 
   subroutine add_mirror_term (g, src)
 
+    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: imu_idx, is_idx
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: naky, nakx
+    use zf_diagnostics, only: zf_staging
 
     implicit none
 
@@ -478,6 +485,7 @@ contains
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(mirror(1,:,imu,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+       zf_staging(:,:,:,ivmu) = spread(spread(mirror(1,:,imu,is),1,nakx),3,ntubes)*g(1,:,:,:,ivmu)/code_dt
     end do
 
   end subroutine add_mirror_term

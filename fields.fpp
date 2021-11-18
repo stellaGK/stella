@@ -9,7 +9,7 @@ module fields
   public :: get_radial_correction
   public :: enforce_reality_field
   public :: get_fields_by_spec, get_fields_by_spec_idx
-  public :: gamtot_h, gamtot3_h, gamtot3, dgamtot3dr
+  public :: gamtot_h, gamtot3_h
   public :: time_field_solve
   public :: fields_updated
   public :: get_dchidy, get_dchidx
@@ -18,7 +18,6 @@ module fields
   private
 
   real, dimension (:,:,:), allocatable ::  apar_denom
-  real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
 
   complex, dimension (:,:), allocatable :: save1, save2
@@ -67,6 +66,7 @@ contains
     use linear_solve, only: lu_decomposition
     use multibox, only: init_mb_get_phi
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
+    use fields_arrays, only: gamtot3, dgamtot3dr
     use file_utils, only: runtype_option_switch, runtype_multibox
     
 
@@ -825,6 +825,7 @@ end subroutine get_fields_by_spec_idx
     use multibox, only: mb_get_phi, copy_size
     use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
+    use fields_arrays, only: gamtot3
     use file_utils, only: runtype_option_switch, runtype_multibox
     use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 #if defined MPI && ISO_C_BINDING
@@ -1090,6 +1091,7 @@ end subroutine get_fields_by_spec_idx
     use species, only: spec, has_electron_species
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: gamtot, dgamtotdr
+    use fields_arrays, only: gamtot3, dgamtot3dr
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
@@ -1312,6 +1314,7 @@ end subroutine get_fields_by_spec_idx
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
     use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
+    use fields_arrays, only: gamtot3, dgamtot3dr
 
     implicit none
 

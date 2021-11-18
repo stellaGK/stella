@@ -25,7 +25,9 @@ module fields_arrays
   real, dimension (:), allocatable :: shift_state
 
   real, dimension (:,:,:), allocatable :: gamtot, dgamtotdr
+  real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   !real :: gamtot_h, gamtot3_h, efac, efacp
+
 
 
   complex, dimension (:,:,:), allocatable :: theta

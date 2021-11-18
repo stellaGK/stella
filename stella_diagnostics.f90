@@ -49,6 +49,7 @@ contains
   subroutine init_stella_diagnostics (restart, tstart)
 
     use zgrid, only: init_zgrid
+    use zf_diagnostics, only: init_zf_diagnostics
     use kt_grids, only: init_kt_grids
     use physics_parameters, only: init_physics_parameters
     use run_parameters, only: init_run_parameters
@@ -113,6 +114,8 @@ contains
     ! Get the final position [[nout]] of the time axis in the netcdf file
     if (proc0) call get_nout (tstart,nout)
     call broadcast (nout)
+
+    call init_zf_diagnostics (nwrite)
 
   end subroutine init_stella_diagnostics
 
@@ -265,6 +268,7 @@ contains
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
     use stella_io, only: write_moments_nc
+    use stella_io, only: write_zf_diag_nc
     use stella_io, only: write_radial_fluxes_nc
     use stella_io, only: write_radial_moments_nc
     use stella_io, only: write_fluxes_kxkyz_nc
@@ -382,6 +386,7 @@ contains
          if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
          call write_time_nc (nout, code_time)
          call write_phi2_nc (nout, phi2)
+         call write_zf_diag_nc (nout)
          if (write_phi_vs_time) then
             if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
             call write_phi_nc (nout, phi_out)
@@ -1370,6 +1375,7 @@ contains
     use stella_save, only: stella_save_for_restart
     use dist_redistribute, only: kxkyz2vmu
     use dist_fn_arrays, only: gnew, gvmu
+    use zf_diagnostics, only: finish_zf_diagnostics
 
     implicit none
 
@@ -1389,6 +1395,8 @@ contains
 
     nout = 1
     diagnostics_initialized = .false.
+
+    call finish_zf_diagnostics
 
   end subroutine finish_stella_diagnostics
 

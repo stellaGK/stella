@@ -13,6 +13,7 @@ module stella_io
 
   public :: init_stella_io, finish_stella_io
   public :: write_time_nc
+  public :: write_zf_diag_nc
   public :: write_phi2_nc
   public :: write_phi_nc
   public :: write_gvmus_nc
@@ -28,7 +29,7 @@ module stella_io
 # ifdef NETCDF
   integer (kind_nf) :: ncid
   integer (kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim
-  integer (kind_nf) :: nakx_dim, ntubes_dim, radgridvar_dim
+  integer (kind_nf) :: nakx_dim, ntubes_dim, radgridvar_dim, zf_calc_dim
   integer (kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
   integer (kind_nf) :: nalpha_dim
 
@@ -39,7 +40,7 @@ module stella_io
   integer, dimension (6) :: flx_dim
   integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
-  integer, dimension (2) :: flux_surface_dim, rad_grid_dim
+  integer, dimension (2) :: flux_surface_dim, rad_grid_dim, zf_diag_dim
 
   integer :: nakx_id, ntubes_id
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
@@ -56,7 +57,7 @@ module stella_io
   integer :: vnew_id, spec_type_id
   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
-  integer :: kperp2_id, rad_grid_id
+  integer :: kperp2_id, rad_grid_id, zf_diag_id
   integer :: grho_id, jacob_id, djacdrho_id, shat_id, drhodpsi_id, q_id, jtwist_id
   integer :: d2qdr2_id, d2psidr2_id
   integer :: beta_id
@@ -136,6 +137,7 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use species, only: nspec
     use physics_flags, only: radial_variation
+    use zf_diagnostics, only: ncalc
 # ifdef NETCDF
     use netcdf, only: nf90_unlimited
     use netcdf, only: nf90_def_dim, nf90_inq_dimid
@@ -218,6 +220,11 @@ contains
         status = nf90_def_dim (ncid, 'radgridvar', 3, radgridvar_dim)
         if (status /= nf90_noerr) call netcdf_error (status, dim='radgridvar')
       endif
+    endif
+    status = nf90_inq_dimid(ncid,'zfcalc',zf_calc_dim)
+    if (status /= nf90_noerr) then
+      status = nf90_def_dim (ncid, 'zfcalc', ncalc, zf_calc_dim)
+      if (status /= nf90_noerr) call netcdf_error (status, dim='zfcalc')
     endif
 # endif
   end subroutine define_dims
@@ -332,6 +339,9 @@ contains
 
     rad_grid_dim (1) = radgridvar_dim
     rad_grid_dim (2) = nakx_dim
+
+    zf_diag_dim (1) = zf_calc_dim
+    zf_diag_dim (2) = time_dim
 
     heat_dim (1) = nspec_dim
     heat_dim (2) = nheat_dim
@@ -790,6 +800,15 @@ contains
           status = nf90_put_att (ncid, phi_vs_t_id, 'long_name', 'Electrostatic Potential vs time')
           if (status /= nf90_noerr) call netcdf_error (status, ncid, phi_vs_t_id, att='long_name')
        end if
+       !if (write_zf_diag) then
+       if (.true.) then
+          status = nf90_inq_varid(ncid,'zf_diag',zf_diag_id)
+          if(status /= nf90_noerr) then
+            status = nf90_def_var &
+               (ncid, 'zf_diag', netcdf_real, zf_diag_dim, zf_diag_id)
+            if (status /= nf90_noerr) call netcdf_error (status, var='zf_diag')
+          endif
+       end if
        if (write_radial_moments) then
           status = nf90_inq_varid(ncid,'dens_x',dens_x_id)
           if(status /= nf90_noerr) then
@@ -1046,6 +1065,32 @@ contains
 # endif
 
   end subroutine write_phi_nc
+
+  subroutine write_zf_diag_nc (nout)
+
+# ifdef NETCDF
+    use netcdf, only: nf90_put_var
+# endif
+    use zf_diagnostics, only: zf_diag_data, ncalc
+
+    implicit none
+
+    integer, intent (in) :: nout
+
+# ifdef NETCDF
+    integer :: status
+    integer, dimension (2) :: start, count
+
+    start = 1
+    start(2) = nout
+    count(1) = ncalc
+    count(2) = 1
+
+    status = nf90_put_var (ncid, zf_diag_id, zf_diag_data, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, zf_diag_id)
+# endif
+
+  end subroutine write_zf_diag_nc
 
   subroutine write_radial_fluxes_nc (nout, pflux, vflux,qflux)
 

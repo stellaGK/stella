@@ -12,6 +12,8 @@ module stella_time
   ! in exb_shear calculation after change in time step size
   real :: code_dt_old = 0.
   real :: code_time = 0.
+ 
+  integer :: istep
 
   public :: code_dt, update_time, code_dt_old
   public :: code_time
@@ -19,6 +21,7 @@ module stella_time
   public :: init_tstart, init_delt
   public :: cfl_dt
   public :: code_dt_min, code_dt_max
+  public :: istep
 
 contains
 

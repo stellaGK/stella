@@ -276,6 +276,8 @@ INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
 	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
 CFLAGS += $(COPTFLAGS)
 
+CPPFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
 DATE=$(shell date +%y%m%d)
 TARDIR=$(GK_PROJECT)_$(DATE)
 TOPDIR=$(CURDIR)
@@ -360,7 +362,7 @@ check: check-unit check-integrated
 
 .INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
 		mp.f90 fft_work.f90 response_matrix.f90 multibox.f90 sources.f90 \
-		fields.f90 mp_lu_decomposition.f90
+		fields.f90 mp_lu_decomposition.f90 zf_diagnostics.f90
 
 ############################################################# MORE DIRECTIVES
 

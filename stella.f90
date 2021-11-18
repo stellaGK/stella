@@ -4,7 +4,7 @@ program stella
   use redistribute, only: scatter
   use job_manage, only: time_message, checkstop, job_fork
   use run_parameters, only: nstep, tend, fphi, fapar
-  use stella_time, only: update_time, code_time, code_dt
+  use stella_time, only: update_time, code_time, code_dt, istep
   use dist_redistribute, only: kxkyz2vmu
   use time_advance, only: advance_stella
   use stella_diagnostics, only: diagnose_stella, nsave
@@ -22,7 +22,7 @@ program stella
   logical :: stop_stella = .false.
   logical :: mpi_initialized = .false.
 
-  integer :: istep0, istep, ierr
+  integer :: istep0, ierr
   integer :: istatus
   real, dimension (2) :: time_init = 0.
   real, dimension (2) :: time_diagnostics = 0.
