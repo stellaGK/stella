@@ -390,14 +390,11 @@ contains
 
     integer :: iz, it
 
-    ! NEED TO FIGURE OUT WHY BELOW LOOP SLOWS DOWN CODE A BIT
-    ! WILL HAVE TO USE IT WHEN DOING FULL FLUX SURFACE
-!    do it = 1, ntubes
-!       do iz = -nzgrid, nzgrid
-!          call gyro_average (field(:,:,iz,it), iz, ivmu, gyro_field(:,:,iz,it))
-!       end do
-!    end do
-    gyro_field = spread(aj0x(:,:,:,ivmu),4,ntubes)*field
+    do it = 1, ntubes
+       do iz = -nzgrid, nzgrid
+         gyro_field(:,:,iz,it) = aj0x(:,:,iz,ivmu)*field(:,:,iz,it)
+       end do
+    end do
 
   end subroutine gyro_average_kxkyz_local
 
@@ -460,9 +457,9 @@ contains
 
     do it = 1, ntubes
        do iz = -nzgrid, nzgrid
-          call gyro_average_j1 (field(:,:,iz,it), iz, ivmu, gyro_field(:,:,iz,it))
+         gyro_field(:,:,iz,it) = aj1x(:,:,iz,ivmu)*field(:,:,iz,it)
        end do
-    end do
+    enddo
 
   end subroutine gyro_average_j1_kxkyz_local
 
