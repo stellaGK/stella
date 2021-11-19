@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.4% of total for source files.">952 statements</a>
+    title=" 2.5% of total for source files.">958 statements</a>
      </li> 
      
      
@@ -1500,120 +1500,125 @@
 <a name="ln-1225"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span>
 <a name="ln-1226"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:,</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dchidy</span>
 <a name="ln-1227"></a>
-<a name="ln-1228"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span>
-<a name="ln-1229"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">field</span>
+<a name="ln-1228"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ikx</span>
+<a name="ln-1229"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">field</span>
 <a name="ln-1230"></a>
 <a name="ln-1231"></a>    <span class="k">allocate</span> <span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="n">nakx</span><span class="p">,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span><span class="n">ntubes</span><span class="p">))</span>
 <a name="ln-1232"></a>
 <a name="ln-1233"></a>    <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
 <a name="ln-1234"></a>       <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
 <a name="ln-1235"></a>       <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-1236"></a>       <span class="n">field</span> <span class="o">=</span> <span class="n">zi</span><span class="o">*</span><span class="nb">spread</span><span class="p">(</span><span class="nb">spread</span><span class="p">(</span><span class="nb">spread</span><span class="p">(</span><span class="n">aky</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">nakx</span><span class="p">),</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">nzgrid</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="mi">4</span><span class="p">,</span><span class="n">ntubes</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-1237"></a>            <span class="o">*</span> <span class="p">(</span> <span class="n">fphi</span><span class="o">*</span><span class="n">phi</span> <span class="o">-</span> <span class="n">fapar</span><span class="o">*</span><span class="n">vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span><span class="o">*</span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">stm</span><span class="o">*</span><span class="n">apar</span> <span class="p">)</span>
-<a name="ln-1238"></a>       <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dchidy</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">))</span>
-<a name="ln-1239"></a>    <span class="k">end do</span>
-<a name="ln-1240"></a>
-<a name="ln-1241"></a><span class="k">    deallocate</span> <span class="p">(</span><span class="n">field</span><span class="p">)</span>
-<a name="ln-1242"></a>
-<a name="ln-1243"></a>  <span class="k">end subroutine </span><span class="n">get_dchidy_4d</span>
-<a name="ln-1244"></a>
-<a name="ln-1245"></a>  <span class="k">subroutine </span><span class="n">get_dchidy_2d</span> <span class="p">(</span><span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span><span class="p">,</span> <span class="n">dchidy</span><span class="p">)</span>
-<a name="ln-1246"></a>
-<a name="ln-1247"></a>    <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">zi</span>
-<a name="ln-1248"></a>    <span class="k">use </span><span class="n">gyro_averages</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">gyro_average</span>
-<a name="ln-1249"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-1250"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">is_idx</span><span class="p">,</span> <span class="n">iv_idx</span>
-<a name="ln-1251"></a>    <span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span>
-<a name="ln-1252"></a>    <span class="k">use </span><span class="n">species</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">spec</span>
-<a name="ln-1253"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vpa</span>
-<a name="ln-1254"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">aky</span><span class="p">,</span> <span class="n">naky</span>
-<a name="ln-1255"></a>
-<a name="ln-1256"></a>    <span class="k">implicit none</span>
-<a name="ln-1257"></a>
-<a name="ln-1258"></a><span class="k">    </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iz</span>
-<a name="ln-1259"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span>
-<a name="ln-1260"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dchidy</span>
-<a name="ln-1261"></a>
-<a name="ln-1262"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span>
-<a name="ln-1263"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">field</span>
-<a name="ln-1264"></a>
-<a name="ln-1265"></a>    <span class="k">allocate</span> <span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="n">nakx</span><span class="p">))</span>
+<a name="ln-1236"></a>       <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-1237"></a>         <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
+<a name="ln-1238"></a>           <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
+<a name="ln-1239"></a>             <span class="n">field</span><span class="p">(:,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)</span> <span class="o">=</span> <span class="n">zi</span><span class="o">*</span><span class="n">aky</span><span class="p">(:)</span><span class="o">*</span><span class="p">(</span><span class="n">fphi</span><span class="o">*</span><span class="n">phi</span><span class="p">(:,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)</span> <span class="o">-</span> <span class="n">fapar</span><span class="o">*</span><span class="n">vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span><span class="o">*</span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">stm</span><span class="o">*</span><span class="n">apar</span><span class="p">(:,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">))</span>
+<a name="ln-1240"></a>           <span class="k">end do</span>
+<a name="ln-1241"></a><span class="k">         end do</span>
+<a name="ln-1242"></a><span class="k">       end do</span>
+<a name="ln-1243"></a><span class="k">       call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dchidy</span><span class="p">(:,:,:,:,</span><span class="n">ivmu</span><span class="p">))</span>
+<a name="ln-1244"></a>    <span class="k">end do</span>
+<a name="ln-1245"></a>
+<a name="ln-1246"></a><span class="k">    deallocate</span> <span class="p">(</span><span class="n">field</span><span class="p">)</span>
+<a name="ln-1247"></a>
+<a name="ln-1248"></a>  <span class="k">end subroutine </span><span class="n">get_dchidy_4d</span>
+<a name="ln-1249"></a>
+<a name="ln-1250"></a>  <span class="k">subroutine </span><span class="n">get_dchidy_2d</span> <span class="p">(</span><span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span><span class="p">,</span> <span class="n">dchidy</span><span class="p">)</span>
+<a name="ln-1251"></a>
+<a name="ln-1252"></a>    <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">zi</span>
+<a name="ln-1253"></a>    <span class="k">use </span><span class="n">gyro_averages</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">gyro_average</span>
+<a name="ln-1254"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-1255"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">is_idx</span><span class="p">,</span> <span class="n">iv_idx</span>
+<a name="ln-1256"></a>    <span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span>
+<a name="ln-1257"></a>    <span class="k">use </span><span class="n">species</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">spec</span>
+<a name="ln-1258"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vpa</span>
+<a name="ln-1259"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">aky</span><span class="p">,</span> <span class="n">naky</span>
+<a name="ln-1260"></a>
+<a name="ln-1261"></a>    <span class="k">implicit none</span>
+<a name="ln-1262"></a>
+<a name="ln-1263"></a><span class="k">    </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iz</span>
+<a name="ln-1264"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span>
+<a name="ln-1265"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dchidy</span>
 <a name="ln-1266"></a>
-<a name="ln-1267"></a>    <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-1268"></a>    <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-1269"></a>    <span class="n">field</span> <span class="o">=</span> <span class="n">zi</span><span class="o">*</span><span class="nb">spread</span><span class="p">(</span><span class="n">aky</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">nakx</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-1270"></a>         <span class="o">*</span> <span class="p">(</span> <span class="n">fphi</span><span class="o">*</span><span class="n">phi</span> <span class="o">-</span> <span class="n">fapar</span><span class="o">*</span><span class="n">vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span><span class="o">*</span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">stm</span><span class="o">*</span><span class="n">apar</span> <span class="p">)</span>
-<a name="ln-1271"></a>    <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dchidy</span><span class="p">)</span>
-<a name="ln-1272"></a>    
-<a name="ln-1273"></a>    <span class="k">deallocate</span> <span class="p">(</span><span class="n">field</span><span class="p">)</span>
-<a name="ln-1274"></a>
-<a name="ln-1275"></a>  <span class="k">end subroutine </span><span class="n">get_dchidy_2d</span>
-<a name="ln-1276"></a>
-<a name="ln-1277"></a>  <span class="k">subroutine </span><span class="n">get_dchidx</span> <span class="p">(</span><span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span><span class="p">,</span> <span class="n">dchidx</span><span class="p">)</span>
-<a name="ln-1278"></a>
-<a name="ln-1279"></a>    <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">zi</span>
-<a name="ln-1280"></a>    <span class="k">use </span><span class="n">gyro_averages</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">gyro_average</span>
-<a name="ln-1281"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-1282"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">is_idx</span><span class="p">,</span> <span class="n">iv_idx</span>
-<a name="ln-1283"></a>    <span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span>
-<a name="ln-1284"></a>    <span class="k">use </span><span class="n">species</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">spec</span>
-<a name="ln-1285"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vpa</span>
-<a name="ln-1286"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">akx</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span>
-<a name="ln-1287"></a>
-<a name="ln-1288"></a>    <span class="k">implicit none</span>
-<a name="ln-1289"></a>
-<a name="ln-1290"></a><span class="k">    </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iz</span>
-<a name="ln-1291"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span>
-<a name="ln-1292"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dchidx</span>
-<a name="ln-1293"></a>
-<a name="ln-1294"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span>
-<a name="ln-1295"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">field</span>
-<a name="ln-1296"></a>
-<a name="ln-1297"></a>    <span class="k">allocate</span> <span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="n">nakx</span><span class="p">))</span>
+<a name="ln-1267"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span>
+<a name="ln-1268"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">field</span>
+<a name="ln-1269"></a>
+<a name="ln-1270"></a>    <span class="k">allocate</span> <span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="n">nakx</span><span class="p">))</span>
+<a name="ln-1271"></a>
+<a name="ln-1272"></a>    <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-1273"></a>    <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-1274"></a>    <span class="n">field</span> <span class="o">=</span> <span class="n">zi</span><span class="o">*</span><span class="nb">spread</span><span class="p">(</span><span class="n">aky</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">nakx</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-1275"></a>         <span class="o">*</span> <span class="p">(</span> <span class="n">fphi</span><span class="o">*</span><span class="n">phi</span> <span class="o">-</span> <span class="n">fapar</span><span class="o">*</span><span class="n">vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span><span class="o">*</span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">stm</span><span class="o">*</span><span class="n">apar</span> <span class="p">)</span>
+<a name="ln-1276"></a>    <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dchidy</span><span class="p">)</span>
+<a name="ln-1277"></a>    
+<a name="ln-1278"></a>    <span class="k">deallocate</span> <span class="p">(</span><span class="n">field</span><span class="p">)</span>
+<a name="ln-1279"></a>
+<a name="ln-1280"></a>  <span class="k">end subroutine </span><span class="n">get_dchidy_2d</span>
+<a name="ln-1281"></a>
+<a name="ln-1282"></a>  <span class="k">subroutine </span><span class="n">get_dchidx</span> <span class="p">(</span><span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span><span class="p">,</span> <span class="n">dchidx</span><span class="p">)</span>
+<a name="ln-1283"></a>
+<a name="ln-1284"></a>    <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">zi</span>
+<a name="ln-1285"></a>    <span class="k">use </span><span class="n">gyro_averages</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">gyro_average</span>
+<a name="ln-1286"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-1287"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">is_idx</span><span class="p">,</span> <span class="n">iv_idx</span>
+<a name="ln-1288"></a>    <span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span>
+<a name="ln-1289"></a>    <span class="k">use </span><span class="n">species</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">spec</span>
+<a name="ln-1290"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vpa</span>
+<a name="ln-1291"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">akx</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span>
+<a name="ln-1292"></a>
+<a name="ln-1293"></a>    <span class="k">implicit none</span>
+<a name="ln-1294"></a>
+<a name="ln-1295"></a><span class="k">    </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iz</span>
+<a name="ln-1296"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span>
+<a name="ln-1297"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dchidx</span>
 <a name="ln-1298"></a>
-<a name="ln-1299"></a>    <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-1300"></a>    <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-1301"></a>    <span class="n">field</span> <span class="o">=</span> <span class="n">zi</span><span class="o">*</span><span class="nb">spread</span><span class="p">(</span><span class="n">akx</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">naky</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-1302"></a>         <span class="o">*</span> <span class="p">(</span> <span class="n">fphi</span><span class="o">*</span><span class="n">phi</span> <span class="o">-</span> <span class="n">fapar</span><span class="o">*</span><span class="n">vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span><span class="o">*</span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">stm</span><span class="o">*</span><span class="n">apar</span> <span class="p">)</span>
-<a name="ln-1303"></a>    <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dchidx</span><span class="p">)</span>
-<a name="ln-1304"></a>    
-<a name="ln-1305"></a>    <span class="k">deallocate</span> <span class="p">(</span><span class="n">field</span><span class="p">)</span>
-<a name="ln-1306"></a>
-<a name="ln-1307"></a>  <span class="k">end subroutine </span><span class="n">get_dchidx</span>
-<a name="ln-1308"></a>
-<a name="ln-1309"></a>  <span class="k">subroutine </span><span class="n">finish_fields</span>
-<a name="ln-1310"></a>
-<a name="ln-1311"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">phi</span><span class="p">,</span> <span class="n">phi_old</span>
-<a name="ln-1312"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">phi_corr_QN</span><span class="p">,</span> <span class="n">phi_corr_GA</span>
-<a name="ln-1313"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">apar</span><span class="p">,</span> <span class="n">apar_corr_QN</span><span class="p">,</span> <span class="n">apar_corr_GA</span>
-<a name="ln-1314"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">gamtot</span><span class="p">,</span> <span class="n">dgamtotdr</span><span class="p">,</span> <span class="n">phi_solve</span><span class="p">,</span> <span class="n">c_mat</span><span class="p">,</span> <span class="n">theta</span>
+<a name="ln-1299"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span>
+<a name="ln-1300"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">field</span>
+<a name="ln-1301"></a>
+<a name="ln-1302"></a>    <span class="k">allocate</span> <span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="n">nakx</span><span class="p">))</span>
+<a name="ln-1303"></a>
+<a name="ln-1304"></a>    <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-1305"></a>    <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-1306"></a>    <span class="n">field</span> <span class="o">=</span> <span class="n">zi</span><span class="o">*</span><span class="nb">spread</span><span class="p">(</span><span class="n">akx</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">naky</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-1307"></a>         <span class="o">*</span> <span class="p">(</span> <span class="n">fphi</span><span class="o">*</span><span class="n">phi</span> <span class="o">-</span> <span class="n">fapar</span><span class="o">*</span><span class="n">vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span><span class="o">*</span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">stm</span><span class="o">*</span><span class="n">apar</span> <span class="p">)</span>
+<a name="ln-1308"></a>    <span class="k">call </span><span class="n">gyro_average</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">dchidx</span><span class="p">)</span>
+<a name="ln-1309"></a>    
+<a name="ln-1310"></a>    <span class="k">deallocate</span> <span class="p">(</span><span class="n">field</span><span class="p">)</span>
+<a name="ln-1311"></a>
+<a name="ln-1312"></a>  <span class="k">end subroutine </span><span class="n">get_dchidx</span>
+<a name="ln-1313"></a>
+<a name="ln-1314"></a>  <span class="k">subroutine </span><span class="n">finish_fields</span>
 <a name="ln-1315"></a>
-<a name="ln-1316"></a>    <span class="k">implicit none</span>
-<a name="ln-1317"></a>
-<a name="ln-1318"></a><span class="k">    if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi</span><span class="p">)</span>
-<a name="ln-1319"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_old</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_old</span><span class="p">)</span>
-<a name="ln-1320"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_corr_QN</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_corr_QN</span><span class="p">)</span>
-<a name="ln-1321"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_corr_GA</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_corr_GA</span><span class="p">)</span>
-<a name="ln-1322"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar</span><span class="p">)</span>
-<a name="ln-1323"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar_corr_QN</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar_corr_QN</span><span class="p">)</span>
-<a name="ln-1324"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar_corr_GA</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar_corr_GA</span><span class="p">)</span>
-<a name="ln-1325"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">gamtot</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">gamtot</span><span class="p">)</span>
-<a name="ln-1326"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">gamtot3</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">gamtot3</span><span class="p">)</span>
-<a name="ln-1327"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">dgamtotdr</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">dgamtotdr</span><span class="p">)</span>
-<a name="ln-1328"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">dgamtot3dr</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">dgamtot3dr</span><span class="p">)</span>
-<a name="ln-1329"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar_denom</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar_denom</span><span class="p">)</span>
-<a name="ln-1330"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">save1</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">save1</span><span class="p">)</span>
-<a name="ln-1331"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">save2</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">save2</span><span class="p">)</span>
-<a name="ln-1332"></a>
-<a name="ln-1333"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_solve</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">phi_solve</span><span class="p">)</span>
-<a name="ln-1334"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">c_mat</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">c_mat</span><span class="p">)</span>
-<a name="ln-1335"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-<a name="ln-1336"></a>
-<a name="ln-1337"></a>    <span class="n">fields_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-1338"></a>
-<a name="ln-1339"></a>  <span class="k">end subroutine </span><span class="n">finish_fields</span>
-<a name="ln-1340"></a>
-<a name="ln-1341"></a><span class="k">end module </span><span class="n">fields</span>
+<a name="ln-1316"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">phi</span><span class="p">,</span> <span class="n">phi_old</span>
+<a name="ln-1317"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">phi_corr_QN</span><span class="p">,</span> <span class="n">phi_corr_GA</span>
+<a name="ln-1318"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">apar</span><span class="p">,</span> <span class="n">apar_corr_QN</span><span class="p">,</span> <span class="n">apar_corr_GA</span>
+<a name="ln-1319"></a>    <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">gamtot</span><span class="p">,</span> <span class="n">dgamtotdr</span><span class="p">,</span> <span class="n">phi_solve</span><span class="p">,</span> <span class="n">c_mat</span><span class="p">,</span> <span class="n">theta</span>
+<a name="ln-1320"></a>
+<a name="ln-1321"></a>    <span class="k">implicit none</span>
+<a name="ln-1322"></a>
+<a name="ln-1323"></a><span class="k">    if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+<a name="ln-1324"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_old</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_old</span><span class="p">)</span>
+<a name="ln-1325"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_corr_QN</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_corr_QN</span><span class="p">)</span>
+<a name="ln-1326"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_corr_GA</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_corr_GA</span><span class="p">)</span>
+<a name="ln-1327"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar</span><span class="p">)</span>
+<a name="ln-1328"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar_corr_QN</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar_corr_QN</span><span class="p">)</span>
+<a name="ln-1329"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar_corr_GA</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar_corr_GA</span><span class="p">)</span>
+<a name="ln-1330"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">gamtot</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">gamtot</span><span class="p">)</span>
+<a name="ln-1331"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">gamtot3</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">gamtot3</span><span class="p">)</span>
+<a name="ln-1332"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">dgamtotdr</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">dgamtotdr</span><span class="p">)</span>
+<a name="ln-1333"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">dgamtot3dr</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">dgamtot3dr</span><span class="p">)</span>
+<a name="ln-1334"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">apar_denom</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">apar_denom</span><span class="p">)</span>
+<a name="ln-1335"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">save1</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">save1</span><span class="p">)</span>
+<a name="ln-1336"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">save2</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">save2</span><span class="p">)</span>
+<a name="ln-1337"></a>
+<a name="ln-1338"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_solve</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">phi_solve</span><span class="p">)</span>
+<a name="ln-1339"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">c_mat</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">c_mat</span><span class="p">)</span>
+<a name="ln-1340"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="k">deallocate</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+<a name="ln-1341"></a>
+<a name="ln-1342"></a>    <span class="n">fields_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-1343"></a>
+<a name="ln-1344"></a>  <span class="k">end subroutine </span><span class="n">finish_fields</span>
+<a name="ln-1345"></a>
+<a name="ln-1346"></a><span class="k">end module </span><span class="n">fields</span>
 </pre></div>
 
     </section>
@@ -1627,13 +1632,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-62-ge8a33abe</small></p>
+                                          <br /><small>v0.3-63-g58d98cbf</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-17T16:53:18.318261 
+             on 2021-11-19T10:34:24.059511 
             
           </p>
         </div>

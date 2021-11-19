@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.8% of total for source files.">314 statements</a>
+    title=" 0.8% of total for source files.">318 statements</a>
      </li> 
      
      
@@ -665,97 +665,94 @@
 <a name="ln-390"></a>
 <a name="ln-391"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span>
 <a name="ln-392"></a>
-<a name="ln-393"></a>    <span class="c">! NEED TO FIGURE OUT WHY BELOW LOOP SLOWS DOWN CODE A BIT</span>
-<a name="ln-394"></a>    <span class="c">! WILL HAVE TO USE IT WHEN DOING FULL FLUX SURFACE</span>
-<a name="ln-395"></a><span class="c">!    do it = 1, ntubes</span>
-<a name="ln-396"></a><span class="c">!       do iz = -nzgrid, nzgrid</span>
-<a name="ln-397"></a><span class="c">!          call gyro_average (field(:,:,iz,it), iz, ivmu, gyro_field(:,:,iz,it))</span>
-<a name="ln-398"></a><span class="c">!       end do</span>
-<a name="ln-399"></a><span class="c">!    end do</span>
-<a name="ln-400"></a>    <span class="n">gyro_field</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">aj0x</span><span class="p">(:,:,:,</span><span class="n">ivmu</span><span class="p">),</span><span class="mi">4</span><span class="p">,</span><span class="n">ntubes</span><span class="p">)</span><span class="o">*</span><span class="n">field</span>
-<a name="ln-401"></a>
-<a name="ln-402"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_kxkyz_local</span>
-<a name="ln-403"></a>
-<a name="ln-404"></a>  <span class="k">subroutine </span><span class="n">gyro_average_vmu_local</span> <span class="p">(</span><span class="n">distfn</span><span class="p">,</span> <span class="n">ikxkyz</span><span class="p">,</span> <span class="n">gyro_distfn</span><span class="p">)</span>
-<a name="ln-405"></a>
-<a name="ln-406"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nvpa</span>
-<a name="ln-407"></a>
-<a name="ln-408"></a>    <span class="k">implicit none</span>
-<a name="ln-409"></a>
-<a name="ln-410"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">distfn</span>
-<a name="ln-411"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikxkyz</span>
-<a name="ln-412"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_distfn</span>
-<a name="ln-413"></a>
-<a name="ln-414"></a>    <span class="n">gyro_distfn</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">aj0v</span><span class="p">(:,</span><span class="n">ikxkyz</span><span class="p">),</span><span class="mi">1</span><span class="p">,</span><span class="n">nvpa</span><span class="p">)</span><span class="o">*</span><span class="n">distfn</span>
-<a name="ln-415"></a>
-<a name="ln-416"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_vmu_local</span>
-<a name="ln-417"></a>
-<a name="ln-418"></a>  <span class="k">subroutine </span><span class="n">gyro_average_vmus_nonlocal</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">)</span>
-<a name="ln-419"></a>
-<a name="ln-420"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-421"></a>
-<a name="ln-422"></a>    <span class="k">implicit none</span>
-<a name="ln-423"></a>
-<a name="ln-424"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">field</span>
-<a name="ln-425"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span>
-<a name="ln-426"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_field</span>
-<a name="ln-427"></a>
-<a name="ln-428"></a>    <span class="n">gyro_field</span> <span class="o">=</span> <span class="n">aj0x</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,:)</span><span class="o">*</span><span class="n">field</span>
-<a name="ln-429"></a>
-<a name="ln-430"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_vmus_nonlocal</span>
-<a name="ln-431"></a>
-<a name="ln-432"></a>  <span class="k">subroutine </span><span class="n">gyro_average_j1_kxky_local</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">)</span>
-<a name="ln-433"></a>
-<a name="ln-434"></a>    <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">full_flux_surface</span>
-<a name="ln-435"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span>
-<a name="ln-436"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ikx_max</span>
-<a name="ln-437"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">swap_kxky_ordered</span><span class="p">,</span> <span class="n">swap_kxky_back_ordered</span>
-<a name="ln-438"></a>
-<a name="ln-439"></a>    <span class="k">implicit none</span>
-<a name="ln-440"></a>
-<a name="ln-441"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">field</span>
-<a name="ln-442"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span>
-<a name="ln-443"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_field</span>
-<a name="ln-444"></a>
-<a name="ln-445"></a>    <span class="n">gyro_field</span> <span class="o">=</span> <span class="n">aj1x</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span><span class="o">*</span><span class="n">field</span>
-<a name="ln-446"></a>
-<a name="ln-447"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_j1_kxky_local</span>
-<a name="ln-448"></a>
-<a name="ln-449"></a>  <span class="k">subroutine </span><span class="n">gyro_average_j1_kxkyz_local</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">)</span>
-<a name="ln-450"></a>
-<a name="ln-451"></a>    <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">ntubes</span>
-<a name="ln-452"></a>
-<a name="ln-453"></a>    <span class="k">implicit none</span>
-<a name="ln-454"></a>
-<a name="ln-455"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">field</span>
-<a name="ln-456"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span>
-<a name="ln-457"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_field</span>
-<a name="ln-458"></a>
-<a name="ln-459"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span>
-<a name="ln-460"></a>
-<a name="ln-461"></a>    <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
-<a name="ln-462"></a>       <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
-<a name="ln-463"></a>          <span class="k">call </span><span class="n">gyro_average_j1</span> <span class="p">(</span><span class="n">field</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">),</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">))</span>
-<a name="ln-464"></a>       <span class="k">end do</span>
-<a name="ln-465"></a><span class="k">    end do</span>
-<a name="ln-466"></a>
-<a name="ln-467"></a><span class="k">  end subroutine </span><span class="n">gyro_average_j1_kxkyz_local</span>
-<a name="ln-468"></a>
-<a name="ln-469"></a>  <span class="k">subroutine </span><span class="n">gyro_average_j1_vmu_local</span> <span class="p">(</span><span class="n">distfn</span><span class="p">,</span> <span class="n">ikxkyz</span><span class="p">,</span> <span class="n">gyro_distfn</span><span class="p">)</span>
-<a name="ln-470"></a>
-<a name="ln-471"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nvpa</span>
-<a name="ln-472"></a>
-<a name="ln-473"></a>    <span class="k">implicit none</span>
-<a name="ln-474"></a>
-<a name="ln-475"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">distfn</span>
-<a name="ln-476"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikxkyz</span>
-<a name="ln-477"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_distfn</span>
-<a name="ln-478"></a>
-<a name="ln-479"></a>    <span class="n">gyro_distfn</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">aj1v</span><span class="p">(:,</span><span class="n">ikxkyz</span><span class="p">),</span><span class="mi">1</span><span class="p">,</span><span class="n">nvpa</span><span class="p">)</span><span class="o">*</span><span class="n">distfn</span>
-<a name="ln-480"></a>
-<a name="ln-481"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_j1_vmu_local</span>
-<a name="ln-482"></a>
-<a name="ln-483"></a><span class="k">end module </span><span class="n">gyro_averages</span>
+<a name="ln-393"></a>    <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-394"></a>       <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
+<a name="ln-395"></a>         <span class="n">gyro_field</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)</span> <span class="o">=</span> <span class="n">aj0x</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span><span class="o">*</span><span class="n">field</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)</span>
+<a name="ln-396"></a>       <span class="k">end do</span>
+<a name="ln-397"></a><span class="k">    end do</span>
+<a name="ln-398"></a>
+<a name="ln-399"></a><span class="k">  end subroutine </span><span class="n">gyro_average_kxkyz_local</span>
+<a name="ln-400"></a>
+<a name="ln-401"></a>  <span class="k">subroutine </span><span class="n">gyro_average_vmu_local</span> <span class="p">(</span><span class="n">distfn</span><span class="p">,</span> <span class="n">ikxkyz</span><span class="p">,</span> <span class="n">gyro_distfn</span><span class="p">)</span>
+<a name="ln-402"></a>
+<a name="ln-403"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nvpa</span>
+<a name="ln-404"></a>
+<a name="ln-405"></a>    <span class="k">implicit none</span>
+<a name="ln-406"></a>
+<a name="ln-407"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">distfn</span>
+<a name="ln-408"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikxkyz</span>
+<a name="ln-409"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_distfn</span>
+<a name="ln-410"></a>
+<a name="ln-411"></a>    <span class="n">gyro_distfn</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">aj0v</span><span class="p">(:,</span><span class="n">ikxkyz</span><span class="p">),</span><span class="mi">1</span><span class="p">,</span><span class="n">nvpa</span><span class="p">)</span><span class="o">*</span><span class="n">distfn</span>
+<a name="ln-412"></a>
+<a name="ln-413"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_vmu_local</span>
+<a name="ln-414"></a>
+<a name="ln-415"></a>  <span class="k">subroutine </span><span class="n">gyro_average_vmus_nonlocal</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">)</span>
+<a name="ln-416"></a>
+<a name="ln-417"></a>    <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-418"></a>
+<a name="ln-419"></a>    <span class="k">implicit none</span>
+<a name="ln-420"></a>
+<a name="ln-421"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">field</span>
+<a name="ln-422"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span>
+<a name="ln-423"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_field</span>
+<a name="ln-424"></a>
+<a name="ln-425"></a>    <span class="n">gyro_field</span> <span class="o">=</span> <span class="n">aj0x</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,:)</span><span class="o">*</span><span class="n">field</span>
+<a name="ln-426"></a>
+<a name="ln-427"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_vmus_nonlocal</span>
+<a name="ln-428"></a>
+<a name="ln-429"></a>  <span class="k">subroutine </span><span class="n">gyro_average_j1_kxky_local</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">)</span>
+<a name="ln-430"></a>
+<a name="ln-431"></a>    <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">full_flux_surface</span>
+<a name="ln-432"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span>
+<a name="ln-433"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ikx_max</span>
+<a name="ln-434"></a>    <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">swap_kxky_ordered</span><span class="p">,</span> <span class="n">swap_kxky_back_ordered</span>
+<a name="ln-435"></a>
+<a name="ln-436"></a>    <span class="k">implicit none</span>
+<a name="ln-437"></a>
+<a name="ln-438"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">field</span>
+<a name="ln-439"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ivmu</span>
+<a name="ln-440"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_field</span>
+<a name="ln-441"></a>
+<a name="ln-442"></a>    <span class="n">gyro_field</span> <span class="o">=</span> <span class="n">aj1x</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span><span class="o">*</span><span class="n">field</span>
+<a name="ln-443"></a>
+<a name="ln-444"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_j1_kxky_local</span>
+<a name="ln-445"></a>
+<a name="ln-446"></a>  <span class="k">subroutine </span><span class="n">gyro_average_j1_kxkyz_local</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">gyro_field</span><span class="p">)</span>
+<a name="ln-447"></a>
+<a name="ln-448"></a>    <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-449"></a>
+<a name="ln-450"></a>    <span class="k">implicit none</span>
+<a name="ln-451"></a>
+<a name="ln-452"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">field</span>
+<a name="ln-453"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ivmu</span>
+<a name="ln-454"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_field</span>
+<a name="ln-455"></a>
+<a name="ln-456"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span>
+<a name="ln-457"></a>
+<a name="ln-458"></a>    <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
+<a name="ln-459"></a>       <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
+<a name="ln-460"></a>         <span class="n">gyro_field</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)</span> <span class="o">=</span> <span class="n">aj1x</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span><span class="o">*</span><span class="n">field</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)</span>
+<a name="ln-461"></a>       <span class="k">end do</span>
+<a name="ln-462"></a><span class="k">    </span><span class="n">enddo</span>
+<a name="ln-463"></a>
+<a name="ln-464"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_j1_kxkyz_local</span>
+<a name="ln-465"></a>
+<a name="ln-466"></a>  <span class="k">subroutine </span><span class="n">gyro_average_j1_vmu_local</span> <span class="p">(</span><span class="n">distfn</span><span class="p">,</span> <span class="n">ikxkyz</span><span class="p">,</span> <span class="n">gyro_distfn</span><span class="p">)</span>
+<a name="ln-467"></a>
+<a name="ln-468"></a>    <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nvpa</span>
+<a name="ln-469"></a>
+<a name="ln-470"></a>    <span class="k">implicit none</span>
+<a name="ln-471"></a>
+<a name="ln-472"></a><span class="k">    </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">distfn</span>
+<a name="ln-473"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikxkyz</span>
+<a name="ln-474"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gyro_distfn</span>
+<a name="ln-475"></a>
+<a name="ln-476"></a>    <span class="n">gyro_distfn</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">aj1v</span><span class="p">(:,</span><span class="n">ikxkyz</span><span class="p">),</span><span class="mi">1</span><span class="p">,</span><span class="n">nvpa</span><span class="p">)</span><span class="o">*</span><span class="n">distfn</span>
+<a name="ln-477"></a>
+<a name="ln-478"></a>  <span class="k">end subroutine </span><span class="n">gyro_average_j1_vmu_local</span>
+<a name="ln-479"></a>
+<a name="ln-480"></a><span class="k">end module </span><span class="n">gyro_averages</span>
 </pre></div>
 
     </section>
@@ -769,13 +766,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-62-ge8a33abe</small></p>
+                                          <br /><small>v0.3-63-g58d98cbf</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-17T16:53:18.318261 
+             on 2021-11-19T10:34:24.059511 
             
           </p>
         </div>
