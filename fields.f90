@@ -382,23 +382,31 @@ contains
     
     implicit none
 
-    ! calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
-    ! this involves the factor 1-Gamma_0(kperp(alpha))
+    if (fields_initialized) return
+    fields_initialized = .true.
+
+    !> allocate arrays such as phi that are needed
+    !> throughout the simulation
+    call allocate_arrays
+    
+    !> calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
+    !> this involves the factor 1-Gamma_0(kperp(alpha))
     call init_gamma0_factor_ffs
 
-    ! if using a modified Boltzmann response for the electrons
+    !> if using a modified Boltzmann response for the electrons
     if (modified_adiabatic_electrons) then
-       ! obtain the response of phi_homogeneous to a unit perturbation in flux-surface-averaged phi
+       !> obtain the response of phi_homogeneous to a unit perturbation in flux-surface-averaged phi
        call init_adiabatic_response_factor
     end if
     
   end subroutine init_fields_ffs
   
-  ! calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
-  ! this involves the factor 1-Gamma_0(kperp(alpha))
+  !> calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
+  !> this involves the factor 1-Gamma_0(kperp(alpha))
   subroutine init_gamma0_factor_ffs
     
     use spfunc, only: j0
+    use dist_fn_arrays, only: kperp2
     use stella_transforms, only: transform_alpha2kalpha
     use physics_parameters, only: nine, tite
     use species, only: spec, nspec
@@ -429,61 +437,65 @@ contains
     allocate (kperp2_swap(naky_all,ikx_max,nalpha))
     allocate (aj0_alpha(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
     allocate (gam0_alpha(nalpha))
-    ! wgts are species-dependent factors appearing in Gamma0 factor
+    allocate (gam0_kalpha(naky))
+    !> wgts are species-dependent factors appearing in Gamma0 factor
     allocate (wgts(nspec))
     wgts = spec%dens*spec%z**2/spec%temp
-    ! allocate gam0_ffs array, which will contain the Fourier coefficients in y
-    ! of the Gamma0 factor that appears in quasineutrality
+    !> allocate gam0_ffs array, which will contain the Fourier coefficients in y
+    !> of the Gamma0 factor that appears in quasineutrality
     if (.not.allocated(gam0_ffs)) then
        allocate(gam0_ffs(naky_all,ikx_max,-nzgrid:nzgrid))
     end if
     
     do iz = -nzgrid, nzgrid
-       ! in calculating the Fourier coefficients for Gamma_0, change loop orders
-       ! so that inner loop is over ivmu super-index;
-       ! this is done because we must integrate over v-space and sum over species,
-       ! and we want to minimise memory usage where possible (so, e.g., aj0_alpha need
-       ! only be a function of ivmu and can be over-written for each (ia,iky,ikx)).
+       !> in calculating the Fourier coefficients for Gamma_0, change loop orders
+       !> so that inner loop is over ivmu super-index;
+       !> this is done because we must integrate over v-space and sum over species,
+       !> and we want to minimise memory usage where possible (so, e.g., aj0_alpha need
+       !> only be a function of ivmu and can be over-written for each (ia,iky,ikx)).
+       do ia = 1, nalpha
+          call swap_kxky_ordered (kperp2(:,:,ia,iz), kperp2_swap(:,:,ia))
+       end do
        do ikx = 1, ikx_max
           do iky = 1, naky_all
              do ia = 1, nalpha
-                ! get J0 for all vpar, mu, spec values
+                !> get J0 for all vpar, mu, spec values
                 do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                    is = is_idx(vmu_lo,ivmu)
                    imu = imu_idx(vmu_lo,ivmu)
                    iv = iv_idx(vmu_lo,ivmu)
-                   ! calculate the argument of the Bessel function J0
+                   !> calculate the argument of the Bessel function J0
                    arg = spec(is)%bess_fac*spec(is)%smz_psi0*sqrt(vperp2(ia,iz,imu)*kperp2_swap(iky,ikx,ia))/bmag(ia,iz)
-                   ! compute J0 corresponding to the given argument arg
+                   !> compute J0 corresponding to the given argument arg
                    aj0_alpha(ivmu) = j0(arg)
-                   ! form coefficient needed to calculate 1-Gamma_0
+                   !> form coefficient needed to calculate 1-Gamma_0
                    aj0_alpha(ivmu) = (1.0-aj0_alpha(ivmu)**2) &
                         * maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is)
                 end do
 
-                ! calculate gamma0(kalpha,alpha,...) = sum_s Zs^2 * ns / Ts int d3v (1-J0^2)*F_{Maxwellian}
-                ! note that v-space Jacobian contains alpha-dependent factor, B(z,alpha),
-                ! but this is not a problem as we have yet to transform from alpha to k_alpha
+                !> calculate gamma0(kalpha,alpha,...) = sum_s Zs^2 * ns / Ts int d3v (1-J0^2)*F_{Maxwellian}
+                !> note that v-space Jacobian contains alpha-dependent factor, B(z,alpha),
+                !> but this is not a problem as we have yet to transform from alpha to k_alpha
                 call integrate_species (aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
-                ! if Boltzmann response used, account for non-flux-surface-averaged component of electron density
+                !> if Boltzmann response used, account for non-flux-surface-averaged component of electron density
                 if (adiabatic_electrons) then
                    gam0_alpha(ia) = gam0_alpha(ia) - tite/nine
                 end if
              end do
-             ! fourier transform Gamma_0(alpha) from alpha to k_alpha space
+             !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
              call transform_alpha2kalpha (gam0_alpha, gam0_kalpha)
              gam0_ffs(iky,ikx,iz)%max_idx = naky
-             ! allocate array to hold the Fourier coefficients
+             !> allocate array to hold the Fourier coefficients
              if (.not.associated(gam0_ffs(iky,ikx,iz)%fourier)) &
                   allocate (gam0_ffs(iky,ikx,iz)%fourier(gam0_ffs(iky,ikx,iz)%max_idx))
-             ! fill the array with the requisite coefficients
+             !> fill the array with the requisite coefficients
              gam0_ffs(iky,ikx,iz)%fourier = gam0_kalpha(:gam0_ffs(iky,ikx,iz)%max_idx)
 !                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
           end do
        end do
     end do
 
-    ! LU factorise array of gam0, using LAPACK's zgbtrf routine for banded matrices
+    !> LU factorise array of gam0, using LAPACK's zgbtrf routine for banded matrices
     if (.not.allocated(lu_gam0_ffs)) then
        allocate (lu_gam0_ffs(ikx_max,-nzgrid:nzgrid))
 !          call test_band_lu_factorisation (gam0_ffs, lu_gam0_ffs)
@@ -493,38 +505,39 @@ contains
     deallocate (wgts)
     deallocate (kperp2_swap)
     deallocate (aj0_alpha, gam0_alpha)
+    deallocate (gam0_kalpha)
 
   end subroutine init_gamma0_factor_ffs
 
-  ! solves Delta * phi_hom = -delta_{ky,0} * ne/Te for phi_hom
-  ! this is the vector describing the response of phi_hom to a unit impulse in phi_fsa
-  ! it is the sum over ky and integral over kx of this that is needed, and this
-  ! is stored in adiabatic_response_factor
+  !> solves Delta * phi_hom = -delta_{ky,0} * ne/Te for phi_hom
+  !> this is the vector describing the response of phi_hom to a unit impulse in phi_fsa
+  !> it is the sum over ky and integral over kx of this that is needed, and this
+  !> is stored in adiabatic_response_factor
   subroutine init_adiabatic_response_factor
 
     use physics_parameters, only: nine, tite
     use zgrid, only: nzgrid
     use stella_transforms, only: transform_alpha2kalpha
-    use stella_geometry, only: jacob
+!    use stella_geometry, only: jacob
     use kt_grids, only: naky, naky_all, ikx_max
     use gyro_averages, only: band_lu_solve_ffs
     use volume_averages, only: flux_surface_average_ffs!, jacobian_ky
     
     implicit none
 
-    integer :: iz, ikx
+    integer :: ikx
     complex, dimension (:,:,:), allocatable :: adiabatic_response_vector
     
     allocate (adiabatic_response_vector(naky_all,ikx_max,-nzgrid:nzgrid))
 !    if (.not.allocated(jacobian_ky)) allocate (jacobian_ky(naky,-nzgrid:nzgrid))
     if (.not.allocated(adiabatic_response_factor)) allocate (adiabatic_response_factor(ikx_max))
     
-    ! adiabatic_response_vector is initialised to be the rhs of the equation for the
-    ! 'homogeneous' part of phi, with a unit impulse assumed for the flux-surface-averaged phi
-    ! only the ky=0 component contributes to the flux-surface-averaged potential
+    !> adiabatic_response_vector is initialised to be the rhs of the equation for the
+    !> 'homogeneous' part of phi, with a unit impulse assumed for the flux-surface-averaged phi
+    !> only the ky=0 component contributes to the flux-surface-averaged potential
     adiabatic_response_vector = 0.0
     adiabatic_response_vector(naky,:,:) = -tite/nine
-    ! pass in the rhs and overwrite with the solution for phi_homogeneous
+    !> pass in the rhs and overwrite with the solution for phi_homogeneous
     call band_lu_solve_ffs (lu_gam0_ffs, adiabatic_response_vector)
 
 !    ! calculate the Fourier coefficients in y of the Jacobian
@@ -533,7 +546,7 @@ contains
 !       call transform_alpha2kalpha (jacob(:,iz), jacobian_ky(:,iz))
 !    end do
 
-    ! obtain the flux surface average of the response vector
+    !> obtain the flux surface average of the response vector
     do ikx = 1, ikx_max
        !       call flux_surface_average_ffs (adiabatic_response_vector(:,ikx,:), jacobian_ky, adiabatic_response_factor(ikx))
        call flux_surface_average_ffs (adiabatic_response_vector(:,ikx,:), adiabatic_response_factor(ikx))
@@ -694,6 +707,7 @@ contains
        call get_fields (gvmu, phi, apar, dist)
     else
        if (full_flux_surface) then
+          if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs'
           call get_fields_ffs (g, phi, apar)
        else
           call get_fields_vmulo (g, phi, apar, dist)
@@ -915,7 +929,7 @@ contains
     use run_parameters, only: fphi, fapar
     use species, only: modified_adiabatic_electrons
     use zgrid, only: nzgrid
-    use kt_grids, only: nakx, ikx_max, naky_all
+    use kt_grids, only: nakx, ikx_max, naky, naky_all
     use kt_grids, only: swap_kxky_ordered
     use volume_averages, only: flux_surface_average_ffs
     
@@ -929,24 +943,29 @@ contains
     complex, dimension (:,:,:), allocatable :: phi_swap, rhs
     
     if (fphi > epsilon(0.0)) then
+       allocate (rhs(naky,nakx,-nzgrid:nzgrid))
        !> calculate the contribution to quasineutrality coming from the velocity space
        !> integration of the guiding centre distribution function g;
        !> the sign is consistent with phi appearing on the LHS of the eqn and int g appearing on the RHS.
        !> this is returned in phi
+       if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
        call get_g_integral_contribution (g, rhs)
        !> use sum_s int d3v <g> and QN to solve for phi
        !> NB: assuming here that ntubes = 1 for FFS sim
+       if (debug) write (*,*) 'fields::advance_fields::get_phi_ffs'
        call get_phi_ffs (rhs, phi(:,:,:,1))
        !> if using a modified Boltzmann response for the electrons, then phi
        !> at this stage is the 'inhomogeneous' part of phi.
        if (modified_adiabatic_electrons) then
           !> first must get phi on grid that includes positive and negative ky (but only positive kx)
           allocate (phi_swap(naky_all,ikx_max,-nzgrid:nzgrid))
+          if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
           do iz = -nzgrid, nzgrid
              call swap_kxky_ordered (phi(:,:,iz,1), phi_swap(:,:,iz))
           end do
           !> calculate the flux surface average of this phi_inhomogeneous
           allocate (phi_fsa(nakx))
+          if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
           do ikx = 1, nakx
              !             call flux_surface_average_ffs (phi_swap(:,ikx,:), jacobian_ky, phi_fsa(ikx))
              call flux_surface_average_ffs (phi_swap(:,ikx,:), phi_fsa(ikx))
@@ -959,6 +978,7 @@ contains
           do ikx = 1, nakx
              rhs(1,ikx,:) = rhs(1,ikx,:) - phi_fsa(ikx)*tite/nine
           end do
+          if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
           call get_phi_ffs (rhs, phi(:,:,:,1))
           deallocate (phi_swap, phi_fsa)
        end if
@@ -989,15 +1009,19 @@ contains
 
       integer :: it, iz, ivmu
       complex, dimension (:,:,:), allocatable :: gyro_g
-      
+
+      !> assume there is only a single flux surface being simulated
+      it = 1
       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       !> loop over zed location within flux tube
       do iz = -nzgrid, nzgrid
+!         if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution::gyro_average'
          !> loop over super-index ivmu, which include vpa, mu and spec
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             !> gyroaverage the distribution function g at each phase space location
             call gyro_average (g(:,:,iz,it,ivmu), gyro_g(:,:,ivmu), j0_B_maxwell_ffs(:,:,iz,ivmu))
          end do
+!         if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution::integrate_species_ffs'
          !> integrate <g> over velocity space and sum over species within each processor
          !> as v-space and species possibly spread over processors, wlil need to
          !> gather sums from each proceessor and sum them all together below
@@ -1006,7 +1030,7 @@ contains
       end do
       !> gather sub-sums from each processor and add them together
       !> store result in phi, which will be further modified below to account for polarization term
-      call sum_allreduce(rhs)
+      call sum_allreduce (rhs)
       !> no longer need <g>, so deallocate
       deallocate (gyro_g)
       
@@ -1332,6 +1356,7 @@ contains
 
     use zgrid, only: nzgrid
     use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
+    use kt_grids, only: naky_all, ikx_max
     use gyro_averages, only: band_lu_solve_ffs
     
     implicit none
@@ -1342,6 +1367,8 @@ contains
     integer :: iz
     complex, dimension (:,:,:), allocatable :: rhs_swap
 
+    allocate (rhs_swap(naky_all,ikx_max,-nzgrid:nzgrid))
+    
     !> change from rhs defined on grid with ky >=0 and kx from 0,...,kxmax,-kxmax,...,-dkx
     !> to rhs_swap defined on grid with ky = -kymax,...,kymax and kx >= 0
     do iz = -nzgrid, nzgrid

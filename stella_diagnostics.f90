@@ -392,7 +392,6 @@ contains
        deallocate (omega_avg)
     end if
 
-
     if (proc0) then
        if (debug) write (*,*) 'stella_diagnostics::write_time_nc'
        call write_time_nc (nout, code_time)
@@ -938,7 +937,7 @@ contains
     real, dimension (:), intent (out) :: pflx, vflx, qflx
     real, dimension (:,:,-nzgrid:,:,:), intent (out) :: pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz
 
-    integer :: iky, it, is
+    integer :: iky, it
     real :: flux_surface_area, gradx_fsa
     real :: flxfac
 
@@ -1362,7 +1361,7 @@ contains
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    complex, dimension (:,:,:,:), intent (out) :: dens, upar, pres
+    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dens, upar, pres
 
     real, dimension (:), allocatable :: dens_wgts, upar_wgts, pres_wgts
     !> f_swap will contain delta f(ky,kx) on a grid with all kys and kx >= 0

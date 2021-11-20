@@ -383,7 +383,7 @@ contains
     kxyz_lo%nmu = nmu
     kxyz_lo%nspec = nspec
     kxyz_lo%llim_world = 0
-    kxyz_lo%ulim_world = ny*nakx*kxyz_lo%nzed*ntubes*nspec - 1
+    kxyz_lo%ulim_world = ny*kxyz_lo%ikx_max*kxyz_lo%nzed*ntubes*nspec - 1
     kxyz_lo%blocksize = kxyz_lo%ulim_world/nproc + 1
     kxyz_lo%llim_proc = kxyz_lo%blocksize*iproc
     kxyz_lo%ulim_proc = min(kxyz_lo%ulim_world, kxyz_lo%llim_proc + kxyz_lo%blocksize - 1)

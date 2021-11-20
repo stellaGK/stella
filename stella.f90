@@ -1,6 +1,5 @@
 program stella
 
-  use mp, only: proc0
   use redistribute, only: scatter
   use job_manage, only: time_message, checkstop, job_fork
   use run_parameters, only: nstep, fphi, fapar
@@ -312,7 +311,7 @@ contains
     end if
 
     !> get initial field from initial distribution function
-    if (debug) write (6,*) 'stella::init_stella::get_fields'
+    if (debug) write (6,*) 'stella::init_stella::advance_fields'
     call advance_fields (gnew, phi, apar, dist='gbar')
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
@@ -353,7 +352,7 @@ contains
     call print_header
     !> stop the timing of the initialization
     if (proc0) call time_message(.false.,time_init,' Initialization')
-    
+
   end subroutine init_stella
 
   !> check_transforms checks the various physics flag choices
@@ -560,4 +559,33 @@ contains
 
   end subroutine finish_stella
 
+  ! subroutine test_redistribute
+
+  !   use stella_layouts, only: kxyz_lo, vmu_lo
+  !   use zgrid, only: nzgrid, ntubes
+  !   use vpamu_grids, only: nvpa, nmu
+  !   use kt_grids, only: ny, ikx_max
+  !   use dist_redistribute, only: kxyz2vmu
+  !   use redistribute, only: scatter
+    
+  !   implicit none
+
+  !   complex, dimension (:,:,:), allocatable :: g_kxyz_lo
+  !   complex, dimension (:,:,:,:,:), allocatable :: g_vmu_lo
+    
+  !   allocate (g_kxyz_lo(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+  !   allocate (g_vmu_lo(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+  !   g_kxyz_lo = 1.0
+  !   g_vmu_lo = 2.0
+    
+  !   call scatter (kxyz2vmu, g_vmu_lo, g_kxyz_lo)
+
+  !   write (*,*) 'g_vmu_lo', maxval(cabs(g_vmu_lo)), minval(cabs(g_vmu_lo))
+  !   write (*,*) 'g_kxyz_lo', maxval(cabs(g_kxyz_lo)), minval(cabs(g_kxyz_lo))
+    
+  !   deallocate (g_vmu_lo, g_kxyz_lo)
+    
+  ! end subroutine test_redistribute
+  
 end program stella
