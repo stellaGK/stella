@@ -277,7 +277,7 @@ contains
 
     call init_redist (kxyz2vmu, 'c', to_low, to_high, to_list, &
          from_low, from_high, from_list)
-
+    
     call delete_list (to_list)
     call delete_list (from_list)
 

@@ -645,7 +645,7 @@ contains
 
   end subroutine integrate_species_vmu_block_real
 
-  subroutine integrate_species_ffs(g, weights, pout, reduce_in)
+  subroutine integrate_species_ffs (g, weights, pout, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -679,11 +679,10 @@ contains
 
   end subroutine integrate_species_ffs
 
-  subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
+  subroutine integrate_vmu_ffs (g, weights, ia, iz, pout, reduce_in)
 
     use mp, only: sum_allreduce
     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use zgrid, only: nzgrid
     
     implicit none
 
