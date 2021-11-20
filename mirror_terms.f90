@@ -286,7 +286,8 @@ contains
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
     use physics_flags, only: full_flux_surface
-    use kt_grids, only: nakx, naky, ny, ikx_max
+    use kt_grids, only: nakx, naky, naky_all, ny, ikx_max
+    use kt_grids, only: swap_kxky
     use vpamu_grids, only: nvpa, nmu
     use vpamu_grids, only: vpa, maxwell_vpa
     use run_parameters, only: fields_kxkyz
@@ -299,23 +300,35 @@ contains
 
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:,:), allocatable :: g0x
-    complex, dimension (:,:), allocatable :: dgdv
+    complex, dimension (:,:), allocatable :: dgdv, g_swap
 
-    integer :: ikxyz
+    integer :: ikxyz, iz, it
     integer :: ivmu, iv, is
 
+    !> start the timer for this subroutine
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
-
+    
     if (full_flux_surface) then
+       !> assume we are simulating a single flux surface
+       it = 1
+       
        allocate (g0v(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
        allocate (g0x(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
        allocate (dgdv(nvpa,nmu))
-       
-       !> for upwinding of vpa, need to evaluate dg/dvpa in y-space
-       !> this is necessary because the advection speed contains dB/dz, which depends on y
-       !> first must take g(ky,kx) and transform to g(y,kx)
-       call transform_ky2y (g, g0x)
-       !> second, remap g so velocities are local
+       allocate (g_swap(naky_all,ikx_max))
+
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do iz = -nzgrid, nzgrid
+             !> swap from ky >= 0 and all kx to kx >= 0 and all ky
+             !> needed for ky2y transform below
+             call swap_kxky (g(:,:,iz,it,ivmu), g_swap)
+             !> for upwinding of vpa, need to evaluate dg/dvpa in y-space
+             !> this is necessary because the advection speed contains dB/dz, which depends on y
+             !> first must take g(ky,kx) and transform to g(y,kx)
+             call transform_ky2y (g_swap, g0x(:,:,iz,it,ivmu))
+          end do
+       end do
+       !> remap g so velocities are local
        call scatter (kxyz2vmu, g0x, g0v)
        !> next, calculate dg/dvpa;
        !> we enforce a boundary condition on <f>, but with full_flux_surface = T,
@@ -339,7 +352,7 @@ contains
        end do
        !> finally add the mirror term to the RHS of the GK eqn
        call add_mirror_term_ffs (g0x, gout)
-       deallocate (dgdv)
+       deallocate (dgdv, g_swap)
     else
        allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
        allocate (g0x(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))

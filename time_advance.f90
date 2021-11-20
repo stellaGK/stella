@@ -966,6 +966,7 @@ contains
     ! this is needed to ensure 2nd order accuracy in time
     if (mod(istep,2)==1 .or. .not.flip_flop) then
        ! advance the explicit parts of the GKE
+       if (debug) write (*,*) 'time_advance::advance_explicit'
        call advance_explicit (gnew)
 
        ! enforce periodicity for zonal mode
@@ -1239,7 +1240,8 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use physics_parameters, only: g_exb
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: ikx_max, ny
+    use kt_grids, only: ikx_max, ny, naky_all
+    use kt_grids, only: swap_kxky_back
     use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
     use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
     use dissipation, only: include_krook_operator, add_krook_operator
@@ -1258,6 +1260,9 @@ contains
 
     complex, dimension (:,:,:,:,:), allocatable, target :: rhs_y
     complex, dimension (:,:,:,:,:), pointer :: rhs
+    complex, dimension (:,:), allocatable :: rhs_ky_swap
+    
+    integer :: iz, it, ivmu
 
     rhs_ky = 0.
 
@@ -1279,6 +1284,7 @@ contains
 
     !> start with gbar in k-space and (ky,kx,z) local
     !> obtain fields corresponding to gbar
+    if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
     call advance_fields (gin, phi, apar, dist='gbar')
 
     if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
@@ -1290,6 +1296,7 @@ contains
     !> calculate and add ExB nonlinearity to RHS of GK eqn
     !> do this first, as the CFL condition may require a change in time step
     !> and thus recomputation of mirror, wdrift, wstar, and parstream
+    if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
     if (nonlinear) call advance_ExB_nonlinearity (gin, rhs, restart_time_step)
 
     !> include contribution from the parallel nonlinearity (aka turbulent acceleration)
@@ -1300,36 +1307,50 @@ contains
 
        !> include contribution from perp flow shear in the parallel component of the toroidal flow
        if ((g_exb**2).gt.epsilon(0.0)) call advance_parallel_flow_shear (rhs)
-
+       
        !> calculate and add mirror term to RHS of GK eqn
        if (include_mirror.and..not.mirror_implicit) then
+          if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_mirror_explicit'
           call advance_mirror_explicit (gin, rhs)
        end if
 
        if (.not.drifts_implicit) then
           !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
+          if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
           call advance_wdrifty_explicit (gin, phi, rhs)
           
           !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
+          if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
           call advance_wdriftx_explicit (gin, phi, rhs)
           
           !> calculate and add omega_* term to RHS of GK eqn
+          if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
           call advance_wstar_explicit (phi, rhs)
        end if
 
-       ! calculate and add contribution from collisions to RHS of GK eqn
+       !> calculate and add contribution from collisions to RHS of GK eqn
        if (include_collisions.and..not.collisions_implicit) call advance_collisions_explicit (gin, phi, rhs)
 
-       ! calculate and add parallel streaming term to RHS of GK eqn
-       if (include_parallel_streaming.and.(.not.stream_implicit)) &
-            call advance_parallel_streaming_explicit (gin, phi, rhs)
+       !> calculate and add parallel streaming term to RHS of GK eqn
+       if (include_parallel_streaming.and.(.not.stream_implicit)) then
+          if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+          call advance_parallel_streaming_explicit (gin, phi, rhs)
+       end if
 
-       ! if simulating a full flux surface (flux annulus), all terms to this point have been calculated
-       ! in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
-       ! NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
+       !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
+       !> in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
+       !> NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
        if (full_flux_surface) then
-          call transform_y2ky (rhs_y, rhs_ky)
-          deallocate (rhs_y)
+          if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::transform_y2ky'
+          allocate (rhs_ky_swap(naky_all,ikx_max))
+          it = 1
+          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+             do iz = -nzgrid, nzgrid
+                call transform_y2ky (rhs_y(:,:,iz,it,ivmu), rhs_ky_swap)
+                call swap_kxky_back (rhs_ky_swap, rhs_ky(:,:,iz,it,ivmu))
+             end do
+          end do
+          deallocate (rhs_y, rhs_ky_swap)
        end if
 
        if (radial_variation) call advance_radial_variation(gin,rhs)
@@ -1356,7 +1377,8 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx, ny
+    use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+    use kt_grids, only: swap_kxky
     use physics_flags, only: full_flux_surface
 
     implicit none
@@ -1365,28 +1387,42 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
     complex, dimension (:,:,:,:,:), allocatable :: g0, g0y
+    complex, dimension (:,:), allocatable :: g0_swap
+
+    integer :: iz, it, ivmu
     
+    !> start timing the time advance due to the driving gradients
     if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
 
     allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-    ! omega_* stays in ky,kx,z space with ky,kx,z local
+
     if (debug) write (*,*) 'time_advance::solve_gke::get_dchidy'
-    ! get d<chi>/dy in k-space
+    !> get d<chi>/dy in k-space
     call get_dchidy (phi, apar, g0)
     if (full_flux_surface) then
-       allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-       ! transform d<chi>/dy from ky-space to y-space
-       call transform_ky2y (g0, g0y)
-       ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
-       call add_wstar_term_annulus (g0y, gout)
-       deallocate (g0y)
+       !> assume only a single flux surface simulated
+       it = 1
+       allocate (g0y(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0_swap(naky_all,ikx_max))
+       !> transform d<chi>/dy from k-space to y-space
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do iz = -nzgrid, nzgrid
+             call swap_kxky (g0(:,:,iz,it,ivmu), g0_swap)
+             call transform_ky2y (g0_swap, g0y(:,:,iz,it,ivmu))
+          end do
+       end do
+       !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
+       call add_wstar_term_ffs (g0y, gout)
+       deallocate (g0y, g0_swap)
     else
-       ! multiply with omega_* coefficient and add to source (RHS of GK eqn)
+       !> omega_* stays in ky,kx,z space with ky,kx,z local
+       !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
        if (debug) write (*,*) 'time_advance::solve_gke::add_wstar_term'
        call add_wstar_term (g0, gout)
     end if
     deallocate (g0)
 
+    !> stop timing the time advance due to the driving gradients
     if (proc0) call time_message(.false.,time_gke(:,6),' wstar advance')
 
   end subroutine advance_wstar_explicit
@@ -1400,7 +1436,8 @@ contains
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, ikx_max, naky, ny
+    use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
+    use kt_grids, only: swap_kxky
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
@@ -1411,26 +1448,35 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    integer :: ivmu
+    integer :: ivmu, iz, it
     complex, dimension (:,:,:,:), allocatable :: dphidy
     complex, dimension (:,:,:,:,:), allocatable :: g0k, g0y
-
+    complex, dimension (:,:), allocatable :: g0k_swap
+    
     !> start the timing of the y component of the magnetic drift advance
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
     allocate (dphidy(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-    if (debug) write (*,*) 'time_advance::solve_gke::get_dgdy'
+    if (debug) write (*,*) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
     !> calculate dg/dy in (ky,kx) space
     call get_dgdy (g, g0k)
     !> calculate dphi/dy in (ky,kx) space
     call get_dgdy (phi, dphidy)
 
     if (full_flux_surface) then
+       !> assume only a single flux surface simulated
+       it = 1
        allocate (g0y(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0k_swap(naky_all,ikx_max))
        !> transform dg/dy from k-space to y-space
-       call transform_ky2y (g0k, g0y)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do iz = -nzgrid, nzgrid
+             call swap_kxky (g0k(:,:,iz,it,ivmu), g0k_swap)
+             call transform_ky2y (g0k_swap, g0y(:,:,iz,it,ivmu))
+          end do
+       end do
        !> add vM . grad y dg/dy term to equation
        call add_dg_term_ffs (g0y, wdrifty_g, gout)
        !> get <dphi/dy> in k-space
@@ -1438,10 +1484,15 @@ contains
           call gyro_average (dphidy, ivmu, g0k(:,:,:,:,ivmu))
        end do
        !> transform d<phi>/dy from k-space to y-space
-       call transform_ky2y (g0k, g0y)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do iz = -nzgrid, nzgrid
+             call swap_kxky (g0k(:,:,iz,it,ivmu), g0k_swap)
+             call transform_ky2y (g0k_swap, g0y(:,:,iz,it,ivmu))
+          end do
+       end do
        !> add vM . grad y d<phi>/dy term to equation
        call add_dphi_term_ffs (g0y, wdrifty_phi, gout)
-       deallocate (g0y)
+       deallocate (g0y, g0k_swap)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdy_term'
        ! add vM . grad y dg/dy term to equation
@@ -1469,7 +1520,8 @@ contains
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: nakx, ikx_max, naky, ny, akx
+    use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
+    use kt_grids, only: swap_kxky
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
@@ -1480,10 +1532,11 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: gout
 
-    integer :: ivmu
+    integer :: ivmu, iz, it
     complex, dimension (:,:,:,:), allocatable :: dphidx
     complex, dimension (:,:,:,:,:), allocatable :: g0k, g0y
-
+    complex, dimension (:,:), allocatable :: g0k_swap
+    
     !> start the timing of the x component of the magnetic drift advance
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
@@ -1503,9 +1556,17 @@ contains
     call get_dgdx (phi, dphidx)
 
     if (full_flux_surface) then
+       !> assume a single flux surface is simulated
+       it = 1
        allocate (g0y(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+       allocate (g0k_swap(naky_all,ikx_max))
        !> transform dg/dx from k-space to y-space
-       call transform_ky2y (g0k, g0y)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do iz = -nzgrid, nzgrid
+             call swap_kxky (g0k(:,:,iz,it,ivmu), g0k_swap)
+             call transform_ky2y (g0k_swap, g0y(:,:,iz,it,ivmu))
+          end do
+       end do
        !> add vM . grad x dg/dx term to equation
        call add_dg_term_ffs (g0y, wdriftx_g, gout)
        !> get <dphi/dx> in k-space
@@ -1513,10 +1574,15 @@ contains
           call gyro_average (dphidx, ivmu, g0k(:,:,:,:,ivmu))
        end do
        !> transform d<phi>/dx from k-space to y-space
-       call transform_ky2y (g0k, g0y)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do iz = -nzgrid, nzgrid
+             call swap_kxky (g0k(:,:,iz,it,ivmu), g0k_swap)
+             call transform_ky2y (g0k_swap, g0y(:,:,iz,it,ivmu))
+          end do
+       end do
        !> add vM . grad x d<phi>/dx term to equation
        call add_dphi_term_ffs (g0y, wdriftx_phi, gout)
-       deallocate (g0y)
+       deallocate (g0y, g0k_swap)
     else
        if (debug) write (*,*) 'time_advance::solve_gke::add_dgdx_term'
        ! add vM . grad x dg/dx term to equation
@@ -2429,12 +2495,12 @@ contains
 
   end subroutine add_wstar_term
 
-  subroutine add_wstar_term_annulus (g, src)
+  subroutine add_wstar_term_ffs (g, src)
 
     use dist_fn_arrays, only: wstar
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use kt_grids, only: naky, ikx_max
 
     implicit none
 
@@ -2445,10 +2511,10 @@ contains
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
-            + spread(spread(wstar(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+            + spread(spread(wstar(:,:,ivmu),2,ikx_max),4,ntubes)*g(:,:,:,:,ivmu)
     end do
 
-  end subroutine add_wstar_term_annulus
+  end subroutine add_wstar_term_ffs
 
   subroutine advance_implicit (istep, phi, apar, g)
 !  subroutine advance_implicit (phi, apar, g)
