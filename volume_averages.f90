@@ -165,7 +165,7 @@ contains
     complex, dimension (:,-nzgrid:), intent (in) :: no_fsa
     complex, intent (out) :: fsa
     
-    integer :: iky, ikymod, iz
+    integer :: iky, ikymod
     real :: area
     
     ! the normalising factor int dy dz Jacobian

@@ -1,6 +1,5 @@
 module stella_transforms
 
-
   use fft_work, only: fft_type
 
   implicit none
