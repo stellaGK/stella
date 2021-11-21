@@ -351,6 +351,7 @@ contains
     use redistribute, only: gather, scatter
     use dist_fn_arrays, only: gvmu
     use job_manage, only: time_message
+    use stella_time, only: code_dt
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: is_idx,imu_idx
     use zgrid, only: nzgrid, ntubes
@@ -358,6 +359,8 @@ contains
     use vpamu_grids, only: nvpa, nmu
     use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress
+    use zf_diagnostics, only: zf_staging, zf_mirror_rad
 
     implicit none
 
@@ -372,6 +375,8 @@ contains
     allocate (g0v(nvpa,nmu,kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
     !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+    call clear_zf_staging_array
 
     ia = 1
 
@@ -404,6 +409,10 @@ contains
         enddo
        enddo
     end if
+
+    zf_staging = gout(1,:,:,:,:)/code_dt
+
+    call calculate_zf_stress (zf_mirror_rad,radial=.true.)
 
     deallocate (g0v)
 

@@ -826,10 +826,10 @@ end subroutine get_fields_by_spec_idx
     use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use fields_arrays, only: gamtot3
+    use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 #if defined MPI && ISO_C_BINDING
-    use sources, only: qn_window
+    use fields_arrays, only: qn_window
     use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
     use linear_solve, only: lu_back_substitution

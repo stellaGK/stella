@@ -161,7 +161,6 @@ fields.o: \
 	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
-	 sources.o \
 	 species.o \
 	 spfunc.o \
 	 stella_geometry.o \
@@ -409,6 +408,7 @@ sources.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 species.o: \
 	 common_types.o \
@@ -619,7 +619,6 @@ zf_diagnostics.o: \
 	 multibox.o \
 	 physics_flags.o \
 	 run_parameters.o \
-	 sources.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \

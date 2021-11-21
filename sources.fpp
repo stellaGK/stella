@@ -15,30 +15,24 @@ module sources
   public :: remove_zero_projection, project_out_zero
   public :: add_krook_operator
   public :: tcorr_source, exclude_boundary_regions, exp_fac
-  public :: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
   public :: int_krook, int_proj
   public :: qn_source_initialized
   public :: time_sources
-#if defined MPI && defined ISO_C_BINDING
-  public :: qn_window
-#endif
 
   private
 
   logical :: include_krook_operator, remove_zero_projection
   logical :: krook_odd, exclude_boundary_regions
-  logical :: exclude_boundary_regions_qn
   logical :: from_zero
   logical :: conserve_momentum, conserve_density
   real :: nu_krook, tcorr_source, int_krook, int_proj
-  real :: tcorr_source_qn
   integer:: ikxmax_source
-  real :: exp_fac, exp_fac_qn
+  real :: exp_fac
 
   logical :: qn_source_initialized, include_qn_source
 
 #if defined MPI && defined ISO_C_BINDING
-  integer :: qn_window = MPI_WIN_NULL
+  logical :: qn_window_initialized = .false.
 #endif
 
   real, dimension (2,2) :: time_sources = 0.
@@ -115,6 +109,7 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use mp, only: proc0, broadcast
     use kt_grids, only: ikx_max, periodic_variation
+    use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
 
     implicit none
 
@@ -172,6 +167,7 @@ contains
   subroutine init_source_timeaverage
 
     use stella_time, only: code_dt
+    use fields_arrays, only: exp_fac_qn, tcorr_source_qn
 
     implicit none
 
@@ -187,6 +183,9 @@ contains
 #if !defined(MPI) || !defined(ISO_C_BINDING)
     use fields_arrays, only : phizf_solve, phi_ext
 #endif
+#if defined MPI && defined ISO_C_BINDING
+    use fields_arrays, only : qn_window
+#endif
 
     implicit none
 
@@ -199,7 +198,10 @@ contains
     if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
 #if defined MPI && defined ISO_C_BINDING
-    if (qn_window.ne.MPI_WIN_NULL) call mpi_win_free(qn_window, ierr)
+    if (qn_window.ne.MPI_WIN_NULL) then 
+      call mpi_win_free(qn_window, ierr)
+      qn_window_initialized = .false.
+    endif
 #else    
     if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
     if (associated(phizf_solve%idx)) deallocate (phizf_solve%idx)
@@ -221,6 +223,7 @@ contains
     use multibox, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use physics_flags, only: radial_variation
+    use zf_diagnostics, only: zf_staging, calculate_zf_stress, zf_source
 
     implicit none
 
@@ -281,6 +284,7 @@ contains
             enddo
             call transform_x2kx_unpadded (g1x,g0k)
             gke_rhs(1,:,iz,it,ivmu) = gke_rhs(1,:,iz,it,ivmu) - code_dt*nu_krook*g0k(1,:)
+            zf_staging(:,iz,it,ivmu) = nu_krook*g0k(1,:)
           enddo
         enddo
       enddo
@@ -295,8 +299,12 @@ contains
               if(krook_odd.and.abs(akx(ikx)).gt.epsilon(0.0)) tmp = zi*aimag(tmp)
               if(tcorr_source.le.epsilon(0.0)) then
                 gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook*tmp
+                zf_staging(:,iz,it,ivmu) = nu_krook*tmp
               else
                 gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
+                                          * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
+                                          / (code_dt     + exp_fac*int_krook)
+                zf_staging(ikx,iz,it,ivmu) = nu_krook &
                                           * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
                                           / (code_dt     + exp_fac*int_krook)
               endif
@@ -305,6 +313,8 @@ contains
         enddo
       enddo
     endif
+
+    call calculate_zf_stress (zf_source)
 
     if (proc0) call time_message(.false.,time_sources(:,1), ' sources')
 
@@ -539,6 +549,7 @@ contains
     use dist_fn_arrays, only: g_proj, g_symm
     use multibox, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+    use zf_diagnostics, only: zf_staging, calculate_zf_stress, zf_source
 
 
     implicit none
@@ -564,7 +575,6 @@ contains
       g_symm = (gnew - gold)/code_dt
       call enforce_momentum_conservation (g_symm)
       g = g_symm(1,:,:,:,:)
-
     else
       g = (gnew(1,:,:,:,:) - gold(1,:,:,:,:))/code_dt
     endif
@@ -644,7 +654,10 @@ contains
 
     int_proj = code_dt + exp_fac*int_proj
 
+    zf_staging = g
     gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g
+
+    call calculate_zf_stress(zf_source)
 
     deallocate (g)
 
@@ -660,6 +673,7 @@ contains
     use mp, only: scope, real_size, nbytes_real
     use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
     use mpi
+    use fields_arrays, only: qn_window
 #endif
     use physics_flags, only: radial_variation
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
@@ -669,6 +683,8 @@ contains
     use linear_solve, only: lu_decomposition
     use multibox, only: copy_size
     use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
+    use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
+    use fields_arrays, only: exp_fac_qn
     
 
     implicit none
@@ -694,7 +710,7 @@ contains
     if (include_qn_source) then
       nmat_zf = nakx*(nztot-1)
 #if defined MPI && ISO_C_BINDING
-      if(qn_window.eq.MPI_WIN_NULL) then
+      if((.not.qn_window_initialized).or.(qn_window.eq.MPI_WIN_NULL)) then
         prior_focus = curr_focus
         call scope (sharedsubprocs)
         win_size = 0
@@ -734,6 +750,8 @@ contains
         call mpi_win_fence(0,qn_window,ierr)
 
         call scope (prior_focus)
+
+        qn_window_initialized = .true.
       endif
 #else
       if (.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
@@ -843,6 +861,7 @@ contains
   subroutine update_quasineutrality_source
 
     use fields_arrays, only: phi_proj, phi_proj_stage
+    use fields_arrays, only: exp_fac_qn, tcorr_source_qn
 
     implicit none
 

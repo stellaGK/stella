@@ -1356,7 +1356,6 @@ contains
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
-    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_mgny_drft
 
     implicit none
 
@@ -1370,8 +1369,6 @@ contains
 
     ! alpha-component of magnetic drift (requires ky -> y)
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
-
-    call clear_zf_staging_array
 
     allocate (dphidy(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (g0k(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -1410,8 +1407,6 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,4),' dgdy advance')
 
-    call calculate_zf_stress (zf_mgny_drft)
-
   end subroutine advance_wdrifty_explicit
 
   subroutine advance_wdriftx_explicit (g, phi, gout)
@@ -1425,7 +1420,7 @@ contains
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
     use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
-    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_mgnx_drft
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress, zf_mgn_drft
 
     implicit none
 
@@ -1485,7 +1480,7 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,5),' dgdx advance')
 
-    call calculate_zf_stress (zf_mgnx_drft)
+    call calculate_zf_stress (zf_mgn_drft)
 
   end subroutine advance_wdriftx_explicit
 
@@ -1514,6 +1509,8 @@ contains
     use kt_grids, only: x, swap_kxky, swap_kxky_back
     use constants, only: pi, zi
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress
+    use zf_diagnostics, only: zf_exb_nl, zf_staging
 
     implicit none
 
@@ -1533,6 +1530,8 @@ contains
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+
+    call clear_zf_staging_array
 
     restart_time_step = .false.
     yfirst = .not.prp_shear_enabled
@@ -1634,6 +1633,7 @@ contains
        ! AND MAY INDEED BE THE WRONG THING TO DO
        gout(1,:,-nzgrid,:,ivmu) = 0.5*(gout(1,:,nzgrid,:,ivmu)+gout(1,:,-nzgrid,:,ivmu))
        gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
+       zf_staging = gout(1,:,:,:,:)
     end do
 
     deallocate (g0k, g0a, g0xy, g1xy, bracket)
@@ -1680,8 +1680,10 @@ contains
        ! FLAG -- NOT SURE THIS IS CORRECT
        gout = code_dt*gout
     else
+       call calculate_zf_stress (zf_exb_nl)
        gout = code_dt*gout
     end if
+
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
@@ -2024,6 +2026,7 @@ contains
     use mirror_terms, only: add_mirror_radial_variation
     use flow_shear, only: prl_shear, prl_shear_p
     use parallel_streaming, only: add_parallel_streaming_radial_variation
+    use zf_diagnostics, only: zf_staging, calculate_zf_stress, zf_mgn_drft_rad
 
     implicit none
 
@@ -2138,9 +2141,12 @@ contains
 !           g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+            zf_staging(:,iz,it,ivmu) = g0k(1,:)
           end do
        end do
     end do
+
+    call calculate_zf_stress (zf_mgn_drft_rad)
 
     deallocate (g0k, g1k, g0a)
     if(allocated(g_corr)) deallocate(g_corr)
@@ -2650,12 +2656,14 @@ contains
   subroutine mb_communicate (g_in)
 
     use mp, only: job
+    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use multibox, only: multibox_communicate
     use fields, only: fields_updated,advance_fields
     use fields_arrays, only: phi, apar
     use file_utils, only: runtype_option_switch, runtype_multibox
+    use zf_diagnostics, only: zf_staging, zf_comm, calculate_zf_stress 
 
     implicit none
 
@@ -2667,12 +2675,17 @@ contains
       call advance_fields(g_in,phi,apar,dist='gbar')
     endif
 
+    zf_staging = g_in(1,:,:,:,:)
+
     call multibox_communicate(g_in)
 
     if(job.eq.1) then
       fields_updated = .false.
       call advance_fields(g_in,phi,apar,dist='gbar')
     endif
+
+    zf_staging = (g_in(1,:,:,:,:) - zf_staging)/code_dt
+    call calculate_zf_stress (zf_comm)
 
   end subroutine mb_communicate
 

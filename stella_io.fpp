@@ -38,9 +38,9 @@ module stella_io
   integer, dimension (5) :: zvs_dim
   integer, dimension (4) :: vmus_dim, kykxaz_dim
   integer, dimension (6) :: flx_dim
-  integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
+  integer, dimension (3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim, zf_diag_dim
   integer, dimension (2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
-  integer, dimension (2) :: flux_surface_dim, rad_grid_dim, zf_diag_dim
+  integer, dimension (2) :: flux_surface_dim, rad_grid_dim
 
   integer :: nakx_id, ntubes_id
   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
@@ -341,7 +341,8 @@ contains
     rad_grid_dim (2) = nakx_dim
 
     zf_diag_dim (1) = zf_calc_dim
-    zf_diag_dim (2) = time_dim
+    zf_diag_dim (2) = nakx_dim
+    zf_diag_dim (3) = time_dim
 
     heat_dim (1) = nspec_dim
     heat_dim (2) = nheat_dim
@@ -1071,6 +1072,7 @@ contains
 # ifdef NETCDF
     use netcdf, only: nf90_put_var
 # endif
+    use kt_grids, only: nakx
     use zf_diagnostics, only: zf_diag_data, ncalc
 
     implicit none
@@ -1079,12 +1081,13 @@ contains
 
 # ifdef NETCDF
     integer :: status
-    integer, dimension (2) :: start, count
+    integer, dimension (3) :: start, count
 
     start = 1
-    start(2) = nout
+    start(3) = nout
     count(1) = ncalc
-    count(2) = 1
+    count(1) = nakx
+    count(3) = 1
 
     status = nf90_put_var (ncid, zf_diag_id, zf_diag_data, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, zf_diag_id)

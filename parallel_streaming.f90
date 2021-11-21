@@ -303,6 +303,8 @@ contains
     use species, only: spec
     use gyro_averages, only: gyro_average, gyro_average_j1
     use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
+    use zf_diagnostics, only: calculate_zf_stress
+    use zf_diagnostics, only: zf_staging, zf_prl_str_rad, zf_prl_str_rad_phi
 
     implicit none
 
@@ -333,13 +335,6 @@ contains
        call gyro_average (phi, ivmu, g0)
        call get_dgdz_centered (g0, ivmu, g1)
 
-    ! get variation in gyroaveraging and store in g2
-       call get_dgdz_centered (phi_corr_GA(:,:,:,:,ivmu), ivmu, g2)
-
-    ! get variation in quasineutrality and store in g3
-       call gyro_average (phi_corr_QN, ivmu, g0)
-       call get_dgdz_centered (g0,  ivmu, g3)
-
        call get_dgdz (g(:,:,:,:,ivmu),  ivmu, g0)
 
        iv = iv_idx(vmu_lo,ivmu)
@@ -358,7 +353,26 @@ contains
            g0k = g0k + g1(:,:,iz,it)*stream_rad_var2(ia,iz,ivmu)
 
            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+           zf_staging(:,iz,it,ivmu) = g0k(1,:)
+         enddo
+       enddo
+    end do
+    call calculate_zf_stress(zf_prl_str_rad,radial=.true.)
 
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+
+    ! get variation in gyroaveraging and store in g2
+       call get_dgdz_centered (phi_corr_GA(:,:,:,:,ivmu), ivmu, g2)
+
+    ! get variation in quasineutrality and store in g3
+       call gyro_average (phi_corr_QN, ivmu, g0)
+       call get_dgdz_centered (g0,  ivmu, g3)
+
+       do it = 1, ntubes
+         do iz = -nzgrid,nzgrid
     !!#3 - variation in the gyroaveraging and quasineutrality of phi
     !!     These variations already have the linear part calculated, so
     !!     ad it into the rhs directly
@@ -366,11 +380,12 @@ contains
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 
            rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
-
+           zf_staging(:,iz,it,ivmu) = g0k(1,:)
          enddo
        enddo
     end do
     deallocate (g0, g1, g2, g3, g0k)
+    call calculate_zf_stress(zf_prl_str_rad_phi)
 
   end subroutine add_parallel_streaming_radial_variation
 

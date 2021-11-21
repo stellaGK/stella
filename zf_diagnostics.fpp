@@ -6,33 +6,35 @@ module zf_diagnostics
   public :: zf_diag_data, zf_staging, ncalc
   public :: calculate_zf_stress
   public :: clear_zf_staging_array
-  public :: zf_prl_str,       &
-            zf_prl_str_rad,   &
-            zf_mirror,        &    
-            zf_mirror_rad,    &
-            zf_mgnx_drft,     &
-            zf_mgny_drft,     &
-            zf_mgn_drft_rad,  &
-            zf_exb_nl,        &
-            zf_exb_nl_rad,    &
-            zf_source    
+  public :: zf_prl_str,         &
+            zf_prl_str_rad,     &
+            zf_prl_str_rad_phi, &
+            zf_mirror,          &    
+            zf_mirror_rad,      &
+            zf_mgn_drft,        &
+            zf_mgn_drft_rad,    &
+            zf_exb_nl,          &
+            zf_exb_nl_rad,      &
+            zf_source,          &    
+            zf_comm
 
 
   private
 
   integer, parameter :: ncalc  = 12
-  integer, parameter :: zf_prl_str        =  1, &
-                        zf_prl_str_rad    =  2, &
-                        zf_mirror         =  3, &
-                        zf_mirror_rad     =  4, &
-                        zf_mgnx_drft      =  5, &
-                        zf_mgny_drft      =  6, &
-                        zf_mgn_drft_rad   =  7, &
-                        zf_exb_nl         =  8, &
-                        zf_exb_nl_rad     =  9, &
-                        zf_source         = 10
+  integer, parameter :: zf_prl_str         =  1, &
+                        zf_prl_str_rad     =  2, &
+                        zf_prl_str_rad_phi =  3, &
+                        zf_mirror          =  4, & !only depends on endpoints in vpa space
+                        zf_mirror_rad      =  5, &
+                        zf_mgn_drft        =  6, &
+                        zf_mgn_drft_rad    =  7, &
+                        zf_exb_nl          =  8, &
+                        zf_exb_nl_rad      =  9, &
+                        zf_source          = 10, &
+                        zf_comm            = 11
 
-  real, dimension(ncalc) :: zf_diag_data
+  real, dimension(:,:), allocatable :: zf_diag_data
 
   complex, dimension (:,:,:,:), allocatable :: zf_staging
   ! nx, iz, it, ivmu
@@ -55,8 +57,11 @@ contains
 
     integer, intent (in) :: nwrite
 
-    zf_diag_data = 0.
     nwrite_local = nwrite
+    if (.not.allocated(zf_diag_data)) then
+      allocate (zf_diag_data(ncalc,nakx))
+    endif
+    zf_diag_data = 0.
 
     if (.not.allocated(zf_staging)) then
       allocate (zf_staging(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -74,6 +79,7 @@ contains
     implicit none
 
     if (allocated(zf_staging)) deallocate (zf_staging)
+    if (allocated(zf_diag_data)) deallocate (zf_diag_data)
     if (allocated(dphi_ky0)) deallocate (dphi_ky0)
     if (allocated(dphi_fsa)) deallocate (dphi_fsa)
     if (allocated(phi_fsa)) deallocate (phi_fsa)
@@ -88,11 +94,12 @@ contains
   end subroutine clear_zf_staging_array 
 
 
-  subroutine calculate_zf_stress (zf_index) 
+  subroutine calculate_zf_stress (zf_index,radial) 
 
     use kt_grids, only: nakx, rho_d_clamped
     use zgrid, only: nzgrid, ntubes
     use stella_time, only: istep
+    use stella_layouts, only: vmu_lo
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use physics_flags, only: radial_variation
     use fields_arrays, only: phi
@@ -101,15 +108,34 @@ contains
     implicit none
 
     integer, intent (in) :: zf_index
+    logical, optional, intent (in) :: radial
 
     complex, dimension (:,:), allocatable :: g0k, g0x
-    integer :: ia, iz, it
+    integer :: ivmu, ia, iz, it
+    logical radial_
 
     ia = 1
+
+    radial_ = .false.
+    if (present(radial)) radial_ = radial
 
     if (mod(istep,nwrite_local).eq.0) then
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
+      
+      if (radial_) then
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+              g0k(1,:) = zf_staging(:,iz,it,ivmu)
+              call transform_kx2x_unpadded (g0k,g0x)
+              g0x(1,:) = g0x(1,:)*rho_d_clamped
+              call transform_x2kx_unpadded (g0x,g0k)
+              zf_staging(:,iz,it,ivmu) = g0k(1,:)
+            enddo
+          enddo
+        enddo
+      endif
 
       call get_fields_vmulo (zf_staging, dphi_ky0)
 
@@ -139,7 +165,7 @@ contains
       enddo
 
       !multiply by conj(phi)
-      zf_diag_data(zf_index) = real(conjg(phi_fsa(2))*dphi_fsa(2))
+      zf_diag_data(zf_index,:) = real(conjg(phi_fsa(:))*dphi_fsa(:))
 
     endif
 
@@ -236,11 +262,11 @@ contains
     use species, only: spec, has_electron_species
     use multibox, only: copy_size
     use fields_arrays, only: gamtot, gamtot3, phi_solve, phizf_solve, phi_ext
-    use fields_arrays, only: phi_proj, theta
+    use fields_arrays, only: phi_proj
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+    use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 #if defined MPI && ISO_C_BINDING
-    use sources, only: qn_window
+    use fields_arrays, only: qn_window
     use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
     use linear_solve, only: lu_back_substitution
@@ -377,29 +403,7 @@ contains
 
           !enforce periodicity
           phi(:,nzgrid,it) = phi(:,-nzgrid,it)
-        
-          ! calculate Theta.phi
-          g1k = 0.0
-          do iz = -nzgrid, nzgrid-1
-            do ikx = 1, nakx
-              g0k(1,ikx) = sum(theta(ikx,:,iz)*phi(:,iz,it)) 
-            enddo
 
-            call transform_kx2x_unpadded (g0k,g0x)
-
-            g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
-            if (exclude_boundary_regions_qn) then
-              g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
-                              / (nakx - 2*copy_size)
-              g0x(1,1:copy_size) = 0.0
-              g0x(1,(nakx-copy_size+1):) = 0.0
-            else
-              g0x(1,:) = sum(g0x(1,:))/nakx
-            endif
-
-            call transform_x2kx_unpadded(g0x,g0k)
-            g1k = g1k + g0k
-          enddo
         enddo
         deallocate(g0k,g1k,g0x)
       else
