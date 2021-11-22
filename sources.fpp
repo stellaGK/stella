@@ -218,7 +218,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook, g_symm
-    use multibox, only: copy_size
+    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use physics_flags, only: radial_variation
 
@@ -250,7 +250,7 @@ contains
     if (conserve_density)  call enforce_density_conservation (g_work(1,:,:,:,:))
     
     if (exclude_boundary_regions) then
-      npts = nakx - 2*copy_size
+      npts = nakx - 2*boundary_size
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
       allocate (g1x(1,nakx))
@@ -264,19 +264,19 @@ contains
             do ikx = 1, ikxmax_source
               if (ikx.eq.1) then
                 basis_func = 1.0
-                tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts)
+                tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(npts)
               else
                 do jkx = 1, npts
                   basis_func(jkx) = sin(2.0*pi*(ikx-1)*jkx/real(npts+1))
                 enddo
-                tmp = 2.0*sum(basis_func*g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts+1)
+                tmp = 2.0*sum(basis_func*g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(npts+1)
               endif
               if(tcorr_source.gt.epsilon(0.0)) then
                 tmp = (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
                     / (code_dt     + exp_fac*int_krook)
               endif
               do jkx = 1, npts
-                g1x(1,copy_size+jkx) = g1x(1,copy_size+jkx) + tmp*basis_func(jkx) 
+                g1x(1,boundary_size+jkx) = g1x(1,boundary_size+jkx) + tmp*basis_func(jkx) 
               enddo
             enddo
             call transform_x2kx_unpadded (g1x,g0k)
@@ -320,7 +320,7 @@ contains
     use kt_grids, only: akx, nakx, zonal_mode
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
-    use multibox, only: copy_size
+    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
@@ -353,7 +353,7 @@ contains
     int_krook =  code_dt + exp_fac*int_krook_old
 
     if (exclude_boundary_regions) then
-      npts = nakx - 2*copy_size
+      npts = nakx - 2*boundary_size
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -363,11 +363,11 @@ contains
             call transform_kx2x_unpadded(g0k,g0x)
             do ikx = 1, ikxmax_source
               if (ikx.eq.1) then
-                tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts)
+                tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(npts)
               else
                 tmp = 0.
                 do jkx = 1, npts
-                  tmp = tmp + sin(2.0*pi*(ikx-1)*jkx/real(npts+1))*g0x(1,copy_size+jkx)
+                  tmp = tmp + sin(2.0*pi*(ikx-1)*jkx/real(npts+1))*g0x(1,boundary_size+jkx)
                 enddo
                 tmp = 2.0*tmp/real(npts+1)
               endif
@@ -537,7 +537,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj, g_symm
-    use multibox, only: copy_size
+    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
 
@@ -573,7 +573,7 @@ contains
 
 
     if (exclude_boundary_regions) then
-      npts = nakx - 2*copy_size
+      npts = nakx - 2*boundary_size
       allocate (g0k(1,nakx))
       allocate (g0x(1,nakx))
       allocate (g1x(1,nakx))
@@ -588,7 +588,7 @@ contains
               !physical region should have an odd number of collocation points
               if (ikx.eq.1) then
                 basis_func = 1.0
-                tmp = sum(g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts)
+                tmp = sum(g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(npts)
               else
                 ! here we use a Fourier basis due to periodicity, 
                 ! though we could use Legendre polynomials
@@ -597,7 +597,7 @@ contains
                 do jkx = 1, npts
                   basis_func(jkx) = sin(2.0*pi*(ikx-1)*jkx/real(npts+1))
                 enddo
-                tmp = 2.0*sum(basis_func*g0x(1,(copy_size+1):(nakx-copy_size)))/real(npts+1)
+                tmp = 2.0*sum(basis_func*g0x(1,(boundary_size+1):(nakx-boundary_size)))/real(npts+1)
               endif
               if(tcorr_source.gt.epsilon(0.)) then
                 tmp = (code_dt*tmp + exp_fac*int_proj*g_proj(ikx,iz,it,ivmu)) &
@@ -605,7 +605,7 @@ contains
                 g_proj(ikx,iz,it,ivmu) = tmp
               endif
               do jkx = 1, npts
-                g1x(1,copy_size+jkx) = g1x(1,copy_size+jkx) + tmp*basis_func(jkx) 
+                g1x(1,boundary_size+jkx) = g1x(1,boundary_size+jkx) + tmp*basis_func(jkx) 
               enddo
             enddo
             call transform_x2kx_unpadded (g1x,g0k)
@@ -667,7 +667,7 @@ contains
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: naky, nakx, rho_d_clamped
     use linear_solve, only: lu_decomposition
-    use multibox, only: copy_size
+    use multibox, only: boundary_size
     use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
     
 
@@ -794,10 +794,10 @@ contains
             g0x(1,:) = (dl_over_b(ia,jz) + d_dl_over_b_drho(ia,jz)*rho_d_clamped)*g0x(1,:)
 
             if (exclude_boundary_regions_qn) then
-              g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
-                       / (nakx - 2*copy_size)
-              g0x(1,1:copy_size) = 0.0
-              g0x(1,(nakx-copy_size+1):) = 0.0
+              g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                       / (nakx - 2*boundary_size)
+              g0x(1,1:boundary_size) = 0.0
+              g0x(1,(nakx-boundary_size+1):) = 0.0
             else
               g0x(1,:) = sum(g0x(1,:))/nakx
             endif
