@@ -1086,7 +1086,7 @@ contains
     start = 1
     start(3) = nout
     count(1) = ncalc
-    count(1) = nakx
+    count(2) = nakx
     count(3) = 1
 
     status = nf90_put_var (ncid, zf_diag_id, zf_diag_data, start=start, count=count)

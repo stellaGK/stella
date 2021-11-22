@@ -129,7 +129,7 @@ contains
        remove_zero_projection = .false.
        nu_krook = 0.05
        tcorr_source = 0.02
-       tcorr_source_qn = -1.0
+       tcorr_source_qn = 0.0
        ikxmax_source = 1 ! kx=0
        if(periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
        krook_odd = .true. ! damp only the odd mode that can affect profiles
@@ -141,7 +141,6 @@ contains
        in_file = input_unit_exist("sources", dexist)
        if (dexist) read (unit=in_file, nml=sources)
 
-       if (tcorr_source_qn.lt.0) tcorr_source_qn = tcorr_source
     end if
 
     ikxmax_source = min(ikxmax_source,ikx_max)

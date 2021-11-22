@@ -199,6 +199,7 @@ contains
     complex, dimension (:,:,:,:), allocatable :: g0y, g1y
 
     call clear_zf_staging_array
+
     
     ! if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
     ! if full flux surface (flux annulus), will need to calculate in y space
@@ -278,7 +279,6 @@ contains
           ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
           call add_stream_term (g0, ivmu, gout(:,:,:,:,ivmu))
        end if
-          
     end do
 
     ! deallocate intermediate arrays used in this subroutine
@@ -294,6 +294,7 @@ contains
 
   subroutine add_parallel_streaming_radial_variation (g, gout, rhs)
 
+    use stella_time, only: code_dt
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
@@ -353,7 +354,7 @@ contains
            g0k = g0k + g1(:,:,iz,it)*stream_rad_var2(ia,iz,ivmu)
 
            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
-           zf_staging(:,iz,it,ivmu) = g0k(1,:)
+           zf_staging(:,iz,it,ivmu) = g0k(1,:) / code_dt
          enddo
        enddo
     end do
@@ -380,7 +381,7 @@ contains
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 
            rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
-           zf_staging(:,iz,it,ivmu) = g0k(1,:)
+           zf_staging(:,iz,it,ivmu) = g0k(1,:) / code_dt
          enddo
        enddo
     end do
@@ -532,7 +533,7 @@ contains
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
     src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
-    zf_staging(:,:,:,ivmu) = spread(spread(stream(:,iv,is),2,nakx),3,ntubes)*g(1,:,:,:)/code_dt
+    zf_staging(:,:,:,ivmu) = spread(spread(stream(:,iv,is),1,nakx),3,ntubes)*g(1,:,:,:)/code_dt
 
   end subroutine add_stream_term
 

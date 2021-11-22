@@ -2013,6 +2013,7 @@ contains
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+    use stella_time, only: code_dt
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: nakx, naky, multiply_by_rho
     use gyro_averages, only: gyro_average, gyro_average_j1
@@ -2026,7 +2027,8 @@ contains
     use mirror_terms, only: add_mirror_radial_variation
     use flow_shear, only: prl_shear, prl_shear_p
     use parallel_streaming, only: add_parallel_streaming_radial_variation
-    use zf_diagnostics, only: zf_staging, calculate_zf_stress, zf_mgn_drft_rad
+    use zf_diagnostics, only: zf_staging, calculate_zf_stress
+    use zf_diagnostics, only: zf_mgn_drft_rad, zf_mgn_drft_rad_phi
 
     implicit none
 
@@ -2104,6 +2106,7 @@ contains
             !prl_shear variation
             g0k = g0k + g0a*prl_shear_p(ia,iz,ivmu)
 
+            zf_staging(:,iz,it,ivmu) = g0k(1,:) / code_dt
             !mirror term and/or parallel streaming
             if(include_mirror.or.include_parallel_streaming) then
               g0k = g0k + g_corr(:,:,iz,it,ivmu)
@@ -2112,7 +2115,19 @@ contains
             !inverse and forward transforms
             call multiply_by_rho(g0k)
 
+            gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
+          end do
+       end do
+    end do
+    call calculate_zf_stress (zf_mgn_drft_rad,radial=.true.)
 
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+       iv = iv_idx(vmu_lo,ivmu)
+       imu = imu_idx(vmu_lo,ivmu)
+       is = is_idx(vmu_lo,ivmu)
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+            g0k = 0.
             !
             !quasineutrality/gyroaveraging
             !
@@ -2141,12 +2156,12 @@ contains
 !           g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
 
             gout(:,:,iz,it,ivmu) = gout(:,:,iz,it,ivmu) + g0k
-            zf_staging(:,iz,it,ivmu) = g0k(1,:)
+            zf_staging(:,iz,it,ivmu) = g0k(1,:) / code_dt
           end do
        end do
     end do
 
-    call calculate_zf_stress (zf_mgn_drft_rad)
+    call calculate_zf_stress (zf_mgn_drft_rad_phi)
 
     deallocate (g0k, g1k, g0a)
     if(allocated(g_corr)) deallocate(g_corr)

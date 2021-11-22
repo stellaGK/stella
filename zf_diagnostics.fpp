@@ -6,33 +6,33 @@ module zf_diagnostics
   public :: zf_diag_data, zf_staging, ncalc
   public :: calculate_zf_stress
   public :: clear_zf_staging_array
-  public :: zf_prl_str,         &
-            zf_prl_str_rad,     &
-            zf_prl_str_rad_phi, &
-            zf_mirror,          &    
-            zf_mirror_rad,      &
-            zf_mgn_drft,        &
-            zf_mgn_drft_rad,    &
-            zf_exb_nl,          &
-            zf_exb_nl_rad,      &
-            zf_source,          &    
+  public :: zf_prl_str,           &
+            zf_prl_str_rad,       &
+            zf_prl_str_rad_phi,   &
+            zf_mirror,            &
+            zf_mirror_rad,        &
+            zf_mgn_drft,          &
+            zf_mgn_drft_rad,      &
+            zf_mgn_drft_rad_phi,  &
+            zf_exb_nl,            &
+            zf_source,            &
             zf_comm
 
 
   private
 
-  integer, parameter :: ncalc  = 12
-  integer, parameter :: zf_prl_str         =  1, &
-                        zf_prl_str_rad     =  2, &
-                        zf_prl_str_rad_phi =  3, &
-                        zf_mirror          =  4, & !only depends on endpoints in vpa space
-                        zf_mirror_rad      =  5, &
-                        zf_mgn_drft        =  6, &
-                        zf_mgn_drft_rad    =  7, &
-                        zf_exb_nl          =  8, &
-                        zf_exb_nl_rad      =  9, &
-                        zf_source          = 10, &
-                        zf_comm            = 11
+  integer, parameter :: ncalc  = 11
+  integer, parameter :: zf_prl_str          =  1, &
+                        zf_prl_str_rad      =  2, &
+                        zf_prl_str_rad_phi  =  3, &
+                        zf_mirror           =  4, & !only depends on endpoints in vpa space
+                        zf_mirror_rad       =  5, &
+                        zf_mgn_drft         =  6, &
+                        zf_mgn_drft_rad     =  7, &
+                        zf_mgn_drft_rad_phi =  8, &
+                        zf_exb_nl           =  9, &
+                        zf_source           = 10, &
+                        zf_comm             = 11
 
   real, dimension(:,:), allocatable :: zf_diag_data
 
@@ -137,6 +137,7 @@ contains
         enddo
       endif
 
+
       call get_fields_vmulo (zf_staging, dphi_ky0)
 
       !flux surface average
@@ -163,9 +164,13 @@ contains
           endif
         enddo
       enddo
+      phi_fsa  = phi_fsa / ntubes
+      dphi_fsa = dphi_fsa / ntubes
+
+      deallocate (g0k, g0x)
 
       !multiply by conj(phi)
-      zf_diag_data(zf_index,:) = real(conjg(phi_fsa(:))*dphi_fsa(:))
+      zf_diag_data(zf_index,:) = 2.0*real(conjg(phi_fsa(:))*dphi_fsa(:))
 
     endif
 
@@ -407,14 +412,12 @@ contains
         enddo
         deallocate(g0k,g1k,g0x)
       else
-        if(radial_variation) then
-          do ikx = 1, nakx
-            do it = 1, ntubes
-              tmp = sum(dl_over_b(ia,:)*phi(ikx,:,it))
-              phi(ikx,:,it) = phi(ikx,:,it) + tmp*gamtot3(ikx,:)
-            end do
+        do ikx = 1, nakx
+          do it = 1, ntubes
+            tmp = sum(dl_over_b(ia,:)*phi(ikx,:,it))
+            phi(ikx,:,it) = phi(ikx,:,it) + tmp*gamtot3(ikx,:)
           end do
-        endif
+        end do
       end if
     end if
     
