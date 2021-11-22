@@ -1227,7 +1227,7 @@ end subroutine get_fields_by_spec_idx
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
 
-    integer :: ivmu, iv, is
+    integer :: ivmu, iv, is, iz, it, ikx
     complex, dimension (:,:,:,:), allocatable :: field
 
     allocate (field(naky,nakx,-nzgrid:nzgrid,ntubes))
@@ -1235,8 +1235,13 @@ end subroutine get_fields_by_spec_idx
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        is = is_idx(vmu_lo,ivmu)
        iv = iv_idx(vmu_lo,ivmu)
-       field = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
-            * ( fphi*phi - fapar*vpa(iv)*spec(is)%stm*apar )
+       do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+           do ikx = 1, nakx
+             field(:,ikx,iz,it) = zi*aky(:)*(fphi*phi(:,ikx,iz,it) - fapar*vpa(iv)*spec(is)%stm*apar(:,ikx,iz,it))
+           end do
+         end do
+       end do
        call gyro_average (field, ivmu, dchidy(:,:,:,:,ivmu))
     end do
 

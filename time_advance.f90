@@ -2181,7 +2181,15 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdy
 
-    dgdy = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes)*g
+    integer :: it, iz, ikx
+
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ikx = 1, nakx
+          dgdy(:,ikx,iz,it) = zi*aky(:)*g(:,ikx,iz,it)
+        enddo
+      enddo
+    enddo
 
   end subroutine get_dgdy_3d
 
@@ -2197,11 +2205,17 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dgdy
 
-    integer :: ivmu
+    integer :: ivmu, ikx, iz, it
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       dgdy(:,:,:,:,ivmu) = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            dgdy(:,ikx,iz,it,ivmu) = zi*aky(:)*g(:,ikx,iz,it,ivmu)
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine get_dgdy_4d
 
@@ -2219,14 +2233,19 @@ contains
     real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift_in
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, ikx, iz, it
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
-            + spread(spread(spread(wdrift_in(:,ivmu),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-       zf_staging(:,:,:,ivmu) = zf_staging(:,:,:,ivmu) &
-            + spread(spread(wdrift_in(:,ivmu),1,nakx),3,ntubes)*g(1,:,:,:,ivmu)/code_dt
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wdrift_in(iz,ivmu)*g(:,ikx,iz,it,ivmu)
+            zf_staging(ikx,iz,it,ivmu) = zf_staging(ikx,iz,it,ivmu) & 
+                                         + wdrift_in(iz,ivmu)*g(1,ikx,iz,it,ivmu)/code_dt
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine add_dg_term
 
@@ -2242,11 +2261,17 @@ contains
     real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift_in
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, ikx, iz, it
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) - spread(spread(wdrift_in(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+             src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) - wdrift_in(:,iz,ivmu)*g(:,ikx,iz,it,ivmu)
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine add_dg_term_annulus
 
@@ -2268,14 +2293,22 @@ contains
 
     use constants, only: zi
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, akx
+    use kt_grids, only: naky, akx, nakx
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdx
 
-    dgdx = zi*spread(spread(spread(akx,1,naky),3,2*nzgrid+1),4,ntubes)*g
+    integer :: ikx, iz, it
+
+    do it = 1, ntubes
+      do iz = -nzgrid, nzgrid
+        do ikx = 1, nakx
+          dgdx(:,ikx,iz,it) = zi*akx(ikx)*g(:,ikx,iz,it)
+        enddo
+      enddo
+    enddo
 
   end subroutine get_dgdx_3d
 
@@ -2284,18 +2317,24 @@ contains
     use constants, only: zi
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, akx
+    use kt_grids, only: naky, akx, nakx
 
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dgdx
 
-    integer :: ivmu
+    integer :: ivmu, ikx, iz, it
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       dgdx(:,:,:,:,ivmu) = zi*spread(spread(spread(akx,1,naky),3,2*nzgrid+1),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            dgdx(:,ikx,iz,it,ivmu) = zi*akx(ikx)*g(:,ikx,iz,it,ivmu)
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine get_dgdx_4d
 
@@ -2313,13 +2352,18 @@ contains
     real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, it, iz, ikx
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
-            + spread(spread(spread(wdrift(:,ivmu),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-       zf_staging(:,:,:,ivmu) = zf_staging(:,:,:,ivmu) &
-            + spread(spread(wdrift(:,ivmu),1,nakx),3,ntubes)*g(1,:,:,:,ivmu)/code_dt
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wdrift(iz,ivmu)*g(:,ikx,iz,it,ivmu)
+            zf_staging(ikx,iz,it,ivmu) = zf_staging(ikx,iz,it,ivmu) &
+                                         + wdrift(iz,ivmu)*g(1,ikx,iz,it,ivmu)/code_dt
+          end do
+        end do
+      end do
     end do
 
   end subroutine add_dphi_term
@@ -2336,12 +2380,17 @@ contains
     real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, ikx, iz, it
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
-            + spread(spread(wdrift(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wdrift(:,iz,ivmu)*g(:,ikx,iz,it,ivmu)
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine add_dphi_term_annulus
 
@@ -2357,12 +2406,17 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, it, iz, ikx
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
-            + spread(spread(spread(wstar(1,:,ivmu),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wstar(1,iz,ivmu)*g(:,ikx,iz,it,ivmu)
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine add_wstar_term
 
@@ -2378,12 +2432,17 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: ivmu
+    integer :: ivmu, it, iz, ikx
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) &
-            + spread(spread(wstar(:,:,ivmu),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+      do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+          do ikx = 1, nakx
+            src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wstar(:,iz,ivmu)*g(:,ikx,iz,it,ivmu)
+          enddo
+        enddo
+      enddo
+    enddo
 
   end subroutine add_wstar_term_annulus
 
