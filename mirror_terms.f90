@@ -472,13 +472,19 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: imu, is, ivmu
+    integer :: imu, is, ivmu, it, iz, ikx
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(mirror(1,:,imu,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+       do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+           do ikx = 1, nakx
+             src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + mirror(1,iz,imu,is)*g(:,ikx,iz,it,ivmu)
+           enddo
+         enddo
+       enddo
+    enddo
 
   end subroutine add_mirror_term
 
@@ -494,13 +500,19 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
-    integer :: imu, is, ivmu
+    integer :: imu, is, ivmu, it, iz, ikx
 
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(mirror(:,:,imu,is),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
-    end do
+       do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+           do ikx = 1, nakx
+             src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + mirror(:,iz,imu,is)*g(:,ikx,iz,it,ivmu)
+           enddo
+         enddo
+       enddo
+    enddo
 
   end subroutine add_mirror_term_annulus
 
@@ -532,7 +544,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g
 
     integer :: ikxyz, ikxkyz, ivmu
-    integer :: iv, imu, iz, is
+    integer :: iv, imu, iz, is, ikx, it
     real :: tupwnd
     complex, dimension (:,:,:), allocatable :: g0v
     complex, dimension (:,:,:,:,:), allocatable :: g0x
@@ -572,8 +584,14 @@ contains
        ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
        if (include_neoclassical_terms) then
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)*spread(spread(mirror_int_fac(:,:,ivmu),2,nakx),4,ntubes)
-          end do
+            do it = 1, ntubes
+              do iz = -nzgrid, nzgrid
+                do ikx = 1, nakx
+                  g0x(:,ikx,iz,it,ivmu) = g0x(:,ikx,iz,it,ivmu)*mirror_int_fac(:,iz,ivmu)
+                enddo
+              enddo
+            enddo
+          enddo
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
              iv = iv_idx(vmu_lo,ivmu)
@@ -599,7 +617,13 @@ contains
        ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
        if (include_neoclassical_terms) then
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-             g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/spread(spread(mirror_int_fac(:,:,ivmu),2,nakx),4,ntubes)
+            do it = 1, ntubes
+              do iz = -nzgrid, nzgrid
+                do ikx = 1, nakx
+                  g0x(:,ikx,iz,it,ivmu) = g0x(:,ikx,iz,it,ivmu)/mirror_int_fac(:,iz,ivmu)
+                enddo
+              enddo
+            enddo
           end do
        else
           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
