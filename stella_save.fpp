@@ -536,7 +536,7 @@ contains
 
        if (istatus /= NF90_NOERR) call netcdf_error (istatus, ncid, gi_id)
           
-       if (include_krook_operator) then
+       if (include_krook_operator.and.has_vmulo) then
          if (.not. allocated(ktmpr)) &
            allocate (ktmpr(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ktmpi)) &
@@ -592,7 +592,7 @@ contains
        
        end if
 
-       if (remove_zero_projection) then
+       if (remove_zero_projection.and.has_vmulo) then
          if (.not. allocated(ptmpr)) &
            allocate (ptmpr(nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ptmpi)) &
