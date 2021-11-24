@@ -16,12 +16,13 @@ module zf_diagnostics
             zf_mgn_drft_rad_phi,  &
             zf_exb_nl,            &
             zf_source,            &
-            zf_comm
+            zf_comm,              &
+            zf_hyper
 
 
   private
 
-  integer, parameter :: ncalc  = 11
+  integer, parameter :: ncalc  = 12
   integer, parameter :: zf_prl_str          =  1, &
                         zf_prl_str_rad      =  2, &
                         zf_prl_str_rad_phi  =  3, &
@@ -32,7 +33,8 @@ module zf_diagnostics
                         zf_mgn_drft_rad_phi =  8, &
                         zf_exb_nl           =  9, &
                         zf_source           = 10, &
-                        zf_comm             = 11
+                        zf_comm             = 11, &
+                        zf_hyper            = 12
 
   real, dimension(:,:), allocatable :: zf_diag_data
 

@@ -2,7 +2,7 @@ from scipy.io import netcdf
 import numpy as np
 
 fpref='center'
-basedir = '/work/e607/e607/dstonge/zf_test/'
+basedir = '/work/e607/e607/dstonge/zf_test/test_proj/'
 center_file = basedir +fpref + '.out.nc'
 
 

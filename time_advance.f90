@@ -2467,6 +2467,7 @@ contains
     use mp, only: proc0
     use job_manage, only: time_message
     use stella_layouts, only: vmu_lo
+    use stella_time, only: code_dt
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
     use physics_flags, only: include_parallel_streaming
@@ -2481,6 +2482,8 @@ contains
     use run_parameters, only: driftkinetic_implicit
     use flow_shear, only: advance_perp_flow_shear
     use multibox, only: RK_step
+    use zf_diagnostics, only: clear_zf_staging_array, calculate_zf_stress
+    use zf_diagnostics, only: zf_staging, zf_hyper
 
     implicit none
 
@@ -2530,8 +2533,12 @@ contains
        if (hyper_dissipation) then
 !          ! for hyper-dissipation, need to be in k-alpha space
 !          if (alpha_space) call transform_y2ky (gy, gk)
+          zf_staging = g(1,:,:,:,:)
           call advance_hyper_dissipation (g)
           fields_updated = .false.
+          call advance_fields (g, phi, apar, dist='gbar')
+          zf_staging = (g(1,:,:,:,:) - zf_staging)/code_dt
+          call calculate_zf_stress (zf_hyper)
        end if
 
        if (collisions_implicit .and. include_collisions) then
