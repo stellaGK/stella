@@ -121,6 +121,7 @@ contains
     use stella_save, only: init_dt
     use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
     use multibox, only: communicate_multibox_parameters, multibox_communicate
+    use multibox, only: use_dirichlet_BC, apply_radial_boundary_conditions
     use ran, only: get_rnd_seed_length, init_ranf
     use dissipation, only: init_dissipation
     use sources, only: init_sources
@@ -183,12 +184,12 @@ contains
     call init_zgrid
     if (debug) write (6,*) "stella::init_stella::read_species_knobs"
     call read_species_knobs
-    if (debug) write (6,*) "stella::init_stella::read_multibox_parameters"
+    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_kt_grids_parameters
     if (debug) write (6,*) "stella::init_stella::read_vpamu_grids_parameters"
-    call read_multibox_parameters
-    if (debug) write (6,*) "stella::init_stella::read_kt_grids_parameters"
     call read_vpamu_grids_parameters
+    if (debug) write (6,*) "stella::init_stella::read_multibox_parameters"
+    call read_multibox_parameters
     if (debug) write (6,*) "stella::init_stella::init_dist_fn_layouts"
     call init_dist_fn_layouts (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
     if (debug) write(6,*) "stella::init_stella::init_geometry"
@@ -295,13 +296,18 @@ contains
       call get_radial_correction(gnew,phi,dist='gbar')
     endif
 
-    if(runtype_option_switch.eq.runtype_multibox) then
+    if (runtype_option_switch.eq.runtype_multibox) then
       if (debug) write (6,*) 'stella::init_stella:multibox_communicate'
       call multibox_communicate (gnew)
       if(job.eq.1) then
         fields_updated=.false.
         call advance_fields (gnew, phi, apar, dist='gbar')
       endif
+    else if (use_dirichlet_BC) then
+      if (debug) write (6,*) 'stella::init_stella:multibox_radial_BC'
+      call apply_radial_boundary_conditions (gnew)
+      fields_updated=.false.
+      call advance_fields (gnew, phi, apar, dist='gbar')
     endif
 
     ! FLAG - the following code should probably go elsewhere

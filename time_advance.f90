@@ -1203,7 +1203,6 @@ contains
     use fields, only: advance_fields, fields_updated, get_radial_correction
     use mirror_terms, only: advance_mirror_explicit
     use flow_shear, only: advance_parallel_flow_shear
-    use file_utils, only: runtype_option_switch, runtype_multibox
     use multibox, only: include_multibox_krook, add_multibox_krook
 
     implicit none
@@ -1290,8 +1289,7 @@ contains
 
        if (include_krook_operator) call add_krook_operator(gin,rhs)
 
-       if (runtype_option_switch == runtype_multibox .and. include_multibox_krook) &
-         call add_multibox_krook(gin,rhs)
+       if (include_multibox_krook) call add_multibox_krook(gin,rhs)
 
     end if
 
@@ -2693,7 +2691,7 @@ contains
     use mp, only: job
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
-    use multibox, only: multibox_communicate
+    use multibox, only: multibox_communicate, use_dirichlet_bc, apply_radial_boundary_conditions
     use fields, only: fields_updated,advance_fields
     use fields_arrays, only: phi, apar
     use file_utils, only: runtype_option_switch, runtype_multibox
@@ -2702,15 +2700,19 @@ contains
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: g_in
 
-    if(runtype_option_switch.ne.runtype_multibox) return
+    if (runtype_option_switch.eq.runtype_multibox) then
+      if(job.ne.1) then
+        call advance_fields(g_in,phi,apar,dist='gbar')
+      endif
 
-    if(job.ne.1) then
-      call advance_fields(g_in,phi,apar,dist='gbar')
-    endif
+      call multibox_communicate(g_in)
 
-    call multibox_communicate(g_in)
-
-    if(job.eq.1) then
+      if(job.eq.1) then
+        fields_updated = .false.
+        call advance_fields(g_in,phi,apar,dist='gbar')
+      endif
+    else if (use_dirichlet_BC) then
+      call apply_radial_boundary_conditions (g_in)
       fields_updated = .false.
       call advance_fields(g_in,phi,apar,dist='gbar')
     endif
