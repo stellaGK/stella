@@ -31,11 +31,13 @@ module stella_geometry
   public :: twist_and_shift_geo_fac
   public :: q_as_x, get_x_to_rho, gfac
   public :: dVolume
+  public :: grad_x_grad_y_end
 
   private
 
   type (flux_surface_type) :: geo_surf
 
+  real :: grad_x_grad_y_end
   real :: aref, bref
   real :: dxdXcoord, dydalpha
   real :: dqdrho
@@ -49,6 +51,7 @@ module stella_geometry
   real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:), allocatable :: gradpar
   real, dimension (:,:), allocatable :: bmag, bmag_psi0, dbdzed
+  real, dimension (:,:), allocatable :: twist_and_shift_geo_fac_full
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
   real, dimension (:,:), allocatable :: dcvdriftdrho, dcvdrift0drho
@@ -79,6 +82,7 @@ module stella_geometry
   logical :: q_as_x
   character (100) :: geo_file
 
+  logical :: vmec_chosen = .false.
   logical :: geoinit = .false.
   logical :: set_bmag_const
 
@@ -95,7 +99,10 @@ contains
     use zgrid, only: nzed, nzgrid
     use zgrid, only: zed, delzed
     use zgrid, only: shat_zero, zed_equal_arc
+    use zgrid, only: grad_x_grad_y_zero
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
+    use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_new
+    use zgrid, only: twist_shift_option_periodic
     use file_utils, only: get_unused_unit
     use physics_flags, only: include_geometric_variation
 
@@ -260,6 +267,7 @@ contains
           zeta(1,:) = zed*geo_surf%qinp
 
        case (geo_option_vmec)
+          vmec_chosen=.true.
           ! read in input parameters for vmec
           ! nalpha may be specified via input file
           if (debug) write (*,*) 'init_geometry::read_vmec_parameters'
@@ -295,10 +303,31 @@ contains
 
           ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
           ! minus its sign gives the direction of the shift in kx
-          ! to be used for twist-and-shift BC
-!          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
-          twist_and_shift_geo_fac = -2.*pi*geo_surf%shat*drhodpsi*dydalpha/(geo_surf%qinp*dxdXcoord*geo_surf%rhotor) &
-               * field_period_ratio
+          allocate(twist_and_shift_geo_fac_full(nalpha,-nzgrid:nzgrid))
+          grad_x_grad_y_end = grad_alpha_grad_psi(1,nzgrid) * (aref * aref * bref)
+          select case (twist_shift_option_switch)
+          case (twist_shift_option_std)
+          ! to be used for std twist-and-shift BC                                                                                       
+          ! twist_and_shift_geo_fac =
+          ! -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
+                write(*,*) 'Standard twist and shift BC selected'
+                twist_and_shift_geo_fac_full = -2.*pi*geo_surf%shat*drhodpsi*dydalpha/(geo_surf%qinp*dxdXcoord*geo_surf%rhotor) &
+                        * field_period_ratio
+                if(abs(geo_surf%shat) <=  shat_zero) &
+                        write(*,*) 'Using periodic boundary conditions as shat < shat_zero'
+                        write(*,*)
+          case (twist_shift_option_new)
+          !to be used for stellarator symmetric twist-and-shift BC
+          !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2 
+                write(*,*) 'Stellarator symmetric twist and shift BC selected'
+                twist_and_shift_geo_fac_full = -4*(geo_surf%rhotor*geo_surf%rhotor*geo_surf%psitor_lcfs) &
+                        * (grad_alpha_grad_psi)/(grad_psi_grad_psi * aref * aref * bref) * field_period_ratio 
+                if(abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
+                        write(*,*) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
+                        write(*,*)
+          end select
+          twist_and_shift_geo_fac = twist_and_shift_geo_fac_full(1,nzgrid)
+          deallocate(twist_and_shift_geo_fac_full)  
 
           ! gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
           ! note that rhotor = sqrt(psi/psi_LCFS)
@@ -392,6 +421,24 @@ contains
     ! boundary condition so that it is periodic
     if(abs(geo_surf%shat) <=  shat_zero) &
          boundary_option_switch = boundary_option_self_periodic
+
+    if (vmec_chosen==.true.) then
+          select case (twist_shift_option_switch)
+          case (twist_shift_option_std)
+          ! if magnetic shear almost zero, override parallel
+          ! boundary condition so that it is periodic if using the standard
+          ! twist and shift bc, in which kx_shift is proportional to shat
+                if(abs(geo_surf%shat) <=  shat_zero) &
+                        twist_shift_option_switch = twist_shift_option_periodic
+          case (twist_shift_option_new)
+          ! if magnetic nabla x. nabla y is almost zero, override parallel
+          ! boundary condition so that it is periodic if using the stellarator
+          ! symmetric twist and shift bc, in which kx_shift is proportional to nabla
+          ! x. nabla y
+                if(abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
+                        twist_shift_option_switch = twist_shift_option_periodic
+          end select
+    end if
 
     ! theta_eqarc is parallel coordinate such that
     ! b . grad theta_eqarc = constant
@@ -682,6 +729,8 @@ contains
     call broadcast (dxdXcoord)
     call broadcast (dydalpha)
     call broadcast (twist_and_shift_geo_fac)
+    call broadcast (grad_x_grad_y_end)
+    call broadcast (vmec_chosen)
 
     call broadcast (aref)
     call broadcast (bref)
