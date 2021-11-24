@@ -422,7 +422,7 @@ contains
     if(abs(geo_surf%shat) <=  shat_zero) &
          boundary_option_switch = boundary_option_self_periodic
 
-    if (vmec_chosen==.true.) then
+    if (vmec_chosen) then
           select case (twist_shift_option_switch)
           case (twist_shift_option_std)
           ! if magnetic shear almost zero, override parallel
