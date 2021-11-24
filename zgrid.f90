@@ -11,6 +11,11 @@ module zgrid
   public :: get_total_arc_length
   public :: get_arc_length_grid
   public :: shat_zero
+  public :: grad_x_grad_y_zero
+  public :: twist_shift_option_switch   
+  public :: twist_shift_option_std      
+  public :: twist_shift_option_new     
+  public :: twist_shift_option_periodic      
   public :: boundary_option_switch
   public :: boundary_option_zero
   public :: boundary_option_self_periodic
@@ -21,13 +26,19 @@ module zgrid
   integer :: nzed, nzgrid, nztot, nz2pi
   integer :: nperiod, ntubes
   logical :: zed_equal_arc
-  real :: shat_zero
+  real :: shat_zero, grad_x_grad_y_zero
   real, dimension (:), allocatable :: zed, delzed
 
   integer :: boundary_option_switch
   integer, parameter :: boundary_option_zero = 1, &
        boundary_option_self_periodic = 2, &
        boundary_option_linked = 3
+
+  integer :: twist_shift_option_switch                        
+  integer, parameter :: twist_shift_option_std = 1, &           
+       twist_shift_option_new = 2, &                            
+       twist_shift_option_periodic = 3
+
 
   logical :: zgridinit = .false.
 
@@ -83,13 +94,21 @@ contains
             text_option('linked', boundary_option_linked) /)
     character(20) :: boundary_option
 
+    type (text_option), dimension (3), parameter :: twistshiftopts = &  
+         (/ text_option('standard', twist_shift_option_std), &          
+            text_option('stellarator', twist_shift_option_new), &
+            text_option('periodic', twist_shift_option_periodic) /)     
+    character(20) :: twist_shift_option
+
     namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
-         shat_zero, boundary_option, zed_equal_arc
+         shat_zero, boundary_option, zed_equal_arc, &
+         boundary_option, zed_equal_arc, grad_x_grad_y_zero, twist_shift_option
 
     nzed = 24
     nperiod = 1
     ntubes = 1
     boundary_option = 'default'
+    twist_shift_option = 'standard'
     ! if zed_equal_arc = T, then zed is chosen to be arc length
     ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
     ! or zeta (toroidal) angle
@@ -97,6 +116,10 @@ contains
     ! set minimum shat value below which we assume
     ! periodic BC
     shat_zero = 1.e-5
+    ! set the minimum nabla x . nabla value at the end of the FT which we assume
+    ! periodic BC instead of the stellarator symmetric ones
+    grad_x_grad_y_zero = 1.e-5
+
 
     in_file = input_unit_exist("zgrid_parameters", exist)
     if (exist) read (unit=in_file, nml=zgrid_parameters)
@@ -106,9 +129,13 @@ contains
          (boundary_option, boundaryopts, boundary_option_switch, &
          ierr, "boundary_option in dist_fn_knobs")
 
+    call get_option_value &
+         (twist_shift_option, twistshiftopts, twist_shift_option_switch, &
+         ierr, "twist_shift_option in dist_fn_knobs")
+
     ! note that boundary_option may be changed to self-periodic later
-    ! if magnetic shear is smaller than shat_zero
-    ! cannot do this here as magnetic shear has yet to be input
+    ! if magnetic shear or nabla x \cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
+    ! cannot do this here as these quantities have yet to be input
 
     nzgrid = nzed/2 + (nperiod-1)*nzed
 
@@ -131,6 +158,9 @@ contains
     call broadcast (zed_equal_arc)
     call broadcast (shat_zero)
     call broadcast (boundary_option_switch)
+    call broadcast (twist_shift_option_switch)          
+    call broadcast (grad_x_grad_y_zero)                 
+
 
   end subroutine broadcast_parameters
 
