@@ -223,7 +223,9 @@ contains
     use physics_parameters, only: rhostar
     use physics_flags, only: full_flux_surface, radial_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use zgrid, only: shat_zero, nperiod
+    use zgrid, only: shat_zero, nperiod, grad_x_grad_y_zero
+    use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_new
+    use zgrid, only: twist_shift_option_periodic
     use ran, only: ranf
 
     implicit none
@@ -262,13 +264,17 @@ contains
 
     ! get the grid spacing in ky and then in kx using twist-and-shift BC
     dky = 1./y0
-    ! non-quantized b/c assumed to be periodic instead 
-    ! of linked boundary conditions if zero magnetic shear
-    if (abs(geo_surf%shat) <= shat_zero) then
-       dkx = dky / real(jtwist)
-    else
-       dkx = (2*nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-    end if
+
+    ! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition
+    ! except for the periodic ones
+    select case (twist_shift_option_switch)
+        case (twist_shift_option_std)
+                dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+        case (twist_shift_option_new)
+                dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+        case (twist_shift_option_periodic)
+                dkx = dky 
+    end select
 
     x0 = 1./dkx
 
@@ -299,15 +305,10 @@ contains
           ! theta0 = kx/ky
           theta0(2:,ikx) = akx(ikx)/aky(2:)
        end do
-    else if (abs(geo_surf%shat) > shat_zero) then
+    else 
        do ikx = 1, nakx
           ! theta0 = kx/ky/shat
           theta0(2:,ikx) = akx(ikx)/(aky(2:)*geo_surf%shat)
-       end do
-    else
-       do ikx = 1, nakx
-          ! if shat=0, theta0 is meaningless, so be careful
-          theta0(2:,ikx) = - akx(ikx)/aky(2:)
        end do
     end if
 
