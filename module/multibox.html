@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.6% of total for modules and submodules.">607 statements</a>
+    title=" 1.8% of total for modules and submodules.">679 statements</a>
      </li> 
      
      
@@ -239,6 +239,8 @@
       
       <a class="list-group-item" href="../module/multibox.html#variable-get_phi_initialized">get_phi_initialized</a>
       
+      <a class="list-group-item" href="../module/multibox.html#variable-use_multibox">use_multibox</a>
+      
       <a class="list-group-item" href="../module/multibox.html#variable-temp_ind">temp_ind</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-bs_fullgrid">bs_fullgrid</a>
@@ -278,6 +280,8 @@
       <a class="list-group-item" href="../module/multibox.html#variable-krook_efold">krook_efold</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-smooth_zfs">smooth_ZFs</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#variable-use_dirichlet_bc">use_dirichlet_BC</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-rk_step">RK_step</a>
       
@@ -345,6 +349,8 @@
       <a class="list-group-item" href="../module/multibox.html#proc-finish_multibox">finish_multibox</a>
       
       <a class="list-group-item" href="../module/multibox.html#proc-multibox_communicate">multibox_communicate</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#proc-apply_radial_boundary_conditions">apply_radial_boundary_conditions</a>
       
       <a class="list-group-item" href="../module/multibox.html#proc-add_multibox_krook">add_multibox_krook</a>
       
@@ -483,6 +489,8 @@
       
       <a class="list-group-item" href="../module/multibox.html#variable-get_phi_initialized">get_phi_initialized</a>
       
+      <a class="list-group-item" href="../module/multibox.html#variable-use_multibox">use_multibox</a>
+      
       <a class="list-group-item" href="../module/multibox.html#variable-temp_ind">temp_ind</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-bs_fullgrid">bs_fullgrid</a>
@@ -522,6 +530,8 @@
       <a class="list-group-item" href="../module/multibox.html#variable-krook_efold">krook_efold</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-smooth_zfs">smooth_ZFs</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#variable-use_dirichlet_bc">use_dirichlet_BC</a>
       
       <a class="list-group-item" href="../module/multibox.html#variable-rk_step">RK_step</a>
       
@@ -589,6 +599,8 @@
       <a class="list-group-item" href="../module/multibox.html#proc-finish_multibox">finish_multibox</a>
       
       <a class="list-group-item" href="../module/multibox.html#proc-multibox_communicate">multibox_communicate</a>
+      
+      <a class="list-group-item" href="../module/multibox.html#proc-apply_radial_boundary_conditions">apply_radial_boundary_conditions</a>
       
       <a class="list-group-item" href="../module/multibox.html#proc-add_multibox_krook">add_multibox_krook</a>
       
@@ -1053,6 +1065,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-use_multibox"></span>logical,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>use_multibox</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-temp_ind"></span>integer,</td>
   
   <td>private</td>
@@ -1324,6 +1350,20 @@
   <td>private</td>
   <td></td><td>::</td>
   <td><strong>smooth_ZFs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-use_dirichlet_bc"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>use_dirichlet_BC</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -1692,6 +1732,57 @@ public subroutine <a href='../proc/finish_multibox.html'>finish_multibox</a>()
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-multibox_communicate"></span><h3>
 public subroutine <a href='../proc/multibox_communicate.html'>multibox_communicate</a>(gin)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(inout),</td>
+  <td></td>
+  
+  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-apply_radial_boundary_conditions"></span><h3>
+public subroutine <a href='../proc/apply_radial_boundary_conditions.html'>apply_radial_boundary_conditions</a>(gin)
     
     
    
@@ -2291,13 +2382,13 @@ private subroutine <a href='../proc/finish_mb_transforms.html'>finish_mb_transfo
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-66-gce67bb91</small></p>
+                                          <br /><small>v0.3-67-gd4dd1803</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-23T10:59:28.995051 
+             on 2021-11-24T13:58:10.366741 
             
           </p>
         </div>
