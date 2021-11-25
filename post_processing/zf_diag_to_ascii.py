@@ -37,7 +37,8 @@ header = ['time',
           'mgn_drft_rad_phi',
           'exb_nl',
           'zf_source',
-          'zf_comm'
+          'zf_comm',
+          'zf_hyper'
           ]
 
 #print the header
