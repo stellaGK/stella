@@ -240,6 +240,7 @@ contains
     call broadcast (no_j0l2)
 
     if (.not.include_collisions) collisions_implicit = .false.
+    if (hyper_dissipation) fully_explicit = .false.
 
   end subroutine read_parameters
 
