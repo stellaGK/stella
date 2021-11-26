@@ -3,7 +3,7 @@
 
 
 helplocal:
-		# GK_SYSTEM = archer
+		# GK_SYSTEM = archer2
 		# You are using  Makefile.archer to build gs2 executables on ARCHER.
 		#
 		#   ARCHER defaults : cray compiler, FFTW3, netcdf, MPI
@@ -11,11 +11,12 @@ helplocal:
 		# make FRONT_END=on : serial build (no MPI) to run gs2, ingen on ARCHER Front End.
 
 define STANDARD_SYSTEM_CONFIGURATION
-module restore PrgEnv-gnu ;\
-module load cray-fftw ;\
-module load cray-hdf5 ;\
-module load cray-libsci ;\
-module load cray-netcdf ;\
+hostname=`hostname` ;\
+if [ ${hostname:0:3} == 'uan' ]; then ;\
+  module restore PrgEnv-gnu ;\
+elif [ ${hostname:0:2} == 'ln' ]; then ;\
+  module swap PrgEnv-cray PrgEnv-gnu ;\
+fi ;\
 echo Module configuration complete;\
 export MAKEFLAGS='-j -I Makefiles';\
 export TESTEXEC='aprun -N 24 -n 24';
