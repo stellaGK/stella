@@ -308,6 +308,7 @@ multibox.o: \
 	 stella_layouts.o \
 	 stella_time.o \
 	 text_options.o \
+	 zf_diagnostics.o \
 	 zgrid.o 
 neoclassical_terms.o: \
 	 file_utils.o \
@@ -398,7 +399,6 @@ sources.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
-	 multibox.o \
 	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -472,7 +472,6 @@ stella_diagnostics.o: \
 	 init_g.o \
 	 kt_grids.o \
 	 mp.o \
-	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
@@ -616,7 +615,6 @@ zf_diagnostics.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
-	 multibox.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \

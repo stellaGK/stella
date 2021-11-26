@@ -17,7 +17,8 @@ module zf_diagnostics
             zf_exb_nl,            &
             zf_source,            &
             zf_comm,              &
-            zf_hyper
+            zf_hyper,             &
+            zf_mb_krook
 
 
   private
@@ -34,7 +35,8 @@ module zf_diagnostics
                         zf_exb_nl           =  9, &
                         zf_source           = 10, &
                         zf_comm             = 11, &
-                        zf_hyper            = 12
+                        zf_hyper            = 12, &
+                        zf_mb_krook         = 13
 
   real, dimension(:,:), allocatable :: zf_diag_data
 
@@ -262,12 +264,12 @@ contains
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
+    use kt_grids, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
-    use multibox, only: copy_size
     use fields_arrays, only: gamtot, gamtot3, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj
     use file_utils, only: runtype_option_switch, runtype_multibox

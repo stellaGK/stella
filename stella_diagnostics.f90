@@ -916,13 +916,12 @@ contains
 
     use vpamu_grids, only: integrate_vmu
     use stella_layouts, only: vmu_lo
-    use kt_grids, only: aky, nakx, naky
+    use kt_grids, only: aky, nakx, naky, boundary_size
     use zgrid, only: nzgrid, ntubes
     use species, only: nspec
     use volume_averages, only: mode_fac
     use stella_geometry, only: dVolume
     use stella_transforms, only: transform_kx2x_unpadded
-    use multibox, only: boundary_size
     use physics_flags, only: radial_variation
 
     implicit none
