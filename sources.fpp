@@ -215,11 +215,10 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use constants, only: pi, zi
-    use kt_grids, only: naky, akx, nakx, zonal_mode
+    use kt_grids, only: naky, akx, nakx, zonal_mode, boundary_size
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook, g_symm
-    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use physics_flags, only: radial_variation
     use zf_diagnostics, only: zf_staging, calculate_zf_stress, zf_source
@@ -283,7 +282,7 @@ contains
             enddo
             call transform_x2kx_unpadded (g1x,g0k)
             gke_rhs(1,:,iz,it,ivmu) = gke_rhs(1,:,iz,it,ivmu) - code_dt*nu_krook*g0k(1,:)
-            zf_staging(:,iz,it,ivmu) = nu_krook*g0k(1,:)
+            zf_staging(:,iz,it,ivmu) = -nu_krook*g0k(1,:)
           enddo
         enddo
       enddo
@@ -303,7 +302,7 @@ contains
                 gke_rhs(1,ikx,iz,it,ivmu) = gke_rhs(1,ikx,iz,it,ivmu) - code_dt*nu_krook &
                                           * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
                                           / (code_dt     + exp_fac*int_krook)
-                zf_staging(ikx,iz,it,ivmu) = nu_krook &
+                zf_staging(ikx,iz,it,ivmu) = -nu_krook &
                                           * (code_dt*tmp + exp_fac*int_krook*g_krook(ikx,iz,it,ivmu)) &
                                           / (code_dt     + exp_fac*int_krook)
               endif
@@ -326,10 +325,9 @@ contains
     use constants, only: pi, zi
     use dist_fn_arrays, only: g_krook, g_symm
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: akx, nakx, zonal_mode
+    use kt_grids, only: akx, nakx, zonal_mode, boundary_size
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
-    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
@@ -542,11 +540,10 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use constants, only: pi, zi
-    use kt_grids, only: zonal_mode, akx, nakx
+    use kt_grids, only: zonal_mode, akx, nakx, boundary_size
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj, g_symm
-    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zf_diagnostics, only: zf_staging, calculate_zf_stress, zf_source
 
@@ -653,7 +650,7 @@ contains
 
     int_proj = code_dt + exp_fac*int_proj
 
-    zf_staging = g
+    zf_staging = -g
     gnew(1,:,:,:,:) = gnew(1,:,:,:,:) - code_dt*g
 
     call calculate_zf_stress(zf_source)
@@ -678,9 +675,8 @@ contains
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, nztot
-    use kt_grids, only: naky, nakx, rho_d_clamped
+    use kt_grids, only: naky, nakx, rho_d_clamped, boundary_size
     use linear_solve, only: lu_decomposition
-    use multibox, only: boundary_size
     use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
     use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
     use fields_arrays, only: exp_fac_qn

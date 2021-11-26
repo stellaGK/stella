@@ -817,12 +817,13 @@ end subroutine get_fields_by_spec_idx
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes
     use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
+    use kt_grids, only: copy_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
-    use multibox, only: mb_get_phi, copy_size
+    use multibox, only: mb_get_phi
     use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use fields_arrays, only: gamtot3

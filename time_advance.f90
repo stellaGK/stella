@@ -1631,7 +1631,7 @@ contains
        ! AND MAY INDEED BE THE WRONG THING TO DO
        gout(1,:,-nzgrid,:,ivmu) = 0.5*(gout(1,:,nzgrid,:,ivmu)+gout(1,:,-nzgrid,:,ivmu))
        gout(1,:,nzgrid,:,ivmu) = gout(1,:,-nzgrid,:,ivmu)
-       zf_staging = gout(1,:,:,:,:)
+       zf_staging(:,:,:,ivmu) = gout(1,:,:,:,ivmu)
     end do
 
     deallocate (g0k, g0a, g0xy, g1xy, bracket)
