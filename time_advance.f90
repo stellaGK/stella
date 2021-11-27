@@ -883,16 +883,30 @@ contains
     parallel_streaming_initialized = .false.
     qn_source_initialized = .false.
 
+    if (debug) write (6,*) 'time_advance::reset_dt::init_wstar'
     call init_wstar
+    if (debug) write (6,*) 'time_advance::reset_dt::init_wdrift'
     call init_wdrift
+    if (debug) write (6,*) 'time_advance::reset_dt::init_mirror'
     call init_mirror
+    if (debug) write (6,*) 'time_advance::reset_dt::init_parallel_streaming'
     call init_parallel_streaming
+    if (debug) write (6,*) 'time_advance::reset_dt::init_flow_shear'
     call init_flow_shear
+    if (debug) write (6,*) 'time_advance::reset_dt::init_source_timeaverage'
     call init_source_timeaverage
+    if (debug) write (6,*) 'time_advance::reset_dt::init_quasineutrality_source'
     call init_quasineutrality_source
-    if (radial_variation) call init_radial_variation
-    if (drifts_implicit) call init_drifts_implicit
+    if (radial_variation) then
+      if (debug) write (6,*) 'time_advance::reset_dt::init_radial_variation'
+      call init_radial_variation
+    endif
+    if (drifts_implicit) then
+      if (debug) write (6,*) 'time_advance::reset_dt::init_drifts_implicit'
+      call init_drifts_implicit
+    endif
     if (include_collisions) then
+      if (debug) write (6,*) 'time_advance::reset_dt::init_collisions'
       collisions_initialized = .false.
       call init_collisions
     endif
@@ -900,6 +914,7 @@ contains
     ! before it has been initialized the first time
     if ((stream_implicit.or.driftkinetic_implicit) .and. response_matrix_initialized) then
        response_matrix_initialized = .false.
+       if (debug) write (6,*) 'time_advance::reset_dt::init_response_matrix'
        call init_response_matrix
     end if
 
