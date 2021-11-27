@@ -37,6 +37,8 @@ module sources
 
   logical :: qn_source_initialized, include_qn_source
 
+  logical :: debug = .false.
+
 #if defined MPI && defined ISO_C_BINDING
   integer :: qn_window = MPI_WIN_NULL
 #endif
@@ -47,7 +49,7 @@ contains
 
   subroutine init_sources
 
-    use mp, only: job
+    use mp, only: job, proc0
     use run_parameters, only: fphi
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use kt_grids, only: naky, nakx, zonal_mode
@@ -65,6 +67,8 @@ contains
 
     logical :: has_elec, adia_elec
     real :: fac
+
+    debug = debug .and. proc0
 
     call read_parameters
 
@@ -677,12 +681,12 @@ contains
     integer :: inmat, jnmat, nmat_zf
     real :: dum
 #if defined MPI && ISO_C_BINDING
-    integer :: prior_focus, ierr
+    integer :: prior_focus, ierr, temp_window
     integer :: disp_unit = 1
     integer*8 :: cur_pos
     integer (kind=MPI_ADDRESS_KIND) :: win_size
     type(c_ptr) :: cptr
-    complex, dimension (:,:), allocatable :: temp_mat
+    complex, dimension (:,:), pointer :: temp_mat
 #endif
     complex, dimension (:,:), allocatable :: g0k, g0x, g1k
 
@@ -703,6 +707,7 @@ contains
                    + int(nmat_zf*(nmat_zf+1),MPI_ADDRESS_KIND)*2*real_size !complex size
         endif
 
+        if (debug) write (6,*) 'sources::init_quasineutrality_source::win_allocate'
         call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
                                      mp_comm,cptr,qn_window,ierr)
 
@@ -736,6 +741,7 @@ contains
         call scope (prior_focus)
       endif
 #else
+      if (debug) write (6,*) 'sources::init_quasineutrality_source::allocate_phizf'
       if (.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
       if (.not.associated(phizf_solve%idx))  allocate (phizf_solve%idx(nmat_zf))
       if (.not.associated(phi_ext)) allocate (phi_ext)
@@ -821,20 +827,44 @@ contains
 #if defined MPI && ISO_C_BINDING
       endif
       call mpi_win_fence(0,qn_window,ierr)
+      if (debug) write (6,*) 'sources::init_quasineutrality_source::lu_decomposition'
       call lu_decomposition_local(comm_sgroup, 0, qn_window, &
                                   phizf_solve%zloc, phizf_solve%idx, dum)
 
-      allocate (temp_mat(nmat_zf,nmat_zf))
-      temp_mat = phizf_solve%zloc
-
       call mpi_win_fence(0,qn_window,ierr)
+
+      if (debug) write (6,*) 'sources::init_quasineutrality_source::temp_mat'
+      call scope (sharedsubprocs)
+      win_size = 0
+      if (sgproc0) then
+        win_size = int(nmat_zf**2,MPI_ADDRESS_KIND)*2*real_size !complex size
+      endif
+
+      if (debug) write (6,*) 'sources::init_quasineutrality_source::win_allocate'
+      call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
+                                   mp_comm,cptr,temp_window,ierr)
+
+      if (.not.sgproc0) then
+        !make sure all the procs have the right memory address
+        call mpi_win_shared_query(temp_window,0,win_size,disp_unit,cptr,ierr)
+      end if
+
+      call mpi_win_fence(0,temp_window,ierr) !DSO - not sure if this fence is necessary
+      call c_f_pointer (cptr,temp_mat,(/nmat_zf,nmat_zf/))
+
+      if (sgproc0) temp_mat = phizf_solve%zloc
+
+      call mpi_win_fence(0,temp_window,ierr)
+      call scope (prior_focus)
 
       ! inverse is calculated since it is more straightforward to parallelize
       ! inverse calculation/matrix multiplication than the lu back substitution
+      if (debug) write (6,*) 'sources::init_quasineutrality_source::lu_inverse'
       call lu_inverse_local(comm_sgroup, 0, qn_window, &
                             temp_mat, phizf_solve%idx, phizf_solve%zloc)
-      deallocate (temp_mat)
+      call mpi_win_free (temp_window, ierr)
 #else
+      if (debug) write (6,*) 'sources::init_quasineutrality_source::lu_decomposition'
       call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
 #endif
     endif

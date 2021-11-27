@@ -24,6 +24,7 @@ sfincs_interface.f90
 spfunc.f90
 stella_io.f90
 stella_save.f90
+system_fortran.f90
 *.ini
 *.pickle
 *.py~
