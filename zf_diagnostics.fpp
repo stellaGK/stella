@@ -23,7 +23,7 @@ module zf_diagnostics
 
   private
 
-  integer, parameter :: ncalc  = 12
+  integer, parameter :: ncalc  = 13
   integer, parameter :: zf_prl_str          =  1, &
                         zf_prl_str_rad      =  2, &
                         zf_prl_str_rad_phi  =  3, &
