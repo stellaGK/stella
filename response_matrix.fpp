@@ -907,8 +907,7 @@ contains
     use kt_grids, only: zonal_mode, akx
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
-    use fields, only: gamtot3
-    use fields_arrays, only: gamtot
+    use fields_arrays, only: gamtot, gamtot3
 
     implicit none
 
