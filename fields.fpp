@@ -253,9 +253,9 @@ contains
 
            if(.not.allocated(phi_solve)) allocate(phi_solve(naky_r,-nzgrid:nzgrid))
 #if defined MPI && ISO_C_BINDING
+           prior_focus = curr_focus
            call scope (sharedsubprocs)
            if((.not.qn_window_initialized).or.(qn_window.eq.MPI_WIN_NULL)) then
-              prior_focus = curr_focus
               win_size = 0
               if(sgproc0) then
                 win_size = int(nakx*nztot*naky_r,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND & 
