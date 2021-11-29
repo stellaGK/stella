@@ -15,30 +15,24 @@ module sources
   public :: remove_zero_projection, project_out_zero
   public :: add_krook_operator
   public :: tcorr_source, exclude_boundary_regions, exp_fac
-  public :: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
   public :: int_krook, int_proj
   public :: qn_source_initialized
   public :: time_sources
-#if defined MPI && defined ISO_C_BINDING
-  public :: qn_window
-#endif
 
   private
 
   logical :: include_krook_operator, remove_zero_projection
   logical :: krook_odd, exclude_boundary_regions
-  logical :: exclude_boundary_regions_qn
   logical :: from_zero
   logical :: conserve_momentum, conserve_density
-  real :: nu_krook, tcorr_source, int_krook, int_proj
-  real :: tcorr_source_qn
   integer:: ikxmax_source
-  real :: exp_fac, exp_fac_qn
+  real :: nu_krook, tcorr_source, int_krook, int_proj
+  real :: exp_fac
 
   logical :: qn_source_initialized, include_qn_source
 
 #if defined MPI && defined ISO_C_BINDING
-  integer :: qn_window = MPI_WIN_NULL
+  logical :: qn_window_initialized = .false.
 #endif
 
   real, dimension (2,2) :: time_sources = 0.
@@ -115,6 +109,7 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use mp, only: proc0, broadcast
     use kt_grids, only: ikx_max, periodic_variation
+    use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
 
     implicit none
 
@@ -172,6 +167,7 @@ contains
   subroutine init_source_timeaverage
 
     use stella_time, only: code_dt
+    use fields_arrays, only: tcorr_source_qn, exp_fac_qn
 
     implicit none
 
@@ -184,7 +180,9 @@ contains
 
     use dist_fn_arrays, only: g_krook, g_proj, g_symm
     use fields_arrays, only : phi_proj, phi_proj_stage
-#if !defined(MPI) || !defined(ISO_C_BINDING)
+#if defined MPI && defined ISO_C_BINDING
+    use fields_arrays, only : qn_zf_window
+#else
     use fields_arrays, only : phizf_solve, phi_ext
 #endif
 
@@ -199,7 +197,10 @@ contains
     if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
 #if defined MPI && defined ISO_C_BINDING
-    if (qn_window.ne.MPI_WIN_NULL) call mpi_win_free(qn_window, ierr)
+    if (qn_zf_window.ne.MPI_WIN_NULL) then 
+      call mpi_win_free(qn_zf_window, ierr)
+      qn_window_initialized = .false.
+    endif
 #else    
     if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
     if (associated(phizf_solve%idx)) deallocate (phizf_solve%idx)
@@ -214,11 +215,10 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use constants, only: pi, zi
-    use kt_grids, only: naky, akx, nakx, zonal_mode
+    use kt_grids, only: naky, akx, nakx, zonal_mode, boundary_size
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_krook, g_symm
-    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use physics_flags, only: radial_variation
 
@@ -317,10 +317,9 @@ contains
     use constants, only: pi, zi
     use dist_fn_arrays, only: g_krook, g_symm
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: akx, nakx, zonal_mode
+    use kt_grids, only: akx, nakx, zonal_mode, boundary_size
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
-    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
     implicit none
@@ -533,11 +532,10 @@ contains
     use job_manage, only: time_message
     use zgrid, only: nzgrid, ntubes
     use constants, only: pi, zi
-    use kt_grids, only: zonal_mode, akx, nakx
+    use kt_grids, only: zonal_mode, akx, nakx, boundary_size
     use stella_layouts, only: vmu_lo
     use stella_time, only: code_dt
     use dist_fn_arrays, only: g_proj, g_symm
-    use multibox, only: boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
 
@@ -656,6 +654,7 @@ contains
 
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+    use fields_arrays, only: qn_zf_window
     use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
     use mp, only: scope, real_size, nbytes_real
     use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
@@ -665,10 +664,10 @@ contains
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use zgrid, only: nzgrid, nztot
-    use kt_grids, only: naky, nakx, rho_d_clamped
+    use kt_grids, only: naky, nakx, rho_d_clamped, boundary_size
     use linear_solve, only: lu_decomposition
-    use multibox, only: boundary_size
     use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
+    use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
     
 
     implicit none
@@ -694,7 +693,7 @@ contains
     if (include_qn_source) then
       nmat_zf = nakx*(nztot-1)
 #if defined MPI && ISO_C_BINDING
-      if(qn_window.eq.MPI_WIN_NULL) then
+      if((.not.qn_window_initialized).or.(qn_zf_window.eq.MPI_WIN_NULL)) then
         prior_focus = curr_focus
         call scope (sharedsubprocs)
         win_size = 0
@@ -704,13 +703,13 @@ contains
         endif
 
         call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
-                                     mp_comm,cptr,qn_window,ierr)
+                                     mp_comm,cptr,qn_zf_window,ierr)
 
         if (.not.sgproc0) then
           !make sure all the procs have the right memory address
-          call mpi_win_shared_query(qn_window,0,win_size,disp_unit,cptr,ierr)
+          call mpi_win_shared_query(qn_zf_window,0,win_size,disp_unit,cptr,ierr)
         end if
-        call mpi_win_fence(0,qn_window,ierr)
+        call mpi_win_fence(0,qn_zf_window,ierr)
         cur_pos = transfer(cptr,cur_pos)
 
         !allocate the memory
@@ -731,9 +730,11 @@ contains
           call c_f_pointer (cptr,phizf_solve%idx,(/nmat_zf/))
         endif
 
-        call mpi_win_fence(0,qn_window,ierr)
+        call mpi_win_fence(0,qn_zf_window,ierr)
 
         call scope (prior_focus)
+
+        qn_window_initialized = .true.
       endif
 #else
       if (.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
@@ -820,18 +821,18 @@ contains
         deallocate (g0k,g1k,g0x)
 #if defined MPI && ISO_C_BINDING
       endif
-      call mpi_win_fence(0,qn_window,ierr)
-      call lu_decomposition_local(comm_sgroup, 0, qn_window, &
+      call mpi_win_fence(0,qn_zf_window,ierr)
+      call lu_decomposition_local(comm_sgroup, 0, qn_zf_window, &
                                   phizf_solve%zloc, phizf_solve%idx, dum)
 
       allocate (temp_mat(nmat_zf,nmat_zf))
       temp_mat = phizf_solve%zloc
 
-      call mpi_win_fence(0,qn_window,ierr)
+      call mpi_win_fence(0,qn_zf_window,ierr)
 
       ! inverse is calculated since it is more straightforward to parallelize
       ! inverse calculation/matrix multiplication than the lu back substitution
-      call lu_inverse_local(comm_sgroup, 0, qn_window, &
+      call lu_inverse_local(comm_sgroup, 0, qn_zf_window, &
                             temp_mat, phizf_solve%idx, phizf_solve%zloc)
       deallocate (temp_mat)
 #else
@@ -843,6 +844,7 @@ contains
   subroutine update_quasineutrality_source
 
     use fields_arrays, only: phi_proj, phi_proj_stage
+    use fields_arrays, only: tcorr_source_qn, exp_fac_qn
 
     implicit none
 

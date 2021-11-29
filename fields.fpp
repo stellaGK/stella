@@ -9,7 +9,7 @@ module fields
   public :: get_radial_correction
   public :: enforce_reality_field
   public :: get_fields_by_spec, get_fields_by_spec_idx
-  public :: gamtot_h, gamtot3_h, gamtot3, dgamtot3dr
+  public :: gamtot_h, gamtot3_h
   public :: time_field_solve
   public :: fields_updated
   public :: get_dchidy, get_dchidx
@@ -18,7 +18,6 @@ module fields
   private
 
   real, dimension (:,:,:), allocatable ::  apar_denom
-  real, dimension (:,:), allocatable :: gamtot3, dgamtot3dr
   real :: gamtot_h, gamtot3_h, efac, efacp
 
   complex, dimension (:,:), allocatable :: save1, save2
@@ -66,7 +65,8 @@ contains
     use dist_fn, only: adiabatic_option_fieldlineavg
     use linear_solve, only: lu_decomposition
     use multibox, only: init_mb_get_phi
-    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
+    use fields_arrays, only: gamtot, dgamtotdr, gamtot3, dgamtot3dr
+    use fields_arrays, only: phi_solve, c_mat, theta
     use file_utils, only: runtype_option_switch, runtype_multibox
     
 
@@ -816,19 +816,19 @@ end subroutine get_fields_by_spec_idx
     use physics_flags, only: full_flux_surface, radial_variation
     use run_parameters, only: ky_solve_radial, ky_solve_real
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode
+    use kt_grids, only: swap_kxky_ordered, nakx, naky, rho_d_clamped, zonal_mode, boundary_size
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     use stella_geometry, only: dl_over_b, d_dl_over_b_drho
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
     use species, only: spec, has_electron_species
-    use multibox, only: mb_get_phi, copy_size
-    use fields_arrays, only: gamtot, phi_solve, phizf_solve, phi_ext
+    use multibox, only: mb_get_phi
+    use fields_arrays, only: gamtot, gamtot3, phi_solve, phizf_solve, phi_ext
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
+    use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
     use file_utils, only: runtype_option_switch, runtype_multibox
-    use sources, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 #if defined MPI && ISO_C_BINDING
-    use sources, only: qn_window
+    use fields_arrays, only: qn_zf_window
     use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
     use linear_solve, only: lu_back_substitution
@@ -961,10 +961,10 @@ end subroutine get_fields_by_spec_idx
               call transform_kx2x_unpadded (g0k,g0x)
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
               if (exclude_boundary_regions_qn) then
-                g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
-                              / (nakx - 2*copy_size)
-                g0x(1,1:copy_size) = 0.0
-                g0x(1,(nakx-copy_size+1):) = 0.0
+                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                g0x(1,1:boundary_size) = 0.0
+                g0x(1,(nakx-boundary_size+1):) = 0.0
               else
                 g0x(1,:) = sum(g0x(1,:))/nakx
               endif
@@ -998,12 +998,12 @@ end subroutine get_fields_by_spec_idx
               enddo
 #if defined MPI && ISO_C_BINDING
             endif
-            call mpi_win_fence (0, qn_window, ierr)
+            call mpi_win_fence (0, qn_zf_window, ierr)
 #endif
         
 #if defined MPI && ISO_C_BINDING
-            call lu_matrix_multiply_local (comm_sgroup, 0, qn_window, phizf_solve%zloc, phi_ext)
-            call mpi_win_fence (0, qn_window, ierr)
+            call lu_matrix_multiply_local (comm_sgroup, 0, qn_zf_window, phizf_solve%zloc, phi_ext)
+            call mpi_win_fence (0, qn_zf_window, ierr)
 #else
             call lu_back_substitution (phizf_solve%zloc,phizf_solve%idx, phi_ext)
 #endif
@@ -1029,10 +1029,10 @@ end subroutine get_fields_by_spec_idx
 
               g0x(1,:) = (dl_over_b(ia,iz) + d_dl_over_b_drho(ia,iz)*rho_d_clamped)*g0x(1,:)
               if (exclude_boundary_regions_qn) then
-                g0x(1,:) = sum(g0x(1,(copy_size+1):(nakx-copy_size))) &
-                              / (nakx - 2*copy_size)
-                g0x(1,1:copy_size) = 0.0
-                g0x(1,(nakx-copy_size+1):) = 0.0
+                g0x(1,:) = sum(g0x(1,(boundary_size+1):(nakx-boundary_size))) &
+                              / (nakx - 2*boundary_size)
+                g0x(1,1:boundary_size) = 0.0
+                g0x(1,(nakx-boundary_size+1):) = 0.0
               else
                  g0x(1,:) = sum(g0x(1,:))/nakx
               endif
@@ -1090,6 +1090,7 @@ end subroutine get_fields_by_spec_idx
     use species, only: spec, has_electron_species
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: gamtot, dgamtotdr
+    use fields_arrays, only: gamtot3, dgamtot3dr
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use dist_fn, only: adiabatic_option_switch
     use dist_fn, only: adiabatic_option_fieldlineavg
@@ -1316,7 +1317,8 @@ end subroutine get_fields_by_spec_idx
     use fields_arrays, only: phi, phi_old
     use fields_arrays, only: phi_corr_QN, phi_corr_GA
     use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
-    use fields_arrays, only: gamtot, dgamtotdr, phi_solve, c_mat, theta
+    use fields_arrays, only: gamtot, dgamtotdr, gamtot3, dgamtot3dr
+    use fields_arrays, only: phi_solve, c_mat, theta
 
     implicit none
 
