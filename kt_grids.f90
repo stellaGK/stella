@@ -20,6 +20,7 @@ module kt_grids
   public :: multiply_by_rho, centered_in_rho
   public :: periodic_variation
   public :: communicate_ktgrids_multibox
+  public :: boundary_size, copy_size, krook_size
 
   private
 
@@ -38,6 +39,7 @@ module kt_grids
   integer :: naky, nakx, nx, ny, nalpha
   integer :: jtwist, ikx_twist_shift
   integer :: ikx_max, naky_all
+  integer :: boundary_size, copy_size, krook_size
   logical :: reality = .false.
   logical :: centered_in_rho, periodic_variation, randomize_phase_shift
   character(20) :: grid_option
