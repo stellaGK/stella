@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.6% of total for modules and submodules.">586 statements</a>
+    title=" 1.6% of total for modules and submodules.">583 statements</a>
      </li> 
      
      
@@ -189,13 +189,13 @@
       
       <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
       
-      <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a>
-      
       <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
+      
+      <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
       
@@ -205,13 +205,7 @@
       
       <a class="list-group-item" href="../module/sources.html#variable-int_proj">int_proj</a>
       
-      <a class="list-group-item" href="../module/sources.html#variable-tcorr_source_qn">tcorr_source_qn</a>
-      
-      <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
-      
       <a class="list-group-item" href="../module/sources.html#variable-exp_fac">exp_fac</a>
-      
-      <a class="list-group-item" href="../module/sources.html#variable-exp_fac_qn">exp_fac_qn</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
       
@@ -310,13 +304,13 @@
       
       <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
       
-      <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a>
-      
       <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
+      
+      <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
       
@@ -326,13 +320,7 @@
       
       <a class="list-group-item" href="../module/sources.html#variable-int_proj">int_proj</a>
       
-      <a class="list-group-item" href="../module/sources.html#variable-tcorr_source_qn">tcorr_source_qn</a>
-      
-      <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
-      
       <a class="list-group-item" href="../module/sources.html#variable-exp_fac">exp_fac</a>
-      
-      <a class="list-group-item" href="../module/sources.html#variable-exp_fac_qn">exp_fac_qn</a>
       
       <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
       
@@ -476,20 +464,6 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-exclude_boundary_regions_qn"></span>logical,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>exclude_boundary_regions_qn</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-from_zero"></span>logical,</td>
   
   <td>private</td>
@@ -523,6 +497,20 @@
   <td>private</td>
   <td></td><td>::</td>
   <td><strong>conserve_density</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ikxmax_source"></span>integer,</td>
+  
+  <td>private</td>
+  <td></td><td>::</td>
+  <td><strong>ikxmax_source</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -588,53 +576,11 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-tcorr_source_qn"></span>real,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>tcorr_source_qn</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ikxmax_source"></span>integer,</td>
-  
-  <td>private</td>
-  <td></td><td>::</td>
-  <td><strong>ikxmax_source</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-exp_fac"></span>real,</td>
   
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>exp_fac</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-exp_fac_qn"></span>real,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>exp_fac_qn</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -1133,13 +1079,13 @@ public subroutine <a href='../proc/update_quasineutrality_source.html'>update_qu
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-68-gb5fe80f4</small></p>
+                                          <br /><small>v0.3-69-g6ca3067c</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-25T09:08:23.467646 
+             on 2021-11-29T11:28:35.907989 
             
           </p>
         </div>

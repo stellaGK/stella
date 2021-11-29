@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.0% of total for modules and submodules.">16 statements</a>
+    title=" 0.1% of total for modules and submodules.">20 statements</a>
      </li> 
      
      
@@ -207,6 +207,10 @@
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
       
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot3">gamtot3</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtot3dr">dgamtot3dr</a>
+      
       <a class="list-group-item" href="../module/fields_arrays.html#variable-theta~4">theta</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-c_mat">c_mat</a>
@@ -216,6 +220,14 @@
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_solve">phi_solve</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phizf_solve">phizf_solve</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-tcorr_source_qn">tcorr_source_qn</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-exp_fac_qn">exp_fac_qn</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-qn_zf_window">qn_zf_window</a>
       
     </div>
   </div>
@@ -313,6 +325,10 @@
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
       
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot3">gamtot3</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtot3dr">dgamtot3dr</a>
+      
       <a class="list-group-item" href="../module/fields_arrays.html#variable-theta~4">theta</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-c_mat">c_mat</a>
@@ -322,6 +338,14 @@
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_solve">phi_solve</a>
       
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phizf_solve">phizf_solve</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-tcorr_source_qn">tcorr_source_qn</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-exp_fac_qn">exp_fac_qn</a>
+      
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-qn_zf_window">qn_zf_window</a>
       
     </div>
   </div>
@@ -553,6 +577,34 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-gamtot3"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>gamtot3</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dgamtot3dr"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td><strong>dgamtot3dr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-theta~4"></span>complex,</td>
   
   <td>public,</td>
@@ -617,6 +669,62 @@
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exclude_boundary_regions_qn"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exclude_boundary_regions_qn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-tcorr_source_qn"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>tcorr_source_qn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exp_fac_qn"></span>real,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exp_fac_qn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-qn_zf_window"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>qn_zf_window</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -647,13 +755,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-68-gb5fe80f4</small></p>
+                                          <br /><small>v0.3-69-g6ca3067c</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-25T09:08:23.467646 
+             on 2021-11-29T11:28:35.907989 
             
           </p>
         </div>
