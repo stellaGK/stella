@@ -1,6 +1,9 @@
 module fields
 
   use common_types, only: eigen_type
+#if defined MPI && defined ISO_C_BINDING
+use mpi
+#endif
 
   implicit none
 
@@ -26,6 +29,7 @@ module fields
   logical :: fields_initialized = .false.
 #if defined MPI && defined ISO_C_BINDING
   logical :: qn_window_initialized = .false.
+  integer :: phi_shared_window = MPI_WIN_NULL
 #endif
   logical :: debug = .false.
 
@@ -46,7 +50,7 @@ contains
     use mp, only: sum_allreduce, job, proc0
 #if defined MPI && defined ISO_C_BINDING
     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-    use fields_arrays, only: qn_window
+    use fields_arrays, only: qn_window, phi_shared
     use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
     use mp, only: scope, real_size, nbytes_real, iproc, nproc
     use mpi
@@ -94,6 +98,7 @@ contains
     integer :: disp_unit = 1
     integer*8 :: cur_pos
     integer (kind=MPI_ADDRESS_KIND) :: win_size
+    complex, dimension (:), pointer :: phi_shared_temp
     type(c_ptr) :: cptr
 #endif
 
@@ -255,7 +260,34 @@ contains
 #if defined MPI && ISO_C_BINDING
            prior_focus = curr_focus
            call scope (sharedsubprocs)
-           if((.not.qn_window_initialized).or.(qn_window.eq.MPI_WIN_NULL)) then
+           !the following is to parallelize the calculation of QN for radial variation sims
+           if (debug) write (*,*) 'fields::init_fields::phi_shared_init'
+           if (phi_shared_window.eq.MPI_WIN_NULL) then
+              win_size = 0
+              if(sgproc0) then
+                win_size = int(naky*nakx*nztot*ntubes,MPI_ADDRESS_KIND)*2*real_size !complex size
+              endif
+
+              call mpi_win_allocate_shared(win_size,disp_unit,MPI_INFO_NULL, &
+                                           mp_comm,cptr,phi_shared_window,ierr)
+
+              if (.not.sgproc0) then
+                !make sure all the procs have the right memory address
+                call mpi_win_shared_query (phi_shared_window,0,win_size,disp_unit,cptr,ierr)
+              end if
+              call mpi_win_fence (0,phi_shared_window,ierr)
+
+              if (.not.associated(phi_shared)) then
+                ! associate array with lower bounds of 1
+                call c_f_pointer (cptr,phi_shared_temp,(/naky*nakx*nztot*ntubes/))
+                ! now get the correct bounds
+                phi_shared(1:naky,1:nakx,-nzgrid:nzgrid,1:ntubes) => phi_shared_temp
+              endif
+              call mpi_win_fence (0,phi_shared_window,ierr)
+           endif
+
+           if (debug) write (*,*) 'fields::init_fields::qn_window_init'
+           if ((.not.qn_window_initialized).or.(qn_window.eq.MPI_WIN_NULL)) then
               win_size = 0
               if(sgproc0) then
                 win_size = int(nakx*nztot*naky_r,MPI_ADDRESS_KIND)*4_MPI_ADDRESS_KIND & 
@@ -898,7 +930,12 @@ end subroutine get_fields_by_spec_idx
 
     use mp, only: proc0, mp_abort, job
 #if defined MPI && ISO_C_BINDING
-    use mp, only: sgproc0, comm_sgroup
+    use mpi
+    use mp, only: proc0, iproc, nproc, sgproc0, comm_sgroup
+    use mp, only: curr_focus, sharedsubprocs, scope
+    use zgrid, only: nztot
+    use fields_arrays, only: qn_zf_window, phi_shared
+    use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
     use job_manage, only: time_message
     use physics_flags, only: full_flux_surface, radial_variation
@@ -915,10 +952,6 @@ end subroutine get_fields_by_spec_idx
     use fields_arrays, only: phi_proj, phi_proj_stage, theta
     use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
     use file_utils, only: runtype_option_switch, runtype_multibox
-#if defined MPI && ISO_C_BINDING
-    use fields_arrays, only: qn_zf_window
-    use mp_lu_decomposition, only: lu_matrix_multiply_local
-#endif
     use linear_solve, only: lu_back_substitution
 
     implicit none
@@ -932,7 +965,8 @@ end subroutine get_fields_by_spec_idx
     logical :: skip_fsa_local
     logical :: has_elec, adia_elec
 #if defined MPI && ISO_C_BINDING
-    integer :: ierr
+    integer :: counter, c_lo, c_hi, c_max, c_div, c_mod, naky_r
+    integer :: prior_focus ,ierr
 #endif
 
     character (*), intent (in) :: dist
@@ -980,18 +1014,58 @@ end subroutine get_fields_by_spec_idx
          allocate (g0x(1,nakx))
          allocate (g0a(1,nakx))
 
+         naky_r = min(naky,ky_solve_radial)
+#if defined MPI && ISO_C_BINDING
+         prior_focus = curr_focus
+         call scope (sharedsubprocs)
+         c_max = nztot * naky_r
+         c_div = c_max / nproc
+         c_mod = mod(c_max,nproc)
+           
+         c_lo = iproc*c_div  + 1 + min(iproc,c_mod)
+         c_hi = c_lo + c_div-1
+         if (iproc.lt.c_mod) c_hi = c_hi+1
+
+         call scope (prior_focus)
+         counter = 0
+         if (sgproc0) phi_shared = phi
+         call mpi_win_fence (0, phi_shared_window, ierr)
+#endif
          do it = 1, ntubes
            do iz = -nzgrid, nzgrid
-             do iky = 1, naky
-               if(iky > ky_solve_radial) then
-                 phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
-               elseif (.not.(adia_elec.and.zonal_mode(iky))) then
+             do iky = 1, naky_r
+#if defined MPI && ISO_C_BINDING
+               counter = counter + 1
+               if((counter.ge.c_lo).and.(counter.le.c_hi)) then
+                 if (.not.(adia_elec.and.zonal_mode(iky))) then
+                   zmi = 0
+                   if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
+                   call lu_back_substitution(phi_solve(iky,iz)%zloc, &
+                                             phi_solve(iky,iz)%idx, phi_shared(iky,(1+zmi):,iz,it))
+                   if(zmi.gt.0) phi(iky,zmi,iz,it) = 0.0
+                 endif
+               endif
+#else
+               if (.not.(adia_elec.and.zonal_mode(iky))) then
                  zmi = 0
                  if(iky.eq.1) zmi=zm !zero mode may or may not be included in matrix
                  call lu_back_substitution(phi_solve(iky,iz)%zloc, &
                                            phi_solve(iky,iz)%idx, phi(iky,(1+zmi):,iz,it))
                  if(zmi.gt.0) phi(iky,zmi,iz,it) = 0.0
                endif
+#endif
+             enddo
+           enddo
+         enddo
+#if defined MPI && ISO_C_BINDING
+         if (sgproc0) phi = phi_shared
+         call mpi_win_fence (0, phi_shared_window, ierr)
+#endif
+
+         do it = 1, ntubes
+           do iz = -nzgrid, nzgrid
+             do iky = naky_r, naky
+               phi(iky,:,iz,it) = phi(iky,:,iz,it)/gamtot(iky,:,iz)
              enddo
            enddo
          enddo
@@ -1435,6 +1509,7 @@ end subroutine get_fields_by_spec_idx
     if (allocated(save2)) deallocate(save2)
 
 #if defined MPI && ISO_C_BINDING
+    if (phi_shared_window.ne.MPI_WIN_NULL) call mpi_win_free (phi_shared_window, ierr)
     if (qn_window_initialized.and.qn_window.ne.MPI_WIN_NULL) then
       call mpi_win_free (qn_window, ierr)
       qn_window_initialized = .false.
