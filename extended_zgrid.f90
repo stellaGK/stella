@@ -41,7 +41,7 @@ contains
     use zgrid, only: twist_shift_option_switch
     use zgrid, only: twist_shift_option_periodic
     use zgrid, only: twist_shift_option_std
-    use zgrid, only: twist_shift_option_new
+    use zgrid, only: twist_shift_option_stellarator
     use zgrid, only: nperiod, nzgrid, nzed, ntubes
     use kt_grids, only: nakx, naky
     use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_fac
@@ -71,7 +71,7 @@ contains
        where (abs(aky) < epsilon(0.0)) periodic = .true.
     end if
     if (twist_shift_option_switch==twist_shift_option_periodic) then
-    	periodic = .true.
+       periodic = .true.
     end if
 
     select case (boundary_option_switch)

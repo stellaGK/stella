@@ -224,7 +224,7 @@ contains
     use physics_flags, only: full_flux_surface, radial_variation
     use file_utils, only: runtype_option_switch, runtype_multibox
     use zgrid, only: shat_zero, nperiod, grad_x_grad_y_zero
-    use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_new
+    use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_stellarator
     use zgrid, only: twist_shift_option_periodic
     use ran, only: ranf
 
@@ -268,12 +268,12 @@ contains
     ! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition
     ! except for the periodic ones
     select case (twist_shift_option_switch)
-        case (twist_shift_option_std)
-                dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-        case (twist_shift_option_new)
-                dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-        case (twist_shift_option_periodic)
-                dkx = dky 
+    case (twist_shift_option_std)
+       dkx = (2*nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+    case (twist_shift_option_stellarator)
+       dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+    case (twist_shift_option_periodic)
+       dkx = dky 
     end select
 
     x0 = 1./dkx
