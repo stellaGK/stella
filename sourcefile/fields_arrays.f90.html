@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.1% of total for source files.">20 statements</a>
+    title=" 0.1% of total for source files.">21 statements</a>
      </li> 
      
      
@@ -282,46 +282,51 @@
 <a name="ln-7"></a><span class="k">  </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi</span><span class="p">,</span> <span class="n">apar</span><span class="p">,</span> <span class="n">phi_old</span>
 <a name="ln-8"></a>  <span class="c">! (naky, nakx, -nzgrid:nzgrid, ntubes)</span>
 <a name="ln-9"></a>
-<a name="ln-10"></a>  <span class="c">! radial corrections to phi and apar from quasineutrality/whatever controls apar</span>
-<a name="ln-11"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_corr_QN</span><span class="p">,</span> <span class="n">apar_corr_QN</span>
-<a name="ln-12"></a>  <span class="c">! (naky, nakx, -nzgrid:nzgrid, ntubes)</span>
-<a name="ln-13"></a>
-<a name="ln-14"></a>  <span class="c">! needed to implement time-delayed source when using projection method</span>
-<a name="ln-15"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_proj</span><span class="p">,</span> <span class="n">phi_proj_stage</span>
-<a name="ln-16"></a>  <span class="c">! (nakx, -nzgrid:nzgrid, ntubes)</span>
-<a name="ln-17"></a>
-<a name="ln-18"></a>  <span class="c">! radial corrections to phi and apar from gyroaveraging</span>
-<a name="ln-19"></a>  <span class="c">! may result in tight space constraints however</span>
-<a name="ln-20"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_corr_GA</span><span class="p">,</span> <span class="n">apar_corr_GA</span>
-<a name="ln-21"></a>  <span class="c">! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)</span>
+<a name="ln-10"></a>  <span class="c">! DSO 0 the following is a band-aid for radially global simulations until</span>
+<a name="ln-11"></a>  <span class="c">! we more fully incorporate shared memory</span>
+<a name="ln-12"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">phi_shared</span>
+<a name="ln-13"></a>  <span class="c">! (naky, nakx, -nzgrid:nzgrid, ntubes)</span>
+<a name="ln-14"></a>
+<a name="ln-15"></a>  <span class="c">! radial corrections to phi and apar from quasineutrality/whatever controls apar</span>
+<a name="ln-16"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_corr_QN</span><span class="p">,</span> <span class="n">apar_corr_QN</span>
+<a name="ln-17"></a>  <span class="c">! (naky, nakx, -nzgrid:nzgrid, ntubes)</span>
+<a name="ln-18"></a>
+<a name="ln-19"></a>  <span class="c">! needed to implement time-delayed source when using projection method</span>
+<a name="ln-20"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_proj</span><span class="p">,</span> <span class="n">phi_proj_stage</span>
+<a name="ln-21"></a>  <span class="c">! (nakx, -nzgrid:nzgrid, ntubes)</span>
 <a name="ln-22"></a>
-<a name="ln-23"></a>  <span class="k">type</span> <span class="p">(</span><span class="n">response_matrix_type</span><span class="p">),</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">response_matrix</span>
-<a name="ln-24"></a>
-<a name="ln-25"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">shift_state</span>
-<a name="ln-26"></a>
-<a name="ln-27"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">gamtot</span><span class="p">,</span> <span class="n">dgamtotdr</span>
-<a name="ln-28"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">gamtot3</span><span class="p">,</span> <span class="n">dgamtot3dr</span>
-<a name="ln-29"></a>  <span class="c">!real :: gamtot_h, gamtot3_h, efac, efacp</span>
-<a name="ln-30"></a>
+<a name="ln-23"></a>  <span class="c">! radial corrections to phi and apar from gyroaveraging</span>
+<a name="ln-24"></a>  <span class="c">! may result in tight space constraints however</span>
+<a name="ln-25"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_corr_GA</span><span class="p">,</span> <span class="n">apar_corr_GA</span>
+<a name="ln-26"></a>  <span class="c">! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)</span>
+<a name="ln-27"></a>
+<a name="ln-28"></a>  <span class="k">type</span> <span class="p">(</span><span class="n">response_matrix_type</span><span class="p">),</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">response_matrix</span>
+<a name="ln-29"></a>
+<a name="ln-30"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">shift_state</span>
 <a name="ln-31"></a>
-<a name="ln-32"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">theta</span>
-<a name="ln-33"></a>  <span class="c">! (nakx, nakx, -nzgrid:nzgrid)</span>
-<a name="ln-34"></a>
-<a name="ln-35"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">c_mat</span>
-<a name="ln-36"></a>  <span class="c">! (nakx, nakx)</span>
-<a name="ln-37"></a>
-<a name="ln-38"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">phi_ext</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
-<a name="ln-39"></a>  <span class="c">! (nakx*nztot)</span>
-<a name="ln-40"></a>
-<a name="ln-41"></a>  <span class="k">type</span> <span class="p">(</span><span class="n">eigen_type</span><span class="p">),</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_solve</span>
-<a name="ln-42"></a>  <span class="k">type</span> <span class="p">(</span><span class="n">eigen_type</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phizf_solve</span>
-<a name="ln-43"></a>
-<a name="ln-44"></a>  <span class="c">!variables needed for the source</span>
-<a name="ln-45"></a>  <span class="kt">logical</span> <span class="kd">::</span> <span class="n">exclude_boundary_regions_qn</span>
-<a name="ln-46"></a>  <span class="kt">real</span> <span class="kd">::</span> <span class="n">tcorr_source_qn</span><span class="p">,</span> <span class="n">exp_fac_qn</span>
-<a name="ln-47"></a>  <span class="kt">integer</span> <span class="kd">::</span> <span class="n">qn_window</span><span class="p">,</span> <span class="n">qn_zf_window</span>
+<a name="ln-32"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">gamtot</span><span class="p">,</span> <span class="n">dgamtotdr</span>
+<a name="ln-33"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">gamtot3</span><span class="p">,</span> <span class="n">dgamtot3dr</span>
+<a name="ln-34"></a>  <span class="c">!real :: gamtot_h, gamtot3_h, efac, efacp</span>
+<a name="ln-35"></a>
+<a name="ln-36"></a>
+<a name="ln-37"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">theta</span>
+<a name="ln-38"></a>  <span class="c">! (nakx, nakx, -nzgrid:nzgrid)</span>
+<a name="ln-39"></a>
+<a name="ln-40"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">c_mat</span>
+<a name="ln-41"></a>  <span class="c">! (nakx, nakx)</span>
+<a name="ln-42"></a>
+<a name="ln-43"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">phi_ext</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
+<a name="ln-44"></a>  <span class="c">! (nakx*nztot)</span>
+<a name="ln-45"></a>
+<a name="ln-46"></a>  <span class="k">type</span> <span class="p">(</span><span class="n">eigen_type</span><span class="p">),</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi_solve</span>
+<a name="ln-47"></a>  <span class="k">type</span> <span class="p">(</span><span class="n">eigen_type</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phizf_solve</span>
 <a name="ln-48"></a>
-<a name="ln-49"></a><span class="k">end module </span><span class="n">fields_arrays</span>
+<a name="ln-49"></a>  <span class="c">!variables needed for the source</span>
+<a name="ln-50"></a>  <span class="kt">logical</span> <span class="kd">::</span> <span class="n">exclude_boundary_regions_qn</span>
+<a name="ln-51"></a>  <span class="kt">real</span> <span class="kd">::</span> <span class="n">tcorr_source_qn</span><span class="p">,</span> <span class="n">exp_fac_qn</span>
+<a name="ln-52"></a>  <span class="kt">integer</span> <span class="kd">::</span> <span class="n">qn_window</span><span class="p">,</span> <span class="n">qn_zf_window</span>
+<a name="ln-53"></a>
+<a name="ln-54"></a><span class="k">end module </span><span class="n">fields_arrays</span>
 </pre></div>
 
     </section>
@@ -335,13 +340,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-71-gb299840a</small></p>
+                                          <br /><small>v0.3-72-gfbf03112</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-11-29T21:14:48.700276 
+             on 2021-11-30T10:58:41.147866 
             
           </p>
         </div>
