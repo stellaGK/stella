@@ -745,7 +745,7 @@ contains
       if (debug) write (6,*) 'sources::init_quasineutrality_source::allocate_phizf'
       if (.not.associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf,nmat_zf))
       if (.not.associated(phizf_solve%idx))  allocate (phizf_solve%idx(nmat_zf))
-      if (.not.associated(phi_ext)) allocate (phi_ext)
+      if (.not.associated(phi_ext)) allocate (phi_ext(nmat_zf))
 #endif
 
 #if defined MPI && ISO_C_BINDING
