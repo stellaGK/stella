@@ -14,7 +14,7 @@ module zgrid
   public :: grad_x_grad_y_zero
   public :: twist_shift_option_switch   
   public :: twist_shift_option_std      
-  public :: twist_shift_option_new     
+  public :: twist_shift_option_stellarator     
   public :: twist_shift_option_periodic      
   public :: boundary_option_switch
   public :: boundary_option_zero
@@ -36,7 +36,7 @@ module zgrid
 
   integer :: twist_shift_option_switch                        
   integer, parameter :: twist_shift_option_std = 1, &           
-       twist_shift_option_new = 2, &                            
+       twist_shift_option_stellarator = 2, &                            
        twist_shift_option_periodic = 3
 
 
@@ -96,7 +96,7 @@ contains
 
     type (text_option), dimension (3), parameter :: twistshiftopts = &  
          (/ text_option('standard', twist_shift_option_std), &          
-            text_option('stellarator', twist_shift_option_new), &
+            text_option('stellarator', twist_shift_option_stellarator), &
             text_option('periodic', twist_shift_option_periodic) /)     
     character(20) :: twist_shift_option
 
