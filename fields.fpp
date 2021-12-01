@@ -959,13 +959,13 @@ end subroutine get_fields_by_spec_idx
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: phi
     logical, optional, intent (in) :: skip_fsa
     integer :: ia, it, iz, ikx, iky, zmi
-    integer :: inmat
+    integer :: inmat, naky_r
     complex, dimension (:,:), allocatable :: g0k, g1k, g0x, g0a
     complex :: tmp
     logical :: skip_fsa_local
     logical :: has_elec, adia_elec
 #if defined MPI && ISO_C_BINDING
-    integer :: counter, c_lo, c_hi, c_max, c_div, c_mod, naky_r
+    integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
     integer :: prior_focus ,ierr
 #endif
 
