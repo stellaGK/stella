@@ -1018,7 +1018,7 @@ end subroutine get_fields_by_spec_idx
 #if defined MPI && ISO_C_BINDING
          prior_focus = curr_focus
          call scope (sharedsubprocs)
-         c_max = nztot * naky_r
+         c_max = nztot * ntubes * naky_r
          c_div = c_max / nproc
          c_mod = mod(c_max,nproc)
            
@@ -1058,8 +1058,8 @@ end subroutine get_fields_by_spec_idx
            enddo
          enddo
 #if defined MPI && ISO_C_BINDING
-         if (sgproc0) phi = phi_shared
          call mpi_win_fence (0, phi_shared_window, ierr)
+         phi = phi_shared
 #endif
 
          do it = 1, ntubes
@@ -1164,7 +1164,7 @@ end subroutine get_fields_by_spec_idx
 #endif
         
 #if defined MPI && ISO_C_BINDING
-            call lu_matrix_multiply_local (comm_sgroup, 0, qn_zf_window, phizf_solve%zloc, phi_ext)
+            call lu_matrix_multiply_local (comm_sgroup, qn_zf_window, phizf_solve%zloc, phi_ext)
             call mpi_win_fence (0, qn_zf_window, ierr)
 #else
             call lu_back_substitution (phizf_solve%zloc,phizf_solve%idx, phi_ext)
