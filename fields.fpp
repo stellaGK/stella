@@ -1164,7 +1164,7 @@ end subroutine get_fields_by_spec_idx
 #endif
         
 #if defined MPI && ISO_C_BINDING
-            call lu_matrix_multiply_local (comm_sgroup, 0, qn_zf_window, phizf_solve%zloc, phi_ext)
+            call lu_matrix_multiply_local (comm_sgroup, qn_zf_window, phizf_solve%zloc, phi_ext)
             call mpi_win_fence (0, qn_zf_window, ierr)
 #else
             call lu_back_substitution (phizf_solve%zloc,phizf_solve%idx, phi_ext)

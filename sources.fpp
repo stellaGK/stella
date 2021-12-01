@@ -862,7 +862,7 @@ contains
       ! inverse is calculated since it is more straightforward to parallelize
       ! inverse calculation/matrix multiplication than the lu back substitution
       if (debug) write (6,*) 'sources::init_quasineutrality_source::lu_inverse'
-      call lu_inverse_local(comm_sgroup, 0, qn_zf_window, &
+      call lu_inverse_local(comm_sgroup, qn_zf_window, &
                             temp_mat, phizf_solve%idx, phizf_solve%zloc)
       call mpi_win_free (temp_window, ierr)
 #else
