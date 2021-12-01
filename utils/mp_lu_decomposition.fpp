@@ -53,7 +53,11 @@ contains
     allocate (row_limits(0:nproc))
 
     d = 1.0
-    vv = maxval(cabs(lu),dim=2)
+    !the following is a loop to avoid copying entire matrix
+    ! with (cabs(lu))
+    do i = 1, n
+      vv(i) = maxval(cabs(lu(i,:)))
+    enddo
     if (any(vv==0.0)) &
       write (*,*) 'singular matrix in lu_decomposition on process ', iproc
     vv = 1.0/vv
@@ -120,13 +124,13 @@ contains
 
   end subroutine lu_decomposition_local_complex
 
-  subroutine lu_inverse_local_complex (mp_comm, root, win, lu, idx, inverse)
+  subroutine lu_inverse_local_complex (mp_comm, win, lu, idx, inverse)
 
     use linear_solve, only: lu_back_substitution
 
     implicit none
 
-    integer, intent (in) :: win, mp_comm, root
+    integer, intent (in) :: win, mp_comm
     complex, dimension (:,:), intent (in) :: lu
     integer, dimension (:), intent (in) :: idx
     complex, dimension (:,:), intent (out) :: inverse
@@ -160,11 +164,11 @@ contains
 
   end subroutine lu_inverse_local_complex
 
-  subroutine lu_matrix_multiply_local_complex (mp_comm, root, win, mat, b)
+  subroutine lu_matrix_multiply_local_complex (mp_comm, win, mat, b)
 
     implicit none
 
-    integer, intent (in) :: win, mp_comm, root
+    integer, intent (in) :: win, mp_comm
     complex, dimension (:,:), intent (in) :: mat
     complex, dimension (:), intent (out) :: b
     complex, dimension (size(b)) :: a
