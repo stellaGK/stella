@@ -19,7 +19,7 @@ module init_g
        ginitopt_noise = 2, ginitopt_restart_many = 3, &
        ginitopt_kpar = 4, ginitopt_nltest = 5, &
        ginitopt_kxtest = 6, ginitopt_rh = 7, &
-       ginitopt_remap = 8, ginitopt_single_mode = 9
+       ginitopt_remap = 8, ginitopt_single_mode = 9, ginitopt_zonal_only = 10
 
   real :: width0, phiinit, imfac, refac, zf_init
   real :: den0, upar0, tpar0, tperp0
@@ -129,6 +129,8 @@ contains
        scale = 1.
     case (ginitopt_single_mode)
       call ginit_single_mode
+    case (ginitopt_zonal_only)
+      call ginit_zonal_only
 !    case (ginitopt_nltest)
 !       call ginit_nltest
 !    case (ginitopt_kxtest)
@@ -144,7 +146,7 @@ contains
 
     implicit none
 
-    type (text_option), dimension (9), parameter :: ginitopts = &
+    type (text_option), dimension (10), parameter :: ginitopts = &
          (/ text_option('default', ginitopt_default), &
             text_option('noise', ginitopt_noise), &
             text_option('many', ginitopt_restart_many), &
@@ -153,7 +155,8 @@ contains
             text_option('kpar', ginitopt_kpar), &
             text_option('rh', ginitopt_rh), &
             text_option('remap', ginitopt_remap), &
-            text_option('single_mode', ginitopt_single_mode) &
+            text_option('single_mode', ginitopt_single_mode), &
+            text_option('zonal_only', ginitopt_zonal_only) &
             /)
     character(20) :: ginit_option
     namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
@@ -274,8 +277,8 @@ contains
     integer :: iz, iky, ikx, is, ia, ikx_target, iky_target
 
     gvmu = 0.
-    ikx_target = 3
-    iky_target = 3
+    ikx_target = 2
+    iky_target = 2
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
@@ -290,6 +293,35 @@ contains
     end do
 
   end subroutine ginit_single_mode
+
+  subroutine ginit_zonal_only
+
+    use constants, only: zi
+    use dist_fn_arrays, only: gvmu
+    use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+
+    implicit none
+
+    integer :: ikxkyz
+    integer :: iz, iky, ikx, is, ia
+
+    gvmu = 0.
+
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       !write(*,*) "iky = ", iky
+       if ((iky .eq. 1)) then
+         gvmu(:,:,ikxkyz) = phiinit
+       end if
+       ! gvmu(:,:,ikxkyz) = phiinit*phi(iky,ikx,iz)/abs(spec(is)%z) &
+       !      * (den0 + 2.0*zi*spread(vpa,2,nmu)*upar0) &
+       !      * spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)*maxwell_fac(is)
+    end do
+
+  end subroutine ginit_zonal_only
 
   ! initialize two kys and kx=0
 !   subroutine ginit_nltest
