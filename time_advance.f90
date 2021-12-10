@@ -3513,7 +3513,6 @@ contains
        endif
        call advance_fields (g, phi, apar, dist='gbar')
        if (drifts_implicit .and. include_drifts) call advance_drifts_implicit (g, phi, apar)
-       write(*,*) "L gnew(2,:,2,1,1) = ", g(2,:,2,1,1)
     else
        !write(*,*) "In implicit_advance, reverse_implicit_order = .true."
        ! get updated fields corresponding to advanced g
