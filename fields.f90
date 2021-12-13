@@ -420,7 +420,7 @@ contains
     use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu, maxwell_fac
     use vpamu_grids, only: integrate_species
     use gyro_averages, only: band_lu_factorisation_ffs
-    
+
     implicit none
 
     integer :: iky, ikx, iz, ia
@@ -479,7 +479,13 @@ contains
                 call integrate_species (aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
                 !> if Boltzmann response used, account for non-flux-surface-averaged component of electron density
                 if (adiabatic_electrons) then
-                   gam0_alpha(ia) = gam0_alpha(ia) - tite/nine
+                   gam0_alpha(ia) = gam0_alpha(ia) + tite/nine
+                else if (ikx == 1 .and. iky == naky) then
+                   !> if kx = ky = 0, 1-Gam0 factor is zero;
+                   !> this leads to eqn of form 0 * phi_00 = int d3v g.
+                   !> hack for now is to set phi_00 = 0, as above inversion is singular.
+                   !> to avoid singular inversion, set gam0_alpha = 1.0
+                   gam0_alpha(ia) = 1.0
                 end if
              end do
              !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
@@ -536,7 +542,7 @@ contains
     !> 'homogeneous' part of phi, with a unit impulse assumed for the flux-surface-averaged phi
     !> only the ky=0 component contributes to the flux-surface-averaged potential
     adiabatic_response_vector = 0.0
-    adiabatic_response_vector(naky,:,:) = -tite/nine
+    adiabatic_response_vector(naky,:,:) = tite/nine
     !> pass in the rhs and overwrite with the solution for phi_homogeneous
     call band_lu_solve_ffs (lu_gam0_ffs, adiabatic_response_vector)
 
@@ -886,7 +892,7 @@ contains
        call sum_allreduce(phi)
        
        call get_phi(phi, dist, skip_fsa_local)
-       
+          
     end if
     
     apar = 0.
@@ -927,7 +933,7 @@ contains
     use physics_parameters, only: nine, tite
     use stella_layouts, only: vmu_lo
     use run_parameters, only: fphi, fapar
-    use species, only: modified_adiabatic_electrons
+    use species, only: modified_adiabatic_electrons, adiabatic_electrons
     use zgrid, only: nzgrid
     use kt_grids, only: nakx, ikx_max, naky, naky_all
     use kt_grids, only: swap_kxky_ordered
@@ -940,20 +946,20 @@ contains
 
     integer :: iz, ikx
     complex, dimension (:), allocatable :: phi_fsa
-    complex, dimension (:,:,:), allocatable :: phi_swap, rhs
+    complex, dimension (:,:,:), allocatable :: phi_swap, source
     
     if (fphi > epsilon(0.0)) then
-       allocate (rhs(naky,nakx,-nzgrid:nzgrid))
+       allocate (source(naky,nakx,-nzgrid:nzgrid))
        !> calculate the contribution to quasineutrality coming from the velocity space
        !> integration of the guiding centre distribution function g;
-       !> the sign is consistent with phi appearing on the LHS of the eqn and int g appearing on the RHS.
-       !> this is returned in phi
+       !> the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
+       !> this is returned in source
        if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
-       call get_g_integral_contribution (g, rhs)
+       call get_g_integral_contribution (g, source)
        !> use sum_s int d3v <g> and QN to solve for phi
        !> NB: assuming here that ntubes = 1 for FFS sim
        if (debug) write (*,*) 'fields::advance_fields::get_phi_ffs'
-       call get_phi_ffs (rhs, phi(:,:,:,1))
+       call get_phi_ffs (source, phi(:,:,:,1))
        !> if using a modified Boltzmann response for the electrons, then phi
        !> at this stage is the 'inhomogeneous' part of phi.
        if (modified_adiabatic_electrons) then
@@ -967,7 +973,6 @@ contains
           allocate (phi_fsa(nakx))
           if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
           do ikx = 1, nakx
-             !             call flux_surface_average_ffs (phi_swap(:,ikx,:), jacobian_ky, phi_fsa(ikx))
              call flux_surface_average_ffs (phi_swap(:,ikx,:), phi_fsa(ikx))
           end do
           !> use the flux surface average of phi_inhomogeneous, together with the
@@ -976,13 +981,18 @@ contains
           !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
           !> to obtain the electrostatic potential; only affects the ky=0 component of QN
           do ikx = 1, nakx
-             rhs(1,ikx,:) = rhs(1,ikx,:) - phi_fsa(ikx)*tite/nine
+             source(1,ikx,:) = source(1,ikx,:) + phi_fsa(ikx)*tite/nine
           end do
           if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
-          call get_phi_ffs (rhs, phi(:,:,:,1))
+          call get_phi_ffs (source, phi(:,:,:,1))
           deallocate (phi_swap, phi_fsa)
        end if
-       deallocate (rhs)
+       deallocate (source)
+    else if (.not.adiabatic_electrons) then
+       !> if adiabatic electrons are not employed, then
+       !> no explicit equation for the ky=kx=0 component of phi;
+       !> hack for now is to set it equal to zero.
+       phi(1,1,:,:) = 0.
     end if
     
     apar = 0.
@@ -992,7 +1002,7 @@ contains
 
   contains
 
-    subroutine get_g_integral_contribution (g, rhs)
+    subroutine get_g_integral_contribution (g, source)
 
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo
@@ -1005,7 +1015,7 @@ contains
       implicit none
 
       complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-      complex, dimension (:,:,-nzgrid:), intent (in out) :: rhs
+      complex, dimension (:,:,-nzgrid:), intent (in out) :: source
 
       integer :: it, iz, ivmu
       complex, dimension (:,:,:), allocatable :: gyro_g
@@ -1025,12 +1035,11 @@ contains
          !> integrate <g> over velocity space and sum over species within each processor
          !> as v-space and species possibly spread over processors, wlil need to
          !> gather sums from each proceessor and sum them all together below
-         !> minus sign on gyro_g accounts for fact that we want int g on RHS of equation
-         call integrate_species_ffs (-gyro_g, spec%z*spec%dens_psi0, rhs(:,:,iz), reduce_in=.false.)
+         call integrate_species_ffs (gyro_g, spec%z*spec%dens_psi0, source(:,:,iz), reduce_in=.false.)
       end do
       !> gather sub-sums from each processor and add them together
       !> store result in phi, which will be further modified below to account for polarization term
-      call sum_allreduce (rhs)
+      call sum_allreduce (source)
       !> no longer need <g>, so deallocate
       deallocate (gyro_g)
       
@@ -1375,8 +1384,8 @@ contains
        call swap_kxky_ordered (rhs(:,:,iz), rhs_swap(:,:,iz))
     end do
 
-    !> solve sum_s Z_s int d^3v <g> + gam0*phi = 0
-    !> where -sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
+    !> solve sum_s Z_s int d^3v <g> = gam0*phi
+    !> where sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
     !> and then rhs_swap is over-written with the solution to the linear system
     call band_lu_solve_ffs (lu_gam0_ffs, rhs_swap)
 
