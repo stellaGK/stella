@@ -681,12 +681,12 @@ contains
 
     use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
     use dist_fn_arrays, only: gvmu
-    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: nmu
     use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
     
     implicit none
 
-    integer :: ia
+    integer :: ia, imu
     integer :: ikxkyz, iz, is
     
     !> gvmu is initialised with a Maxwellian weighting for flux tube simulations,
@@ -696,7 +696,9 @@ contains
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) / (spread(maxwell_mu(ia,iz,:,is),1,nvpa)*spread(maxwell_vpa(:,is),2,nmu)*maxwell_fac(is))
+       do imu = 1, nmu
+          gvmu(:,imu,ikxkyz) = gvmu(:,imu,ikxkyz) / (maxwell_mu(ia,iz,imu,is)*maxwell_vpa(:,is)*maxwell_fac(is))
+       end do
     end do
        
   end subroutine normalize_by_maxwellian

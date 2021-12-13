@@ -48,16 +48,15 @@ contains
     use species, only: spec, nspec
     use stella_geometry, only: bmag
     use zgrid, only: nzgrid
-    use vpamu_grids, only: vperp2, nmu, nvpa
+    use vpamu_grids, only: vperp2, nmu
     use kt_grids, only: naky, nakx
-    use kt_grids, only: akx, aky
     use stella_layouts, only: kxkyz_lo, vmu_lo
     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
     use spfunc, only: j0, j1
     
     implicit none
 
-    integer :: iz, iky, ikx, imu, is, ia, iv
+    integer :: iz, iky, ikx, imu, is, ia
     integer :: ikxkyz, ivmu
     real :: arg
 
@@ -124,130 +123,118 @@ contains
     
   contains
         
-    ! set up field that varies as x^2 = rho^2 * cos(angle)^2,
-    ! with rho the distance from the origin, and 'angle' is the angle made with the horizontal
-    ! if considering a particle at x=0, then rho is thee gyro-radius and angle is the gyro-angle
-    ! the gyro-average should theen be 1/(2pi) * int_0^2pi dangle rho^2 * cos(angle)^2 = rho^2/2
-    subroutine test_gyro_average
+!     ! set up field that varies as x^2 = rho^2 * cos(angle)^2,
+!     ! with rho the distance from the origin, and 'angle' is the angle made with the horizontal
+!     ! if considering a particle at x=0, then rho is thee gyro-radius and angle is the gyro-angle
+!     ! the gyro-average should theen be 1/(2pi) * int_0^2pi dangle rho^2 * cos(angle)^2 = rho^2/2
+!     subroutine test_gyro_average
 
-      use constants, only: pi
-      use kt_grids, only: ny, nx, x, x0, y, y0
-      use kt_grids, only: nakx, ikx_max, naky, naky_all
-      use kt_grids, only: swap_kxky, swap_kxky_back
-      use stella_transforms, only: transform_x2kx, transform_y2ky
-      use stella_transforms, only: transform_kx2x, transform_ky2y
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use vpamu_grids, only: nmu
-      use species, only: nspec, spec
-      use stella_geometry, only: alpha, bmag, x_displacement_fac
-      use spfunc, only: bessi0
-      ! TMP FOR TESTING
-      use kt_grids, only: akx
+!       use constants, only: pi
+!       use kt_grids, only: ny, nx, x, x0, y, y0
+!       use kt_grids, only: nakx, ikx_max, naky, naky_all
+!       use kt_grids, only: swap_kxky, swap_kxky_back
+!       use stella_transforms, only: transform_x2kx, transform_y2ky
+!       use stella_transforms, only: transform_kx2x, transform_ky2y
+!       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+!       use vpamu_grids, only: nmu
+!       use species, only: nspec, spec
+!       use stella_geometry, only: alpha, bmag, x_displacement_fac
+!       use spfunc, only: bessi0
       
-      implicit none
+!       implicit none
 
-      real, dimension (:,:), allocatable :: fld_yx
-      complex, dimension (:,:), allocatable :: fld_ykx
-      complex, dimension (:,:), allocatable :: fld_kykx_swapped
-      complex, dimension (:,:), allocatable :: fld_kykx, gyro_fld
-      real, dimension (:,:,:,:), allocatable :: gyro_fld_yx
-      real :: gyroradius
-      integer :: iy, ix, ivmu, iv, imu, is
-      ! TMP FOR TESTING
-      integer :: iky, ikx
+!       real, dimension (:,:), allocatable :: fld_yx
+!       complex, dimension (:,:), allocatable :: fld_ykx
+!       complex, dimension (:,:), allocatable :: fld_kykx_swapped
+!       complex, dimension (:,:), allocatable :: fld_kykx, gyro_fld
+!       real, dimension (:,:,:,:), allocatable :: gyro_fld_yx
+!       real :: gyroradius
+!       integer :: iy, ix, ivmu, iv, imu, is
       
-      integer, parameter :: iz = 0
+!       integer, parameter :: iz = 0
       
-      allocate (fld_yx(ny,nx))
-      allocate (fld_ykx(ny,ikx_max))
-      allocate (fld_kykx_swapped(naky_all,ikx_max))
-      allocate (fld_kykx(naky,nakx))
-      allocate (gyro_fld(naky,nakx))
-      allocate (gyro_fld_yx(ny,nx,nmu,nspec))
+!       allocate (fld_yx(ny,nx))
+!       allocate (fld_ykx(ny,ikx_max))
+!       allocate (fld_kykx_swapped(naky_all,ikx_max))
+!       allocate (fld_kykx(naky,nakx))
+!       allocate (gyro_fld(naky,nakx))
+!       allocate (gyro_fld_yx(ny,nx,nmu,nspec))
 
-      if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::fld_yx'
-      ! set up field that varies as x^2 = rho^2 * cos(angle)^2 and is constant in y
-!      fld_yx = spread(0.1*(x-pi*x0),1,ny)**2
-      fld_yx = spread(cos(50.0*(x/x0-pi)),1,ny)
-!      fld_yx = spread(exp(-0.1*(x-pi*x0)**2),1,ny)
-      if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::transform_x2kx'
-      ! transform from (y,x) to (y,kx), with kx going from 0 to kxmax
-      call transform_x2kx (fld_yx, fld_ykx)
-      if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::transform_y2ky'
-      ! transform from (y,kx) to (ky,kx), with ky going from (0,...,kymax,-kymax,...,-dky)
-      ! and kx going from 0 to kxmax
-      call transform_y2ky (fld_ykx, fld_kykx_swapped)
-      if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::swap_kxky_back'
-      ! use reality condition to re-arrange array so that ky goes from 0 to kymax
-      ! and kx goes from (0,...,kxmax,-kxmax,...,-dkx)
-      call swap_kxky_back (fld_kykx_swapped, fld_kykx)
+!       if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::fld_yx'
+!       ! set up field that varies as x^2 = rho^2 * cos(angle)^2 and is constant in y
+! !      fld_yx = spread(0.1*(x-pi*x0),1,ny)**2
+!       fld_yx = spread(cos(50.0*(x/x0-pi)),1,ny)
+! !      fld_yx = spread(exp(-0.1*(x-pi*x0)**2),1,ny)
+!       if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::transform_x2kx'
+!       ! transform from (y,x) to (y,kx), with kx going from 0 to kxmax
+!       call transform_x2kx (fld_yx, fld_ykx)
+!       if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::transform_y2ky'
+!       ! transform from (y,kx) to (ky,kx), with ky going from (0,...,kymax,-kymax,...,-dky)
+!       ! and kx going from 0 to kxmax
+!       call transform_y2ky (fld_ykx, fld_kykx_swapped)
+!       if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::swap_kxky_back'
+!       ! use reality condition to re-arrange array so that ky goes from 0 to kymax
+!       ! and kx goes from (0,...,kxmax,-kxmax,...,-dkx)
+!       call swap_kxky_back (fld_kykx_swapped, fld_kykx)
 
-!      do iky = 1, naky
-!         do ikx = 1, nakx
-!            write (*,*) 'fld_kykx: ', iky, ikx, akx(ikx), real(fld_kykx(iky,ikx)), aimag(fld_kykx(iky,ikx))
-!         end do
-!         write (*,*)
-!      end do
-!      stop
-      
-      ! gyro-average the field at z=0 for different values of mu
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! get the vpa index
-         iv = iv_idx(vmu_lo,ivmu)
-         ! as J0 independent of vpa, pick only one vpa to test
-         if (iv /= 1) cycle
-         ! get the species index
-         is = is_idx(vmu_lo,ivmu)
-         ! get the mu index
-         imu = imu_idx(vmu_lo,ivmu)
-!         if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::gyro_average'
-         if (full_flux_surface) then
-            call gyro_average (fld_kykx, gyro_fld, j0_ffs(:,:,iz,ivmu))
-         else
-            call gyro_average (fld_kykx, iz, ivmu, gyro_fld)
-         end if
-         ! use reality to re-arrange array entries so that ky goes from (0,...,kymax,-kymax,...,-dky)
-         ! and kx goes from 0 to kxmax
-         call swap_kxky (gyro_fld, fld_kykx_swapped)
-         ! transform from (ky,kx) to (y,kx)
-         call transform_ky2y (fld_kykx_swapped, fld_ykx)
-         ! transform from (y,kx) to (y,x)
-         call transform_kx2x (fld_ykx, gyro_fld_yx(:,:,imu,is))
-      end do
-      if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::write_to_screen'
-      ! NB: this is only set up to work on a single processor at the moment
-      ! NB: to extend, must move information about gyro_fld onto proc0
-      do is = 1, nspec
-         do imu = 1, nmu
-            do ix = 1, nx
-               do iy = 1, ny
-                  ! gyro-radius/reference gyro-radius is v_perp/Omega/rho_ref = (v_perp/vths)*(rho_s/rho_ref)
-                  ! = vperp * sqrt(T_s/T_ref*m_s/m_ref)(B_ref/Z*B) = vperp / (spec%zstm*bmag)
-                  gyroradius = sqrt(vperp2(iy,iz,imu))/(spec(is)%zstm*bmag(iy,iz))
-!                  gyroradius = sqrt(vperp2(1,iz,imu))/(spec(is)%zstm*bmag(1,iz))
-                  write (42,*) 'y: ', y(iy), 'x: ', x(ix)-x0*pi, 'gyro_fld: ', gyro_fld_yx(iy,ix,imu,is), 'gyroradius: ', gyroradius, 'spec: ', is, &
-                       'alpha: ', alpha(iy), 'x_displacement_fac: ', x_displacement_fac(iy,iz)
-               end do
-               write (42,*)
-            end do
-            write (42,*)
-         end do
-         write (42,*)
-      end do
-      do iy = 1, 1000
-         gyroradius = (iy-1)*15.0/999.
-         !         write (43,*) 'gyroradius: ', gyroradius, 'bes: ', bessi0(0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)*exp(-0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)
-         !         write (43,*) 'gyroradius: ', gyroradius, 'analytical: ', 0.5*(0.1*gyroradius/x_displacement_fac(1,iz))**2
-         write (43,*) 'gyroradius: ', gyroradius, 'analytical: ', j0(50.*gyroradius/(x0*x_displacement_fac(1,iz)))
-      end do
-      ! TMP FOR TESTING
-!      stop
+!       ! gyro-average the field at z=0 for different values of mu
+!       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!          ! get the vpa index
+!          iv = iv_idx(vmu_lo,ivmu)
+!          ! as J0 independent of vpa, pick only one vpa to test
+!          if (iv /= 1) cycle
+!          ! get the species index
+!          is = is_idx(vmu_lo,ivmu)
+!          ! get the mu index
+!          imu = imu_idx(vmu_lo,ivmu)
+! !         if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::gyro_average'
+!          if (full_flux_surface) then
+!             call gyro_average (fld_kykx, gyro_fld, j0_ffs(:,:,iz,ivmu))
+!          else
+!             call gyro_average (fld_kykx, iz, ivmu, gyro_fld)
+!          end if
+!          ! use reality to re-arrange array entries so that ky goes from (0,...,kymax,-kymax,...,-dky)
+!          ! and kx goes from 0 to kxmax
+!          call swap_kxky (gyro_fld, fld_kykx_swapped)
+!          ! transform from (ky,kx) to (y,kx)
+!          call transform_ky2y (fld_kykx_swapped, fld_ykx)
+!          ! transform from (y,kx) to (y,x)
+!          call transform_kx2x (fld_ykx, gyro_fld_yx(:,:,imu,is))
+!       end do
+!       if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::write_to_screen'
+!       ! NB: this is only set up to work on a single processor at the moment
+!       ! NB: to extend, must move information about gyro_fld onto proc0
+!       do is = 1, nspec
+!          do imu = 1, nmu
+!             do ix = 1, nx
+!                do iy = 1, ny
+!                   ! gyro-radius/reference gyro-radius is v_perp/Omega/rho_ref = (v_perp/vths)*(rho_s/rho_ref)
+!                   ! = vperp * sqrt(T_s/T_ref*m_s/m_ref)(B_ref/Z*B) = vperp / (spec%zstm*bmag)
+!                   gyroradius = sqrt(vperp2(iy,iz,imu))/(spec(is)%zstm*bmag(iy,iz))
+! !                  gyroradius = sqrt(vperp2(1,iz,imu))/(spec(is)%zstm*bmag(1,iz))
+!                   write (42,*) 'y: ', y(iy), 'x: ', x(ix)-x0*pi, 'gyro_fld: ', gyro_fld_yx(iy,ix,imu,is), 'gyroradius: ', gyroradius, 'spec: ', is, &
+!                        'alpha: ', alpha(iy), 'x_displacement_fac: ', x_displacement_fac(iy,iz)
+!                end do
+!                write (42,*)
+!             end do
+!             write (42,*)
+!          end do
+!          write (42,*)
+!       end do
+!       do iy = 1, 1000
+!          gyroradius = (iy-1)*15.0/999.
+!          !         write (43,*) 'gyroradius: ', gyroradius, 'bes: ', bessi0(0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)*exp(-0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)
+!          !         write (43,*) 'gyroradius: ', gyroradius, 'analytical: ', 0.5*(0.1*gyroradius/x_displacement_fac(1,iz))**2
+!          write (43,*) 'gyroradius: ', gyroradius, 'analytical: ', j0(50.*gyroradius/(x0*x_displacement_fac(1,iz)))
+!       end do
+!       ! TMP FOR TESTING
+! !      stop
 
-      deallocate (fld_yx, fld_ykx)
-      deallocate (fld_kykx_swapped, fld_kykx)
-      deallocate (gyro_fld, gyro_fld_yx)
+!       deallocate (fld_yx, fld_ykx)
+!       deallocate (fld_kykx_swapped, fld_kykx)
+!       deallocate (gyro_fld, gyro_fld_yx)
       
-    end subroutine test_gyro_average
+!     end subroutine test_gyro_average
       
   end subroutine init_bessel
 
@@ -279,7 +266,7 @@ contains
     real, dimension (:), allocatable :: aj0_alpha, j0_B_maxwell
     real, dimension (:,:,:), allocatable :: kperp2_swap
     complex, dimension (:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
-    
+
     !       call open_output_file (j0_ffs_unit, '.j0_ffs')
     !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
     
@@ -336,8 +323,8 @@ contains
                 !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                 !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                 !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
-                !                   ! TMP FOR TESTING
-                !                   j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
+                !                ! TMP FOR TESTING
+                !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                 call find_max_required_kalpha_index (aj0_kalpha, j0_ffs(iky,ikx,iz,ivmu)%max_idx, imu, iz, is)
                 !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
                 !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
@@ -388,112 +375,112 @@ contains
 
     !> inverse fourier transform coefs%fourier for several phase space points and compare with
     !> unfiltered version in alpha-space
-    subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
+    ! subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
       
-      use stella_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
+    !   use stella_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
       
-      implicit none
+    !   implicit none
       
-      complex, dimension (:), intent (in) :: coefs
-      real, dimension (:), intent (in) :: f_alpha
-      integer, intent (in) :: iky, ikx, iz
-      integer, intent (in) :: unit
-      integer, intent (in), optional :: ivmu
+    !   complex, dimension (:), intent (in) :: coefs
+    !   real, dimension (:), intent (in) :: f_alpha
+    !   integer, intent (in) :: iky, ikx, iz
+    !   integer, intent (in) :: unit
+    !   integer, intent (in), optional :: ivmu
       
-      integer :: iv, imu, is
+    !   integer :: iv, imu, is
       
-      if (present(ivmu)) then
-         !> coefficients should all be independent of vpa, so only do comparison for one vpa point
-         iv = iv_idx(vmu_lo,ivmu)
-         if (iv == 1) then
-            !> only sample subset of mu locations
-            imu = imu_idx(vmu_lo,ivmu)
-            if (mod(imu-1,nmu/2-1)==0) then
-               is = is_idx(vmu_lo,ivmu)
-               call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
-            end if
-         end if
-      else
-         call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit)
-      end if
+    !   if (present(ivmu)) then
+    !      !> coefficients should all be independent of vpa, so only do comparison for one vpa point
+    !      iv = iv_idx(vmu_lo,ivmu)
+    !      if (iv == 1) then
+    !         !> only sample subset of mu locations
+    !         imu = imu_idx(vmu_lo,ivmu)
+    !         if (mod(imu-1,nmu/2-1)==0) then
+    !            is = is_idx(vmu_lo,ivmu)
+    !            call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
+    !         end if
+    !      end if
+    !   else
+    !      call test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit)
+    !   end if
          
-    end subroutine test_ffs_bessel_coefs
+    ! end subroutine test_ffs_bessel_coefs
 
-    subroutine test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
+    ! subroutine test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
 
-      use constants, only: pi
-      use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nalpha, aky_all_ordered
-      use vpamu_grids, only: mu
-      use stella_transforms, only: transform_kalpha2alpha
-      use stella_geometry, only: alpha
+    !   use constants, only: pi
+    !   use zgrid, only: nzgrid, zed
+    !   use kt_grids, only: naky, nalpha, aky_all_ordered
+    !   use vpamu_grids, only: mu
+    !   use stella_transforms, only: transform_kalpha2alpha
+    !   use stella_geometry, only: alpha
       
-      implicit none
+    !   implicit none
 
-      complex, dimension (:), intent (in) :: coefs
-      real, dimension (:), intent (in) :: f_alpha
-      integer, intent (in) :: iky, ikx, iz
-      integer, intent (in) :: unit
-      integer, intent (in), optional :: iv, imu, is
+    !   complex, dimension (:), intent (in) :: coefs
+    !   real, dimension (:), intent (in) :: f_alpha
+    !   integer, intent (in) :: iky, ikx, iz
+    !   integer, intent (in) :: unit
+    !   integer, intent (in), optional :: iv, imu, is
       
-      complex, dimension (:), allocatable :: coefs_padded
-      real, dimension (:), allocatable :: f_alpha_approx
+    !   complex, dimension (:), allocatable :: coefs_padded
+    !   real, dimension (:), allocatable :: f_alpha_approx
 
-      integer :: ia
-      integer :: max_idx
-      real :: relative_error
-      real, parameter :: minval = 1.0e-3
+    !   integer :: ia
+    !   integer :: max_idx
+    !   real :: relative_error
+    !   real, parameter :: minval = 1.0e-3
       
-      ! only sample a subset of z locations
-      if (mod(iz,nzgrid/2)==0) then
-         ! consider only kx = 0
-         if (ikx == 1) then
-            allocate (coefs_padded(naky))
-            allocate (f_alpha_approx(nalpha))
-            ! initialize the padded coefficient array to zero
-            coefs_padded = 0.0
-            ! fill in non-zero entries with truncated Fourier coefficients
-            max_idx = size(coefs)
-            coefs_padded(:max_idx) = coefs
-            ! inverse Fourier transform to get alpha-dependent function
-            call transform_kalpha2alpha (coefs_padded, f_alpha_approx)
-            if (present(iv)) then
-               do ia = 1, nalpha
-                  relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-                  write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
-                       relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
-               end do
-               ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
-               ia = 1
-               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-               write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
-                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
-            else
-               do ia = 1, nalpha
-                  relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-                  write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
-                       relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
-               end do
-               ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
-               ia = 1
-               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
-               write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
-                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
-            end if
-            write (unit,*)
-            deallocate (coefs_padded, f_alpha_approx)
-         end if
-      end if
+    !   ! only sample a subset of z locations
+    !   if (mod(iz,nzgrid/2)==0) then
+    !      ! consider only kx = 0
+    !      if (ikx == 1) then
+    !         allocate (coefs_padded(naky))
+    !         allocate (f_alpha_approx(nalpha))
+    !         ! initialize the padded coefficient array to zero
+    !         coefs_padded = 0.0
+    !         ! fill in non-zero entries with truncated Fourier coefficients
+    !         max_idx = size(coefs)
+    !         coefs_padded(:max_idx) = coefs
+    !         ! inverse Fourier transform to get alpha-dependent function
+    !         call transform_kalpha2alpha (coefs_padded, f_alpha_approx)
+    !         if (present(iv)) then
+    !            do ia = 1, nalpha
+    !               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+    !               write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
+    !                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
+    !            end do
+    !            ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
+    !            ia = 1
+    !            relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+    !            write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
+    !                 relative_error, aky_all_ordered(iky), ikx, iz, zed(iz), iv, imu, mu(imu), is
+    !         else
+    !            do ia = 1, nalpha
+    !               relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+    !               write (unit,*) alpha(ia), f_alpha(ia), f_alpha_approx(ia), &
+    !                    relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
+    !            end do
+    !            ! user 2*pi periodicity in alpha to fill in final point (for visualization purposes)
+    !            ia = 1
+    !            relative_error = 2.0*abs(f_alpha(ia)-f_alpha_approx(ia))/(abs(f_alpha(ia)) + abs(f_alpha_approx(ia)))
+    !            write (unit,*) 2.0*pi, f_alpha(1), f_alpha_approx(1), &
+    !                 relative_error, aky_all_ordered(iky), ikx, iz, zed(iz)
+    !         end if
+    !         write (unit,*)
+    !         deallocate (coefs_padded, f_alpha_approx)
+    !      end if
+    !   end if
       
-    end subroutine test_ffs_bessel_coefs_subset
+    ! end subroutine test_ffs_bessel_coefs_subset
     
   end subroutine init_bessel_ffs
 
   
-  ! subroutine takes a set of Fourier coefficients (ft)
-  ! and returns the minimum number of coeffients that must be retained (idx)
-  ! to ensure that the relative error in the total spectral energy is
-  ! below a specified tolerance (tol_floor)
+  !> subroutine takes a set of Fourier coefficients (ft)
+  !> and returns the minimum number of coeffients that must be retained (idx)
+  !> to ensure that the relative error in the total spectral energy is
+  !> below a specified tolerance (tol_floor)
   subroutine find_max_required_kalpha_index (ft, idx, imu, iz, is)
 
     use vpamu_grids, only: maxwell_mu
@@ -824,7 +811,7 @@ contains
   subroutine band_lu_solve_ffs_single (lu, solvec)
     
     use common_types, only: gam0_ffs_type
-    use kt_grids, only: naky_all, naky
+    use kt_grids, only: naky
     
     implicit none
     
@@ -939,40 +926,40 @@ contains
     
   end subroutine band_lu_factorisation_single
   
-  subroutine test_band_lu_factorisation (gam0, lu_gam0)
+  ! subroutine test_band_lu_factorisation (gam0, lu_gam0)
     
-    use common_types, only: coupled_alpha_type, gam0_ffs_type
-    use zgrid, only: nzgrid
-    use kt_grids, only: naky_all, naky
+  !   use common_types, only: coupled_alpha_type, gam0_ffs_type
+  !   use zgrid, only: nzgrid
+  !   use kt_grids, only: naky_all, naky
     
-    implicit none
+  !   implicit none
     
-    type (coupled_alpha_type), dimension (:,:,-nzgrid:), intent (in) :: gam0
-    type (gam0_ffs_type), dimension (:,-nzgrid:), intent (out) :: lu_gam0
+  !   type (coupled_alpha_type), dimension (:,:,-nzgrid:), intent (in) :: gam0
+  !   type (gam0_ffs_type), dimension (:,-nzgrid:), intent (out) :: lu_gam0
     
-    integer :: iky, ikx, ikyp, iz
-    complex, dimension (naky_all) :: solvec
+  !   integer :: iky, ikx, ikyp, iz
+  !   complex, dimension (naky_all) :: solvec
     
-    ikx = 1 ; iz = -nzgrid
-    do iky = 1, naky_all
-       do ikyp = 1, naky
-          gam0(iky,ikx,iz)%fourier(ikyp) = iky-naky + ikyp-1
-       end do
-    end do
+  !   ikx = 1 ; iz = -nzgrid
+  !   do iky = 1, naky_all
+  !      do ikyp = 1, naky
+  !         gam0(iky,ikx,iz)%fourier(ikyp) = iky-naky + ikyp-1
+  !      end do
+  !   end do
     
-    call band_lu_factorisation_ffs (gam0, lu_gam0)
+  !   call band_lu_factorisation_ffs (gam0, lu_gam0)
     
-    do iky = 1, naky_all
-       solvec(iky) = iky
-    end do
+  !   do iky = 1, naky_all
+  !      solvec(iky) = iky
+  !   end do
     
-    call band_lu_solve_ffs_single (lu_gam0(ikx,iz), solvec)
+  !   call band_lu_solve_ffs_single (lu_gam0(ikx,iz), solvec)
     
-    do iky = 1, naky_all
-       write (*,*) 'iky: ', iky, 'solution: ', solvec(iky)
-    end do
-    stop
+  !   do iky = 1, naky_all
+  !      write (*,*) 'iky: ', iky, 'solution: ', solvec(iky)
+  !   end do
+  !   stop
     
-  end subroutine test_band_lu_factorisation
+  ! end subroutine test_band_lu_factorisation
   
 end module gyro_averages
