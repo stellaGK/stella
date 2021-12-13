@@ -8,7 +8,7 @@ module stella_geometry
   public :: communicate_geo_multibox
   public :: grho, grad_x
   public :: bmag, dbdzed, btor, bmag_psi0
-  public :: gradpar, gradpar_eqarc, zed_eqarc
+  public :: gradpar, gradpar_eqarc, b_dot_grad_z, zed_eqarc
   public :: cvdrift, cvdrift0
   public :: gbdrift, gbdrift0
   public :: dcvdriftdrho, dcvdrift0drho
@@ -47,6 +47,7 @@ module stella_geometry
   real :: twist_and_shift_geo_fac, gfac
   real, dimension (:), allocatable :: zed_eqarc
   real, dimension (:), allocatable :: gradpar
+  real, dimension (:,:), allocatable :: b_dot_grad_z
   real, dimension (:,:), allocatable :: bmag, bmag_psi0, dbdzed
   real, dimension (:,:), allocatable :: cvdrift, cvdrift0
   real, dimension (:,:), allocatable :: gbdrift, gbdrift0
@@ -95,7 +96,7 @@ contains
     use zgrid, only: zed, delzed
     use zgrid, only: shat_zero, zed_equal_arc
     use zgrid, only: boundary_option_switch, boundary_option_self_periodic
-    use physics_flags, only: include_geometric_variation
+    use physics_flags, only: include_geometric_variation, const_alpha_geo
 
     implicit none
 
@@ -147,6 +148,10 @@ contains
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), &
                dgds22dr(1,:), djacdrho(1,:))
+          !> b_dot_grad_z is the alpha-dependent b . grad z,
+          !> and gradpar is the constant-in-alpha part of it.
+          !> for axisymmetric systems, b_dot_grad_z is independent of alpha.
+          b_dot_grad_z(1,:) = gradpar
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           drhodpsi_psi0 = 1./dpsidrho_psi0
@@ -196,6 +201,10 @@ contains
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), &
                dgds22dr(1,:), djacdrho(1,:))
+          !> b_dot_grad_z is the alpha-dependent b . grad z,
+          !> and gradpar is the constant-in-alpha part of it.
+          !> for axisymmetric systems, b_dot_grad_z is independent of alpha.
+          b_dot_grad_z(1,:) = gradpar
           ! note that psi here is the enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           drhodpsi_psi0 = 1./dpsidrho_psi0
@@ -245,6 +254,10 @@ contains
                dgbdrift0drho(1,:), dgbdriftdrho(1,:), &
                dgds2dr(1,:),dgds21dr(1,:), &
                dgds22dr(1,:),djacdrho(1,:))
+          !> b_dot_grad_z is the alpha-dependent b . grad z,
+          !> and gradpar is the constant-in-alpha part of it.
+          !> for axisymmetric systems, b_dot_grad_z is independent of alpha.
+          b_dot_grad_z(1,:) = gradpar
           ! psi here is enclosed poloidal flux divided by 2pi
           drhodpsi = 1./dpsidrho
           drhodpsi_psi0 = 1./dpsidrho_psi0
@@ -278,7 +291,8 @@ contains
           call allocate_temporary_arrays (nalpha, nzgrid)
           !> get geometry coefficients from vmec
           if (debug) write (*,*) 'init_geometry::get_vmec_geo'
-          call get_vmec_geo (nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, grad_alpha_grad_alpha, &
+          call get_vmec_geo (nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
+               b_dot_grad_z, grad_alpha_grad_alpha, &
                grad_alpha_grad_psi, grad_psi_grad_psi, &
                gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, sign_torflux, &
@@ -335,8 +349,11 @@ contains
           cvdrift0 = cvdrift0_psi * dxdXcoord
 
           call deallocate_temporary_arrays
-       end select
 
+          !> can test FFS implementation by setting all geometric coefficients
+          !> to their values at a given alpha; i.e., make the system axisymmetric
+          if (const_alpha_geo) call set_ffs_geo_coefs_constant (nalpha)
+       end select
           
        if (overwrite_geometry) call overwrite_selected_geometric_coefficients (nalpha)
 
@@ -375,7 +392,8 @@ contains
     !> jacob is the Jacobian from Cartesian coordinates to (y,x,z) coordinates
     !> is ((grad y x grad x) . grad z)^(-1) = Lref*(dalpha/dy)*(dpsi/dx)/(Lref*Bref)*(B/Bref . grad z)^(-1)
     !> Lref*(dalpha/dy) = 1/dydalpha; (dpsi/dx)/(Lref*Bref) = 1 / dxdXcoord ; (B/Bref . grad z) = gradpar*bmag
-    jacob = 1.0/(dydalpha*dxdXcoord*spread(gradpar,1,nalpha)*bmag)
+    jacob = 1.0/(dydalpha*dxdXcoord*b_dot_grad_z*bmag)
+    !    jacob = 1.0/(dydalpha*dxdXcoord*spread(gradpar,1,nalpha)*bmag)
     
     ! this is dl/B
     dl_over_b = spread(delzed,1,nalpha)*jacob
@@ -517,6 +535,49 @@ contains
 
     end subroutine overwrite_selected_geometric_coefficients
 
+    subroutine set_ffs_geo_coefs_constant (nalpha)
+
+      implicit none
+
+      integer, intent (in) :: nalpha
+      
+      call set_coef_constant (gbdrift0, nalpha)
+      call set_coef_constant (cvdrift0, nalpha)
+      call set_coef_constant (gbdrift, nalpha)
+      call set_coef_constant (cvdrift, nalpha)
+      call set_coef_constant (grad_x, nalpha)
+      call set_coef_constant (grho, nalpha)
+      call set_coef_constant (bmag, nalpha)
+      call set_coef_constant (bmag_psi0, nalpha)
+      call set_coef_constant (gds2, nalpha)
+      call set_coef_constant (gds21, nalpha)
+      call set_coef_constant (gds22, nalpha)
+      call set_coef_constant (gds23, nalpha)
+      call set_coef_constant (gds24, nalpha)
+      call set_coef_constant (gds25, nalpha)
+      call set_coef_constant (gds26, nalpha)
+      call set_coef_constant (theta_vmec, nalpha)
+      call set_coef_constant (x_displacement_fac, nalpha)
+      call set_coef_constant (zeta, nalpha)
+      call set_coef_constant (b_dot_grad_z, nalpha)
+      ! following coefficients calculated later using above coefficients
+      !      call set_coef_constant (dbdzed, nalpha)
+      !      call set_coef_constant (jacob, nalpha)
+      !      call set_coef_constant (dl_over_b, nalpha)
+      
+    end subroutine set_ffs_geo_coefs_constant
+
+    subroutine set_coef_constant (coef, nalpha)
+
+      implicit none
+
+      real, dimension (:,-nzgrid:), intent (in out) :: coef
+      integer, intent (in) :: nalpha
+
+      coef = spread(coef(1,:),1,nalpha)
+      
+    end subroutine set_coef_constant
+    
   end subroutine init_geometry
 
   subroutine allocate_arrays (nalpha, nzgrid)
@@ -553,7 +614,8 @@ contains
     if (.not.allocated(grad_x)) allocate (grad_x(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(dl_over_b)) allocate (dl_over_b(nalpha,-nzgrid:nzgrid))
     if (.not.allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha,-nzgrid:nzgrid))
-
+    if (.not.allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha,-nzgrid:nzgrid))
+    
     if (.not.allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
     if (.not.allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
     if (.not.allocated(btor)) allocate (btor(-nzgrid:nzgrid))
@@ -649,6 +711,7 @@ contains
     call broadcast (btor)
     call broadcast (rmajor)
     call broadcast (gradpar)
+    call broadcast (b_dot_grad_z)
     call broadcast (gds2)
     call broadcast (gds21)
     call broadcast (gds22)
@@ -861,11 +924,12 @@ contains
                                               dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p*exb_nonlin_fac
     write (geometry_unit,*)
 
-    write (geometry_unit,'(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'gradpar', 'gds2', 'gds21', 'gds22', &
+    write (geometry_unit,'(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
                                     'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0', 'btor'
     do ia = 1, nalpha
        do iz = -nzgrid, nzgrid
-          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
+          !          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
+          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), b_dot_grad_z(ia,iz), &
                gds2(ia,iz), gds21(ia,iz), gds22(ia,iz), gds23(ia,iz), &
                gds24(ia,iz), gbdrift(ia,iz), cvdrift(ia,iz), gbdrift0(ia,iz), &
                bmag_psi0(ia,iz), btor(iz)
@@ -913,6 +977,7 @@ contains
     if (allocated(jacob)) deallocate (jacob)
     if (allocated(djacdrho)) deallocate (djacdrho)
     if (allocated(gradpar)) deallocate (gradpar)
+    if (allocated(b_dot_grad_z)) deallocate (b_dot_grad_z)
     if (allocated(dl_over_b)) deallocate (dl_over_b)
     if (allocated(d_dl_over_b_drho)) deallocate (d_dl_over_b_drho)
     if (allocated(gds2)) deallocate (gds2)
