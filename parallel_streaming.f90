@@ -23,7 +23,8 @@ module parallel_streaming
   logical :: parallel_streaming_initialized = .false.
 
   integer, dimension (:), allocatable :: stream_sign
-  real, dimension (:,:,:), allocatable :: stream, stream_c
+  real, dimension (:,:,:,:), allocatable :: stream
+  real, dimension (:,:,:), allocatable :: stream_c
   real, dimension (:,:,:), allocatable :: stream_rad_var1
   real, dimension (:,:,:), allocatable :: stream_rad_var2
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
@@ -47,27 +48,33 @@ contains
     use vpamu_grids, only: vperp2, vpa, mu
     use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac
+    use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use physics_flags, only: include_parallel_streaming, radial_variation
 
     implicit none
 
-    integer :: iv, imu, is, ivmu, ia
+    integer :: iv, imu, is, ivmu
+    integer :: ia, iz
     
     real, dimension (:), allocatable :: energy
 
     if (parallel_streaming_initialized) return
     parallel_streaming_initialized = .true.
 
-    if (.not.allocated(stream)) allocate (stream(-nzgrid:nzgrid,nvpa,nspec)) ; stream = 0.
+    if (.not.allocated(stream)) allocate (stream(nalpha,-nzgrid:nzgrid,nvpa,nspec)) ; stream = 0.
     if (.not.allocated(stream_sign)) allocate (stream_sign(nvpa)) ; stream_sign = 0
 
     ! sign of stream corresponds to appearing on RHS of GK equation
     ! i.e., this is the factor multiplying dg/dz on RHS of equation
     if (include_parallel_streaming) then
-       stream = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
-            * spread(spread(vpa,1,nztot)*spread(gradpar,2,nvpa),3,nspec)
+       do iv = 1, nvpa
+          do iz = -nzgrid, nzgrid
+             do ia = 1, nalpha
+                stream(ia,iz,iv,:) = -code_dt*b_dot_grad_z(ia,iz)*vpa(iv)*spec%stm_psi0
+             end do
+          end do
+       end do
     else
        stream = 0.0
     end if
@@ -102,16 +109,16 @@ contains
 
     !> stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
     !> NB: stream_sign = -1 corresponds to positive advection velocity
-    !> only need to consider iz=0 and is=1 because z and species dependences
+    !> only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
     !> do not lead to change in sign of the streaming pre-factor
     do iv = 1, nvpa
-       stream_sign(iv) = int(sign(1.0,stream(0,iv,1)))
+       stream_sign(iv) = int(sign(1.0,stream(1,0,iv,1)))
     end do
 
     if (stream_implicit .or. driftkinetic_implicit) then
        call init_invert_stream_operator
        if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
-       stream_c = stream
+       stream_c = stream(1,:,:,:)
        do is = 1, nspec
           do iv = 1, nvpa
              call center_zed (iv, stream_c(:,iv,is))
@@ -123,7 +130,7 @@ contains
        call center_zed(1,gradpar_c(:,-stream_sign(1)))
        !> get gradpar centred in zed for positive vpa (affects upwinding)
        call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
-       stream = stream_c
+       stream = spread(stream_c,1,nalpha)
     end if
 
   end subroutine init_parallel_streaming
@@ -374,7 +381,7 @@ contains
     !!#3 - variation in the gyroaveraging and quasineutrality of phi
     !!     These variations already have the linear part calculated, so
     !!     ad it into the rhs directly
-           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+           g0k = spec(is)%zt*stream(1,iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 
            rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
@@ -513,8 +520,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -522,20 +528,22 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: src
     integer, intent (in) :: ivmu
 
-    integer :: iv, is
+    integer :: iz, iv, is
 
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
-    src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
-
+    do iz = -nzgrid, nzgrid
+       src(:,:,iz,:) = src(:,:,iz,:) + stream(1,iz,iv,is)*g(:,:,iz,:)
+    end do
+             
   end subroutine add_stream_term
 
-    subroutine add_stream_term_ffs (g, ivmu, src)
+  subroutine add_stream_term_ffs (g, ivmu, src)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: ny, ikx_max
+    use zgrid, only: nzgrid
+    use kt_grids, only: ny
 
     implicit none
 
@@ -543,12 +551,16 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: src
     integer, intent (in) :: ivmu
 
-    integer :: iv, is
-
+    integer :: iz, iy, iv, is
+    
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
-    src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,ny),2,ikx_max),4,ntubes)*g(:,:,:,:)
-
+    do iz = -nzgrid, nzgrid
+       do iy = 1, ny
+          src(iy,:,iz,:) = src(iy,:,iz,:) + stream(iy,iz,iv,is)*g(iy,:,iz,:)
+       end do
+    end do
+    
   end subroutine add_stream_term_ffs
 
   subroutine advance_parallel_streaming_implicit (g, phi, apar)
@@ -823,8 +835,11 @@ contains
 
     integer :: iseg, llim, ulim, n
     integer :: nz, nseg_max, sgn, n_ext
+    integer :: ia
     real, dimension (:), allocatable :: a, b, c
 
+    ia = 1
+    
     ! avoid double-counting at boundaries between 2pi segments
     nz = nzed_segment
     nseg_max = nsegments(ie,iky)
@@ -838,27 +853,27 @@ contains
     iseg = 1
     llim = 1 ; ulim = nz+1
     a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-         - stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+         - stream(ia,iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
     b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+         -stream(ia,iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
     c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
+         -stream(ia,iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
 
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
           ulim = llim+nz-1
           a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+               - stream(ia,iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
           b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+               - stream(ia,iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
           c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
+               - stream(ia,iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
        end do
     end if
     n = size(stream_tri_a1,1)
-    a(ulim) = stream_tri_a1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
-    b(ulim) = stream_tri_b1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
+    a(ulim) = stream_tri_a1(n,sgn)-stream(ia,iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
+    b(ulim) = stream_tri_b1(n,sgn)-stream(ia,iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
     c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
     call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
 
