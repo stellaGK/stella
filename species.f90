@@ -97,7 +97,6 @@ contains
               end if
            end do
        else
-           print*,'using full inter-species collisions'
            ! AVB: full intra- and inter-species collision frequencies
            do is = 1, nspec
                do is2 = 1, nspec

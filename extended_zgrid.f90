@@ -13,17 +13,17 @@ module extended_zgrid
   public :: map_to_extended_zgrid
   public :: map_from_extended_zgrid
 
-  ! these arrays needed to keep track of connections between different
-  ! 2pi segments
+  !> these arrays needed to keep track of connections between different
+  !> 2pi segments
   integer :: nzed_segment
   integer, dimension (:), allocatable :: neigen
   integer, dimension (:), allocatable :: iz_low, iz_mid, iz_up
   integer, dimension (:,:), allocatable :: nsegments
   integer, dimension (:,:,:), allocatable :: ikxmod
-  ! arrays indicate which flux tube index to connect to
-  ! on the left and on the right
-  ! as a function of current flux tube index
-  ! pre-compute to avoid conditionals in loops
+  !> arrays indicate which flux tube index to connect to
+  !> on the left and on the right
+  !> as a function of current flux tube index
+  !> pre-compute to avoid conditionals in loops
   integer, dimension (:), allocatable :: it_left, it_right
   complex, dimension (:), allocatable :: phase_shift
 

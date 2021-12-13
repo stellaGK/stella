@@ -29,11 +29,11 @@ program stella
 
   !> Initialize stella
   call init_stella(istep0, VERNUM, VERDATE)
-
+  
   !> Diagnose stella
   if (debug) write(*,*) 'stella::diagnose_stella'
   if (istep0.eq.0) call diagnose_stella (istep0)
-
+  
   !> Advance stella until istep=nstep
   if (debug) write(*,*) 'stella::advance_stella'
   do istep = (istep0+1), nstep
@@ -124,7 +124,7 @@ contains
     integer, dimension (:), allocatable  :: seed
     integer :: i, n, ierr
     real :: delt_saved, phi2, rescale
-
+    
     !> initialize mpi message passing
     if (.not.mpi_initialized) call init_mp
     mpi_initialized = .true.
@@ -286,6 +286,7 @@ contains
     !> stored in gnew and copied to gold
     if (debug) write(6,*) "stella::init_stella::init_gxyz"
     call init_gxyz (restarted)
+
     !> if initializing from restart file, set the initial time step size appropriately
     if(restarted.and.delt_option_switch == delt_option_auto) then
        delt_saved = delt
@@ -313,6 +314,7 @@ contains
     !> get initial field from initial distribution function
     if (debug) write (6,*) 'stella::init_stella::advance_fields'
     call advance_fields (gnew, phi, apar, dist='gbar')
+    
     if(radial_variation) call get_radial_correction(gnew,phi,dist='gbar')
 
     if(runtype_option_switch.eq.runtype_multibox) then
