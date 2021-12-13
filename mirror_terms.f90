@@ -11,6 +11,11 @@ module mirror_terms
 
   private
 
+!  interface checksum
+!     module procedure checksum_field
+!     module procedure checksum_dist
+!  end interface
+
   logical :: mirror_initialized = .false.
   real, dimension (2,2) :: time_mirror = 0.
 
@@ -32,7 +37,7 @@ contains
     use vpamu_grids, only: mu
     use zgrid, only: nzgrid, nztot
     use kt_grids, only: nalpha
-    use stella_geometry, only: dbdzed, gradpar, gfac
+    use stella_geometry, only: dbdzed, b_dot_grad_z, gfac
     use stella_geometry, only: d2Bdrdth, dgradpardrho
     use neoclassical_terms, only: include_neoclassical_terms
     use neoclassical_terms, only: dphineo_dzed
@@ -63,7 +68,7 @@ contains
        do imu = 1, nmu
           do ia = 1, nalpha
              do iz = -nzgrid, nzgrid
-                mirror(ia,iz,imu,:) = code_dt*spec%stm_psi0*gradpar(iz) &
+                mirror(ia,iz,imu,:) = code_dt*spec%stm_psi0*b_dot_grad_z(ia,iz) &
                      *(mu(imu)*dbdzed(ia,iz)+neoclassical_term(iz,:))
              end do
           end do
@@ -85,7 +90,7 @@ contains
              do iz = -nzgrid, nzgrid
                 mirror_rad_var(ia,iz,imu,:) = code_dt*spec%stm_psi0*mu(imu)*gfac &
                      *(dgradpardrho(iz)*dbdzed(ia,iz) &
-                     + gradpar(iz)*d2Bdrdth(iz))
+                     + b_dot_grad_z(ia,iz)*d2Bdrdth(iz))
              end do
           end do
        end do
@@ -292,7 +297,7 @@ contains
     use vpamu_grids, only: vpa, maxwell_vpa
     use run_parameters, only: fields_kxkyz
     use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
-    
+
     implicit none
 
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
@@ -303,7 +308,7 @@ contains
     complex, dimension (:,:), allocatable :: dgdv, g_swap
 
     integer :: ikxyz, iz, it
-    integer :: ivmu, iv, is
+    integer :: ivmu, iv, imu, is
 
     !> start the timer for this subroutine
     if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror advance')
@@ -335,21 +340,20 @@ contains
        !> g = <f> / F, so we use the chain rule to get two terms:
        !> one with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
        do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-          dgdv = g0v(:,:,ikxyz)
+          is = is_idx(kxyz_lo,ikxyz)
+          !> remove exp(-vpa^2) normalisation from g before differentiating
+          do imu = 1, nmu
+             dgdv(:,imu) = g0v(:,imu,ikxyz) * maxwell_vpa(:,is)
+          end do
           !> get d <f> / dvpa
           call get_dgdvpa_ffs (dgdv, ikxyz)
           do iv = 1, nvpa
-             g0v(iv,:,ikxyz) = dgdv(iv,:) + 2.0*vpa(iv)*g0v(iv,:,ikxyz)
+             g0v(iv,:,ikxyz) = dgdv(iv,:) / maxwell_vpa(iv,is) + 2.0*vpa(iv)*g0v(iv,:,ikxyz)
           end do
        end do
        !> then take the results and remap again so y,kx,z local.
        call gather (kxyz2vmu, g0v, g0x)
-       !> multiply the result by exp(vpa^2) to convert from <f> to <f> / F
-       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          iv = iv_idx(vmu_lo,ivmu)
-          is = is_idx(vmu_lo,ivmu)
-          g0x(:,:,:,:,ivmu) = g0x(:,:,:,:,ivmu)/maxwell_vpa(iv,is)
-       end do
+
        !> finally add the mirror term to the RHS of the GK eqn
        call add_mirror_term_ffs (g0x, gout)
        deallocate (dgdv, g_swap)
@@ -511,11 +515,18 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
-
+    integer :: iky, ikx, it
+    
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(spread(mirror(1,:,imu,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:,ivmu)
+       do it = 1, ntubes
+          do ikx = 1, nakx
+             do iky = 1, naky
+                src(iky,ikx,:,it,ivmu) = src(iky,ikx,:,it,ivmu) + mirror(1,:,imu,is)*g(iky,ikx,:,it,ivmu)
+             end do
+          end do
+       end do
     end do
 
   end subroutine add_mirror_term
@@ -533,11 +544,18 @@ contains
     complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
 
     integer :: imu, is, ivmu
-
+    integer :: ikx, iz, it
+    
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
-       src(:,:,:,:,ivmu) = src(:,:,:,:,ivmu) + spread(spread(mirror(:,:,imu,is),2,ikx_max),4,ntubes)*g(:,:,:,:,ivmu)
+       do it = 1, ntubes
+          do iz = -nzgrid, nzgrid
+             do ikx = 1, ikx_max
+                src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + mirror(:,iz,imu,is)*g(:,ikx,iz,it,ivmu)
+             end do
+          end do
+       end do
     end do
 
   end subroutine add_mirror_term_ffs
@@ -889,5 +907,89 @@ contains
     if (allocated(mirror_int_fac)) deallocate (mirror_int_fac)
 
   end subroutine finish_invert_mirror_operator
+
+  ! subroutine checksum_field (field, total)
+
+  !   use zgrid, only: nzgrid, ntubes
+  !   use kt_grids, only: naky
+  !   use extended_zgrid, only: neigen, nsegments, ikxmod
+  !   use extended_zgrid, only: iz_low, iz_up
+
+  !   implicit none
+
+  !   complex, dimension (:,:,-nzgrid:,:), intent (in) :: field
+  !   real, intent (out) :: total
+
+  !   integer :: it, iky, ie, iseg
+  !   integer :: ikx
+
+  !   total = 0.
+
+  !   do iky = 1, naky
+  !      do it = 1, ntubes
+  !         do ie = 1, neigen(iky)
+  !            iseg = 1
+  !            ikx = ikxmod(iseg,ie,iky)
+  !            total = total + sum(cabs(field(iky,ikx,iz_low(iseg):iz_up(iseg),it)))
+  !            if (nsegments(ie,iky) > 1) then
+  !               do iseg = 2, nsegments(ie,iky)
+  !                  ikx = ikxmod(iseg,ie,iky)
+  !                  total = total + sum(cabs(field(iky,ikx,iz_low(iseg)+1:iz_up(iseg),it)))
+  !               end do
+  !            end if
+  !         end do
+  !      end do
+  !   end do
+
+  ! end subroutine checksum_field
+
+  ! subroutine checksum_dist (dist, total, norm)
+
+  !   use mp, only: sum_allreduce
+  !   use zgrid, only: nzgrid, ntubes
+  !   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+  !   use kt_grids, only: naky, nakx
+  !   use vpamu_grids, only: maxwell_vpa, maxwell_mu
+    
+  !   implicit none
+
+  !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: dist
+  !   real, intent (out) :: total
+  !   logical, intent (in), optional :: norm
+
+  !   integer :: ivmu, iv, imu, is
+  !   integer :: iky, ikx, it
+  !   real :: subtotal
+
+  !   complex, dimension (:,:,:,:), allocatable :: dist_single
+    
+  !   total = 0.
+
+  !   allocate (dist_single(naky,nakx,-nzgrid:nzgrid,ntubes))
+  !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+  !      dist_single = dist(:,:,:,:,ivmu)
+  !      if (present(norm)) then
+  !         if (norm) then
+  !            iv = iv_idx(vmu_lo,ivmu)
+  !            imu = imu_idx(vmu_lo,ivmu)
+  !            is = is_idx(vmu_lo,ivmu)
+  !            do it = 1, ntubes
+  !               do ikx = 1, nakx
+  !                  do iky = 1, naky
+  !                     dist_single(iky,ikx,:,it) = dist_single(iky,ikx,:,it) * maxwell_vpa(iv,is) * maxwell_mu(1,:,imu,is)
+  !                  end do
+  !               end do
+  !            end do
+  !         else
+  !         end if
+  !      end if
+  !      call checksum (dist_single, subtotal)
+  !      total = total + subtotal
+  !   end do
+  !   deallocate (dist_single)
+    
+  !   call sum_allreduce (total)
+
+  ! end subroutine checksum_dist
 
 end module mirror_terms
