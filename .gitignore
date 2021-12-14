@@ -1,6 +1,7 @@
 *.o
 *.a
 *.mod
+*.smod
 *.swp
 stella
 .DS_Store
