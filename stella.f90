@@ -11,11 +11,11 @@ program stella
    use stella_save, only: stella_save_for_restart
    use dist_fn_arrays, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
+   use git_version, only: get_git_version
 
    implicit none
 
    ! Add the version number and date of last change when uploading to github
-   character(len=4), parameter :: VERNUM = '0.3'
    character(len=10), parameter :: VERDATE = '2021.03.26'
 
    logical :: debug = .false.
@@ -29,7 +29,7 @@ program stella
    real, dimension(2) :: time_total = 0.
 
    ! Initiate stella
-   call init_stella(istep0, VERNUM, VERDATE)
+   call init_stella(istep0, get_git_version(), VERDATE)
 
    ! Add a header to the output file
    if (proc0) then
@@ -132,7 +132,7 @@ contains
       !> Starting timestep: zero unless the simulation has been restarted
       integer, intent(out) :: istep0
       !> stella version number
-      character(len=4), intent(in) :: VERNUM
+      character(len=*), intent(in) :: VERNUM
       !> Release date
       character(len=10), intent(in) :: VERDATE
       logical :: exit, list, restarted, needs_transforms
@@ -343,7 +343,7 @@ contains
       implicit none
 
       !> stella version number
-      character(len=4), intent(in) :: VERNUM
+      character(len=*), intent(in) :: VERNUM
       !> Release date
       character(len=10), intent(in) :: VERDATE
       character(len=23) :: str
