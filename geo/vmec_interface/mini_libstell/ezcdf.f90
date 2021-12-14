@@ -1,31 +1,28 @@
 !EZcdf, Easy Interface to netCDF Routine Calls
 !=============================================
- 
+
 !The module is available through the NTCC Webpage,
 !w3.pppl.gov/NTTC  under "Modules Library", as compressed
 !tarfile, ezcdf.tar.gz, and as zip archive, ezcdf.zip.
 !Alternatively it can be obtained from ftp.pppl.gov
 !in pub/NTCC/.
- 
- 
+
 ! AUTHORS
- 
+
 !Conceived by 7/98 by Sunitinder Sekhon
 !Modified by J. Menard 12/98 to run on Cray C90
 !Completely re-written by C.Ludescher 2/99
 !Added complex support (64 and 128 bit) by A. Pletzer 5/01
- 
- 
+
 ! CONTACT
- 
+
 ! C. Ludescher cludescher@pppl.gov
 ! A. Pletzer   pletzer@pppl.gov
- 
- 
+
 ! REVISION HISTORY
- 
+
 !      date         Description
- 
+
 ! February  1999  -- Created
 ! April     2000  -- A.Pletzer: Added R4
 ! May 01,   2000  -- C. Ludescher: Simplified by adding module ezcdf
@@ -51,16 +48,15 @@
 !                    by removing the rename lists ans using INTERFACE
 !                    statements inside ezcdf_opncls instead.
 !
- 
+
 MODULE ezcdf
 
-  ! No aliases. this caused the Intel compiler to fail, so I had to duplicate
-  ! 2 interfaces: cdfPutVar <=> cdf_write and cdfGetVar <=> cdf_read (pletzer)
+   ! No aliases. this caused the Intel compiler to fail, so I had to duplicate
+   ! 2 interfaces: cdfPutVar <=> cdf_write and cdfGetVar <=> cdf_read (pletzer)
 
-  USE ezcdf_GenPut
-  USE ezcdf_GenGet
-  USE ezcdf_attrib
-  USE ezcdf_opncls
- 
+   USE ezcdf_GenPut
+   USE ezcdf_GenGet
+   USE ezcdf_attrib
+   USE ezcdf_opncls
 
 END MODULE ezcdf
