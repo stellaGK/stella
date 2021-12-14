@@ -275,70 +275,66 @@
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="c">!EZcdf, Easy Interface to netCDF Routine Calls</span>
 <a name="ln-2"></a><span class="c">!=============================================</span>
-<a name="ln-3"></a> 
+<a name="ln-3"></a>
 <a name="ln-4"></a><span class="c">!The module is available through the NTCC Webpage,</span>
 <a name="ln-5"></a><span class="c">!w3.pppl.gov/NTTC  under &quot;Modules Library&quot;, as compressed</span>
 <a name="ln-6"></a><span class="c">!tarfile, ezcdf.tar.gz, and as zip archive, ezcdf.zip.</span>
 <a name="ln-7"></a><span class="c">!Alternatively it can be obtained from ftp.pppl.gov</span>
 <a name="ln-8"></a><span class="c">!in pub/NTCC/.</span>
-<a name="ln-9"></a> 
-<a name="ln-10"></a> 
-<a name="ln-11"></a><span class="c">! AUTHORS</span>
-<a name="ln-12"></a> 
-<a name="ln-13"></a><span class="c">!Conceived by 7/98 by Sunitinder Sekhon</span>
-<a name="ln-14"></a><span class="c">!Modified by J. Menard 12/98 to run on Cray C90</span>
-<a name="ln-15"></a><span class="c">!Completely re-written by C.Ludescher 2/99</span>
-<a name="ln-16"></a><span class="c">!Added complex support (64 and 128 bit) by A. Pletzer 5/01</span>
-<a name="ln-17"></a> 
-<a name="ln-18"></a> 
-<a name="ln-19"></a><span class="c">! CONTACT</span>
-<a name="ln-20"></a> 
-<a name="ln-21"></a><span class="c">! C. Ludescher cludescher@pppl.gov</span>
-<a name="ln-22"></a><span class="c">! A. Pletzer   pletzer@pppl.gov</span>
-<a name="ln-23"></a> 
-<a name="ln-24"></a> 
-<a name="ln-25"></a><span class="c">! REVISION HISTORY</span>
-<a name="ln-26"></a> 
-<a name="ln-27"></a><span class="c">!      date         Description</span>
-<a name="ln-28"></a> 
-<a name="ln-29"></a><span class="c">! February  1999  -- Created</span>
-<a name="ln-30"></a><span class="c">! April     2000  -- A.Pletzer: Added R4</span>
-<a name="ln-31"></a><span class="c">! May 01,   2000  -- C. Ludescher: Simplified by adding module ezcdf</span>
-<a name="ln-32"></a><span class="c">! May 17,   2001  -- A. Pletzer: Added C8 and C16</span>
-<a name="ln-33"></a><span class="c">! Interface for cdfopn to handle optional argument ier</span>
-<a name="ln-34"></a><span class="c">! 04/28/00 C.Ludescher</span>
-<a name="ln-35"></a><span class="c">! + ezcdf_close for symmetry (ap)</span>
-<a name="ln-36"></a><span class="c">! September 2002  -- S. Hirshman, added aliases to mimic F90 I/O routines</span>
-<a name="ln-37"></a><span class="c">!                    added cdf_inquire with OPTIONAL xtype argument</span>
-<a name="ln-38"></a><span class="c">!                    added &#39;LOG&#39; data type (nf_int) to handle logicals</span>
-<a name="ln-39"></a><span class="c">!                    (user may use &#39;INT&#39; interchangeably)</span>
-<a name="ln-40"></a><span class="c">!</span>
-<a name="ln-41"></a><span class="c">! April 2003      -- removed ONLY and some rename clauses from USE stmts</span>
-<a name="ln-42"></a><span class="c">!                    (D. McCune).  These caused problems, because an</span>
-<a name="ln-43"></a><span class="c">!                    application with &quot;use ezcdf&quot; would indirectly see</span>
-<a name="ln-44"></a><span class="c">!                    &quot;use ezcdf_inqvar&quot; with various ONLY clauses; it</span>
-<a name="ln-45"></a><span class="c">!                    was unclear which one would rule, but, at load time</span>
-<a name="ln-46"></a><span class="c">!                    it was clear that the ONLY clauses were making some</span>
-<a name="ln-47"></a><span class="c">!                    legitimate ezcdf entries invisible, at least when</span>
-<a name="ln-48"></a><span class="c">!                    built using Lahey-Fujitsu fortran.  Also, the</span>
-<a name="ln-49"></a><span class="c">!                    indirect presence of multiple &quot;USE ezcdf_opencls&quot;</span>
-<a name="ln-50"></a><span class="c">!                    with rename lists caused problems which were resolved</span>
-<a name="ln-51"></a><span class="c">!                    by removing the rename lists ans using INTERFACE</span>
-<a name="ln-52"></a><span class="c">!                    statements inside ezcdf_opncls instead.</span>
-<a name="ln-53"></a><span class="c">!</span>
-<a name="ln-54"></a> 
-<a name="ln-55"></a><span class="k">MODULE </span><span class="n">ezcdf</span>
+<a name="ln-9"></a>
+<a name="ln-10"></a><span class="c">! AUTHORS</span>
+<a name="ln-11"></a>
+<a name="ln-12"></a><span class="c">!Conceived by 7/98 by Sunitinder Sekhon</span>
+<a name="ln-13"></a><span class="c">!Modified by J. Menard 12/98 to run on Cray C90</span>
+<a name="ln-14"></a><span class="c">!Completely re-written by C.Ludescher 2/99</span>
+<a name="ln-15"></a><span class="c">!Added complex support (64 and 128 bit) by A. Pletzer 5/01</span>
+<a name="ln-16"></a>
+<a name="ln-17"></a><span class="c">! CONTACT</span>
+<a name="ln-18"></a>
+<a name="ln-19"></a><span class="c">! C. Ludescher cludescher@pppl.gov</span>
+<a name="ln-20"></a><span class="c">! A. Pletzer   pletzer@pppl.gov</span>
+<a name="ln-21"></a>
+<a name="ln-22"></a><span class="c">! REVISION HISTORY</span>
+<a name="ln-23"></a>
+<a name="ln-24"></a><span class="c">!      date         Description</span>
+<a name="ln-25"></a>
+<a name="ln-26"></a><span class="c">! February  1999  -- Created</span>
+<a name="ln-27"></a><span class="c">! April     2000  -- A.Pletzer: Added R4</span>
+<a name="ln-28"></a><span class="c">! May 01,   2000  -- C. Ludescher: Simplified by adding module ezcdf</span>
+<a name="ln-29"></a><span class="c">! May 17,   2001  -- A. Pletzer: Added C8 and C16</span>
+<a name="ln-30"></a><span class="c">! Interface for cdfopn to handle optional argument ier</span>
+<a name="ln-31"></a><span class="c">! 04/28/00 C.Ludescher</span>
+<a name="ln-32"></a><span class="c">! + ezcdf_close for symmetry (ap)</span>
+<a name="ln-33"></a><span class="c">! September 2002  -- S. Hirshman, added aliases to mimic F90 I/O routines</span>
+<a name="ln-34"></a><span class="c">!                    added cdf_inquire with OPTIONAL xtype argument</span>
+<a name="ln-35"></a><span class="c">!                    added &#39;LOG&#39; data type (nf_int) to handle logicals</span>
+<a name="ln-36"></a><span class="c">!                    (user may use &#39;INT&#39; interchangeably)</span>
+<a name="ln-37"></a><span class="c">!</span>
+<a name="ln-38"></a><span class="c">! April 2003      -- removed ONLY and some rename clauses from USE stmts</span>
+<a name="ln-39"></a><span class="c">!                    (D. McCune).  These caused problems, because an</span>
+<a name="ln-40"></a><span class="c">!                    application with &quot;use ezcdf&quot; would indirectly see</span>
+<a name="ln-41"></a><span class="c">!                    &quot;use ezcdf_inqvar&quot; with various ONLY clauses; it</span>
+<a name="ln-42"></a><span class="c">!                    was unclear which one would rule, but, at load time</span>
+<a name="ln-43"></a><span class="c">!                    it was clear that the ONLY clauses were making some</span>
+<a name="ln-44"></a><span class="c">!                    legitimate ezcdf entries invisible, at least when</span>
+<a name="ln-45"></a><span class="c">!                    built using Lahey-Fujitsu fortran.  Also, the</span>
+<a name="ln-46"></a><span class="c">!                    indirect presence of multiple &quot;USE ezcdf_opencls&quot;</span>
+<a name="ln-47"></a><span class="c">!                    with rename lists caused problems which were resolved</span>
+<a name="ln-48"></a><span class="c">!                    by removing the rename lists ans using INTERFACE</span>
+<a name="ln-49"></a><span class="c">!                    statements inside ezcdf_opncls instead.</span>
+<a name="ln-50"></a><span class="c">!</span>
+<a name="ln-51"></a>
+<a name="ln-52"></a><span class="k">MODULE </span><span class="n">ezcdf</span>
+<a name="ln-53"></a>
+<a name="ln-54"></a>   <span class="c">! No aliases. this caused the Intel compiler to fail, so I had to duplicate</span>
+<a name="ln-55"></a>   <span class="c">! 2 interfaces: cdfPutVar &lt;=&gt; cdf_write and cdfGetVar &lt;=&gt; cdf_read (pletzer)</span>
 <a name="ln-56"></a>
-<a name="ln-57"></a>  <span class="c">! No aliases. this caused the Intel compiler to fail, so I had to duplicate</span>
-<a name="ln-58"></a>  <span class="c">! 2 interfaces: cdfPutVar &lt;=&gt; cdf_write and cdfGetVar &lt;=&gt; cdf_read (pletzer)</span>
-<a name="ln-59"></a>
-<a name="ln-60"></a>  <span class="k">USE </span><span class="n">ezcdf_GenPut</span>
-<a name="ln-61"></a>  <span class="k">USE </span><span class="n">ezcdf_GenGet</span>
-<a name="ln-62"></a>  <span class="k">USE </span><span class="n">ezcdf_attrib</span>
-<a name="ln-63"></a>  <span class="k">USE </span><span class="n">ezcdf_opncls</span>
-<a name="ln-64"></a> 
-<a name="ln-65"></a>
-<a name="ln-66"></a><span class="k">END MODULE </span><span class="n">ezcdf</span>
+<a name="ln-57"></a>   <span class="k">USE </span><span class="n">ezcdf_GenPut</span>
+<a name="ln-58"></a>   <span class="k">USE </span><span class="n">ezcdf_GenGet</span>
+<a name="ln-59"></a>   <span class="k">USE </span><span class="n">ezcdf_attrib</span>
+<a name="ln-60"></a>   <span class="k">USE </span><span class="n">ezcdf_opncls</span>
+<a name="ln-61"></a>
+<a name="ln-62"></a><span class="k">END MODULE </span><span class="n">ezcdf</span>
 </pre></div>
 
     </section>
@@ -352,13 +348,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

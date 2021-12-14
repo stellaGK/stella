@@ -275,90 +275,89 @@
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">MODULE </span><span class="n">ezcdf_opncls</span>
 <a name="ln-2"></a><span class="c">!DEC$ IF DEFINED (NETCDF)</span>
-<a name="ln-3"></a>  <span class="k">INTERFACE </span><span class="n">cdfOpn</span>
-<a name="ln-4"></a>     <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_open</span>
-<a name="ln-5"></a>  <span class="k">END INTERFACE</span>
+<a name="ln-3"></a>   <span class="k">INTERFACE </span><span class="n">cdfOpn</span>
+<a name="ln-4"></a>      <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_open</span>
+<a name="ln-5"></a>   <span class="k">END INTERFACE</span>
 <a name="ln-6"></a>
-<a name="ln-7"></a><span class="k">  INTERFACE </span><span class="n">cdf_open</span>
-<a name="ln-8"></a>     <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_open</span>
-<a name="ln-9"></a>  <span class="k">END INTERFACE</span>
+<a name="ln-7"></a><span class="k">   INTERFACE </span><span class="n">cdf_open</span>
+<a name="ln-8"></a>      <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_open</span>
+<a name="ln-9"></a>   <span class="k">END INTERFACE</span>
 <a name="ln-10"></a>
-<a name="ln-11"></a><span class="k">  INTERFACE </span><span class="n">cdfCls</span>
-<a name="ln-12"></a>     <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_close</span>
-<a name="ln-13"></a>  <span class="k">END INTERFACE</span>
+<a name="ln-11"></a><span class="k">   INTERFACE </span><span class="n">cdfCls</span>
+<a name="ln-12"></a>      <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_close</span>
+<a name="ln-13"></a>   <span class="k">END INTERFACE</span>
 <a name="ln-14"></a>
-<a name="ln-15"></a><span class="k">  INTERFACE </span><span class="n">cdf_close</span>
-<a name="ln-16"></a>     <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_close</span>
-<a name="ln-17"></a>  <span class="k">END INTERFACE</span>
+<a name="ln-15"></a><span class="k">   INTERFACE </span><span class="n">cdf_close</span>
+<a name="ln-16"></a>      <span class="k">MODULE PROCEDURE </span><span class="n">ezcdf_close</span>
+<a name="ln-17"></a>   <span class="k">END INTERFACE</span>
 <a name="ln-18"></a>
 <a name="ln-19"></a><span class="k">CONTAINS</span>
-<a name="ln-20"></a><span class="k"> </span>
-<a name="ln-21"></a><span class="k">  subroutine </span><span class="n">ezcdf_open</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">opt</span><span class="p">,</span><span class="n">ier</span><span class="p">)</span>
-<a name="ln-22"></a>    <span class="c">! Create/open cdf file</span>
-<a name="ln-23"></a>    <span class="c">! 03/09/99 C.Ludescher</span>
-<a name="ln-24"></a>    <span class="c">!</span>
-<a name="ln-25"></a>    <span class="c">!  opt values:</span>
-<a name="ln-26"></a>    <span class="c">!    &quot;R&quot; -- readonly, existing file</span>
-<a name="ln-27"></a>    <span class="c">!    &quot;W&quot; -- write new file</span>
-<a name="ln-28"></a>    <span class="c">!    &quot;M&quot; -- &quot;Modify&quot; -- read/write data in existing file</span>
-<a name="ln-29"></a>    <span class="c">!                       (but structure of file does not change)</span>
-<a name="ln-30"></a>    <span class="c">!    &quot;A&quot; -- &quot;Append&quot; -- add new structure (define new data items)</span>
-<a name="ln-31"></a>    <span class="c">!                       in existing file.  Existing items can also</span>
-<a name="ln-32"></a>    <span class="c">!                       be read/written, but only after *new* items</span>
-<a name="ln-33"></a>    <span class="c">!                       are first defined and then written.</span>
-<a name="ln-34"></a>    <span class="c">!</span>
-<a name="ln-35"></a>    <span class="c">!  for both &quot;W&quot; and &quot;A&quot; modes, the file is opened in &quot;define data mode&quot;.</span>
-<a name="ln-36"></a>    <span class="c">!</span>
-<a name="ln-37"></a>    <span class="k">include</span> <span class="s2">&quot;netcdf.inc&quot;</span>
-<a name="ln-38"></a>    <span class="kt">INTEGER</span><span class="p">,</span>       <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ncid</span>
-<a name="ln-39"></a>    <span class="kt">character</span><span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">filename</span>
-<a name="ln-40"></a>    <span class="kt">character</span><span class="o">*</span><span class="mi">1</span><span class="p">,</span>   <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">opt</span>
-<a name="ln-41"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ier</span>
-<a name="ln-42"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">status</span>
-<a name="ln-43"></a> 
-<a name="ln-44"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">opt</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="s1">&#39;w&#39;</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">opt</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="s1">&#39;W&#39;</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-45"></a>       <span class="c">! New file... start in &quot;define mode&quot;.</span>
-<a name="ln-46"></a>       <span class="n">status</span> <span class="o">=</span> <span class="n">nf_create</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="nb">IOR</span><span class="p">(</span><span class="n">NF_CLOBBER</span><span class="p">,</span><span class="n">NF_64BIT_OFFSET</span><span class="p">),</span><span class="n">ncid</span><span class="p">)</span>
-<a name="ln-47"></a>       <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;cdfcrt&#39;</span><span class="p">,</span><span class="s1">&#39;nf_create&#39;</span><span class="p">)</span>
-<a name="ln-48"></a>    <span class="k">else if</span> <span class="p">(</span><span class="n">opt</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="s1">&#39;m&#39;</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">opt</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="s1">&#39;M&#39;</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-49"></a>       <span class="c">! Open existing file for read/write modifications...</span>
-<a name="ln-50"></a>       <span class="n">status</span> <span class="o">=</span> <span class="n">nf_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nf_write</span><span class="p">,</span> <span class="n">ncid</span><span class="p">)</span>
-<a name="ln-51"></a>       <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span><span class="s1">&#39;nf_open&#39;</span><span class="p">)</span>
-<a name="ln-52"></a>    <span class="k">else if</span> <span class="p">(</span><span class="n">opt</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="s1">&#39;a&#39;</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">opt</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="s1">&#39;A&#39;</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-53"></a>       <span class="c">! Open existing file for read/write modifications...</span>
-<a name="ln-54"></a>       <span class="n">status</span> <span class="o">=</span> <span class="n">nf_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nf_write</span><span class="p">,</span> <span class="n">ncid</span><span class="p">)</span>
-<a name="ln-55"></a>       <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span><span class="s1">&#39;nf_open&#39;</span><span class="p">)</span>
-<a name="ln-56"></a>       <span class="k">if</span><span class="p">(</span> <span class="n">status</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="n">NF_NOERR</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-57"></a><span class="k">          </span><span class="n">status</span> <span class="o">=</span> <span class="n">nf_redef</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>  <span class="c">! start in &quot;define mode&quot;.</span>
-<a name="ln-58"></a>          <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span><span class="s1">&#39;nf_redef&#39;</span><span class="p">)</span>
-<a name="ln-59"></a>       <span class="n">endif</span>
-<a name="ln-60"></a>    <span class="k">else</span>
-<a name="ln-61"></a>       <span class="c">! Open for readonly</span>
-<a name="ln-62"></a>       <span class="n">status</span> <span class="o">=</span> <span class="n">nf_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nf_nowrite</span><span class="p">,</span> <span class="n">ncid</span><span class="p">)</span>
-<a name="ln-63"></a>       <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span><span class="s1">&#39;nf_open&#39;</span><span class="p">)</span>
-<a name="ln-64"></a>    <span class="k">end if</span>
-<a name="ln-65"></a><span class="k">    if</span> <span class="p">(</span><span class="nb">PRESENT</span> <span class="p">(</span><span class="n">ier</span><span class="p">))</span> <span class="k">then</span>
-<a name="ln-66"></a><span class="k">       if</span> <span class="p">(</span><span class="n">status</span> <span class="p">.</span><span class="n">ne</span><span class="p">.</span> <span class="n">NF_NOERR</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-67"></a><span class="k">          </span><span class="n">ier</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-68"></a>       <span class="k">else</span>
-<a name="ln-69"></a><span class="k">          </span><span class="n">ier</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-70"></a>       <span class="n">endif</span>
-<a name="ln-71"></a>    <span class="n">endif</span>
-<a name="ln-72"></a>    <span class="k">return</span>
-<a name="ln-73"></a><span class="k">  end subroutine </span><span class="n">ezcdf_open</span>
-<a name="ln-74"></a> 
-<a name="ln-75"></a>
-<a name="ln-76"></a>  <span class="k">subroutine </span><span class="n">ezcdf_close</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span> <span class="n">ier</span><span class="p">)</span>
-<a name="ln-77"></a>    <span class="k">include</span> <span class="s2">&quot;netcdf.inc&quot;</span>
-<a name="ln-78"></a>    <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">ncid</span>
-<a name="ln-79"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span>         <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ier</span>
-<a name="ln-80"></a>    <span class="kt">INTEGER </span><span class="n">status</span>
-<a name="ln-81"></a>    <span class="n">status</span> <span class="o">=</span> <span class="n">nf_close</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
-<a name="ln-82"></a>    <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="s1">&#39;cdfcls&#39;</span><span class="p">,</span><span class="s1">&#39;nf_close&#39;</span><span class="p">)</span>
-<a name="ln-83"></a>    <span class="k">if</span><span class="p">(</span><span class="nb">PRESENT</span> <span class="p">(</span><span class="n">ier</span><span class="p">))</span> <span class="n">ier</span> <span class="o">=</span> <span class="n">status</span>
-<a name="ln-84"></a>  <span class="k">end subroutine </span><span class="n">ezcdf_close</span>
-<a name="ln-85"></a><span class="c">!DEC$ ENDIF</span>
-<a name="ln-86"></a><span class="k">END MODULE </span><span class="n">ezcdf_opncls</span>
+<a name="ln-20"></a>
+<a name="ln-21"></a><span class="k">   subroutine </span><span class="n">ezcdf_open</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">ier</span><span class="p">)</span>
+<a name="ln-22"></a>      <span class="c">! Create/open cdf file</span>
+<a name="ln-23"></a>      <span class="c">! 03/09/99 C.Ludescher</span>
+<a name="ln-24"></a>      <span class="c">!</span>
+<a name="ln-25"></a>      <span class="c">!  opt values:</span>
+<a name="ln-26"></a>      <span class="c">!    &quot;R&quot; -- readonly, existing file</span>
+<a name="ln-27"></a>      <span class="c">!    &quot;W&quot; -- write new file</span>
+<a name="ln-28"></a>      <span class="c">!    &quot;M&quot; -- &quot;Modify&quot; -- read/write data in existing file</span>
+<a name="ln-29"></a>      <span class="c">!                       (but structure of file does not change)</span>
+<a name="ln-30"></a>      <span class="c">!    &quot;A&quot; -- &quot;Append&quot; -- add new structure (define new data items)</span>
+<a name="ln-31"></a>      <span class="c">!                       in existing file.  Existing items can also</span>
+<a name="ln-32"></a>      <span class="c">!                       be read/written, but only after *new* items</span>
+<a name="ln-33"></a>      <span class="c">!                       are first defined and then written.</span>
+<a name="ln-34"></a>      <span class="c">!</span>
+<a name="ln-35"></a>      <span class="c">!  for both &quot;W&quot; and &quot;A&quot; modes, the file is opened in &quot;define data mode&quot;.</span>
+<a name="ln-36"></a>      <span class="c">!</span>
+<a name="ln-37"></a>      <span class="k">include</span> <span class="s2">&quot;netcdf.inc&quot;</span>
+<a name="ln-38"></a>      <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ncid</span>
+<a name="ln-39"></a>      <span class="kt">character</span><span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">filename</span>
+<a name="ln-40"></a>      <span class="kt">character</span><span class="o">*</span><span class="mi">1</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">opt</span>
+<a name="ln-41"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ier</span>
+<a name="ln-42"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">status</span>
+<a name="ln-43"></a>
+<a name="ln-44"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">opt</span> <span class="o">==</span> <span class="s1">&#39;w&#39;</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">opt</span> <span class="o">==</span> <span class="s1">&#39;W&#39;</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-45"></a>         <span class="c">! New file... start in &quot;define mode&quot;.</span>
+<a name="ln-46"></a>         <span class="n">status</span> <span class="o">=</span> <span class="n">nf_create</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">IOR</span><span class="p">(</span><span class="n">NF_CLOBBER</span><span class="p">,</span> <span class="n">NF_64BIT_OFFSET</span><span class="p">),</span> <span class="n">ncid</span><span class="p">)</span>
+<a name="ln-47"></a>         <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;cdfcrt&#39;</span><span class="p">,</span> <span class="s1">&#39;nf_create&#39;</span><span class="p">)</span>
+<a name="ln-48"></a>      <span class="k">else if</span> <span class="p">(</span><span class="n">opt</span> <span class="o">==</span> <span class="s1">&#39;m&#39;</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">opt</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-49"></a>         <span class="c">! Open existing file for read/write modifications...</span>
+<a name="ln-50"></a>         <span class="n">status</span> <span class="o">=</span> <span class="n">nf_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nf_write</span><span class="p">,</span> <span class="n">ncid</span><span class="p">)</span>
+<a name="ln-51"></a>         <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span> <span class="s1">&#39;nf_open&#39;</span><span class="p">)</span>
+<a name="ln-52"></a>      <span class="k">else if</span> <span class="p">(</span><span class="n">opt</span> <span class="o">==</span> <span class="s1">&#39;a&#39;</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">opt</span> <span class="o">==</span> <span class="s1">&#39;A&#39;</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-53"></a>         <span class="c">! Open existing file for read/write modifications...</span>
+<a name="ln-54"></a>         <span class="n">status</span> <span class="o">=</span> <span class="n">nf_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nf_write</span><span class="p">,</span> <span class="n">ncid</span><span class="p">)</span>
+<a name="ln-55"></a>         <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span> <span class="s1">&#39;nf_open&#39;</span><span class="p">)</span>
+<a name="ln-56"></a>         <span class="k">if</span> <span class="p">(</span><span class="n">status</span> <span class="o">==</span> <span class="n">NF_NOERR</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-57"></a><span class="k">            </span><span class="n">status</span> <span class="o">=</span> <span class="n">nf_redef</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>  <span class="c">! start in &quot;define mode&quot;.</span>
+<a name="ln-58"></a>            <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span> <span class="s1">&#39;nf_redef&#39;</span><span class="p">)</span>
+<a name="ln-59"></a>         <span class="k">end if</span>
+<a name="ln-60"></a><span class="k">      else</span>
+<a name="ln-61"></a>         <span class="c">! Open for readonly</span>
+<a name="ln-62"></a>         <span class="n">status</span> <span class="o">=</span> <span class="n">nf_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nf_nowrite</span><span class="p">,</span> <span class="n">ncid</span><span class="p">)</span>
+<a name="ln-63"></a>         <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;cdfopn&#39;</span><span class="p">,</span> <span class="s1">&#39;nf_open&#39;</span><span class="p">)</span>
+<a name="ln-64"></a>      <span class="k">end if</span>
+<a name="ln-65"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">PRESENT</span><span class="p">(</span><span class="n">ier</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-66"></a><span class="k">         if</span> <span class="p">(</span><span class="n">status</span> <span class="o">/=</span> <span class="n">NF_NOERR</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-67"></a><span class="k">            </span><span class="n">ier</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-68"></a>         <span class="k">else</span>
+<a name="ln-69"></a><span class="k">            </span><span class="n">ier</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-70"></a>         <span class="k">end if</span>
+<a name="ln-71"></a><span class="k">      end if</span>
+<a name="ln-72"></a><span class="k">      return</span>
+<a name="ln-73"></a><span class="k">   end subroutine </span><span class="n">ezcdf_open</span>
+<a name="ln-74"></a>
+<a name="ln-75"></a>   <span class="k">subroutine </span><span class="n">ezcdf_close</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span> <span class="n">ier</span><span class="p">)</span>
+<a name="ln-76"></a>      <span class="k">include</span> <span class="s2">&quot;netcdf.inc&quot;</span>
+<a name="ln-77"></a>      <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">ncid</span>
+<a name="ln-78"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ier</span>
+<a name="ln-79"></a>      <span class="kt">INTEGER </span><span class="n">status</span>
+<a name="ln-80"></a>      <span class="n">status</span> <span class="o">=</span> <span class="n">nf_close</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<a name="ln-81"></a>      <span class="k">call </span><span class="n">handle_err</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;cdfcls&#39;</span><span class="p">,</span> <span class="s1">&#39;nf_close&#39;</span><span class="p">)</span>
+<a name="ln-82"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">PRESENT</span><span class="p">(</span><span class="n">ier</span><span class="p">))</span> <span class="n">ier</span> <span class="o">=</span> <span class="n">status</span>
+<a name="ln-83"></a>   <span class="k">end subroutine </span><span class="n">ezcdf_close</span>
+<a name="ln-84"></a><span class="c">!DEC$ ENDIF</span>
+<a name="ln-85"></a><span class="k">END MODULE </span><span class="n">ezcdf_opncls</span>
 </pre></div>
 
     </section>
@@ -372,13 +371,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

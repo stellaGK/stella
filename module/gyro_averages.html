@@ -430,7 +430,7 @@
   <td><span class="anchor" id="variable-aj0x"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>aj0x</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -444,7 +444,7 @@
   <td><span class="anchor" id="variable-aj1x"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>aj1x</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -458,7 +458,7 @@
   <td><span class="anchor" id="variable-aj0v"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>aj0v</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -472,7 +472,7 @@
   <td><span class="anchor" id="variable-aj1v"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>aj1v</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -486,7 +486,7 @@
   <td><span class="anchor" id="variable-aj0a"></span>type(<a href='../type/coupled_alpha_type.html'>coupled_alpha_type</a>),</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>aj0a</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -500,7 +500,7 @@
   <td><span class="anchor" id="variable-ia_max_gam0a"></span>integer,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>ia_max_gam0a</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -514,7 +514,7 @@
   <td><span class="anchor" id="variable-gam0a"></span>complex,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>gam0a</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -528,7 +528,7 @@
   <td><span class="anchor" id="variable-lu_gam0a"></span>complex,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>lu_gam0a</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -542,7 +542,7 @@
   <td><span class="anchor" id="variable-lu_gam0a_idx"></span>integer,</td>
   
   <td>private,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>lu_gam0a_idx</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -618,7 +618,7 @@ private subroutine <a href='../proc/gyro_average_kxky_local.html'>gyro_average_k
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -663,7 +663,7 @@ private subroutine <a href='../proc/gyro_average_kxky_local.html'>gyro_average_k
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -711,7 +711,7 @@ private subroutine <a href='../proc/gyro_average_kxkyz_local.html'>gyro_average_
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -741,7 +741,7 @@ private subroutine <a href='../proc/gyro_average_kxkyz_local.html'>gyro_average_
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -789,7 +789,7 @@ private subroutine <a href='../proc/gyro_average_vmu_local.html'>gyro_average_vm
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>distfn</strong></td><td></td>
   
 </tr>
@@ -819,7 +819,7 @@ private subroutine <a href='../proc/gyro_average_vmu_local.html'>gyro_average_vm
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_distfn</strong></td><td></td>
   
 </tr>
@@ -867,7 +867,7 @@ private subroutine <a href='../proc/gyro_average_vmus_nonlocal.html'>gyro_averag
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -927,7 +927,7 @@ private subroutine <a href='../proc/gyro_average_vmus_nonlocal.html'>gyro_averag
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -990,7 +990,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxky_local.html'>gyro_averag
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1035,7 +1035,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxky_local.html'>gyro_averag
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1083,7 +1083,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxkyz_local.html'>gyro_avera
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1113,7 +1113,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxkyz_local.html'>gyro_avera
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1161,7 +1161,7 @@ private subroutine <a href='../proc/gyro_average_j1_vmu_local.html'>gyro_average
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>distfn</strong></td><td></td>
   
 </tr>
@@ -1191,7 +1191,7 @@ private subroutine <a href='../proc/gyro_average_j1_vmu_local.html'>gyro_average
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_distfn</strong></td><td></td>
   
 </tr>
@@ -1281,7 +1281,7 @@ private subroutine <a href='../proc/find_max_required_kalpha_index.html'>find_ma
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>ft</strong></td><td></td>
   
 </tr>
@@ -1414,7 +1414,7 @@ private subroutine <a href='../proc/gyro_average_kxky_local.html'>gyro_average_k
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1459,7 +1459,7 @@ private subroutine <a href='../proc/gyro_average_kxky_local.html'>gyro_average_k
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1510,7 +1510,7 @@ private subroutine <a href='../proc/gyro_average_kxkyz_local.html'>gyro_average_
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1540,7 +1540,7 @@ private subroutine <a href='../proc/gyro_average_kxkyz_local.html'>gyro_average_
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1591,7 +1591,7 @@ private subroutine <a href='../proc/gyro_average_vmu_local.html'>gyro_average_vm
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>distfn</strong></td><td></td>
   
 </tr>
@@ -1621,7 +1621,7 @@ private subroutine <a href='../proc/gyro_average_vmu_local.html'>gyro_average_vm
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_distfn</strong></td><td></td>
   
 </tr>
@@ -1672,7 +1672,7 @@ private subroutine <a href='../proc/gyro_average_vmus_nonlocal.html'>gyro_averag
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1732,7 +1732,7 @@ private subroutine <a href='../proc/gyro_average_vmus_nonlocal.html'>gyro_averag
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1783,7 +1783,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxky_local.html'>gyro_averag
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1828,7 +1828,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxky_local.html'>gyro_averag
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1879,7 +1879,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxkyz_local.html'>gyro_avera
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>field</strong></td><td></td>
   
 </tr>
@@ -1909,7 +1909,7 @@ private subroutine <a href='../proc/gyro_average_j1_kxkyz_local.html'>gyro_avera
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>gyro_field</strong></td><td></td>
   
 </tr>
@@ -1960,7 +1960,7 @@ private subroutine <a href='../proc/gyro_average_j1_vmu_local.html'>gyro_average
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>distfn</strong></td><td></td>
   
 </tr>
@@ -1990,7 +1990,7 @@ private subroutine <a href='../proc/gyro_average_j1_vmu_local.html'>gyro_average
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gyro_distfn</strong></td><td></td>
   
 </tr>
@@ -2021,13 +2021,13 @@ private subroutine <a href='../proc/gyro_average_j1_vmu_local.html'>gyro_average
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

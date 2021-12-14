@@ -232,7 +232,7 @@
       
       <a class="list-group-item" href="../module/neoclassical_terms.html#proc-init_neoclassical_terms">init_neoclassical_terms</a>
       
-      <a class="list-group-item" href="../module/neoclassical_terms.html#proc-read_parameters~6">read_parameters</a>
+      <a class="list-group-item" href="../module/neoclassical_terms.html#proc-read_parameters~5">read_parameters</a>
       
       <a class="list-group-item" href="../module/neoclassical_terms.html#proc-distribute_vmus_over_procs">distribute_vmus_over_procs</a>
       
@@ -341,7 +341,7 @@
       
       <a class="list-group-item" href="../module/neoclassical_terms.html#proc-init_neoclassical_terms">init_neoclassical_terms</a>
       
-      <a class="list-group-item" href="../module/neoclassical_terms.html#proc-read_parameters~6">read_parameters</a>
+      <a class="list-group-item" href="../module/neoclassical_terms.html#proc-read_parameters~5">read_parameters</a>
       
       <a class="list-group-item" href="../module/neoclassical_terms.html#proc-distribute_vmus_over_procs">distribute_vmus_over_procs</a>
       
@@ -469,7 +469,7 @@
   <td><span class="anchor" id="variable-dfneo_dzed"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>dfneo_dzed</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -483,7 +483,7 @@
   <td><span class="anchor" id="variable-dfneo_dvpa"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>dfneo_dvpa</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -497,7 +497,7 @@
   <td><span class="anchor" id="variable-dfneo_drho"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>dfneo_drho</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -511,7 +511,7 @@
   <td><span class="anchor" id="variable-dfneo_dalpha~2"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>dfneo_dalpha</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -525,7 +525,7 @@
   <td><span class="anchor" id="variable-dphineo_dzed"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>dphineo_dzed</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -539,7 +539,7 @@
   <td><span class="anchor" id="variable-dphineo_drho"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>dphineo_drho</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -553,7 +553,7 @@
   <td><span class="anchor" id="variable-dphineo_dalpha~2"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>dphineo_dalpha</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -631,8 +631,8 @@ public subroutine <a href='../proc/init_neoclassical_terms.html'>init_neoclassic
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~6"></span><h3>
-private subroutine <a href='../proc/read_parameters~6.html'>read_parameters</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~5"></span><h3>
+private subroutine <a href='../proc/read_parameters~5.html'>read_parameters</a>()
     
     
    
@@ -686,7 +686,7 @@ private subroutine <a href='../proc/distribute_vmus_over_procs.html'>distribute_
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :)</td><td>::</td>
   <td><strong>local</strong></td><td></td>
   
 </tr>
@@ -701,7 +701,7 @@ private subroutine <a href='../proc/distribute_vmus_over_procs.html'>distribute_
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>distributed</strong></td><td></td>
   
 </tr>
@@ -752,7 +752,7 @@ private subroutine <a href='../proc/get_dfneo_dvpa.html'>get_dfneo_dvpa</a>(fneo
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:,:,:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :, :, :)</td><td>::</td>
   <td><strong>fneo</strong></td><td></td>
   
 </tr>
@@ -767,7 +767,7 @@ private subroutine <a href='../proc/get_dfneo_dvpa.html'>get_dfneo_dvpa</a>(fneo
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>dfneo</strong></td><td></td>
   
 </tr>
@@ -818,7 +818,7 @@ private subroutine <a href='../proc/get_dfneo_dzed.html'>get_dfneo_dzed</a>(fneo
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:,:,:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :, :, :)</td><td>::</td>
   <td><strong>fneo</strong></td><td></td>
   
 </tr>
@@ -833,7 +833,7 @@ private subroutine <a href='../proc/get_dfneo_dzed.html'>get_dfneo_dzed</a>(fneo
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>dfneo</strong></td><td></td>
   
 </tr>
@@ -884,7 +884,7 @@ private subroutine <a href='../proc/get_dfneo_drho.html'>get_dfneo_drho</a>(fneo
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:,:,:,-nradii/2:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :, :, :, -nradii/2:)</td><td>::</td>
   <td><strong>fneo</strong></td><td></td>
   
 </tr>
@@ -899,7 +899,7 @@ private subroutine <a href='../proc/get_dfneo_drho.html'>get_dfneo_drho</a>(fneo
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>dfneo</strong></td><td></td>
   
 </tr>
@@ -950,7 +950,7 @@ private subroutine <a href='../proc/get_dphineo_dzed.html'>get_dphineo_dzed</a>(
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>phineo</strong></td><td></td>
   
 </tr>
@@ -965,7 +965,7 @@ private subroutine <a href='../proc/get_dphineo_dzed.html'>get_dphineo_dzed</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>dphineo</strong></td><td></td>
   
 </tr>
@@ -1016,7 +1016,7 @@ private subroutine <a href='../proc/get_dphineo_drho.html'>get_dphineo_drho</a>(
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,-nradii/2:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, -nradii/2:)</td><td>::</td>
   <td><strong>phineo</strong></td><td></td>
   
 </tr>
@@ -1031,7 +1031,7 @@ private subroutine <a href='../proc/get_dphineo_drho.html'>get_dphineo_drho</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>dphineo</strong></td><td></td>
   
 </tr>
@@ -1082,7 +1082,7 @@ private subroutine <a href='../proc/write_neoclassical.html'>write_neoclassical<
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:,:,:,-nradii/2:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :, :, :, -nradii/2:)</td><td>::</td>
   <td><strong>fnc</strong></td><td></td>
   
 </tr>
@@ -1097,7 +1097,7 @@ private subroutine <a href='../proc/write_neoclassical.html'>write_neoclassical<
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,-nradii/2:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, -nradii/2:)</td><td>::</td>
   <td><strong>phinc</strong></td><td></td>
   
 </tr>
@@ -1150,13 +1150,13 @@ public subroutine <a href='../proc/finish_neoclassical_terms.html'>finish_neocla
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

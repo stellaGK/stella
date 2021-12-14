@@ -385,7 +385,7 @@
   <td><span class="anchor" id="variable-neigen"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>neigen</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -399,7 +399,7 @@
   <td><span class="anchor" id="variable-iz_low"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>iz_low</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -413,7 +413,7 @@
   <td><span class="anchor" id="variable-iz_mid"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>iz_mid</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -427,7 +427,7 @@
   <td><span class="anchor" id="variable-iz_up"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>iz_up</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -441,7 +441,7 @@
   <td><span class="anchor" id="variable-nsegments"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>nsegments</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -455,7 +455,7 @@
   <td><span class="anchor" id="variable-ikxmod"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>ikxmod</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -469,7 +469,7 @@
   <td><span class="anchor" id="variable-it_left"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>it_left</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -483,7 +483,7 @@
   <td><span class="anchor" id="variable-it_right"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>it_right</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -497,7 +497,7 @@
   <td><span class="anchor" id="variable-phase_shift"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>phase_shift</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -511,7 +511,7 @@
   <td><span class="anchor" id="variable-periodic~6"></span>logical,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>periodic</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -668,7 +668,7 @@ public subroutine <a href='../proc/fill_zed_ghost_zones.html'>fill_zed_ghost_zon
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -683,7 +683,7 @@ public subroutine <a href='../proc/fill_zed_ghost_zones.html'>fill_zed_ghost_zon
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>gleft</strong></td><td></td>
   
 </tr>
@@ -698,7 +698,7 @@ public subroutine <a href='../proc/fill_zed_ghost_zones.html'>fill_zed_ghost_zon
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>gright</strong></td><td></td>
   
 </tr>
@@ -794,7 +794,7 @@ public subroutine <a href='../proc/map_to_extended_zgrid.html'>map_to_extended_z
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -809,7 +809,7 @@ public subroutine <a href='../proc/map_to_extended_zgrid.html'>map_to_extended_z
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>gext</strong></td><td></td>
   
 </tr>
@@ -920,7 +920,7 @@ public subroutine <a href='../proc/map_from_extended_zgrid.html'>map_from_extend
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>gext</strong></td><td></td>
   
 </tr>
@@ -935,7 +935,7 @@ public subroutine <a href='../proc/map_from_extended_zgrid.html'>map_from_extend
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -988,13 +988,13 @@ public subroutine <a href='../proc/finish_extended_zgrid.html'>finish_extended_z
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

@@ -199,7 +199,7 @@
       
       <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
       
-      <a class="list-group-item" href="../module/fields.html#variable-debug">debug</a>
+      <a class="list-group-item" href="../module/fields.html#variable-debug~2">debug</a>
       
       <a class="list-group-item" href="../module/fields.html#variable-zm">zm</a>
       
@@ -240,7 +240,7 @@
       
       <a class="list-group-item" href="../module/fields.html#proc-init_fields">init_fields</a>
       
-      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
+      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
       
@@ -343,7 +343,7 @@
       
       <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
       
-      <a class="list-group-item" href="../module/fields.html#variable-debug">debug</a>
+      <a class="list-group-item" href="../module/fields.html#variable-debug~2">debug</a>
       
       <a class="list-group-item" href="../module/fields.html#variable-zm">zm</a>
       
@@ -384,7 +384,7 @@
       
       <a class="list-group-item" href="../module/fields.html#proc-init_fields">init_fields</a>
       
-      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
+      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
       
@@ -450,7 +450,7 @@
   <td><span class="anchor" id="variable-apar_denom"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>apar_denom</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -520,7 +520,7 @@
   <td><span class="anchor" id="variable-save1"></span>complex,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>save1</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -534,7 +534,7 @@
   <td><span class="anchor" id="variable-save2"></span>complex,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>save2</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -573,7 +573,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-debug"></span>logical,</td>
+  <td><span class="anchor" id="variable-debug~2"></span>logical,</td>
   
   <td>private</td>
   <td></td><td>::</td>
@@ -604,7 +604,7 @@
   <td><span class="anchor" id="variable-time_field_solve"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (2,5)</td><td>::</td>
+  <td>dimension(2, 5)</td><td>::</td>
   <td><strong>time_field_solve</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -666,7 +666,7 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -681,7 +681,7 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -696,7 +696,7 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>dchidy</strong></td><td></td>
   
 </tr>
@@ -774,7 +774,7 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -789,7 +789,7 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -804,7 +804,7 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>dchidy</strong></td><td></td>
   
 </tr>
@@ -861,8 +861,8 @@ public subroutine <a href='../proc/init_fields.html'>init_fields</a>()
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~2"></span><h3>
-private subroutine <a href='../proc/allocate_arrays~2.html'>allocate_arrays</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~3"></span><h3>
+private subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()
     
     
    
@@ -916,7 +916,7 @@ public subroutine <a href='../proc/enforce_reality_field.html'>enforce_reality_f
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>fin</strong></td><td></td>
   
 </tr>
@@ -967,7 +967,7 @@ public subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, ph
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -982,7 +982,7 @@ public subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, ph
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -997,7 +997,7 @@ public subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, ph
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1063,7 +1063,7 @@ public subroutine <a href='../proc/get_fields.html'>get_fields</a>(g, phi, apar,
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1078,7 +1078,7 @@ public subroutine <a href='../proc/get_fields.html'>get_fields</a>(g, phi, apar,
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1093,7 +1093,7 @@ public subroutine <a href='../proc/get_fields.html'>get_fields</a>(g, phi, apar,
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1174,7 +1174,7 @@ private subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1189,7 +1189,7 @@ private subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1204,7 +1204,7 @@ private subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1285,7 +1285,7 @@ public subroutine <a href='../proc/get_fields_by_spec.html'>get_fields_by_spec</
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1300,7 +1300,7 @@ public subroutine <a href='../proc/get_fields_by_spec.html'>get_fields_by_spec</
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>fld</strong></td><td></td>
   
 </tr>
@@ -1381,7 +1381,7 @@ public subroutine <a href='../proc/get_fields_by_spec_idx.html'>get_fields_by_sp
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1396,7 +1396,7 @@ public subroutine <a href='../proc/get_fields_by_spec_idx.html'>get_fields_by_sp
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>fld</strong></td><td></td>
   
 </tr>
@@ -1447,7 +1447,7 @@ private subroutine <a href='../proc/get_phi.html'>get_phi</a>(phi, dist, skip_fs
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1528,7 +1528,7 @@ public subroutine <a href='../proc/get_radial_correction.html'>get_radial_correc
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1543,7 +1543,7 @@ public subroutine <a href='../proc/get_radial_correction.html'>get_radial_correc
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi_in</strong></td><td></td>
   
 </tr>
@@ -1609,7 +1609,7 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1624,7 +1624,7 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1639,7 +1639,7 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>dchidy</strong></td><td></td>
   
 </tr>
@@ -1720,7 +1720,7 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1735,7 +1735,7 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1750,7 +1750,7 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>dchidy</strong></td><td></td>
   
 </tr>
@@ -1831,7 +1831,7 @@ public subroutine <a href='../proc/get_dchidx.html'>get_dchidx</a>(iz, ivmu, phi
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1846,7 +1846,7 @@ public subroutine <a href='../proc/get_dchidx.html'>get_dchidx</a>(iz, ivmu, phi
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1861,7 +1861,7 @@ public subroutine <a href='../proc/get_dchidx.html'>get_dchidx</a>(iz, ivmu, phi
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>dchidx</strong></td><td></td>
   
 </tr>
@@ -1914,13 +1914,13 @@ public subroutine <a href='../proc/finish_fields.html'>finish_fields</a>()
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

@@ -421,7 +421,7 @@
   <td><span class="anchor" id="variable-time_mirror"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (2,2)</td><td>::</td>
+  <td>dimension(2, 2)</td><td>::</td>
   <td><strong>time_mirror</strong></td><td> =</td><td>0.</td><td></td>
   
 </tr>
@@ -435,7 +435,7 @@
   <td><span class="anchor" id="variable-mirror_sign"></span>integer,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>mirror_sign</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -449,7 +449,7 @@
   <td><span class="anchor" id="variable-mirror"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>mirror</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -463,7 +463,7 @@
   <td><span class="anchor" id="variable-mirror_rad_var"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_rad_var</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -477,7 +477,7 @@
   <td><span class="anchor" id="variable-mirror_tri_a"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_tri_a</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -491,7 +491,7 @@
   <td><span class="anchor" id="variable-mirror_tri_b"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_tri_b</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -505,7 +505,7 @@
   <td><span class="anchor" id="variable-mirror_tri_c"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_tri_c</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -519,7 +519,7 @@
   <td><span class="anchor" id="variable-mirror_int_fac"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_int_fac</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -533,7 +533,7 @@
   <td><span class="anchor" id="variable-mirror_interp_loc"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_interp_loc</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -547,7 +547,7 @@
   <td><span class="anchor" id="variable-mirror_interp_idx_shift"></span>integer,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>mirror_interp_idx_shift</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -674,7 +674,7 @@ public subroutine <a href='../proc/advance_mirror_explicit.html'>advance_mirror_
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -689,7 +689,7 @@ public subroutine <a href='../proc/advance_mirror_explicit.html'>advance_mirror_
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gout</strong></td><td></td>
   
 </tr>
@@ -740,7 +740,7 @@ public subroutine <a href='../proc/add_mirror_radial_variation.html'>add_mirror_
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -755,7 +755,7 @@ public subroutine <a href='../proc/add_mirror_radial_variation.html'>add_mirror_
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gout</strong></td><td></td>
   
 </tr>
@@ -806,7 +806,7 @@ private subroutine <a href='../proc/get_dgdvpa_annulus.html'>get_dgdvpa_annulus<
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -872,7 +872,7 @@ private subroutine <a href='../proc/get_dgdvpa_explicit.html'>get_dgdvpa_explici
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -923,7 +923,7 @@ private subroutine <a href='../proc/add_mirror_term.html'>add_mirror_term</a>(g,
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -938,7 +938,7 @@ private subroutine <a href='../proc/add_mirror_term.html'>add_mirror_term</a>(g,
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>src</strong></td><td></td>
   
 </tr>
@@ -989,7 +989,7 @@ private subroutine <a href='../proc/add_mirror_term_annulus.html'>add_mirror_ter
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1004,7 +1004,7 @@ private subroutine <a href='../proc/add_mirror_term_annulus.html'>add_mirror_ter
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>src</strong></td><td></td>
   
 </tr>
@@ -1070,7 +1070,7 @@ public subroutine <a href='../proc/advance_mirror_implicit.html'>advance_mirror_
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1121,7 +1121,7 @@ private subroutine <a href='../proc/vpa_interpolation.html'>vpa_interpolation</a
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>grid</strong></td><td></td>
   
 </tr>
@@ -1136,7 +1136,7 @@ private subroutine <a href='../proc/vpa_interpolation.html'>vpa_interpolation</a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>interp</strong></td><td></td>
   
 </tr>
@@ -1217,7 +1217,7 @@ private subroutine <a href='../proc/invert_mirror_operator.html'>invert_mirror_o
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1314,13 +1314,13 @@ private subroutine <a href='../proc/finish_invert_mirror_operator.html'>finish_i
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

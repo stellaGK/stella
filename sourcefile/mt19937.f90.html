@@ -322,89 +322,89 @@
 <a name="ln-47"></a><span class="c">!!$***********************************************************************</span>
 <a name="ln-48"></a>
 <a name="ln-49"></a><span class="k">module </span><span class="n">mt19937</span>
-<a name="ln-50"></a>  
-<a name="ln-51"></a>  <span class="k">implicit none</span>
+<a name="ln-50"></a>
+<a name="ln-51"></a>   <span class="k">implicit none</span>
 <a name="ln-52"></a>
-<a name="ln-53"></a><span class="k">  private</span>
-<a name="ln-54"></a><span class="k">  public</span> <span class="kd">::</span> <span class="n">sgrnd</span><span class="p">,</span> <span class="n">grnd</span>
+<a name="ln-53"></a><span class="k">   private</span>
+<a name="ln-54"></a><span class="k">   public</span> <span class="kd">::</span> <span class="n">sgrnd</span><span class="p">,</span> <span class="n">grnd</span>
 <a name="ln-55"></a>
-<a name="ln-56"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">default_seed</span><span class="o">=</span><span class="mi">4357</span>
+<a name="ln-56"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">default_seed</span> <span class="o">=</span> <span class="mi">4357</span>
 <a name="ln-57"></a>
-<a name="ln-58"></a>  <span class="c">! Period parameters</span>
-<a name="ln-59"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">624</span>
-<a name="ln-60"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">M</span> <span class="o">=</span> <span class="mi">397</span>
-<a name="ln-61"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">MATA</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1727483681</span> <span class="c">! constant vector a</span>
-<a name="ln-62"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">LMASK</span> <span class="o">=</span> <span class="mi">2147483647</span> <span class="c">! least significant r bits</span>
-<a name="ln-63"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="nb">UMASK</span> <span class="o">=</span> <span class="o">-</span><span class="n">LMASK</span><span class="o">-</span><span class="mi">1</span> <span class="c">! most significant w-r bits</span>
+<a name="ln-58"></a>   <span class="c">! Period parameters</span>
+<a name="ln-59"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">624</span>
+<a name="ln-60"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">M</span> <span class="o">=</span> <span class="mi">397</span>
+<a name="ln-61"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">MATA</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1727483681</span> <span class="c">! constant vector a</span>
+<a name="ln-62"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">LMASK</span> <span class="o">=</span> <span class="mi">2147483647</span> <span class="c">! least significant r bits</span>
+<a name="ln-63"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="nb">UMASK</span> <span class="o">=</span> <span class="o">-</span><span class="n">LMASK</span> <span class="o">-</span> <span class="mi">1</span> <span class="c">! most significant w-r bits</span>
 <a name="ln-64"></a>
-<a name="ln-65"></a>  <span class="c">! Tempering parameters</span>
-<a name="ln-66"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">TMASKB</span><span class="o">=</span> <span class="o">-</span><span class="mi">1658038656</span>
-<a name="ln-67"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">TMASKC</span><span class="o">=</span> <span class="o">-</span><span class="mi">272236544</span>
+<a name="ln-65"></a>   <span class="c">! Tempering parameters</span>
+<a name="ln-66"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">TMASKB</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1658038656</span>
+<a name="ln-67"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">TMASKC</span> <span class="o">=</span> <span class="o">-</span><span class="mi">272236544</span>
 <a name="ln-68"></a>
-<a name="ln-69"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">mt</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="c">! the array for the state vector</span>
-<a name="ln-70"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">mti</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span> <span class="c">! mti==N+1 means mt[N] is not initialized</span>
-<a name="ln-71"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">mag01</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">)</span><span class="o">=</span><span class="p">(</span><span class="o">/</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MATA</span> <span class="o">/</span><span class="p">)</span> <span class="c">! mag01(x) = x * MATA for x=0,1</span>
+<a name="ln-69"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">mt</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="c">! the array for the state vector</span>
+<a name="ln-70"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">mti</span> <span class="o">=</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! mti==N+1 means mt[N] is not initialized</span>
+<a name="ln-71"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">save</span> <span class="kd">::</span> <span class="n">mag01</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="o">/</span><span class="mi">0</span><span class="p">,</span> <span class="n">MATA</span><span class="o">/</span><span class="p">)</span> <span class="c">! mag01(x) = x * MATA for x=0,1</span>
 <a name="ln-72"></a>
 <a name="ln-73"></a><span class="k">contains</span>
 <a name="ln-74"></a>
-<a name="ln-75"></a><span class="k">  subroutine </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-<a name="ln-76"></a>    <span class="k">implicit none</span>
-<a name="ln-77"></a><span class="k">    </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">seed</span>
+<a name="ln-75"></a><span class="k">   subroutine </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<a name="ln-76"></a>      <span class="k">implicit none</span>
+<a name="ln-77"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">seed</span>
 <a name="ln-78"></a>
 <a name="ln-79"></a><span class="c">!!$      setting initial seeds to mt[N] using</span>
 <a name="ln-80"></a><span class="c">!!$      the generator Line 25 of Table 1 in</span>
 <a name="ln-81"></a><span class="c">!!$      [KNUTH 1981, The Art of Computer Programming</span>
 <a name="ln-82"></a><span class="c">!!$         Vol. 2 (2nd Ed.), pp102]</span>
 <a name="ln-83"></a>
-<a name="ln-84"></a>    <span class="n">mt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">=</span> <span class="nb">iand</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-85"></a>    <span class="k">do </span><span class="n">mti</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span>
-<a name="ln-86"></a>       <span class="n">mt</span><span class="p">(</span><span class="n">mti</span><span class="p">)</span> <span class="o">=</span> <span class="nb">iand</span><span class="p">(</span><span class="mi">69069</span> <span class="o">*</span> <span class="n">mt</span><span class="p">(</span><span class="n">mti</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-87"></a>    <span class="k">end do</span>
+<a name="ln-84"></a>      <span class="n">mt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="nb">iand</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-85"></a>      <span class="k">do </span><span class="n">mti</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-86"></a>         <span class="n">mt</span><span class="p">(</span><span class="n">mti</span><span class="p">)</span> <span class="o">=</span> <span class="nb">iand</span><span class="p">(</span><span class="mi">69069</span> <span class="o">*</span> <span class="n">mt</span><span class="p">(</span><span class="n">mti</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-87"></a>      <span class="k">end do</span>
 <a name="ln-88"></a>
-<a name="ln-89"></a><span class="k">    return</span>
-<a name="ln-90"></a><span class="k">  end subroutine </span><span class="n">sgrnd</span>
+<a name="ln-89"></a><span class="k">      return</span>
+<a name="ln-90"></a><span class="k">   end subroutine </span><span class="n">sgrnd</span>
 <a name="ln-91"></a>
-<a name="ln-92"></a>  <span class="k">function </span><span class="n">grnd</span> <span class="p">()</span>
-<a name="ln-93"></a>    <span class="k">implicit none</span>
-<a name="ln-94"></a><span class="k">    </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">grnd</span>
-<a name="ln-95"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pow</span><span class="o">=</span><span class="mi">429496729</span><span class="mf">6.0</span> <span class="c">! 2**32</span>
-<a name="ln-96"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">div</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="n">pow</span>       <span class="c">! devided by 2**32 [0,1)-real-interval</span>
-<a name="ln-97"></a>    <span class="c">! real, parameter :: div=1./(pow-1.)  ! devided by 2**32-1 [0,1]-real-interval</span>
-<a name="ln-98"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">y</span><span class="p">,</span> <span class="n">kk</span>
+<a name="ln-92"></a>   <span class="k">function </span><span class="n">grnd</span><span class="p">()</span>
+<a name="ln-93"></a>      <span class="k">implicit none</span>
+<a name="ln-94"></a><span class="k">      </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">grnd</span>
+<a name="ln-95"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pow</span> <span class="o">=</span> <span class="mi">429496729</span><span class="mf">6.0</span> <span class="c">! 2**32</span>
+<a name="ln-96"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">div</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">pow</span>       <span class="c">! devided by 2**32 [0,1)-real-interval</span>
+<a name="ln-97"></a>      <span class="c">! real, parameter :: div=1./(pow-1.)  ! devided by 2**32-1 [0,1]-real-interval</span>
+<a name="ln-98"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">y</span><span class="p">,</span> <span class="n">kk</span>
 <a name="ln-99"></a>
-<a name="ln-100"></a>    <span class="k">if</span><span class="p">(</span><span class="n">mti</span> <span class="o">&gt;=</span> <span class="n">N</span><span class="p">)</span> <span class="k">then</span> <span class="c">! generate N words at one time</span>
-<a name="ln-101"></a>       <span class="k">if</span><span class="p">(</span><span class="n">mti</span> <span class="o">==</span> <span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span> <span class="c">! if sgrnd() has not been called,</span>
-<a name="ln-102"></a>          <span class="k">call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">default_seed</span><span class="p">)</span> <span class="c">! a default initial seed is used</span>
-<a name="ln-103"></a>       <span class="n">endif</span>
+<a name="ln-100"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">mti</span> <span class="o">&gt;=</span> <span class="n">N</span><span class="p">)</span> <span class="k">then</span> <span class="c">! generate N words at one time</span>
+<a name="ln-101"></a>         <span class="k">if</span> <span class="p">(</span><span class="n">mti</span> <span class="o">==</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span> <span class="c">! if sgrnd() has not been called,</span>
+<a name="ln-102"></a>            <span class="k">call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">default_seed</span><span class="p">)</span> <span class="c">! a default initial seed is used</span>
+<a name="ln-103"></a>         <span class="k">end if</span>
 <a name="ln-104"></a>
-<a name="ln-105"></a>       <span class="k">do </span><span class="n">kk</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">N</span><span class="o">-</span><span class="n">M</span><span class="o">-</span><span class="mi">1</span>
-<a name="ln-106"></a>          <span class="n">y</span><span class="o">=</span><span class="nb">ior</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">),</span><span class="nb">UMASK</span><span class="p">),</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="n">LMASK</span><span class="p">))</span>
-<a name="ln-107"></a>          <span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="nb">ieor</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="o">+</span><span class="n">M</span><span class="p">),</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span><span class="n">mag01</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span>
-<a name="ln-108"></a>       <span class="k">end do</span>
+<a name="ln-105"></a><span class="k">         do </span><span class="n">kk</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">M</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-106"></a>            <span class="n">y</span> <span class="o">=</span> <span class="nb">ior</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">),</span> <span class="nb">UMASK</span><span class="p">),</span> <span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">LMASK</span><span class="p">))</span>
+<a name="ln-107"></a>            <span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="nb">ieor</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span> <span class="o">+</span> <span class="n">M</span><span class="p">),</span> <span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">mag01</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a name="ln-108"></a>         <span class="k">end do</span>
 <a name="ln-109"></a>
-<a name="ln-110"></a><span class="k">       do </span><span class="n">kk</span><span class="o">=</span><span class="n">N</span><span class="o">-</span><span class="n">M</span><span class="p">,</span><span class="n">N</span><span class="o">-</span><span class="mi">2</span>
-<a name="ln-111"></a>          <span class="n">y</span><span class="o">=</span><span class="nb">ior</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">),</span><span class="nb">UMASK</span><span class="p">),</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="n">LMASK</span><span class="p">))</span>
-<a name="ln-112"></a>          <span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="nb">ieor</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="o">+</span><span class="p">(</span><span class="n">M</span><span class="o">-</span><span class="n">N</span><span class="p">)),</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span><span class="n">mag01</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span>
-<a name="ln-113"></a>       <span class="k">end do</span>
+<a name="ln-110"></a><span class="k">         do </span><span class="n">kk</span> <span class="o">=</span> <span class="n">N</span> <span class="o">-</span> <span class="n">M</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">2</span>
+<a name="ln-111"></a>            <span class="n">y</span> <span class="o">=</span> <span class="nb">ior</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">),</span> <span class="nb">UMASK</span><span class="p">),</span> <span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">LMASK</span><span class="p">))</span>
+<a name="ln-112"></a>            <span class="n">mt</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="nb">ieor</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">kk</span> <span class="o">+</span> <span class="p">(</span><span class="n">M</span> <span class="o">-</span> <span class="n">N</span><span class="p">)),</span> <span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">mag01</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a name="ln-113"></a>         <span class="k">end do</span>
 <a name="ln-114"></a>
-<a name="ln-115"></a><span class="k">       </span><span class="n">y</span><span class="o">=</span><span class="nb">ior</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="nb">UMASK</span><span class="p">),</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="n">LMASK</span><span class="p">))</span>
-<a name="ln-116"></a>       <span class="n">mt</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="nb">ieor</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">M</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span><span class="n">mag01</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span>
-<a name="ln-117"></a>       <span class="n">mti</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-118"></a>    <span class="n">endif</span>
+<a name="ln-115"></a><span class="k">         </span><span class="n">y</span> <span class="o">=</span> <span class="nb">ior</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">UMASK</span><span class="p">),</span> <span class="nb">iand</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">LMASK</span><span class="p">))</span>
+<a name="ln-116"></a>         <span class="n">mt</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="nb">ieor</span><span class="p">(</span><span class="n">mt</span><span class="p">(</span><span class="n">M</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">mag01</span><span class="p">(</span><span class="nb">iand</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a name="ln-117"></a>         <span class="n">mti</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-118"></a>      <span class="k">end if</span>
 <a name="ln-119"></a>
-<a name="ln-120"></a>    <span class="n">y</span><span class="o">=</span><span class="n">mt</span><span class="p">(</span><span class="n">mti</span><span class="p">)</span>
-<a name="ln-121"></a>    <span class="n">mti</span><span class="o">=</span><span class="n">mti</span><span class="o">+</span><span class="mi">1</span>
-<a name="ln-122"></a>    <span class="n">y</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="mi">11</span><span class="p">))</span>
-<a name="ln-123"></a>    <span class="n">y</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="nb">iand</span><span class="p">(</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">7</span><span class="p">),</span><span class="n">TMASKB</span><span class="p">))</span>
-<a name="ln-124"></a>    <span class="n">y</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="nb">iand</span><span class="p">(</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">15</span><span class="p">),</span><span class="n">TMASKC</span><span class="p">))</span>
-<a name="ln-125"></a>    <span class="n">y</span><span class="o">=</span><span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="mi">18</span><span class="p">))</span>
+<a name="ln-120"></a><span class="k">      </span><span class="n">y</span> <span class="o">=</span> <span class="n">mt</span><span class="p">(</span><span class="n">mti</span><span class="p">)</span>
+<a name="ln-121"></a>      <span class="n">mti</span> <span class="o">=</span> <span class="n">mti</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-122"></a>      <span class="n">y</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mi">11</span><span class="p">))</span>
+<a name="ln-123"></a>      <span class="n">y</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">iand</span><span class="p">(</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">TMASKB</span><span class="p">))</span>
+<a name="ln-124"></a>      <span class="n">y</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">iand</span><span class="p">(</span><span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">15</span><span class="p">),</span> <span class="n">TMASKC</span><span class="p">))</span>
+<a name="ln-125"></a>      <span class="n">y</span> <span class="o">=</span> <span class="nb">ieor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">ishft</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mi">18</span><span class="p">))</span>
 <a name="ln-126"></a>
-<a name="ln-127"></a>    <span class="n">grnd</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> 
-<a name="ln-128"></a>    <span class="k">if</span><span class="p">(</span><span class="n">grnd</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">)</span> <span class="n">grnd</span><span class="o">=</span><span class="n">grnd</span> <span class="o">+</span> <span class="n">pow</span>
-<a name="ln-129"></a>    <span class="n">grnd</span> <span class="o">=</span> <span class="n">grnd</span> <span class="o">*</span> <span class="n">div</span>
+<a name="ln-127"></a>      <span class="n">grnd</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<a name="ln-128"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">grnd</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">)</span> <span class="n">grnd</span> <span class="o">=</span> <span class="n">grnd</span> <span class="o">+</span> <span class="n">pow</span>
+<a name="ln-129"></a>      <span class="n">grnd</span> <span class="o">=</span> <span class="n">grnd</span> <span class="o">*</span> <span class="n">div</span>
 <a name="ln-130"></a>
-<a name="ln-131"></a>    <span class="k">return</span>
-<a name="ln-132"></a><span class="k">  end function </span><span class="n">grnd</span>
+<a name="ln-131"></a>      <span class="k">return</span>
+<a name="ln-132"></a><span class="k">   end function </span><span class="n">grnd</span>
 <a name="ln-133"></a>
 <a name="ln-134"></a><span class="k">end module </span><span class="n">mt19937</span>
 <a name="ln-135"></a>
@@ -442,13 +442,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

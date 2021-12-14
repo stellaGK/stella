@@ -406,7 +406,7 @@
   <td><span class="anchor" id="variable-phi~29"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>phi</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -420,7 +420,7 @@
   <td><span class="anchor" id="variable-apar~14"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>apar</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -434,7 +434,7 @@
   <td><span class="anchor" id="variable-phi_old"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>phi_old</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -448,7 +448,7 @@
   <td><span class="anchor" id="variable-phi_shared"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), pointer</td><td>::</td>
+  <td>dimension(:, :, :, :), pointer</td><td>::</td>
   <td><strong>phi_shared</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -462,7 +462,7 @@
   <td><span class="anchor" id="variable-phi_corr_qn"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>phi_corr_QN</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -476,7 +476,7 @@
   <td><span class="anchor" id="variable-apar_corr_qn"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>apar_corr_QN</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -490,7 +490,7 @@
   <td><span class="anchor" id="variable-phi_proj"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>phi_proj</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -504,7 +504,7 @@
   <td><span class="anchor" id="variable-phi_proj_stage"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>phi_proj_stage</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -518,7 +518,7 @@
   <td><span class="anchor" id="variable-phi_corr_ga"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :, :), allocatable</td><td>::</td>
   <td><strong>phi_corr_GA</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -532,7 +532,7 @@
   <td><span class="anchor" id="variable-apar_corr_ga"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :, :, :), allocatable</td><td>::</td>
   <td><strong>apar_corr_GA</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -546,7 +546,7 @@
   <td><span class="anchor" id="variable-response_matrix"></span>type(<a href='../type/response_matrix_type.html'>response_matrix_type</a>),</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>response_matrix</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -560,7 +560,7 @@
   <td><span class="anchor" id="variable-shift_state"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>shift_state</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -574,7 +574,7 @@
   <td><span class="anchor" id="variable-gamtot"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>gamtot</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -588,7 +588,7 @@
   <td><span class="anchor" id="variable-dgamtotdr"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>dgamtotdr</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -602,7 +602,7 @@
   <td><span class="anchor" id="variable-gamtot3"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>gamtot3</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -616,7 +616,7 @@
   <td><span class="anchor" id="variable-dgamtot3dr"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>dgamtot3dr</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -630,7 +630,7 @@
   <td><span class="anchor" id="variable-theta~4"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>theta</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -644,7 +644,7 @@
   <td><span class="anchor" id="variable-c_mat"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>c_mat</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -658,7 +658,7 @@
   <td><span class="anchor" id="variable-phi_ext"></span>complex,</td>
   
   <td>public,</td>
-  <td>dimension (:), pointer</td><td>::</td>
+  <td>dimension(:), pointer</td><td>::</td>
   <td><strong>phi_ext</strong></td><td>=> </td><td>null()</td><td></td>
   
 </tr>
@@ -672,7 +672,7 @@
   <td><span class="anchor" id="variable-phi_solve"></span>type(<a href='../type/eigen_type.html'>eigen_type</a>),</td>
   
   <td>public,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>phi_solve</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -791,13 +791,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

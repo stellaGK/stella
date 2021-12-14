@@ -277,7 +277,7 @@
 <a name="ln-2"></a>
 <a name="ln-3"></a><span class="k">contains</span>
 <a name="ln-4"></a>
-<a name="ln-5"></a><span class="k">  SUBROUTINE </span><span class="n">FZERO</span> <span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">RE</span><span class="p">,</span> <span class="n">AE</span><span class="p">,</span> <span class="n">IFLAG</span><span class="p">)</span>
+<a name="ln-5"></a><span class="k">   SUBROUTINE </span><span class="n">FZERO</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">RE</span><span class="p">,</span> <span class="n">AE</span><span class="p">,</span> <span class="n">IFLAG</span><span class="p">)</span>
 <a name="ln-6"></a><span class="c">!***BEGIN PROLOGUE  FZERO</span>
 <a name="ln-7"></a><span class="c">!***PURPOSE  Search for a zero of a function F(X) in a given interval</span>
 <a name="ln-8"></a><span class="c">!            (B,C).  It is designed primarily for problems where F(B)</span>
@@ -371,142 +371,142 @@
 <a name="ln-96"></a><span class="c">!   920501  Reformatted the REFERENCES section.  (WRB)</span>
 <a name="ln-97"></a><span class="c">!***END PROLOGUE  FZERO</span>
 <a name="ln-98"></a><span class="c">!      USE stel_kinds</span>
-<a name="ln-99"></a>    <span class="k">IMPLICIT NONE</span>
+<a name="ln-99"></a>      <span class="k">IMPLICIT NONE</span>
 <a name="ln-100"></a><span class="c">!      REAL(RPREC), PARAMETER :: ZERO = 0, ONE = 1</span>
 <a name="ln-101"></a><span class="c">!      REAL(RPREC) :: A,ACBS,ACMB,AE,AW,B,C,CMB,ER,FA,FB,FC,FX,FZ,P,Q,R,</span>
 <a name="ln-102"></a><span class="c">!     +     RE,RW,T,TOL,Z,F</span>
-<a name="ln-103"></a>    <span class="kt">REAL</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">ZERO</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ONE</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-104"></a>    <span class="kt">REAL</span> <span class="kd">::</span> <span class="n">A</span><span class="p">,</span><span class="n">ACBS</span><span class="p">,</span><span class="n">ACMB</span><span class="p">,</span><span class="n">AE</span><span class="p">,</span><span class="n">AW</span><span class="p">,</span><span class="n">B</span><span class="p">,</span><span class="n">C</span><span class="p">,</span><span class="n">CMB</span><span class="p">,</span><span class="n">ER</span><span class="p">,</span><span class="n">FA</span><span class="p">,</span><span class="n">FB</span><span class="p">,</span><span class="n">FC</span><span class="p">,</span><span class="n">FX</span><span class="p">,</span><span class="n">FZ</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">Q</span><span class="p">,</span><span class="n">R</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-105"></a>         <span class="n">RE</span><span class="p">,</span><span class="n">RW</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">TOL</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">F</span>
-<a name="ln-106"></a>    <span class="kt">INTEGER</span> <span class="kd">::</span> <span class="n">IC</span><span class="p">,</span><span class="n">IFLAG</span><span class="p">,</span><span class="n">KOUNT</span>
-<a name="ln-107"></a>    <span class="k">EXTERNAL </span><span class="n">F</span>
+<a name="ln-103"></a>      <span class="kt">REAL</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">ZERO</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ONE</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-104"></a>      <span class="kt">REAL</span> <span class="kd">::</span> <span class="n">A</span><span class="p">,</span> <span class="n">ACBS</span><span class="p">,</span> <span class="n">ACMB</span><span class="p">,</span> <span class="n">AE</span><span class="p">,</span> <span class="n">AW</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">CMB</span><span class="p">,</span> <span class="n">ER</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">FB</span><span class="p">,</span> <span class="n">FC</span><span class="p">,</span> <span class="n">FX</span><span class="p">,</span> <span class="n">FZ</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-105"></a>              <span class="n">RE</span><span class="p">,</span> <span class="n">RW</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">TOL</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">F</span>
+<a name="ln-106"></a>      <span class="kt">INTEGER</span> <span class="kd">::</span> <span class="n">IC</span><span class="p">,</span> <span class="n">IFLAG</span><span class="p">,</span> <span class="n">KOUNT</span>
+<a name="ln-107"></a>      <span class="k">EXTERNAL </span><span class="n">F</span>
 <a name="ln-108"></a><span class="c">!***FIRST EXECUTABLE STATEMENT  FZERO</span>
 <a name="ln-109"></a><span class="c">!</span>
 <a name="ln-110"></a><span class="c">!   ER is two times the computer unit roundoff value which is defined</span>
 <a name="ln-111"></a><span class="c">!   here by the function EPSILON.</span>
 <a name="ln-112"></a><span class="c">!</span>
-<a name="ln-113"></a>    <span class="n">ER</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">EPSILON</span><span class="p">(</span><span class="n">ER</span><span class="p">)</span>
+<a name="ln-113"></a>      <span class="n">ER</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">EPSILON</span><span class="p">(</span><span class="n">ER</span><span class="p">)</span>
 <a name="ln-114"></a><span class="c">!</span>
 <a name="ln-115"></a><span class="c">!   Initialize.</span>
 <a name="ln-116"></a><span class="c">!</span>
-<a name="ln-117"></a>    <span class="n">Z</span> <span class="o">=</span> <span class="n">R</span>
-<a name="ln-118"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">R</span> <span class="p">.</span><span class="n">LE</span><span class="p">.</span> <span class="nb">MIN</span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="n">C</span><span class="p">)</span>  <span class="p">.</span><span class="nb">OR</span><span class="p">.</span>  <span class="n">R</span> <span class="p">.</span><span class="n">GE</span><span class="p">.</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="n">C</span><span class="p">))</span> <span class="n">Z</span> <span class="o">=</span> <span class="n">C</span>
-<a name="ln-119"></a>    <span class="n">RW</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">RE</span><span class="p">,</span><span class="n">ER</span><span class="p">)</span>
-<a name="ln-120"></a>    <span class="n">AW</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">AE</span><span class="p">,</span><span class="n">ZERO</span><span class="p">)</span>
-<a name="ln-121"></a>    <span class="n">IC</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-122"></a>    <span class="n">T</span> <span class="o">=</span> <span class="n">Z</span>
-<a name="ln-123"></a>    <span class="n">FZ</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
-<a name="ln-124"></a>    <span class="n">FC</span> <span class="o">=</span> <span class="n">FZ</span>
-<a name="ln-125"></a>    <span class="n">T</span> <span class="o">=</span> <span class="n">B</span>
-<a name="ln-126"></a>    <span class="n">FB</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
-<a name="ln-127"></a>    <span class="n">KOUNT</span> <span class="o">=</span> <span class="mi">2</span>
-<a name="ln-128"></a>    <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FZ</span><span class="p">)</span> <span class="p">.</span><span class="n">EQ</span><span class="p">.</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FB</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">1</span>
-<a name="ln-129"></a>    <span class="n">C</span> <span class="o">=</span> <span class="n">Z</span>
-<a name="ln-130"></a>    <span class="n">GO</span> <span class="n">TO</span> <span class="mi">2</span>
-<a name="ln-131"></a><span class="mi">1</span>   <span class="k">IF</span> <span class="p">(</span><span class="n">Z</span> <span class="p">.</span><span class="n">EQ</span><span class="p">.</span> <span class="n">C</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">2</span>
-<a name="ln-132"></a>    <span class="n">T</span> <span class="o">=</span> <span class="n">C</span>
-<a name="ln-133"></a>    <span class="n">FC</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
-<a name="ln-134"></a>    <span class="n">KOUNT</span> <span class="o">=</span> <span class="mi">3</span>
-<a name="ln-135"></a>    <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FZ</span><span class="p">)</span> <span class="p">.</span><span class="n">EQ</span><span class="p">.</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FC</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">2</span>
-<a name="ln-136"></a>    <span class="n">B</span> <span class="o">=</span> <span class="n">Z</span>
-<a name="ln-137"></a>    <span class="n">FB</span> <span class="o">=</span> <span class="n">FZ</span>
-<a name="ln-138"></a><span class="mi">2</span>   <span class="n">A</span> <span class="o">=</span> <span class="n">C</span>
-<a name="ln-139"></a>    <span class="n">FA</span> <span class="o">=</span> <span class="n">FC</span>
-<a name="ln-140"></a>    <span class="n">ACBS</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">B</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
-<a name="ln-141"></a>    <span class="n">FX</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FB</span><span class="p">),</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FC</span><span class="p">))</span>
+<a name="ln-117"></a>      <span class="n">Z</span> <span class="o">=</span> <span class="n">R</span>
+<a name="ln-118"></a>      <span class="k">IF</span> <span class="p">(</span><span class="n">R</span> <span class="o">&lt;=</span> <span class="nb">MIN</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span> <span class="p">.</span><span class="nb">OR</span><span class="p">.</span> <span class="n">R</span> <span class="o">&gt;=</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">))</span> <span class="n">Z</span> <span class="o">=</span> <span class="n">C</span>
+<a name="ln-119"></a>      <span class="n">RW</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">RE</span><span class="p">,</span> <span class="n">ER</span><span class="p">)</span>
+<a name="ln-120"></a>      <span class="n">AW</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">AE</span><span class="p">,</span> <span class="n">ZERO</span><span class="p">)</span>
+<a name="ln-121"></a>      <span class="n">IC</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-122"></a>      <span class="n">T</span> <span class="o">=</span> <span class="n">Z</span>
+<a name="ln-123"></a>      <span class="n">FZ</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a name="ln-124"></a>      <span class="n">FC</span> <span class="o">=</span> <span class="n">FZ</span>
+<a name="ln-125"></a>      <span class="n">T</span> <span class="o">=</span> <span class="n">B</span>
+<a name="ln-126"></a>      <span class="n">FB</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a name="ln-127"></a>      <span class="n">KOUNT</span> <span class="o">=</span> <span class="mi">2</span>
+<a name="ln-128"></a>      <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FZ</span><span class="p">)</span> <span class="o">==</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FB</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">1</span>
+<a name="ln-129"></a>      <span class="n">C</span> <span class="o">=</span> <span class="n">Z</span>
+<a name="ln-130"></a>      <span class="n">GO</span> <span class="n">TO</span> <span class="mi">2</span>
+<a name="ln-131"></a><span class="mi">1</span>     <span class="k">IF</span> <span class="p">(</span><span class="n">Z</span> <span class="o">==</span> <span class="n">C</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">2</span>
+<a name="ln-132"></a>      <span class="n">T</span> <span class="o">=</span> <span class="n">C</span>
+<a name="ln-133"></a>      <span class="n">FC</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a name="ln-134"></a>      <span class="n">KOUNT</span> <span class="o">=</span> <span class="mi">3</span>
+<a name="ln-135"></a>      <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FZ</span><span class="p">)</span> <span class="o">==</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FC</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">2</span>
+<a name="ln-136"></a>      <span class="n">B</span> <span class="o">=</span> <span class="n">Z</span>
+<a name="ln-137"></a>      <span class="n">FB</span> <span class="o">=</span> <span class="n">FZ</span>
+<a name="ln-138"></a><span class="mi">2</span>     <span class="n">A</span> <span class="o">=</span> <span class="n">C</span>
+<a name="ln-139"></a>      <span class="n">FA</span> <span class="o">=</span> <span class="n">FC</span>
+<a name="ln-140"></a>      <span class="n">ACBS</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">B</span> <span class="o">-</span> <span class="n">C</span><span class="p">)</span>
+<a name="ln-141"></a>      <span class="n">FX</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FB</span><span class="p">),</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">FC</span><span class="p">))</span>
 <a name="ln-142"></a><span class="c">!</span>
-<a name="ln-143"></a><span class="mi">3</span>   <span class="k">IF</span> <span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FC</span><span class="p">)</span> <span class="p">.</span><span class="n">GE</span><span class="p">.</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">FB</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">4</span>
+<a name="ln-143"></a><span class="mi">3</span>     <span class="k">IF</span> <span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FC</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">FB</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">4</span>
 <a name="ln-144"></a><span class="c">!</span>
 <a name="ln-145"></a><span class="c">!   Perform interchange.</span>
 <a name="ln-146"></a><span class="c">!</span>
-<a name="ln-147"></a>    <span class="n">A</span> <span class="o">=</span> <span class="n">B</span>
-<a name="ln-148"></a>    <span class="n">FA</span> <span class="o">=</span> <span class="n">FB</span>
-<a name="ln-149"></a>    <span class="n">B</span> <span class="o">=</span> <span class="n">C</span>
-<a name="ln-150"></a>    <span class="n">FB</span> <span class="o">=</span> <span class="n">FC</span>
-<a name="ln-151"></a>    <span class="n">C</span> <span class="o">=</span> <span class="n">A</span>
-<a name="ln-152"></a>    <span class="n">FC</span> <span class="o">=</span> <span class="n">FA</span>
+<a name="ln-147"></a>      <span class="n">A</span> <span class="o">=</span> <span class="n">B</span>
+<a name="ln-148"></a>      <span class="n">FA</span> <span class="o">=</span> <span class="n">FB</span>
+<a name="ln-149"></a>      <span class="n">B</span> <span class="o">=</span> <span class="n">C</span>
+<a name="ln-150"></a>      <span class="n">FB</span> <span class="o">=</span> <span class="n">FC</span>
+<a name="ln-151"></a>      <span class="n">C</span> <span class="o">=</span> <span class="n">A</span>
+<a name="ln-152"></a>      <span class="n">FC</span> <span class="o">=</span> <span class="n">FA</span>
 <a name="ln-153"></a><span class="c">!</span>
 <a name="ln-154"></a><span class="c">!    4 CMB = 0.5_DP*(C-B)</span>
-<a name="ln-155"></a><span class="mi">4</span>   <span class="n">CMB</span> <span class="o">=</span> <span class="mf">0.5d+0</span><span class="o">*</span><span class="p">(</span><span class="n">C</span><span class="o">-</span><span class="n">B</span><span class="p">)</span>
-<a name="ln-156"></a>    <span class="n">ACMB</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">CMB</span><span class="p">)</span>
-<a name="ln-157"></a>    <span class="n">TOL</span> <span class="o">=</span> <span class="n">RW</span><span class="o">*</span><span class="nb">ABS</span><span class="p">(</span><span class="n">B</span><span class="p">)</span> <span class="o">+</span> <span class="n">AW</span>
+<a name="ln-155"></a><span class="mi">4</span>     <span class="n">CMB</span> <span class="o">=</span> <span class="mf">0.5d+0</span> <span class="o">*</span> <span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="n">B</span><span class="p">)</span>
+<a name="ln-156"></a>      <span class="n">ACMB</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">CMB</span><span class="p">)</span>
+<a name="ln-157"></a>      <span class="n">TOL</span> <span class="o">=</span> <span class="n">RW</span> <span class="o">*</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">B</span><span class="p">)</span> <span class="o">+</span> <span class="n">AW</span>
 <a name="ln-158"></a><span class="c">!</span>
 <a name="ln-159"></a><span class="c">!   Test stopping criterion and function count.</span>
 <a name="ln-160"></a><span class="c">!</span>
-<a name="ln-161"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">ACMB</span> <span class="p">.</span><span class="n">LE</span><span class="p">.</span> <span class="n">TOL</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">10</span>
-<a name="ln-162"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">FB</span> <span class="p">.</span><span class="n">EQ</span><span class="p">.</span> <span class="n">ZERO</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">11</span>
-<a name="ln-163"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">KOUNT</span> <span class="p">.</span><span class="n">GE</span><span class="p">.</span> <span class="mi">500</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">14</span>
+<a name="ln-161"></a>      <span class="k">IF</span> <span class="p">(</span><span class="n">ACMB</span> <span class="o">&lt;=</span> <span class="n">TOL</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">10</span>
+<a name="ln-162"></a>      <span class="k">IF</span> <span class="p">(</span><span class="n">FB</span> <span class="o">==</span> <span class="n">ZERO</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">11</span>
+<a name="ln-163"></a>      <span class="k">IF</span> <span class="p">(</span><span class="n">KOUNT</span> <span class="o">&gt;=</span> <span class="mi">500</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">14</span>
 <a name="ln-164"></a><span class="c">!</span>
 <a name="ln-165"></a><span class="c">!   Calculate new iterate implicitly as B+P/Q, where we arrange</span>
 <a name="ln-166"></a><span class="c">!   P .GE. 0.  The implicit form is used to prevent overflow.</span>
 <a name="ln-167"></a><span class="c">!</span>
-<a name="ln-168"></a>    <span class="n">P</span> <span class="o">=</span> <span class="p">(</span><span class="n">B</span><span class="o">-</span><span class="n">A</span><span class="p">)</span><span class="o">*</span><span class="n">FB</span>
-<a name="ln-169"></a>    <span class="n">Q</span> <span class="o">=</span> <span class="n">FA</span> <span class="o">-</span> <span class="n">FB</span>
-<a name="ln-170"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">P</span> <span class="p">.</span><span class="n">GE</span><span class="p">.</span> <span class="n">ZERO</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">5</span>
-<a name="ln-171"></a>    <span class="n">P</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span>
-<a name="ln-172"></a>    <span class="n">Q</span> <span class="o">=</span> <span class="o">-</span><span class="n">Q</span>
+<a name="ln-168"></a>      <span class="n">P</span> <span class="o">=</span> <span class="p">(</span><span class="n">B</span> <span class="o">-</span> <span class="n">A</span><span class="p">)</span> <span class="o">*</span> <span class="n">FB</span>
+<a name="ln-169"></a>      <span class="n">Q</span> <span class="o">=</span> <span class="n">FA</span> <span class="o">-</span> <span class="n">FB</span>
+<a name="ln-170"></a>      <span class="k">IF</span> <span class="p">(</span><span class="n">P</span> <span class="o">&gt;=</span> <span class="n">ZERO</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">5</span>
+<a name="ln-171"></a>      <span class="n">P</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span>
+<a name="ln-172"></a>      <span class="n">Q</span> <span class="o">=</span> <span class="o">-</span><span class="n">Q</span>
 <a name="ln-173"></a><span class="c">!</span>
 <a name="ln-174"></a><span class="c">!   Update A and check for satisfactory reduction in the size of the</span>
 <a name="ln-175"></a><span class="c">!   bracketing interval.  If not, perform bisection.</span>
 <a name="ln-176"></a><span class="c">!</span>
-<a name="ln-177"></a><span class="mi">5</span>   <span class="n">A</span> <span class="o">=</span> <span class="n">B</span>
-<a name="ln-178"></a>    <span class="n">FA</span> <span class="o">=</span> <span class="n">FB</span>
-<a name="ln-179"></a>    <span class="n">IC</span> <span class="o">=</span> <span class="n">IC</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-180"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">IC</span> <span class="p">.</span><span class="n">LT</span><span class="p">.</span> <span class="mi">4</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">6</span>
-<a name="ln-181"></a>    <span class="k">IF</span> <span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">ACMB</span> <span class="p">.</span><span class="n">GE</span><span class="p">.</span> <span class="n">ACBS</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">8</span>
-<a name="ln-182"></a>    <span class="n">IC</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-183"></a>    <span class="n">ACBS</span> <span class="o">=</span> <span class="n">ACMB</span>
+<a name="ln-177"></a><span class="mi">5</span>     <span class="n">A</span> <span class="o">=</span> <span class="n">B</span>
+<a name="ln-178"></a>      <span class="n">FA</span> <span class="o">=</span> <span class="n">FB</span>
+<a name="ln-179"></a>      <span class="n">IC</span> <span class="o">=</span> <span class="n">IC</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-180"></a>      <span class="k">IF</span> <span class="p">(</span><span class="n">IC</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">6</span>
+<a name="ln-181"></a>      <span class="k">IF</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">ACMB</span> <span class="o">&gt;=</span> <span class="n">ACBS</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">8</span>
+<a name="ln-182"></a>      <span class="n">IC</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-183"></a>      <span class="n">ACBS</span> <span class="o">=</span> <span class="n">ACMB</span>
 <a name="ln-184"></a><span class="c">!</span>
 <a name="ln-185"></a><span class="c">!   Test for too small a change.</span>
 <a name="ln-186"></a><span class="c">!</span>
-<a name="ln-187"></a><span class="mi">6</span>   <span class="k">IF</span> <span class="p">(</span><span class="n">P</span> <span class="p">.</span><span class="n">GT</span><span class="p">.</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span><span class="o">*</span><span class="n">TOL</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">7</span>
+<a name="ln-187"></a><span class="mi">6</span>     <span class="k">IF</span> <span class="p">(</span><span class="n">P</span> <span class="o">&gt;</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span> <span class="o">*</span> <span class="n">TOL</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">7</span>
 <a name="ln-188"></a><span class="c">!</span>
 <a name="ln-189"></a><span class="c">!   Increment by TOLerance.</span>
 <a name="ln-190"></a><span class="c">!</span>
-<a name="ln-191"></a>    <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">TOL</span><span class="p">,</span><span class="n">CMB</span><span class="p">)</span>
-<a name="ln-192"></a>    <span class="n">GO</span> <span class="n">TO</span> <span class="mi">9</span>
+<a name="ln-191"></a>      <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">TOL</span><span class="p">,</span> <span class="n">CMB</span><span class="p">)</span>
+<a name="ln-192"></a>      <span class="n">GO</span> <span class="n">TO</span> <span class="mi">9</span>
 <a name="ln-193"></a><span class="c">!</span>
 <a name="ln-194"></a><span class="c">!   Root ought to be between B and (C+B)/2.</span>
 <a name="ln-195"></a><span class="c">!</span>
-<a name="ln-196"></a><span class="mi">7</span>   <span class="k">IF</span> <span class="p">(</span><span class="n">P</span> <span class="p">.</span><span class="n">GE</span><span class="p">.</span> <span class="n">CMB</span><span class="o">*</span><span class="n">Q</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">8</span>
+<a name="ln-196"></a><span class="mi">7</span>     <span class="k">IF</span> <span class="p">(</span><span class="n">P</span> <span class="o">&gt;=</span> <span class="n">CMB</span> <span class="o">*</span> <span class="n">Q</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">8</span>
 <a name="ln-197"></a><span class="c">!</span>
 <a name="ln-198"></a><span class="c">!   Use secant rule.</span>
 <a name="ln-199"></a><span class="c">!</span>
-<a name="ln-200"></a>    <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">P</span><span class="o">/</span><span class="n">Q</span>
-<a name="ln-201"></a>    <span class="n">GO</span> <span class="n">TO</span> <span class="mi">9</span>
+<a name="ln-200"></a>      <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">P</span> <span class="o">/</span> <span class="n">Q</span>
+<a name="ln-201"></a>      <span class="n">GO</span> <span class="n">TO</span> <span class="mi">9</span>
 <a name="ln-202"></a><span class="c">!</span>
 <a name="ln-203"></a><span class="c">!   Use bisection (C+B)/2.</span>
 <a name="ln-204"></a><span class="c">!</span>
-<a name="ln-205"></a><span class="mi">8</span>   <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">CMB</span>
+<a name="ln-205"></a><span class="mi">8</span>     <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">CMB</span>
 <a name="ln-206"></a><span class="c">!</span>
 <a name="ln-207"></a><span class="c">!   Have completed computation for new iterate B.</span>
 <a name="ln-208"></a><span class="c">!</span>
-<a name="ln-209"></a><span class="mi">9</span>   <span class="n">T</span> <span class="o">=</span> <span class="n">B</span>
-<a name="ln-210"></a>    <span class="n">FB</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
-<a name="ln-211"></a>    <span class="n">KOUNT</span> <span class="o">=</span> <span class="n">KOUNT</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-209"></a><span class="mi">9</span>     <span class="n">T</span> <span class="o">=</span> <span class="n">B</span>
+<a name="ln-210"></a>      <span class="n">FB</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a name="ln-211"></a>      <span class="n">KOUNT</span> <span class="o">=</span> <span class="n">KOUNT</span> <span class="o">+</span> <span class="mi">1</span>
 <a name="ln-212"></a><span class="c">!</span>
 <a name="ln-213"></a><span class="c">!   Decide whether next step is interpolation or extrapolation.</span>
 <a name="ln-214"></a><span class="c">!</span>
-<a name="ln-215"></a>    <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FB</span><span class="p">)</span> <span class="p">.</span><span class="n">NE</span><span class="p">.</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FC</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">3</span>
-<a name="ln-216"></a>    <span class="n">C</span> <span class="o">=</span> <span class="n">A</span>
-<a name="ln-217"></a>    <span class="n">FC</span> <span class="o">=</span> <span class="n">FA</span>
-<a name="ln-218"></a>    <span class="n">GO</span> <span class="n">TO</span> <span class="mi">3</span>
+<a name="ln-215"></a>      <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FB</span><span class="p">)</span> <span class="o">/=</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FC</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">3</span>
+<a name="ln-216"></a>      <span class="n">C</span> <span class="o">=</span> <span class="n">A</span>
+<a name="ln-217"></a>      <span class="n">FC</span> <span class="o">=</span> <span class="n">FA</span>
+<a name="ln-218"></a>      <span class="n">GO</span> <span class="n">TO</span> <span class="mi">3</span>
 <a name="ln-219"></a><span class="c">!</span>
 <a name="ln-220"></a><span class="c">!   Finished.  Process results for proper setting of IFLAG.</span>
 <a name="ln-221"></a><span class="c">!</span>
-<a name="ln-222"></a><span class="mi">10</span>  <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FB</span><span class="p">)</span> <span class="p">.</span><span class="n">EQ</span><span class="p">.</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span><span class="n">FC</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">13</span>
-<a name="ln-223"></a>    <span class="k">IF</span> <span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FB</span><span class="p">)</span> <span class="p">.</span><span class="n">GT</span><span class="p">.</span> <span class="n">FX</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">12</span>
-<a name="ln-224"></a>    <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-225"></a>    <span class="k">RETURN</span>
-<a name="ln-226"></a><span class="mi">11</span>  <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">2</span>
-<a name="ln-227"></a>    <span class="k">RETURN</span>
-<a name="ln-228"></a><span class="mi">12</span>  <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">3</span>
-<a name="ln-229"></a>    <span class="k">RETURN</span>
-<a name="ln-230"></a><span class="mi">13</span>  <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">4</span>
-<a name="ln-231"></a>    <span class="k">RETURN</span>
-<a name="ln-232"></a><span class="mi">14</span>  <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">5</span>
-<a name="ln-233"></a>    
-<a name="ln-234"></a>  <span class="k">END SUBROUTINE </span><span class="n">FZERO</span>
+<a name="ln-222"></a><span class="mi">10</span>    <span class="k">IF</span> <span class="p">(</span><span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FB</span><span class="p">)</span> <span class="o">==</span> <span class="nb">SIGN</span><span class="p">(</span><span class="n">ONE</span><span class="p">,</span> <span class="n">FC</span><span class="p">))</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">13</span>
+<a name="ln-223"></a>      <span class="k">IF</span> <span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">FB</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">FX</span><span class="p">)</span> <span class="n">GO</span> <span class="n">TO</span> <span class="mi">12</span>
+<a name="ln-224"></a>      <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-225"></a>      <span class="k">RETURN</span>
+<a name="ln-226"></a><span class="mi">11</span>    <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">2</span>
+<a name="ln-227"></a>      <span class="k">RETURN</span>
+<a name="ln-228"></a><span class="mi">12</span>    <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">3</span>
+<a name="ln-229"></a>      <span class="k">RETURN</span>
+<a name="ln-230"></a><span class="mi">13</span>    <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">4</span>
+<a name="ln-231"></a>      <span class="k">RETURN</span>
+<a name="ln-232"></a><span class="mi">14</span>    <span class="n">IFLAG</span> <span class="o">=</span> <span class="mi">5</span>
+<a name="ln-233"></a>
+<a name="ln-234"></a>   <span class="k">END SUBROUTINE </span><span class="n">FZERO</span>
 <a name="ln-235"></a>
 <a name="ln-236"></a><span class="k">end module </span><span class="n">fzero_mod</span>
 </pre></div>
@@ -522,13 +522,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

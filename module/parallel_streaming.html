@@ -477,7 +477,7 @@
   <td><span class="anchor" id="variable-stream_sign"></span>integer,</td>
   
   <td>public,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>stream_sign</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -491,7 +491,7 @@
   <td><span class="anchor" id="variable-stream"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>stream</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -505,7 +505,7 @@
   <td><span class="anchor" id="variable-stream_c"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>stream_c</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -519,7 +519,7 @@
   <td><span class="anchor" id="variable-stream_rad_var1"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>stream_rad_var1</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -533,7 +533,7 @@
   <td><span class="anchor" id="variable-stream_rad_var2"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>stream_rad_var2</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -547,7 +547,7 @@
   <td><span class="anchor" id="variable-stream_tri_a1"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>stream_tri_a1</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -561,7 +561,7 @@
   <td><span class="anchor" id="variable-stream_tri_a2"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>stream_tri_a2</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -575,7 +575,7 @@
   <td><span class="anchor" id="variable-stream_tri_b1"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>stream_tri_b1</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -589,7 +589,7 @@
   <td><span class="anchor" id="variable-stream_tri_b2"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>stream_tri_b2</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -603,7 +603,7 @@
   <td><span class="anchor" id="variable-stream_tri_c1"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>stream_tri_c1</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -617,7 +617,7 @@
   <td><span class="anchor" id="variable-stream_tri_c2"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>stream_tri_c2</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -631,7 +631,7 @@
   <td><span class="anchor" id="variable-gradpar_c"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
   <td><strong>gradpar_c</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -645,7 +645,7 @@
   <td><span class="anchor" id="variable-time_parallel_streaming"></span>real,</td>
   
   <td>public,</td>
-  <td>dimension (2)</td><td>::</td>
+  <td>dimension(2)</td><td>::</td>
   <td><strong>time_parallel_streaming</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -722,7 +722,7 @@ private subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_seg
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (-nzgrid:)</td><td>::</td>
+  <td>dimension(-nzgrid:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -785,7 +785,7 @@ private subroutine <a href='../proc/center_zed_extended.html'>center_zed_extende
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -897,7 +897,7 @@ public subroutine <a href='../proc/advance_parallel_streaming_explicit.html'>adv
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -912,7 +912,7 @@ public subroutine <a href='../proc/advance_parallel_streaming_explicit.html'>adv
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -927,7 +927,7 @@ public subroutine <a href='../proc/advance_parallel_streaming_explicit.html'>adv
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gout</strong></td><td></td>
   
 </tr>
@@ -978,7 +978,7 @@ public subroutine <a href='../proc/add_parallel_streaming_radial_variation.html'
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -993,7 +993,7 @@ public subroutine <a href='../proc/add_parallel_streaming_radial_variation.html'
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gout</strong></td><td></td>
   
 </tr>
@@ -1008,7 +1008,7 @@ public subroutine <a href='../proc/add_parallel_streaming_radial_variation.html'
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>rhs</strong></td><td></td>
   
 </tr>
@@ -1059,7 +1059,7 @@ private subroutine <a href='../proc/get_dgdz.html'>get_dgdz</a>(g, ivmu, dgdz)
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1089,7 +1089,7 @@ private subroutine <a href='../proc/get_dgdz.html'>get_dgdz</a>(g, ivmu, dgdz)
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>dgdz</strong></td><td></td>
   
 </tr>
@@ -1140,7 +1140,7 @@ private subroutine <a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1170,7 +1170,7 @@ private subroutine <a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>dgdz</strong></td><td></td>
   
 </tr>
@@ -1221,7 +1221,7 @@ private subroutine <a href='../proc/add_stream_term.html'>add_stream_term</a>(g,
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1251,7 +1251,7 @@ private subroutine <a href='../proc/add_stream_term.html'>add_stream_term</a>(g,
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>src</strong></td><td></td>
   
 </tr>
@@ -1302,7 +1302,7 @@ private subroutine <a href='../proc/add_stream_term_annulus.html'>add_stream_ter
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1332,7 +1332,7 @@ private subroutine <a href='../proc/add_stream_term_annulus.html'>add_stream_ter
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>src</strong></td><td></td>
   
 </tr>
@@ -1383,7 +1383,7 @@ public subroutine <a href='../proc/advance_parallel_streaming_implicit.html'>adv
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1398,7 +1398,7 @@ public subroutine <a href='../proc/advance_parallel_streaming_implicit.html'>adv
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1413,7 +1413,7 @@ public subroutine <a href='../proc/advance_parallel_streaming_implicit.html'>adv
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>apar</strong></td><td></td>
   
 </tr>
@@ -1479,7 +1479,7 @@ private subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, gold
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>gold</strong></td><td></td>
   
 </tr>
@@ -1494,7 +1494,7 @@ private subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, gold
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phiold</strong></td><td></td>
   
 </tr>
@@ -1509,7 +1509,7 @@ private subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, gold
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1524,7 +1524,7 @@ private subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, gold
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1605,7 +1605,7 @@ private subroutine <a href='../proc/invert_parstream.html'>invert_parstream</a>(
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1716,7 +1716,7 @@ public subroutine <a href='../proc/stream_tridiagonal_solve.html'>stream_tridiag
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1782,7 +1782,7 @@ private subroutine <a href='../proc/sweep_g_zed.html'>sweep_g_zed</a>(ivmu, g)
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1878,7 +1878,7 @@ private subroutine <a href='../proc/sweep_zed_zonal.html'>sweep_zed_zonal</a>(iv
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1929,7 +1929,7 @@ private subroutine <a href='../proc/invert_parstream_response.html'>invert_parst
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1995,7 +1995,7 @@ private subroutine <a href='../proc/get_dzed.html'>get_dzed</a>(iv, g, dgdz)
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -2010,7 +2010,7 @@ private subroutine <a href='../proc/get_dzed.html'>get_dzed</a>(iv, g, dgdz)
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>dgdz</strong></td><td></td>
   
 </tr>
@@ -2076,7 +2076,7 @@ private subroutine <a href='../proc/center_zed_extended.html'>center_zed_extende
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -2142,7 +2142,7 @@ private subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_seg
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (-nzgrid:)</td><td>::</td>
+  <td>dimension(-nzgrid:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -2217,13 +2217,13 @@ private subroutine <a href='../proc/finish_invert_stream_operator.html'>finish_i
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

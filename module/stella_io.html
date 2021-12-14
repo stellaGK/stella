@@ -996,7 +996,7 @@ public subroutine <a href='../proc/write_phi_nc.html'>write_phi_nc</a>(nout, phi
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1062,7 +1062,7 @@ public subroutine <a href='../proc/write_radial_fluxes_nc.html'>write_radial_flu
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>pflux</strong></td><td></td>
   
 </tr>
@@ -1077,7 +1077,7 @@ public subroutine <a href='../proc/write_radial_fluxes_nc.html'>write_radial_flu
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>vflux</strong></td><td></td>
   
 </tr>
@@ -1092,7 +1092,7 @@ public subroutine <a href='../proc/write_radial_fluxes_nc.html'>write_radial_flu
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>qflux</strong></td><td></td>
   
 </tr>
@@ -1158,7 +1158,7 @@ public subroutine <a href='../proc/write_radial_moments_nc.html'>write_radial_mo
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>dens_x</strong></td><td></td>
   
 </tr>
@@ -1173,7 +1173,7 @@ public subroutine <a href='../proc/write_radial_moments_nc.html'>write_radial_mo
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>upar_x</strong></td><td></td>
   
 </tr>
@@ -1188,7 +1188,7 @@ public subroutine <a href='../proc/write_radial_moments_nc.html'>write_radial_mo
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>temp_x</strong></td><td></td>
   
 </tr>
@@ -1254,7 +1254,7 @@ public subroutine <a href='../proc/write_kspectra_nc.html'>write_kspectra_nc</a>
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>phi2_vs_kxky</strong></td><td></td>
   
 </tr>
@@ -1320,7 +1320,7 @@ public subroutine <a href='../proc/write_fluxes_kxkyz_nc.html'>write_fluxes_kxky
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>pflx_kxkyz</strong></td><td></td>
   
 </tr>
@@ -1335,7 +1335,7 @@ public subroutine <a href='../proc/write_fluxes_kxkyz_nc.html'>write_fluxes_kxky
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>vflx_kxkyz</strong></td><td></td>
   
 </tr>
@@ -1350,7 +1350,7 @@ public subroutine <a href='../proc/write_fluxes_kxkyz_nc.html'>write_fluxes_kxky
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>qflx_kxkyz</strong></td><td></td>
   
 </tr>
@@ -1416,7 +1416,7 @@ public subroutine <a href='../proc/write_moments_nc.html'>write_moments_nc</a>(n
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>density</strong></td><td></td>
   
 </tr>
@@ -1431,7 +1431,7 @@ public subroutine <a href='../proc/write_moments_nc.html'>write_moments_nc</a>(n
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>upar</strong></td><td></td>
   
 </tr>
@@ -1446,7 +1446,7 @@ public subroutine <a href='../proc/write_moments_nc.html'>write_moments_nc</a>(n
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>temperature</strong></td><td></td>
   
 </tr>
@@ -1461,7 +1461,7 @@ public subroutine <a href='../proc/write_moments_nc.html'>write_moments_nc</a>(n
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :, :)</td><td>::</td>
   <td><strong>spitzer2</strong></td><td></td>
   
 </tr>
@@ -1527,7 +1527,7 @@ public subroutine <a href='../proc/write_gvmus_nc.html'>write_gvmus_nc</a>(nout,
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1593,7 +1593,7 @@ public subroutine <a href='../proc/write_gzvs_nc.html'>write_gzvs_nc</a>(nout, g
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1787,13 +1787,13 @@ public subroutine <a href='../proc/sync_nc.html'>sync_nc</a>()
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

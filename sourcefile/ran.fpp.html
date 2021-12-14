@@ -276,134 +276,134 @@
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="cp"># include &quot;define.inc&quot;</span>
 <a name="ln-2"></a>
 <a name="ln-3"></a><span class="k">module </span><span class="n">ran</span>
-<a name="ln-4"></a>  <span class="c">! &lt;doc&gt;</span>
-<a name="ln-5"></a>  <span class="c">!  A wrapper module for random number generator.</span>
-<a name="ln-6"></a>  <span class="c">!  Thie module provides real function ranf</span>
-<a name="ln-7"></a>  <span class="c">!  using intrinsic random_number/random_seed or</span>
-<a name="ln-8"></a>  <span class="c">!  Mersenne Twister 19937 (see mt19937.f90).</span>
-<a name="ln-9"></a>  <span class="c">!  Note that instrinsic function appears to use</span>
-<a name="ln-10"></a>  <span class="c">!  and integer vector seed of length 2, but this</span>
-<a name="ln-11"></a>  <span class="c">!  is implementation dependent.  If there is ever</span>
-<a name="ln-12"></a>  <span class="c">!  a system that uses seed integer vector of </span>
-<a name="ln-13"></a>  <span class="c">!  different length, an error message will print.</span>
-<a name="ln-14"></a>  <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-4"></a>   <span class="c">! &lt;doc&gt;</span>
+<a name="ln-5"></a>   <span class="c">!  A wrapper module for random number generator.</span>
+<a name="ln-6"></a>   <span class="c">!  Thie module provides real function ranf</span>
+<a name="ln-7"></a>   <span class="c">!  using intrinsic random_number/random_seed or</span>
+<a name="ln-8"></a>   <span class="c">!  Mersenne Twister 19937 (see mt19937.f90).</span>
+<a name="ln-9"></a>   <span class="c">!  Note that instrinsic function appears to use</span>
+<a name="ln-10"></a>   <span class="c">!  and integer vector seed of length 2, but this</span>
+<a name="ln-11"></a>   <span class="c">!  is implementation dependent.  If there is ever</span>
+<a name="ln-12"></a>   <span class="c">!  a system that uses seed integer vector of</span>
+<a name="ln-13"></a>   <span class="c">!  different length, an error message will print.</span>
+<a name="ln-14"></a>   <span class="c">! &lt;/doc&gt;</span>
 <a name="ln-15"></a>
-<a name="ln-16"></a>  <span class="k">implicit none</span>
+<a name="ln-16"></a>   <span class="k">implicit none</span>
 <a name="ln-17"></a>
-<a name="ln-18"></a><span class="k">  private</span>
+<a name="ln-18"></a><span class="k">   private</span>
 <a name="ln-19"></a>
-<a name="ln-20"></a><span class="k">  public</span> <span class="kd">::</span> <span class="n">ranf</span>
-<a name="ln-21"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">get_rnd_seed_length</span><span class="p">,</span><span class="n">get_rnd_seed</span><span class="p">,</span><span class="n">init_ranf</span>
+<a name="ln-20"></a><span class="k">   public</span> <span class="kd">::</span> <span class="n">ranf</span>
+<a name="ln-21"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">get_rnd_seed_length</span><span class="p">,</span> <span class="n">get_rnd_seed</span><span class="p">,</span> <span class="n">init_ranf</span>
 <a name="ln-22"></a>
 <a name="ln-23"></a><span class="k">contains</span>
 <a name="ln-24"></a>
 <a name="ln-25"></a><span class="c">!-------------------------------------------------------------------</span>
-<a name="ln-26"></a>  <span class="k">function </span><span class="n">ranf</span> <span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-<a name="ln-27"></a>    
-<a name="ln-28"></a>    <span class="c">! &lt;doc&gt;</span>
-<a name="ln-29"></a>    <span class="c">!  returns a uniform deviate in [0., 1.)</span>
-<a name="ln-30"></a>    <span class="c">!  The generator is initialized with the given seed if exists,</span>
-<a name="ln-31"></a>    <span class="c">!  otherwise uses the default seed.</span>
-<a name="ln-32"></a>    <span class="c">! &lt;/doc&gt;</span>
-<a name="ln-33"></a>    
+<a name="ln-26"></a>   <span class="k">function </span><span class="n">ranf</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<a name="ln-27"></a>
+<a name="ln-28"></a>      <span class="c">! &lt;doc&gt;</span>
+<a name="ln-29"></a>      <span class="c">!  returns a uniform deviate in [0., 1.)</span>
+<a name="ln-30"></a>      <span class="c">!  The generator is initialized with the given seed if exists,</span>
+<a name="ln-31"></a>      <span class="c">!  otherwise uses the default seed.</span>
+<a name="ln-32"></a>      <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-33"></a>
 <a name="ln-34"></a><span class="cp"># if RANDOM == _RANMT_</span>
-<a name="ln-35"></a>    <span class="k">use </span><span class="n">mt19937</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">sgrnd</span><span class="p">,</span> <span class="n">grnd</span>
+<a name="ln-35"></a>      <span class="k">use </span><span class="n">mt19937</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">sgrnd</span><span class="p">,</span> <span class="n">grnd</span>
 <a name="ln-36"></a><span class="cp"># endif</span>
-<a name="ln-37"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">optional</span> <span class="kd">::</span> <span class="n">seed</span>
-<a name="ln-38"></a>    <span class="kt">real</span> <span class="kd">::</span> <span class="n">ranf</span>
-<a name="ln-39"></a><span class="cp"># if RANDOM == _RANMT_    </span>
-<a name="ln-40"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span> <span class="k">call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-<a name="ln-41"></a>    <span class="n">ranf</span> <span class="o">=</span> <span class="n">grnd</span><span class="p">()</span>
+<a name="ln-37"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">optional</span> <span class="kd">::</span> <span class="n">seed</span>
+<a name="ln-38"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">ranf</span>
+<a name="ln-39"></a><span class="cp"># if RANDOM == _RANMT_</span>
+<a name="ln-40"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span> <span class="k">call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<a name="ln-41"></a>      <span class="n">ranf</span> <span class="o">=</span> <span class="n">grnd</span><span class="p">()</span>
 <a name="ln-42"></a><span class="cp"># else</span>
-<a name="ln-43"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
-<a name="ln-44"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">seed_in</span><span class="p">(:)</span>
-<a name="ln-45"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span> <span class="k">then</span>
-<a name="ln-46"></a><span class="k">       call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">l</span><span class="p">)</span>
-<a name="ln-47"></a>       <span class="k">allocate</span><span class="p">(</span><span class="n">seed_in</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
-<a name="ln-48"></a>       <span class="n">seed_in</span><span class="p">(:)</span><span class="o">=</span><span class="n">seed</span>
-<a name="ln-49"></a>       <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">put</span><span class="o">=</span><span class="n">seed_in</span><span class="p">)</span>
-<a name="ln-50"></a>       <span class="k">deallocate</span><span class="p">(</span><span class="n">seed_in</span><span class="p">)</span>
-<a name="ln-51"></a>    <span class="n">endif</span>
-<a name="ln-52"></a>    <span class="k">call </span><span class="nb">random_number</span><span class="p">(</span><span class="n">ranf</span><span class="p">)</span>
+<a name="ln-43"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
+<a name="ln-44"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">seed_in</span><span class="p">(:)</span>
+<a name="ln-45"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-46"></a><span class="k">         call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">l</span><span class="p">)</span>
+<a name="ln-47"></a>         <span class="k">allocate</span> <span class="p">(</span><span class="n">seed_in</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+<a name="ln-48"></a>         <span class="n">seed_in</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">seed</span>
+<a name="ln-49"></a>         <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">put</span><span class="o">=</span><span class="n">seed_in</span><span class="p">)</span>
+<a name="ln-50"></a>         <span class="k">deallocate</span> <span class="p">(</span><span class="n">seed_in</span><span class="p">)</span>
+<a name="ln-51"></a>      <span class="k">end if</span>
+<a name="ln-52"></a><span class="k">      call </span><span class="nb">random_number</span><span class="p">(</span><span class="n">ranf</span><span class="p">)</span>
 <a name="ln-53"></a><span class="cp"># endif</span>
 <a name="ln-54"></a>
-<a name="ln-55"></a>  <span class="k">end function </span><span class="n">ranf</span>
+<a name="ln-55"></a>   <span class="k">end function </span><span class="n">ranf</span>
 <a name="ln-56"></a><span class="c">!-------------------------------------------------------------------</span>
-<a name="ln-57"></a>  <span class="k">function </span><span class="n">get_rnd_seed_length</span> <span class="p">()</span> <span class="k">result</span> <span class="p">(</span><span class="n">l</span><span class="p">)</span>
-<a name="ln-58"></a>    <span class="c">! &lt;doc&gt;</span>
-<a name="ln-59"></a>    <span class="c">!  get_rnd_seed_length gets the length of the integer vector for</span>
-<a name="ln-60"></a>    <span class="c">!      the random number generator seed</span>
-<a name="ln-61"></a>    <span class="c">! &lt;/doc&gt;</span>
-<a name="ln-62"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
-<a name="ln-63"></a><span class="cp"># if RANDOM == _RANMT_    </span>
-<a name="ln-64"></a>    <span class="n">l</span><span class="o">=</span><span class="mi">1</span>
+<a name="ln-57"></a>   <span class="k">function </span><span class="n">get_rnd_seed_length</span><span class="p">()</span> <span class="k">result</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+<a name="ln-58"></a>      <span class="c">! &lt;doc&gt;</span>
+<a name="ln-59"></a>      <span class="c">!  get_rnd_seed_length gets the length of the integer vector for</span>
+<a name="ln-60"></a>      <span class="c">!      the random number generator seed</span>
+<a name="ln-61"></a>      <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-62"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
+<a name="ln-63"></a><span class="cp"># if RANDOM == _RANMT_</span>
+<a name="ln-64"></a>      <span class="n">l</span> <span class="o">=</span> <span class="mi">1</span>
 <a name="ln-65"></a><span class="cp"># else</span>
-<a name="ln-66"></a>    <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">l</span><span class="p">)</span>
+<a name="ln-66"></a>      <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">l</span><span class="p">)</span>
 <a name="ln-67"></a><span class="cp"># endif</span>
-<a name="ln-68"></a>    
-<a name="ln-69"></a>  <span class="k">end function </span><span class="n">get_rnd_seed_length</span>
+<a name="ln-68"></a>
+<a name="ln-69"></a>   <span class="k">end function </span><span class="n">get_rnd_seed_length</span>
 <a name="ln-70"></a><span class="c">!-------------------------------------------------------------------</span>
-<a name="ln-71"></a>  <span class="k">subroutine </span><span class="n">get_rnd_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-<a name="ln-72"></a>    <span class="c">! &lt;doc&gt;</span>
-<a name="ln-73"></a>    <span class="c">!  get_rnd_seed  random number seed integer vector</span>
-<a name="ln-74"></a>    <span class="c">! &lt;/doc&gt;</span>
-<a name="ln-75"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">seed</span>
-<a name="ln-76"></a><span class="cp"># if RANDOM == _RANMT_    </span>
-<a name="ln-77"></a>    <span class="c">!NOTE: If MT is generator, more codding needs to be done to</span>
-<a name="ln-78"></a>    <span class="c">!      extract seed, so this should be run using only randomize</span>
-<a name="ln-79"></a>    <span class="n">seed</span><span class="o">=</span><span class="mi">0</span>
+<a name="ln-71"></a>   <span class="k">subroutine </span><span class="n">get_rnd_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<a name="ln-72"></a>      <span class="c">! &lt;doc&gt;</span>
+<a name="ln-73"></a>      <span class="c">!  get_rnd_seed  random number seed integer vector</span>
+<a name="ln-74"></a>      <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-75"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">seed</span>
+<a name="ln-76"></a><span class="cp"># if RANDOM == _RANMT_</span>
+<a name="ln-77"></a>      <span class="c">!NOTE: If MT is generator, more codding needs to be done to</span>
+<a name="ln-78"></a>      <span class="c">!      extract seed, so this should be run using only randomize</span>
+<a name="ln-79"></a>      <span class="n">seed</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-80"></a><span class="cp"># else</span>
-<a name="ln-81"></a>    <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">get</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+<a name="ln-81"></a>      <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">get</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
 <a name="ln-82"></a><span class="cp"># endif</span>
-<a name="ln-83"></a>    
-<a name="ln-84"></a>  <span class="k">end subroutine </span><span class="n">get_rnd_seed</span>
+<a name="ln-83"></a>
+<a name="ln-84"></a>   <span class="k">end subroutine </span><span class="n">get_rnd_seed</span>
 <a name="ln-85"></a><span class="c">!-------------------------------------------------------------------</span>
-<a name="ln-86"></a>  <span class="k">subroutine </span><span class="n">init_ranf</span><span class="p">(</span><span class="n">randomize</span><span class="p">,</span><span class="n">init_seed</span><span class="p">,</span><span class="n">mult</span><span class="p">)</span>
+<a name="ln-86"></a>   <span class="k">subroutine </span><span class="n">init_ranf</span><span class="p">(</span><span class="n">randomize</span><span class="p">,</span> <span class="n">init_seed</span><span class="p">,</span> <span class="n">mult</span><span class="p">)</span>
 <a name="ln-87"></a><span class="cp"># if RANDOM == _RANMT_</span>
-<a name="ln-88"></a>    <span class="k">use </span><span class="n">mt19937</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">sgrnd</span><span class="p">,</span> <span class="n">grnd</span>
+<a name="ln-88"></a>      <span class="k">use </span><span class="n">mt19937</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">sgrnd</span><span class="p">,</span> <span class="n">grnd</span>
 <a name="ln-89"></a><span class="cp"># endif</span>
-<a name="ln-90"></a>    <span class="c">! &lt;doc&gt;</span>
-<a name="ln-91"></a>    <span class="c">!  init_ranf seeds the choosen random number generator.</span>
-<a name="ln-92"></a>    <span class="c">!  if randomize=T, a random seed based on the date and time is used.</span>
-<a name="ln-93"></a>    <span class="c">!  Otherwise, it sets the seed using init_seed </span>
-<a name="ln-94"></a>    <span class="c">!  In either case, it outputs the initial seed in init_seed</span>
-<a name="ln-95"></a>    <span class="c">! &lt;/doc&gt;</span>
-<a name="ln-96"></a>    <span class="k">implicit none</span>
-<a name="ln-97"></a><span class="k">    </span><span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">randomize</span>
-<a name="ln-98"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(:)</span> <span class="kd">::</span> <span class="n">init_seed</span>
-<a name="ln-99"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mult</span>
-<a name="ln-100"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">lmult</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">clock</span>
+<a name="ln-90"></a>      <span class="c">! &lt;doc&gt;</span>
+<a name="ln-91"></a>      <span class="c">!  init_ranf seeds the choosen random number generator.</span>
+<a name="ln-92"></a>      <span class="c">!  if randomize=T, a random seed based on the date and time is used.</span>
+<a name="ln-93"></a>      <span class="c">!  Otherwise, it sets the seed using init_seed</span>
+<a name="ln-94"></a>      <span class="c">!  In either case, it outputs the initial seed in init_seed</span>
+<a name="ln-95"></a>      <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-96"></a>      <span class="k">implicit none</span>
+<a name="ln-97"></a><span class="k">      </span><span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">randomize</span>
+<a name="ln-98"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(:)</span> <span class="kd">::</span> <span class="n">init_seed</span>
+<a name="ln-99"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mult</span>
+<a name="ln-100"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">lmult</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">clock</span>
 <a name="ln-101"></a><span class="cp"># if RANDOM == _RANMT_</span>
-<a name="ln-102"></a>    <span class="k">if</span><span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">mult</span><span class="p">))</span> <span class="k">then</span>
-<a name="ln-103"></a><span class="k">      </span><span class="n">lmult</span> <span class="o">=</span> <span class="n">mult</span>
-<a name="ln-104"></a>    <span class="n">endif</span>
-<a name="ln-105"></a>    
-<a name="ln-106"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">randomize</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-107"></a><span class="k">       call </span><span class="nb">system_clock</span><span class="p">(</span><span class="nb">COUNT</span><span class="o">=</span><span class="n">clock</span><span class="p">)</span>
-<a name="ln-108"></a>       <span class="n">init_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">clock</span><span class="o">*</span><span class="n">lmult</span>
-<a name="ln-109"></a>       <span class="k">call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">init_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
-<a name="ln-110"></a>    <span class="k">else</span>
-<a name="ln-111"></a><span class="k">       call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">init_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lmult</span><span class="p">)</span>
-<a name="ln-112"></a>    <span class="n">endif</span>
+<a name="ln-102"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">mult</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-103"></a><span class="k">         </span><span class="n">lmult</span> <span class="o">=</span> <span class="n">mult</span>
+<a name="ln-104"></a>      <span class="k">end if</span>
+<a name="ln-105"></a>
+<a name="ln-106"></a><span class="k">      if</span> <span class="p">(</span><span class="n">randomize</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-107"></a><span class="k">         call </span><span class="nb">system_clock</span><span class="p">(</span><span class="nb">COUNT</span><span class="o">=</span><span class="n">clock</span><span class="p">)</span>
+<a name="ln-108"></a>         <span class="n">init_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">clock</span> <span class="o">*</span> <span class="n">lmult</span>
+<a name="ln-109"></a>         <span class="k">call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">init_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a name="ln-110"></a>      <span class="k">else</span>
+<a name="ln-111"></a><span class="k">         call </span><span class="n">sgrnd</span><span class="p">(</span><span class="n">init_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">lmult</span><span class="p">)</span>
+<a name="ln-112"></a>      <span class="k">end if</span>
 <a name="ln-113"></a><span class="cp"># else</span>
-<a name="ln-114"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span>
+<a name="ln-114"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span>
 <a name="ln-115"></a>
-<a name="ln-116"></a>    <span class="k">if</span><span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">mult</span><span class="p">))</span> <span class="k">then</span>
-<a name="ln-117"></a><span class="k">      </span><span class="n">lmult</span> <span class="o">=</span> <span class="n">mult</span>
-<a name="ln-118"></a>    <span class="n">endif</span>
+<a name="ln-116"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">mult</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-117"></a><span class="k">         </span><span class="n">lmult</span> <span class="o">=</span> <span class="n">mult</span>
+<a name="ln-118"></a>      <span class="k">end if</span>
 <a name="ln-119"></a>
-<a name="ln-120"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">randomize</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-121"></a><span class="k">       call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="n">n</span><span class="p">)</span>
-<a name="ln-122"></a>       <span class="k">call </span><span class="nb">system_clock</span><span class="p">(</span><span class="nb">count</span><span class="o">=</span><span class="n">clock</span><span class="p">)</span>
+<a name="ln-120"></a><span class="k">      if</span> <span class="p">(</span><span class="n">randomize</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-121"></a><span class="k">         call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+<a name="ln-122"></a>         <span class="k">call </span><span class="nb">system_clock</span><span class="p">(</span><span class="nb">count</span><span class="o">=</span><span class="n">clock</span><span class="p">)</span>
 <a name="ln-123"></a>
-<a name="ln-124"></a>       <span class="n">init_seed</span> <span class="o">=</span> <span class="n">clock</span> <span class="o">+</span> <span class="mi">37</span><span class="o">*</span><span class="n">lmult</span><span class="o">*</span><span class="p">(</span><span class="o">/</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span><span class="p">)</span>
-<a name="ln-125"></a>       <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">put</span><span class="o">=</span><span class="n">init_seed</span><span class="p">)</span>
-<a name="ln-126"></a>    <span class="k">else</span>
-<a name="ln-127"></a><span class="k">       call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">put</span><span class="o">=</span><span class="n">init_seed</span><span class="o">*</span><span class="n">lmult</span><span class="p">)</span>
-<a name="ln-128"></a>    <span class="n">endif</span>
+<a name="ln-124"></a>         <span class="n">init_seed</span> <span class="o">=</span> <span class="n">clock</span> <span class="o">+</span> <span class="mi">37</span> <span class="o">*</span> <span class="n">lmult</span> <span class="o">*</span> <span class="p">(</span><span class="o">/</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span><span class="o">/</span><span class="p">)</span>
+<a name="ln-125"></a>         <span class="k">call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">put</span><span class="o">=</span><span class="n">init_seed</span><span class="p">)</span>
+<a name="ln-126"></a>      <span class="k">else</span>
+<a name="ln-127"></a><span class="k">         call </span><span class="nb">random_seed</span><span class="p">(</span><span class="n">put</span><span class="o">=</span><span class="n">init_seed</span> <span class="o">*</span> <span class="n">lmult</span><span class="p">)</span>
+<a name="ln-128"></a>      <span class="k">end if</span>
 <a name="ln-129"></a><span class="cp"># endif</span>
 <a name="ln-130"></a>
-<a name="ln-131"></a>  <span class="k">end subroutine </span><span class="n">init_ranf</span>
+<a name="ln-131"></a>   <span class="k">end subroutine </span><span class="n">init_ranf</span>
 <a name="ln-132"></a><span class="k">end module </span><span class="n">ran</span>
 </pre></div>
 
@@ -418,13 +418,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

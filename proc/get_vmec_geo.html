@@ -221,19 +221,19 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
       <li class="list-group-item">
   <ul class="list-inline">
     
-    <li><a href='../module/physics_flags.html'>physics_flags</a></li>
-    
     <li><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></li>
-    
-    <li><a href='../module/file_utils.html'>file_utils</a></li>
     
     <li><a href='../module/splines.html'>splines</a></li>
     
-    <li><a href='../module/common_types.html'>common_types</a></li>
+    <li><a href='../module/file_utils.html'>file_utils</a></li>
     
     <li><a href='../module/constants.html'>constants</a></li>
     
+    <li><a href='../module/common_types.html'>common_types</a></li>
+    
     <li><a href='../module/zgrid.html'>zgrid</a></li>
+    
+    <li><a href='../module/physics_flags.html'>physics_flags</a></li>
     
   </ul>
       </li>
@@ -265,7 +265,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-nzgrid~12"></span>integer,</td>
+  <td><span class="anchor" id="variable-nzgrid~11"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
@@ -280,7 +280,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-nalpha~4"></span>integer,</td>
+  <td><span class="anchor" id="variable-nalpha~7"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
@@ -295,7 +295,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-surf~3"></span>type(<a href='../type/flux_surface_type.html'>flux_surface_type</a>),</td>
+  <td><span class="anchor" id="variable-surf~2"></span>type(<a href='../type/flux_surface_type.html'>flux_surface_type</a>),</td>
   <td>intent(out)</td>
   <td></td>
   
@@ -310,11 +310,11 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-grho~8"></span>real,</td>
+  <td><span class="anchor" id="variable-grho"></span>real,</td>
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grho</strong></td><td></td>
   
 </tr>
@@ -325,11 +325,11 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-bmag~3"></span>real,</td>
+  <td><span class="anchor" id="variable-bmag"></span>real,</td>
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>bmag</strong></td><td></td>
   
 </tr>
@@ -344,7 +344,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (-nzgrid:)</td><td>::</td>
+  <td>dimension(-nzgrid:)</td><td>::</td>
   <td><strong>gradpar</strong></td><td></td>
   
 </tr>
@@ -359,7 +359,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grad_alpha_grad_alpha</strong></td><td></td>
   
 </tr>
@@ -374,7 +374,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grad_alpha_grad_psi</strong></td><td></td>
   
 </tr>
@@ -389,7 +389,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grad_psi_grad_psi</strong></td><td></td>
   
 </tr>
@@ -400,11 +400,11 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-gds23~2"></span>real,</td>
+  <td><span class="anchor" id="variable-gds23"></span>real,</td>
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds23</strong></td><td></td>
   
 </tr>
@@ -415,11 +415,11 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   
 <tr>
   
-  <td><span class="anchor" id="variable-gds24~2"></span>real,</td>
+  <td><span class="anchor" id="variable-gds24"></span>real,</td>
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds24</strong></td><td></td>
   
 </tr>
@@ -434,7 +434,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds25</strong></td><td></td>
   
 </tr>
@@ -449,7 +449,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds26</strong></td><td></td>
   
 </tr>
@@ -464,7 +464,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gbdrift_alpha</strong></td><td></td>
   
 </tr>
@@ -479,7 +479,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gbdrift0_psi</strong></td><td></td>
   
 </tr>
@@ -494,7 +494,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>cvdrift_alpha</strong></td><td></td>
   
 </tr>
@@ -509,7 +509,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>cvdrift0_psi</strong></td><td></td>
   
 </tr>
@@ -539,7 +539,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>theta_vmec</strong></td><td></td>
   
 </tr>
@@ -599,7 +599,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>alpha</strong></td><td></td>
   
 </tr>
@@ -614,7 +614,7 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>zeta</strong></td><td></td>
   
 </tr>
@@ -704,13 +704,13 @@ public subroutine get_vmec_geo(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_a
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

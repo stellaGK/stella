@@ -238,7 +238,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
 <p>Input parameters</p>
 <hr>
 <hr>
-<p>Determine which flux surface to use, based on 
+<p>Determine which flux surface to use, based on
  desired_normalized_toroidal_flux and vmec_surface_option.</p>
 <hr>
 <hr>
@@ -260,8 +260,8 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
  all the geometric quantities on the grid points.</p>
 <hr>
 <hr>
-<p>Sanity check: If the conversion to theta_pest has been done 
- correctly, we should find that 
+<p>Sanity check: If the conversion to theta_pest has been done
+ correctly, we should find that
  (B dot grad theta_pest) / (B dot grad zeta) = iota.
  Let's verify this:</p>
 <hr>
@@ -277,7 +277,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
  cross product of the basis vectors.</p>
 <hr>
 <hr>
-<p>Sanity tests: Verify that 
+<p>Sanity tests: Verify that
  \vec{B} dot (each of the covariant and contravariant basis vectors)
  matches the corresponding term from VMEC.</p>
 <hr>
@@ -544,7 +544,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>alpha</strong></td><td></td>
   
 </tr>
@@ -559,7 +559,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (-nzgrid:)</td><td>::</td>
+  <td>dimension(-nzgrid:)</td><td>::</td>
   <td><strong>zeta</strong></td><td></td>
   
 </tr>
@@ -574,7 +574,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>bmag</strong></td><td></td>
   
 </tr>
@@ -589,7 +589,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gradpar_zeta</strong></td><td></td>
   
 </tr>
@@ -604,7 +604,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grad_alpha_grad_alpha</strong></td><td></td>
   
 </tr>
@@ -619,7 +619,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grad_alpha_grad_psi</strong></td><td></td>
   
 </tr>
@@ -634,7 +634,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grad_psi_grad_psi</strong></td><td></td>
   
 </tr>
@@ -649,7 +649,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds23</strong></td><td></td>
   
 </tr>
@@ -664,7 +664,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds24</strong></td><td></td>
   
 </tr>
@@ -679,7 +679,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds25</strong></td><td></td>
   
 </tr>
@@ -694,7 +694,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds26</strong></td><td></td>
   
 </tr>
@@ -709,7 +709,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gbdrift_alpha</strong></td><td></td>
   
 </tr>
@@ -724,7 +724,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gbdrift0_psi</strong></td><td></td>
   
 </tr>
@@ -739,7 +739,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>cvdrift_alpha</strong></td><td></td>
   
 </tr>
@@ -754,7 +754,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>cvdrift0_psi</strong></td><td></td>
   
 </tr>
@@ -769,7 +769,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>theta_vmec</strong></td><td></td>
   
 </tr>
@@ -784,7 +784,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>B_sub_zeta</strong></td><td><hr>
 <p>Variables used internally by this subroutine</p>
 <hr></td>
@@ -801,7 +801,7 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,-nzgrid:)</td><td>::</td>
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>B_sub_theta_vmec</strong></td><td><hr>
 <p>Variables used internally by this subroutine</p>
 <hr></td>
@@ -878,13 +878,13 @@ public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

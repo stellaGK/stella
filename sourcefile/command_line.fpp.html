@@ -277,84 +277,84 @@
 <a name="ln-2"></a>
 <a name="ln-3"></a><span class="k">module </span><span class="n">command_line</span>
 <a name="ln-4"></a>
-<a name="ln-5"></a>  <span class="c">! (c) Copyright 1991 to 1998 by Michael A. Beer, William D. Dorland, </span>
-<a name="ln-6"></a>  <span class="c">! P. B. Snyder, Q. P. Liu, and Gregory W. Hammett. ALL RIGHTS RESERVED.</span>
-<a name="ln-7"></a>  <span class="c">!</span>
-<a name="ln-8"></a>  <span class="c">! &lt;doc&gt;</span>
-<a name="ln-9"></a>  <span class="c">!  A wrapper module for handling command line arguments.</span>
-<a name="ln-10"></a>  <span class="c">!  This module provides subroutine cl_getarg and integer function cl_iargc.</span>
-<a name="ln-11"></a>  <span class="c">!  Most of the compilers have getarg and iargc as their extensions.</span>
-<a name="ln-12"></a>  <span class="c">!  If not, one can use POSIX pxfgetarg and ipxfargc.</span>
-<a name="ln-13"></a>  <span class="c">!</span>
-<a name="ln-14"></a>  <span class="c">!  Note that Fortran 2003 includes get_command_argument and </span>
-<a name="ln-15"></a>  <span class="c">!  command_argument_count which will replace getarg and iargc.</span>
-<a name="ln-16"></a>  <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-5"></a>   <span class="c">! (c) Copyright 1991 to 1998 by Michael A. Beer, William D. Dorland,</span>
+<a name="ln-6"></a>   <span class="c">! P. B. Snyder, Q. P. Liu, and Gregory W. Hammett. ALL RIGHTS RESERVED.</span>
+<a name="ln-7"></a>   <span class="c">!</span>
+<a name="ln-8"></a>   <span class="c">! &lt;doc&gt;</span>
+<a name="ln-9"></a>   <span class="c">!  A wrapper module for handling command line arguments.</span>
+<a name="ln-10"></a>   <span class="c">!  This module provides subroutine cl_getarg and integer function cl_iargc.</span>
+<a name="ln-11"></a>   <span class="c">!  Most of the compilers have getarg and iargc as their extensions.</span>
+<a name="ln-12"></a>   <span class="c">!  If not, one can use POSIX pxfgetarg and ipxfargc.</span>
+<a name="ln-13"></a>   <span class="c">!</span>
+<a name="ln-14"></a>   <span class="c">!  Note that Fortran 2003 includes get_command_argument and</span>
+<a name="ln-15"></a>   <span class="c">!  command_argument_count which will replace getarg and iargc.</span>
+<a name="ln-16"></a>   <span class="c">! &lt;/doc&gt;</span>
 <a name="ln-17"></a>
-<a name="ln-18"></a>  <span class="k">implicit none</span>
+<a name="ln-18"></a>   <span class="k">implicit none</span>
 <a name="ln-19"></a>
-<a name="ln-20"></a><span class="k">  private</span>
+<a name="ln-20"></a><span class="k">   private</span>
 <a name="ln-21"></a>
-<a name="ln-22"></a><span class="k">  public</span> <span class="kd">::</span> <span class="n">cl_getarg</span><span class="p">,</span> <span class="n">cl_iargc</span>
+<a name="ln-22"></a><span class="k">   public</span> <span class="kd">::</span> <span class="n">cl_getarg</span><span class="p">,</span> <span class="n">cl_iargc</span>
 <a name="ln-23"></a>
 <a name="ln-24"></a><span class="k">contains</span>
 <a name="ln-25"></a>
-<a name="ln-26"></a><span class="k">  function </span><span class="n">cl_iargc</span><span class="p">()</span>
+<a name="ln-26"></a><span class="k">   function </span><span class="n">cl_iargc</span><span class="p">()</span>
 <a name="ln-27"></a>
-<a name="ln-28"></a>    <span class="c">! &lt;doc&gt;</span>
-<a name="ln-29"></a>    <span class="c">!  returns the number of arguments</span>
-<a name="ln-30"></a>    <span class="c">!  using intrinsic iargc or POSIX ipxfargc</span>
-<a name="ln-31"></a>    <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-28"></a>      <span class="c">! &lt;doc&gt;</span>
+<a name="ln-29"></a>      <span class="c">!  returns the number of arguments</span>
+<a name="ln-30"></a>      <span class="c">!  using intrinsic iargc or POSIX ipxfargc</span>
+<a name="ln-31"></a>      <span class="c">! &lt;/doc&gt;</span>
 <a name="ln-32"></a>
 <a name="ln-33"></a><span class="cp"># ifdef POSIX</span>
 <a name="ln-34"></a><span class="cp"># if FCOMPILER == _INTEL_</span>
-<a name="ln-35"></a>    <span class="k">use </span><span class="n">ifposix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="nb">iargc</span> <span class="o">=&gt;</span> <span class="n">ipxfargc</span>
+<a name="ln-35"></a>      <span class="k">use </span><span class="n">ifposix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="nb">iargc</span> <span class="o">=&gt;</span> <span class="n">ipxfargc</span>
 <a name="ln-36"></a><span class="cp"># endif</span>
 <a name="ln-37"></a><span class="cp"># else</span>
 <a name="ln-38"></a><span class="cp"># if FCOMPILER == _NAG_</span>
-<a name="ln-39"></a>    <span class="k">use </span><span class="n">f90_unix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="nb">iargc</span>
+<a name="ln-39"></a>      <span class="k">use </span><span class="n">f90_unix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="nb">iargc</span>
 <a name="ln-40"></a><span class="cp"># endif</span>
 <a name="ln-41"></a><span class="cp"># endif</span>
 <a name="ln-42"></a>
-<a name="ln-43"></a>    <span class="k">implicit none</span>
-<a name="ln-44"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">cl_iargc</span>
+<a name="ln-43"></a>      <span class="k">implicit none</span>
+<a name="ln-44"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">cl_iargc</span>
 <a name="ln-45"></a><span class="cp"># if ( POSIX == _NONE_ &amp;&amp; FCOMPILER != _NAG_ )</span>
-<a name="ln-46"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="nb">iargc</span>
+<a name="ln-46"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="nb">iargc</span>
 <a name="ln-47"></a><span class="cp"># endif</span>
 <a name="ln-48"></a>
-<a name="ln-49"></a>    <span class="n">cl_iargc</span> <span class="o">=</span> <span class="nb">iargc</span><span class="p">()</span>
+<a name="ln-49"></a>      <span class="n">cl_iargc</span> <span class="o">=</span> <span class="nb">iargc</span><span class="p">()</span>
 <a name="ln-50"></a>
-<a name="ln-51"></a>  <span class="k">end function </span><span class="n">cl_iargc</span>
+<a name="ln-51"></a>   <span class="k">end function </span><span class="n">cl_iargc</span>
 <a name="ln-52"></a>
-<a name="ln-53"></a>  <span class="k">subroutine </span><span class="n">cl_getarg</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
-<a name="ln-54"></a>    
-<a name="ln-55"></a>    <span class="c">! &lt;doc&gt;</span>
-<a name="ln-56"></a>    <span class="c">!  gets k-th argument string and its length</span>
-<a name="ln-57"></a>    <span class="c">!  using intrinsic getarg or POSIX pxfgetarg</span>
-<a name="ln-58"></a>    <span class="c">! &lt;/doc&gt;</span>
+<a name="ln-53"></a>   <span class="k">subroutine </span><span class="n">cl_getarg</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+<a name="ln-54"></a>
+<a name="ln-55"></a>      <span class="c">! &lt;doc&gt;</span>
+<a name="ln-56"></a>      <span class="c">!  gets k-th argument string and its length</span>
+<a name="ln-57"></a>      <span class="c">!  using intrinsic getarg or POSIX pxfgetarg</span>
+<a name="ln-58"></a>      <span class="c">! &lt;/doc&gt;</span>
 <a name="ln-59"></a>
 <a name="ln-60"></a><span class="cp"># ifdef POSIX</span>
-<a name="ln-61"></a>    <span class="k">use </span><span class="n">ifposix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">pxfgetarg</span>
+<a name="ln-61"></a>      <span class="k">use </span><span class="n">ifposix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">pxfgetarg</span>
 <a name="ln-62"></a><span class="cp"># else</span>
 <a name="ln-63"></a><span class="cp"># if FCOMPILER == _NAG_</span>
-<a name="ln-64"></a>    <span class="k">use </span><span class="n">f90_unix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="nb">getarg</span>
+<a name="ln-64"></a>      <span class="k">use </span><span class="n">f90_unix</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="nb">getarg</span>
 <a name="ln-65"></a><span class="cp"># endif</span>
 <a name="ln-66"></a><span class="cp"># endif</span>
 <a name="ln-67"></a>
-<a name="ln-68"></a>    <span class="k">implicit none</span>
-<a name="ln-69"></a><span class="k">    </span><span class="kt">integer</span><span class="p">,</span>           <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">k</span>
-<a name="ln-70"></a>    <span class="kt">character</span> <span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">arg</span>
-<a name="ln-71"></a>    <span class="kt">integer</span><span class="p">,</span>           <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">len</span>
-<a name="ln-72"></a><span class="nb">    </span><span class="kt">integer</span><span class="p">,</span>           <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ierr</span>
+<a name="ln-68"></a>      <span class="k">implicit none</span>
+<a name="ln-69"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">k</span>
+<a name="ln-70"></a>      <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">arg</span>
+<a name="ln-71"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">len</span>
+<a name="ln-72"></a><span class="nb">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ierr</span>
 <a name="ln-73"></a>
 <a name="ln-74"></a><span class="cp"># ifdef POSIX</span>
-<a name="ln-75"></a>    <span class="k">call </span><span class="n">pxfgetarg</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+<a name="ln-75"></a>      <span class="k">call </span><span class="n">pxfgetarg</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-76"></a><span class="cp"># else</span>
-<a name="ln-77"></a>    <span class="k">call </span><span class="nb">getarg</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">arg</span><span class="p">)</span>
-<a name="ln-78"></a>    <span class="nb">len</span> <span class="o">=</span> <span class="nb">len_trim</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
-<a name="ln-79"></a>    <span class="n">ierr</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-77"></a>      <span class="k">call </span><span class="nb">getarg</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">arg</span><span class="p">)</span>
+<a name="ln-78"></a>      <span class="nb">len</span> <span class="o">=</span> <span class="nb">len_trim</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<a name="ln-79"></a>      <span class="n">ierr</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-80"></a><span class="cp"># endif</span>
 <a name="ln-81"></a>
-<a name="ln-82"></a>  <span class="k">end subroutine </span><span class="n">cl_getarg</span>
+<a name="ln-82"></a>   <span class="k">end subroutine </span><span class="n">cl_getarg</span>
 <a name="ln-83"></a>
 <a name="ln-84"></a><span class="k">end module </span><span class="n">command_line</span>
 </pre></div>
@@ -370,13 +370,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

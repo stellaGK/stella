@@ -275,101 +275,101 @@
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">module </span><span class="n">fft_work</span>
 <a name="ln-2"></a>
-<a name="ln-3"></a>  <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">kind_id</span>
+<a name="ln-3"></a>   <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">kind_id</span>
 <a name="ln-4"></a>
-<a name="ln-5"></a>  <span class="k">implicit none</span>
+<a name="ln-5"></a>   <span class="k">implicit none</span>
 <a name="ln-6"></a>
-<a name="ln-7"></a><span class="k">  include</span> <span class="s2">&quot;fftw3.f&quot;</span>
+<a name="ln-7"></a><span class="k">   include</span> <span class="s2">&quot;fftw3.f&quot;</span>
 <a name="ln-8"></a>
-<a name="ln-9"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">fft_type</span><span class="p">,</span> <span class="n">delete_fft</span>
-<a name="ln-10"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">init_ccfftw</span><span class="p">,</span> <span class="n">init_crfftw</span><span class="p">,</span> <span class="n">init_rcfftw</span>
-<a name="ln-11"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">FFT_BACKWARD</span><span class="p">,</span> <span class="n">FFT_FORWARD</span>
+<a name="ln-9"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">fft_type</span><span class="p">,</span> <span class="n">delete_fft</span>
+<a name="ln-10"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">init_ccfftw</span><span class="p">,</span> <span class="n">init_crfftw</span><span class="p">,</span> <span class="n">init_rcfftw</span>
+<a name="ln-11"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">FFT_BACKWARD</span><span class="p">,</span> <span class="n">FFT_FORWARD</span>
 <a name="ln-12"></a>
-<a name="ln-13"></a>  <span class="k">private</span>
+<a name="ln-13"></a>   <span class="k">private</span>
 <a name="ln-14"></a>
-<a name="ln-15"></a><span class="k">  </span><span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">FFT_BACKWARD</span> <span class="o">=</span> <span class="n">FFTW_BACKWARD</span>
-<a name="ln-16"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">FFT_FORWARD</span>  <span class="o">=</span> <span class="n">FFTW_FORWARD</span>
+<a name="ln-15"></a><span class="k">   </span><span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">FFT_BACKWARD</span> <span class="o">=</span> <span class="n">FFTW_BACKWARD</span>
+<a name="ln-16"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">FFT_FORWARD</span> <span class="o">=</span> <span class="n">FFTW_FORWARD</span>
 <a name="ln-17"></a>
-<a name="ln-18"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">fft_type</span>
-<a name="ln-19"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">n</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="k">type</span>
-<a name="ln-20"></a><span class="k">     </span><span class="kt">integer</span> <span class="p">(</span><span class="n">kind_id</span><span class="p">)</span> <span class="kd">::</span> <span class="n">plan</span>
-<a name="ln-21"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="nb">scale</span>
-<a name="ln-22"></a><span class="nb">  </span><span class="k">end type </span><span class="n">fft_type</span>
+<a name="ln-18"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">fft_type</span>
+<a name="ln-19"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">n</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="k">type</span>
+<a name="ln-20"></a><span class="k">      </span><span class="kt">integer</span><span class="p">(</span><span class="n">kind_id</span><span class="p">)</span> <span class="kd">::</span> <span class="n">plan</span>
+<a name="ln-21"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="nb">scale</span>
+<a name="ln-22"></a><span class="nb">   </span><span class="k">end type </span><span class="n">fft_type</span>
 <a name="ln-23"></a>
 <a name="ln-24"></a><span class="k">contains</span>
 <a name="ln-25"></a>
-<a name="ln-26"></a><span class="k">  subroutine </span><span class="n">init_ccfftw</span> <span class="p">(</span><span class="n">fft</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">)</span>
+<a name="ln-26"></a><span class="k">   subroutine </span><span class="n">init_ccfftw</span><span class="p">(</span><span class="n">fft</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">)</span>
 <a name="ln-27"></a>
-<a name="ln-28"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">mp_abort</span>
+<a name="ln-28"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">mp_abort</span>
 <a name="ln-29"></a>
-<a name="ln-30"></a>    <span class="k">type</span> <span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
-<a name="ln-31"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span>
-<a name="ln-32"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span>
+<a name="ln-30"></a>      <span class="k">type</span><span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
+<a name="ln-31"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span>
+<a name="ln-32"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span>
 <a name="ln-33"></a>
-<a name="ln-34"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span>
-<a name="ln-35"></a>    
-<a name="ln-36"></a>    <span class="n">fft</span><span class="p">%</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
-<a name="ln-37"></a>    <span class="n">fft</span><span class="p">%</span><span class="k">is</span> <span class="o">=</span> <span class="k">is</span>
-<a name="ln-38"></a><span class="k">    </span><span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-<a name="ln-39"></a>    <span class="k">if</span> <span class="p">(</span><span class="k">is</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span>
-<a name="ln-40"></a>    <span class="n">fft</span><span class="p">%</span><span class="k">type</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-34"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span>
+<a name="ln-35"></a>
+<a name="ln-36"></a>      <span class="n">fft</span><span class="p">%</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+<a name="ln-37"></a>      <span class="n">fft</span><span class="p">%</span><span class="k">is</span> <span class="o">=</span> <span class="k">is</span>
+<a name="ln-38"></a><span class="k">      </span><span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a name="ln-39"></a>      <span class="k">if</span> <span class="p">(</span><span class="k">is</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span>
+<a name="ln-40"></a>      <span class="n">fft</span><span class="p">%</span><span class="k">type</span> <span class="o">=</span> <span class="mi">1</span>
 <a name="ln-41"></a>
-<a name="ln-42"></a>    <span class="n">j</span> <span class="o">=</span> <span class="n">FFTW_PATIENT</span>
-<a name="ln-43"></a>    <span class="k">call </span><span class="n">dfftw_plan_dft_1d</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+<a name="ln-42"></a>      <span class="n">j</span> <span class="o">=</span> <span class="n">FFTW_PATIENT</span>
+<a name="ln-43"></a>      <span class="k">call </span><span class="n">dfftw_plan_dft_1d</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
 <a name="ln-44"></a>
-<a name="ln-45"></a>  <span class="k">end subroutine </span><span class="n">init_ccfftw</span>
+<a name="ln-45"></a>   <span class="k">end subroutine </span><span class="n">init_ccfftw</span>
 <a name="ln-46"></a>
-<a name="ln-47"></a>  <span class="k">subroutine </span><span class="n">init_crfftw</span> <span class="p">(</span><span class="n">fft</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">)</span>
+<a name="ln-47"></a>   <span class="k">subroutine </span><span class="n">init_crfftw</span><span class="p">(</span><span class="n">fft</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">)</span>
 <a name="ln-48"></a>
-<a name="ln-49"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">mp_abort</span>
+<a name="ln-49"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">mp_abort</span>
 <a name="ln-50"></a>
-<a name="ln-51"></a>    <span class="k">type</span> <span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
-<a name="ln-52"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span>
-<a name="ln-53"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_in</span>
-<a name="ln-54"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_out</span>
+<a name="ln-51"></a>      <span class="k">type</span><span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
+<a name="ln-52"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span>
+<a name="ln-53"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_in</span>
+<a name="ln-54"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_out</span>
 <a name="ln-55"></a>
-<a name="ln-56"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span>
-<a name="ln-57"></a>    
-<a name="ln-58"></a>    <span class="n">fft</span><span class="p">%</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
-<a name="ln-59"></a>    <span class="n">fft</span><span class="p">%</span><span class="k">is</span> <span class="o">=</span> <span class="k">is</span>
-<a name="ln-60"></a><span class="k">    </span><span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-<a name="ln-61"></a>    <span class="k">if</span> <span class="p">(</span><span class="k">is</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span>
-<a name="ln-62"></a>    <span class="n">fft</span><span class="p">%</span><span class="k">type</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-63"></a>    
-<a name="ln-64"></a>    <span class="n">j</span> <span class="o">=</span> <span class="n">FFTW_PATIENT</span>
-<a name="ln-65"></a>    <span class="k">call </span><span class="n">dfftw_plan_dft_c2r_1d</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+<a name="ln-56"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span>
+<a name="ln-57"></a>
+<a name="ln-58"></a>      <span class="n">fft</span><span class="p">%</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+<a name="ln-59"></a>      <span class="n">fft</span><span class="p">%</span><span class="k">is</span> <span class="o">=</span> <span class="k">is</span>
+<a name="ln-60"></a><span class="k">      </span><span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a name="ln-61"></a>      <span class="k">if</span> <span class="p">(</span><span class="k">is</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span>
+<a name="ln-62"></a>      <span class="n">fft</span><span class="p">%</span><span class="k">type</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-63"></a>
+<a name="ln-64"></a>      <span class="n">j</span> <span class="o">=</span> <span class="n">FFTW_PATIENT</span>
+<a name="ln-65"></a>      <span class="k">call </span><span class="n">dfftw_plan_dft_c2r_1d</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
 <a name="ln-66"></a>
-<a name="ln-67"></a>  <span class="k">end subroutine </span><span class="n">init_crfftw</span>
+<a name="ln-67"></a>   <span class="k">end subroutine </span><span class="n">init_crfftw</span>
 <a name="ln-68"></a>
-<a name="ln-69"></a>  <span class="k">subroutine </span><span class="n">init_rcfftw</span> <span class="p">(</span><span class="n">fft</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">)</span>
+<a name="ln-69"></a>   <span class="k">subroutine </span><span class="n">init_rcfftw</span><span class="p">(</span><span class="n">fft</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">)</span>
 <a name="ln-70"></a>
-<a name="ln-71"></a>    <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">mp_abort</span>
+<a name="ln-71"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">mp_abort</span>
 <a name="ln-72"></a>
-<a name="ln-73"></a>    <span class="k">type</span> <span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
-<a name="ln-74"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span>
-<a name="ln-75"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_in</span>
-<a name="ln-76"></a>    <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_out</span>
+<a name="ln-73"></a>      <span class="k">type</span><span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
+<a name="ln-74"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="k">is</span><span class="p">,</span> <span class="n">n</span>
+<a name="ln-75"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_in</span>
+<a name="ln-76"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">data_out</span>
 <a name="ln-77"></a>
-<a name="ln-78"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span>
-<a name="ln-79"></a>    
-<a name="ln-80"></a>    <span class="n">fft</span><span class="p">%</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
-<a name="ln-81"></a>    <span class="n">fft</span><span class="p">%</span><span class="k">is</span> <span class="o">=</span> <span class="k">is</span>
-<a name="ln-82"></a><span class="k">    </span><span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-<a name="ln-83"></a>    <span class="k">if</span> <span class="p">(</span><span class="k">is</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span>
-<a name="ln-84"></a>    <span class="n">fft</span><span class="p">%</span><span class="k">type</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-85"></a>    
-<a name="ln-86"></a>    <span class="n">j</span> <span class="o">=</span> <span class="n">FFTW_PATIENT</span>
-<a name="ln-87"></a>    <span class="k">call </span><span class="n">dfftw_plan_dft_r2c_1d</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+<a name="ln-78"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">j</span>
+<a name="ln-79"></a>
+<a name="ln-80"></a>      <span class="n">fft</span><span class="p">%</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+<a name="ln-81"></a>      <span class="n">fft</span><span class="p">%</span><span class="k">is</span> <span class="o">=</span> <span class="k">is</span>
+<a name="ln-82"></a><span class="k">      </span><span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a name="ln-83"></a>      <span class="k">if</span> <span class="p">(</span><span class="k">is</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">fft</span><span class="p">%</span><span class="nb">scale</span> <span class="o">=</span> <span class="mf">1.</span>
+<a name="ln-84"></a>      <span class="n">fft</span><span class="p">%</span><span class="k">type</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-85"></a>
+<a name="ln-86"></a>      <span class="n">j</span> <span class="o">=</span> <span class="n">FFTW_PATIENT</span>
+<a name="ln-87"></a>      <span class="k">call </span><span class="n">dfftw_plan_dft_r2c_1d</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
 <a name="ln-88"></a>
-<a name="ln-89"></a>  <span class="k">end subroutine </span><span class="n">init_rcfftw</span>
+<a name="ln-89"></a>   <span class="k">end subroutine </span><span class="n">init_rcfftw</span>
 <a name="ln-90"></a>
-<a name="ln-91"></a>  <span class="k">subroutine </span><span class="n">delete_fft</span><span class="p">(</span><span class="n">fft</span><span class="p">)</span>
-<a name="ln-92"></a>    
-<a name="ln-93"></a>    <span class="k">type</span> <span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
+<a name="ln-91"></a>   <span class="k">subroutine </span><span class="n">delete_fft</span><span class="p">(</span><span class="n">fft</span><span class="p">)</span>
+<a name="ln-92"></a>
+<a name="ln-93"></a>      <span class="k">type</span><span class="p">(</span><span class="n">fft_type</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fft</span>
 <a name="ln-94"></a>
-<a name="ln-95"></a>    <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-95"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
 <a name="ln-96"></a>
-<a name="ln-97"></a>  <span class="k">end subroutine </span><span class="n">delete_fft</span>
+<a name="ln-97"></a>   <span class="k">end subroutine </span><span class="n">delete_fft</span>
 <a name="ln-98"></a>
 <a name="ln-99"></a><span class="k">end module </span><span class="n">fft_work</span>
 </pre></div>
@@ -385,13 +385,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

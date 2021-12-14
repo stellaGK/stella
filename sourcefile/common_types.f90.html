@@ -275,100 +275,100 @@
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">module </span><span class="n">common_types</span>
 <a name="ln-2"></a>
-<a name="ln-3"></a>  <span class="k">implicit none</span>
-<a name="ln-4"></a><span class="k">  </span>
-<a name="ln-5"></a><span class="k">  type</span> <span class="kd">::</span> <span class="n">kxkyz_layout_type</span>
-<a name="ln-6"></a>     <span class="k">sequence</span>
-<a name="ln-7"></a><span class="k">     </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
-<a name="ln-8"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
-<a name="ln-9"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
-<a name="ln-10"></a>  <span class="k">end type </span><span class="n">kxkyz_layout_type</span>
-<a name="ln-11"></a>  
-<a name="ln-12"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">kxyz_layout_type</span>
-<a name="ln-13"></a>     <span class="k">sequence</span>
-<a name="ln-14"></a><span class="k">     </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
-<a name="ln-15"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
-<a name="ln-16"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
-<a name="ln-17"></a>  <span class="k">end type </span><span class="n">kxyz_layout_type</span>
+<a name="ln-3"></a>   <span class="k">implicit none</span>
+<a name="ln-4"></a>
+<a name="ln-5"></a><span class="k">   type</span> <span class="kd">::</span> <span class="n">kxkyz_layout_type</span>
+<a name="ln-6"></a>      <span class="k">sequence</span>
+<a name="ln-7"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
+<a name="ln-8"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
+<a name="ln-9"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
+<a name="ln-10"></a>   <span class="k">end type </span><span class="n">kxkyz_layout_type</span>
+<a name="ln-11"></a>
+<a name="ln-12"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">kxyz_layout_type</span>
+<a name="ln-13"></a>      <span class="k">sequence</span>
+<a name="ln-14"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
+<a name="ln-15"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
+<a name="ln-16"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
+<a name="ln-17"></a>   <span class="k">end type </span><span class="n">kxyz_layout_type</span>
 <a name="ln-18"></a>
-<a name="ln-19"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">xyz_layout_type</span>
-<a name="ln-20"></a>     <span class="k">sequence</span>
-<a name="ln-21"></a><span class="k">     </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
-<a name="ln-22"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
-<a name="ln-23"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
-<a name="ln-24"></a>  <span class="k">end type </span><span class="n">xyz_layout_type</span>
-<a name="ln-25"></a>  
-<a name="ln-26"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">vmu_layout_type</span>
-<a name="ln-27"></a>     <span class="k">sequence</span>
-<a name="ln-28"></a><span class="k">     </span><span class="kt">logical</span> <span class="kd">::</span> <span class="n">xyz</span>
-<a name="ln-29"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
-<a name="ln-30"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">nalpha</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
-<a name="ln-31"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
-<a name="ln-32"></a>  <span class="k">end type </span><span class="n">vmu_layout_type</span>
+<a name="ln-19"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">xyz_layout_type</span>
+<a name="ln-20"></a>      <span class="k">sequence</span>
+<a name="ln-21"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
+<a name="ln-22"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
+<a name="ln-23"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
+<a name="ln-24"></a>   <span class="k">end type </span><span class="n">xyz_layout_type</span>
+<a name="ln-25"></a>
+<a name="ln-26"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">vmu_layout_type</span>
+<a name="ln-27"></a>      <span class="k">sequence</span>
+<a name="ln-28"></a><span class="k">      </span><span class="kt">logical</span> <span class="kd">::</span> <span class="n">xyz</span>
+<a name="ln-29"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iproc</span>
+<a name="ln-30"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzed</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">,</span> <span class="n">nalpha</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">nvgrid</span><span class="p">,</span> <span class="n">nvpa</span><span class="p">,</span> <span class="n">nmu</span><span class="p">,</span> <span class="n">nspec</span>
+<a name="ln-31"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">llim_world</span><span class="p">,</span> <span class="n">ulim_world</span><span class="p">,</span> <span class="n">llim_proc</span><span class="p">,</span> <span class="n">ulim_proc</span><span class="p">,</span> <span class="n">ulim_alloc</span><span class="p">,</span> <span class="n">blocksize</span>
+<a name="ln-32"></a>   <span class="k">end type </span><span class="n">vmu_layout_type</span>
 <a name="ln-33"></a>
-<a name="ln-34"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">flux_surface_type</span>
-<a name="ln-35"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">rmaj</span>
-<a name="ln-36"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">rgeo</span>
-<a name="ln-37"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">kappa</span>
-<a name="ln-38"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">kapprim</span>
-<a name="ln-39"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">tri</span>
-<a name="ln-40"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">triprim</span>
-<a name="ln-41"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">rhoc</span>
-<a name="ln-42"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">dr</span>
-<a name="ln-43"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">shift</span>
-<a name="ln-44"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">qinp</span>
-<a name="ln-45"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">shat</span>
-<a name="ln-46"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">betaprim</span>
-<a name="ln-47"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">betadbprim</span>
-<a name="ln-48"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2qdr2</span>
-<a name="ln-49"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2psidr2</span>
-<a name="ln-50"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">dpsitordrho</span>
-<a name="ln-51"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2psitordrho2</span>
-<a name="ln-52"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">rhotor</span>
-<a name="ln-53"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">drhotordrho</span>
-<a name="ln-54"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">psitor_lcfs</span>
-<a name="ln-55"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">zed0_fac</span>
+<a name="ln-34"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">flux_surface_type</span>
+<a name="ln-35"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">rmaj</span>
+<a name="ln-36"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">rgeo</span>
+<a name="ln-37"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">kappa</span>
+<a name="ln-38"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">kapprim</span>
+<a name="ln-39"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">tri</span>
+<a name="ln-40"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">triprim</span>
+<a name="ln-41"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">rhoc</span>
+<a name="ln-42"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">dr</span>
+<a name="ln-43"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">shift</span>
+<a name="ln-44"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">qinp</span>
+<a name="ln-45"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">shat</span>
+<a name="ln-46"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">betaprim</span>
+<a name="ln-47"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">betadbprim</span>
+<a name="ln-48"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2qdr2</span>
+<a name="ln-49"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2psidr2</span>
+<a name="ln-50"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">dpsitordrho</span>
+<a name="ln-51"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2psitordrho2</span>
+<a name="ln-52"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">rhotor</span>
+<a name="ln-53"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">drhotordrho</span>
+<a name="ln-54"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">psitor_lcfs</span>
+<a name="ln-55"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">zed0_fac</span>
 <a name="ln-56"></a>
-<a name="ln-57"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">rhoc_psi0</span>
-<a name="ln-58"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">qinp_psi0</span>
-<a name="ln-59"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">shat_psi0</span>
-<a name="ln-60"></a>  <span class="k">end type </span><span class="n">flux_surface_type</span>
-<a name="ln-61"></a>  
-<a name="ln-62"></a>  <span class="k">type </span><span class="n">spec_type</span>
-<a name="ln-63"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nspec</span>
-<a name="ln-64"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">z</span>
-<a name="ln-65"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">mass</span>
-<a name="ln-66"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">dens</span><span class="p">,</span> <span class="n">temp</span>
-<a name="ln-67"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">tprim</span><span class="p">,</span> <span class="n">fprim</span>
-<a name="ln-68"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">vnew_ref</span>
-<a name="ln-69"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">stm</span><span class="p">,</span> <span class="n">zstm</span><span class="p">,</span> <span class="n">tz</span><span class="p">,</span> <span class="n">smz</span><span class="p">,</span> <span class="n">zt</span>
-<a name="ln-70"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2ndr2</span><span class="p">,</span> <span class="n">d2Tdr2</span>
-<a name="ln-71"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">bess_fac</span> <span class="c">! 0 for argument of Bessel Functions equal to 0</span>
-<a name="ln-72"></a>     <span class="c">! pre-2003 Fortran does not support</span>
-<a name="ln-73"></a>     <span class="c">! allocatable arrays within derived types</span>
-<a name="ln-74"></a>     <span class="c">! so set size large enough that it should be a problem</span>
-<a name="ln-75"></a>     <span class="c">! should be nspec large</span>
-<a name="ln-76"></a>     <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="kd">::</span> <span class="n">vnew</span>
-<a name="ln-77"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="k">type</span>
-<a name="ln-78"></a>     
-<a name="ln-79"></a>     <span class="c">!the next few variables are for multibox simulations</span>
-<a name="ln-80"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">dens_psi0</span><span class="p">,</span> <span class="n">temp_psi0</span>
-<a name="ln-81"></a>     <span class="kt">real</span> <span class="kd">::</span> <span class="n">stm_psi0</span><span class="p">,</span> <span class="n">zstm_psi0</span><span class="p">,</span> <span class="n">tz_psi0</span><span class="p">,</span> <span class="n">smz_psi0</span><span class="p">,</span> <span class="n">zt_psi0</span>
-<a name="ln-82"></a>  <span class="k">end type </span><span class="n">spec_type</span>
+<a name="ln-57"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">rhoc_psi0</span>
+<a name="ln-58"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">qinp_psi0</span>
+<a name="ln-59"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">shat_psi0</span>
+<a name="ln-60"></a>   <span class="k">end type </span><span class="n">flux_surface_type</span>
+<a name="ln-61"></a>
+<a name="ln-62"></a>   <span class="k">type </span><span class="n">spec_type</span>
+<a name="ln-63"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nspec</span>
+<a name="ln-64"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">z</span>
+<a name="ln-65"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">mass</span>
+<a name="ln-66"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">dens</span><span class="p">,</span> <span class="n">temp</span>
+<a name="ln-67"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">tprim</span><span class="p">,</span> <span class="n">fprim</span>
+<a name="ln-68"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">vnew_ref</span>
+<a name="ln-69"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">stm</span><span class="p">,</span> <span class="n">zstm</span><span class="p">,</span> <span class="n">tz</span><span class="p">,</span> <span class="n">smz</span><span class="p">,</span> <span class="n">zt</span>
+<a name="ln-70"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">d2ndr2</span><span class="p">,</span> <span class="n">d2Tdr2</span>
+<a name="ln-71"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">bess_fac</span> <span class="c">! 0 for argument of Bessel Functions equal to 0</span>
+<a name="ln-72"></a>      <span class="c">! pre-2003 Fortran does not support</span>
+<a name="ln-73"></a>      <span class="c">! allocatable arrays within derived types</span>
+<a name="ln-74"></a>      <span class="c">! so set size large enough that it should be a problem</span>
+<a name="ln-75"></a>      <span class="c">! should be nspec large</span>
+<a name="ln-76"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="kd">::</span> <span class="n">vnew</span>
+<a name="ln-77"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="k">type</span>
+<a name="ln-78"></a>
+<a name="ln-79"></a>      <span class="c">!the next few variables are for multibox simulations</span>
+<a name="ln-80"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">dens_psi0</span><span class="p">,</span> <span class="n">temp_psi0</span>
+<a name="ln-81"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">stm_psi0</span><span class="p">,</span> <span class="n">zstm_psi0</span><span class="p">,</span> <span class="n">tz_psi0</span><span class="p">,</span> <span class="n">smz_psi0</span><span class="p">,</span> <span class="n">zt_psi0</span>
+<a name="ln-82"></a>   <span class="k">end type </span><span class="n">spec_type</span>
 <a name="ln-83"></a>
-<a name="ln-84"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">eigen_type</span>
-<a name="ln-85"></a>     <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">zloc</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
-<a name="ln-86"></a>     <span class="kt">integer</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">idx</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
-<a name="ln-87"></a>  <span class="k">end type </span><span class="n">eigen_type</span>
+<a name="ln-84"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">eigen_type</span>
+<a name="ln-85"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">zloc</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
+<a name="ln-86"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">idx</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
+<a name="ln-87"></a>   <span class="k">end type </span><span class="n">eigen_type</span>
 <a name="ln-88"></a>
-<a name="ln-89"></a>  <span class="k">type</span> <span class="kd">::</span> <span class="n">response_matrix_type</span>
-<a name="ln-90"></a>     <span class="k">type</span> <span class="p">(</span><span class="n">eigen_type</span><span class="p">),</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">eigen</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
-<a name="ln-91"></a>  <span class="k">end type </span><span class="n">response_matrix_type</span>
+<a name="ln-89"></a>   <span class="k">type</span> <span class="kd">::</span> <span class="n">response_matrix_type</span>
+<a name="ln-90"></a>      <span class="k">type</span><span class="p">(</span><span class="n">eigen_type</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">eigen</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
+<a name="ln-91"></a>   <span class="k">end type </span><span class="n">response_matrix_type</span>
 <a name="ln-92"></a>
-<a name="ln-93"></a>  <span class="k">type </span><span class="n">coupled_alpha_type</span>
-<a name="ln-94"></a>     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">max_idx</span>
-<a name="ln-95"></a>     <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">fourier</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
-<a name="ln-96"></a>  <span class="k">end type </span><span class="n">coupled_alpha_type</span>
+<a name="ln-93"></a>   <span class="k">type </span><span class="n">coupled_alpha_type</span>
+<a name="ln-94"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">max_idx</span>
+<a name="ln-95"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">fourier</span> <span class="o">=&gt;</span> <span class="nb">null</span><span class="p">()</span>
+<a name="ln-96"></a>   <span class="k">end type </span><span class="n">coupled_alpha_type</span>
 <a name="ln-97"></a>
 <a name="ln-98"></a><span class="k">end module </span><span class="n">common_types</span>
 </pre></div>
@@ -384,13 +384,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

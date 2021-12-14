@@ -282,28 +282,28 @@
 <a name="ln-7"></a><span class="c">! such as -qautodbl=dbl of xlf which makes type conversion</span>
 <a name="ln-8"></a><span class="c">! of variables even with explicit kind statements.</span>
 <a name="ln-9"></a><span class="c">!</span>
-<a name="ln-10"></a>  <span class="k">implicit none</span>
+<a name="ln-10"></a>   <span class="k">implicit none</span>
 <a name="ln-11"></a>
 <a name="ln-12"></a><span class="c">!  public :: size_of</span>
-<a name="ln-13"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">kind_is</span><span class="p">,</span> <span class="n">kind_id</span><span class="p">,</span> <span class="n">kind_rs</span><span class="p">,</span> <span class="n">kind_rd</span>
-<a name="ln-14"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">zi</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">twopi</span><span class="p">,</span> <span class="n">dpi</span><span class="p">,</span> <span class="n">dtwopi</span>
+<a name="ln-13"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">kind_is</span><span class="p">,</span> <span class="n">kind_id</span><span class="p">,</span> <span class="n">kind_rs</span><span class="p">,</span> <span class="n">kind_rd</span>
+<a name="ln-14"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">zi</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">twopi</span><span class="p">,</span> <span class="n">dpi</span><span class="p">,</span> <span class="n">dtwopi</span>
 <a name="ln-15"></a><span class="cp"># ifdef NAG_PREC</span>
-<a name="ln-16"></a>  <span class="k">public</span> <span class="kd">::</span> <span class="n">nag_kind</span>
+<a name="ln-16"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">nag_kind</span>
 <a name="ln-17"></a><span class="cp"># endif</span>
 <a name="ln-18"></a>
-<a name="ln-19"></a>  <span class="k">private</span>
+<a name="ln-19"></a>   <span class="k">private</span>
 <a name="ln-20"></a>
 <a name="ln-21"></a><span class="c">! Symbolic names for kind type of single and double-precision reals:</span>
 <a name="ln-22"></a><span class="c">! (with at least 6 and 12 digits of accuracy)</span>
 <a name="ln-23"></a>
-<a name="ln-24"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_i1</span> <span class="o">=</span> <span class="nb">selected_int_kind</span> <span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<a name="ln-25"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_ih</span> <span class="o">=</span> <span class="nb">selected_int_kind</span> <span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-<a name="ln-26"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_is</span> <span class="o">=</span> <span class="nb">selected_int_kind</span> <span class="p">(</span><span class="mi">8</span><span class="p">)</span>
-<a name="ln-27"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_id</span> <span class="o">=</span> <span class="nb">selected_int_kind</span> <span class="p">(</span><span class="mi">15</span><span class="p">)</span>
-<a name="ln-28"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_rs</span> <span class="o">=</span> <span class="nb">selected_real_kind</span> <span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
-<a name="ln-29"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_rd</span> <span class="o">=</span> <span class="nb">selected_real_kind</span> <span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
-<a name="ln-30"></a>  <span class="c">! There is a selected_real_kind bug in xlf and the following does not work</span>
-<a name="ln-31"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_rq</span> <span class="o">=</span> <span class="nb">selected_real_kind</span> <span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<a name="ln-24"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_i1</span> <span class="o">=</span> <span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a name="ln-25"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_ih</span> <span class="o">=</span> <span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<a name="ln-26"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_is</span> <span class="o">=</span> <span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+<a name="ln-27"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_id</span> <span class="o">=</span> <span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<a name="ln-28"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_rs</span> <span class="o">=</span> <span class="nb">selected_real_kind</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<a name="ln-29"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_rd</span> <span class="o">=</span> <span class="nb">selected_real_kind</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-30"></a>   <span class="c">! There is a selected_real_kind bug in xlf and the following does not work</span>
+<a name="ln-31"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">kind_rq</span> <span class="o">=</span> <span class="nb">selected_real_kind</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
 <a name="ln-32"></a>
 <a name="ln-33"></a><span class="c">!   integer, parameter :: sizeof_i1 = 1</span>
 <a name="ln-34"></a><span class="c">!   integer, parameter :: sizeof_ih = 2</span>
@@ -317,9 +317,9 @@
 <a name="ln-42"></a><span class="c">!   integer, parameter :: sizeof_cq = 32</span>
 <a name="ln-43"></a>
 <a name="ln-44"></a><span class="cp"># if NAG_PREC == _NAGDBLE_</span>
-<a name="ln-45"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">nag_kind</span><span class="o">=</span><span class="n">kind_rd</span>
+<a name="ln-45"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">nag_kind</span> <span class="o">=</span> <span class="n">kind_rd</span>
 <a name="ln-46"></a><span class="cp"># elif NAG_PREC == _NAGSNGL_</span>
-<a name="ln-47"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">nag_kind</span><span class="o">=</span><span class="n">kind_rs</span>
+<a name="ln-47"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">nag_kind</span> <span class="o">=</span> <span class="n">kind_rs</span>
 <a name="ln-48"></a><span class="cp"># endif</span>
 <a name="ln-49"></a>
 <a name="ln-50"></a><span class="c">! Symbolic names for kind type of single and double-precision complex:</span>
@@ -330,23 +330,23 @@
 <a name="ln-55"></a><span class="c">!  complex(dp), parameter :: ii = (0._dp, 1._dp)</span>
 <a name="ln-56"></a><span class="c">!  real(dp), parameter :: pi=3.141592653589793238_dp</span>
 <a name="ln-57"></a>
-<a name="ln-58"></a>  <span class="kt">complex</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">zi</span> <span class="o">=</span> <span class="p">(</span> <span class="mf">0.0</span> <span class="p">,</span> <span class="mf">1.0</span> <span class="p">)</span>
+<a name="ln-58"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">zi</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 <a name="ln-59"></a><span class="c">!  real, parameter :: pi = 3.1415926535897931</span>
 <a name="ln-60"></a><span class="c">!  real, parameter :: pi = 3.14159265358979323846, twopi=2.*pi</span>
-<a name="ln-61"></a>  <span class="c">! this is actually quad precision</span>
-<a name="ln-62"></a>  <span class="kt">double precision</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">dpi</span> <span class="o">=</span> <span class="p">&amp;</span>
-<a name="ln-63"></a>       <span class="mf">3.14159265358979323846264338327950288419716939938</span><span class="p">,</span> <span class="n">dtwopi</span><span class="o">=</span><span class="mf">2.</span><span class="o">*</span><span class="n">dpi</span>
-<a name="ln-64"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pi</span> <span class="o">=</span> <span class="n">dpi</span><span class="p">,</span> <span class="n">twopi</span><span class="o">=</span> <span class="n">dtwopi</span>
+<a name="ln-61"></a>   <span class="c">! this is actually quad precision</span>
+<a name="ln-62"></a>   <span class="kt">double precision</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">dpi</span> <span class="o">=</span> <span class="p">&amp;</span>
+<a name="ln-63"></a>      <span class="mf">3.14159265358979323846264338327950288419716939938</span><span class="p">,</span> <span class="n">dtwopi</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">dpi</span>
+<a name="ln-64"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pi</span> <span class="o">=</span> <span class="n">dpi</span><span class="p">,</span> <span class="n">twopi</span> <span class="o">=</span> <span class="n">dtwopi</span>
 <a name="ln-65"></a>
 <a name="ln-66"></a><span class="c">! Note: we will use dp=&quot;double precision&quot; for almost everything.</span>
 <a name="ln-67"></a><span class="c">!</span>
 <a name="ln-68"></a><span class="c">! The fortran-90 &quot;kind&quot; types is kind of awkward.  But the old trick of</span>
-<a name="ln-69"></a><span class="c">! using a &quot;-r8&quot; compiler switch to promote all real variables to 64 bits </span>
-<a name="ln-70"></a><span class="c">! does not work on some fortran 90 compilers, and so the above use of </span>
+<a name="ln-69"></a><span class="c">! using a &quot;-r8&quot; compiler switch to promote all real variables to 64 bits</span>
+<a name="ln-70"></a><span class="c">! does not work on some fortran 90 compilers, and so the above use of</span>
 <a name="ln-71"></a><span class="c">! the standard fortran-90 routine selected_real_kind is more portable.</span>
 <a name="ln-72"></a><span class="c">!</span>
 <a name="ln-73"></a><span class="c">! It may not be a good idea to mimic &quot;-r8&quot; by making sp to be identical</span>
-<a name="ln-74"></a><span class="c">! to dp, or to write single and double-precision versions of </span>
+<a name="ln-74"></a><span class="c">! to dp, or to write single and double-precision versions of</span>
 <a name="ln-75"></a><span class="c">! generic subroutines, since on the Cray computers both single and</span>
 <a name="ln-76"></a><span class="c">! &quot;double&quot; precision are 64 bits, and the compiler will complain that</span>
 <a name="ln-77"></a><span class="c">! it cannot distinguish the two specific subroutines.  In some cases,</span>
@@ -355,7 +355,7 @@
 <a name="ln-80"></a><span class="c">! even though the two real kinds map to the same precision (64 bits).</span>
 <a name="ln-81"></a><span class="c">!</span>
 <a name="ln-82"></a><span class="c">! If this ever does become a problem, then you may be able to get around it by</span>
-<a name="ln-83"></a><span class="c">! commenting out the double precision function names from the list of </span>
+<a name="ln-83"></a><span class="c">! commenting out the double precision function names from the list of</span>
 <a name="ln-84"></a><span class="c">! overloaded procedures (i.e., the &quot;module procedure&quot; statements).</span>
 <a name="ln-85"></a><span class="c">!</span>
 <a name="ln-86"></a>
@@ -438,13 +438,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

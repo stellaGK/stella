@@ -241,7 +241,7 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-diagnostics_initialized">diagnostics_initialized</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~5">debug</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~4">debug</a>
       
     </div>
   </div>
@@ -400,7 +400,7 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-diagnostics_initialized">diagnostics_initialized</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~5">debug</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~4">debug</a>
       
     </div>
   </div>
@@ -765,7 +765,7 @@
   <td><span class="anchor" id="variable-pflux_avg"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>pflux_avg</strong></td><td></td><td></td><td><p>Arrays needed for averaging in x,y,z</p></td>
   
 </tr>
@@ -779,7 +779,7 @@
   <td><span class="anchor" id="variable-vflux_avg"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>vflux_avg</strong></td><td></td><td></td><td><p>Arrays needed for averaging in x,y,z</p></td>
   
 </tr>
@@ -793,7 +793,7 @@
   <td><span class="anchor" id="variable-qflux_avg"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>qflux_avg</strong></td><td></td><td></td><td><p>Arrays needed for averaging in x,y,z</p></td>
   
 </tr>
@@ -807,7 +807,7 @@
   <td><span class="anchor" id="variable-heat_avg"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:), allocatable</td><td>::</td>
+  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>heat_avg</strong></td><td></td><td></td><td><p>Arrays needed for averaging in x,y,z</p></td>
   
 </tr>
@@ -821,7 +821,7 @@
   <td><span class="anchor" id="variable-pflux~2"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>pflux</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -835,7 +835,7 @@
   <td><span class="anchor" id="variable-vflux~2"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>vflux</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -849,7 +849,7 @@
   <td><span class="anchor" id="variable-qflux~2"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>qflux</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -863,7 +863,7 @@
   <td><span class="anchor" id="variable-exchange"></span>real,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>exchange</strong></td><td></td><td></td><td></td>
   
 </tr>
@@ -877,7 +877,7 @@
   <td><span class="anchor" id="variable-omega_vs_time"></span>complex,</td>
   
   <td>private,</td>
-  <td>dimension (:,:,:), allocatable</td><td>::</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>omega_vs_time</strong></td><td></td><td></td><td><p>Needed for calculating growth rates and frequencies</p></td>
   
 </tr>
@@ -916,7 +916,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-debug~5"></span>logical,</td>
+  <td><span class="anchor" id="variable-debug~4"></span>logical,</td>
   
   <td>private</td>
   <td></td><td>::</td>
@@ -1270,7 +1270,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1285,7 +1285,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>pflx</strong></td><td></td>
   
 </tr>
@@ -1300,7 +1300,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>vflx</strong></td><td></td>
   
 </tr>
@@ -1315,7 +1315,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>qflx</strong></td><td></td>
   
 </tr>
@@ -1330,7 +1330,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>pflx_vs_kxkyz</strong></td><td></td>
   
 </tr>
@@ -1345,7 +1345,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>vflx_vs_kxkyz</strong></td><td></td>
   
 </tr>
@@ -1360,7 +1360,7 @@ private subroutine <a href='../proc/get_fluxes.html'>get_fluxes</a>(g, pflx, vfl
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>qflx_vs_kxkyz</strong></td><td></td>
   
 </tr>
@@ -1411,7 +1411,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1426,7 +1426,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
   
 </tr>
@@ -1441,7 +1441,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>pflx</strong></td><td></td>
   
 </tr>
@@ -1456,7 +1456,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>vflx</strong></td><td></td>
   
 </tr>
@@ -1471,7 +1471,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>qflx</strong></td><td></td>
   
 </tr>
@@ -1486,7 +1486,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>pflx_x</strong></td><td></td>
   
 </tr>
@@ -1501,7 +1501,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>vflx_x</strong></td><td></td>
   
 </tr>
@@ -1516,7 +1516,7 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>qflx_x</strong></td><td></td>
   
 </tr>
@@ -1612,7 +1612,7 @@ private subroutine <a href='../proc/get_one_flux.html'>get_one_flux</a>(iky, iz,
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>gin</strong></td><td></td>
   
 </tr>
@@ -1693,7 +1693,7 @@ private subroutine <a href='../proc/get_one_flux_vmulo.html'>get_one_flux_vmulo<
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>weights</strong></td><td></td>
   
 </tr>
@@ -1708,7 +1708,7 @@ private subroutine <a href='../proc/get_one_flux_vmulo.html'>get_one_flux_vmulo<
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gin</strong></td><td></td>
   
 </tr>
@@ -1723,7 +1723,7 @@ private subroutine <a href='../proc/get_one_flux_vmulo.html'>get_one_flux_vmulo<
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>fld</strong></td><td></td>
   
 </tr>
@@ -1738,7 +1738,7 @@ private subroutine <a href='../proc/get_one_flux_vmulo.html'>get_one_flux_vmulo<
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>flxout</strong></td><td></td>
   
 </tr>
@@ -1789,7 +1789,7 @@ private subroutine <a href='../proc/get_one_flux_radial.html'>get_one_flux_radia
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>weights</strong></td><td></td>
   
 </tr>
@@ -1804,7 +1804,7 @@ private subroutine <a href='../proc/get_one_flux_radial.html'>get_one_flux_radia
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gin</strong></td><td></td>
   
 </tr>
@@ -1819,7 +1819,7 @@ private subroutine <a href='../proc/get_one_flux_radial.html'>get_one_flux_radia
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>fld</strong></td><td></td>
   
 </tr>
@@ -1834,7 +1834,7 @@ private subroutine <a href='../proc/get_one_flux_radial.html'>get_one_flux_radia
   <td>intent(inout),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>flxout</strong></td><td></td>
   
 </tr>
@@ -1885,7 +1885,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -1900,7 +1900,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>dens</strong></td><td></td>
   
 </tr>
@@ -1915,7 +1915,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>upar</strong></td><td></td>
   
 </tr>
@@ -1930,7 +1930,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>temp</strong></td><td></td>
   
 </tr>
@@ -1945,7 +1945,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>dens_x</strong></td><td></td>
   
 </tr>
@@ -1960,7 +1960,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>upar_x</strong></td><td></td>
   
 </tr>
@@ -1975,7 +1975,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>temp_x</strong></td><td></td>
   
 </tr>
@@ -1990,7 +1990,7 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>spitzer2</strong></td><td></td>
   
 </tr>
@@ -2041,7 +2041,7 @@ private subroutine <a href='../proc/get_gvmus.html'>get_gvmus</a>(g, gv)
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,kxkyz_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, kxkyz_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -2056,7 +2056,7 @@ private subroutine <a href='../proc/get_gvmus.html'>get_gvmus</a>(g, gv)
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :)</td><td>::</td>
   <td><strong>gv</strong></td><td></td>
   
 </tr>
@@ -2107,7 +2107,7 @@ private subroutine <a href='../proc/get_gzvs.html'>get_gzvs</a>(g, gz)
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:)</td><td>::</td>
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>g</strong></td><td></td>
   
 </tr>
@@ -2122,7 +2122,7 @@ private subroutine <a href='../proc/get_gzvs.html'>get_gzvs</a>(g, gz)
   <td>intent(out),</td>
   <td></td>
   
-  <td>dimension (:,:,:,:)</td><td>::</td>
+  <td>dimension(:, :, :, :)</td><td>::</td>
   <td><strong>gz</strong></td><td></td>
   
 </tr>
@@ -2269,7 +2269,7 @@ private subroutine <a href='../proc/write_loop_ascii_files.html'>write_loop_asci
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>pflx</strong></td><td></td>
   
 </tr>
@@ -2284,7 +2284,7 @@ private subroutine <a href='../proc/write_loop_ascii_files.html'>write_loop_asci
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>vflx</strong></td><td></td>
   
 </tr>
@@ -2299,7 +2299,7 @@ private subroutine <a href='../proc/write_loop_ascii_files.html'>write_loop_asci
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:)</td><td>::</td>
+  <td>dimension(:)</td><td>::</td>
   <td><strong>qflx</strong></td><td></td>
   
 </tr>
@@ -2314,7 +2314,7 @@ private subroutine <a href='../proc/write_loop_ascii_files.html'>write_loop_asci
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>om</strong></td><td></td>
   
 </tr>
@@ -2329,7 +2329,7 @@ private subroutine <a href='../proc/write_loop_ascii_files.html'>write_loop_asci
   <td>intent(in),</td>
   <td></td>
   
-  <td>dimension (:,:)</td><td>::</td>
+  <td>dimension(:, :)</td><td>::</td>
   <td><strong>om_avg</strong></td><td></td>
   
 </tr>
@@ -2404,13 +2404,13 @@ private subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays<
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>

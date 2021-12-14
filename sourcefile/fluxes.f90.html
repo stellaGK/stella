@@ -275,100 +275,100 @@
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">program </span><span class="n">fluxes</span>
 <a name="ln-2"></a>
-<a name="ln-3"></a>  <span class="c">! takes argument 1 as .fluxes output file path</span>
-<a name="ln-4"></a>  <span class="c">! argument 2 as number of time steps in .fluxes file</span>
-<a name="ln-5"></a>  <span class="c">! argument 3 as number of species in simulation</span>
-<a name="ln-6"></a>  <span class="c">! argument 4 as starting time for time average</span>
-<a name="ln-7"></a>  <span class="c">! writes the time average of the fluxes to screen</span>
+<a name="ln-3"></a>   <span class="c">! takes argument 1 as .fluxes output file path</span>
+<a name="ln-4"></a>   <span class="c">! argument 2 as number of time steps in .fluxes file</span>
+<a name="ln-5"></a>   <span class="c">! argument 3 as number of species in simulation</span>
+<a name="ln-6"></a>   <span class="c">! argument 4 as starting time for time average</span>
+<a name="ln-7"></a>   <span class="c">! writes the time average of the fluxes to screen</span>
 <a name="ln-8"></a>
-<a name="ln-9"></a>  <span class="k">implicit none</span>
+<a name="ln-9"></a>   <span class="k">implicit none</span>
 <a name="ln-10"></a>
-<a name="ln-11"></a><span class="k">  </span><span class="kt">integer</span> <span class="kd">::</span> <span class="nb">iargc</span>
-<a name="ln-12"></a><span class="nb">  </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">flxunit</span> <span class="o">=</span> <span class="mi">101</span>
-<a name="ln-13"></a>  <span class="kt">integer</span> <span class="kd">::</span> <span class="n">it</span><span class="p">,</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">nspec</span>
-<a name="ln-14"></a>  <span class="kt">integer</span> <span class="kd">::</span> <span class="n">target_it</span>
-<a name="ln-15"></a>  <span class="kt">real</span> <span class="kd">::</span> <span class="n">tstart</span> <span class="o">=</span> <span class="mf">0.0</span>
-<a name="ln-16"></a>  <span class="kt">logical</span> <span class="kd">::</span> <span class="n">tstart_flag</span>
-<a name="ln-17"></a>  <span class="kt">character</span> <span class="p">(</span><span class="mi">500</span><span class="p">)</span> <span class="kd">::</span> <span class="n">line</span>
-<a name="ln-18"></a>  <span class="kt">character</span> <span class="p">(</span><span class="mi">500</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flxfile</span>
-<a name="ln-19"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="nb">time</span>
-<a name="ln-20"></a><span class="nb">  </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">pflx</span><span class="p">,</span> <span class="n">vflx</span><span class="p">,</span> <span class="n">qflx</span>
-<a name="ln-21"></a>  <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">pflxavg</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">,</span> <span class="n">pi_over_q</span>
-<a name="ln-22"></a>  
-<a name="ln-23"></a>  <span class="k">call </span><span class="nb">getarg</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">flxfile</span><span class="p">)</span>
-<a name="ln-24"></a>  <span class="k">call </span><span class="nb">getarg</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">line</span><span class="p">)</span>
-<a name="ln-25"></a>  <span class="k">read</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nstep</span>
-<a name="ln-26"></a>  <span class="k">call </span><span class="nb">getarg</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">line</span><span class="p">)</span>
-<a name="ln-27"></a>  <span class="k">read</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nspec</span>
-<a name="ln-28"></a>  <span class="k">if</span> <span class="p">(</span><span class="nb">iargc</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-29"></a><span class="k">     call </span><span class="nb">getarg</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="n">line</span><span class="p">)</span>
-<a name="ln-30"></a>     <span class="k">read</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">tstart</span>
-<a name="ln-31"></a>  <span class="k">end if</span>
+<a name="ln-11"></a><span class="k">   </span><span class="kt">integer</span> <span class="kd">::</span> <span class="nb">iargc</span>
+<a name="ln-12"></a><span class="nb">   </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">flxunit</span> <span class="o">=</span> <span class="mi">101</span>
+<a name="ln-13"></a>   <span class="kt">integer</span> <span class="kd">::</span> <span class="n">it</span><span class="p">,</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">nspec</span>
+<a name="ln-14"></a>   <span class="kt">integer</span> <span class="kd">::</span> <span class="n">target_it</span>
+<a name="ln-15"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">tstart</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-16"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">tstart_flag</span>
+<a name="ln-17"></a>   <span class="kt">character</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span> <span class="kd">::</span> <span class="n">line</span>
+<a name="ln-18"></a>   <span class="kt">character</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flxfile</span>
+<a name="ln-19"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="nb">time</span>
+<a name="ln-20"></a><span class="nb">   </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">pflx</span><span class="p">,</span> <span class="n">vflx</span><span class="p">,</span> <span class="n">qflx</span>
+<a name="ln-21"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">pflxavg</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">,</span> <span class="n">pi_over_q</span>
+<a name="ln-22"></a>
+<a name="ln-23"></a>   <span class="k">call </span><span class="nb">getarg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">flxfile</span><span class="p">)</span>
+<a name="ln-24"></a>   <span class="k">call </span><span class="nb">getarg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+<a name="ln-25"></a>   <span class="k">read</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">nstep</span>
+<a name="ln-26"></a>   <span class="k">call </span><span class="nb">getarg</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+<a name="ln-27"></a>   <span class="k">read</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">nspec</span>
+<a name="ln-28"></a>   <span class="k">if</span> <span class="p">(</span><span class="nb">iargc</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-29"></a><span class="k">      call </span><span class="nb">getarg</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+<a name="ln-30"></a>      <span class="k">read</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">tstart</span>
+<a name="ln-31"></a>   <span class="k">end if</span>
 <a name="ln-32"></a>
-<a name="ln-33"></a><span class="k">  write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">tstart</span><span class="p">,</span> <span class="n">nspec</span><span class="p">,</span> <span class="nb">trim</span><span class="p">(</span><span class="n">flxfile</span><span class="p">)</span>
+<a name="ln-33"></a><span class="k">   write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">tstart</span><span class="p">,</span> <span class="n">nspec</span><span class="p">,</span> <span class="nb">trim</span><span class="p">(</span><span class="n">flxfile</span><span class="p">)</span>
 <a name="ln-34"></a>
-<a name="ln-35"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="nb">time</span><span class="p">(</span><span class="n">nstep</span><span class="p">))</span>
-<a name="ln-36"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">pflx</span><span class="p">(</span><span class="n">nspec</span><span class="p">,</span><span class="n">nstep</span><span class="p">))</span>
-<a name="ln-37"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">vflx</span><span class="p">(</span><span class="n">nspec</span><span class="p">,</span><span class="n">nstep</span><span class="p">))</span>
-<a name="ln-38"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">qflx</span><span class="p">(</span><span class="n">nspec</span><span class="p">,</span><span class="n">nstep</span><span class="p">))</span>
-<a name="ln-39"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">pflxavg</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
-<a name="ln-40"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">vflxavg</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
-<a name="ln-41"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">qflxavg</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
-<a name="ln-42"></a>  <span class="k">allocate</span> <span class="p">(</span><span class="n">pi_over_q</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
+<a name="ln-35"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="nb">time</span><span class="p">(</span><span class="n">nstep</span><span class="p">))</span>
+<a name="ln-36"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">pflx</span><span class="p">(</span><span class="n">nspec</span><span class="p">,</span> <span class="n">nstep</span><span class="p">))</span>
+<a name="ln-37"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">vflx</span><span class="p">(</span><span class="n">nspec</span><span class="p">,</span> <span class="n">nstep</span><span class="p">))</span>
+<a name="ln-38"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">qflx</span><span class="p">(</span><span class="n">nspec</span><span class="p">,</span> <span class="n">nstep</span><span class="p">))</span>
+<a name="ln-39"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">pflxavg</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
+<a name="ln-40"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">vflxavg</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
+<a name="ln-41"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">qflxavg</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
+<a name="ln-42"></a>   <span class="k">allocate</span> <span class="p">(</span><span class="n">pi_over_q</span><span class="p">(</span><span class="n">nspec</span><span class="p">))</span>
 <a name="ln-43"></a>
-<a name="ln-44"></a>  <span class="n">target_it</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-45"></a>  <span class="n">tstart_flag</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-44"></a>   <span class="n">target_it</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-45"></a>   <span class="n">tstart_flag</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
 <a name="ln-46"></a>
-<a name="ln-47"></a>  <span class="k">open</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">flxunit</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">flxfile</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.fluxes&quot;</span><span class="p">)</span>
-<a name="ln-48"></a>  <span class="k">read</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">line</span>
-<a name="ln-49"></a>  <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nstep</span>
-<a name="ln-50"></a>     <span class="k">read</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="nb">time</span><span class="p">(</span><span class="n">it</span><span class="p">),</span> <span class="n">pflx</span><span class="p">(:,</span><span class="n">it</span><span class="p">),</span> <span class="n">vflx</span><span class="p">(:,</span><span class="n">it</span><span class="p">),</span> <span class="n">qflx</span><span class="p">(:,</span><span class="n">it</span><span class="p">)</span>
-<a name="ln-51"></a>     <span class="c">! find the time index corresponding to the requested start time</span>
-<a name="ln-52"></a>     <span class="k">if</span> <span class="p">(</span><span class="n">tstart_flag</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="nb">time</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">tstart</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-53"></a><span class="k">        </span><span class="n">target_it</span> <span class="o">=</span> <span class="n">it</span>
-<a name="ln-54"></a>        <span class="n">tstart_flag</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-55"></a>     <span class="k">end if</span>
-<a name="ln-56"></a><span class="k">  end do</span>
+<a name="ln-47"></a>   <span class="k">open</span> <span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">flxunit</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">flxfile</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.fluxes&quot;</span><span class="p">)</span>
+<a name="ln-48"></a>   <span class="k">read</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">line</span>
+<a name="ln-49"></a>   <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nstep</span>
+<a name="ln-50"></a>      <span class="k">read</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="nb">time</span><span class="p">(</span><span class="n">it</span><span class="p">),</span> <span class="n">pflx</span><span class="p">(:,</span> <span class="n">it</span><span class="p">),</span> <span class="n">vflx</span><span class="p">(:,</span> <span class="n">it</span><span class="p">),</span> <span class="n">qflx</span><span class="p">(:,</span> <span class="n">it</span><span class="p">)</span>
+<a name="ln-51"></a>      <span class="c">! find the time index corresponding to the requested start time</span>
+<a name="ln-52"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">tstart_flag</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="nb">time</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">tstart</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-53"></a><span class="k">         </span><span class="n">target_it</span> <span class="o">=</span> <span class="n">it</span>
+<a name="ln-54"></a>         <span class="n">tstart_flag</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-55"></a>      <span class="k">end if</span>
+<a name="ln-56"></a><span class="k">   end do</span>
 <a name="ln-57"></a>
-<a name="ln-58"></a><span class="k">  call </span><span class="n">time_average</span> <span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">pflx</span><span class="p">,</span> <span class="n">pflxavg</span><span class="p">)</span>
-<a name="ln-59"></a>  <span class="k">call </span><span class="n">time_average</span> <span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">vflx</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">)</span>
-<a name="ln-60"></a>  <span class="k">call </span><span class="n">time_average</span> <span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">qflx</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">)</span>
-<a name="ln-61"></a>  <span class="k">call </span><span class="n">time_average</span> <span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">vflx</span><span class="o">/</span><span class="n">qflx</span><span class="p">,</span> <span class="n">pi_over_q</span><span class="p">)</span>
+<a name="ln-58"></a><span class="k">   call </span><span class="n">time_average</span><span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">pflx</span><span class="p">,</span> <span class="n">pflxavg</span><span class="p">)</span>
+<a name="ln-59"></a>   <span class="k">call </span><span class="n">time_average</span><span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">vflx</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">)</span>
+<a name="ln-60"></a>   <span class="k">call </span><span class="n">time_average</span><span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">qflx</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">)</span>
+<a name="ln-61"></a>   <span class="k">call </span><span class="n">time_average</span><span class="p">(</span><span class="nb">time</span><span class="p">,</span> <span class="n">target_it</span><span class="p">,</span> <span class="n">vflx</span> <span class="o">/</span> <span class="n">qflx</span><span class="p">,</span> <span class="n">pi_over_q</span><span class="p">)</span>
 <a name="ln-62"></a>
-<a name="ln-63"></a>  <span class="k">close</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">)</span>
+<a name="ln-63"></a>   <span class="k">close</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">)</span>
 <a name="ln-64"></a>
-<a name="ln-65"></a>  <span class="k">open</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">flxfile</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.fluxes_tavg&quot;</span><span class="p">)</span>
-<a name="ln-66"></a>  <span class="k">write</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;pflx: &#39;</span><span class="p">,</span> <span class="n">pflxavg</span><span class="p">,</span> <span class="s1">&#39;vflx: &#39;</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">,</span> <span class="s1">&#39;qflx: &#39;</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">,</span> <span class="s1">&#39;vflx/qflx: &#39;</span><span class="p">,</span> <span class="n">pi_over_q</span><span class="p">,</span> <span class="n">vflxavg</span><span class="o">/</span><span class="n">qflxavg</span>
-<a name="ln-67"></a>  <span class="k">close</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">)</span>
+<a name="ln-65"></a>   <span class="k">open</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">flxfile</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;.fluxes_tavg&quot;</span><span class="p">)</span>
+<a name="ln-66"></a>   <span class="k">write</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;pflx: &#39;</span><span class="p">,</span> <span class="n">pflxavg</span><span class="p">,</span> <span class="s1">&#39;vflx: &#39;</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">,</span> <span class="s1">&#39;qflx: &#39;</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">,</span> <span class="s1">&#39;vflx/qflx: &#39;</span><span class="p">,</span> <span class="n">pi_over_q</span><span class="p">,</span> <span class="n">vflxavg</span> <span class="o">/</span> <span class="n">qflxavg</span>
+<a name="ln-67"></a>   <span class="k">close</span> <span class="p">(</span><span class="n">flxunit</span><span class="p">)</span>
 <a name="ln-68"></a>
-<a name="ln-69"></a>  <span class="k">deallocate</span> <span class="p">(</span><span class="nb">time</span><span class="p">)</span>
-<a name="ln-70"></a>  <span class="k">deallocate</span> <span class="p">(</span><span class="n">pflx</span><span class="p">,</span> <span class="n">vflx</span><span class="p">,</span> <span class="n">qflx</span><span class="p">)</span>
-<a name="ln-71"></a>  <span class="k">deallocate</span> <span class="p">(</span><span class="n">pflxavg</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">,</span> <span class="n">pi_over_q</span><span class="p">)</span>
+<a name="ln-69"></a>   <span class="k">deallocate</span> <span class="p">(</span><span class="nb">time</span><span class="p">)</span>
+<a name="ln-70"></a>   <span class="k">deallocate</span> <span class="p">(</span><span class="n">pflx</span><span class="p">,</span> <span class="n">vflx</span><span class="p">,</span> <span class="n">qflx</span><span class="p">)</span>
+<a name="ln-71"></a>   <span class="k">deallocate</span> <span class="p">(</span><span class="n">pflxavg</span><span class="p">,</span> <span class="n">vflxavg</span><span class="p">,</span> <span class="n">qflxavg</span><span class="p">,</span> <span class="n">pi_over_q</span><span class="p">)</span>
 <a name="ln-72"></a>
 <a name="ln-73"></a><span class="k">contains</span>
 <a name="ln-74"></a>
-<a name="ln-75"></a><span class="k">  subroutine </span><span class="n">time_average</span> <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">flx</span><span class="p">,</span> <span class="n">flxavg</span><span class="p">)</span>
+<a name="ln-75"></a><span class="k">   subroutine </span><span class="n">time_average</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">flx</span><span class="p">,</span> <span class="n">flxavg</span><span class="p">)</span>
 <a name="ln-76"></a>
-<a name="ln-77"></a>    <span class="k">implicit none</span>
+<a name="ln-77"></a>      <span class="k">implicit none</span>
 <a name="ln-78"></a>
-<a name="ln-79"></a><span class="k">    </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t</span>
-<a name="ln-80"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">it</span>
-<a name="ln-81"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flx</span>
-<a name="ln-82"></a>    <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flxavg</span>
+<a name="ln-79"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t</span>
+<a name="ln-80"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">it</span>
+<a name="ln-81"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flx</span>
+<a name="ln-82"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flxavg</span>
 <a name="ln-83"></a>
-<a name="ln-84"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">nt</span>
+<a name="ln-84"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">nt</span>
 <a name="ln-85"></a>
-<a name="ln-86"></a>    <span class="n">nt</span> <span class="o">=</span> <span class="n">size</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<a name="ln-86"></a>      <span class="n">nt</span> <span class="o">=</span> <span class="n">size</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 <a name="ln-87"></a>
-<a name="ln-88"></a>    <span class="n">flxavg</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">it</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">t</span><span class="p">(</span><span class="n">it</span><span class="p">))</span><span class="o">*</span><span class="n">flx</span><span class="p">(:,</span><span class="n">it</span><span class="p">)</span>
-<a name="ln-89"></a>    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">it</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">nt</span><span class="o">-</span><span class="mi">1</span>
-<a name="ln-90"></a>       <span class="n">flxavg</span> <span class="o">=</span> <span class="n">flxavg</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">t</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="o">*</span><span class="n">flx</span><span class="p">(:,</span><span class="n">i</span><span class="p">)</span>
-<a name="ln-91"></a>    <span class="k">end do</span>
-<a name="ln-92"></a><span class="k">    </span><span class="n">flxavg</span> <span class="o">=</span> <span class="n">flxavg</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span><span class="o">-</span><span class="n">t</span><span class="p">(</span><span class="n">nt</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">flx</span><span class="p">(:,</span><span class="n">nt</span><span class="p">)</span>
+<a name="ln-88"></a>      <span class="n">flxavg</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">it</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">(</span><span class="n">it</span><span class="p">))</span> <span class="o">*</span> <span class="n">flx</span><span class="p">(:,</span> <span class="n">it</span><span class="p">)</span>
+<a name="ln-89"></a>      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">it</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nt</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-90"></a>         <span class="n">flxavg</span> <span class="o">=</span> <span class="n">flxavg</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">*</span> <span class="n">flx</span><span class="p">(:,</span> <span class="n">i</span><span class="p">)</span>
+<a name="ln-91"></a>      <span class="k">end do</span>
+<a name="ln-92"></a><span class="k">      </span><span class="n">flxavg</span> <span class="o">=</span> <span class="n">flxavg</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">(</span><span class="n">nt</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">flx</span><span class="p">(:,</span> <span class="n">nt</span><span class="p">)</span>
 <a name="ln-93"></a>
-<a name="ln-94"></a>    <span class="n">flxavg</span> <span class="o">=</span> <span class="n">flxavg</span><span class="o">/</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span><span class="o">-</span><span class="n">t</span><span class="p">(</span><span class="n">it</span><span class="p">))</span>
+<a name="ln-94"></a>      <span class="n">flxavg</span> <span class="o">=</span> <span class="n">flxavg</span> <span class="o">/</span> <span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">(</span><span class="n">it</span><span class="p">))</span>
 <a name="ln-95"></a>
-<a name="ln-96"></a>  <span class="k">end subroutine </span><span class="n">time_average</span>
+<a name="ln-96"></a>   <span class="k">end subroutine </span><span class="n">time_average</span>
 <a name="ln-97"></a>
 <a name="ln-98"></a><span class="k">end program </span><span class="n">fluxes</span>
 </pre></div>
@@ -384,13 +384,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-75-g056eaa11</small></p>
+                                          <br /><small>v0.3-76-ge07d0214</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-01T12:02:16.558949 
+             on 2021-12-14T15:38:49.044958 
             
           </p>
         </div>
