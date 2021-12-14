@@ -350,7 +350,13 @@ contains
       character(len=10), intent(in) :: VERDATE
       character(len=23) :: str
 
+      character(len=50) :: version_format
+      integer :: version_text_length
+
       if (proc0) then
+         version_text_length = 60 - (len("Version ") + len_trim(VERNUM) + 1)
+         write (version_format, '("('' '', ", i2, "x, ''Version '', a)")') version_text_length / 2
+
          write (*, *) ' '
          write (*, *) ' '
          write (*, *) "            I8            ,dPYb, ,dPYb,            "
@@ -364,7 +370,7 @@ contains
          write (*, *) 'P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
          write (*, *) ' '
          write (*, *) ' '
-         write (*, *) '                       Version ', VERNUM
+         write (*, version_format) VERNUM
          write (*, *) '                        ', VERDATE
          write (*, *) ' '
          write (*, *) '                     The stella team'
