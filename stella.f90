@@ -11,12 +11,9 @@ program stella
    use stella_save, only: stella_save_for_restart
    use dist_fn_arrays, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
-   use git_version, only: get_git_version
+   use git_version, only: get_git_version, get_git_date
 
    implicit none
-
-   ! Add the version number and date of last change when uploading to github
-   character(len=10), parameter :: VERDATE = '2021.03.26'
 
    logical :: debug = .false.
    logical :: stop_stella = .false.
@@ -31,7 +28,7 @@ program stella
    call parse_command_line()
 
    ! Initiate stella
-   call init_stella(istep0, get_git_version(), VERDATE)
+   call init_stella(istep0, get_git_version(), get_git_date())
 
    ! Add a header to the output file
    if (proc0) then
