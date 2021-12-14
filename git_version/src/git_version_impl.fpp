@@ -12,6 +12,10 @@ submodule (git_version) git_version_impl
 #ifndef GIT_VERSION
 #define GIT_VERSION "unknown"
 #endif
+
+#ifndef GIT_DATE
+#define GIT_DATE "unknown"
+#endif
 contains
   module procedure get_git_version
     integer, parameter :: max_length = 40
@@ -44,4 +48,8 @@ contains
       get_git_state = "-dirty"
     endif
   end procedure get_git_state
+
+  module procedure get_git_date
+    get_git_date = GIT_DATE
+  end procedure get_git_date
 end submodule git_version_impl

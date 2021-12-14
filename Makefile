@@ -315,7 +315,8 @@ CPPFLAGS += -DGIT_SHA1='"$(GIT_SHA1)"'
 # Version string, including current commit if not on a release, plus
 # '-dirty' if there are uncommitted changes
 GIT_VERSION := $(shell git describe --tags --always --dirty --match "v*")
-CPPFLAGS += -DGIT_VERSION='"$(GIT_VERSION)"'
+GIT_DATE := $(shell git show -q --pretty=format:%as HEAD)
+CPPFLAGS += -DGIT_VERSION='"$(GIT_VERSION)"' -DGIT_DATE='"$(GIT_DATE)"'
 
 # Find if there are any modified tracked files (except Makefile.depend)
 ifeq ($(shell git status --short -uno -- . | wc -l), 0)

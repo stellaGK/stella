@@ -25,5 +25,10 @@ module git_version
     module function get_git_state()
       character(:), allocatable :: get_git_state
     end function get_git_state
+
+    !> Returns the short date (YYYY-MM-DD) of the current commit
+    module function get_git_date()
+      character(len=10) :: get_git_date
+    end function get_git_date
   end interface
 end module git_version

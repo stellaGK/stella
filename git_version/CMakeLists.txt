@@ -19,6 +19,8 @@ git_get_version(GIT_VERSION)
 message(STATUS "GIT_VERSION=${GIT_VERSION}")
 git_local_changes(GIT_STATE)
 message(STATUS "GIT_STATE=${GIT_STATE}")
+git_get_commit_date(GIT_DATE)
+message(STATUS "GIT_DATE=${GIT_DATE}")
 
 set_source_files_properties(git_version_impl.F90
   PROPERTIES Fortran_PREPROCESS ON)
@@ -27,6 +29,7 @@ target_compile_definitions(fortran_git PRIVATE
   "GIT_SHA1='${GIT_SHA1}'"
   "GIT_VERSION='${GIT_VERSION}'"
   "GIT_STATE='${GIT_STATE}'"
+  "GIT_DATE='${GIT_DATE}'"
   )
 
 set(fortran_git_module_dir "${CMAKE_CURRENT_BINARY_DIR}/mod")

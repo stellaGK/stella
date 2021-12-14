@@ -300,3 +300,30 @@ function(git_get_commit _var)
     get_git_head_revision(HEAD out)
     set(${_var} "${out}" PARENT_SCOPE)
 endfunction()
+
+function(git_get_commit_date _var)
+    if(NOT GIT_FOUND)
+        find_package(Git QUIET)
+    endif()
+    get_git_head_revision(refspec hash)
+    if(NOT GIT_FOUND)
+        set(${_var}
+            "GIT-NOTFOUND"
+            PARENT_SCOPE)
+        return()
+    endif()
+    if(NOT hash)
+        set(${_var}
+            "HEAD-HASH-NOTFOUND"
+            PARENT_SCOPE)
+        return()
+    endif()
+
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" show -q --pretty=format:%as HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE out
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    set(${_var} "${out}" PARENT_SCOPE)
+endfunction()
