@@ -181,6 +181,9 @@ if (STELLA_ENABLE_PETSC)
   target_link_libraries(libstella PUBLIC PETSc::PETSc)
 endif()
 
+add_subdirectory(git_version)
+target_link_libraries(libstella PUBLIC fortran_git::fortran_git)
+
 # Ensure FCOMPILER is set
 target_compile_definitions(libstella PRIVATE
   $<$<Fortran_COMPILER_ID:GNU>:FCOMPILER=_GFORTRAN_>
