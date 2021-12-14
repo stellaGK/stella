@@ -7,7 +7,7 @@ project(fortran-git
 
 add_library(fortran_git
   src/git_version.f90
-  src/git_version_impl.F90)
+  src/git_version_impl.fpp)
 
 add_library(fortran_git::fortran_git ALIAS fortran_git)
 
@@ -32,6 +32,7 @@ target_compile_definitions(fortran_git PRIVATE
 set(fortran_git_module_dir "${CMAKE_CURRENT_BINARY_DIR}/mod")
 set_target_properties(fortran_git PROPERTIES
   Fortran_MODULE_DIRECTORY ${fortran_git_module_dir}
+  Fortran_FORMAT FREE
   )
 
 target_include_directories(fortran_git PUBLIC
