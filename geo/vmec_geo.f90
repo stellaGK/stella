@@ -78,7 +78,7 @@ contains
       else
          zgrid_refinement_factor = 1
       end if
-      
+
    end subroutine init_vmec_defaults
 
    subroutine get_vmec_geo(nzgrid, nalpha, naky, surf, grho, bmag, gradpar, &
