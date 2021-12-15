@@ -270,7 +270,6 @@ contains
       call deallocate_arrays
 
       dist_fn_initialized = .false.
-!    readinit = .false.
       gxyz_initialized = .false.
 
    end subroutine finish_dist_fn
