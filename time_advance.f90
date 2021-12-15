@@ -1606,7 +1606,6 @@ contains
             end do
          end do
          !> add vM . grad x dg/dx term to equation
-         !       call add_dg_term_ffs (g0y, wdriftx_g, gout)
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
          !> get <dphi/dx> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1620,20 +1619,17 @@ contains
             end do
          end do
          !> add vM . grad x d<phi>/dx term to equation
-         !       call add_dphi_term_ffs (g0y, wdriftx_phi, gout)
          call add_explicit_term_ffs(g0y, wdriftx_phi, gout)
          deallocate (g0y, g0k_swap)
       else
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
          !> add vM . grad x dg/dx term to equation
-         !       call add_dg_term (g0k, wdriftx_g(1,:,:), gout)
          call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
          !> get <dphi/dx> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
          end do
          !> add vM . grad x d<phi>/dx term to equation
-         !       call add_dphi_term (g0k, wdriftx_phi(1,:,:), gout)
          call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
       end if
       deallocate (g0k, dphidx)
@@ -2387,58 +2383,6 @@ contains
 
    end subroutine get_dgdy_4d
 
-   ! subroutine add_dg_term (g, wdrift_in, src)
-
-   !   use stella_layouts, only: vmu_lo
-   !   use zgrid, only: nzgrid, ntubes
-   !   use kt_grids, only: naky, nakx
-
-   !   implicit none
-
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-   !   real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift_in
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
-
-   ! integer :: ivmu, ikx, iz, it
-
-   ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-   !   do it = 1, ntubes
-   !     do iz = -nzgrid, nzgrid
-   !       do ikx = 1, nakx
-   !         src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wdrift_in(iz,ivmu)*g(:,ikx,iz,it,ivmu)
-   !       enddo
-   !     enddo
-   !   enddo
-   ! enddo
-
-   ! end subroutine add_dg_term
-
-   ! subroutine add_dg_term_ffs (g, wdrift_in, src)
-
-   !   use stella_layouts, only: vmu_lo
-   !   use zgrid, only: nzgrid, ntubes
-   !   use kt_grids, only: ikx_max
-
-   !   implicit none
-
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-   !   real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift_in
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
-
-   ! integer :: ivmu, ikx, iz, it
-
-   ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-   !   do it = 1, ntubes
-   !     do iz = -nzgrid, nzgrid
-   !       do ikx = 1, nakx
-   !          src(:,ikx,iz,it,ivmu) = src(:,ikx,iz,it,ivmu) + wdrift_in(:,iz,ivmu)*g(:,ikx,iz,it,ivmu)
-   !       enddo
-   !     enddo
-   !   enddo
-   ! enddo
-
-   ! end subroutine add_dg_term_ffs
-
    !> compute dg/dx in k-space
    !> accepts g(ky,kx)
    subroutine get_dgdx_2d(g, dgdx)
@@ -2507,65 +2451,6 @@ contains
       end do
 
    end subroutine get_dgdx_4d
-
-   ! subroutine add_dphi_term (g, wdrift, src)
-
-   !   use stella_layouts, only: vmu_lo
-   !   use zgrid, only: nzgrid, ntubes
-   !   use kt_grids, only: naky, nakx
-
-   !   implicit none
-
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-   !   real, dimension (-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
-
-   !   integer :: ivmu
-   !   integer :: iky, ikx, iz, it
-
-   !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-   !      do it = 1, ntubes
-   !         do iz = -nzgrid, nzgrid
-   !            do ikx = 1, nakx
-   !               do iky = 1, naky
-   !                  src(iky,ikx,iz,it,ivmu) = src(iky,ikx,iz,it,ivmu) + wdrift(iz,ivmu)*g(iky,ikx,iz,it,ivmu)
-   !               end do
-   !            end do
-   !         end do
-   !      end do
-   !   end do
-
-   ! end subroutine add_dphi_term
-
-   ! !> add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx term to RHS of GK equation
-   ! subroutine add_dphi_term_ffs (g, wdrift, src)
-
-   !   use stella_layouts, only: vmu_lo
-   !   use zgrid, only: nzgrid, ntubes
-   !   use kt_grids, only: ikx_max, nalpha
-
-   !   implicit none
-
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-   !   real, dimension (:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: wdrift
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out) :: src
-
-   !   integer :: ivmu
-   !   integer :: ia, ikx, iz, it
-
-   !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-   !      do it = 1, ntubes
-   !         do iz = -nzgrid, nzgrid
-   !            do ikx = 1, ikx_max
-   !               do ia = 1, nalpha
-   !                  src(ia,ikx,iz,it,ivmu) = src(ia,ikx,iz,it,ivmu) + wdrift(ia,iz,ivmu)*g(ia,ikx,iz,it,ivmu)
-   !               end do
-   !            end do
-   !         end do
-   !      end do
-   !   end do
-
-   ! end subroutine add_dphi_term_ffs
 
    subroutine add_explicit_term(g, pre_factor, src)
 
