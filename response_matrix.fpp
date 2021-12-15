@@ -328,7 +328,7 @@ contains
        case (lu_option_global)
         call parallel_LU_decomposition_global(iky)
        case (lu_option_local)
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
          call parallel_LU_decomposition_local(iky)
 #else
          call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
@@ -336,7 +336,7 @@ contains
        case default
 #endif
          do ie = 1, neigen(iky)
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
            if(sgproc0) then
 #endif
              ! now that we have the reponse matrix for this ky and set of connected kx values
@@ -344,7 +344,7 @@ contains
              call lu_decomposition (response_matrix(iky)%eigen(ie)%zloc, &
                                     response_matrix(iky)%eigen(ie)%idx,dum)
         
-#ifdef ISO_C_BINDING       
+#ifdef ISO_C_BINDING
            endif
 #endif
         enddo
@@ -905,9 +905,9 @@ contains
     use extended_zgrid, only: ikxmod
     use extended_zgrid, only: nsegments
     use kt_grids, only: zonal_mode, akx
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
     use fields_arrays, only: gamtot, gamtot3
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
 
     implicit none
 

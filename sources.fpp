@@ -53,8 +53,8 @@ contains
     use fields_arrays, only : phi_proj, phi_proj_stage
     use physics_flags, only: radial_variation
     use species, only: spec, has_electron_species
-    use dist_fn, only: adiabatic_option_switch
-    use dist_fn, only: adiabatic_option_fieldlineavg
+    use physics_flags, only: adiabatic_option_switch
+    use physics_flags, only: adiabatic_option_fieldlineavg
     use file_utils, only: runtype_option_switch, runtype_multibox
 
     implicit none

@@ -457,7 +457,6 @@ contains
     call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsidrho)
     dpsidrho = dpsidrho/(2.*pi)
 
-
     ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
 
     ! if using input.profiles, we are given
@@ -482,7 +481,6 @@ contains
 
 !    ! get dpsinorm/drho
 !    call get_dpsidrho (dpsidrho)
-
 
     ! get |grad rho| and |grad psi|
     call get_gradrho (dpsidrho, grho)
@@ -804,7 +802,6 @@ contains
     deallocate (grho)
     deallocate (bmag)
     deallocate (gradpar)
-
 
     deallocate (gds2)
     deallocate (gds21)

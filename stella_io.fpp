@@ -54,7 +54,7 @@ module stella_io
   integer :: input_id
   integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
   integer :: vnew_id, spec_type_id
-  integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
+  integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
   integer :: kperp2_id, rad_grid_id
   integer :: grho_id, jacob_id, djacdrho_id, shat_id, drhodpsi_id, q_id, jtwist_id
@@ -640,6 +640,16 @@ contains
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='long_name')
     status = nf90_put_att (ncid, bmag_id, 'units', 'B_0')
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id, att='units')
+
+    status = nf90_inq_varid(ncid,'b_dot_grad_z',b_dot_grad_z_id)
+    if(status /= nf90_noerr) then
+       status = nf90_def_var (ncid, 'b_dot_grad_z', netcdf_real, flux_surface_dim, b_dot_grad_z_id)
+       if (status /= nf90_noerr) call netcdf_error (status, var='b_dot_grad_z')
+    endif
+    status = nf90_put_att (ncid, b_dot_grad_z_id, 'long_name', 'b . grad z(alpha,zed)')
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, b_dot_grad_z_id, att='long_name')
+    status = nf90_put_att (ncid, b_dot_grad_z_id, 'units', 'dimensionless')
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, b_dot_grad_z_id, att='units')
 
     status = nf90_inq_varid(ncid,'gradpar',gradpar_id)
     if(status /= nf90_noerr) then
@@ -1462,7 +1472,7 @@ contains
 
     use stella_geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
          cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
-         drhodpsi, djacdrho
+         drhodpsi, djacdrho, b_dot_grad_z
     use stella_geometry, only: geo_surf
     use zgrid, only: nzgrid
     use physics_parameters, only: beta
@@ -1489,6 +1499,8 @@ contains
 
     status = nf90_put_var (ncid, bmag_id, bmag, start=start, count=count)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, bmag_id)
+    status = nf90_put_var (ncid, b_dot_grad_z_id, b_dot_grad_z, start=start, count=count)
+    if (status /= nf90_noerr) call netcdf_error (status, ncid, b_dot_grad_z_id)
     status = nf90_put_var (ncid, gradpar_id, gradpar)
     if (status /= nf90_noerr) call netcdf_error (status, ncid, gradpar_id)
     status = nf90_put_var (ncid, gbdrift_id, gbdrift, start=start, count=count)

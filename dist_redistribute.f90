@@ -268,7 +268,7 @@ contains
     to_low(5) = vmu_lo%llim_proc
 
     to_high(1) = vmu_lo%ny
-    to_high(2) = vmu_lo%nakx
+    to_high(2) = vmu_lo%nakx/2+1
     to_high(3) = vmu_lo%nzed
     to_high(4) = vmu_lo%ntubes
     to_high(5) = vmu_lo%ulim_alloc
@@ -277,7 +277,7 @@ contains
 
     call init_redist (kxyz2vmu, 'c', to_low, to_high, to_list, &
          from_low, from_high, from_list)
-
+    
     call delete_list (to_list)
     call delete_list (from_list)
 
