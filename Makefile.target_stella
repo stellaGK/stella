@@ -1,9 +1,15 @@
 stella_all: modules stella
 
-stella: $(stella_mod)
+# undefined reference to `get_git_state` or `get_git_hash`? You need to manually
+# add a dependency of the affected binary on `$(OBJDIR)/git_version_impl.o` like
+# below. This file needs to be first in the list of dependencies so that the
+# file that needs the functions can find them. Yes this is unpleasant, no we
+# (probably?) can`t automate this like for the other dependencies. `fortdep`
+# doesn't understand Fortran submodules, so can't pick this up
+stella: git_version_impl.o $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-stella.x: $(stella_mod)
+stella.x: git_version_impl.o $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 .PHONY: modules utils_all geo_all vmec
