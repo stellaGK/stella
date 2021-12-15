@@ -7,28 +7,28 @@ module constants
 ! such as -qautodbl=dbl of xlf which makes type conversion
 ! of variables even with explicit kind statements.
 !
-  implicit none
+   implicit none
 
 !  public :: size_of
-  public :: kind_is, kind_id, kind_rs, kind_rd
-  public :: zi, pi, twopi, dpi, dtwopi
+   public :: kind_is, kind_id, kind_rs, kind_rd
+   public :: zi, pi, twopi, dpi, dtwopi
 # ifdef NAG_PREC
-  public :: nag_kind
+   public :: nag_kind
 # endif
 
-  private
+   private
 
 ! Symbolic names for kind type of single and double-precision reals:
 ! (with at least 6 and 12 digits of accuracy)
 
-  integer, parameter :: kind_i1 = selected_int_kind (2)
-  integer, parameter :: kind_ih = selected_int_kind (4)
-  integer, parameter :: kind_is = selected_int_kind (8)
-  integer, parameter :: kind_id = selected_int_kind (15)
-  integer, parameter :: kind_rs = selected_real_kind (p=6)
-  integer, parameter :: kind_rd = selected_real_kind (p=12)
-  ! There is a selected_real_kind bug in xlf and the following does not work
-  integer, parameter :: kind_rq = selected_real_kind (p=24)
+   integer, parameter :: kind_i1 = selected_int_kind(2)
+   integer, parameter :: kind_ih = selected_int_kind(4)
+   integer, parameter :: kind_is = selected_int_kind(8)
+   integer, parameter :: kind_id = selected_int_kind(15)
+   integer, parameter :: kind_rs = selected_real_kind(p=6)
+   integer, parameter :: kind_rd = selected_real_kind(p=12)
+   ! There is a selected_real_kind bug in xlf and the following does not work
+   integer, parameter :: kind_rq = selected_real_kind(p=24)
 
 !   integer, parameter :: sizeof_i1 = 1
 !   integer, parameter :: sizeof_ih = 2
@@ -42,9 +42,9 @@ module constants
 !   integer, parameter :: sizeof_cq = 32
 
 # if NAG_PREC == _NAGDBLE_
-  integer, parameter :: nag_kind=kind_rd
+   integer, parameter :: nag_kind = kind_rd
 # elif NAG_PREC == _NAGSNGL_
-  integer, parameter :: nag_kind=kind_rs
+   integer, parameter :: nag_kind = kind_rs
 # endif
 
 ! Symbolic names for kind type of single and double-precision complex:
@@ -55,23 +55,23 @@ module constants
 !  complex(dp), parameter :: ii = (0._dp, 1._dp)
 !  real(dp), parameter :: pi=3.141592653589793238_dp
 
-  complex, parameter :: zi = ( 0.0 , 1.0 )
+   complex, parameter :: zi = (0.0, 1.0)
 !  real, parameter :: pi = 3.1415926535897931
 !  real, parameter :: pi = 3.14159265358979323846, twopi=2.*pi
-  ! this is actually quad precision
-  double precision, parameter :: dpi = &
-       3.14159265358979323846264338327950288419716939938, dtwopi=2.*dpi
-  real, parameter :: pi = dpi, twopi= dtwopi
+   ! this is actually quad precision
+   double precision, parameter :: dpi = &
+      3.14159265358979323846264338327950288419716939938, dtwopi = 2.*dpi
+   real, parameter :: pi = dpi, twopi = dtwopi
 
 ! Note: we will use dp="double precision" for almost everything.
 !
 ! The fortran-90 "kind" types is kind of awkward.  But the old trick of
-! using a "-r8" compiler switch to promote all real variables to 64 bits 
-! does not work on some fortran 90 compilers, and so the above use of 
+! using a "-r8" compiler switch to promote all real variables to 64 bits
+! does not work on some fortran 90 compilers, and so the above use of
 ! the standard fortran-90 routine selected_real_kind is more portable.
 !
 ! It may not be a good idea to mimic "-r8" by making sp to be identical
-! to dp, or to write single and double-precision versions of 
+! to dp, or to write single and double-precision versions of
 ! generic subroutines, since on the Cray computers both single and
 ! "double" precision are 64 bits, and the compiler will complain that
 ! it cannot distinguish the two specific subroutines.  In some cases,
@@ -80,7 +80,7 @@ module constants
 ! even though the two real kinds map to the same precision (64 bits).
 !
 ! If this ever does become a problem, then you may be able to get around it by
-! commenting out the double precision function names from the list of 
+! commenting out the double precision function names from the list of
 ! overloaded procedures (i.e., the "module procedure" statements).
 !
 

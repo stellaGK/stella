@@ -47,89 +47,89 @@
 !!$***********************************************************************
 
 module mt19937
-  
-  implicit none
 
-  private
-  public :: sgrnd, grnd
+   implicit none
 
-  integer, parameter :: default_seed=4357
+   private
+   public :: sgrnd, grnd
 
-  ! Period parameters
-  integer, parameter :: N = 624
-  integer, parameter :: M = 397
-  integer, parameter :: MATA = -1727483681 ! constant vector a
-  integer, parameter :: LMASK = 2147483647 ! least significant r bits
-  integer, parameter :: UMASK = -LMASK-1 ! most significant w-r bits
+   integer, parameter :: default_seed = 4357
 
-  ! Tempering parameters
-  integer, parameter :: TMASKB= -1658038656
-  integer, parameter :: TMASKC= -272236544
+   ! Period parameters
+   integer, parameter :: N = 624
+   integer, parameter :: M = 397
+   integer, parameter :: MATA = -1727483681 ! constant vector a
+   integer, parameter :: LMASK = 2147483647 ! least significant r bits
+   integer, parameter :: UMASK = -LMASK - 1 ! most significant w-r bits
 
-  integer, save :: mt(0:N-1) ! the array for the state vector
-  integer, save :: mti=N+1 ! mti==N+1 means mt[N] is not initialized
-  integer, save :: mag01(0:1)=(/ 0, MATA /) ! mag01(x) = x * MATA for x=0,1
+   ! Tempering parameters
+   integer, parameter :: TMASKB = -1658038656
+   integer, parameter :: TMASKC = -272236544
+
+   integer, save :: mt(0:N - 1) ! the array for the state vector
+   integer, save :: mti = N + 1 ! mti==N+1 means mt[N] is not initialized
+   integer, save :: mag01(0:1) = (/0, MATA/) ! mag01(x) = x * MATA for x=0,1
 
 contains
 
-  subroutine sgrnd(seed)
-    implicit none
-    integer, intent(in) :: seed
+   subroutine sgrnd(seed)
+      implicit none
+      integer, intent(in) :: seed
 
 !!$      setting initial seeds to mt[N] using
 !!$      the generator Line 25 of Table 1 in
 !!$      [KNUTH 1981, The Art of Computer Programming
 !!$         Vol. 2 (2nd Ed.), pp102]
 
-    mt(0)= iand(seed,-1)
-    do mti=1,N-1
-       mt(mti) = iand(69069 * mt(mti-1),-1)
-    end do
+      mt(0) = iand(seed, -1)
+      do mti = 1, N - 1
+         mt(mti) = iand(69069 * mt(mti - 1), -1)
+      end do
 
-    return
-  end subroutine sgrnd
+      return
+   end subroutine sgrnd
 
-  function grnd ()
-    implicit none
-    real :: grnd
-    real, parameter :: pow=4294967296.0 ! 2**32
-    real, parameter :: div=1./pow       ! devided by 2**32 [0,1)-real-interval
-    ! real, parameter :: div=1./(pow-1.)  ! devided by 2**32-1 [0,1]-real-interval
-    integer :: y, kk
+   function grnd()
+      implicit none
+      real :: grnd
+      real, parameter :: pow = 4294967296.0 ! 2**32
+      real, parameter :: div = 1./pow       ! devided by 2**32 [0,1)-real-interval
+      ! real, parameter :: div=1./(pow-1.)  ! devided by 2**32-1 [0,1]-real-interval
+      integer :: y, kk
 
-    if(mti >= N) then ! generate N words at one time
-       if(mti == N+1) then ! if sgrnd() has not been called,
-          call sgrnd(default_seed) ! a default initial seed is used
-       endif
+      if (mti >= N) then ! generate N words at one time
+         if (mti == N + 1) then ! if sgrnd() has not been called,
+            call sgrnd(default_seed) ! a default initial seed is used
+         end if
 
-       do kk=0,N-M-1
-          y=ior(iand(mt(kk),UMASK),iand(mt(kk+1),LMASK))
-          mt(kk)=ieor(ieor(mt(kk+M),ishft(y,-1)),mag01(iand(y,1)))
-       end do
+         do kk = 0, N - M - 1
+            y = ior(iand(mt(kk), UMASK), iand(mt(kk + 1), LMASK))
+            mt(kk) = ieor(ieor(mt(kk + M), ishft(y, -1)), mag01(iand(y, 1)))
+         end do
 
-       do kk=N-M,N-2
-          y=ior(iand(mt(kk),UMASK),iand(mt(kk+1),LMASK))
-          mt(kk)=ieor(ieor(mt(kk+(M-N)),ishft(y,-1)),mag01(iand(y,1)))
-       end do
+         do kk = N - M, N - 2
+            y = ior(iand(mt(kk), UMASK), iand(mt(kk + 1), LMASK))
+            mt(kk) = ieor(ieor(mt(kk + (M - N)), ishft(y, -1)), mag01(iand(y, 1)))
+         end do
 
-       y=ior(iand(mt(N-1),UMASK),iand(mt(0),LMASK))
-       mt(N-1)=ieor(ieor(mt(M-1),ishft(y,-1)),mag01(iand(y,1)))
-       mti = 0
-    endif
+         y = ior(iand(mt(N - 1), UMASK), iand(mt(0), LMASK))
+         mt(N - 1) = ieor(ieor(mt(M - 1), ishft(y, -1)), mag01(iand(y, 1)))
+         mti = 0
+      end if
 
-    y=mt(mti)
-    mti=mti+1
-    y=ieor(y,ishft(y,-11))
-    y=ieor(y,iand(ishft(y,7),TMASKB))
-    y=ieor(y,iand(ishft(y,15),TMASKC))
-    y=ieor(y,ishft(y,-18))
+      y = mt(mti)
+      mti = mti + 1
+      y = ieor(y, ishft(y, -11))
+      y = ieor(y, iand(ishft(y, 7), TMASKB))
+      y = ieor(y, iand(ishft(y, 15), TMASKC))
+      y = ieor(y, ishft(y, -18))
 
-    grnd = real(y) 
-    if(grnd < 0.) grnd=grnd + pow
-    grnd = grnd * div
+      grnd = real(y)
+      if (grnd < 0.) grnd = grnd + pow
+      grnd = grnd * div
 
-    return
-  end function grnd
+      return
+   end function grnd
 
 end module mt19937
 
