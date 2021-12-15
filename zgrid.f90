@@ -207,6 +207,8 @@ contains
           zarc(iz) = zarc(-nz_max) - zarc(iz)
        end do
     end if
+    ! this seems very inefficient -- could just add incremental change at each zed,
+    ! rather than recomputing from the boundary each time
     do iz = -nz_max+1, nzext_max
        call integrate_zed (nz_max, dz, 1./gp(-nz_max:iz), zarc(iz))
        zarc(iz) = zarc(-nz_max) + zarc(iz)

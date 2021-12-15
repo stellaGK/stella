@@ -13,7 +13,8 @@ module species
   public :: ion_species, electron_species, slowing_down_species, tracer_species
   public :: has_electron_species, has_slowing_down_species
   public :: ions, electrons, impurity
-
+  public :: modified_adiabatic_electrons, adiabatic_electrons
+  
   private
 
   integer, parameter :: ion_species = 1
@@ -30,6 +31,7 @@ module species
   integer :: nspec
   logical :: read_profile_variation, write_profile_variation
   logical :: ecoll_zeff
+  logical :: modified_adiabatic_electrons, adiabatic_electrons
 
   type (spec_type), dimension (:), allocatable :: spec
 
@@ -51,6 +53,7 @@ contains
     use mp, only: proc0, broadcast
     use physics_parameters, only: vnew_ref, zeff
     use physics_flags, only: include_pressure_variation
+    use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
     use inputprofiles_interface, only: read_inputprof_spec
     use euterpe_interface, only: read_species_euterpe
 
@@ -94,7 +97,6 @@ contains
               end if
            end do
        else
-           print*,'using full inter-species collisions'
            ! AVB: full intra- and inter-species collision frequencies
            do is = 1, nspec
                do is2 = 1, nspec
@@ -121,6 +123,13 @@ contains
 
     call broadcast_parameters
 
+    ! set flag adiabatic_electrons to true if no kinetic electron species evolved
+    adiabatic_electrons = .not.has_electron_species(spec)
+    ! set flag modified_adiabatic_electrons to true if no kinetic electron species evolved
+    ! and field-line-avg chosen as the adiabatic option
+    modified_adiabatic_electrons = adiabatic_electrons &
+         .and. adiabatic_option_switch.eq.adiabatic_option_fieldlineavg
+    
 !    if (trin_flag) call reinit_species (ntspec_trin, dens_trin, &
 !         temp_trin, fprim_trin, tprim_trin, nu_trin)
   end subroutine init_species

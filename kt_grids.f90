@@ -6,10 +6,11 @@ module kt_grids
   public :: init_kt_grids, finish_kt_grids
   public :: read_kt_grids_parameters, box
   public :: aky, theta0, akx, zed0
+  public :: aky_all, aky_all_ordered
   public :: naky, nakx, nx, ny, reality
   public :: dx,dy,dkx, dky, dx_d
   public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
-  public :: x, x_d
+  public :: x, x_d, y
   public :: rho, rho_d, rho_clamped, rho_d_clamped
   public :: nalpha
   public :: ikx_max, naky_all
@@ -28,10 +29,14 @@ module kt_grids
      module procedure swap_kxky_real
      module procedure swap_kxky_complex
   end interface
+  interface swap_kxky_ordered
+     module procedure swap_kxky_ordered_real
+     module procedure swap_kxky_ordered_complex
+  end interface
 
   real, dimension (:,:), allocatable :: theta0, zed0
-  real, dimension (:), allocatable :: aky, akx
-  real, dimension (:), allocatable :: x, x_d
+  real, dimension (:), allocatable :: aky, akx, aky_all, aky_all_ordered
+  real, dimension (:), allocatable :: x, x_d, y
   real, dimension (:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
   complex, dimension (:,:), allocatable :: g0x
   real :: dx, dy, dkx, dky, dx_d
@@ -149,9 +154,13 @@ contains
     in_file = input_unit_exist("kt_grids_box_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_box_parameters)
 
-    ! get the number of de-aliased modes in y and x
+    ! get the number of de-aliased modes in y and x, using reality to halve the number of ky modes
     naky = (ny-1)/3 + 1
     nakx = 2*((nx-1)/3) +  1
+
+    ! get the total number of ky values, including negative ky;
+    ! this is approximately 2/3 ny because ny includes padding to avoid aliasing
+    naky_all = 2*naky-1
 
     reality = .true.
 
@@ -161,8 +170,10 @@ contains
 
   subroutine read_kt_grids_range
 
+    use mp, only: mp_abort, proc0
     use file_utils, only: input_unit, input_unit_exist
-
+    use physics_flags, only: full_flux_surface
+    
     implicit none
 
     integer :: in_file
@@ -186,6 +197,17 @@ contains
     in_file = input_unit_exist ("kt_grids_range_parameters", exist)
     if (exist) read (in_file, nml=kt_grids_range_parameters)
 
+    if (full_flux_surface) then
+       if (proc0) then
+          write (*,*) '!!! ERROR !!!'
+          write (*,*) 'kt_grids "range" option is not supported for full_flux_surface = T. aborting'
+          write (*,*) '!!! ERROR !!!'
+       end if
+       call mp_abort ('kt_grids "range" option is not supported for full_flux_surface = T. aborting')
+    end if
+
+    naky_all = naky
+    
   end subroutine read_kt_grids_range
 
   subroutine init_kt_grids 
@@ -207,11 +229,10 @@ contains
        call init_kt_grids_box 
     end select
 
-    ! determine if iky corresponds to zonal mode
+    !> determine if iky corresponds to zonal mode
     if (.not.allocated(zonal_mode)) allocate (zonal_mode(naky))
     zonal_mode = .false.
     if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
-
 
   end subroutine init_kt_grids
 
@@ -233,38 +254,40 @@ contains
     implicit none
     
     integer :: ikx, iky
+    integer :: ikyneg
     real :: x_shift, dqdrho, pfac, norm
 
     box = .true.
 
-    ! set jtwist and y0 for cases where they have not been specified
-    ! and for which it makes sense to set them automatically
+    !> set jtwist and y0 for cases where they have not been specified
+    !> and for which it makes sense to set them automatically
     if (jtwist < 1) then 
       jtwist = max(1,int(abs(twist_and_shift_geo_fac)+0.5))
       jtwist = max(1,int(jtwistfac*jtwist+0.5))
     endif
-    ! signed version of jtwist, with sign determined by, e.g., magnetic shear
+    !> signed version of jtwist, with sign determined by, e.g., magnetic shear
     ikx_twist_shift = -jtwist*int(sign(1.0,twist_and_shift_geo_fac))
 
     if (y0 < 0.) then
        if (full_flux_surface) then
-          ! if simulating a flux annulus, then
-          ! y0 determined by the physical
-          ! extent of the device
+          !> if simulating a flux annulus, then
+          !> y0 determined by the physical
+          !> extent of the device
           if (rhostar > 0.) then
-             y0 = 1./(rhostar*geo_surf%rhotor)
+             !y0 = 1./(rhostar*geo_surf%rhotor)
+             y0 = geo_surf%rhotor/rhostar
           else
              call mp_abort ('must set rhostar if simulating a full flux surface. aborting.')
           end if
        else
-          ! if simulating a flux tube
-          ! makes no sense to have y0 < 0.0
-          ! so abort
+          !> if simulating a flux tube
+          !> makes no sense to have y0 < 0.0
+          !> so abort
           call mp_abort ('y0 negative only makes sense when simulating a flux annulus.  aborting.')
        end if
     end if
 
-    ! get the grid spacing in ky and then in kx using twist-and-shift BC
+    !> get the grid spacing in ky and then in kx using twist-and-shift BC
     dky = 1./y0
 
     ! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition
@@ -275,41 +298,54 @@ contains
     case (twist_shift_option_stellarator)
        dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
     case (twist_shift_option_periodic)
+       !> MAB: this seems overly restrictive; should allow for arbitrary box aspect ratio via inpur parameter
        dkx = dky 
     end select
 
     x0 = 1./dkx
 
-    ! ky goes from zero to ky_max
+    !> ky goes from zero to ky_max
     do iky = 1, naky
        aky(iky) = real(iky-1)*dky
     end do
 
-    ! get the ikx index corresponding to kx_max
+    !> get the ikx index corresponding to kx_max
     ikx_max = nakx/2+1
 
-    ! get the total number of ky values, including negative ky
-    naky_all = 2*naky-1
-
-    ! kx goes from zero to kx_max down to zero...
+    !> aky_all contains all ky values (positive and negative),
+    !> stored in the same order as akx (0 -> ky_max, -ky_max -> -dky)
+    !> first set arrays equal for ky >= 0
+    aky_all(:naky) = aky
+    !> aky_all_ordered contains all ky values, stored from
+    !> most negative to most positive (-ky_max -> ky_max)
+    aky_all_ordered(naky:naky_all) = aky
+    !> next fill in ky < 0
+    do iky = naky+1, naky_all
+       !> this is the ky index corresponding to +ky in original array
+       ikyneg = naky_all-iky+2
+       aky_all(iky) = -aky(ikyneg)
+    end do
+    aky_all_ordered(:naky-1) = aky_all(naky+1:)
+    
+    !> kx goes from zero to kx_max down to zero...
     do ikx = 1, ikx_max
        akx(ikx) = real(ikx-1)*dkx
     end do
-    ! and then from -kx_max to -|kx_min|
+    !> and then from -kx_max to -|kx_min|
     do ikx = ikx_max+1, nakx
        akx(ikx) = real(ikx-nakx-1)*dkx
     end do
 
-    ! set theta0=0 for ky=0
+    !> set theta0=0 for ky=0
     theta0(1,:) = 0.0
     if (q_as_x) then
        do ikx = 1, nakx
-          ! theta0 = kx/ky
+          !> theta0 = kx/ky
           theta0(2:,ikx) = akx(ikx)/aky(2:)
        end do
     else 
        do ikx = 1, nakx
-          ! theta0 = kx/ky/shat
+          !> theta0 = kx/ky/shat
           theta0(2:,ikx) = akx(ikx)/(aky(2:)*geo_surf%shat)
        end do
     end if
@@ -317,7 +353,7 @@ contains
     norm = 1.
     if (naky.gt.1) norm = aky(2)
     if (rhostar.gt.0.) then
-      phase_shift_fac =-2.*pi*(2*nperiod-1)*geo_surf%qinp_psi0*dydalpha/rhostar
+      phase_shift_fac = -2.*pi*(2*nperiod-1)*geo_surf%qinp_psi0*dydalpha/rhostar
     else if (randomize_phase_shift) then
       if (proc0) phase_shift_fac = 2.*pi*ranf()/norm
       call broadcast (phase_shift_fac)
@@ -325,21 +361,25 @@ contains
       phase_shift_fac = phase_shift_fac/norm
     endif
 
-
-    ! for radial variation
-    if(.not.allocated(x)) allocate (x(nx))
+    !> MAB: a lot of the radial variation coding below should probably be tidied away
+    !> into one or more separate subroutines
+    
+    !> for radial variation
     if(.not.allocated(x_d)) allocate (x_d(nakx))
     if(.not.allocated(rho)) allocate (rho(nx))
     if(.not.allocated(rho_d)) allocate (rho_d(nakx))
     if(.not.allocated(rho_clamped)) allocate (rho_clamped(nx))
     if(.not.allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx))
 
+    if(.not.allocated(x)) allocate (x(nx))
+    if(.not.allocated(y)) allocate (y(ny))
+    
     dx = (2*pi*x0)/nx
     dy = (2*pi*y0)/ny
 
     x_shift = pi*x0
     pfac = 1.0
-    if (periodic_variation) pfac = 0.5
+
     if(centered_in_rho) then
       if(q_as_x) then
         dqdrho = geo_surf%shat*geo_surf%qinp/geo_surf%rhoc
@@ -399,6 +439,10 @@ contains
       call mp_abort ('rho(x) is beyond range [0,1]. Try changing rhostar or q/psi profiles')
     endif
 
+    do iky = 1, ny
+       y(iky) = (iky-1)*dy
+    end do
+    
   end subroutine init_kt_grids_box
 
   subroutine init_kt_grids_range
@@ -576,6 +620,8 @@ contains
 
     allocate (akx(nakx))
     allocate (aky(naky))
+    allocate (aky_all(naky_all))
+    allocate (aky_all_ordered(naky_all))
     allocate (theta0(naky,nakx))
     allocate (zed0(naky,nakx))
 
@@ -652,7 +698,41 @@ contains
   ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
   ! and uses reality condition to return array
   ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
-  subroutine swap_kxky_ordered (gin, gout)
+  subroutine swap_kxky_ordered_real (gin, gout)
+
+    implicit none
+
+    real, dimension (:,:), intent (in) :: gin
+    real, dimension (:,:), intent (out) :: gout
+
+    integer :: ikx, ikxneg
+    integer :: iky, ikyneg
+
+    ! first set arrays equal for ky >= 0 and kx >= 0
+    gout(naky:,:) = gin(:,:ikx_max)
+    ! next fill in ky < 0, kx >= 0 elements of array using reality
+    ikx = 1
+    ikxneg = ikx
+    do iky = 1, naky-1
+       ! this is the ky index corresponding to +ky in original array
+       ikyneg = naky-iky+1
+       gout(iky,ikx) = gin(ikyneg,ikxneg)
+    end do
+    do ikx = 2, ikx_max
+       ikxneg = nakx-ikx+2
+       do iky = 1, naky-1
+          ! this is the ky index corresponding to +ky in original array
+          ikyneg = naky-iky+1
+          gout(iky,ikx) = gin(ikyneg,ikxneg)
+       end do
+    end do
+
+  end subroutine swap_kxky_ordered_real
+
+    ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+  ! and uses reality condition to return array
+  ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+  subroutine swap_kxky_ordered_complex (gin, gout)
 
     implicit none
 
@@ -681,7 +761,7 @@ contains
        end do
     end do
 
-  end subroutine swap_kxky_ordered
+  end subroutine swap_kxky_ordered_complex
 
   ! take an array with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
   ! and uses reality condition to return array
@@ -766,11 +846,15 @@ contains
     implicit none
 
     if (allocated(aky)) deallocate (aky)
+    if (allocated(aky_all)) deallocate (aky_all)
+    if (allocated(aky_all_ordered)) deallocate (aky_all_ordered)
     if (allocated(akx)) deallocate (akx)
     if (allocated(theta0)) deallocate (theta0)
     if (allocated(zed0)) deallocate (zed0)
 
     if (allocated(x)) deallocate (x)
+    if (allocated(y)) deallocate (y)
+
     if (allocated(x_d)) deallocate (x_d)
     if (allocated(rho)) deallocate (rho)
     if (allocated(rho_d)) deallocate (rho_d)

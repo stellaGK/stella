@@ -23,7 +23,8 @@ module parallel_streaming
   logical :: parallel_streaming_initialized = .false.
 
   integer, dimension (:), allocatable :: stream_sign
-  real, dimension (:,:,:), allocatable :: stream, stream_c
+  real, dimension (:,:,:,:), allocatable :: stream
+  real, dimension (:,:,:), allocatable :: stream_c
   real, dimension (:,:,:), allocatable :: stream_rad_var1
   real, dimension (:,:,:), allocatable :: stream_rad_var2
   real, dimension (:,:), allocatable :: stream_tri_a1, stream_tri_a2
@@ -47,71 +48,77 @@ contains
     use vpamu_grids, only: vperp2, vpa, mu
     use kt_grids, only: nalpha
     use zgrid, only: nzgrid, nztot
-    use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac
+    use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
     use run_parameters, only: stream_implicit, driftkinetic_implicit
     use physics_flags, only: include_parallel_streaming, radial_variation
 
     implicit none
 
-    integer :: iv, imu, is, ivmu, ia
+    integer :: iv, imu, is, ivmu
+    integer :: ia, iz
     
     real, dimension (:), allocatable :: energy
 
     if (parallel_streaming_initialized) return
     parallel_streaming_initialized = .true.
 
-    if (.not.allocated(stream)) allocate (stream(-nzgrid:nzgrid,nvpa,nspec)) ; stream = 0.
+    if (.not.allocated(stream)) allocate (stream(nalpha,-nzgrid:nzgrid,nvpa,nspec)) ; stream = 0.
     if (.not.allocated(stream_sign)) allocate (stream_sign(nvpa)) ; stream_sign = 0
 
     ! sign of stream corresponds to appearing on RHS of GK equation
     ! i.e., this is the factor multiplying dg/dz on RHS of equation
     if (include_parallel_streaming) then
-       stream = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
-            * spread(spread(vpa,1,nztot)*spread(gradpar,2,nvpa),3,nspec)
+       do iv = 1, nvpa
+          do iz = -nzgrid, nzgrid
+             do ia = 1, nalpha
+                stream(ia,iz,iv,:) = -code_dt*b_dot_grad_z(ia,iz)*vpa(iv)*spec%stm_psi0
+             end do
+          end do
+       end do
     else
        stream = 0.0
     end if
 
 
     if(radial_variation) then
-      allocate (energy(-nzgrid:nzgrid))
-
-      if(.not.allocated(stream_rad_var1)) then 
-        allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
-      endif
-      if(.not.allocated(stream_rad_var2)) then 
-        allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        stream_rad_var2 = 0.0
-      endif
-      ia=1
-      stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
+       allocate (energy(-nzgrid:nzgrid))
+       
+       if(.not.allocated(stream_rad_var1)) then 
+          allocate(stream_rad_var1(-nzgrid:nzgrid,nvpa,nspec))
+       endif
+       if(.not.allocated(stream_rad_var2)) then 
+          allocate(stream_rad_var2(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+          stream_rad_var2 = 0.0
+       endif
+       ia=1
+       stream_rad_var1 = -code_dt*spread(spread(spec%stm_psi0,1,nztot),2,nvpa) &
             * gfac*spread(spread(vpa,1,nztot)*spread(dgradpardrho,2,nvpa),3,nspec)
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        is  = is_idx(vmu_lo,ivmu)
-        imu = imu_idx(vmu_lo,ivmu)
-        iv  = iv_idx(vmu_lo,ivmu)
-        energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
-        stream_rad_var2(ia,:,ivmu) = &
-                +code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
-                *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
-                *(  pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
-                  + gfac*2*mu(imu)*dBdrho)
-      enddo
-      deallocate (energy)
+       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is  = is_idx(vmu_lo,ivmu)
+          imu = imu_idx(vmu_lo,ivmu)
+          iv  = iv_idx(vmu_lo,ivmu)
+          energy = (vpa(iv)**2 + vperp2(ia,:,imu))*(spec(is)%temp_psi0/spec(is)%temp)
+          stream_rad_var2(ia,:,ivmu) = &
+               +code_dt*spec(is)%stm_psi0*vpa(iv)*gradpar &
+               *spec(is)%zt*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is) & 
+               *(  pfac*(spec(is)%fprim + spec(is)%tprim*(energy-2.5)) &
+               + gfac*2*mu(imu)*dBdrho)
+       enddo
+       deallocate (energy)
     endif
 
-    ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
-    ! NB: stream_sign = -1 corresponds to positive advection velocity
+    !> stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
+    !> NB: stream_sign = -1 corresponds to positive advection velocity
+    !> only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
+    !> do not lead to change in sign of the streaming pre-factor
     do iv = 1, nvpa
-       stream_sign(iv) = int(sign(1.0,stream(0,iv,1)))
+       stream_sign(iv) = int(sign(1.0,stream(1,0,iv,1)))
     end do
-    ! vpa = 0 is special case
-!    stream_sign(0) = 0
 
     if (stream_implicit .or. driftkinetic_implicit) then
        call init_invert_stream_operator
        if (.not.allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid,nvpa,nspec))
-       stream_c = stream
+       stream_c = stream(1,:,:,:)
        do is = 1, nspec
           do iv = 1, nvpa
              call center_zed (iv, stream_c(:,iv,is))
@@ -119,11 +126,11 @@ contains
        end do
        if (.not.allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid,-1:1))
        gradpar_c = spread(gradpar,2,3)
-       ! get gradpar centred in zed for negative vpa (affects upwinding)
+       !> get gradpar centred in zed for negative vpa (affects upwinding)
        call center_zed(1,gradpar_c(:,-stream_sign(1)))
-       ! get gradpar centred in zed for positive vpa (affects upwinding)
+       !> get gradpar centred in zed for positive vpa (affects upwinding)
        call center_zed(nvpa,gradpar_c(:,-stream_sign(nvpa)))
-       stream = stream_c
+       stream = spread(stream_c,1,nalpha)
     end if
 
   end subroutine init_parallel_streaming
@@ -178,10 +185,10 @@ contains
     use stella_layouts, only: iv_idx, imu_idx, is_idx
     use job_manage, only: time_message
     use stella_transforms, only: transform_ky2y
-    use stella_geometry, only: dBdzed
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx, ny
-    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, mu
+    use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+    use kt_grids, only: swap_kxky
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
     use species, only: spec
     use physics_flags, only: full_flux_surface
     use gyro_averages, only: gyro_average
@@ -196,79 +203,96 @@ contains
     integer :: ivmu, iv, imu, is, ia, iz, it
     complex, dimension (:,:,:,:), allocatable :: g0, dgphi_dz
     complex, dimension (:,:,:,:), allocatable :: g0y, g1y
+    complex, dimension (:,:), allocatable :: g0_swap
     
-    ! if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
-    ! if full flux surface (flux annulus), will need to calculate in y space
+    !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
+    !> if full flux surface (flux annulus), will need to calculate in y space
+
+    !> start the timer for the parallel streaming part of the time advance
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
-    ! allocate arrays needed for intermmediate calculations
+    !> allocate arrays needed for intermmediate calculations
     allocate (g0(naky,nakx,-nzgrid:nzgrid,ntubes))
     allocate (dgphi_dz(naky,nakx,-nzgrid:nzgrid,ntubes))
-    ! if simulating a full flux surface, will also need version of the above arrays,
-    ! Fourier transformed to y-space
+    !> if simulating a full flux surface, will also need version of the above arrays
+    !> that is Fourier transformed to y-space
     if (full_flux_surface) then
-       allocate (g0y(ny,nakx,-nzgrid:nzgrid,ntubes))
-       allocate (g1y(ny,nakx,-nzgrid:nzgrid,ntubes))
+       allocate (g0_swap(naky_all,ikx_max))
+       allocate (g0y(ny,ikx_max,-nzgrid:nzgrid,ntubes))
+       allocate (g1y(ny,ikx_max,-nzgrid:nzgrid,ntubes))
     end if
     
-    ia = 1
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       ! get (iv,imu,is) indices corresponding to ivmu super-index
+       !> get (iv,imu,is) indices corresponding to ivmu super-index
        iv = iv_idx(vmu_lo,ivmu)
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
 
-       ! obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
+       !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
        call gyro_average (phi, ivmu, g0(:,:,:,:))
        if (driftkinetic_implicit) g0(:,:,:,:) = g0(:,:,:,:) - phi
 
-       ! get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
-       ! note that this should be a centered difference to avoid numerical
-       ! unpleasantness to do with inexact cancellations in later velocity integration
-       ! see appendix of the stella JCP 2019 for details
+       !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
+       !> note that this should be a centered difference to avoid numerical
+       !> unpleasantness to do with inexact cancellations in later velocity integration
+       !> see appendix of the stella JCP 2019 for details
        call get_dgdz_centered (g0, ivmu, dgphi_dz)
 
-       ! if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
-       ! in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
+       !> if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
+       !> in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
        if (driftkinetic_implicit) then
           g0 = 0.
        else
-          ! compute dg/dz in k-space and store in g0
+          !> compute dg/dz in k-space and store in g0
           call get_dgdz (g(:,:,:,:,ivmu), ivmu, g0)
-          ! if simulating a full flux surface, must calculate F * d/dz (g/F) rather than dg/dz
-          ! since F=F(y) in this case, avoid multiple Fourier transforms by applying chain rule
-          ! to z derivative: F * d/dz (g/F) = dg/dz - g * d ln F / dz = dg/dz + g * mu/T * dB/dz
+          !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
+          !> in y-space, so FFT d(g/F)/dz from ky to y
           if (full_flux_surface) then
-             ! transform g and dg/dz from ky to y space and store in g0y and g1y, respectively
-             g1y = g(:,:,:,:,ivmu)
              do it = 1, ntubes
                 do iz = -nzgrid, nzgrid
-                   call transform_ky2y (g1y(:,:,iz,it), g0y(:,:,iz,it))
-                   ! no longer need g1y so re-use as FFT of dg/dz (g0)
-                   call transform_ky2y (g0(:,:,iz,it), g1y(:,:,iz,it))
+                   call swap_kxky (g0(:,:,iz,it), g0_swap)
+                   call transform_ky2y (g0_swap, g0y(:,:,iz,it))
                 end do
              end do
-             ! overwrite g0y with dg/dz + g * mu/T * dB/dz
-             g0y = g1y + 2.0*mu(imu)*spread(spread(dBdzed,2,nakx),4,ntubes) * g0y
-             ! g1y no longer needed so can over-write with d<phi>/dz below
           end if
+          ! ! if simulating a full flux surface, must calculate F * d/dz (g/F) rather than dg/dz
+          ! ! since F=F(y) in this case, avoid multiple Fourier transforms by applying chain rule
+          ! ! to z derivative: F * d/dz (g/F) = dg/dz - g * d ln F / dz = dg/dz + g * mu/T * dB/dz
+          ! if (full_flux_surface) then
+          !    ! transform g and dg/dz from ky to y space and store in g0y and g1y, respectively
+          !    g1y = g(:,:,:,:,ivmu)
+          !    do it = 1, ntubes
+          !       do iz = -nzgrid, nzgrid
+          !          call transform_ky2y (g1y(:,:,iz,it), g0y(:,:,iz,it))
+          !          ! no longer need g1y so re-use as FFT of dg/dz (g0)
+          !          call transform_ky2y (g0(:,:,iz,it), g1y(:,:,iz,it))
+          !       end do
+          !    end do
+          !    ! overwrite g0y with dg/dz + g * mu/T * dB/dz
+          !    g0y = g1y + 2.0*mu(imu)*spread(spread(dBdzed,2,nakx),4,ntubes) * g0y
+          !    ! g1y no longer needed so can over-write with d<phi>/dz below
+          ! end if
        end if
        
        if (full_flux_surface) then
-          ! transform d<phi>/dz (fully explicit) or d(<phi>-phi)/dz (if driftkinetic_implicit)
-          ! from kalpha (ky) to alpha (y) space and store in g1y
+          !> transform d<phi>/dz (fully explicit) or d(<phi>-phi)/dz (if driftkinetic_implicit)
+          !> from kalpha (ky) to alpha (y) space and store in g1y
           do it = 1, ntubes
              do iz = -nzgrid, nzgrid
-                call transform_ky2y (dgphi_dz(:,:,iz,it), g1y(:,:,iz,it))
+                call swap_kxky (dgphi_dz(:,:,iz,it), g0_swap)
+                call transform_ky2y (g0_swap, g1y(:,:,iz,it))
              end do
           end do
-          ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
-          g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
-               * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,nakx),4,ntubes)*maxwell_fac(is)
+          !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
+          g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt
+          ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
+          ! g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
+          !      * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,nakx),4,ntubes)*maxwell_fac(is)
 
-          ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
-          call add_stream_term_annulus (g0y, ivmu, gout(:,:,:,:,ivmu))
+          !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
+          call add_stream_term_ffs (g0y, ivmu, gout(:,:,:,:,ivmu))
        else
+          ia = 1
           g0(:,:,:,:) = g0(:,:,:,:) + dgphi_dz(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
                * maxwell_vpa(iv,is)*spread(spread(spread(maxwell_mu(ia,:,imu,is),1,naky),2,nakx),4,ntubes)
 
@@ -278,11 +302,11 @@ contains
           
     end do
 
-    ! deallocate intermediate arrays used in this subroutine
+    !> deallocate intermediate arrays used in this subroutine
     deallocate (g0, dgphi_dz)
-    if (full_flux_surface) deallocate (g0y, g1y)
+    if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
 
-    ! finish timing the subroutine
+    !> finish timing the subroutine
     if (proc0) call time_message(.false.,time_parallel_streaming,' Stream advance')
 
   end subroutine advance_parallel_streaming_explicit
@@ -357,7 +381,7 @@ contains
     !!#3 - variation in the gyroaveraging and quasineutrality of phi
     !!     These variations already have the linear part calculated, so
     !!     ad it into the rhs directly
-           g0k = spec(is)%zt*stream(iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
+           g0k = spec(is)%zt*stream(1,iz,iv,is)*maxwell_vpa(iv,is)*maxwell_mu(ia,iz,imu,is)*maxwell_fac(is) &
                  *(g2(:,:,iz,it) + g3(:,:,iz,it))
 
            rhs(:,:,iz,it,ivmu) = rhs(:,:,iz,it,ivmu) + g0k
@@ -496,8 +520,7 @@ contains
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use zgrid, only: nzgrid
 
     implicit none
 
@@ -505,20 +528,22 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: src
     integer, intent (in) :: ivmu
 
-    integer :: iv, is
+    integer :: iz, iv, is
 
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
-    src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,naky),2,nakx),4,ntubes)*g(:,:,:,:)
-
+    do iz = -nzgrid, nzgrid
+       src(:,:,iz,:) = src(:,:,iz,:) + stream(1,iz,iv,is)*g(:,:,iz,:)
+    end do
+             
   end subroutine add_stream_term
 
-    subroutine add_stream_term_annulus (g, ivmu, src)
+  subroutine add_stream_term_ffs (g, ivmu, src)
 
     use stella_layouts, only: vmu_lo
     use stella_layouts, only: iv_idx, is_idx
-    use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: ny, nakx
+    use zgrid, only: nzgrid
+    use kt_grids, only: ny
 
     implicit none
 
@@ -526,13 +551,17 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (in out) :: src
     integer, intent (in) :: ivmu
 
-    integer :: iv, is
-
+    integer :: iz, iy, iv, is
+    
     iv = iv_idx(vmu_lo,ivmu)
     is = is_idx(vmu_lo,ivmu)
-    src(:,:,:,:) = src(:,:,:,:) + spread(spread(spread(stream(:,iv,is),1,ny),2,nakx),4,ntubes)*g(:,:,:,:)
-
-  end subroutine add_stream_term_annulus
+    do iz = -nzgrid, nzgrid
+       do iy = 1, ny
+          src(iy,:,iz,:) = src(iy,:,iz,:) + stream(iy,iz,iv,is)*g(iy,:,iz,:)
+       end do
+    end do
+    
+  end subroutine add_stream_term_ffs
 
   subroutine advance_parallel_streaming_implicit (g, phi, apar)
 
@@ -806,8 +835,11 @@ contains
 
     integer :: iseg, llim, ulim, n
     integer :: nz, nseg_max, sgn, n_ext
+    integer :: ia
     real, dimension (:), allocatable :: a, b, c
 
+    ia = 1
+    
     ! avoid double-counting at boundaries between 2pi segments
     nz = nzed_segment
     nseg_max = nsegments(ie,iky)
@@ -821,27 +853,27 @@ contains
     iseg = 1
     llim = 1 ; ulim = nz+1
     a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-         - stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+         - stream(ia,iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
     b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+         -stream(ia,iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
     c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-         -stream(iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
+         -stream(ia,iz_low(iseg):iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
 
     if (nsegments(ie,iky) > 1) then
        do iseg = 2, nsegments(ie,iky)
           llim = ulim+1
           ulim = llim+nz-1
           a(llim:ulim) = stream_tri_a1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
+               - stream(ia,iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_a2(llim:ulim,sgn)
           b(llim:ulim) = stream_tri_b1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
+               - stream(ia,iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_b2(llim:ulim,sgn)
           c(llim:ulim) = stream_tri_c1(llim:ulim,sgn) &
-               - stream(iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
+               - stream(ia,iz_low(iseg)+1:iz_up(iseg),iv,is)*stream_tri_c2(llim:ulim,sgn)
        end do
     end if
     n = size(stream_tri_a1,1)
-    a(ulim) = stream_tri_a1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
-    b(ulim) = stream_tri_b1(n,sgn)-stream(iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
+    a(ulim) = stream_tri_a1(n,sgn)-stream(ia,iz_up(nsegments(ie,iky)),iv,is)*stream_tri_a2(n,sgn)
+    b(ulim) = stream_tri_b1(n,sgn)-stream(ia,iz_up(nsegments(ie,iky)),iv,is)*stream_tri_b2(n,sgn)
     c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
     call tridag (1, a(:ulim), b(:ulim), c(:ulim), g)
 
