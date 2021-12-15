@@ -67,8 +67,11 @@ contains
 
    end subroutine init_fields
 
-   !> MAB: would be tidier if the code related to radial profile variation
+   !> @todo would be tidier if the code related to radial profile variation
    !> were gathered into a separate subroutine or subroutines
+
+   !> init_fields_fluxtube allocates and fills arrays needed during main time advance
+   !> loop for the field solve for flux tube simulations
    subroutine init_fields_fluxtube
 
       use mp, only: sum_allreduce, job
@@ -467,10 +470,10 @@ contains
          deallocate (g0)
       end if
 
-!    if (wstar_implicit) call init_get_fields_wstar
-
    end subroutine init_fields_fluxtube
 
+   !> init_fields_ffs allocates and fills arrays needed during main time advance
+   !> loop for the field solve for full_flux_surface simulations
    subroutine init_fields_ffs
 
       use species, only: modified_adiabatic_electrons
@@ -619,10 +622,9 @@ contains
       use physics_parameters, only: nine, tite
       use zgrid, only: nzgrid
       use stella_transforms, only: transform_alpha2kalpha
-!    use stella_geometry, only: jacob
       use kt_grids, only: naky, naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
-      use volume_averages, only: flux_surface_average_ffs!, jacobian_ky
+      use volume_averages, only: flux_surface_average_ffs
 
       implicit none
 
@@ -630,7 +632,6 @@ contains
       complex, dimension(:, :, :), allocatable :: adiabatic_response_vector
 
       allocate (adiabatic_response_vector(naky_all, ikx_max, -nzgrid:nzgrid))
-!    if (.not.allocated(jacobian_ky)) allocate (jacobian_ky(naky,-nzgrid:nzgrid))
       if (.not. allocated(adiabatic_response_factor)) allocate (adiabatic_response_factor(ikx_max))
 
       !> adiabatic_response_vector is initialised to be the rhs of the equation for the
@@ -641,15 +642,8 @@ contains
       !> pass in the rhs and overwrite with the solution for phi_homogeneous
       call band_lu_solve_ffs(lu_gam0_ffs, adiabatic_response_vector)
 
-!    ! calculate the Fourier coefficients in y of the Jacobian
-!    ! this is needed in the computation of the flux surface average of phi
-!    do iz = -nzgrid, nzgrid
-!       call transform_alpha2kalpha (jacob(:,iz), jacobian_ky(:,iz))
-!    end do
-
       !> obtain the flux surface average of the response vector
       do ikx = 1, ikx_max
-         !       call flux_surface_average_ffs (adiabatic_response_vector(:,ikx,:), jacobian_ky, adiabatic_response_factor(ikx))
          call flux_surface_average_ffs(adiabatic_response_vector(:, ikx, :), adiabatic_response_factor(ikx))
       end do
       adiabatic_response_factor = 1.0 / (1.0 - adiabatic_response_factor)
@@ -657,51 +651,6 @@ contains
       deallocate (adiabatic_response_vector)
 
    end subroutine init_adiabatic_response_factor
-
-   ! subroutine flux_surface_average_ffs (no_fsa, jacobian_ky, fsa)
-
-   !   use zgrid, only: nzgrid, delzed
-   !   use stella_geometry, only: jacob
-   !   use kt_grids, only: naky, naky_all, nalpha
-   !   use kt_grids, only: dy
-
-   !   implicit none
-
-   !   complex, dimension (:,-nzgrid:), intent (in) :: no_fsa, jacobian_ky
-   !   complex, intent (out) :: fsa
-
-   !   integer :: iky, ikymod, iz
-   !   real :: area
-
-   !   ! the the normalising factor int dy dz Jacobian
-   !   area = sum(spread(delzed*dy,1,nalpha)*jacob)
-
-   !   fsa  = 0.0
-   !   ! get contribution from negative ky values
-   !   ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
-   !   do iky = 1, naky-1
-   !      ! jacobian_ky only defined for positive ky values
-   !      ! use reality of the jacobian to fill in negative ky values
-   !      ! i.e., jacobian_ky(-ky) = conjg(jacobian_ky(ky))
-   !      ! ikymod runs from naky down to 2, which corresponds
-   !      ! to ky values in jacobian_ky from kymax down to dky
-   !      ikymod = naky-iky+1
-   !      ! for each ky, add the integral over zed
-   !      fsa = fsa + sum(delzed*no_fsa(iky,:)*jacobian_ky(ikymod,:))
-   !   end do
-   !   ! get contribution from zero and positive ky values
-   !   ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
-   !   do iky = naky, naky_all
-   !      ! ikymod runs from 1 to naky
-   !      ! ikymod = 1 corresponds to ky=0 for jacobian_ky and ikymod=naky to ky=kymax
-   !      ikymod = iky - naky + 1
-   !      ! for each ky, add the integral over zed
-   !      fsa = fsa + sum(delzed*no_fsa(iky,:)*conjg(jacobian_ky(ikymod,:)))
-   !   end do
-   !   ! normalise by the flux surface area
-   !   fsa = fsa/area
-
-   ! end subroutine flux_surface_average_ffs
 
    subroutine allocate_arrays
 
@@ -1034,6 +983,8 @@ contains
 
    end subroutine get_fields_vmulo
 
+   !> get_fields_ffs accepts as input the guiding centre distribution function g
+   !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    subroutine get_fields_ffs(g, phi, apar)
 
       use mp, only: mp_abort
@@ -1132,13 +1083,11 @@ contains
          allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          !> loop over zed location within flux tube
          do iz = -nzgrid, nzgrid
-!         if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution::gyro_average'
             !> loop over super-index ivmu, which include vpa, mu and spec
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                !> gyroaverage the distribution function g at each phase space location
                call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_maxwell_ffs(:, :, iz, ivmu))
             end do
-!         if (debug) write (*,*) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution::integrate_species_ffs'
             !> integrate <g> over velocity space and sum over species within each processor
             !> as v-space and species possibly spread over processors, wlil need to
             !> gather sums from each proceessor and sum them all together below

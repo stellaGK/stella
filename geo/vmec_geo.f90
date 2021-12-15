@@ -65,21 +65,20 @@ contains
       torflux = 0.6354167d+0
       surface_option = 0
       verbose = .true.
-      ! if simulating entire flux surface,
-      ! must obtain vmec geo quantities
-      ! on zeta grid that is longer than
+      ! originally planned to make gradpar independent of alpha
+      ! for full flux surface simulations. this required
+      ! the code to obtain vmec geo quantities
+      ! on a zeta grid that is longer than
       ! will ultimately be used in simulation
-      ! this is related to need for gradpar to
-      ! be independent of alpha
+      ! this is unlikely to be needed in the future,
+      ! but leaving in as an option until sure it is not needed.
+      zgrid_scalefac = 1.0
       if (zed_equal_arc) then
-!       zgrid_scalefac = 2.0
-         zgrid_scalefac = 1.0
          zgrid_refinement_factor = 4
       else
-         zgrid_scalefac = 1.0
          zgrid_refinement_factor = 1
       end if
-
+      
    end subroutine init_vmec_defaults
 
    subroutine get_vmec_geo(nzgrid, nalpha, naky, surf, grho, bmag, gradpar, &
@@ -139,9 +138,7 @@ contains
       real, dimension(:), allocatable :: zed_domain_size
       real, dimension(:, :), allocatable :: arc_length
 
-!    real, dimension (nalpha) :: alpha
       real :: dzeta_vmec, zmin, zmax
-!    real, dimension (nalpha,-nzgrid:nzgrid) :: zeta
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
 
       !> first read in equilibrium information from vmec file
@@ -434,7 +431,6 @@ contains
 
       complex, dimension(:), allocatable :: fourier
 
-!    allocate (fourier(nalpha/2+1))
       allocate (fourier(naky))
 
       ! filtering and padding are built-in to the

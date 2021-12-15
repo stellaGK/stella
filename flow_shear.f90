@@ -138,7 +138,7 @@ contains
 
    subroutine advance_parallel_flow_shear(gout)
 
-      use mp, only: proc0
+      use mp, only: proc0, mp_abort
       use physics_flags, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
@@ -160,18 +160,18 @@ contains
 
       if (full_flux_surface) then
          if (proc0) write (*, *) '!!!WARNING: flow shear not currently supported for full_flux_surface=T!!!'
-      else
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
-
-                  !parallel flow shear
-                  gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + prl_shear(ia, iz, ivmu) * g0k
-               end do
+         call mp_abort ("flow shear not currently supported for full_flux_surface=T.")
+      end if
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               
+               !parallel flow shear
+               gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + prl_shear(ia, iz, ivmu) * g0k
             end do
          end do
-      end if
+      end do
 
       deallocate (g0k)
 
