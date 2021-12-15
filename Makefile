@@ -330,17 +330,17 @@ endif
 
 # Dump the compilation flags to a file, so we can check if they change between
 # invocations of `make`. The `cmp` bit checks if the file contents
-# change. Adding a dependency of a file on `compiler_flags` causes it to be
+# change. Adding a dependency of a file on `.compiler_flags` causes it to be
 # rebuilt when the flags change. Taken from
 # https://stackoverflow.com/a/3237349/2043465
 COMPILER_FLAGS_CONTENTS = "FC = $(FC)\CFPPFLAGS = $(CPPFLAGS)\nF90FLAGS = $(F90FLAGS)\nINC_FLAGS = $(INC_FLAGS)\nCFLAGS = $(CFLAGS)"
 .PHONY: force
-compiler_flags: force
+.compiler_flags: force
 	$(QUIETSYM)echo -e $(COMPILER_FLAGS_CONTENTS) | cmp -s - $@ || echo -e $(COMPILER_FLAGS_CONTENTS) > $@
 
 # Things that should be rebuilt if the compilation flags change (for example, on a new commit)
-git_version_impl.o: compiler_flags git_version.o
-git_version/src/git_version_impl.fpp: compiler_flags
+git_version_impl.o: .compiler_flags git_version.o
+git_version/src/git_version_impl.fpp: .compiler_flags
 
 ####################################################################### RULES
 
@@ -407,6 +407,7 @@ clean:
 	-rm -f $(GEO)/*.o $(GEO)/*~
 	-rm -f Makefiles/*~
 	-rm -f $(UTILS)/*.o $(UTILS)/*~
+	-rm -f .compiler_flags
 	$(MAKE) -C $(VMEC) clean
 
 cleanlib:

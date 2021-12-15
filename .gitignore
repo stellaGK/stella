@@ -34,7 +34,7 @@ externals/pFUnit_build
 unit_tests
 tests/unit/*.F90
 docs/html/
-compiler_flags
+.compiler_flags
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
