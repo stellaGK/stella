@@ -112,7 +112,7 @@ contains
    end subroutine init_dist_fn
 
    !> init_kperp2 allocates and initialises the kperp2 and dkperp2dr arrays
-   !> MAB: would probably be tidier if dkperp2dr were initialised separately in, e.g., init_dkperp2dr
+   !> @todo would be tidier if dkperp2dr were initialised separately in, e.g., init_dkperp2dr
    subroutine init_kperp2
 
       use dist_fn_arrays, only: kperp2, dkperp2dr
@@ -135,8 +135,9 @@ contains
 
       !> allocate the kperp2 array to contain |k_perp|^2
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
-      !> dkperp2dr will contain the radial variation of kperp2
-      !> only needed for radially global simulations
+
+      !> @todo as dkperp2dr is only needed for radially global simulations
+      !> should only allocate/compute it when needed
       allocate (dkperp2dr(naky, nakx, nalpha, -nzgrid:nzgrid))
       do iky = 1, naky
          if (zonal_mode(iky)) then
