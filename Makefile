@@ -336,7 +336,7 @@ endif
 COMPILER_FLAGS_CONTENTS = "FC = $(FC)\CFPPFLAGS = $(CPPFLAGS)\nF90FLAGS = $(F90FLAGS)\nINC_FLAGS = $(INC_FLAGS)\nCFLAGS = $(CFLAGS)"
 .PHONY: force
 .compiler_flags: force
-	echo -e $(COMPILER_FLAGS_CONTENTS) | cmp -s - $@ || echo -e $(COMPILER_FLAGS_CONTENTS) > $@
+	@echo -e $(COMPILER_FLAGS_CONTENTS) | cmp -s - $@ || echo -e $(COMPILER_FLAGS_CONTENTS) > $@
 
 # Things that should be rebuilt if the compilation flags change (for example, on a new commit)
 git_version_impl.o: .compiler_flags git_version.o
