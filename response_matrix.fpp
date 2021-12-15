@@ -840,7 +840,6 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
@@ -866,10 +865,6 @@ contains
       idx = 0; izl_offset = 0
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
-      if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
-         phi(:) = 0.0
-         return
-      end if
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
          call gyro_average(g(idx, :), iky, ikx, iz, g0)
