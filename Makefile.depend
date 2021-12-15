@@ -21,6 +21,7 @@ stella_mod = \
 	 fzero.o \
 	 g_tofrom_h.o \
 	 gauss_quad.o \
+	 git_version.o \
 	 gyro_averages.o \
 	 init_g.o \
 	 inputprofiles_interface.o \
@@ -202,6 +203,7 @@ gauss_quad.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o 
+git_version.o: 
 gyro_averages.o: \
 	 common_types.o \
 	 constants.o \
@@ -429,6 +431,7 @@ stella.o: \
 	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 git_version.o \
 	 init_g.o \
 	 job_manage.o \
 	 kt_grids.o \
