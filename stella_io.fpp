@@ -319,10 +319,10 @@ contains
       ky_dim(1) = naky_dim
       ky_dim(2) = time_dim
 
-      om_dim (1) = ri_dim
-      om_dim (2) = naky_dim
-      om_dim (3) = nakx_dim
-      om_dim (4) = time_dim
+      om_dim(1) = ri_dim
+      om_dim(2) = naky_dim
+      om_dim(3) = nakx_dim
+      om_dim(4) = time_dim
 
       nin_dim(1) = char200_dim
       nin_dim(2) = nlines_dim
@@ -754,13 +754,12 @@ contains
          if (status /= nf90_noerr) call netcdf_error(status, var='d2psidr2')
       end if
 
-
       if (write_omega) then
-         status = nf90_inq_varid(ncid,'omega',omega_id)
-         if(status /= nf90_noerr) then
-            status = nf90_def_var (ncid, 'omega', netcdf_real, om_dim, omega_id)
-            if (status /= nf90_noerr) call netcdf_error (status, var='omega')
-         endif
+         status = nf90_inq_varid(ncid, 'omega', omega_id)
+         if (status /= nf90_noerr) then
+            status = nf90_def_var(ncid, 'omega', netcdf_real, om_dim, omega_id)
+            if (status /= nf90_noerr) call netcdf_error(status, var='omega')
+         end if
       end if
 
       if (fphi > zero) then
@@ -1060,22 +1059,22 @@ contains
 
    end subroutine write_phi_nc
 
-   subroutine write_omega_nc (nout, omega)
+   subroutine write_omega_nc(nout, omega)
 
 # ifdef NETCDF
-     use netcdf, only: nf90_put_var
+      use netcdf, only: nf90_put_var
 # endif
 
-     implicit none
+      implicit none
 
-     integer, intent (in) :: nout
-     complex, dimension(:, :), intent (in) :: omega
+      integer, intent(in) :: nout
+      complex, dimension(:, :), intent(in) :: omega
 
 # ifdef NETCDF
-     integer :: status
+      integer :: status
 
-     status = nf90_put_var (ncid, omega_id, [real(omega),aimag(omega)], start=[1, 1, 1, nout] )
-     if (status /= nf90_noerr) call netcdf_error (status, ncid, omega_id)
+      status = nf90_put_var(ncid, omega_id, [real(omega), aimag(omega)], start=[1, 1, 1, nout])
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, omega_id)
 # endif
 
    end subroutine write_omega_nc
