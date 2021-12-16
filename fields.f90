@@ -1767,16 +1767,17 @@ contains
 
     integer :: ivmu
     complex, dimension (:,:,:,:), allocatable :: gyro_chi
+    complex, dimension (:,:,:,:), allocatable :: coefficient
 
     allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
-
+    allocate (coefficient(naky,nakx,-nzgrid:nzgrid,ntubes))
+    coefficient = spread(spread(spread(zi*aky,2,nakx),3,2*nzgrid+1),4,ntubes)
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
-       dchidy(:,:,:,:,ivmu) = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
-            * gyro_chi
+       dchidy(:,:,:,:,ivmu) = coefficient*gyro_chi
     end do
 
-    deallocate (gyro_chi)
+    deallocate (gyro_chi, coefficient)
 
   end subroutine get_dchidy_4d
 
