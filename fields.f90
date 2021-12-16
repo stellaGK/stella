@@ -935,7 +935,7 @@ contains
     use dist_fn_arrays, only: kperp2, dkperp2dr
     use zgrid, only: nzgrid, ntubes
     use vpamu_grids, only: integrate_species, vperp2
-    use vpamu_grids, only: vpa, mu
+    use vpamu_grids, only: vpa, mu, wgts_mu, wgts_vpa
     use kt_grids, only: nakx, naky, multiply_by_rho
     use run_parameters, only: ky_solve_radial
     use species, only: spec
@@ -948,7 +948,7 @@ contains
     complex, dimension (:,:,-nzgrid:,:), intent (out) :: phi, apar, bpar
     logical, optional, intent (in) :: skip_fsa
     character (*), intent (in) :: dist
-
+    real, dimension(:), allocatable :: wgts
     integer :: ivmu, iz, it, ia, imu, is, iv, iky
     logical :: skip_fsa_local
     complex, dimension (:,:,:), allocatable :: gyro_g
@@ -968,45 +968,45 @@ contains
       ia = 1
 
       allocate (gyro_g(naky,nakx,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
-      allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
-      allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
+
       ! Initialise fields
       phi = 0.
       apar = 0.
       bpar = 0.
       if (fphi > epsilon(0.0)) then
+         allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes))
         antot1 = 0.
-
-        do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-              is = is_idx(vmu_lo,ivmu)
-              imu = imu_idx(vmu_lo,ivmu)
-              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
-            end do
-            !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
-            call integrate_species (gyro_g, iz, spec%z*spec%dens_psi0, antot1(:,:,iz,it),reduce_in=.false.)
+        wgts = spec%z*spec%dens_psi0
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+           is = is_idx(vmu_lo,ivmu)
+           imu = imu_idx(vmu_lo,ivmu)
+           iv = iv_idx(vmu_lo, ivmu)
+           do it = 1, ntubes           
+              do iz = -nzgrid, nzgrid
+                 antot1(:, :, iz, it) = antot1(:, :, iz, it) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * wgts(is) * g(:, :, iz, it, ivmu) * aj0x(:, :, iz, ivmu)
+                 !antot1 = \sum_s Z_s * dens_s * integrate_vmu(gyro_average(ghat) )
+           end do
           end do
         end do
         call sum_allreduce(antot1)
       end if
 
       if (fbpar > epsilon(0.0)) then
-        antot3 = 0.
-
-        do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-              is = is_idx(vmu_lo,ivmu)
-              imu = imu_idx(vmu_lo,ivmu)
-              call gyro_average_j1 (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
-              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) * mu(imu)
+         allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes))
+      
+         antot3 = 0.
+         wgts = -2 * beta * spec%dens_psi0*spec%temp_psi0
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo,ivmu)
+            imu = imu_idx(vmu_lo,ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
+                  antot3(:, :, iz, it) = antot3(:, :, iz, it) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * wgts(is) * g(:, :, iz, it, ivmu) * aj0x(:, :, iz, ivmu) * mu(imu)
+               end do
             end do
-            ! antot3 = -2 * beta * \sum_s dens_s * temp_s * integrate_vmu(mu * gyro_average1(ghat))
-            call integrate_species(gyro_g, iz, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3(:,:,iz,it),reduce_in=.false.)
-          end do
-        end do
+         end do
         call sum_allreduce (antot3)
       end if
 
@@ -1032,28 +1032,28 @@ contains
       end if
 
       if (fapar > epsilon(0.0)) then
-        antot2 = 0.
+         allocate (antot2(naky,nakx,-nzgrid:nzgrid,ntubes))
+         antot2 = 0.
 
-        do it = 1, ntubes
-          do iz = -nzgrid, nzgrid
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-              is = is_idx(vmu_lo,ivmu)
-              imu = imu_idx(vmu_lo,ivmu)
-              iv = iv_idx(vmu_lo,ivmu)
-              call gyro_average (g(:,:,iz,it,ivmu), iz, ivmu, gyro_g(:,:,ivmu))
-              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) * vpa(iv)
+         wgts = beta * spec%z * spec%dens_psi0* spec%stm_psi0
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo,ivmu)
+            imu = imu_idx(vmu_lo,ivmu)
+            iv = iv_idx(vmu_lo,ivmu)
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
+                  antot2(:, :, iz, it) = antot2(:, :, iz, it) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * wgts(is) * g(:, :, iz, it, ivmu) * aj0x(:, :, iz, ivmu) * vpa(iv)
+               end do
             end do
-            ! antot2 = beta * \sum_s Z_s * dens_s * v_{th,s,norm} * integrate_vmu(vpa * gyro_average(ghat) )
-            call integrate_species(gyro_g, iz, (beta * spec%z * spec%dens_psi0* spec%stm_psi0), antot2(:,:,iz,it),reduce_in=.false.)
-          end do
-        end do
+         end do
         call sum_allreduce (antot2)
         apar =  antot2/spread(apar_denom,4,ntubes)
       end if
 
-      deallocate(antot1)
-      deallocate(antot2)
-      deallocate(antot3)
+      if (allocated(antot1)) deallocate(antot1)
+      if (allocated(antot2)) deallocate(antot2)
+      if (allocated(antot3)) deallocate(antot3)
       deallocate(gyro_g)
 
     else
