@@ -1533,8 +1533,6 @@ contains
     integer :: is, imu, iv
     complex, dimension (:,:,:,:), allocatable :: gyro_field
 
-    gyro_chi = 0.
-
     ! Get vpa, mu and species from ivmu
     is = is_idx(vmu_lo,ivmu)
     imu = imu_idx(vmu_lo,ivmu)
@@ -1542,14 +1540,23 @@ contains
 
     allocate(gyro_field(naky,nakx,-nzgrid:nzgrid,ntubes))
 
-    call gyro_average(phi, ivmu, gyro_field)
-    gyro_chi = gyro_chi + fphi*gyro_field
+    if (fphi > 0.0) then
+       call gyro_average(phi, ivmu, gyro_field)
+       gyro_chi = fphi*gyro_field
+    else
+       gyro_chi = 0.
+    end if
 
-    call gyro_average(apar, ivmu, gyro_field)
-    gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+    if (fapar > 0.0) then
+       call gyro_average(apar, ivmu, gyro_field)
+       gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+    end if
 
-    call gyro_average_j1(bpar, ivmu, gyro_field)
-    gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
+    if (fbpar > 0.0) then 
+       call gyro_average_j1(bpar, ivmu, gyro_field)
+       gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
+    end if
+    
     deallocate(gyro_field)
 
   end subroutine get_gyroaverage_chi_4d
@@ -1574,8 +1581,6 @@ contains
     integer :: is, imu, iv
     complex, dimension (:,:), allocatable :: gyro_field
 
-    gyro_chi = 0.
-
     ! Get vpa, mu and species from ivmu
     is = is_idx(vmu_lo,ivmu)
     imu = imu_idx(vmu_lo,ivmu)
@@ -1583,14 +1588,23 @@ contains
 
     allocate(gyro_field(naky,nakx))
 
-    call gyro_average(phi, ivmu, gyro_field)
-    gyro_chi = gyro_chi + fphi*gyro_field
+    if (fphi > 0.0) then
+       call gyro_average(phi, ivmu, gyro_field)
+       gyro_chi = fphi*gyro_field
+    else
+       gyro_chi = 0.0
+    end if
 
-    call gyro_average(apar, ivmu, gyro_field)
-    gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+    if (fapar > 0.0) then
+       call gyro_average(apar, ivmu, gyro_field)
+       gyro_chi = gyro_chi - fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+    end if
 
-    call gyro_average_j1(bpar, ivmu, gyro_field)
-    gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
+    if (fbpar > 0.0) then
+       call gyro_average_j1(bpar, ivmu, gyro_field)
+       gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
+    end if
+    
     deallocate(gyro_field)
 
   end subroutine get_gyroaverage_chi_2d
