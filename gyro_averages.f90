@@ -650,23 +650,6 @@ contains
          end do
       end do
 
-      !       ! account for contributions from less positive ky values (and this ky itself)
-      !       do ia = 1, min(coefs(iky,ikx)%max_idx,iky)
-      !          idx = iky-ia+1
-      !          gyro_field_kyall(iky,ikx) = gyro_field_kyall(iky,ikx) &
-      !               + coefs(idx,ikx)%fourier(ia)*field_kyall(idx,ikx)
-      !       end do
-      !       ! account for contributions from more positive ky values
-      !       if (coefs(iky,ikx)%max_idx > 1 .and. iky /= naky_all) then
-      !          do ia = 2, min(coefs(iky,ikx)%max_idx,naky_all-iky+1)
-      !             idx = iky+ia-1
-      !             gyro_field_kyall(iky,ikx) = gyro_field_kyall(iky,ikx) &
-      !                  + coefs(idx,ikx)%fourier(ia)*field_kyall(idx,ikx)
-      !          end do
-      !       end if
-      !    end do
-      ! end do
-
       call swap_kxky_back_ordered(gyro_field_kyall, gyro_field)
       deallocate (field_kyall, gyro_field_kyall)
 
