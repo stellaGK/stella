@@ -460,11 +460,7 @@ contains
 
     integer :: iz, it
 
-    do it = 1, ntubes
-       do iz = -nzgrid, nzgrid
-          call gyro_average_j1 (field(:,:,iz,it), iz, ivmu, gyro_field(:,:,iz,it))
-       end do
-    end do
+    gyro_field = spread(aj1x(:,:,:,ivmu),4,ntubes)*field
 
   end subroutine gyro_average_j1_kxkyz_local
 
