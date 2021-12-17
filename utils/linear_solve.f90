@@ -1,263 +1,262 @@
 module linear_solve
 
-  implicit none
+   implicit none
 
-  public :: lu_decomposition
-  public :: lu_back_substitution
-  public :: lu_inverse
-  public :: imaxloc
+   public :: lu_decomposition
+   public :: lu_back_substitution
+   public :: lu_inverse
+   public :: imaxloc
 
-  interface lu_decomposition
-     module procedure lu_decomposition_real
-     module procedure lu_decomposition_complex
-  end interface
+   interface lu_decomposition
+      module procedure lu_decomposition_real
+      module procedure lu_decomposition_complex
+   end interface
 
-  interface lu_back_substitution
-     module procedure lu_back_substitution_real
-     module procedure lu_back_substitution_real_complex
-     module procedure lu_back_substitution_complex
-  end interface
+   interface lu_back_substitution
+      module procedure lu_back_substitution_real
+      module procedure lu_back_substitution_real_complex
+      module procedure lu_back_substitution_complex
+   end interface
 
-  interface lu_inverse
-     module procedure lu_inverse_real
-     module procedure lu_inverse_complex
-  end interface
+   interface lu_inverse
+      module procedure lu_inverse_real
+      module procedure lu_inverse_complex
+   end interface
 
 contains
 
-  subroutine lu_decomposition_real (lu, idx, d)
+   subroutine lu_decomposition_real(lu, idx, d)
 
-    implicit none
-    
-    real, dimension (:,:), intent (in out) :: lu
-    integer, dimension (:), intent (out) :: idx
-    real, intent (out) :: d
+      implicit none
 
-    real, parameter :: zero = 1.0e-20
-    real, dimension (size(lu,1)) :: vv
-    real, dimension (size(lu,2)) :: dum
+      real, dimension(:, :), intent(in out) :: lu
+      integer, dimension(:), intent(out) :: idx
+      real, intent(out) :: d
 
-    integer :: j, n, imax
+      real, parameter :: zero = 1.0e-20
+      real, dimension(size(lu, 1)) :: vv
+      real, dimension(size(lu, 2)) :: dum
 
-    n = size(lu,1)
+      integer :: j, n, imax
 
-    d = 1.0
-    vv = maxval(abs(lu),dim=2)
-    if (any(vv==0.0)) &
-         write (*,*) 'singular matrix in lu_decomposition'
-    vv = 1.0/vv
-    do j = 1, n
-       imax = (j-1) + imaxloc(vv(j:n)*abs(lu(j:n,j)))
-       if (j /= imax) then
-          dum = lu(imax,:)
-          lu(imax,:) = lu(j,:)
-          lu(j,:) = dum
-          d = -d
-          vv(imax) = vv(j)
-       end if
-       idx(j) = imax
-       if (lu(j,j)==0.0) lu(j,j) = zero
-       lu(j+1:n,j) = lu(j+1:n,j)/lu(j,j)
-       lu(j+1:n,j+1:n) = lu(j+1:n,j+1:n) - spread(lu(j+1:n,j),2,n-j) &
-            * spread(lu(j,j+1:n),1,n-j)
-    end do
+      n = size(lu, 1)
 
-  end subroutine lu_decomposition_real
+      d = 1.0
+      vv = maxval(abs(lu), dim=2)
+      if (any(vv == 0.0)) &
+         write (*, *) 'singular matrix in lu_decomposition'
+      vv = 1.0 / vv
+      do j = 1, n
+         imax = (j - 1) + imaxloc(vv(j:n) * abs(lu(j:n, j)))
+         if (j /= imax) then
+            dum = lu(imax, :)
+            lu(imax, :) = lu(j, :)
+            lu(j, :) = dum
+            d = -d
+            vv(imax) = vv(j)
+         end if
+         idx(j) = imax
+         if (lu(j, j) == 0.0) lu(j, j) = zero
+         lu(j + 1:n, j) = lu(j + 1:n, j) / lu(j, j)
+         lu(j + 1:n, j + 1:n) = lu(j + 1:n, j + 1:n) - spread(lu(j + 1:n, j), 2, n - j) &
+                                * spread(lu(j, j + 1:n), 1, n - j)
+      end do
 
-  subroutine lu_decomposition_complex (lu, idx, d)
+   end subroutine lu_decomposition_real
 
-    implicit none
-    
-    complex, dimension (:,:), intent (in out) :: lu
-    integer, dimension (:), intent (out) :: idx
-    real, intent (out) :: d
+   subroutine lu_decomposition_complex(lu, idx, d)
 
-    real, parameter :: zero = 1.0e-20
-    real, dimension (size(lu,1)) :: vv
-    complex, dimension (size(lu,2)) :: dum
+      implicit none
 
-    integer :: j, n, imax
+      complex, dimension(:, :), intent(in out) :: lu
+      integer, dimension(:), intent(out) :: idx
+      real, intent(out) :: d
 
-    n = size(lu,1)
+      real, parameter :: zero = 1.0e-20
+      real, dimension(size(lu, 1)) :: vv
+      complex, dimension(size(lu, 2)) :: dum
 
-    d = 1.0
-    vv = maxval(cabs(lu),dim=2)
-    if (any(vv==0.0)) &
-         write (*,*) 'singular matrix in lu_decomposition'
-    vv = 1.0/vv
-    do j = 1, n
-       imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
-       if (j /= imax) then
-          dum = lu(imax,:)
-          lu(imax,:) = lu(j,:)
-          lu(j,:) = dum
-          d = -d
-          vv(imax) = vv(j)
-       end if
-       idx(j) = imax
-       if (lu(j,j)==0.0) lu(j,j) = zero
-       lu(j+1:n,j) = lu(j+1:n,j)/lu(j,j)
-       lu(j+1:n,j+1:n) = lu(j+1:n,j+1:n) - spread(lu(j+1:n,j),2,n-j) &
-            * spread(lu(j,j+1:n),1,n-j)
-    end do
+      integer :: j, n, imax
 
-  end subroutine lu_decomposition_complex
+      n = size(lu, 1)
 
-  subroutine lu_back_substitution_real (lu, idx, b)
+      d = 1.0
+      vv = maxval(cabs(lu), dim=2)
+      if (any(vv == 0.0)) &
+         write (*, *) 'singular matrix in lu_decomposition'
+      vv = 1.0 / vv
+      do j = 1, n
+         imax = (j - 1) + imaxloc(vv(j:n) * cabs(lu(j:n, j)))
+         if (j /= imax) then
+            dum = lu(imax, :)
+            lu(imax, :) = lu(j, :)
+            lu(j, :) = dum
+            d = -d
+            vv(imax) = vv(j)
+         end if
+         idx(j) = imax
+         if (lu(j, j) == 0.0) lu(j, j) = zero
+         lu(j + 1:n, j) = lu(j + 1:n, j) / lu(j, j)
+         lu(j + 1:n, j + 1:n) = lu(j + 1:n, j + 1:n) - spread(lu(j + 1:n, j), 2, n - j) &
+                                * spread(lu(j, j + 1:n), 1, n - j)
+      end do
 
-    implicit none
+   end subroutine lu_decomposition_complex
 
-    real, dimension (:,:), intent (in) :: lu
-    integer, dimension (:), intent (in) :: idx
-    real, dimension (:), intent (in out) :: b
+   subroutine lu_back_substitution_real(lu, idx, b)
 
-    integer :: i, n, ii, ll
-    real :: summ
+      implicit none
 
-    n = size(lu,1)
-    ii = 0
-    do i = 1, n
-       ll = idx(i)
-       summ = b(ll)
-       b(ll) = b(i)
-       if (ii /= 0) then
-          summ = summ - dot_product(lu(i,ii:i-1),b(ii:i-1))
-       else if (summ /= 0.0) then
-          ii = i
-       end if
-       b(i) = summ
-    end do
-    do i = n, 1, -1
-       b(i) = (b(i) - dot_product(lu(i,i+1:n),b(i+1:n))) / lu(i,i)
-    end do
+      real, dimension(:, :), intent(in) :: lu
+      integer, dimension(:), intent(in) :: idx
+      real, dimension(:), intent(in out) :: b
 
-  end subroutine lu_back_substitution_real
+      integer :: i, n, ii, ll
+      real :: summ
 
-  subroutine lu_back_substitution_real_complex (lu, idx, b)
+      n = size(lu, 1)
+      ii = 0
+      do i = 1, n
+         ll = idx(i)
+         summ = b(ll)
+         b(ll) = b(i)
+         if (ii /= 0) then
+            summ = summ - dot_product(lu(i, ii:i - 1), b(ii:i - 1))
+         else if (summ /= 0.0) then
+            ii = i
+         end if
+         b(i) = summ
+      end do
+      do i = n, 1, -1
+         b(i) = (b(i) - dot_product(lu(i, i + 1:n), b(i + 1:n))) / lu(i, i)
+      end do
 
-    implicit none
+   end subroutine lu_back_substitution_real
 
-    real, dimension (:,:), intent (in) :: lu
-    integer, dimension (:), intent (in) :: idx
-    complex, dimension (:), intent (in out) :: b
+   subroutine lu_back_substitution_real_complex(lu, idx, b)
 
-    integer :: i, n, ii, ll
-    complex :: summ
+      implicit none
 
-    !! The dot products we use below automatically take the complex conjugate of its 
+      real, dimension(:, :), intent(in) :: lu
+      integer, dimension(:), intent(in) :: idx
+      complex, dimension(:), intent(in out) :: b
+
+      integer :: i, n, ii, ll
+      complex :: summ
+
+    !! The dot products we use below automatically take the complex conjugate of its
     !! first argument, which we do not want here. Hence the use of conjg to undo this
 
-    n = size(lu,1)
-    ii = 0
-    do i = 1, n
-       ll = idx(i)
-       summ = b(ll)
-       b(ll) = b(i)
-       if (ii /= 0) then
-          summ = summ - dot_product(lu(i,ii:i-1),b(ii:i-1))
-       else if (summ /= 0.0) then
-          ii = i
-       end if
-       b(i) = summ
-    end do
-    do i = n, 1, -1
-       b(i) = (b(i) - dot_product(lu(i,i+1:n),b(i+1:n))) / lu(i,i)
-    end do
+      n = size(lu, 1)
+      ii = 0
+      do i = 1, n
+         ll = idx(i)
+         summ = b(ll)
+         b(ll) = b(i)
+         if (ii /= 0) then
+            summ = summ - dot_product(lu(i, ii:i - 1), b(ii:i - 1))
+         else if (summ /= 0.0) then
+            ii = i
+         end if
+         b(i) = summ
+      end do
+      do i = n, 1, -1
+         b(i) = (b(i) - dot_product(lu(i, i + 1:n), b(i + 1:n))) / lu(i, i)
+      end do
 
-  end subroutine lu_back_substitution_real_complex
+   end subroutine lu_back_substitution_real_complex
 
-  subroutine lu_back_substitution_complex (lu, idx, b)
+   subroutine lu_back_substitution_complex(lu, idx, b)
 
-    implicit none
+      implicit none
 
-    complex, dimension (:,:), intent (in) :: lu
-    integer, dimension (:), intent (in) :: idx
-    complex, dimension (:), intent (in out) :: b
+      complex, dimension(:, :), intent(in) :: lu
+      integer, dimension(:), intent(in) :: idx
+      complex, dimension(:), intent(in out) :: b
 
-    integer :: i, n, ii, ll
-    complex :: summ
+      integer :: i, n, ii, ll
+      complex :: summ
 
-    !! The dot products we use below automatically take the complex conjugate of its 
+    !! The dot products we use below automatically take the complex conjugate of its
     !! first argument, which we do not want here. Hence the use of conjg to undo this
 
-    n = size(lu,1)
-    ii = 0
-    do i = 1, n
-       ll = idx(i)
-       summ = b(ll)
-       b(ll) = b(i)
-       if (ii /= 0) then
-          summ = summ - dot_product(conjg(lu(i,ii:i-1)),b(ii:i-1))
-       else if (summ /= 0.0) then
-          ii = i
-       end if
-       b(i) = summ
-    end do
-    do i = n, 1, -1
-       b(i) = (b(i) - dot_product(conjg(lu(i,i+1:n)),b(i+1:n))) / lu(i,i)
-    end do
+      n = size(lu, 1)
+      ii = 0
+      do i = 1, n
+         ll = idx(i)
+         summ = b(ll)
+         b(ll) = b(i)
+         if (ii /= 0) then
+            summ = summ - dot_product(conjg(lu(i, ii:i - 1)), b(ii:i - 1))
+         else if (summ /= 0.0) then
+            ii = i
+         end if
+         b(i) = summ
+      end do
+      do i = n, 1, -1
+         b(i) = (b(i) - dot_product(conjg(lu(i, i + 1:n)), b(i + 1:n))) / lu(i, i)
+      end do
 
-  end subroutine lu_back_substitution_complex
-
+   end subroutine lu_back_substitution_complex
 
   !!
   !! One shouldn't need to compute the inverse of a matrix if solving the linear equation A.x = y;
   !! a simply back substitution should suffice.
-  !! 
+  !!
   !! Only compute the inverse of A when absolutely necessary!
   !!
-  subroutine lu_inverse_real (lu,idx,inverse)
+   subroutine lu_inverse_real(lu, idx, inverse)
 
-    implicit none
+      implicit none
 
-    real, dimension (:,:), intent (in) :: lu
-    integer, dimension (:), intent (in) :: idx
-    real, dimension (:,:), intent (out) :: inverse
+      real, dimension(:, :), intent(in) :: lu
+      integer, dimension(:), intent(in) :: idx
+      real, dimension(:, :), intent(out) :: inverse
 
-    integer :: i, n
+      integer :: i, n
 
-    n = size(lu,1)
+      n = size(lu, 1)
 
-    inverse = 0.0
-    do i = 1, n
-      inverse(i,i) = 1.0
-    enddo
+      inverse = 0.0
+      do i = 1, n
+         inverse(i, i) = 1.0
+      end do
 
-    do i = 1, n
-      call lu_back_substitution(lu,idx,inverse(:,i))
-    enddo
+      do i = 1, n
+         call lu_back_substitution(lu, idx, inverse(:, i))
+      end do
 
-  end subroutine lu_inverse_real
+   end subroutine lu_inverse_real
 
-  subroutine lu_inverse_complex (lu,idx,inverse)
+   subroutine lu_inverse_complex(lu, idx, inverse)
 
-    implicit none
+      implicit none
 
-    complex, dimension (:,:), intent (in) :: lu
-    integer, dimension (:), intent (in) :: idx
-    complex, dimension (:,:), intent (out) :: inverse
+      complex, dimension(:, :), intent(in) :: lu
+      integer, dimension(:), intent(in) :: idx
+      complex, dimension(:, :), intent(out) :: inverse
 
-    integer :: i, n
+      integer :: i, n
 
-    n = size(lu,1)
+      n = size(lu, 1)
 
-    inverse = 0.0
-    do i = 1, n
-      inverse(i,i) = 1.0
-    enddo
+      inverse = 0.0
+      do i = 1, n
+         inverse(i, i) = 1.0
+      end do
 
-    do i = 1, n
-      call lu_back_substitution(lu,idx,inverse(:,i))
-    enddo
+      do i = 1, n
+         call lu_back_substitution(lu, idx, inverse(:, i))
+      end do
 
-  end subroutine lu_inverse_complex
+   end subroutine lu_inverse_complex
 
-  function imaxloc (array)
-    real, dimension (:), intent (in) :: array
-    integer :: imaxloc
-    integer, dimension (1) :: imax
-    imax = maxloc(array)
-    imaxloc = imax(1)
-  end function imaxloc
+   function imaxloc(array)
+      real, dimension(:), intent(in) :: array
+      integer :: imaxloc
+      integer, dimension(1) :: imax
+      imax = maxloc(array)
+      imaxloc = imax(1)
+   end function imaxloc
 
 end module linear_solve

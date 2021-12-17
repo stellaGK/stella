@@ -1,105 +1,105 @@
 module physics_flags
 
-  implicit none
+   implicit none
 
-  public :: init_physics_flags
-  public :: finish_physics_flags
-  public :: full_flux_surface
-  public :: radial_variation
-  public :: include_parallel_nonlinearity
-  public :: include_parallel_streaming
-  public :: include_mirror
-  public :: include_mirror_apar
-  public :: include_drifts
-  public :: prp_shear_enabled
-  public :: hammett_flow_shear
-  public :: include_pressure_variation
-  public :: include_geometric_variation
-  public :: nonlinear
+   public :: init_physics_flags
+   public :: finish_physics_flags
+   public :: full_flux_surface
+   public :: radial_variation
+   public :: include_parallel_nonlinearity
+   public :: include_parallel_streaming
+   public :: include_mirror
+   public :: include_mirror_apar
+   public :: include_drifts
+   public :: prp_shear_enabled
+   public :: hammett_flow_shear
+   public :: include_pressure_variation
+   public :: include_geometric_variation
+   public :: nonlinear
 
-  private
+   private
 
-  logical :: full_flux_surface
-  logical :: radial_variation
-  logical :: include_parallel_nonlinearity
-  logical :: include_parallel_streaming
-  logical :: include_pressure_variation
-  logical :: include_geometric_variation
-  logical :: include_mirror
-  logical :: include_mirror_apar
-  logical :: include_drifts
-  logical :: nonlinear
-  logical :: prp_shear_enabled
-  logical :: hammett_flow_shear
+   logical :: full_flux_surface
+   logical :: radial_variation
+   logical :: include_parallel_nonlinearity
+   logical :: include_parallel_streaming
+   logical :: include_pressure_variation
+   logical :: include_geometric_variation
+   logical :: include_mirror
+   logical :: include_mirror_apar
+   logical :: include_drifts
+   logical :: nonlinear
+   logical :: prp_shear_enabled
+   logical :: hammett_flow_shear
 
-  logical :: initialized = .false.
+   logical :: initialized = .false.
 
 contains
 
-  subroutine init_physics_flags
+   subroutine init_physics_flags
 
-    implicit none
+      implicit none
 
-    if (initialized) return
-    initialized = .true.
+      if (initialized) return
+      initialized = .true.
 
-    call read_parameters
+      call read_parameters
 
-  end subroutine init_physics_flags
+   end subroutine init_physics_flags
 
-  subroutine read_parameters
+   subroutine read_parameters
 
-    use file_utils, only: input_unit_exist
-    use mp, only: proc0, broadcast
+      use file_utils, only: input_unit_exist
+      use mp, only: proc0, broadcast
 
-    implicit none
+      implicit none
 
-    integer :: in_file
-    logical :: rpexist
+      integer :: in_file
+      logical :: rpexist
 
-    namelist /physics_flags/ full_flux_surface, radial_variation, &
+      namelist /physics_flags/ full_flux_surface, radial_variation, &
          include_parallel_nonlinearity, include_parallel_streaming, &
          include_mirror, include_mirror_apar, include_drifts, nonlinear, &
          include_pressure_variation, include_geometric_variation
 
-    if (proc0) then
-       full_flux_surface = .false.
-       radial_variation = .false.
-       include_pressure_variation = .true.
-       include_geometric_variation = .true.
-       include_parallel_nonlinearity = .false.
-       include_parallel_streaming = .true.
-       include_mirror = .true.
-       include_mirror_apar = .true.
-       include_drifts = .true.
-       nonlinear = .false.
+      if (proc0) then
+         full_flux_surface = .false.
+         radial_variation = .false.
+         include_pressure_variation = .true.
+         include_geometric_variation = .true.
+         include_parallel_nonlinearity = .false.
+         include_parallel_streaming = .true.
+         include_mirror = .true.
+         include_mirror_apar = .true.
+         include_drifts = .true.
+         nonlinear = .false.
 
-       in_file = input_unit_exist("physics_flags", rpexist)
-       if (rpexist) read (unit=in_file,nml=physics_flags)
-    end if
+         in_file = input_unit_exist("physics_flags", rpexist)
+         if (rpexist) read (unit=in_file, nml=physics_flags)
+      end if
 
-    prp_shear_enabled = .false.
-    hammett_flow_shear = .true.
+      prp_shear_enabled = .false.
+      hammett_flow_shear = .true.
 
-    call broadcast (full_flux_surface)
-    call broadcast (radial_variation)
-    call broadcast (include_pressure_variation)
-    call broadcast (include_geometric_variation)
-    call broadcast (include_parallel_nonlinearity)
-    call broadcast (include_parallel_streaming)
-    call broadcast (include_mirror)
-    call broadcast (include_mirror_apar)
-    call broadcast (include_drifts)
-    call broadcast (nonlinear)
+      call broadcast(full_flux_surface)
+      call broadcast(radial_variation)
+      call broadcast(include_pressure_variation)
+      call broadcast(include_geometric_variation)
+      call broadcast(include_parallel_nonlinearity)
+      call broadcast(include_parallel_streaming)
+      call broadcast(include_mirror)
+      call broadcast(include_mirror_apar)
+      call broadcast(include_drifts)
+      call broadcast(nonlinear)
 
-  end subroutine read_parameters
+   end subroutine read_parameters
 
-  subroutine finish_physics_flags
+   subroutine finish_physics_flags
 
-    implicit none
+      implicit none
 
-    initialized = .false.
+      initialized = .false.
 
-  end subroutine finish_physics_flags
+   end subroutine finish_physics_flags
 
 end module physics_flags
