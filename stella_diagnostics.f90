@@ -103,8 +103,8 @@ contains
 
       !> Initiate the netcdf file with extension '.out.nc'
       call init_stella_io(restart, write_phi_vs_time, write_kspectra, &
-                          write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
-                          write_radial_moments, write_fluxes_kxkyz)
+                          write_gvmus, write_gzvs, write_moments, write_omega, &
+                          write_radial_fluxes, write_radial_moments, write_fluxes_kxkyz)
 
       !> Open the '.out', '.fluxes' and '.omega' file
       if (proc0) call open_loop_ascii_files(restart)
@@ -264,6 +264,7 @@ contains
       use stella_io, only: write_gzvs_nc
       use stella_io, only: write_kspectra_nc
       use stella_io, only: write_moments_nc
+      use stella_io, only: write_omega_nc
       use stella_io, only: write_radial_fluxes_nc
       use stella_io, only: write_radial_moments_nc
       use stella_io, only: write_fluxes_kxkyz_nc
@@ -399,68 +400,69 @@ contains
       end if
 
       if (mod(istep, nwrite * nc_mult) == 0) then
-      if (proc0) then
-         if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
-         call write_time_nc(nout, code_time)
-         call write_phi2_nc(nout, phi2)
-         if (write_phi_vs_time) then
-            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
-            call write_phi_nc(nout, phi_out)
+         if (proc0) then
+            if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
+            call write_time_nc(nout, code_time)
+            if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
+            call write_phi2_nc(nout, phi2)
+            if (write_phi_vs_time) then
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
+               call write_phi_nc(nout, phi_out)
+            end if
+            if (write_kspectra) then
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
+               allocate (phi2_vs_kxky(naky, nakx))
+               call fieldline_average(real(phi_out * conjg(phi_out)), phi2_vs_kxky)
+               call write_kspectra_nc(nout, phi2_vs_kxky)
+               deallocate (phi2_vs_kxky)
+            end if
+            if (write_radial_fluxes) then
+               call write_radial_fluxes_nc(nout, part_flux_x, mom_flux_x, heat_flux_x)
+            end if
          end if
-         if (write_kspectra) then
-            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
-            allocate (phi2_vs_kxky(naky, nakx))
-            call fieldline_average(real(phi_out * conjg(phi_out)), phi2_vs_kxky)
-            call write_kspectra_nc(nout, phi2_vs_kxky)
-            deallocate (phi2_vs_kxky)
+         if (write_moments .or. write_radial_moments) then
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_moments'
+            allocate (density(naky, nakx, nztot, ntubes, nspec))
+            allocate (upar(naky, nakx, nztot, ntubes, nspec))
+            allocate (temperature(naky, nakx, nztot, ntubes, nspec))
+            allocate (spitzer2(naky, nakx, nztot, ntubes, nspec))
+            if (write_radial_moments) then
+               allocate (dens_x(nakx, nspec))
+               allocate (upar_x(nakx, nspec))
+               allocate (temp_x(nakx, nspec))
+            end if
+            call get_moments(gnew, density, upar, temperature, dens_x, upar_x, temp_x, spitzer2)
+            if (proc0 .and. write_moments) call write_moments_nc(nout, density, upar, temperature, spitzer2)
+            if (proc0 .and. write_radial_moments) call write_radial_moments_nc(nout, dens_x, upar_x, temp_x)
+            deallocate (density, upar, temperature, spitzer2)
+            if (allocated(dens_x)) deallocate (dens_x)
+            if (allocated(upar_x)) deallocate (upar_x)
+            if (allocated(temp_x)) deallocate (temp_x)
          end if
-         if (write_radial_fluxes) then
-            call write_radial_fluxes_nc(nout, part_flux_x, mom_flux_x, heat_flux_x)
+         if (write_fluxes_kxkyz) then
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_fluxes_kxkyz'
+            if (proc0) call write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
          end if
-      end if
-      if (write_moments .or. write_radial_moments) then
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_moments'
-         allocate (density(naky, nakx, nztot, ntubes, nspec))
-         allocate (upar(naky, nakx, nztot, ntubes, nspec))
-         allocate (temperature(naky, nakx, nztot, ntubes, nspec))
-         allocate (spitzer2(naky, nakx, nztot, ntubes, nspec))
-         if (write_radial_moments) then
-            allocate (dens_x(nakx, nspec))
-            allocate (upar_x(nakx, nspec))
-            allocate (temp_x(nakx, nspec))
+         if (write_gvmus) then
+            allocate (gvmus(nvpa, nmu, nspec))
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::get_gvmus'
+            ! note that gvmus is h at this point
+            call get_gvmus(gvmu, gvmus)
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_gvmus_nc'
+            if (proc0) call write_gvmus_nc(nout, gvmus)
+            deallocate (gvmus)
          end if
-         call get_moments(gnew, density, upar, temperature, dens_x, upar_x, temp_x, spitzer2)
-         if (proc0 .and. write_moments) call write_moments_nc(nout, density, upar, temperature, spitzer2)
-         if (proc0 .and. write_radial_moments) call write_radial_moments_nc(nout, dens_x, upar_x, temp_x)
-         deallocate (density, upar, temperature, spitzer2)
-         if (allocated(dens_x)) deallocate (dens_x)
-         if (allocated(upar_x)) deallocate (upar_x)
-         if (allocated(temp_x)) deallocate (temp_x)
-      end if
-      if (write_fluxes_kxkyz) then
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_fluxes_kxkyz'
-         if (proc0) call write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
-      end if
-      if (write_gvmus) then
-         allocate (gvmus(nvpa, nmu, nspec))
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::get_gvmus'
-         ! note that gvmus is h at this point
-         call get_gvmus(gvmu, gvmus)
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_gvmus_nc'
-         if (proc0) call write_gvmus_nc(nout, gvmus)
-         deallocate (gvmus)
-      end if
-      if (write_gzvs) then
-         allocate (gzvs(ntubes, nztot, nvpa, nspec))
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::get_gzvs'
-         call get_gzvs(gnew, gzvs)
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_gzvs_nc'
-         if (proc0) call write_gzvs_nc(nout, gzvs)
-         deallocate (gzvs)
-      end if
-      if (proc0) call sync_nc
+         if (write_gzvs) then
+            allocate (gzvs(ntubes, nztot, nvpa, nspec))
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::get_gzvs'
+            call get_gzvs(gnew, gzvs)
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_gzvs_nc'
+            if (proc0) call write_gzvs_nc(nout, gzvs)
+            deallocate (gzvs)
+         end if
+         if (proc0) call sync_nc
 
-      nout = nout + 1
+         nout = nout + 1
       end if
 
       deallocate (part_flux, mom_flux, heat_flux)
