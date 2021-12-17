@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for procedures.">246 statements</a>
+    title=" 0.8% of total for procedures.">283 statements</a>
      </li> 
      
      
@@ -205,7 +205,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine init_geometry(nalpha)
+public subroutine init_geometry(nalpha, naky)
     
     
    
@@ -221,19 +221,19 @@ public subroutine init_geometry(nalpha)
       <li class="list-group-item">
   <ul class="list-inline">
     
-    <li><a href='../module/millerlocal.html'>millerlocal</a></li>
-    
-    <li><a href='../module/file_utils.html'>file_utils</a></li>
-    
-    <li><a href='../module/zgrid.html'>zgrid</a></li>
+    <li><a href='../module/mp.html'>mp</a></li>
     
     <li><a href='../module/physics_flags.html'>physics_flags</a></li>
     
-    <li><a href='../module/mp.html'>mp</a></li>
+    <li><a href='../module/millerlocal.html'>millerlocal</a></li>
     
     <li><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></li>
     
     <li><a href='../module/constants.html'>constants</a></li>
+    
+    <li><a href='../module/file_utils.html'>file_utils</a></li>
+    
+    <li><a href='../module/zgrid.html'>zgrid</a></li>
     
     <li><a href='../module/vmec_geo.html'>vmec_geo</a></li>
     
@@ -247,6 +247,56 @@ public subroutine init_geometry(nalpha)
     
 
 
+    
+    <p>b_dot_grad_z is the alpha-dependent b . grad z,
+and gradpar is the constant-in-alpha part of it.
+for axisymmetric systems, b_dot_grad_z is independent of alpha.</p>
+<p>| grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+= q/rho * dpsidrho * grho</p>
+<p>b_dot_grad_z is the alpha-dependent b . grad z,
+and gradpar is the constant-in-alpha part of it.
+for axisymmetric systems, b_dot_grad_z is independent of alpha.</p>
+<p>| grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+= q/rho * dpsidrho * grho</p>
+<p>b_dot_grad_z is the alpha-dependent b . grad z,
+and gradpar is the constant-in-alpha part of it.
+for axisymmetric systems, b_dot_grad_z is independent of alpha.</p>
+<p>| grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+= q/rho * dpsidrho * grho</p>
+<p>read in input parameters for vmec
+nalpha may be specified via input file
+allocate geometry arrays
+get geometry coefficients from vmec
+Bref = 2<em>abs(psi_tor_LCFS)/a^2
+a</em>Bref<em>dx/dpsi_tor = sign(psi_tor)/rhotor
+psi = -psi_tor
+dxdXcoord = a</em>Bref<em>dx/dpsi = -a</em>Bref<em>dx/dpsi_tor = -sign(psi_tor)/rhotor
+dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
+if using vmec, rho = sqrt(psitor/psitor_lcfs)
+psiN = -psitor/(aref</em><em>2</em>Bref)
+so drho/dpsiN = -drho/d(rho<strong>2) * (aref</strong>2*Bref/psitor_lcfs) = -1.0/rho
+abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+minus its sign gives the direction of the shift in kx
+to be used for twist-and-shift BC
+grad_x = | grad x |</p>
+<p>gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
+note that rhotor = sqrt(psi/psi_LCFS)
+gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
+NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
+gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2</p>
+<p>gbdrift_alpha and cvdrift_alpha contain
+the grad-B and curvature drifts projected onto
+the grad alpha direction
+need the projections on grad y
+gbdrift0_psi and cvdrift0_psi contain
+the grad-B and curvature drifts projected onto
+the grad psi direction
+need the projections on grad x
+can test FFS implementation by setting all geometric coefficients
+to their values at a given alpha; i.e., make the system axisymmetric
+jacob is the Jacobian from Cartesian coordinates to (y,x,z) coordinates
+is ((grad y x grad x) . grad z)^(-1) = Lref<em>(dalpha/dy)</em>(dpsi/dx)/(Lref<em>Bref)</em>(B/Bref . grad z)^(-1)
+Lref<em>(dalpha/dy) = 1/dydalpha; (dpsi/dx)/(Lref</em>Bref) = 1 / dxdXcoord ; (B/Bref . grad z) = gradpar*bmag</p>
     
 
     <h3>Arguments</h3>
@@ -273,6 +323,21 @@ public subroutine init_geometry(nalpha)
   
   <td></td><td>::</td>
   <td><strong>nalpha</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-naky~10"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>naky</strong></td><td></td>
   
 </tr>
 
@@ -346,13 +411,13 @@ public subroutine init_geometry(nalpha)
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

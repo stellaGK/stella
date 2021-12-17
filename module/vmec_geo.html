@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for modules and submodules.">270 statements</a>
+    title=" 0.7% of total for modules and submodules.">274 statements</a>
      </li> 
      
      
@@ -544,7 +544,7 @@ public subroutine <a href='../proc/init_vmec_defaults.html'>init_vmec_defaults</
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-get_vmec_geo"></span><h3>
-public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, nalpha, surf, grho, bmag, gradpar, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, sign_torflux, theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, field_period_ratio)
+public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, nalpha, naky, surf, grho, bmag, gradpar, b_dot_grad_z, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, sign_torflux, theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, field_period_ratio, x_displacement_fac)
     
     
    
@@ -552,6 +552,19 @@ public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, n
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>first read in equilibrium information from vmec file
+this is stored as a set of global variables in read_wout_mod
+in mini_libstell.  it will be accessible
+if desired, increase number of sampled zeta grid points in VMEC data
+to increase accuracy of later integration in zeta and interpolation
+onto stella zed grid</p><a href="../proc/get_vmec_geo.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -593,6 +606,21 @@ public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, n
   
   <td></td><td>::</td>
   <td><strong>nalpha</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>naky</strong></td><td></td>
   
 </tr>
 
@@ -653,6 +681,21 @@ public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, n
   
   <td>dimension(-nzgrid:)</td><td>::</td>
   <td><strong>gradpar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
+  <td><strong>b_dot_grad_z</strong></td><td></td>
   
 </tr>
 
@@ -941,6 +984,21 @@ public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, n
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, -nzgrid:)</td><td>::</td>
+  <td><strong>x_displacement_fac</strong></td><td></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -955,7 +1013,7 @@ public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, n
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-filter_geo_coef"></span><h3>
-public subroutine <a href='../proc/filter_geo_coef.html'>filter_geo_coef</a>(nalpha, geocoef)
+public subroutine <a href='../proc/filter_geo_coef.html'>filter_geo_coef</a>(naky, geocoef)
     
     
    
@@ -988,7 +1046,7 @@ public subroutine <a href='../proc/filter_geo_coef.html'>filter_geo_coef</a>(nal
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nalpha</strong></td><td></td>
+  <td><strong>naky</strong></td><td></td>
   
 </tr>
 
@@ -1029,6 +1087,26 @@ public subroutine <a href='../proc/get_modified_vmec_zeta_grid.html'>get_modifie
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>need to extend the maximum and minimum zeta values
+by zgrid_scalefac to ensure that we have information
+about geometric coefficients everywhere on a fixed
+equal-arc grid in zed
+first figure out how many extra zeta grid points are
+required at the nominal grid spacing to get out
+to the ends of the extended zeta domain
+first calculate the nominal zeta grid used for vmec
+note that nfield_periods is the number of field periods
+sampled in stella, while nfield_periods_device
+is the number of field periods in the device
+nfield_periods may be reasonably bigger than nfield_periods_device
+as the former is sampled while keeping alpha fixed (rather than theta)</p><a href="../proc/get_modified_vmec_zeta_grid.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1099,13 +1177,13 @@ public subroutine <a href='../proc/get_modified_vmec_zeta_grid.html'>get_modifie
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for modules and submodules.">68 statements</a>
+    title=" 0.2% of total for modules and submodules.">83 statements</a>
      </li> 
      
      
@@ -201,6 +201,16 @@
       
       <a class="list-group-item" href="../module/physics_flags.html#variable-hammett_flow_shear">hammett_flow_shear</a>
       
+      <a class="list-group-item" href="../module/physics_flags.html#variable-const_alpha_geo">const_alpha_geo</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_switch">adiabatic_option_switch</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_default">adiabatic_option_default</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_zero">adiabatic_option_zero</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_fieldlineavg">adiabatic_option_fieldlineavg</a>
+      
       <a class="list-group-item" href="../module/physics_flags.html#variable-initialized">initialized</a>
       
     </div>
@@ -226,7 +236,7 @@
       
       <a class="list-group-item" href="../module/physics_flags.html#proc-init_physics_flags">init_physics_flags</a>
       
-      <a class="list-group-item" href="../module/physics_flags.html#proc-read_parameters~2">read_parameters</a>
+      <a class="list-group-item" href="../module/physics_flags.html#proc-read_parameters~3">read_parameters</a>
       
       <a class="list-group-item" href="../module/physics_flags.html#proc-finish_physics_flags">finish_physics_flags</a>
       
@@ -290,6 +300,16 @@
       
       <a class="list-group-item" href="../module/physics_flags.html#variable-hammett_flow_shear">hammett_flow_shear</a>
       
+      <a class="list-group-item" href="../module/physics_flags.html#variable-const_alpha_geo">const_alpha_geo</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_switch">adiabatic_option_switch</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_default">adiabatic_option_default</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_zero">adiabatic_option_zero</a>
+      
+      <a class="list-group-item" href="../module/physics_flags.html#variable-adiabatic_option_fieldlineavg">adiabatic_option_fieldlineavg</a>
+      
       <a class="list-group-item" href="../module/physics_flags.html#variable-initialized">initialized</a>
       
     </div>
@@ -315,7 +335,7 @@
       
       <a class="list-group-item" href="../module/physics_flags.html#proc-init_physics_flags">init_physics_flags</a>
       
-      <a class="list-group-item" href="../module/physics_flags.html#proc-read_parameters~2">read_parameters</a>
+      <a class="list-group-item" href="../module/physics_flags.html#proc-read_parameters~3">read_parameters</a>
       
       <a class="list-group-item" href="../module/physics_flags.html#proc-finish_physics_flags">finish_physics_flags</a>
       
@@ -496,6 +516,76 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-const_alpha_geo"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>const_alpha_geo</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-adiabatic_option_switch"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>adiabatic_option_switch</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-adiabatic_option_default"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>adiabatic_option_default</strong></td><td> =</td><td>1</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-adiabatic_option_zero"></span>integer,</td>
+  
+  <td>private,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>adiabatic_option_zero</strong></td><td> =</td><td>2</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-adiabatic_option_fieldlineavg"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>adiabatic_option_fieldlineavg</strong></td><td> =</td><td>3</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-initialized"></span>logical,</td>
   
   <td>private</td>
@@ -549,8 +639,8 @@ public subroutine <a href='../proc/init_physics_flags.html'>init_physics_flags</
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~2"></span><h3>
-private subroutine <a href='../proc/read_parameters~2.html'>read_parameters</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~3"></span><h3>
+private subroutine <a href='../proc/read_parameters~3.html'>read_parameters</a>()
     
     
    
@@ -606,13 +696,13 @@ public subroutine <a href='../proc/finish_physics_flags.html'>finish_physics_fla
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

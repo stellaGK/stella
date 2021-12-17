@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.6% of total for modules and submodules.">974 statements</a>
+    title=" 3.1% of total for modules and submodules.">1196 statements</a>
      </li> 
      
      
@@ -195,6 +195,12 @@
       
       <a class="list-group-item" href="../module/fields.html#variable-save2">save2</a>
       
+      <a class="list-group-item" href="../module/fields.html#variable-gam0_ffs">gam0_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#variable-lu_gam0_ffs">lu_gam0_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#variable-adiabatic_response_factor">adiabatic_response_factor</a>
+      
       <a class="list-group-item" href="../module/fields.html#variable-fields_updated">fields_updated</a>
       
       <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
@@ -240,6 +246,14 @@
       
       <a class="list-group-item" href="../module/fields.html#proc-init_fields">init_fields</a>
       
+      <a class="list-group-item" href="../module/fields.html#proc-init_fields_fluxtube">init_fields_fluxtube</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
+      
       <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
@@ -250,11 +264,15 @@
       
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_vmulo">get_fields_vmulo</a>
       
+      <a class="list-group-item" href="../module/fields.html#proc-get_fields_ffs">get_fields_ffs</a>
+      
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec">get_fields_by_spec</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec_idx">get_fields_by_spec_idx</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-get_phi">get_phi</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-get_phi_ffs">get_phi_ffs</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-get_radial_correction">get_radial_correction</a>
       
@@ -339,6 +357,12 @@
       
       <a class="list-group-item" href="../module/fields.html#variable-save2">save2</a>
       
+      <a class="list-group-item" href="../module/fields.html#variable-gam0_ffs">gam0_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#variable-lu_gam0_ffs">lu_gam0_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#variable-adiabatic_response_factor">adiabatic_response_factor</a>
+      
       <a class="list-group-item" href="../module/fields.html#variable-fields_updated">fields_updated</a>
       
       <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
@@ -384,6 +408,14 @@
       
       <a class="list-group-item" href="../module/fields.html#proc-init_fields">init_fields</a>
       
+      <a class="list-group-item" href="../module/fields.html#proc-init_fields_fluxtube">init_fields_fluxtube</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
+      
       <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
@@ -394,11 +426,15 @@
       
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_vmulo">get_fields_vmulo</a>
       
+      <a class="list-group-item" href="../module/fields.html#proc-get_fields_ffs">get_fields_ffs</a>
+      
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec">get_fields_by_spec</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec_idx">get_fields_by_spec_idx</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-get_phi">get_phi</a>
+      
+      <a class="list-group-item" href="../module/fields.html#proc-get_phi_ffs">get_phi_ffs</a>
       
       <a class="list-group-item" href="../module/fields.html#proc-get_radial_correction">get_radial_correction</a>
       
@@ -545,6 +581,48 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-gam0_ffs"></span>type(<a href='../type/coupled_alpha_type.html'>coupled_alpha_type</a>),</td>
+  
+  <td>private,</td>
+  <td>dimension(:, :, :), allocatable</td><td>::</td>
+  <td><strong>gam0_ffs</strong></td><td></td><td></td><td><p>arrays allocated/used if simulating a full flux surface</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-lu_gam0_ffs"></span>type(<a href='../type/gam0_ffs_type.html'>gam0_ffs_type</a>),</td>
+  
+  <td>private,</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
+  <td><strong>lu_gam0_ffs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-adiabatic_response_factor"></span>complex,</td>
+  
+  <td>private,</td>
+  <td>dimension(:), allocatable</td><td>::</td>
+  <td><strong>adiabatic_response_factor</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-fields_updated"></span>logical,</td>
   
   <td>public</td>
@@ -642,6 +720,14 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute d<chi>/dy in (ky,kx,z,tube) space</p>
     
     <h4>Arguments</h4>
     
@@ -720,6 +806,14 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute d<chi>/dy in (ky,kx) space</p>
     
     <h4>Arguments</h4>
     
@@ -861,6 +955,131 @@ public subroutine <a href='../proc/init_fields.html'>init_fields</a>()
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_fields_fluxtube"></span><h3>
+private subroutine <a href='../proc/init_fields_fluxtube.html'>init_fields_fluxtube</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p></p><a href="../proc/init_fields_fluxtube.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_fields_ffs"></span><h3>
+private subroutine <a href='../proc/init_fields_ffs.html'>init_fields_ffs</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>init_fields_ffs allocates and fills arrays needed during main time advance
+loop for the field solve for full_flux_surface simulations</p><a href="../proc/init_fields_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_gamma0_factor_ffs"></span><h3>
+private subroutine <a href='../proc/init_gamma0_factor_ffs.html'>init_gamma0_factor_ffs</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
+this involves the factor 1-Gamma_0(kperp(alpha))</p><a href="../proc/init_gamma0_factor_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_adiabatic_response_factor"></span><h3>
+private subroutine <a href='../proc/init_adiabatic_response_factor.html'>init_adiabatic_response_factor</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>solves Delta * phi_hom = -delta_{ky,0} * ne/Te for phi_hom
+this is the vector describing the response of phi_hom to a unit impulse in phi_fsa
+it is the sum over ky and integral over kx of this that is needed, and this
+is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_response_factor.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~3"></span><h3>
 private subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()
     
@@ -943,6 +1162,21 @@ public subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, ph
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>time the communications + field solve
+fields_kxkyz = F is the default
+first gather (vpa,mu) onto processor for v-space operations
+v-space operations are field solve, dg/dvpa, and collisions
+given gvmu with vpa and mu local, calculate the corresponding fields
+set a flag to indicate that the fields have been updated
+this helps avoid unnecessary field solves
+time the communications + field solve</p>
     
     <h4>Arguments</h4>
     
@@ -1150,6 +1384,15 @@ private subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>gather sub-sums from each processor and add them together
+store result in phi, which will be further modified below to account for polarization term</p>
     
     <h4>Arguments</h4>
     
@@ -1236,6 +1479,96 @@ private subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(
   
   <td></td><td>::</td>
   <td><strong>skip_fsa</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_fields_ffs"></span><h3>
+private subroutine <a href='../proc/get_fields_ffs.html'>get_fields_ffs</a>(g, phi, apar)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>get_fields_ffs accepts as input the guiding centre distribution function g
+and calculates/returns the electronstatic potential phi for full_flux_surface simulations</p><a href="../proc/get_fields_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>apar</strong></td><td></td>
   
 </tr>
 
@@ -1495,6 +1828,84 @@ private subroutine <a href='../proc/get_phi.html'>get_phi</a>(phi, dist, skip_fs
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_phi_ffs"></span><h3>
+private subroutine <a href='../proc/get_phi_ffs.html'>get_phi_ffs</a>(rhs, phi)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>change from rhs defined on grid with ky &gt;=0 and kx from 0,...,kxmax,-kxmax,...,-dkx
+to rhs_swap defined on grid with ky = -kymax,...,kymax and kx &gt;= 0
+solve sum_s Z_s int d^3v <g> = gam0*phi
+where sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
+and then rhs_swap is over-written with the solution to the linear system</p><a href="../proc/get_phi_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:)</td><td>::</td>
+  <td><strong>rhs</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-get_radial_correction"></span><h3>
 public subroutine <a href='../proc/get_radial_correction.html'>get_radial_correction</a>(g, phi_in, dist)
     
@@ -1585,6 +1996,14 @@ private subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, a
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute d<chi>/dy in (ky,kx,z,tube) space</p>
     
     <h4>Arguments</h4>
     
@@ -1666,6 +2085,14 @@ private subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, iv
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute d<chi>/dy in (ky,kx) space</p>
     
     <h4>Arguments</h4>
     
@@ -1777,6 +2204,14 @@ public subroutine <a href='../proc/get_dchidx.html'>get_dchidx</a>(iz, ivmu, phi
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute d<chi>/dx in (ky,kx) space</p>
     
     <h4>Arguments</h4>
     
@@ -1888,6 +2323,14 @@ public subroutine <a href='../proc/finish_fields.html'>finish_fields</a>()
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>arrays only allocated/used if simulating a full flux surface</p>
     
     <h4>Arguments</h4>
     
@@ -1914,13 +2357,13 @@ public subroutine <a href='../proc/finish_fields.html'>finish_fields</a>()
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

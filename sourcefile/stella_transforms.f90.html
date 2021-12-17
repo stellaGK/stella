@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for source files.">401 statements</a>
+    title=" 1.0% of total for source files.">402 statements</a>
      </li> 
      
      
@@ -322,7 +322,7 @@
 <a name="ln-47"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fftnp_x_k</span><span class="p">,</span> <span class="n">fftnp_x_x</span>
 <a name="ln-48"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fftnp_y_k</span>
 <a name="ln-49"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fftnp_y_y</span>
-<a name="ln-50"></a>   <span class="c">! arrays for transforming from alpha-space to k-alpha space</span>
+<a name="ln-50"></a>   <span class="c">!&gt; arrays for transforming from alpha-space to k-alpha space</span>
 <a name="ln-51"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fft_alpha_alpha</span>
 <a name="ln-52"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fft_alpha_kalpha</span>
 <a name="ln-53"></a>
@@ -462,73 +462,73 @@
 <a name="ln-187"></a>   <span class="k">subroutine </span><span class="n">init_alpha_fft</span>
 <a name="ln-188"></a>
 <a name="ln-189"></a>      <span class="k">use </span><span class="n">fft_work</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">init_rcfftw</span><span class="p">,</span> <span class="n">init_crfftw</span>
-<a name="ln-190"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-191"></a>
-<a name="ln-192"></a>      <span class="k">implicit none</span>
-<a name="ln-193"></a>
-<a name="ln-194"></a><span class="k">      </span><span class="kt">logical</span> <span class="kd">::</span> <span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-195"></a>
-<a name="ln-196"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">initialized</span><span class="p">)</span> <span class="k">return</span>
-<a name="ln-197"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-198"></a>
-<a name="ln-199"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-<a name="ln-200"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span><span class="p">))</span>
-<a name="ln-201"></a>
-<a name="ln-202"></a>      <span class="k">call </span><span class="n">init_crfftw</span><span class="p">(</span><span class="n">alpha_f_fft</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span><span class="p">,</span> <span class="n">fft_alpha_kalpha</span><span class="p">,</span> <span class="n">fft_alpha_alpha</span><span class="p">)</span>
-<a name="ln-203"></a>      <span class="k">call </span><span class="n">init_rcfftw</span><span class="p">(</span><span class="n">alpha_b_fft</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span><span class="p">,</span> <span class="n">fft_alpha_alpha</span><span class="p">,</span> <span class="n">fft_alpha_kalpha</span><span class="p">)</span>
-<a name="ln-204"></a>
-<a name="ln-205"></a>   <span class="k">end subroutine </span><span class="n">init_alpha_fft</span>
-<a name="ln-206"></a>
-<a name="ln-207"></a>   <span class="k">subroutine </span><span class="n">transform_ky2y_5d</span><span class="p">(</span><span class="n">gky_unpad</span><span class="p">,</span> <span class="n">gy</span><span class="p">)</span>
-<a name="ln-208"></a>
-<a name="ln-209"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-210"></a>
-<a name="ln-211"></a>      <span class="k">implicit none</span>
-<a name="ln-212"></a>
-<a name="ln-213"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gky_unpad</span>
-<a name="ln-214"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gy</span>
-<a name="ln-215"></a>
-<a name="ln-216"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky_max</span><span class="p">,</span> <span class="n">ipad_up</span>
-<a name="ln-217"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span>
-<a name="ln-218"></a>
-<a name="ln-219"></a>      <span class="c">! first need to pad input array with zeros</span>
-<a name="ln-220"></a>      <span class="n">iky_max</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span>
-<a name="ln-221"></a>      <span class="n">ipad_up</span> <span class="o">=</span> <span class="n">iky_max</span> <span class="o">+</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ny</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<a name="ln-222"></a>
-<a name="ln-223"></a>      <span class="c">! now fill in non-zero elements of array</span>
-<a name="ln-224"></a>      <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
-<a name="ln-225"></a>         <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ntubes</span>
-<a name="ln-226"></a>            <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span>
-<a name="ln-227"></a>               <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nakx</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-228"></a>                  <span class="n">fft_y_in</span><span class="p">(</span><span class="n">iky_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="n">ipad_up</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.</span>
-<a name="ln-229"></a>                  <span class="n">fft_y_in</span><span class="p">(:</span><span class="n">iky_max</span><span class="p">)</span> <span class="o">=</span> <span class="n">gky_unpad</span><span class="p">(:</span><span class="n">iky_max</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-230"></a>                  <span class="n">fft_y_in</span><span class="p">(</span><span class="n">ipad_up</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:)</span> <span class="o">=</span> <span class="n">gky_unpad</span><span class="p">(</span><span class="n">iky_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-231"></a>                  <span class="k">call </span><span class="n">dfftw_execute_dft</span><span class="p">(</span><span class="n">yf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">fft_y_in</span><span class="p">,</span> <span class="n">fft_y_out</span><span class="p">)</span>
-<a name="ln-232"></a>                  <span class="n">fft_y_out</span> <span class="o">=</span> <span class="n">fft_y_out</span> <span class="o">*</span> <span class="n">yf_fft</span><span class="p">%</span><span class="nb">scale</span>
-<a name="ln-233"></a><span class="nb">                  </span><span class="n">gy</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span> <span class="o">=</span> <span class="n">fft_y_out</span>
-<a name="ln-234"></a>               <span class="k">end do</span>
-<a name="ln-235"></a><span class="k">            end do</span>
-<a name="ln-236"></a><span class="k">         end do</span>
-<a name="ln-237"></a><span class="k">      end do</span>
-<a name="ln-238"></a>
-<a name="ln-239"></a><span class="k">   end subroutine </span><span class="n">transform_ky2y_5d</span>
-<a name="ln-240"></a>
-<a name="ln-241"></a>   <span class="k">subroutine </span><span class="n">transform_ky2y_2d</span><span class="p">(</span><span class="n">gky_unpad</span><span class="p">,</span> <span class="n">gy</span><span class="p">)</span>
-<a name="ln-242"></a>
-<a name="ln-243"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-244"></a>
-<a name="ln-245"></a>      <span class="k">implicit none</span>
-<a name="ln-246"></a>
-<a name="ln-247"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gky_unpad</span>
-<a name="ln-248"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gy</span>
-<a name="ln-249"></a>
-<a name="ln-250"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky_max</span><span class="p">,</span> <span class="n">ipad_up</span>
-<a name="ln-251"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span>
-<a name="ln-252"></a>
-<a name="ln-253"></a>      <span class="c">! first need to pad input array with zeros</span>
-<a name="ln-254"></a>      <span class="n">iky_max</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span>
-<a name="ln-255"></a>      <span class="n">ipad_up</span> <span class="o">=</span> <span class="n">iky_max</span> <span class="o">+</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ny</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<a name="ln-256"></a><span class="c">!    fft_y_in(iky_max+1:ipad_up) = 0.</span>
+<a name="ln-190"></a>      <span class="k">use </span><span class="n">fft_work</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">fft_backward</span><span class="p">,</span> <span class="n">fft_forward</span>
+<a name="ln-191"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-192"></a>
+<a name="ln-193"></a>      <span class="k">implicit none</span>
+<a name="ln-194"></a>
+<a name="ln-195"></a><span class="k">      </span><span class="kt">logical</span> <span class="kd">::</span> <span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-196"></a>
+<a name="ln-197"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">initialized</span><span class="p">)</span> <span class="k">return</span>
+<a name="ln-198"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-199"></a>
+<a name="ln-200"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+<a name="ln-201"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span><span class="p">))</span>
+<a name="ln-202"></a>
+<a name="ln-203"></a>      <span class="k">call </span><span class="n">init_crfftw</span><span class="p">(</span><span class="n">alpha_f_fft</span><span class="p">,</span> <span class="n">fft_backward</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span><span class="p">,</span> <span class="n">fft_alpha_kalpha</span><span class="p">,</span> <span class="n">fft_alpha_alpha</span><span class="p">)</span>
+<a name="ln-204"></a>      <span class="k">call </span><span class="n">init_rcfftw</span><span class="p">(</span><span class="n">alpha_b_fft</span><span class="p">,</span> <span class="n">fft_forward</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nalpha</span><span class="p">,</span> <span class="n">fft_alpha_alpha</span><span class="p">,</span> <span class="n">fft_alpha_kalpha</span><span class="p">)</span>
+<a name="ln-205"></a>
+<a name="ln-206"></a>   <span class="k">end subroutine </span><span class="n">init_alpha_fft</span>
+<a name="ln-207"></a>
+<a name="ln-208"></a>   <span class="k">subroutine </span><span class="n">transform_ky2y_5d</span><span class="p">(</span><span class="n">gky_unpad</span><span class="p">,</span> <span class="n">gy</span><span class="p">)</span>
+<a name="ln-209"></a>
+<a name="ln-210"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-211"></a>
+<a name="ln-212"></a>      <span class="k">implicit none</span>
+<a name="ln-213"></a>
+<a name="ln-214"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gky_unpad</span>
+<a name="ln-215"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gy</span>
+<a name="ln-216"></a>
+<a name="ln-217"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky_max</span><span class="p">,</span> <span class="n">ipad_up</span>
+<a name="ln-218"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span>
+<a name="ln-219"></a>
+<a name="ln-220"></a>      <span class="c">! first need to pad input array with zeros</span>
+<a name="ln-221"></a>      <span class="n">iky_max</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span>
+<a name="ln-222"></a>      <span class="n">ipad_up</span> <span class="o">=</span> <span class="n">iky_max</span> <span class="o">+</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ny</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-223"></a>
+<a name="ln-224"></a>      <span class="c">! now fill in non-zero elements of array</span>
+<a name="ln-225"></a>      <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
+<a name="ln-226"></a>         <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ntubes</span>
+<a name="ln-227"></a>            <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nzgrid</span>
+<a name="ln-228"></a>               <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nakx</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-229"></a>                  <span class="n">fft_y_in</span><span class="p">(</span><span class="n">iky_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="n">ipad_up</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-230"></a>                  <span class="n">fft_y_in</span><span class="p">(:</span><span class="n">iky_max</span><span class="p">)</span> <span class="o">=</span> <span class="n">gky_unpad</span><span class="p">(:</span><span class="n">iky_max</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-231"></a>                  <span class="n">fft_y_in</span><span class="p">(</span><span class="n">ipad_up</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:)</span> <span class="o">=</span> <span class="n">gky_unpad</span><span class="p">(</span><span class="n">iky_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-232"></a>                  <span class="k">call </span><span class="n">dfftw_execute_dft</span><span class="p">(</span><span class="n">yf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">fft_y_in</span><span class="p">,</span> <span class="n">fft_y_out</span><span class="p">)</span>
+<a name="ln-233"></a>                  <span class="n">fft_y_out</span> <span class="o">=</span> <span class="n">fft_y_out</span> <span class="o">*</span> <span class="n">yf_fft</span><span class="p">%</span><span class="nb">scale</span>
+<a name="ln-234"></a><span class="nb">                  </span><span class="n">gy</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span> <span class="o">=</span> <span class="n">fft_y_out</span>
+<a name="ln-235"></a>               <span class="k">end do</span>
+<a name="ln-236"></a><span class="k">            end do</span>
+<a name="ln-237"></a><span class="k">         end do</span>
+<a name="ln-238"></a><span class="k">      end do</span>
+<a name="ln-239"></a>
+<a name="ln-240"></a><span class="k">   end subroutine </span><span class="n">transform_ky2y_5d</span>
+<a name="ln-241"></a>
+<a name="ln-242"></a>   <span class="k">subroutine </span><span class="n">transform_ky2y_2d</span><span class="p">(</span><span class="n">gky_unpad</span><span class="p">,</span> <span class="n">gy</span><span class="p">)</span>
+<a name="ln-243"></a>
+<a name="ln-244"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-245"></a>
+<a name="ln-246"></a>      <span class="k">implicit none</span>
+<a name="ln-247"></a>
+<a name="ln-248"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gky_unpad</span>
+<a name="ln-249"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gy</span>
+<a name="ln-250"></a>
+<a name="ln-251"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky_max</span><span class="p">,</span> <span class="n">ipad_up</span>
+<a name="ln-252"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span>
+<a name="ln-253"></a>
+<a name="ln-254"></a>      <span class="c">! first need to pad input array with zeros</span>
+<a name="ln-255"></a>      <span class="n">iky_max</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span>
+<a name="ln-256"></a>      <span class="n">ipad_up</span> <span class="o">=</span> <span class="n">iky_max</span> <span class="o">+</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ny</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 <a name="ln-257"></a>
 <a name="ln-258"></a>      <span class="c">! now fill in non-zero elements of array</span>
 <a name="ln-259"></a>      <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">nakx</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
@@ -822,64 +822,68 @@
 <a name="ln-547"></a>
 <a name="ln-548"></a>   <span class="k">end subroutine </span><span class="n">transform_kalpha2alpha</span>
 <a name="ln-549"></a>
-<a name="ln-550"></a>   <span class="k">subroutine </span><span class="n">transform_alpha2kalpha</span><span class="p">(</span><span class="n">galph</span><span class="p">,</span> <span class="n">gkalph</span><span class="p">)</span>
-<a name="ln-551"></a>
-<a name="ln-552"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
-<a name="ln-553"></a>
-<a name="ln-554"></a>      <span class="k">implicit none</span>
+<a name="ln-550"></a>   <span class="c">!&gt; input galph array is real and contains values on the padded alpha grid</span>
+<a name="ln-551"></a>   <span class="c">!&gt; gkalph is output array; it contains the Fourier coefficients of galph</span>
+<a name="ln-552"></a>   <span class="c">!&gt; for positive ky values only (reality can be used to obtain the negative ky coefs)</span>
+<a name="ln-553"></a>   <span class="c">!&gt; the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-aliasing</span>
+<a name="ln-554"></a>   <span class="k">subroutine </span><span class="n">transform_alpha2kalpha</span><span class="p">(</span><span class="n">galph</span><span class="p">,</span> <span class="n">gkalph</span><span class="p">)</span>
 <a name="ln-555"></a>
-<a name="ln-556"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">galph</span>
-<a name="ln-557"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gkalph</span>
-<a name="ln-558"></a>
-<a name="ln-559"></a>      <span class="n">fft_alpha_alpha</span> <span class="o">=</span> <span class="n">galph</span>
-<a name="ln-560"></a>      <span class="k">call </span><span class="n">dfftw_execute_dft_r2c</span><span class="p">(</span><span class="n">alpha_b_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">fft_alpha_alpha</span><span class="p">,</span> <span class="n">fft_alpha_kalpha</span><span class="p">)</span>
-<a name="ln-561"></a>      <span class="n">fft_alpha_kalpha</span> <span class="o">=</span> <span class="n">fft_alpha_kalpha</span> <span class="o">*</span> <span class="n">alpha_b_fft</span><span class="p">%</span><span class="nb">scale</span>
-<a name="ln-562"></a>      <span class="c">! filter out highest k-alpha modes to avoid aliasing</span>
-<a name="ln-563"></a>      <span class="n">gkalph</span> <span class="o">=</span> <span class="n">fft_alpha_kalpha</span><span class="p">(:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span><span class="p">)</span>
-<a name="ln-564"></a>
-<a name="ln-565"></a>   <span class="k">end subroutine </span><span class="n">transform_alpha2kalpha</span>
-<a name="ln-566"></a>
-<a name="ln-567"></a>   <span class="k">subroutine </span><span class="n">finish_transforms</span>
+<a name="ln-556"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
+<a name="ln-557"></a>
+<a name="ln-558"></a>      <span class="k">implicit none</span>
+<a name="ln-559"></a>
+<a name="ln-560"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">galph</span>
+<a name="ln-561"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gkalph</span>
+<a name="ln-562"></a>
+<a name="ln-563"></a>      <span class="n">fft_alpha_alpha</span> <span class="o">=</span> <span class="n">galph</span>
+<a name="ln-564"></a>      <span class="k">call </span><span class="n">dfftw_execute_dft_r2c</span><span class="p">(</span><span class="n">alpha_b_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">,</span> <span class="n">fft_alpha_alpha</span><span class="p">,</span> <span class="n">fft_alpha_kalpha</span><span class="p">)</span>
+<a name="ln-565"></a>      <span class="n">fft_alpha_kalpha</span> <span class="o">=</span> <span class="n">fft_alpha_kalpha</span> <span class="o">*</span> <span class="n">alpha_b_fft</span><span class="p">%</span><span class="nb">scale</span>
+<a name="ln-566"></a>      <span class="c">! filter out highest k-alpha modes to avoid aliasing</span>
+<a name="ln-567"></a>      <span class="n">gkalph</span> <span class="o">=</span> <span class="n">fft_alpha_kalpha</span><span class="p">(:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">naky</span><span class="p">)</span>
 <a name="ln-568"></a>
-<a name="ln-569"></a>      <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">full_flux_surface</span>
+<a name="ln-569"></a>   <span class="k">end subroutine </span><span class="n">transform_alpha2kalpha</span>
 <a name="ln-570"></a>
-<a name="ln-571"></a>      <span class="k">implicit none</span>
+<a name="ln-571"></a>   <span class="k">subroutine </span><span class="n">finish_transforms</span>
 <a name="ln-572"></a>
-<a name="ln-573"></a><span class="k">      call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">yf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-574"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">yb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-575"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-576"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-577"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xsf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-578"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xsb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-579"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">ysf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-580"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">ysb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-581"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">yfnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-582"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">ybnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-583"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xfnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-584"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xbnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-585"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-586"></a><span class="k">         call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">alpha_f_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-587"></a>         <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">alpha_b_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
-<a name="ln-588"></a>      <span class="k">end if</span>
-<a name="ln-589"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_y_in</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_y_in</span><span class="p">)</span>
-<a name="ln-590"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_y_out</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_y_out</span><span class="p">)</span>
-<a name="ln-591"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_x_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_x_k</span><span class="p">)</span>
-<a name="ln-592"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_x_x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_x_x</span><span class="p">)</span>
-<a name="ln-593"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_xs_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_xs_k</span><span class="p">)</span>
-<a name="ln-594"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_xs_x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_xs_x</span><span class="p">)</span>
-<a name="ln-595"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_ys_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_ys_k</span><span class="p">)</span>
-<a name="ln-596"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_ys_y</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_ys_y</span><span class="p">)</span>
-<a name="ln-597"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">)</span>
-<a name="ln-598"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">)</span>
-<a name="ln-599"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_y_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_y_k</span><span class="p">)</span>
-<a name="ln-600"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_y_y</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_y_y</span><span class="p">)</span>
-<a name="ln-601"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_x_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_x_k</span><span class="p">)</span>
-<a name="ln-602"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_x_x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_x_x</span><span class="p">)</span>
-<a name="ln-603"></a>      <span class="n">transforms_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-604"></a>
-<a name="ln-605"></a>   <span class="k">end subroutine </span><span class="n">finish_transforms</span>
-<a name="ln-606"></a>
-<a name="ln-607"></a><span class="k">end module </span><span class="n">stella_transforms</span>
+<a name="ln-573"></a>      <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">full_flux_surface</span>
+<a name="ln-574"></a>
+<a name="ln-575"></a>      <span class="k">implicit none</span>
+<a name="ln-576"></a>
+<a name="ln-577"></a><span class="k">      call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">yf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-578"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">yb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-579"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-580"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-581"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xsf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-582"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xsb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-583"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">ysf_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-584"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">ysb_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-585"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">yfnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-586"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">ybnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-587"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xfnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-588"></a>      <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">xbnp_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-589"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-590"></a><span class="k">         call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">alpha_f_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-591"></a>         <span class="k">call </span><span class="n">dfftw_destroy_plan</span><span class="p">(</span><span class="n">alpha_b_fft</span><span class="p">%</span><span class="n">plan</span><span class="p">)</span>
+<a name="ln-592"></a>      <span class="k">end if</span>
+<a name="ln-593"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_y_in</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_y_in</span><span class="p">)</span>
+<a name="ln-594"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_y_out</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_y_out</span><span class="p">)</span>
+<a name="ln-595"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_x_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_x_k</span><span class="p">)</span>
+<a name="ln-596"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_x_x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_x_x</span><span class="p">)</span>
+<a name="ln-597"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_xs_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_xs_k</span><span class="p">)</span>
+<a name="ln-598"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_xs_x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_xs_x</span><span class="p">)</span>
+<a name="ln-599"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_ys_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_ys_k</span><span class="p">)</span>
+<a name="ln-600"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_ys_y</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_ys_y</span><span class="p">)</span>
+<a name="ln-601"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_alpha_alpha</span><span class="p">)</span>
+<a name="ln-602"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fft_alpha_kalpha</span><span class="p">)</span>
+<a name="ln-603"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_y_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_y_k</span><span class="p">)</span>
+<a name="ln-604"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_y_y</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_y_y</span><span class="p">)</span>
+<a name="ln-605"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_x_k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_x_k</span><span class="p">)</span>
+<a name="ln-606"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">fftnp_x_x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">fftnp_x_x</span><span class="p">)</span>
+<a name="ln-607"></a>      <span class="n">transforms_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-608"></a>
+<a name="ln-609"></a>   <span class="k">end subroutine </span><span class="n">finish_transforms</span>
+<a name="ln-610"></a>
+<a name="ln-611"></a><span class="k">end module </span><span class="n">stella_transforms</span>
 </pre></div>
 
     </section>
@@ -893,13 +897,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

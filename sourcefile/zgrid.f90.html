@@ -479,35 +479,37 @@
 <a name="ln-204"></a>            <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span> <span class="o">=</span> <span class="n">zarc</span><span class="p">(</span><span class="o">-</span><span class="n">nz_max</span><span class="p">)</span> <span class="o">-</span> <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span>
 <a name="ln-205"></a>         <span class="k">end do</span>
 <a name="ln-206"></a><span class="k">      end if</span>
-<a name="ln-207"></a><span class="k">      do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nz_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nzext_max</span>
-<a name="ln-208"></a>         <span class="k">call </span><span class="n">integrate_zed</span><span class="p">(</span><span class="n">nz_max</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">gp</span><span class="p">(</span><span class="o">-</span><span class="n">nz_max</span><span class="p">:</span><span class="n">iz</span><span class="p">),</span> <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">))</span>
-<a name="ln-209"></a>         <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span> <span class="o">=</span> <span class="n">zarc</span><span class="p">(</span><span class="o">-</span><span class="n">nz_max</span><span class="p">)</span> <span class="o">+</span> <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span>
-<a name="ln-210"></a>      <span class="k">end do</span>
-<a name="ln-211"></a>
-<a name="ln-212"></a><span class="k">   end subroutine </span><span class="n">get_arc_length_grid</span>
+<a name="ln-207"></a>      <span class="c">! this seems very inefficient -- could just add incremental change at each zed,</span>
+<a name="ln-208"></a>      <span class="c">! rather than recomputing from the boundary each time</span>
+<a name="ln-209"></a>      <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nz_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nzext_max</span>
+<a name="ln-210"></a>         <span class="k">call </span><span class="n">integrate_zed</span><span class="p">(</span><span class="n">nz_max</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">gp</span><span class="p">(</span><span class="o">-</span><span class="n">nz_max</span><span class="p">:</span><span class="n">iz</span><span class="p">),</span> <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">))</span>
+<a name="ln-211"></a>         <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span> <span class="o">=</span> <span class="n">zarc</span><span class="p">(</span><span class="o">-</span><span class="n">nz_max</span><span class="p">)</span> <span class="o">+</span> <span class="n">zarc</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span>
+<a name="ln-212"></a>      <span class="k">end do</span>
 <a name="ln-213"></a>
-<a name="ln-214"></a>   <span class="c">! trapezoidal rule to integrate in zed</span>
-<a name="ln-215"></a>   <span class="k">subroutine </span><span class="n">integrate_zed</span><span class="p">(</span><span class="n">nz</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">intf</span><span class="p">)</span>
-<a name="ln-216"></a>
-<a name="ln-217"></a>      <span class="k">implicit none</span>
+<a name="ln-214"></a><span class="k">   end subroutine </span><span class="n">get_arc_length_grid</span>
+<a name="ln-215"></a>
+<a name="ln-216"></a>   <span class="c">! trapezoidal rule to integrate in zed</span>
+<a name="ln-217"></a>   <span class="k">subroutine </span><span class="n">integrate_zed</span><span class="p">(</span><span class="n">nz</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">intf</span><span class="p">)</span>
 <a name="ln-218"></a>
-<a name="ln-219"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nz</span>
-<a name="ln-220"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dz</span>
-<a name="ln-221"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="o">-</span><span class="n">nz</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">f</span>
-<a name="ln-222"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">intf</span>
-<a name="ln-223"></a>
-<a name="ln-224"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">iz_max</span>
+<a name="ln-219"></a>      <span class="k">implicit none</span>
+<a name="ln-220"></a>
+<a name="ln-221"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nz</span>
+<a name="ln-222"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dz</span>
+<a name="ln-223"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="o">-</span><span class="n">nz</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">f</span>
+<a name="ln-224"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">intf</span>
 <a name="ln-225"></a>
-<a name="ln-226"></a>      <span class="n">iz_max</span> <span class="o">=</span> <span class="o">-</span><span class="n">nz</span> <span class="o">+</span> <span class="n">size</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-227"></a>      <span class="n">intf</span> <span class="o">=</span> <span class="mf">0.</span>
-<a name="ln-228"></a>      <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nz</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iz_max</span>
-<a name="ln-229"></a>         <span class="n">intf</span> <span class="o">=</span> <span class="n">intf</span> <span class="o">+</span> <span class="n">dz</span> <span class="o">*</span> <span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">iz</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span><span class="p">(</span><span class="n">iz</span><span class="p">))</span>
-<a name="ln-230"></a>      <span class="k">end do</span>
-<a name="ln-231"></a><span class="k">      </span><span class="n">intf</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">intf</span>
-<a name="ln-232"></a>
-<a name="ln-233"></a>   <span class="k">end subroutine </span><span class="n">integrate_zed</span>
+<a name="ln-226"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">iz_max</span>
+<a name="ln-227"></a>
+<a name="ln-228"></a>      <span class="n">iz_max</span> <span class="o">=</span> <span class="o">-</span><span class="n">nz</span> <span class="o">+</span> <span class="n">size</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-229"></a>      <span class="n">intf</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-230"></a>      <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nz</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iz_max</span>
+<a name="ln-231"></a>         <span class="n">intf</span> <span class="o">=</span> <span class="n">intf</span> <span class="o">+</span> <span class="n">dz</span> <span class="o">*</span> <span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">iz</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span><span class="p">(</span><span class="n">iz</span><span class="p">))</span>
+<a name="ln-232"></a>      <span class="k">end do</span>
+<a name="ln-233"></a><span class="k">      </span><span class="n">intf</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">intf</span>
 <a name="ln-234"></a>
-<a name="ln-235"></a><span class="k">end module </span><span class="n">zgrid</span>
+<a name="ln-235"></a>   <span class="k">end subroutine </span><span class="n">integrate_zed</span>
+<a name="ln-236"></a>
+<a name="ln-237"></a><span class="k">end module </span><span class="n">zgrid</span>
 </pre></div>
 
     </section>
@@ -521,13 +523,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

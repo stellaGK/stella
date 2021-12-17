@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="<p> 0.0% of total for procedures.</p>Including implementation: 53 statements,  0.2% of total for procedures.">6 statements</a>
+    title="<p> 0.0% of total for procedures.</p>Including implementation: 111 statements,  0.3% of total for procedures.">9 statements</a>
      </li> 
      
      
@@ -208,6 +208,12 @@
       
       <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_vmus_nonlocal">gyro_average_vmus_nonlocal</a>
       
+      <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_ffs_kxky_local">gyro_average_ffs_kxky_local</a>
+      
+      <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_ffs_kxkyz_local">gyro_average_ffs_kxkyz_local</a>
+      
+      <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_ffs">gyro_average_ffs</a>
+      
     </div>
   </div>
 </div>
@@ -263,6 +269,12 @@
       
       <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_vmus_nonlocal">gyro_average_vmus_nonlocal</a>
       
+      <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_ffs_kxky_local">gyro_average_ffs_kxky_local</a>
+      
+      <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_ffs_kxkyz_local">gyro_average_ffs_kxkyz_local</a>
+      
+      <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_ffs">gyro_average_ffs</a>
+      
     </div>
   </div>
 </div>
@@ -291,6 +303,16 @@ private subroutine <a href='../proc/gyro_average_kxky_local.html'>gyro_average_k
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>if simulating a full flux surface, the alpha dependence present
+in kperp makes gyro-averaging non-local in k-space
+if simulating a flux tube, a gyro-average is local in k-space</p>
     
     <h4>Arguments</h4>
     
@@ -387,6 +409,16 @@ private subroutine <a href='../proc/gyro_average_kxkyz_local.html'>gyro_average_
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>if simulating a full flux surface, the alpha dependence present
+in kperp makes gyro-averaging non-local in k-space
+if simulating a flux tube, a gyro-average is local in k-space</p>
     
     <h4>Arguments</h4>
     
@@ -649,6 +681,249 @@ private subroutine <a href='../proc/gyro_average_vmus_nonlocal.html'>gyro_averag
   </div>
 
    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-gyro_average_ffs_kxky_local"></span><h3>
+private subroutine <a href='../proc/gyro_average_ffs_kxky_local.html'>gyro_average_ffs_kxky_local</a>(field, gyro_field, coefs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :)</td><td>::</td>
+  <td><strong>field</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :)</td><td>::</td>
+  <td><strong>gyro_field</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/coupled_alpha_type.html'>coupled_alpha_type</a>),</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :)</td><td>::</td>
+  <td><strong>coefs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+   
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-gyro_average_ffs_kxkyz_local"></span><h3>
+private subroutine <a href='../proc/gyro_average_ffs_kxkyz_local.html'>gyro_average_ffs_kxkyz_local</a>(field, gyro_field, coefs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>field</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>gyro_field</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/coupled_alpha_type.html'>coupled_alpha_type</a>),</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:)</td><td>::</td>
+  <td><strong>coefs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+   
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-gyro_average_ffs"></span><h3>
+private subroutine <a href='../proc/gyro_average_ffs.html'>gyro_average_ffs</a>(dist, gyro_dist, coefs)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>dist</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gyro_dist</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/coupled_alpha_type.html'>coupled_alpha_type</a>),</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>coefs</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+   
      
 
  </div>
@@ -661,13 +936,13 @@ private subroutine <a href='../proc/gyro_average_vmus_nonlocal.html'>gyro_averag
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

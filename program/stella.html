@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="66.1% of total for programs.">459 statements</a>
+    title="66.7% of total for programs.">470 statements</a>
      </li> 
      
      
@@ -181,7 +181,7 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../program/stella.html#variable-debug~8">debug</a>
+      <a class="list-group-item" href="../program/stella.html#variable-debug~9">debug</a>
       
       <a class="list-group-item" href="../program/stella.html#variable-stop_stella">stop_stella</a>
       
@@ -224,7 +224,11 @@
       
       <a class="list-group-item" href="../program/stella.html#proc-init_stella">init_stella</a>
       
+      <a class="list-group-item" href="../program/stella.html#proc-check_transforms">check_transforms</a>
+      
       <a class="list-group-item" href="../program/stella.html#proc-write_start_message">write_start_message</a>
+      
+      <a class="list-group-item" href="../program/stella.html#proc-print_header">print_header</a>
       
       <a class="list-group-item" href="../program/stella.html#proc-parse_command_line">parse_command_line</a>
       
@@ -259,29 +263,27 @@
       <li class="list-group-item">
   <ul class="list-inline">
     
-    <li><a href='../module/run_parameters.html'>run_parameters</a></li>
-    
-    <li><a href='../module/file_utils.html'>file_utils</a></li>
-    
-    <li><a href='../module/redistribute.html'>redistribute</a></li>
-    
-    <li><a href='../module/stella_time.html'>stella_time</a></li>
-    
-    <li><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></li>
-    
-    <li><a href='../module/stella_save.html'>stella_save</a></li>
+    <li><a href='../module/git_version.html'>git_version</a></li>
     
     <li><a href='../module/job_manage.html'>job_manage</a></li>
     
-    <li><a href='../module/git_version.html'>git_version</a></li>
+    <li><a href='../module/stella_save.html'>stella_save</a></li>
     
-    <li><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
+    <li><a href='../module/file_utils.html'>file_utils</a></li>
     
-    <li><a href='../module/mp.html'>mp</a></li>
+    <li><a href='../module/stella_time.html'>stella_time</a></li>
+    
+    <li><a href='../module/time_advance.html'>time_advance</a></li>
+    
+    <li><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></li>
     
     <li><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
     
-    <li><a href='../module/time_advance.html'>time_advance</a></li>
+    <li><a href='../module/redistribute.html'>redistribute</a></li>
+    
+    <li><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
+    
+    <li><a href='../module/run_parameters.html'>run_parameters</a></li>
     
   </ul>
       </li>
@@ -292,9 +294,12 @@
     </div>
     
 
+    <p>Initialize stella</p>
+<p>Diagnose stella
+Advance stella until istep=nstep
+Finish stella</p>
     
-    
-    
+    <br>
 
      <section class="visible-xs visible-sm hidden-md">
        
@@ -308,7 +313,7 @@
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../program/stella.html#variable-debug~8">debug</a>
+      <a class="list-group-item" href="../program/stella.html#variable-debug~9">debug</a>
       
       <a class="list-group-item" href="../program/stella.html#variable-stop_stella">stop_stella</a>
       
@@ -351,7 +356,11 @@
       
       <a class="list-group-item" href="../program/stella.html#proc-init_stella">init_stella</a>
       
+      <a class="list-group-item" href="../program/stella.html#proc-check_transforms">check_transforms</a>
+      
       <a class="list-group-item" href="../program/stella.html#proc-write_start_message">write_start_message</a>
+      
+      <a class="list-group-item" href="../program/stella.html#proc-print_header">print_header</a>
       
       <a class="list-group-item" href="../program/stella.html#proc-parse_command_line">parse_command_line</a>
       
@@ -394,7 +403,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-debug~8"></span>logical</td>
+  <td><span class="anchor" id="variable-debug~9"></span>logical</td>
   
   
   <td></td><td>::</td>
@@ -641,6 +650,66 @@ subroutine <a href='../proc/init_stella.html'>init_stella</a>(istep0, VERNUM, VE
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-check_transforms"></span><h3>
+subroutine <a href='../proc/check_transforms.html'>check_transforms</a>(needs_transforms)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>check_transforms checks the various physics flag choices
+to determine if FFTs are needed for the simulation</p><a href="../proc/check_transforms.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>needs_transforms</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-write_start_message"></span><h3>
 subroutine <a href='../proc/write_start_message.html'>write_start_message</a>(VERNUM, VERDATE)
     
@@ -706,6 +775,28 @@ subroutine <a href='../proc/write_start_message.html'>write_start_message</a>(VE
 </table>
 
       
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-print_header"></span><h3>
+subroutine <a href='../proc/print_header.html'>print_header</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
     
     
 
@@ -817,13 +908,13 @@ subroutine <a href='../proc/finish_stella.html'>finish_stella</a>(last_call)
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

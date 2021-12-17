@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.6% of total for modules and submodules.">977 statements</a>
+    title=" 3.0% of total for modules and submodules.">1151 statements</a>
      </li> 
      
      
@@ -241,7 +241,7 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-diagnostics_initialized">diagnostics_initialized</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~4">debug</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~5">debug</a>
       
     </div>
   </div>
@@ -280,6 +280,12 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_fluxes_vmulo">get_fluxes_vmulo</a>
       
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_fluxes_ffs">get_fluxes_ffs</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_ffs">get_one_flux_ffs</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_modified_fourier_coefficient">get_modified_fourier_coefficient</a>
+      
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux">get_one_flux</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo">get_one_flux_vmulo</a>
@@ -287,6 +293,10 @@
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_radial">get_one_flux_radial</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments">get_moments</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments_ffs">get_moments_ffs</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-g_to_f">g_to_f</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_gvmus">get_gvmus</a>
       
@@ -400,7 +410,7 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#variable-diagnostics_initialized">diagnostics_initialized</a>
       
-      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~4">debug</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#variable-debug~5">debug</a>
       
     </div>
   </div>
@@ -439,6 +449,12 @@
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_fluxes_vmulo">get_fluxes_vmulo</a>
       
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_fluxes_ffs">get_fluxes_ffs</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_ffs">get_one_flux_ffs</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_modified_fourier_coefficient">get_modified_fourier_coefficient</a>
+      
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux">get_one_flux</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo">get_one_flux_vmulo</a>
@@ -446,6 +462,10 @@
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_radial">get_one_flux_radial</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments">get_moments</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments_ffs">get_moments_ffs</a>
+      
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-g_to_f">g_to_f</a>
       
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_gvmus">get_gvmus</a>
       
@@ -916,7 +936,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-debug~4"></span>logical,</td>
+  <td><span class="anchor" id="variable-debug~5"></span>logical,</td>
   
   <td>private</td>
   <td></td><td>::</td>
@@ -1186,7 +1206,7 @@ public subroutine <a href='../proc/diagnose_stella.html'>diagnose_stella</a>(ist
 
 
 
-<p>Calculate and write diagnostics</p>
+<p>Calculate and write diagnostics</p><a href="../proc/diagnose_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1518,6 +1538,388 @@ private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(
   
   <td>dimension(:, :)</td><td>::</td>
   <td><strong>qflx_x</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_fluxes_ffs"></span><h3>
+private subroutine <a href='../proc/get_fluxes_ffs.html'>get_fluxes_ffs</a>(dens, upar, pres, pflx, vflx, qflx, pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Calculate the total particle, momentum and heat fluxes (pflx, vflx, qflx)
+and the contributions from a given (kx,ky,z) location (pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
+inputs are the particle density (dens), parallel flow (upar) and pressure (pres)</p><a href="../proc/get_fluxes_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>dens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>upar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>pres</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>pflx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>vflx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>qflx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>pflx_vs_kxkyz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>vflx_vs_kxkyz</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>qflx_vs_kxkyz</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_one_flux_ffs"></span><h3>
+private subroutine <a href='../proc/get_one_flux_ffs.html'>get_one_flux_ffs</a>(mom, dphidy, flxfac, flx, flx_vs_kxkyz)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
+and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
+pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
+calculate the volume average of the particle flux
+note that the factor of 1/B that appears in the Jacobian has already been taken into account
+in the numerator of the flux surface average</p>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>mom</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:)</td><td>::</td>
+  <td><strong>dphidy</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>flxfac</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:)</td><td>::</td>
+  <td><strong>flx</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>flx_vs_kxkyz</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_modified_fourier_coefficient"></span><h3>
+private subroutine <a href='../proc/get_modified_fourier_coefficient.html'>get_modified_fourier_coefficient</a>(moment, moment_ky)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>divide the input moment by the magnetic field strength
+to account for Jacobian in flux-surface average
+transform the B-modified input moment from y to ky space
+swap from all ky and kx &gt;= 0 to all kx and ky &gt;= 0</p>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>moment</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>moment_ky</strong></td><td></td>
   
 </tr>
 
@@ -2008,6 +2410,212 @@ private subroutine <a href='../proc/get_moments.html'>get_moments</a>(g, dens, u
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_moments_ffs"></span><h3>
+private subroutine <a href='../proc/get_moments_ffs.html'>get_moments_ffs</a>(g, dens, upar, pres)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>species-dependent factor by which velocity moments must be multiplied
+to get density, pressure, etc.
+the guiding centre distribution function, normalized by
+the equilibrium Maxwellian, is passed in as g.
+to obtain moments such as density, flow and pressure,
+we need to take moments of the distribution function, f,
+which is related to g via
+f/F0 = g + (Ze/T)*(<phi>_R - phi)
+obtain g0=f/F0 in Fourier space</p><a href="../proc/get_moments_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>dens</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>upar</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>pres</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-g_to_f"></span><h3>
+private subroutine <a href='../proc/g_to_f.html'>g_to_f</a>(g, phi, f)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>the Fourier components of the guiding centre distribution function
+normalized by the equilibrium Maxwellian is passed in as g,
+along with the Fourier components of the electrostatic potential, phi.
+g_to_f calculates the Maxwellian-normalized distribution function f,
+which is related to g via
+f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>f</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-get_gvmus"></span><h3>
 private subroutine <a href='../proc/get_gvmus.html'>get_gvmus</a>(g, gv)
     
@@ -2404,13 +3012,13 @@ private subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays<
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

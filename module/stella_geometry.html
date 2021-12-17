@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.7% of total for modules and submodules.">632 statements</a>
+    title=" 1.8% of total for modules and submodules.">681 statements</a>
      </li> 
      
      
@@ -223,6 +223,8 @@
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-gradpar~2">gradpar</a>
       
+      <a class="list-group-item" href="../module/stella_geometry.html#variable-b_dot_grad_z~2">b_dot_grad_z</a>
+      
       <a class="list-group-item" href="../module/stella_geometry.html#variable-bmag~5">bmag</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-bmag_psi0">bmag_psi0</a>
@@ -275,11 +277,15 @@
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-grho~9">grho</a>
       
+      <a class="list-group-item" href="../module/stella_geometry.html#variable-grad_x">grad_x</a>
+      
       <a class="list-group-item" href="../module/stella_geometry.html#variable-dl_over_b">dl_over_b</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-d_dl_over_b_drho">d_dl_over_b_drho</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-dvolume">dVolume</a>
+      
+      <a class="list-group-item" href="../module/stella_geometry.html#variable-x_displacement_fac~3">x_displacement_fac</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-dbdrho">dBdrho</a>
       
@@ -362,7 +368,7 @@
       
       <a class="list-group-item" href="../module/stella_geometry.html#proc-allocate_arrays~6">allocate_arrays</a>
       
-      <a class="list-group-item" href="../module/stella_geometry.html#proc-read_parameters~13">read_parameters</a>
+      <a class="list-group-item" href="../module/stella_geometry.html#proc-read_parameters~12">read_parameters</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#proc-broadcast_arrays">broadcast_arrays</a>
       
@@ -485,6 +491,8 @@
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-gradpar~2">gradpar</a>
       
+      <a class="list-group-item" href="../module/stella_geometry.html#variable-b_dot_grad_z~2">b_dot_grad_z</a>
+      
       <a class="list-group-item" href="../module/stella_geometry.html#variable-bmag~5">bmag</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-bmag_psi0">bmag_psi0</a>
@@ -537,11 +545,15 @@
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-grho~9">grho</a>
       
+      <a class="list-group-item" href="../module/stella_geometry.html#variable-grad_x">grad_x</a>
+      
       <a class="list-group-item" href="../module/stella_geometry.html#variable-dl_over_b">dl_over_b</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-d_dl_over_b_drho">d_dl_over_b_drho</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-dvolume">dVolume</a>
+      
+      <a class="list-group-item" href="../module/stella_geometry.html#variable-x_displacement_fac~3">x_displacement_fac</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#variable-dbdrho">dBdrho</a>
       
@@ -624,7 +636,7 @@
       
       <a class="list-group-item" href="../module/stella_geometry.html#proc-allocate_arrays~6">allocate_arrays</a>
       
-      <a class="list-group-item" href="../module/stella_geometry.html#proc-read_parameters~13">read_parameters</a>
+      <a class="list-group-item" href="../module/stella_geometry.html#proc-read_parameters~12">read_parameters</a>
       
       <a class="list-group-item" href="../module/stella_geometry.html#proc-broadcast_arrays">broadcast_arrays</a>
       
@@ -968,6 +980,20 @@
   <td>public,</td>
   <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>gradpar</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-b_dot_grad_z~2"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
+  <td><strong>b_dot_grad_z</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -1341,6 +1367,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-grad_x"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
+  <td><strong>grad_x</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-dl_over_b"></span>real,</td>
   
   <td>public,</td>
@@ -1374,6 +1414,20 @@
   <td>public,</td>
   <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>dVolume</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-x_displacement_fac~3"></span>real,</td>
+  
+  <td>public,</td>
+  <td>dimension(:, :), allocatable</td><td>::</td>
+  <td><strong>x_displacement_fac</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -1793,7 +1847,7 @@
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-init_geometry"></span><h3>
-public subroutine <a href='../proc/init_geometry.html'>init_geometry</a>(nalpha)
+public subroutine <a href='../proc/init_geometry.html'>init_geometry</a>(nalpha, naky)
     
     
    
@@ -1801,6 +1855,16 @@ public subroutine <a href='../proc/init_geometry.html'>init_geometry</a>(nalpha)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>b_dot_grad_z is the alpha-dependent b . grad z,
+and gradpar is the constant-in-alpha part of it.
+for axisymmetric systems, b_dot_grad_z is independent of alpha.</p><a href="../proc/init_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1827,6 +1891,21 @@ public subroutine <a href='../proc/init_geometry.html'>init_geometry</a>(nalpha)
   
   <td></td><td>::</td>
   <td><strong>nalpha</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>naky</strong></td><td></td>
   
 </tr>
 
@@ -1909,8 +1988,8 @@ private subroutine <a href='../proc/allocate_arrays~6.html'>allocate_arrays</a>(
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~13"></span><h3>
-private subroutine <a href='../proc/read_parameters~13.html'>read_parameters</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~12"></span><h3>
+private subroutine <a href='../proc/read_parameters~12.html'>read_parameters</a>()
     
     
    
@@ -2592,13 +2671,13 @@ public subroutine <a href='../proc/finish_geometry.html'>finish_geometry</a>()
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

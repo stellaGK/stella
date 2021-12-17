@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 5.0% of total for modules and submodules.">1876 statements</a>
+    title=" 5.0% of total for modules and submodules.">1909 statements</a>
      </li> 
      
      
@@ -276,7 +276,7 @@
       
       <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~3">read_parameters</a>
+      <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~4">read_parameters</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
       
@@ -324,23 +324,15 @@
       
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dg_term">add_dg_term</a>
-      
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dg_term_annulus">add_dg_term_annulus</a>
-      
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dphi_term">add_dphi_term</a>
+      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dphi_term_annulus">add_dphi_term_annulus</a>
-      
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_wstar_term">add_wstar_term</a>
-      
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_wstar_term_annulus">add_wstar_term_annulus</a>
+      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
       
@@ -499,7 +491,7 @@
       
       <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~3">read_parameters</a>
+      <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~4">read_parameters</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
       
@@ -547,23 +539,15 @@
       
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dg_term">add_dg_term</a>
-      
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dg_term_annulus">add_dg_term_annulus</a>
-      
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dphi_term">add_dphi_term</a>
+      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
       
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_dphi_term_annulus">add_dphi_term_annulus</a>
-      
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_wstar_term">add_wstar_term</a>
-      
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_wstar_term_annulus">add_wstar_term_annulus</a>
+      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
       
       <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
       
@@ -1043,6 +1027,15 @@ private subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute dg/dy in k-space
+accepts g(ky,kx)</p>
     
     <h4>Arguments</h4>
     
@@ -1106,6 +1099,15 @@ private subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute dg/dy in k-space
+accepts g(ky,kx,z,tube)</p>
     
     <h4>Arguments</h4>
     
@@ -1169,6 +1171,15 @@ private subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute dg/dy in k-space
+accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     
     <h4>Arguments</h4>
     
@@ -1247,6 +1258,15 @@ private subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute dg/dx in k-space
+accepts g(ky,kx)</p>
     
     <h4>Arguments</h4>
     
@@ -1310,6 +1330,15 @@ private subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute dg/dx in k-space
+accepts g(ky,kx,z,tube)</p>
     
     <h4>Arguments</h4>
     
@@ -1373,6 +1402,15 @@ private subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)
    
 </h3>
     
+
+
+
+
+
+
+
+<p>compute dg/dx in k-space
+accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     
     <h4>Arguments</h4>
     
@@ -1508,7 +1546,7 @@ private subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(fiel
     
     
     <h3>
-private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total)
+private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)
     
     
    
@@ -1558,6 +1596,21 @@ private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, 
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>norm</strong></td><td></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -1597,6 +1650,27 @@ public subroutine <a href='../proc/init_time_advance.html'>init_time_advance</a>
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>read time_advance_knobs namelist from the input file;
+sets the explicit time advance option, as well as allows for scaling of
+the x and y components of the magnetic drifts and of the drive term
+allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
+set up neoclassical corrections to the equilibrium Maxwellian;
+only calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
+calculate the term multiplying dg/dvpa in the mirror term
+and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
+if solving implicitly
+calculate the term multiplying dg/dz in the parallel streaming term
+and set up the tridiagonal matrix to be inverted if solving implicitly
+allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
+in the magnetic drift terms
+allocate and calculate the factor multiplying dphi/dy in the gradient drive term</p>
     
     <h4>Arguments</h4>
     
@@ -1610,8 +1684,8 @@ public subroutine <a href='../proc/init_time_advance.html'>init_time_advance</a>
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~3"></span><h3>
-private subroutine <a href='../proc/read_parameters~3.html'>read_parameters</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~4"></span><h3>
+private subroutine <a href='../proc/read_parameters~4.html'>read_parameters</a>()
     
     
    
@@ -1641,6 +1715,44 @@ private subroutine <a href='../proc/init_wdrift.html'>init_wdrift</a>()
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
+allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
+allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
+allocate wdrifty_g, the factor multiplying dg/dy in the magnetic drift term
+this is the curvature drift piece of wdrifty with missing factor of vpa
+vpa factor is missing to avoid singularity when including
+non-Maxwellian corrections to equilibrium
+this is the grad-B drift piece of wdrifty
+if including neoclassical correction to equilibrium Maxwellian,
+then add in v_E^{nc} . grad y dg/dy coefficient here
+if full_flux_surface, evolved distribution function is normalised by a Maxwellian
+otherwise, it is not; a Maxwellian weighting factor must thus be included
+if including neoclassical corrections to equilibrium,
+add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
+and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
+NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+if running in full flux surface mode
+this is the curvature drift piece of wdriftx with missing factor of vpa
+vpa factor is missing to avoid singularity when including
+non-Maxwellian corrections to equilibrium
+this is the grad-B drift piece of wdriftx
+if including neoclassical correction to equilibrium Maxwellian,
+then add in v_E^{nc} . grad x dg/dx coefficient here
+if full_flux_surface, evolved distribution function is normalised by a Maxwellian
+otherwise, it is not; a Maxwellian weighting factor must thus be included
+if including neoclassical corrections to equilibrium,
+add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
+and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
+and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
+NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+if running in full flux surface mode</p>
     
     <h4>Arguments</h4>
     
@@ -1817,6 +1929,18 @@ public subroutine <a href='../proc/advance_stella.html'>advance_stella</a>(istep
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>unless running in multibox mode, no need to worry about
+mb_communicate calls as the subroutine is immediately exited
+if not in multibox mode.
+save value of phi
+for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1868,6 +1992,16 @@ private subroutine <a href='../proc/advance_explicit.html'>advance_explicit</a>(
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>advance_explicit takes as input the guiding centre distribution function
+in k-space and updates it to account for all of the terms in the GKE that
+are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1919,6 +2053,14 @@ private subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step</p><a href="../proc/advance_explicit_rk2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1970,6 +2112,14 @@ private subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>strong stability-preserving RK3</p><a href="../proc/advance_explicit_rk3.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2021,6 +2171,14 @@ private subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2072,6 +2230,16 @@ private subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(gin, rhs_ky, r
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
+and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
+i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2153,6 +2321,14 @@ private subroutine <a href='../proc/advance_wstar_explicit.html'>advance_wstar_e
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>start timing the time advance due to the driving gradients</p><a href="../proc/advance_wstar_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2219,6 +2395,15 @@ private subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrif
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>advance_wdrifty_explicit subroutine calculates and adds the y-component of the
+magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdrifty_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2300,6 +2485,15 @@ private subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdrif
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
+magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdriftx_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2381,6 +2575,23 @@ private subroutine <a href='../proc/advance_exb_nonlinearity.html'>advance_ExB_n
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute phase factor needed when running with equilibrium flow shear
+compute i<em>ky</em>g
+FFT to get dg/dy in (y,x) space
+compute i<em>kx</em><chi>
+if running with equilibrium flow shear, make adjustment to
+the term multiplying dg/dy
+FFT to get d<chi>/dx in (y,x) space
+multiply by the geometric factor appearing in the Poisson bracket;
+i.e., (dx/dpsi<em>dy/dalpha)</em>0.5
+compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href="../proc/advance_exb_nonlinearity.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -2609,6 +2820,15 @@ private subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute dg/dy in k-space
+accepts g(ky,kx)</p>
     
     <h4>Arguments</h4>
     
@@ -2675,6 +2895,15 @@ private subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute dg/dy in k-space
+accepts g(ky,kx,z,tube)</p>
     
     <h4>Arguments</h4>
     
@@ -2741,6 +2970,15 @@ private subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute dg/dy in k-space
+accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     
     <h4>Arguments</h4>
     
@@ -2798,168 +3036,6 @@ private subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_dg_term"></span><h3>
-private subroutine <a href='../proc/add_dg_term.html'>add_dg_term</a>(g, wdrift_in, src)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(-nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>wdrift_in</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(inout),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>src</strong></td><td></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_dg_term_annulus"></span><h3>
-private subroutine <a href='../proc/add_dg_term_annulus.html'>add_dg_term_annulus</a>(g, wdrift_in, src)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(:, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>wdrift_in</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(inout),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>src</strong></td><td></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_2d"></span><h3>
 private subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)
     
@@ -2969,6 +3045,15 @@ private subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute dg/dx in k-space
+accepts g(ky,kx)</p>
     
     <h4>Arguments</h4>
     
@@ -3035,6 +3120,15 @@ private subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute dg/dx in k-space
+accepts g(ky,kx,z,tube)</p>
     
     <h4>Arguments</h4>
     
@@ -3101,6 +3195,15 @@ private subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>compute dg/dx in k-space
+accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     
     <h4>Arguments</h4>
     
@@ -3158,8 +3261,8 @@ private subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_dphi_term"></span><h3>
-private subroutine <a href='../proc/add_dphi_term.html'>add_dphi_term</a>(g, wdrift, src)
+  <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term"></span><h3>
+private subroutine <a href='../proc/add_explicit_term.html'>add_explicit_term</a>(g, pre_factor, src)
     
     
    
@@ -3207,7 +3310,7 @@ private subroutine <a href='../proc/add_dphi_term.html'>add_dphi_term</a>(g, wdr
   <td></td>
   
   <td>dimension(-nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>wdrift</strong></td><td></td>
+  <td><strong>pre_factor</strong></td><td></td>
   
 </tr>
 
@@ -3239,8 +3342,8 @@ private subroutine <a href='../proc/add_dphi_term.html'>add_dphi_term</a>(g, wdr
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_dphi_term_annulus"></span><h3>
-private subroutine <a href='../proc/add_dphi_term_annulus.html'>add_dphi_term_annulus</a>(g, wdrift, src)
+  <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term_ffs"></span><h3>
+private subroutine <a href='../proc/add_explicit_term_ffs.html'>add_explicit_term_ffs</a>(g, pre_factor, src)
     
     
    
@@ -3248,6 +3351,14 @@ private subroutine <a href='../proc/add_dphi_term_annulus.html'>add_dphi_term_an
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation</p>
     
     <h4>Arguments</h4>
     
@@ -3288,139 +3399,7 @@ private subroutine <a href='../proc/add_dphi_term_annulus.html'>add_dphi_term_an
   <td></td>
   
   <td>dimension(:, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>wdrift</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(inout),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>src</strong></td><td></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_wstar_term"></span><h3>
-private subroutine <a href='../proc/add_wstar_term.html'>add_wstar_term</a>(g, src)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(inout),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>src</strong></td><td></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_wstar_term_annulus"></span><h3>
-private subroutine <a href='../proc/add_wstar_term_annulus.html'>add_wstar_term_annulus</a>(g, src)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
+  <td><strong>pre_factor</strong></td><td></td>
   
 </tr>
 
@@ -3747,7 +3726,7 @@ private subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(fiel
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_dist"></span><h3>
-private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total)
+private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)
     
     
    
@@ -3796,6 +3775,21 @@ private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, 
   
   <td></td><td>::</td>
   <td><strong>total</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>norm</strong></td><td></td>
   
 </tr>
 
@@ -3957,13 +3951,13 @@ private subroutine <a href='../proc/deallocate_arrays.html'>deallocate_arrays</a
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

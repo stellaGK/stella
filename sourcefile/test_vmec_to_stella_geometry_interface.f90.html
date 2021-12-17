@@ -305,7 +305,7 @@
 <a name="ln-30"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">bmag</span><span class="p">,</span> <span class="n">gradpar</span><span class="p">,</span> <span class="n">gds2</span><span class="p">,</span> <span class="n">gds21</span><span class="p">,</span> <span class="n">gds22</span><span class="p">,</span> <span class="n">gds23</span><span class="p">,</span> <span class="n">gds24</span><span class="p">,</span> <span class="n">gds25</span><span class="p">,</span> <span class="n">gds26</span>
 <a name="ln-31"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gbdrift</span><span class="p">,</span> <span class="n">gbdrift0</span><span class="p">,</span> <span class="n">cvdrift</span><span class="p">,</span> <span class="n">cvdrift0</span>
 <a name="ln-32"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">theta_vmec</span>
-<a name="ln-33"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">B_sub_zeta</span><span class="p">,</span> <span class="n">B_sub_theta_vmec</span>
+<a name="ln-33"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">B_sub_zeta</span><span class="p">,</span> <span class="n">B_sub_theta_vmec</span><span class="p">,</span> <span class="n">displacement</span>
 <a name="ln-34"></a>   <span class="c">! This code uses normalizations in which kxfac is always 1, so kxfac is not presently returned.</span>
 <a name="ln-35"></a>
 <a name="ln-36"></a>   <span class="c">!*********************************************************************</span>
@@ -327,7 +327,7 @@
 <a name="ln-52"></a>                                          <span class="n">sign_toroidal_flux</span><span class="p">,</span> <span class="p">&amp;</span>
 <a name="ln-53"></a>                                          <span class="n">alpha</span><span class="p">,</span> <span class="n">zeta</span><span class="p">,</span> <span class="n">bmag</span><span class="p">,</span> <span class="n">gradpar</span><span class="p">,</span> <span class="n">gds2</span><span class="p">,</span> <span class="n">gds21</span><span class="p">,</span> <span class="n">gds22</span><span class="p">,</span> <span class="n">gds23</span><span class="p">,</span> <span class="n">gds24</span><span class="p">,</span> <span class="n">gds25</span><span class="p">,</span> <span class="n">gds26</span><span class="p">,</span> <span class="p">&amp;</span>
 <a name="ln-54"></a>                                          <span class="n">gbdrift</span><span class="p">,</span> <span class="n">gbdrift0</span><span class="p">,</span> <span class="n">cvdrift</span><span class="p">,</span> <span class="n">cvdrift0</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-55"></a>                                          <span class="n">theta_vmec</span><span class="p">,</span> <span class="n">B_sub_zeta</span><span class="p">,</span> <span class="n">B_sub_theta_vmec</span><span class="p">)</span>
+<a name="ln-55"></a>                                          <span class="n">theta_vmec</span><span class="p">,</span> <span class="n">B_sub_zeta</span><span class="p">,</span> <span class="n">B_sub_theta_vmec</span><span class="p">,</span> <span class="n">displacement</span><span class="p">)</span>
 <a name="ln-56"></a>
 <a name="ln-57"></a>   <span class="k">print</span> <span class="o">*</span><span class="p">,</span> <span class="s2">&quot;-------------- Input parameters ------------------&quot;</span>
 <a name="ln-58"></a>   <span class="k">print</span> <span class="o">*</span><span class="p">,</span> <span class="s2">&quot;vmec_filename: &quot;</span><span class="p">,</span> <span class="nb">trim</span><span class="p">(</span><span class="n">vmec_filename</span><span class="p">)</span>
@@ -516,13 +516,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

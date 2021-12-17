@@ -120,13 +120,8 @@ contains
       use mp, only: iproc, nproc, proc0
       type(redist_type), intent(inout) :: r
       character(1), intent(in) :: char
-!    integer, intent (in) :: to_low
-! TT> caused a problem on PGI compiler
-!    type (index_list_type), dimension (0:) :: to_list, from_list
       type(index_list_type), dimension(0:nproc - 1), intent(in) :: to_list, from_list
-! <TT
       integer, dimension(:), intent(in) :: from_low, to_high, from_high, to_low
-      ! TT: to_high, from_high seem never used
 
       integer :: j, ip, n_to, n_from, buff_size
       integer, optional, intent(out) :: ierr
@@ -135,20 +130,6 @@ contains
 
       if (present(ierr)) ierr = 0
       buff_size = 0
-
-! TT> added possibility of higher dimension
-!    r%to_low(1) = 1
-!    r%to_low(2) = to_low ! TT: assumes two-dimensionality
-      ! Actually, did above work for redist_23 or 34?
-      ! It is used to determine the lower bound of the index
-      ! when redist receives array
-      ! The new description below hangs up if dimension of to_high is
-      ! set incorrectly
-!    r%to_low(:) = 1
-!    r%to_low(size(to_high)) = to_low
-!    print *, 'size(to_high) is', size(to_high), iproc
-!    print *, 'r%to_low', r%to_low, iproc
-! <TT
 
       do ip = 0, nproc - 1
          if (associated(to_list(ip)%first)) then

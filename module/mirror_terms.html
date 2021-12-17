@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.7% of total for modules and submodules.">625 statements</a>
+    title=" 1.7% of total for modules and submodules.">641 statements</a>
      </li> 
      
      
@@ -234,13 +234,13 @@
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_radial_variation">add_mirror_radial_variation</a>
       
-      <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_annulus">get_dgdvpa_annulus</a>
+      <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_ffs">get_dgdvpa_ffs</a>
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_explicit">get_dgdvpa_explicit</a>
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term">add_mirror_term</a>
       
-      <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term_annulus">add_mirror_term_annulus</a>
+      <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term_ffs">add_mirror_term_ffs</a>
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-advance_mirror_implicit">advance_mirror_implicit</a>
       
@@ -347,13 +347,13 @@
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_radial_variation">add_mirror_radial_variation</a>
       
-      <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_annulus">get_dgdvpa_annulus</a>
+      <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_ffs">get_dgdvpa_ffs</a>
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_explicit">get_dgdvpa_explicit</a>
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term">add_mirror_term</a>
       
-      <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term_annulus">add_mirror_term_annulus</a>
+      <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term_ffs">add_mirror_term_ffs</a>
       
       <a class="list-group-item" href="../module/mirror_terms.html#proc-advance_mirror_implicit">advance_mirror_implicit</a>
       
@@ -584,6 +584,19 @@ public subroutine <a href='../proc/init_mirror.html'>init_mirror</a>()
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>mirror has sign consistent with being on RHS of GKE;
+it is the factor multiplying dg/dvpa in the mirror term
+mirror_sign set to +/- 1 depending on the sign of the mirror term.
+NB: mirror_sign = -1 corresponds to positive advection velocity
+set up the tridiagonal matrix that must be inverted
+for the implicit treatment of the mirror operator</p>
     
     <h4>Arguments</h4>
     
@@ -628,6 +641,33 @@ private subroutine <a href='../proc/init_invert_mirror_operator.html'>init_inver
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>mirror_int_fac = exp(vpa^2 * (mu<em>dB/dz)/(mu</em>dB/dz + Z<em>e</em>dpihnc/dz))
+is the integrating factor needed to turn the dg/dvpa part of the GKE advance
+into an advection equation
+a, b and c contain the sub-, main- and super-diagonal terms, respectively
+if running in full-flux-surface mode, solve mirror advance
+in y-space rather than ky-space due to alpha-dependence of coefficients
+corresponds to sign of mirror term positive on RHS of equation
+must treat boundary carefully
+treatment of boundary seems inconsistent
+implicit piece below is pure upwind, while
+explicit piece in fd_variable_upwind_vpa is mixed
+with assumed zero BC at extremes in both +/- vpa
+corresponds to sign of mirror term negative on RHS of equation
+must treat boundary carefully
+time_upwind = 0.0 corresponds to centered in time
+time_upwind = 1.0 corresponds to fully implicit (upwinded)
+account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
+this gives rise to d(gnorm<em>exp(-vpa^2))/dvpa + 2</em>vpa<em>gnorm</em>exp(-vpa^2) term
+we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
+multiply by mirror coefficient</p>
     
     <h4>Arguments</h4>
     
@@ -650,6 +690,15 @@ public subroutine <a href='../proc/advance_mirror_explicit.html'>advance_mirror_
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
+due to the mirror force term; it treats all terms explicitly in time</p><a href="../proc/advance_mirror_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -773,8 +822,8 @@ public subroutine <a href='../proc/add_mirror_radial_variation.html'>add_mirror_
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdvpa_annulus"></span><h3>
-private subroutine <a href='../proc/get_dgdvpa_annulus.html'>get_dgdvpa_annulus</a>(g, ikxyz)
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdvpa_ffs"></span><h3>
+private subroutine <a href='../proc/get_dgdvpa_ffs.html'>get_dgdvpa_ffs</a>(g, ikxyz)
     
     
    
@@ -956,8 +1005,8 @@ private subroutine <a href='../proc/add_mirror_term.html'>add_mirror_term</a>(g,
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_mirror_term_annulus"></span><h3>
-private subroutine <a href='../proc/add_mirror_term_annulus.html'>add_mirror_term_annulus</a>(g, src)
+  <div class="panel-heading codesum"><span class="anchor" id="proc-add_mirror_term_ffs"></span><h3>
+private subroutine <a href='../proc/add_mirror_term_ffs.html'>add_mirror_term_ffs</a>(g, src)
     
     
    
@@ -1314,13 +1363,13 @@ private subroutine <a href='../proc/finish_invert_mirror_operator.html'>finish_i
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

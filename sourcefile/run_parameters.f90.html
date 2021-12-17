@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for source files.">157 statements</a>
+    title=" 0.4% of total for source files.">173 statements</a>
      </li> 
      
      
@@ -460,35 +460,52 @@
 <a name="ln-185"></a><span class="k">         </span><span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
 <a name="ln-186"></a>      <span class="k">else if</span> <span class="p">(</span><span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-187"></a><span class="k">         </span><span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-188"></a>      <span class="k">end if</span>
-<a name="ln-189"></a>
-<a name="ln-190"></a><span class="k">      if</span> <span class="p">(</span><span class="n">mirror_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">driftkinetic_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">drifts_implicit</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-191"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-192"></a>      <span class="k">else</span>
-<a name="ln-193"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-194"></a>      <span class="k">end if</span>
-<a name="ln-195"></a>
-<a name="ln-196"></a><span class="k">      if</span> <span class="p">(</span><span class="n">fields_kxkyz</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-197"></a><span class="k">         write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-198"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;WARNING!!!&#39;</span>
-<a name="ln-199"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option fields_kxkyz=T is not currently supported for full_flux_surface=T.&#39;</span>
-<a name="ln-200"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing fields_kxkyz=F.&#39;</span>
-<a name="ln-201"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;WARNING!!!&#39;</span>
-<a name="ln-202"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-203"></a>         <span class="n">fields_kxkyz</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-204"></a>      <span class="k">end if</span>
-<a name="ln-205"></a>
-<a name="ln-206"></a><span class="k">   end subroutine </span><span class="n">read_parameters</span>
-<a name="ln-207"></a>
-<a name="ln-208"></a>   <span class="k">subroutine </span><span class="n">finish_run_parameters</span>
-<a name="ln-209"></a>
-<a name="ln-210"></a>      <span class="k">implicit none</span>
-<a name="ln-211"></a>
-<a name="ln-212"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-213"></a>
-<a name="ln-214"></a>   <span class="k">end subroutine </span><span class="n">finish_run_parameters</span>
-<a name="ln-215"></a>
-<a name="ln-216"></a><span class="k">end module </span><span class="n">run_parameters</span>
+<a name="ln-188"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-189"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;!!!WARNING!!!&quot;</span>
+<a name="ln-190"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;The option stream_implicit=T is not supported for full_flux_surface=T.&quot;</span>
+<a name="ln-191"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Setting driftkinetic_implicit=T instead.&quot;</span>
+<a name="ln-192"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;!!!WARNING!!!&quot;</span>
+<a name="ln-193"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-194"></a>         <span class="n">driftkinetic_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-195"></a>      <span class="k">end if</span>
+<a name="ln-196"></a>
+<a name="ln-197"></a><span class="k">      if</span> <span class="p">(</span><span class="n">mirror_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">driftkinetic_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">drifts_implicit</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-198"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-199"></a>      <span class="k">else</span>
+<a name="ln-200"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-201"></a>      <span class="k">end if</span>
+<a name="ln-202"></a>
+<a name="ln-203"></a>      <span class="c">!&gt; print warning messages and override inconsistent or unsupported options for full_flux_surface = T</span>
+<a name="ln-204"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-205"></a><span class="k">         if</span> <span class="p">(</span><span class="n">fields_kxkyz</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-206"></a><span class="k">            write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-207"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-208"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option fields_kxkyz=T is not currently supported for full_flux_surface=T.&#39;</span>
+<a name="ln-209"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing fields_kxkyz=F.&#39;</span>
+<a name="ln-210"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-211"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-212"></a>            <span class="n">fields_kxkyz</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-213"></a>         <span class="k">end if</span>
+<a name="ln-214"></a><span class="k">         if</span> <span class="p">(</span><span class="n">mirror_semi_lagrange</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-215"></a><span class="k">            write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-216"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-217"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.&#39;</span>
+<a name="ln-218"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing mirror_semi_lagrange=F.&#39;</span>
+<a name="ln-219"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-220"></a>         <span class="k">end if</span>
+<a name="ln-221"></a><span class="k">      end if</span>
+<a name="ln-222"></a>
+<a name="ln-223"></a><span class="k">   end subroutine </span><span class="n">read_parameters</span>
+<a name="ln-224"></a>
+<a name="ln-225"></a>   <span class="k">subroutine </span><span class="n">finish_run_parameters</span>
+<a name="ln-226"></a>
+<a name="ln-227"></a>      <span class="k">implicit none</span>
+<a name="ln-228"></a>
+<a name="ln-229"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-230"></a>
+<a name="ln-231"></a>   <span class="k">end subroutine </span><span class="n">finish_run_parameters</span>
+<a name="ln-232"></a>
+<a name="ln-233"></a><span class="k">end module </span><span class="n">run_parameters</span>
 </pre></div>
 
     </section>
@@ -502,13 +519,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
+                                          <br /><small>v0.3-312-g14a4c9047</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-17T14:28:35.008975 
+             on 2021-12-17T15:02:52.406140 
             
           </p>
         </div>

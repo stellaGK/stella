@@ -138,6 +138,8 @@ contains
 
    subroutine advance_parallel_flow_shear(gout)
 
+      use mp, only: proc0, mp_abort
+      use physics_flags, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
@@ -156,6 +158,10 @@ contains
 
       allocate (g0k(naky, nakx))
 
+      if (full_flux_surface) then
+         if (proc0) write (*, *) '!!!WARNING: flow shear not currently supported for full_flux_surface=T!!!'
+         call mp_abort("flow shear not currently supported for full_flux_surface=T.")
+      end if
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -163,7 +169,6 @@ contains
 
                !parallel flow shear
                gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + prl_shear(ia, iz, ivmu) * g0k
-
             end do
          end do
       end do
@@ -264,13 +269,13 @@ contains
       if (zonal_mode(1)) shift_state(1) = 0.
 
       if (runtype_option_switch == runtype_multibox) then
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) * exp(-code_dt * zi * spread(aky, 2, nakx) * v_shift)
-               end do
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) * exp(-code_dt * zi * spread(aky, 2, nakx) * v_shift)
             end do
          end do
+      end do
       end if
 
       deallocate (g0k, g0x)
