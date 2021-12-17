@@ -551,6 +551,7 @@ contains
       call broadcast(centered_in_rho)
       call broadcast(periodic_variation)
       call broadcast(naky)
+      call broadcast(naky_all)
       call broadcast(nakx)
       call broadcast(ny)
       call broadcast(nx)
