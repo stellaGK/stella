@@ -589,7 +589,7 @@ contains
          !       end if
          !    end if
       end if
-      
+
 !    filename=trim(run_name)//".gamtot"
 !    open(3636,file=trim(filename),status='unknown')
 !    do iky = 1, naky
@@ -1286,8 +1286,8 @@ contains
          call mp_abort('get_fields_vmulo_single_kxkyz called with dist!=gbar (unexpected behaviour). Aborting.')
 
       end if
-    end subroutine get_fields_vmulo_single
-    
+   end subroutine get_fields_vmulo_single
+
    subroutine get_fields_by_spec_idx(isa, g, fld)
 
       ! apply phi_isa[ ] to all species indices contained in g
@@ -1364,7 +1364,6 @@ contains
       end if
 
    end subroutine get_fields_by_spec_idx
-
 
    subroutine get_fields_by_spec(g, fld, skip_fsa)
 
@@ -1460,7 +1459,7 @@ contains
       stop "Stopping"
 
    end subroutine get_chi
-   
+
    ! The following subroutine takes the fields(ky,kx,z,tube) and returns
    ! gyroaverage(chi)(ky,kx,z,tube) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
    !
@@ -2103,7 +2102,7 @@ contains
       deallocate (gyro_chi)
 
    end subroutine get_dchidx_2d
-   
+
    subroutine finish_fields
 
       use fields_arrays, only: phi, phi_old

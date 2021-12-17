@@ -15,7 +15,7 @@ module stella_io
    public :: write_time_nc
    public :: write_phi2_nc
    public :: write_phi_nc
-   public :: write_apar2_nc   
+   public :: write_apar2_nc
    public :: write_bpar2_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
@@ -814,7 +814,7 @@ contains
                if (status /= nf90_noerr) call netcdf_error(status, var='temp_x')
             end if
          end if
-         
+
          if (write_radial_fluxes) then
             status = nf90_inq_varid(ncid, 'pflux_x', pflux_x_id)
             if (status /= nf90_noerr) then
@@ -1055,7 +1055,7 @@ contains
 # endif
 
    end subroutine write_apar2_nc
-   
+
    subroutine write_bpar2_nc(nout, bpar2)
 
 # ifdef NETCDF
@@ -1075,7 +1075,7 @@ contains
 # endif
 
    end subroutine write_bpar2_nc
-   
+
    subroutine write_phi_nc(nout, phi)
 
       use convert, only: c2r

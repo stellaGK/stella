@@ -446,7 +446,7 @@ contains
       if (allocated(modmw)) deallocate (modmw)
 
       if (allocated(velvpamu)) deallocate (velvpamu)
-      
+
    end subroutine finish_nusDpa
 
    subroutine init_fp_diffmatrix

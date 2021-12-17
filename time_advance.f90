@@ -861,7 +861,7 @@ contains
       use parallel_streaming, only: init_z_equation
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
-      use run_parameters, only: implicit_in_z, drifts_implicit_in_z      
+      use run_parameters, only: implicit_in_z, drifts_implicit_in_z
       use response_matrix, only: response_matrix_initialized
       use response_matrix, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
@@ -1031,7 +1031,7 @@ contains
       ! stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
-    end subroutine advance_explicit
+   end subroutine advance_explicit
 
    ! strong stability-preserving RK2
    subroutine advance_explicit_rk2(g)
@@ -1400,7 +1400,7 @@ contains
          if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
             call mp_abort('get_radial_correction not set up for apar, bpar. aborting')
          end if
-         call get_dgdy(phi, dphidy)         
+         call get_dgdy(phi, dphidy)
          allocate (g0y(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          ! transform dg/dy from k-space to y-space
          call transform_ky2y(g0k, g0y)
@@ -2449,7 +2449,6 @@ contains
 
    subroutine advance_implicit(istep, phi, apar, bpar, g)
 !  subroutine advance_implicit (phi, apar, g)
-
 
       use mp, only: proc0
       use job_manage, only: time_message

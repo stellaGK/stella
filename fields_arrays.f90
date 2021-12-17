@@ -30,7 +30,7 @@ module fields_arrays
    real, dimension(:), allocatable :: shift_state
 
    real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr
-   real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot32, gamtot33, apar_denom   
+   real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot32, gamtot33, apar_denom
    real, dimension(:, :), allocatable :: gamtot3, dgamtot3dr
    !real :: gamtot_h, gamtot3_h, efac, efacp
 
@@ -51,4 +51,4 @@ module fields_arrays
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window, qn_zf_window
 
- end module fields_arrays
+end module fields_arrays

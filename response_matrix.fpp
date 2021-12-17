@@ -1416,7 +1416,7 @@ contains
       use job_manage, only: njobs
       use extended_zgrid, only: neigen
       use mpi
-      use linear_solve, only: imaxloc      
+      use linear_solve, only: imaxloc
 
       implicit none
 

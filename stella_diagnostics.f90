@@ -369,7 +369,7 @@ contains
          end if
          call volume_average(phi_out, phi2)
          call volume_average(apar, apar2)
-         call volume_average(bpar, bpar2)         
+         call volume_average(bpar, bpar2)
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
          call write_loop_ascii_files(istep, phi2, apar2, part_flux, mom_flux, heat_flux, &

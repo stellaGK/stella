@@ -921,7 +921,6 @@ contains
 
    end subroutine add_stream_term
 
-
    subroutine add_stream_term_annulus(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
@@ -942,7 +941,7 @@ contains
       src(:, :, :, :) = src(:, :, :, :) + spread(spread(spread(stream(:, iv, is), 1, ny), 2, nakx), 4, ntubes) * g(:, :, :, :)
 
    end subroutine add_stream_term_annulus
-   
+
    ! Taken from parallel_streaming
    ! TODO: Make electromagnetic
    subroutine sweep_zed_zonal(iv, is, sgn, g)

@@ -796,7 +796,7 @@ contains
 
       if (proc0) call time_message(.false., time_multibox(:, 2), ' mb_krook')
 
-    end subroutine add_multibox_krook
+   end subroutine add_multibox_krook
 
 !!
 !!>DSO - The following subroutines solve for phi in the _physical_ region of space

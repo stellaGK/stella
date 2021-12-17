@@ -150,7 +150,7 @@ contains
             write (*, *) ''
             write (*, *) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
             write (*, *) 'Aborting.'
-            stop !< Should this be mp_abort?            
+            stop !< Should this be mp_abort?
          end if
       end if
 

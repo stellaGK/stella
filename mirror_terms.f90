@@ -504,7 +504,7 @@ contains
 
    subroutine add_mirror_term(g, apar, src)
 
-      use gyro_averages, only: gyro_average     
+      use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
@@ -513,7 +513,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar      
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
 
       integer :: imu, is, ivmu, it, iz, ikx
@@ -524,12 +524,12 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         call gyro_average(apar, ivmu, gyro_apar)         
+         call gyro_average(apar, ivmu, gyro_apar)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu) + &
-                       mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
+                                              mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
                end do
             end do
          end do

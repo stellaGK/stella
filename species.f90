@@ -153,7 +153,7 @@ contains
          write_profile_variation = .false.
          species_option = 'stella'
          ecoll_zeff = .false.
-         
+
          in_file = input_unit_exist("species_knobs", exist)
          if (exist) read (unit=in_file, nml=species_knobs)
 
