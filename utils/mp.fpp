@@ -538,7 +538,6 @@ contains
 !get the minimum number of procs on a node for a given job
       min_proc = nsgroup_proc
       call min_allreduce(min_proc)
-
 # endif
    end subroutine init_job_topology
 

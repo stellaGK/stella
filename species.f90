@@ -152,9 +152,8 @@ contains
          read_profile_variation = .false.
          write_profile_variation = .false.
          species_option = 'stella'
-
          ecoll_zeff = .false.
-
+         
          in_file = input_unit_exist("species_knobs", exist)
          if (exist) read (unit=in_file, nml=species_knobs)
 
@@ -433,6 +432,7 @@ contains
          call broadcast(spec(is)%zstm)
          call broadcast(spec(is)%tz)
          call broadcast(spec(is)%zt)
+         call broadcast(spec(is)%zm)
          call broadcast(spec(is)%smz)
       end do
 

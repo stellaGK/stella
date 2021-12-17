@@ -19,7 +19,6 @@ module volume_averages
 contains
 
    subroutine init_volume_averages
-
       use zgrid, only: nzgrid, nztot, ntubes, delzed
       use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
       use stella_geometry, only: geo_surf, drhodpsi

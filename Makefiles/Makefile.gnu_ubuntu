@@ -23,7 +23,6 @@ echo No module configuration required\n\
 export MAKEFLAGS='-j 6 -I Makefiles'\n
 endef
 
-
 COMPILER=gnu-gfortran
 USE_HDF5=
 include Makefile.$(COMPILER)

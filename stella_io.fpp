@@ -15,6 +15,8 @@ module stella_io
    public :: write_time_nc
    public :: write_phi2_nc
    public :: write_phi_nc
+   public :: write_apar2_nc   
+   public :: write_bpar2_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
@@ -44,7 +46,7 @@ module stella_io
    integer :: nakx_id, ntubes_id
    integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
    integer :: nmu_id, nvtot_id, mu_id, vpa_id
-   integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
+   integer :: time_id, phi2_id, apar2_id, bpar2_id, theta0_id, nproc_id, nmesh_id
    integer :: phi_vs_t_id, phi2_vs_kxky_id
    integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
@@ -117,9 +119,11 @@ contains
          if (status /= nf90_noerr) call netcdf_error(status, file=filename)
 
          call define_dims
+
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
                           write_moments, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
+
          call nc_grids
          call nc_species
          call nc_geo
@@ -187,6 +191,7 @@ contains
          if (status /= nf90_noerr) call netcdf_error(status, dim='species')
       end if
       status = nf90_inq_dimid(ncid, 't', time_dim)
+
       if (status /= nf90_noerr) then
          status = nf90_def_dim(ncid, 't', nf90_unlimited, time_dim)
          if (status /= nf90_noerr) call netcdf_error(status, dim='t')
@@ -273,7 +278,7 @@ contains
                           write_fluxes_kxky)
 
       use mp, only: nproc
-      use run_parameters, only: fphi!, fapar, fbpar
+      use run_parameters, only: fphi, fapar, fbpar
       use physics_flags, only: radial_variation
 # ifdef NETCDF
       use netcdf, only: nf90_char, nf90_int, nf90_global
@@ -701,7 +706,6 @@ contains
          status = nf90_def_var(ncid, 'djacdrho', netcdf_real, flux_surface_dim, djacdrho_id)
          if (status /= nf90_noerr) call netcdf_error(status, var='djacdrho')
       end if
-
       status = nf90_inq_varid(ncid, 'q', q_id)
       if (status /= nf90_noerr) then
          status = nf90_def_var(ncid, 'q', netcdf_real, q_id)
@@ -789,6 +793,7 @@ contains
             status = nf90_put_att(ncid, phi_vs_t_id, 'long_name', 'Electrostatic Potential vs time')
             if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id, att='long_name')
          end if
+
          if (write_radial_moments) then
             status = nf90_inq_varid(ncid, 'dens_x', dens_x_id)
             if (status /= nf90_noerr) then
@@ -809,6 +814,7 @@ contains
                if (status /= nf90_noerr) call netcdf_error(status, var='temp_x')
             end if
          end if
+         
          if (write_radial_fluxes) then
             status = nf90_inq_varid(ncid, 'pflux_x', pflux_x_id)
             if (status /= nf90_noerr) then
@@ -840,9 +846,35 @@ contains
             if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_vs_kxky_id, att='long_name')
          end if
       end if
-!
-!
-!
+
+      if (fapar > zero) then
+         status = nf90_inq_varid(ncid, 'apar2', apar2_id)
+         if (status /= nf90_noerr) then
+            status = nf90_def_var(ncid, 'apar2', netcdf_real, time_dim, apar2_id)
+            if (status /= nf90_noerr) call netcdf_error(status, var='apar2')
+         end if
+         status = nf90_put_att(ncid, apar2_id, 'long_name', '|A_||**2|')
+         if (status /= nf90_noerr) &
+            call netcdf_error(status, ncid, apar2_id, att='long_name')
+         status = nf90_put_att(ncid, apar2_id, 'units', 'TBC')
+         if (status /= nf90_noerr) &
+            call netcdf_error(status, ncid, apar2_id, att='units')
+      end if
+
+      if (fbpar > zero) then
+         status = nf90_inq_varid(ncid, 'bpar2', bpar2_id)
+         if (status /= nf90_noerr) then
+            status = nf90_def_var(ncid, 'bpar2', netcdf_real, time_dim, bpar2_id)
+            if (status /= nf90_noerr) call netcdf_error(status, var='bpar2')
+         end if
+         status = nf90_put_att(ncid, bpar2_id, 'long_name', '|B_||**2|')
+         if (status /= nf90_noerr) &
+            call netcdf_error(status, ncid, bpar2_id, att='long_name')
+         status = nf90_put_att(ncid, bpar2_id, 'units', 'TBC')
+         if (status /= nf90_noerr) &
+            call netcdf_error(status, ncid, bpar2_id, att='units')
+      end if
+
       if (write_fluxes_kxky) then
          status = nf90_inq_varid(ncid, 'pflx_kxky', pflx_kxkyz_id)
          if (status /= nf90_noerr) then
@@ -1004,6 +1036,46 @@ contains
 
    end subroutine write_phi2_nc
 
+   subroutine write_apar2_nc(nout, apar2)
+
+# ifdef NETCDF
+      use netcdf, only: nf90_put_var
+# endif
+
+      implicit none
+
+      integer, intent(in) :: nout
+      real, intent(in) :: apar2
+
+# ifdef NETCDF
+      integer :: status
+
+      status = nf90_put_var(ncid, apar2_id, apar2, start=(/nout/))
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, apar2_id)
+# endif
+
+   end subroutine write_apar2_nc
+   
+   subroutine write_bpar2_nc(nout, bpar2)
+
+# ifdef NETCDF
+      use netcdf, only: nf90_put_var
+# endif
+
+      implicit none
+
+      integer, intent(in) :: nout
+      real, intent(in) :: bpar2
+
+# ifdef NETCDF
+      integer :: status
+
+      status = nf90_put_var(ncid, bpar2_id, bpar2, start=(/nout/))
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, bpar2_id)
+# endif
+
+   end subroutine write_bpar2_nc
+   
    subroutine write_phi_nc(nout, phi)
 
       use convert, only: c2r
@@ -1040,7 +1112,6 @@ contains
 !   Buffers to disk
       status = NF90_SYNC(ncid)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id)
-
       deallocate (phi_ri)
 # endif
 
@@ -1053,6 +1124,10 @@ contains
 # ifdef NETCDF
       use netcdf, only: nf90_put_var
 # endif
+
+      use convert, only: c2r
+      use kt_grids, only: nakx
+      use species, only: nspec
 
       implicit none
 
@@ -1091,7 +1166,6 @@ contains
 
       integer, intent(in) :: nout
       real, dimension(:, :), intent(in) :: dens_x, upar_x, temp_x
-
 # ifdef NETCDF
       integer :: status
       integer, dimension(3) :: start, count
@@ -1120,7 +1194,6 @@ contains
 # endif
 
       implicit none
-
       integer, intent(in) :: nout
       real, dimension(:, :), intent(in) :: phi2_vs_kxky
 

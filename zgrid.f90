@@ -229,7 +229,6 @@ contains
          intf = intf + dz * (f(iz - 1) + f(iz))
       end do
       intf = 0.5 * intf
-
    end subroutine integrate_zed
 
 end module zgrid

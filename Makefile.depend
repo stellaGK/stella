@@ -272,6 +272,7 @@ mirror_terms.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 finite_differences.o \
+	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
@@ -325,6 +326,7 @@ netcdf_utils.o: \
 	 file_utils.o \
 	 mp.o 
 parallel_streaming.o: \
+	 constants.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
@@ -342,7 +344,6 @@ parallel_streaming.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
-	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 physics_flags.o: \
@@ -358,9 +359,13 @@ redistribute.o: \
 	 mp.o 
 response_matrix.o: \
 	 common_types.o \
+	 constants.o \
 	 dist_fn.o \
+	 dist_fn_arrays.o \
 	 extended_zgrid.o \
+	 fields.o \
 	 fields_arrays.o \
+	 finite_differences.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \

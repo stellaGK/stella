@@ -391,7 +391,6 @@ contains
       end do
 
       call sum_allreduce(total)
-
    end subroutine integrate_vmu_vmulo_ivmu_only_real
 
 !   subroutine integrate_species_local_real (g, weights, iz, total)
@@ -704,7 +703,6 @@ contains
          call get_laguerre_grids(mu, wgts_mu_bare)
          if (vperp_max < 0) vperp_max = sqrt(mu(nmu))
          wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
-
          !    mu = mu/(2.*bmag(1,0))
          mu = mu / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
 
@@ -732,7 +730,6 @@ contains
       ! this is mu_{j+1/2} - mu_{j-1/2}
       dmu_cell(1) = mu_cell(1)
       dmu_cell(2:) = mu_cell(2:) - mu_cell(:nmu - 1)
-
    end subroutine init_mu_grid
 
    subroutine finish_mu_grid

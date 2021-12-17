@@ -51,9 +51,9 @@ module stella_save
    real, allocatable, dimension(:, :, :, :)   :: ptmpr, ptmpi
    real, allocatable, dimension(:, :, :)   :: pptmpr, pptmpi
    integer(kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
+   integer(kind_nf) :: phir_id, phii_id, aparr_id, apari_id, bparr_id, bpari_id ! Bob: added here
    integer(kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
    integer(kind_nf) :: phiprojr_id, phiproji_id
-!  integer (kind_nf) :: bparr_id, bpari_id
    integer(kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
    integer(kind_nf) :: intkrook_id, intproj_id; 
    integer(kind_nf) :: shift_id
@@ -615,6 +615,7 @@ contains
 
 # ifdef NETCDF_PARALLEL
             if (save_many) then
+
 # endif
                istatus = nf90_put_var(ncid, projr_id, ptmpr)
 #ifdef NETCDF_PARALLEL
@@ -725,6 +726,7 @@ contains
    subroutine stella_restore_many(g, scale, istatus)
 # ifdef NETCDF
       use fields_arrays, only: shift_state, phi_proj
+      use fields_arrays, only: shift_state
       use dist_fn_arrays, only: g_krook, g_proj
       use kt_grids, only: naky, nakx
 # endif
@@ -1089,7 +1091,6 @@ contains
       if (allocated(pptmpi)) deallocate (pptmpi)
 
       if (include_qn_source) call broadcast(phi_proj)
-
    end subroutine stella_restore_many
 
    subroutine init_save(file)
@@ -1175,7 +1176,6 @@ contains
 # endif
 
          if (.not. initialized) then
-
             istatus = nf90_open(file_proc, NF90_NOWRITE, ncid)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, file=file_proc)
          end if

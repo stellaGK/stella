@@ -54,7 +54,6 @@ contains
 
          in_file = input_unit_exist("parameters", rpexist)
          if (rpexist) read (unit=in_file, nml=parameters)
-
          if (irhostar > 0) rhostar = 1./irhostar
       end if
 
@@ -73,7 +72,6 @@ contains
    subroutine finish_physics_parameters
 
       implicit none
-
       initialized = .false.
 
    end subroutine finish_physics_parameters

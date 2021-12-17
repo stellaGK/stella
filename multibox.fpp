@@ -445,7 +445,6 @@ contains
          call receive(kx0_R, njobs - 1)
 
          call scope(subprocs)
-
       end if
 #endif
    end subroutine communicate_multibox_parameters
@@ -604,6 +603,7 @@ contains
                end do
             end do
          end do
+
          call ssend(g_buffer0, 1, 43 + job)
          !now phi
          num = 1
@@ -653,6 +653,7 @@ contains
 
          !apply the BCs
          call apply_radial_boundary_conditions(gin)
+
       end if
 
 ! DSO - change communicator
@@ -795,7 +796,7 @@ contains
 
       if (proc0) call time_message(.false., time_multibox(:, 2), ' mb_krook')
 
-   end subroutine add_multibox_krook
+    end subroutine add_multibox_krook
 
 !!
 !!>DSO - The following subroutines solve for phi in the _physical_ region of space

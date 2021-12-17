@@ -3,7 +3,7 @@ program stella
    use mp, only: proc0
    use redistribute, only: scatter
    use job_manage, only: time_message, checkstop, job_fork
-   use run_parameters, only: nstep, tend, fphi, fapar
+   use run_parameters, only: nstep, tend, fphi, fapar, fbpar
    use stella_time, only: update_time, code_time, code_dt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
@@ -14,7 +14,6 @@ program stella
    use git_version, only: get_git_version, get_git_date
 
    implicit none
-
    logical :: debug = .false.
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
@@ -93,6 +92,7 @@ contains
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use run_parameters, only: delt_option_switch, delt_option_auto
       use run_parameters, only: mat_gen, mat_read
+      use run_parameters, only: implicit_in_z
       use species, only: init_species, read_species_knobs
       use species, only: nspec, communicate_species_multibox
       use zgrid, only: init_zgrid
@@ -106,7 +106,7 @@ contains
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
       use stella_time, only: init_tstart, init_delt
       use stella_diagnostics, only: init_stella_diagnostics
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew, gvmu
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
@@ -276,7 +276,7 @@ contains
       call init_delt(delt)
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'
       call init_time_advance
-      if (stream_implicit .or. driftkinetic_implicit) then
+      if (implicit_in_z) then
          if (mat_read) then
             if (debug) write (6, *) "stella::init_stella::read_response_matrix"
             call read_response_matrix
@@ -288,7 +288,7 @@ contains
 
       if (debug) write (6, *) 'stella::init_stella::get_fields'
       ! get initial field from initial distribution function
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, bpar, dist='gbar')
       if (radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
          call get_radial_correction(gnew, phi, dist='gbar')
@@ -299,13 +299,13 @@ contains
          call multibox_communicate(gnew)
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(gnew, phi, apar, dist='gbar')
+            call advance_fields(gnew, phi, apar, bpar, dist='gbar')
          end if
       else if (use_dirichlet_BC) then
          if (debug) write (6, *) 'stella::init_stella:multibox_radial_BC'
          call apply_radial_boundary_conditions(gnew)
          fields_updated = .false.
-         call advance_fields(gnew, phi, apar, dist='gbar')
+         call advance_fields(gnew, phi, apar, bpar, dist='gbar')
       end if
 
       ! FLAG - the following code should probably go elsewhere
@@ -319,6 +319,7 @@ contains
          end if
          rescale = phiinit / sqrt(phi2)
          phi = rescale * phi
+         ! Apar and bpar to scale?
          gnew = rescale * gnew
          gvmu = rescale * gvmu
       end if
@@ -434,7 +435,7 @@ contains
       use job_manage, only: time_message
       use physics_parameters, only: finish_physics_parameters
       use physics_flags, only: finish_physics_flags
-      use run_parameters, only: finish_run_parameters
+      use run_parameters, only: finish_run_parameters, nstep
       use zgrid, only: finish_zgrid
       use species, only: finish_species
       use time_advance, only: time_gke, time_parallel_nl
@@ -450,6 +451,7 @@ contains
       use fields, only: time_field_solve
       use stella_diagnostics, only: finish_stella_diagnostics
       use response_matrix, only: finish_response_matrix
+      use parallel_streaming, only: finish_z_equation
       use stella_geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
       use vpamu_grids, only: finish_vpamu_grids
@@ -465,6 +467,8 @@ contains
       call finish_stella_diagnostics(istep)
       if (debug) write (*, *) 'stella::finish_stella::finish_response_matrix'
       call finish_response_matrix
+      if (debug) write (*, *) 'stella::finish_stella::finish_z_equation'
+      call finish_z_equation
       if (debug) write (*, *) 'stella::finish_stella::finish_fields'
       call finish_fields
       if (debug) write (*, *) 'stella::finish_stella::finish_time_advance'

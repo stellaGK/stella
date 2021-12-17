@@ -23,7 +23,7 @@ module dissipation
    logical :: use_physical_ksqr
    real :: D_hyper
    real :: cfl_dt_vpadiff, cfl_dt_mudiff
-  logical :: density_conservation, density_conservation_field, density_conservation_tp, exact_conservation_tp, exact_conservation, spitzer_problem, no_j1l1, no_j1l2, no_j0l2
+   logical :: density_conservation, density_conservation_field, density_conservation_tp, exact_conservation_tp, exact_conservation, spitzer_problem, no_j1l1, no_j1l2, no_j0l2
    logical :: fieldpart, testpart
    logical :: interspec, intraspec
    logical :: advfield_coll
@@ -266,7 +266,6 @@ contains
       collisions_initialized = .true.
 
 !   call calculate_velocity_integrals
-
       if (collision_model == "dougherty") then
          if (collisions_implicit) then
             if (vpa_operator) then
@@ -447,7 +446,7 @@ contains
       if (allocated(modmw)) deallocate (modmw)
 
       if (allocated(velvpamu)) deallocate (velvpamu)
-
+      
    end subroutine finish_nusDpa
 
    subroutine init_fp_diffmatrix
@@ -1361,7 +1360,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                   end if
 
                end do
-
             end do
          end do
       end do
@@ -2754,7 +2752,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! gvmu contains dhs/dphi
       ! for phi equation, need 1-P[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h') ! note that get_fields sums over species, as required in response matrix
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum1, dist='h') ! note that get_fields sums over species, as required in response matrix
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -3553,7 +3551,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum1, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -3798,7 +3796,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum1, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -5467,7 +5465,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine conserve_energy_vmulo
 
-   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, g)
+   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
@@ -5481,7 +5479,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       implicit none
 
       logical, intent(in) :: mirror_implicit
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       logical :: conservative_wgts
@@ -5496,8 +5494,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
       if (collision_model == "dougherty") then
-         if (vpa_operator) call advance_vpadiff_implicit(phi, apar, gvmu)
-         if (mu_operator) call advance_mudiff_implicit(phi, apar, gvmu)
+         if (vpa_operator) call advance_vpadiff_implicit(phi, apar, bpar, gvmu)
+         if (mu_operator) call advance_mudiff_implicit(phi, apar, bpar, gvmu)
       end if
       if (collision_model == "fokker-planck") then
 
@@ -5510,7 +5508,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             call set_vpa_weights(conservative_wgts)
          end if
 
-         call advance_implicit_fp(phi, apar, gvmu)
+         call advance_implicit_fp(phi, apar, bpar, gvmu)
       end if
 
       if (.not. mirror_implicit) then
@@ -5527,7 +5525,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_collisions_implicit
 
-   subroutine advance_implicit_fp(phi, apar, g)
+   subroutine advance_implicit_fp(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -5552,7 +5550,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       real, dimension(:, :), allocatable :: tmp
@@ -5630,7 +5628,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! first get phi_inh^{n+1}
       if (advfield_coll) then
-         call get_fields(g, phi, apar, dist='h')
+         call get_fields(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
       end if
 
@@ -5766,7 +5764,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_implicit_fp
 
-   subroutine advance_vpadiff_implicit(phi, apar, g)
+   subroutine advance_vpadiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -5790,7 +5788,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -5821,7 +5819,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -5930,7 +5928,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_vpadiff_implicit
 
-   subroutine advance_mudiff_implicit(phi, apar, g)
+   subroutine advance_mudiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -5958,7 +5956,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -6003,7 +6001,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2

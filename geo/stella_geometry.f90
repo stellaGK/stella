@@ -81,7 +81,6 @@ module stella_geometry
    logical :: overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
    logical :: q_as_x
    character(100) :: geo_file
-
    logical :: vmec_chosen = .false.
    logical :: geoinit = .false.
    logical :: set_bmag_const

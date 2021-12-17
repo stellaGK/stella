@@ -252,13 +252,15 @@ contains
       use mp, only: proc0
       use constants, only: zi
       use redistribute, only: scatter
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_old, phi_corr_QN
       use fields, only: fields_updated, advance_fields
       use dist_fn_arrays, only: gvmu, gnew
       use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
       use stella_io, only: write_phi2_nc
+      use stella_io, only: write_apar2_nc
+      use stella_io, only: write_bpar2_nc
       use stella_io, only: write_phi_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
@@ -277,13 +279,13 @@ contains
       use dist_redistribute, only: kxkyz2vmu
       use physics_flags, only: radial_variation
       use volume_averages, only: volume_average, fieldline_average
-
+      use run_parameters, only: fphi, fapar, fbpar
       implicit none
 
       !> The current timestep
       integer, intent(in) :: istep
 
-      real :: phi2, apar2
+      real :: phi2, apar2, bpar2
       real :: zero
       real, dimension(:, :, :), allocatable :: gvmus
       real, dimension(:, :, :, :), allocatable :: gzvs
@@ -321,7 +323,7 @@ contains
       if (mod(istep, nwrite) /= 0) return
 
       if (radial_variation) fields_updated = .false.
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, bpar, dist='gbar')
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_out = phi
@@ -367,6 +369,7 @@ contains
          end if
          call volume_average(phi_out, phi2)
          call volume_average(apar, apar2)
+         call volume_average(bpar, bpar2)         
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
          call write_loop_ascii_files(istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
@@ -380,7 +383,9 @@ contains
          if (proc0) then
             if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
             call write_time_nc(nout, code_time)
-            call write_phi2_nc(nout, phi2)
+            if (fphi > 0.0) call write_phi2_nc(nout, phi2)
+            if (fapar > 0.0) call write_apar2_nc(nout, apar2)
+            if (fbpar > 0.0) call write_bpar2_nc(nout, bpar2)
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
                call write_phi_nc(nout, phi_out)
@@ -447,7 +452,6 @@ contains
       if (allocated(part_flux_x)) deallocate (part_flux_x)
       if (allocated(mom_flux_x)) deallocate (mom_flux_x)
       if (allocated(heat_flux_x)) deallocate (heat_flux_x)
-
    end subroutine diagnose_stella
 
    !> Calculate fluxes
@@ -697,6 +701,7 @@ contains
                end do
             end do
          end do
+
          call get_one_flux_vmulo(flx_norm * spec%dens_psi0, g1, phi, pflx)
 
          if (write_radial_fluxes) then
@@ -750,6 +755,7 @@ contains
                end do
             end do
          end do
+
          call get_one_flux_vmulo(flx_norm * spec%dens_psi0 * spec%temp_psi0, g1, phi, qflx)
 
          if (write_radial_fluxes) then
@@ -1032,7 +1038,6 @@ contains
       end do
 
       deallocate (dV_rad, g0x, g1x, totals)
-
    end subroutine get_one_flux_radial
 
    !==============================================
@@ -1258,7 +1263,6 @@ contains
       if (allocated(g0k)) deallocate (g0k)
       if (allocated(g1k)) deallocate (g1k)
       if (allocated(g1x)) deallocate (g1x)
-
    end subroutine get_moments
 
    !==============================================
@@ -1441,7 +1445,7 @@ contains
    subroutine write_final_ascii_files
 
       use file_utils, only: open_output_file, close_output_file
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use zgrid, only: nzgrid, ntubes
       use zgrid, only: zed
       use kt_grids, only: naky, nakx
@@ -1455,16 +1459,18 @@ contains
       integer :: iky, ikx, iz, it
 
       call open_output_file(tmpunit, '.final_fields')
-      write (tmpunit, '(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
+      write (tmpunit, '(12a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'z_eqarc-zed0', 'kperp2'
+         'real(bpar)', 'imag(bpar)', 'z_eqarc-zed0', 'kperp2'
       do iky = 1, naky
          do ikx = 1, nakx
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                  write (tmpunit, '(12es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
                      real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
-                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), zed_eqarc(iz) - zed0(iky, ikx), &
+                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), &
+                     real(bpar(iky, ikx, iz, it)), aimag(bpar(iky, ikx, iz, it)), &
+                     zed_eqarc(iz) - zed0(iky, ikx), &
                      kperp2(iky, ikx, it, iz), it
                end do
                write (tmpunit, *)

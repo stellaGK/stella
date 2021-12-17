@@ -629,6 +629,7 @@ contains
       if (verbose) write (*, *) "  Radial-profile functions at the chosen flux surface:"
       iota = iotas(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
              + iotas(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
+
       if (verbose) write (*, '(A21, F15.12)') "      iota:"//repeat(' ', 50), iota
       safety_factor_q = 1 / iota
 

@@ -69,6 +69,7 @@ contains
       else
          where (abs(aky) < epsilon(0.0)) periodic = .true.
       end if
+
       if (twist_shift_option_switch == twist_shift_option_periodic) then
          periodic = .true.
       end if

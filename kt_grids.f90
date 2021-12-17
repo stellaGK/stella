@@ -314,6 +314,7 @@ contains
       end if
 
       norm = 1.
+
       if (naky > 1) norm = aky(2)
       if (rhostar > 0.) then
          phase_shift_fac = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
