@@ -47,7 +47,7 @@ module stella_transforms
    complex, dimension(:), allocatable :: fftnp_x_k, fftnp_x_x
    complex, dimension(:), allocatable :: fftnp_y_k
    real, dimension(:), allocatable :: fftnp_y_y
-   ! arrays for transforming from alpha-space to k-alpha space
+   !> arrays for transforming from alpha-space to k-alpha space
    real, dimension(:), allocatable :: fft_alpha_alpha
    complex, dimension(:), allocatable :: fft_alpha_kalpha
 
@@ -187,6 +187,7 @@ contains
    subroutine init_alpha_fft
 
       use fft_work, only: init_rcfftw, init_crfftw
+      use fft_work, only: fft_backward, fft_forward
       use stella_layouts, only: vmu_lo
 
       implicit none
@@ -199,8 +200,8 @@ contains
       if (.not. allocated(fft_alpha_kalpha)) allocate (fft_alpha_kalpha(vmu_lo%nalpha / 2 + 1))
       if (.not. allocated(fft_alpha_alpha)) allocate (fft_alpha_alpha(vmu_lo%nalpha))
 
-      call init_crfftw(alpha_f_fft, 1, vmu_lo%nalpha, fft_alpha_kalpha, fft_alpha_alpha)
-      call init_rcfftw(alpha_b_fft, -1, vmu_lo%nalpha, fft_alpha_alpha, fft_alpha_kalpha)
+      call init_crfftw(alpha_f_fft, fft_backward, vmu_lo%nalpha, fft_alpha_kalpha, fft_alpha_alpha)
+      call init_rcfftw(alpha_b_fft, fft_forward, vmu_lo%nalpha, fft_alpha_alpha, fft_alpha_kalpha)
 
    end subroutine init_alpha_fft
 
@@ -253,7 +254,6 @@ contains
       ! first need to pad input array with zeros
       iky_max = vmu_lo%naky
       ipad_up = iky_max + vmu_lo%ny - (2 * vmu_lo%naky - 1)
-!    fft_y_in(iky_max+1:ipad_up) = 0.
 
       ! now fill in non-zero elements of array
       do ikx = 1, vmu_lo%nakx / 2 + 1
@@ -547,6 +547,10 @@ contains
 
    end subroutine transform_kalpha2alpha
 
+   !> input galph array is real and contains values on the padded alpha grid
+   !> gkalph is output array; it contains the Fourier coefficients of galph
+   !> for positive ky values only (reality can be used to obtain the negative ky coefs)
+   !> the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-aliasing
    subroutine transform_alpha2kalpha(galph, gkalph)
 
       use stella_layouts, only: vmu_lo

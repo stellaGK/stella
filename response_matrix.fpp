@@ -897,9 +897,9 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use kt_grids, only: zonal_mode, akx
-      use dist_fn, only: adiabatic_option_switch
-      use dist_fn, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, gamtot3
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
 
       implicit none
 
