@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for modules and submodules.">165 statements</a>
+    title=" 0.5% of total for modules and submodules.">171 statements</a>
      </li> 
      
      
@@ -219,6 +219,8 @@
       <a class="list-group-item" href="../module/stella_io.html#proc-write_phi2_nc">write_phi2_nc</a>
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_phi_nc">write_phi_nc</a>
+      
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_omega_nc">write_omega_nc</a>
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_fluxes_nc">write_radial_fluxes_nc</a>
       
@@ -323,6 +325,8 @@
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_phi_nc">write_phi_nc</a>
       
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_omega_nc">write_omega_nc</a>
+      
       <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_fluxes_nc">write_radial_fluxes_nc</a>
       
       <a class="list-group-item" href="../module/stella_io.html#proc-write_radial_moments_nc">write_radial_moments_nc</a>
@@ -416,7 +420,7 @@
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-init_stella_io"></span><h3>
-public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(restart, write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
+public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(restart, write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
     
     
    
@@ -525,6 +529,21 @@ public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(resta
   
   <td></td><td>::</td>
   <td><strong>write_moments</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>write_omega</strong></td><td></td>
   
 </tr>
 
@@ -661,7 +680,7 @@ private subroutine <a href='../proc/save_input.html'>save_input</a>()
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-define_vars"></span><h3>
-private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
+private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
     
     
    
@@ -755,6 +774,21 @@ private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_
   
   <td></td><td>::</td>
   <td><strong>write_moments</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>write_omega</strong></td><td></td>
   
 </tr>
 
@@ -998,6 +1032,72 @@ public subroutine <a href='../proc/write_phi_nc.html'>write_phi_nc</a>(nout, phi
   
   <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
   <td><strong>phi</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_omega_nc"></span><h3>
+public subroutine <a href='../proc/write_omega_nc.html'>write_omega_nc</a>(nout, omega)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nout</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension(:, :)</td><td>::</td>
+  <td><strong>omega</strong></td><td></td>
   
 </tr>
 
@@ -1787,13 +1887,13 @@ public subroutine <a href='../proc/sync_nc.html'>sync_nc</a>()
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2021 
-                                          <br /><small>v0.3-263-g326afdbab</small></p>
+                                          <br /><small>v0.3-266-gc3b8bbe1f</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2021-12-15T16:05:22.602629 
+             on 2021-12-17T14:28:35.008975 
             
           </p>
         </div>
