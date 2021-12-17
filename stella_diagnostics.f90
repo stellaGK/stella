@@ -103,8 +103,8 @@ contains
 
       ! Initiate the netcdf file with extension '.out.nc'
       call init_stella_io(restart, write_phi_vs_time, write_kspectra, &
-                          write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
-                          write_radial_moments, write_fluxes_kxkyz)
+                          write_gvmus, write_gzvs, write_moments, write_omega, &
+                          write_radial_fluxes, write_radial_moments, write_fluxes_kxkyz)
 
       ! Open the '.out', '.fluxes' and '.omega' file
       if (proc0) call open_loop_ascii_files(restart)
@@ -264,6 +264,7 @@ contains
       use stella_io, only: write_gzvs_nc
       use stella_io, only: write_kspectra_nc
       use stella_io, only: write_moments_nc
+      use stella_io, only: write_omega_nc
       use stella_io, only: write_radial_fluxes_nc
       use stella_io, only: write_radial_moments_nc
       use stella_io, only: write_fluxes_kxkyz_nc
@@ -380,6 +381,7 @@ contains
          if (proc0) then
             if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
             call write_time_nc(nout, code_time)
+            if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
             call write_phi2_nc(nout, phi2)
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
