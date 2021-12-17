@@ -46,6 +46,7 @@ module dist_fn_arrays
    real, dimension(:, :, :), allocatable :: wdriftpx_phi, wdriftpy_phi
    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
+   !> dkperp2dr will contain the radial variation of kperp2
    real, dimension(:, :, :, :), allocatable :: kperp2, dkperp2dr
    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
    ! note: dkperp2dr is divided by kperp2
