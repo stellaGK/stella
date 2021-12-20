@@ -409,6 +409,7 @@ contains
             spec(is)%zstm = spec(is)%z / sqrt(spec(is)%temp * spec(is)%mass)
             spec(is)%tz = spec(is)%temp / spec(is)%z
             spec(is)%zt = spec(is)%z / spec(is)%temp
+            spec(is)%zm   = spec(is)%z/spec(is)%mass
             spec(is)%smz = abs(sqrt(spec(is)%temp * spec(is)%mass) / spec(is)%z)
 
             !          write (*,100) 'reinit_species', rhoc_ms, spec(is)%temp, spec(is)%fprim, &
