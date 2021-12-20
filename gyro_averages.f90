@@ -260,7 +260,7 @@ contains
       integer :: iky, ikx, ia, iz
       integer :: ivmu, iv, imu, is
       integer :: ia_max_j0_count, ia_max_j0_B_maxwell_count
-      real :: arg
+      real :: arg, rtmp
       real :: ia_max_j0_reduction_factor, ia_max_j0_B_maxwell_reduction_factor
       real, dimension(:), allocatable :: wgts
       real, dimension(:), allocatable :: aj0_alpha, j0_B_maxwell
@@ -291,7 +291,7 @@ contains
 
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
       do iz = -nzgrid, nzgrid
-         write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
+         if (proc0) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
          !> for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
          !> and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
          !> this makes later convolutions involving sums over all ky more straightforward
@@ -352,10 +352,12 @@ contains
 
       !> calculate the reduction factor of Fourier modes
       !> used to represent J0
+      !> avoid overflow by converting integers to reals before multiplying
+      rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot) * real(nmu) * real(nvpa) * real(nspec)
       call sum_allreduce(ia_max_j0_count)
-      ia_max_j0_reduction_factor = real(ia_max_j0_count) / real(naky * ikx_max * nztot * nmu * nvpa * nspec * naky_all)
+      ia_max_j0_reduction_factor = real(ia_max_j0_count) / rtmp
       call sum_allreduce(ia_max_j0_B_maxwell_count)
-      ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count) / real(naky * ikx_max * nztot * nmu * nvpa * nspec * naky_all)
+      ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count) / rtmp
 
       if (proc0) then
          write (*, *) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor * naky, 'out of ', naky
