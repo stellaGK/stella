@@ -187,6 +187,7 @@ contains
       call broadcast(read_profile_variation)
       call broadcast(write_profile_variation)
       call broadcast(ecoll_zeff)
+      call broadcast(species_option_switch)
 
    end subroutine read_species_knobs
 
