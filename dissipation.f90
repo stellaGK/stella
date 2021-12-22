@@ -242,7 +242,6 @@ contains
 
       use species, only: spec, nspec
       use vpamu_grids, only: dvpa, dmu, mu, nmu
-!   use vpamu_grids, only: calculate_velocity_integrals
       use stella_geometry, only: bmag
       use stella_layouts
       use run_parameters, only: fully_explicit
@@ -258,8 +257,6 @@ contains
 
       if (collisions_initialized) return
       collisions_initialized = .true.
-
-!   call calculate_velocity_integrals
 
       if (collision_model == "dougherty") then
          if (collisions_implicit) then
@@ -1676,8 +1673,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       double precision :: xi
 
       allocate (legendre_vpamu(0:lmax, -lmax:lmax, nvpa, nmu, -nzgrid:nzgrid))
-
-      ia = 1
 
       ! note lmin = 0, lmax = nsph-1
       ! mmin = -lmax, mmax = lmax
