@@ -362,8 +362,8 @@ contains
       deallocate (x_displacement_fac_vmec)
       deallocate (arc_length)
 
-      ! vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc
-      ! stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor
+      !> vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc
+      !> stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor
       surf%rhoc = sqrt(surf%rhoc)
       surf%rhotor = surf%rhoc
 

@@ -524,28 +524,11 @@ contains
 
       deallocate (wd_g, wd_phi, wstr, tmp)
 
-      ! FLAG -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
+      !> @todo -- NEED TO SORT OUT FINITE FAPAR FOR GSTAR
       if (fapar > epsilon(0.)) then
          write (*, *) 'APAR NOT SETUP FOR GSTAR YET. aborting'
          call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting')
       end if
-
-      !        allocate (g0(-nvgrid:nvgrid,nmu))
-      !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-      !           iky = iky_idx(kxkyz_lo,ikxkyz)
-      !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-      !           ig = iz_idx(kxkyz_lo,ikxkyz)
-      !           is = is_idx(kxkyz_lo,ikxkyz)
-      !           g0 = spread(vpa**2,2,nmu)*spread(aj0v(:,ikxkyz)**2,1,nvpa)*anon(ig,:,:)
-      !           wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
-      !           call integrate_vmu (g0, ig, tmp)
-      !           apar_denom(iky,ikx,ig) = apar_denom(iky,ikx,ig) + tmp*wgt
-      !        end do
-      !        call sum_allreduce (apar_denom)
-      !        apar_denom = apar_denom + kperp2
-
-      !        deallocate (g0)
-      !     end if
 
    end subroutine init_drifts_implicit
 
