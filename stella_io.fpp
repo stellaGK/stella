@@ -18,6 +18,7 @@ module stella_io
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
+   public :: write_omega_nc
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
    public :: write_radial_moments_nc
@@ -35,10 +36,10 @@ module stella_io
    integer, dimension(7) :: moment_dim
    integer, dimension(6) :: field_dim
    integer, dimension(5) :: zvs_dim
-   integer, dimension(4) :: vmus_dim, kykxaz_dim
+   integer, dimension(4) :: om_dim, vmus_dim, kykxaz_dim
    integer, dimension(6) :: flx_dim
    integer, dimension(3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
-   integer, dimension(2) :: kx_dim, ky_dim, om_dim, flux_dim, nin_dim, fmode_dim
+   integer, dimension(2) :: kx_dim, ky_dim, flux_dim, nin_dim, fmode_dim
    integer, dimension(2) :: flux_surface_dim, rad_grid_dim
 
    integer :: nakx_id, ntubes_id
@@ -50,11 +51,12 @@ module stella_io
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
    integer :: density_id, upar_id, temperature_id, spitzer2_id
+   integer :: omega_id
    integer :: gvmus_id, gzvs_id
    integer :: input_id
    integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
    integer :: vnew_id, spec_type_id
-   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id
+   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
    integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
    integer :: kperp2_id, rad_grid_id
    integer :: grho_id, jacob_id, djacdrho_id, shat_id, drhodpsi_id, q_id, jtwist_id
@@ -73,7 +75,7 @@ contains
    !============ INITIATE STELLA IO ==============
    !==============================================
    subroutine init_stella_io(restart, write_phi_vs_t, write_kspectra, write_gvmus, &
-                             write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
+                             write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
 
       use mp, only: proc0
       use file_utils, only: run_name
@@ -88,7 +90,7 @@ contains
 
       logical, intent(in) :: restart
       logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
-      logical, intent(in) :: write_moments, write_radial_fluxes, write_radial_moments!, write_symmetry
+      logical, intent(in) :: write_moments, write_omega, write_radial_fluxes, write_radial_moments!, write_symmetry
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
       character(300) :: filename
@@ -118,7 +120,7 @@ contains
 
          call define_dims
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
-                          write_moments, write_radial_fluxes, write_radial_moments, &
+                          write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
          call nc_grids
          call nc_species
@@ -269,8 +271,8 @@ contains
 
    subroutine define_vars(write_phi_vs_t, write_kspectra, write_gvmus, &
                           !       write_gzvs, write_symmetry, write_moments)
-                          write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, &
-                          write_fluxes_kxky)
+                          write_gzvs, write_moments, write_omega, write_radial_fluxes, &
+                          write_radial_moments, write_fluxes_kxky)
 
       use mp, only: nproc
       use run_parameters, only: fphi!, fapar, fbpar
@@ -285,9 +287,10 @@ contains
       implicit none
 
       logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
-      logical, intent(in) :: write_moments, write_radial_fluxes, write_radial_moments
+      logical, intent(in) :: write_moments, write_omega, write_radial_fluxes, write_radial_moments
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
+
       character(5) :: ci
       character(20) :: datestamp, timestamp, timezone
 
@@ -317,7 +320,9 @@ contains
       ky_dim(2) = time_dim
 
       om_dim(1) = ri_dim
-      om_dim(2) = time_dim
+      om_dim(2) = naky_dim
+      om_dim(3) = nakx_dim
+      om_dim(4) = time_dim
 
       nin_dim(1) = char200_dim
       nin_dim(2) = nlines_dim
@@ -640,6 +645,16 @@ contains
       status = nf90_put_att(ncid, bmag_id, 'units', 'B_0')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, bmag_id, att='units')
 
+      status = nf90_inq_varid(ncid, 'b_dot_grad_z', b_dot_grad_z_id)
+      if (status /= nf90_noerr) then
+         status = nf90_def_var(ncid, 'b_dot_grad_z', netcdf_real, flux_surface_dim, b_dot_grad_z_id)
+         if (status /= nf90_noerr) call netcdf_error(status, var='b_dot_grad_z')
+      end if
+      status = nf90_put_att(ncid, b_dot_grad_z_id, 'long_name', 'b . grad z(alpha,zed)')
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, b_dot_grad_z_id, att='long_name')
+      status = nf90_put_att(ncid, b_dot_grad_z_id, 'units', 'dimensionless')
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, b_dot_grad_z_id, att='units')
+
       status = nf90_inq_varid(ncid, 'gradpar', gradpar_id)
       if (status /= nf90_noerr) then
          status = nf90_def_var(ncid, 'gradpar', netcdf_real, nttot_dim, gradpar_id)
@@ -747,6 +762,14 @@ contains
       if (status /= nf90_noerr) then
          status = nf90_def_var(ncid, 'd2psidr2', netcdf_real, d2psidr2_id)
          if (status /= nf90_noerr) call netcdf_error(status, var='d2psidr2')
+      end if
+
+      if (write_omega) then
+         status = nf90_inq_varid(ncid, 'omega', omega_id)
+         if (status /= nf90_noerr) then
+            status = nf90_def_var(ncid, 'omega', netcdf_real, om_dim, omega_id)
+            if (status /= nf90_noerr) call netcdf_error(status, var='omega')
+         end if
       end if
 
       if (fphi > zero) then
@@ -1045,6 +1068,26 @@ contains
 # endif
 
    end subroutine write_phi_nc
+
+   subroutine write_omega_nc(nout, omega)
+
+# ifdef NETCDF
+      use netcdf, only: nf90_put_var
+# endif
+
+      implicit none
+
+      integer, intent(in) :: nout
+      complex, dimension(:, :), intent(in) :: omega
+
+# ifdef NETCDF
+      integer :: status
+
+      status = nf90_put_var(ncid, omega_id, [real(omega), aimag(omega)], start=[1, 1, 1, nout])
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, omega_id)
+# endif
+
+   end subroutine write_omega_nc
 
    subroutine write_radial_fluxes_nc(nout, pflux, vflux, qflux)
 
@@ -1459,7 +1502,7 @@ contains
 
       use stella_geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
                                  cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
-                                 drhodpsi, djacdrho
+                                 drhodpsi, djacdrho, b_dot_grad_z
       use stella_geometry, only: geo_surf
       use zgrid, only: nzgrid
       use physics_parameters, only: beta
@@ -1486,6 +1529,8 @@ contains
 
       status = nf90_put_var(ncid, bmag_id, bmag, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, bmag_id)
+      status = nf90_put_var(ncid, b_dot_grad_z_id, b_dot_grad_z, start=start, count=count)
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, b_dot_grad_z_id)
       status = nf90_put_var(ncid, gradpar_id, gradpar)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, gradpar_id)
       status = nf90_put_var(ncid, gbdrift_id, gbdrift, start=start, count=count)

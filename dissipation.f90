@@ -49,7 +49,6 @@ module dissipation
    integer, dimension(:, :), allocatable :: mudiff_idx
    complex, dimension(:, :, :), allocatable :: fp_response
    integer, dimension(:, :), allocatable :: diff_idx
-   complex, dimension(:, :, :, :, :), allocatable :: response_vpamu
 
    complex, dimension(:, :, :), allocatable :: vpadiff_zf_response
    integer, dimension(:, :), allocatable :: vpadiff_zf_idx
@@ -58,7 +57,6 @@ module dissipation
 
    complex, dimension(:, :, :, :, :), allocatable :: aa_blcs, cc_blcs
    complex, dimension(:, :, :, :, :), allocatable :: bb_blcs
-   complex, dimension(:, :, :, :), allocatable :: dd_vecs
    complex, dimension(:, :, :, :, :, :), allocatable :: cdiffmat_band
    complex, dimension(:, :, :, :), allocatable :: blockmatrix
    complex, dimension(:, :, :), allocatable :: blockmatrix_sum
@@ -71,13 +69,9 @@ module dissipation
    real, dimension(:), allocatable :: wgts_v
    real, dimension(:), allocatable :: vel
 
-   real, dimension(:, :), allocatable :: deltajs
-   real, dimension(:, :), allocatable :: psijs
    real, dimension(:, :, :, :, :, :, :, :), allocatable :: deltaj, deltaj_tp
-   real, dimension(:, :, :, :, :, :, :, :), allocatable :: deltajmod
    complex, dimension(:, :, :, :), allocatable :: deltajint
    real, dimension(:, :, :, :, :), allocatable :: psijnorm
-   complex, dimension(:, :, :, :, :), allocatable :: deltajfield
    real, dimension(:, :, :, :, :), allocatable :: legendre_vpamu
    real, dimension(:, :, :, :, :, :), allocatable :: jm
    real, dimension(:, :, :, :, :), allocatable :: jm0
@@ -248,7 +242,6 @@ contains
 
       use species, only: spec, nspec
       use vpamu_grids, only: dvpa, dmu, mu, nmu
-!   use vpamu_grids, only: calculate_velocity_integrals
       use stella_geometry, only: bmag
       use stella_layouts
       use run_parameters, only: fully_explicit
@@ -264,8 +257,6 @@ contains
 
       if (collisions_initialized) return
       collisions_initialized = .true.
-
-!   call calculate_velocity_integrals
 
       if (collision_model == "dougherty") then
          if (collisions_implicit) then
@@ -357,7 +348,7 @@ contains
       ! AVB: compute the collision frequencies nuD, nus and nupa
 
       use zgrid, only: nzgrid
-      use vpamu_grids, only: nmu, mu, dmu, vpa, nvpa, integrate_vmu
+      use vpamu_grids, only: nmu, mu, vpa, nvpa, integrate_vmu
       use stella_geometry, only: bmag
       use species, only: spec, nspec
       use spfunc, only: erf => erf_ext
@@ -469,9 +460,9 @@ contains
 
       implicit none
 
-      integer :: ikxkyz, iky, ikx, iz, is, isb, tmpunit
+      integer :: ikxkyz, iky, ikx, iz, is, isb
       integer :: imu, ia, iv, ivv, imm, imu2
-      integer :: nc, nb, lldab, colbl, rowbl, bm_colind, bm_rowind
+      integer :: nc, nb, lldab, bm_colind, bm_rowind
       real :: vpap, vpam, vfac, mum, mup
       real :: xpv, xmv, nupapv, nupamv, nuDpv, nuDmv, mwpv, mwmv, gam_mu, gam_mum, gam_mup
       real :: mwm, mwp, nuDm, nuDp, nupam, nupap, xm, xp
@@ -1673,17 +1664,15 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use vpamu_grids, only: mu, nmu, vpa, nvpa
       use zgrid, only: nzgrid
       use stella_geometry, only: bmag
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use file_utils, only: open_output_file, close_output_file
 
       implicit none
 
-      integer :: is, iv, imu, iz, ia, mm, ll, tmpunit
+      integer :: iv, imu, iz, ia, mm, ll
       double precision :: xi
 
       allocate (legendre_vpamu(0:lmax, -lmax:lmax, nvpa, nmu, -nzgrid:nzgrid))
-
-      ia = 1
 
       ! note lmin = 0, lmax = nsph-1
       ! mmin = -lmax, mmax = lmax
@@ -1709,9 +1698,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine init_bessel_fn
       use zgrid, only: nzgrid
-      use vpamu_grids, only: nvpa, nmu, vpa, mu, vperp2
+      use vpamu_grids, only: nmu, vperp2
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj0v, aj1v
+      use gyro_averages, only: aj0v
       use species, only: spec, nspec
       use stella_geometry, only: bmag
       use kt_grids, only: naky, nakx
@@ -1720,8 +1709,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      integer :: ikxkyz, iky, ikx, iz, is, ia, mm, tmpunit, imu
-      real :: arg, aj1fac, aj1exp, aj0exp, iv
+      integer :: ikxkyz, iky, ikx, iz, is, ia, mm, imu
+      real :: arg, aj1fac, aj1exp, aj0exp
 
       allocate (jm(nmu, 0:lmax, naky, nakx, -nzgrid:nzgrid, nspec))
       allocate (jm0(nmu, naky, nakx, -nzgrid:nzgrid, nspec))
@@ -1775,12 +1764,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! v grid used for writing various coll freqs to file for debugging
 
-      use vpamu_grids, only: dmu, mu, nmu, vpa, dvpa, nvpa, vperp_max, vpa_max
+      use vpamu_grids, only: mu, nmu, vpa, vperp_max, vpa_max
       use stella_geometry, only: bmag
 
-      integer :: ikxkyz, iky, ikx, iz, is
-      integer :: ia, iv, idx, nv_seg, iseg, ll
-      real :: del, delv, vmax, vmin
+      integer :: ia, iv
+      real :: delv, vmax, vmin
 
       allocate (wgts_v(nvel_local)); wgts_v = 0.0
       allocate (vel(nvel_local)); vel = 0.0
@@ -1924,8 +1912,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! these are normalised, and calculated without the collision frequency
       ! in contrast to Hirshman & Sigmar 1976
 
-      use species, only: nspec, spec
-      use vpamu_grids, only: dmu, mu, nmu, vpa, dvpa, nvpa
+      use species, only: nspec
+      use vpamu_grids, only: mu, nmu, vpa, nvpa
       use zgrid, only: nzgrid
       use stella_geometry, only: bmag
 
@@ -1962,8 +1950,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine vLj_vmu(jj, ll, vLj)
 
-      use species, only: nspec, spec
-      use vpamu_grids, only: dmu, mu, nmu, vpa, dvpa, nvpa
+      use species, only: nspec
+      use vpamu_grids, only: mu, nmu, vpa, nvpa
       use zgrid, only: nzgrid
       use stella_geometry, only: bmag
 
@@ -1994,7 +1982,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! and normalised everthing to species thermal speeds
 
       use species, only: nspec, spec
-      use vpamu_grids, only: dmu, mu, nmu, vpa, dvpa, nvpa, integrate_vmu
+      use vpamu_grids, only: nmu, nvpa, integrate_vmu
       use zgrid, only: nzgrid
 
       implicit none
@@ -2002,8 +1990,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer, intent(in) :: jj, nn, ll, isa, isb
       real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: deltj_j, vLj, vLn !deltj_n
       real, dimension(-nzgrid:nzgrid), intent(out) :: psij
-      integer :: iv, imu, iz, ia
-      real :: v, psijm1_n
+      integer :: iz
       real, dimension(-nzgrid:nzgrid) :: num, den
 
       if (jj == 0) then
@@ -2076,7 +2063,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use species, only: nspec, spec
       use zgrid, only: nzgrid
       use stella_geometry, only: bmag
-      use vpamu_grids, only: dmu, mu, nmu, vpa, dvpa, nvpa, vperp_max, vpa_max, integrate_vmu, set_vpa_weights, wgts_vpa
+      use vpamu_grids, only: mu, nmu, vpa, nvpa, vperp_max, vpa_max, integrate_vmu, set_vpa_weights
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
@@ -2085,16 +2072,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      integer :: ll, tmpunit, iv, jj, ia, imu, iz, is, isa, isb, ix, ikx, iky, ikxkyz
-      real :: v, orth_test1, orth_test2, orth_test3, orth_test4, orth_test5
-      real, dimension(-nzgrid:nzgrid) :: deltajint, deltajint_tp, orthtestz
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: vLj
-      real, dimension(0:lmax, 0:jmax, nvpa, nmu, 1, -nzgrid:nzgrid) :: vlaguerre_vmu, vlaguerre_vmu_deltaj
-      real, dimension(0:lmax, 0:jmax, nspec, nspec, nvpa, nmu, 1, -nzgrid:nzgrid) :: vlaguerre_vmu_xb
-      real, dimension(nvel_local) :: delt0test1, delt0test2, delt0test3, delt0test4, delt0test1_xb, delt0test2_xb
+      real, dimension(0:lmax, 0:jmax, nvpa, nmu, 1, -nzgrid:nzgrid) :: vlaguerre_vmu
+      integer :: ll, iv, jj, ia, imu, iz, is, isa, isb, ix, ikx, iky, ikxkyz
+      real, dimension(-nzgrid:nzgrid) :: deltajint, deltajint_tp
       real, dimension(nvpa*nmu, -nzgrid:nzgrid) :: vpaF0vec, v2F0vec
       real, dimension(nvpa*nmu, nvpa*nmu) :: ident
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: vlLag
 
       logical :: conservative_wgts
 
@@ -2406,19 +2388,19 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                         if ((exact_conservation) .and. (ll == 1) .and. (jj == 0)) then
                            ! momentum conservation term for uniform mu grid
             call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
-                              * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**-0.5, iz, psijnorm(ll, jj, isa, isb, iz))
+                            * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if ((exact_conservation) .and. (ll == 0) .and. (jj == 1)) then
                            ! energy conservation term for uniform mu grid
                 call integrate_vmu(legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
-                              * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**-0.5, iz, psijnorm(ll, jj, isa, isb, iz))
+                            * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if ((exact_conservation_tp) .and. (ll == 0) .and. (jj == 1)) then
                            ! energy conservation term for non-uniform mu grid
                 call integrate_vmu(legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
-                              * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**-0.5, iz, psijnorm(ll, jj, isa, isb, iz))
+                            * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if ((exact_conservation_tp) .and. (ll == 1) .and. (jj == 0)) then
                            ! momentum conservation term for non-uniform mu grid
             call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
-                              * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**-0.5, iz, psijnorm(ll, jj, isa, isb, iz))
+                            * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if (.not. ((exact_conservation) .or. (exact_conservation_tp)) .and. (ll == 0) .and. (jj == 1)) then
                            ! non-exact conservation of energy
                            if (spec(isa)%mass / spec(isb)%mass < 1.) then
@@ -2426,7 +2408,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                              call integrate_vmu((-velvpamu(:, :, iz)**2) * deltaj(ll, jj, isb, isa, :, :, ia, iz), iz, psijnorm(ll, jj, isa, isb, iz))
                            else
                       call integrate_vmu((-velvpamu(:, :, iz)**2) * deltaj(ll, jj, isa, isb, :, :, ia, iz) * (spec(isa)%mass / spec(isb)%mass)**(-3) &
-                                                 * (spec(isa)%mass / spec(isb)%mass)**-0.5, iz, psijnorm(ll, jj, isa, isb, iz))
+                                                 * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                            end if
                         else
                            ! non-exact conservation of momentum, and higher-order terms
@@ -2435,7 +2417,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                   call integrate_vmu(vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isb, isa, :, :, ia, iz), iz, psijnorm(ll, jj, isa, isb, iz))
                            else
            call integrate_vmu(vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) * (spec(isa)%mass / spec(isb)%mass)**(-3) &
-                                                 * (spec(isa)%mass / spec(isb)%mass)**-0.5, iz, psijnorm(ll, jj, isa, isb, iz))
+                                                 * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                            end if
                         end if
 
@@ -2590,13 +2572,10 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use mp, only: sum_allreduce
       use zgrid, only: nzgrid
-      use vpamu_grids, only: integrate_vmu, set_vpa_weights, nvpa, nmu, vpa, mu
+      use vpamu_grids, only: integrate_vmu, set_vpa_weights, nvpa, nmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj0v, aj1v
       use constants, only: pi
-      use dist_fn_arrays, only: kperp2
-      use species, only: spec, nspec
-      use stella_geometry, only: bmag
+      use species, only: nspec
       use file_utils, only: open_output_file, close_output_file
       use stella_time, only: code_dt
 
@@ -2606,11 +2585,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
-      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, imu, tmpunit, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
+      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
       complex, dimension(:, :), allocatable :: g0
       complex, dimension(:), allocatable :: ghrs
-      real :: clm, j1argnomu, intg
-      logical :: conservative_wgts
 
       allocate (g0(nvpa, nmu))
       allocate (ghrs(nmu * nvpa))
@@ -2682,26 +2659,24 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use linear_solve, only: lu_decomposition
       use stella_time, only: code_dt
-      use species, only: nspec, spec
+      use species, only: nspec
       use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu, nmu, nvpa, vpa, vperp2, set_vpa_weights, wgts_vpa, wgts_mu
+      use vpamu_grids, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
       use kt_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use dist_fn_arrays, only: gvmu
-      use gyro_averages, only: aj0v, aj1v
       use fields, only: get_fields, get_fields_by_spec_idx
-      use stella_geometry, only: bmag
       use job_manage, only: time_message, timer_local
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
 
       implicit none
 
-      integer :: ikxkyz, iky, ikx, iz, is, it, iv, imu, idx, ix, ia, idx1, idx2, il, im, ij, mm, ll, jj, tmpunit, cnt
-      integer :: il1, im1, ij1, mm1, ll1, jj1, is1, is2, is1a, is1b, is2a, is2b, isb2, isa2
+      integer :: ikxkyz, iky, ikx, iz, is, it, iv, imu, ix, ia, idx1, idx2, il, im, ij, mm, ll, jj
+      integer :: il1, im1, ij1, mm1, ll1, jj1
       integer :: il2, im2, ij2, mm2, ll2, jj2, isa, isb
       logical :: conservative_wgts
-      real :: dum2, dum3, t1
+      real :: dum2
 
       complex, dimension(:, :, :, :), allocatable :: dum1
       complex, dimension(:, :, :, :, :), allocatable :: field
@@ -3024,20 +2999,15 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use linear_solve, only: lu_decomposition
       use stella_time, only: code_dt
       use species, only: nspec, spec
-      use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
-      use vpamu_grids, only: nmu, nvpa, vpa, vperp2, mu
-      use vpamu_grids, only: set_vpa_weights, wgts_vpa, wgts_mu
+      use zgrid, only: ntubes
+      use vpamu_grids, only: nmu, nvpa
+      use vpamu_grids, only: set_vpa_weights
       use kt_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use dist_fn_arrays, only: gvmu
-      use gyro_averages, only: aj0v, aj1v
       use fields, only: get_fields, get_fields_by_spec
-      use stella_geometry, only: bmag
       use job_manage, only: time_message, timer_local
       use constants, only: pi
-      use dist_fn_arrays, only: kperp2
       use file_utils, only: open_output_file, close_output_file
 
       implicit none
@@ -3045,8 +3015,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(out) :: response
       integer, intent(in) :: ll, mm, jj, isa
       complex, dimension(:), allocatable :: ghrs
-      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, imu, ix, tmpunit
-      real :: clm, j1arg
+      integer :: ikxkyz, iky, ikx, iz, is, ia, iv, imu
+      real :: clm
 
       allocate (ghrs(nmu * nvpa))
 
@@ -3066,13 +3036,13 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             do imu = 1, nmu
                if (mm == 0) then
                   ghrs(nmu * (iv - 1) + imu) = code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, iz) &
-                                  * jm(imu, mm, iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**-1.5 * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
+                                * jm(imu, mm, iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
                else if (mm > 0) then
                   ghrs(nmu * (iv - 1) + imu) = code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, iz) &
-                                  * jm(imu, mm, iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**-1.5 * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
+                                * jm(imu, mm, iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
                else if (mm < 0) then
                   ghrs(nmu * (iv - 1) + imu) = (-1)**mm * code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, iz) &
-                             * jm(imu, abs(mm), iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**-1.5 * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
+                           * jm(imu, abs(mm), iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
                end if
             end do
          end do
@@ -3126,13 +3096,10 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use mp, only: sum_allreduce
       use zgrid, only: nzgrid
-      use vpamu_grids, only: integrate_vmu, set_vpa_weights, nvpa, nmu, vpa, mu
+      use vpamu_grids, only: integrate_vmu, set_vpa_weights, nvpa, nmu, vpa
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj0v, aj1v
       use constants, only: pi
-      use dist_fn_arrays, only: kperp2
       use species, only: spec, nspec
-      use stella_geometry, only: bmag
       use file_utils, only: open_output_file, close_output_file
       use stella_time, only: code_dt
 
@@ -3142,10 +3109,10 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
       integer, intent(in) :: isa, isb, ll, mm, jj
 
-      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, imu, tmpunit, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
+      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
       complex, dimension(:, :), allocatable :: g0
       complex, dimension(:), allocatable :: ghrs
-      real :: clm, j1argnomu, intg
+      real :: clm
       logical :: conservative_wgts
 
       allocate (g0(nvpa, nmu))
@@ -3425,7 +3392,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use species, only: nspec, spec
       use zgrid, only: nzgrid
       use stella_geometry, only: bmag
-      use vpamu_grids, only: dmu, mu, nmu
+      use vpamu_grids, only: dmu, nmu
       use vpamu_grids, only: dmu_cell, mu_cell, wgts_mu_bare
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -3497,8 +3464,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use dist_fn_arrays, only: gvmu
       use gyro_averages, only: aj0v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-      use dist_fn, only: adiabatic_option_switch
-      use dist_fn, only: adiabatic_option_fieldlineavg
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -3749,8 +3716,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use dist_fn_arrays, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-      use dist_fn, only: adiabatic_option_switch
-      use dist_fn, only: adiabatic_option_fieldlineavg
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -4231,14 +4198,14 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine advance_collisions_explicit(g, phi, gke_rhs)
 
-      use mp, only: proc0
+      use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
       use species, only: spec
       use run_parameters, only: fphi
-      use physics_flags, only: radial_variation
+      use physics_flags, only: radial_variation, full_flux_surface
       use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
@@ -4271,6 +4238,10 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :), allocatable :: g0k, g0x
 
       ia = 1
+
+      if (full_flux_surface) then
+         call mp_abort("collisions not currently supported for full_flux_surface=T.  Aborting.")
+      end if
 
       if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')
 
@@ -4498,7 +4469,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine vpa_differential_operator_fp(h, Dh, imu, iz, is, ia)
 
-      use vpamu_grids, only: nvpa, vpa, dvpa, mu, dmu, nmu, equally_spaced_mu_grid, maxwell_mu, maxwell_vpa
+      use vpamu_grids, only: nvpa, vpa, dvpa, mu, dmu, nmu, equally_spaced_mu_grid, maxwell_mu
       use stella_geometry, only: bmag
       use constants, only: pi
       use species, only: spec
@@ -4509,8 +4480,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :), intent(in) :: h
       integer, intent(in) :: imu, iz, ia, is
       integer :: iv
-      complex :: Dhmu, Dhmu_u, Dhmu_l, dmuhp, dmuhm, dvpah, dvpahp, dvpahm
-      real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm, a, b, c
+      complex :: dmuhp, dmuhm, dvpahp, dvpahm
+      real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm
 
       iv = 1
       vpap = 0.5 * (vpa(iv) + vpa(iv + 1))
@@ -4624,13 +4595,12 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine mu_differential_operator_fp(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
 
-      use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_mu, maxwell_vpa, equally_spaced_mu_grid
+      use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa, equally_spaced_mu_grid
       use stella_geometry, only: bmag
       use species, only: spec
       use dist_fn_arrays, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
-      use mp, only: proc0
 
       implicit none
 
@@ -4639,7 +4609,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer, intent(in) :: iv, iz, is, ia, iky, ikx
       real, intent(in) :: cfac
       complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
-      real :: nuDp, nuDm, nupap, nupam, mup, mum, nusp, nuxp, xp, xm, mwm, mwp, a, b, c
+      real :: nuDp, nuDm, nupap, nupam, mup, mum, xp, xm, mwm, mwp
       integer :: imu
 
       imu = 1
@@ -4779,7 +4749,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine vpa_differential_operator_fp_conservative(h, Dh, imu, iz, is, ia)
 
-      use vpamu_grids, only: nvpa, vpa, dvpa, mu, dmu, nmu, equally_spaced_mu_grid, maxwell_mu, maxwell_vpa
+      use vpamu_grids, only: nvpa, vpa, dvpa, mu, dmu, nmu, equally_spaced_mu_grid, maxwell_mu
       use stella_geometry, only: bmag
       use constants, only: pi
       use species, only: spec
@@ -4790,8 +4760,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :), intent(in) :: h
       integer, intent(in) :: imu, iz, ia, is
       integer :: iv
-      complex :: Dhmu, Dhmu_u, Dhmu_l, dmuhp, dmuhm, dvpah, dvpahp, dvpahm
-      real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm, a, b, c
+      complex :: dmuhp, dmuhm, dvpahp, dvpahm
+      real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm
 
       iv = 1
       vpap = 0.5 * (vpa(iv) + vpa(iv + 1))
@@ -4921,13 +4891,12 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine mu_differential_operator_fp_conservative(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
 
-      use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_mu, maxwell_vpa, equally_spaced_mu_grid
+      use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa, equally_spaced_mu_grid
       use stella_geometry, only: bmag
       use species, only: spec
       use dist_fn_arrays, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
-      use mp, only: proc0
 
       implicit none
 
@@ -4936,7 +4905,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer, intent(in) :: iv, iz, is, ia, iky, ikx
       real, intent(in) :: cfac
       complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
-      real :: nuDp, nuDm, nupap, nupam, mup, mum, nusp, nuxp, xp, xm, mwm, mwp, a, b, c
+      real :: nuDp, nuDm, nupap, nupam, mup, mum, xp, xm, mwm, mwp
       integer :: imu
 
       imu = 1
@@ -5106,7 +5075,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine mu_differential_operator(tfac, iz, ia, h, Dh)
 
-      use vpamu_grids, only: nmu, mu, dmu
+      use vpamu_grids, only: nmu, dmu
       use vpamu_grids, only: mu_cell, dmu_cell, wgts_mu_bare
       use vpamu_grids, only: equally_spaced_mu_grid
       use stella_geometry, only: bmag
@@ -5373,7 +5342,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use kt_grids, only: nakx, naky, multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species
-      use vpamu_grids, only: mu, vpa, nvpa, nmu, vperp2
+      use vpamu_grids, only: mu, vpa, nmu, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
@@ -5386,7 +5355,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :), allocatable :: g0k, g1k
       complex, dimension(:, :, :), allocatable :: gyro_g
       complex, dimension(:, :, :, :), allocatable :: field
-      complex :: integral
       real :: prefac, energy
       integer :: it, iz, ivmu, imu, iv, ia, is
 
@@ -5536,18 +5504,15 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use run_parameters, only: fphi
       use species, only: nspec, spec
       use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: mu, nmu, nvpa, integrate_vmu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
+      use vpamu_grids, only: nmu, nvpa, integrate_vmu
+      use vpamu_grids, only: vpa
       use vpamu_grids, only: set_vpa_weights
       use kt_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use g_tofrom_h, only: g_to_h
-      use gyro_averages, only: aj0v, aj1v
-      use fields, only: get_fields, fields_updated
+      use fields, only: get_fields
       use constants, only: pi
-      use dist_fn_arrays, only: kperp2
-      use stella_geometry, only: bmag
       use stella_time, only: code_dt
 
       implicit none
@@ -5555,7 +5520,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
-      real, dimension(:, :), allocatable :: tmp
       complex, dimension(:, :, :, :, :), allocatable :: flds
       complex, dimension(:, :, :), allocatable :: g_in
       complex, dimension(:, :), allocatable :: gvmutr
@@ -5564,12 +5528,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       complex, dimension(:, :), allocatable :: g0spitzer
 
-      integer :: ikxkyz, iky, ikx, iz, is, imu, iv, it, ia
-      integer :: idx, idx1, ij, il, im, jj, ll, mm, il1, im1, ij1, ll1, mm1, jj1, isa, isb
-      real :: clm, j1argnomu
+      integer :: ikxkyz, iky, ikx, iz, is, iv, it, ia
+      integer :: idx1, ij, il, im, jj, ll, mm, ll1, mm1, jj1, isa, isb
+      real :: clm
 
       real :: spitzer_i1, spitzer_i2, applied_Epar, gradpar_lnp0, gradpar_lnT0
-      complex :: spitzer_int
 
       ! store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -5785,8 +5748,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use g_tofrom_h, only: g_to_h
       use gyro_averages, only: aj0v
       use fields, only: get_fields, efac, gamtot_h
-      use dist_fn, only: adiabatic_option_switch
-      use dist_fn, only: adiabatic_option_fieldlineavg
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -5950,8 +5913,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use g_tofrom_h, only: g_to_h
       use fields, only: get_fields, efac, gamtot_h
       use stella_geometry, only: bmag, dl_over_b
-      use dist_fn, only: adiabatic_option_switch
-      use dist_fn, only: adiabatic_option_fieldlineavg
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
 
       ! TMP FOR TESTING
 !    use vpamu_grids, only: mu
