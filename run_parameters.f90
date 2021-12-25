@@ -185,6 +185,13 @@ contains
          stream_implicit = .false.
       else if (stream_implicit .and. full_flux_surface) then
          stream_implicit = .false.
+         write (*, *)
+         write (*, *) "!!!WARNING!!!"
+         write (*, *) "The option stream_implicit=T is not supported for full_flux_surface=T."
+         write (*, *) "Setting driftkinetic_implicit=T instead."
+         write (*, *) "!!!WARNING!!!"
+         write (*, *)
+         driftkinetic_implicit = .true.
       end if
 
       if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit .or. drifts_implicit) then
@@ -193,14 +200,24 @@ contains
          fully_explicit = .true.
       end if
 
-      if (fields_kxkyz .and. full_flux_surface) then
-         write (*, *)
-         write (*, *) 'WARNING!!!'
-         write (*, *) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
-         write (*, *) 'Forcing fields_kxkyz=F.'
-         write (*, *) 'WARNING!!!'
-         write (*, *)
-         fields_kxkyz = .false.
+      !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
+      if (full_flux_surface) then
+         if (fields_kxkyz) then
+            write (*, *)
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
+            write (*, *) 'Forcing fields_kxkyz=F.'
+            write (*, *) '!!!WARNING!!!'
+            write (*, *)
+            fields_kxkyz = .false.
+         end if
+         if (mirror_semi_lagrange) then
+            write (*, *)
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
+            write (*, *) 'Forcing mirror_semi_lagrange=F.'
+            write (*, *) '!!!WARNING!!!'
+         end if
       end if
 
    end subroutine read_parameters

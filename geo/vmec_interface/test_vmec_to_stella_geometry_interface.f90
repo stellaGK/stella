@@ -30,7 +30,7 @@ program test_vmec_to_stella_geometry_interface
    real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26
    real, dimension(nalpha, -nzgrid:nzgrid) :: gbdrift, gbdrift0, cvdrift, cvdrift0
    real, dimension(nalpha, -nzgrid:nzgrid) :: theta_vmec
-   real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_zeta, B_sub_theta_vmec
+   real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_zeta, B_sub_theta_vmec, displacement
    ! This code uses normalizations in which kxfac is always 1, so kxfac is not presently returned.
 
    !*********************************************************************
@@ -52,7 +52,7 @@ program test_vmec_to_stella_geometry_interface
                                           sign_toroidal_flux, &
                                           alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
                                           gbdrift, gbdrift0, cvdrift, cvdrift0, &
-                                          theta_vmec, B_sub_zeta, B_sub_theta_vmec)
+                                          theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement)
 
    print *, "-------------- Input parameters ------------------"
    print *, "vmec_filename: ", trim(vmec_filename)

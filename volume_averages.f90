@@ -3,7 +3,7 @@ module volume_averages
    public :: init_volume_averages, finish_volume_averages
    public :: fieldline_average
    public :: volume_average
-! public :: flux_surface_average
+   public :: flux_surface_average_ffs
 
    public :: mode_fac
 
@@ -15,6 +15,9 @@ module volume_averages
    end interface
 
    real, dimension(:), allocatable :: mode_fac
+   !> Fourier coefficients in y of the Jacobian;
+   !> needed for full flux surface simulations
+   complex, dimension(:, :), allocatable :: jacobian_ky
 
 contains
 
@@ -33,6 +36,9 @@ contains
       if (.not. allocated(mode_fac)) then
          allocate (mode_fac(naky)); mode_fac = 2.0
          if (aky(1) < epsilon(0.)) mode_fac(1) = 1.0
+      end if
+      if (full_flux_surface) then
+         call init_flux_surface_average_ffs
       end if
 
       dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
@@ -67,10 +73,18 @@ contains
    end subroutine init_volume_averages
 
    subroutine finish_volume_averages
+
       use stella_geometry, only: dVolume
+      use physics_flags, only: full_flux_surface
+
       implicit none
+
       if (allocated(mode_fac)) deallocate (mode_fac)
       if (allocated(dVolume)) deallocate (dVolume)
+      if (full_flux_surface) then
+         if (allocated(jacobian_ky)) deallocate (jacobian_ky)
+      end if
+
    end subroutine finish_volume_averages
 
    !==============================================
@@ -153,5 +167,71 @@ contains
       avg = avg / real(ntubes)
 
    end subroutine volume_average
+
+   subroutine init_flux_surface_average_ffs
+
+      use zgrid, only: nzgrid
+      use kt_grids, only: naky
+      use stella_geometry, only: jacob
+      use stella_transforms, only: transform_alpha2kalpha
+
+      implicit none
+
+      integer :: iz
+
+      if (.not. allocated(jacobian_ky)) allocate (jacobian_ky(naky, -nzgrid:nzgrid))
+
+      !> calculate the Fourier coefficients in y of the Jacobian
+      !> this is needed in the computation of the flux surface average of phi
+      do iz = -nzgrid, nzgrid
+         call transform_alpha2kalpha(jacob(:, iz), jacobian_ky(:, iz))
+      end do
+
+   end subroutine init_flux_surface_average_ffs
+
+   subroutine flux_surface_average_ffs(no_fsa, fsa)
+
+      use zgrid, only: nzgrid, delzed
+      use stella_geometry, only: jacob
+      use kt_grids, only: naky, naky_all, nalpha
+      use kt_grids, only: dy
+
+      implicit none
+
+      complex, dimension(:, -nzgrid:), intent(in) :: no_fsa
+      complex, intent(out) :: fsa
+
+      integer :: iky, ikymod
+      real :: area
+
+      ! the normalising factor int dy dz Jacobian
+      area = sum(spread(delzed * dy, 1, nalpha) * jacob)
+
+      fsa = 0.0
+      ! get contribution from negative ky values
+      ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
+      do iky = 1, naky - 1
+         ! jacobian_ky only defined for positive ky values
+         ! use reality of the jacobian to fill in negative ky values
+         ! i.e., jacobian_ky(-ky) = conjg(jacobian_ky(ky))
+         ! ikymod runs from naky down to 2, which corresponds
+         ! to ky values in jacobian_ky from kymax down to dky
+         ikymod = naky - iky + 1
+         ! for each ky, add the integral over zed
+         fsa = fsa + sum(delzed * no_fsa(iky, :) * jacobian_ky(ikymod, :))
+      end do
+      ! get contribution from zero and positive ky values
+      ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
+      do iky = naky, naky_all
+         ! ikymod runs from 1 to naky
+         ! ikymod = 1 corresponds to ky=0 for jacobian_ky and ikymod=naky to ky=kymax
+         ikymod = iky - naky + 1
+         ! for each ky, add the integral over zed
+         fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)))
+      end do
+      ! normalise by the flux surface area
+      fsa = fsa / area
+
+   end subroutine flux_surface_average_ffs
 
 end module volume_averages
