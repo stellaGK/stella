@@ -6,7 +6,6 @@ module stella_diagnostics
   public :: init_stella_diagnostics, finish_stella_diagnostics
   public :: diagnose_stella
   public :: nsave
-  public :: write_nonlinear_data_to_file
 
   private
 
@@ -1391,79 +1390,6 @@ contains
     call close_output_file (tmpunit)
 
   end subroutine write_final_ascii_files
-
-  subroutine write_nonlinear_data_to_file(ny, nx, naky, nakx, golder, golderxy, dgold_dy, dgold_dx, vchiold_y, vchiold_x)
-
-    ! use file_utils, only: open_output_filem, close_output_file
-    ! use species, only: nspec
-
-    implicit none
-
-    integer, intent(in) :: ny, nx, naky, nakx
-    complex, dimension(:,:), intent (in) :: golder
-    real, dimension(:,:), intent (in) :: golderxy, dgold_dy, dgold_dx, vchiold_y, vchiold_x
-
-    integer :: ikx, iky, ix, iy
-
-    write(*,*) "golder: "
-    do iky = 0, naky
-      write(*,*) golder(iky,:)
-    end do
-    write(*,*) "XXXXXXXXXXXXXXXXXXXXXX"
-    write(*,*) "golderxy:"
-    do iy = 0, ny
-      write(*,*) golderxy(iy,:)
-    end do
-    write(*,*) "XXXXXXXXXXXXXXXXXXXXXX"
-
-    write(*,*) "dgold_dy:"
-    do iy = 0, ny
-      write(*,*) dgold_dy(iy,:)
-    end do
-    write(*,*) "XXXXXXXXXXXXXXXXXXXXXX"
-
-    write(*,*) "dgold_dx:"
-    do iy = 0, ny
-      write(*,*) dgold_dx(iy,:)
-    end do
-    write(*,*) "XXXXXXXXXXXXXXXXXXXXXX"
-
-    write(*,*) "vchiold_y:"
-    do iy = 0, ny
-      write(*,*) vchiold_y(iy,:)
-    end do
-    write(*,*) "XXXXXXXXXXXXXXXXXXXXXX"
-
-    write(*,*) "vchiold_x:"
-    do iy = 0, ny
-      write(*,*) vchiold_x(iy,:)
-    end do
-
-    ! ! Open the '.out' and the '.fluxes' files.
-    ! call open_output_file (nonlinear_unit,'.nisl_terms')
-    !
-    ! !!! TO FIX!!!
-    ! write (tmpunit,'(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
-    !      'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-    !      'z_eqarc-zed0', 'kperp2'
-    ! do iky = 1, naky
-    !    do ikx = 1, nakx
-    !       do it = 1, ntubes
-    !          do iz = -nzgrid, nzgrid
-    !             write (tmpunit,'(10es15.4e3,i3)') zed(iz), zed(iz)-zed0(iky,ikx), aky(iky), akx(ikx), &
-    !               real(phi(iky,ikx,iz,it)), aimag(phi(iky,ikx,iz,it)), &
-    !               real(apar(iky,ikx,iz,it)), aimag(apar(iky,ikx,iz,it)), zed_eqarc(iz)-zed0(iky,ikx), &
-    !               kperp2(iky,ikx,it,iz), it
-    !          end do
-    !          write (tmpunit,*)
-    !       end do
-    !    end do
-    ! end do
-    !
-    ! call close_output_file (nonlinear_unit)
-
-  end subroutine write_nonlinear_data_to_file
-
 
   !==============================================
   !============ DEALLCOATE ARRAYS ===============

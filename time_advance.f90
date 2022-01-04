@@ -321,9 +321,6 @@ contains
 
     end do
 
-    write(*,*) "wdrifty_phi(1,:,10) = ", wdrifty_phi(1,:,10)
-    write(*,*) "wdriftx_phi(1,:,10) = ", wdriftx_phi(1,:,10)
-
     deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
   end subroutine init_wdrift
@@ -372,7 +369,6 @@ contains
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
-    write(*,*) "wstar(1,:,10) = ", wstar(1,:,10)
     deallocate (energy)
 
   end subroutine init_wstar
@@ -1003,7 +999,6 @@ contains
     reverse_implicit_order = .false.
 
     if (leapfrog_this_timestep) then
-      !write(*,*) "In leapfrog_this_timestep"
       ! Try taking a leapfrog step, but if dt is reset, we can't take a Leapfrog
       ! step (need to do an "ordinary" single-step approach).
       ! Need to check if dt is reset after the explicit step, and after the
@@ -1015,9 +1010,7 @@ contains
       ! field solve because these fields have been calculated previously, but at the
       ! expense of memory (storing another set of fields) and code refactoring
       fields_updated = .false.
-      !write(*,*) "before explicit call #1, phi = ", phi
       if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
-      !write(*,*) "after explicit call #1, phi = ", phi
 
       if (.not. restart_time_step) then
         ! NB reverse_implicit_order is .false. at this point
@@ -1040,7 +1033,6 @@ contains
       end if
 
       if (restart_time_step) then
-        write(*,*) "restart_time_step!"
         ! Need to re-do the step with Lie splitting
         ! This flag tells us we need to treat whatever terms we were going to
         ! treat with the leapfrog approach with a non-leapfrog scheme.
@@ -1168,7 +1160,6 @@ contains
     !!! Take a series of steps using an explicit calculation of the nonlinear term.
     !!! We don't know how many steps this will be, because the CFL constraint
     !!! depends upon how big vexb is.
-    ! write(*,*) "In advance_initial_nisl_step"
 
     if (exact_exb_nonlinear_solution_first_step) then
       call advance_ExB_nonlinearity_exact (gold, gnew)
@@ -1188,7 +1179,6 @@ contains
       ! ~ machine precision less than code_dt
       tolerance = 1E-9
       do while (total_dt .lt. (nisl_step_dt-tolerance))
-        !write(*,*) "BEFORE gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
         ! Take a single time step. As before, keep going until
         ! restart_time_step = .false.
         time_advance_successful = .false.
@@ -1206,11 +1196,8 @@ contains
           ! all terms treated implicitly
           if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, gnew)
           if (.not. restart_time_step) then
-            write(*,*) "Successful step"
-            !write(*,*) "Normal step, restart_time_step false"
             time_advance_successful = .true.
           else
-            write(*,*) "restart_time_step; unsuccessful step"
             ! Because we're unsuccessful, need to revert gnew to gold
             gnew = gold
             ! We're discarding changes to gnew and starting over, so fields will
@@ -1238,17 +1225,14 @@ contains
 
         ! Ensure fields are updated so that omega calculation is correct.
         call advance_fields (gnew, phi, apar, dist='gbar')
-        !write(*,*) "AFTER gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
         ! Update the total time advanced
         total_dt = total_dt + code_dt
-        write(*,*) "Incremented total_dt. total_dt = ", total_dt
       end do
 
       ! We've now taken a series of steps and have gold, corresponding to
       ! g(t=nisl_step_dt). If the timestep has been changed, change it back
       ! to nisl_step_dt
       if (code_dt .lt. nisl_step_dt) then
-        write(*,*) "Changing dt back to nisl_step_dt"
         code_dt = nisl_step_dt
         call reset_dt
       end if
@@ -1338,7 +1322,6 @@ contains
     ! then must modify time step size and restart time step
     ! assume false and test
     restart_time_step = .false.
-    !write(*,*) "In advance_leapfrog"
     ! Get the fields corresponding to g(i)
     call advance_fields (gold, phi, apar, dist='gbar')
     ! There are 2 different "flavours" of leapfrog option we can use:
@@ -1351,7 +1334,6 @@ contains
         call advance_ExB_nonlinearity_exact (gold, golder)
       else
         call advance_ExB_nonlinearity_nisl (gold, golder)
-        stop "STOPPING"
       end if
       fields_updated = .false.
     else
@@ -1863,7 +1845,6 @@ contains
 
     restart_time_step = .false.
     yfirst = .not.prp_shear_enabled
-    !write(*,*) "In advance_ExB_nonlinearity"
     allocate (g0k(naky,nakx))
     allocate (g0a(naky,nakx))
     allocate (g0xy(ny,nx))
@@ -1878,19 +1859,6 @@ contains
       allocate (g0xky(naky,nx))
     endif
 
-    ! write(*,*) "BEFORE. gout(1,:,2,1,1) = ", gout(1,:,2,1,1)
-    ! write(*,*) "BEFORE. gout(2,:,2,1,1) = ", gout(2,:,2,1,1)
-    ! write(*,*) "BEFORE. gout(3,:,2,1,1) = ", gout(3,:,2,1,1)
-    ! write(*,*) "BEFORE. gout(4,:,2,1,1) = ", gout(4,:,2,1,1)
-    ! write(*,*) "g(1,:,2,1,1) = ", g(1,:,2,1,1)
-    ! write(*,*) "g(2,:,2,1,1) = ", g(2,:,2,1,1)
-    ! write(*,*) "g(3,:,2,1,1) = ", g(3,:,2,1,1)
-    ! write(*,*) "g(4,:,2,1,1) = ", g(4,:,2,1,1)
-    ! write(*,*) "phi(1,:,2,1) = ", phi(1,:,2,1)
-    ! write(*,*) "phi(2,:,2,1) = ", phi(2,:,2,1)
-    ! write(*,*) "phi(3,:,2,1) = ", phi(3,:,2,1)
-    ! write(*,*) "phi(4,:,2,1) = ", phi(4,:,2,1)
-
     prefac = 1.0
     if(prp_shear_enabled.and.hammett_flow_shear) then
       prefac = exp(-zi*g_exb*g_exbfac*spread(x,1,naky)*spread(aky*shift_state,2,nx))
@@ -1902,9 +1870,6 @@ contains
        is = is_idx(vmu_lo,ivmu)
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
-             ! write(*,*) "BEFORE. gout(:,:,iz,it,ivmu) = ", gout(:,:,iz,it,ivmu)
-             ! write(*,*) "g(:,:,iz,it,ivmu) = ", g(:,:,iz,it,ivmu)
-             ! write(*,*) "phi(:,:,iz,it) = ", phi(:,:,iz,it)
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
              call forward_transform(g0k,g0xy)
 
@@ -1996,7 +1961,6 @@ contains
     if(runtype_option_switch == runtype_multibox) call scope(allprocs)
 
     call min_allreduce (cfl_dt)
-    !write(*,*) "CFL dt = ", cfl_dt
     if(runtype_option_switch == runtype_multibox) call scope(subprocs)
 
 
@@ -2019,15 +1983,9 @@ contains
         !!! taking the first timesteps explictly to start the Leapfrog-like NISL.)
         !!! Rather than setting code_dt = cfl_dt*cfl_cushion/delt_adjust, we want to
         !!! set it to so that old_dt = N*new_dt for integer N.
-        write(*,*) "Resetting timestep, but for NISL"
         ! Want new_dt <= cfl_dt*cfl_cushion and old_dt = N*new_dt for integer N
         !max_dt = cfl_dt*cfl_cushion
-        ! Want
-        write(*,*) "Before recalculation code_dt = ", code_dt
-        write(*,*) "Before recalculation (cfl_dt*cfl_cushion) = ", (cfl_dt*cfl_cushion)
         code_dt = code_dt / ceiling(code_dt/(cfl_dt*cfl_cushion))
-        write(*,*) "After recalculation code_dt = ", code_dt
-        !stop "Stopping"
       end if
 
       call reset_dt
@@ -2055,11 +2013,6 @@ contains
     else
        gout = code_dt*gout
     end if
-
-    ! write(*,*) "gout(1,:,2,1,1) = ", gout(1,:,2,1,1)
-    ! write(*,*) "gout(2,:,2,1,1) = ", gout(2,:,2,1,1)
-    ! write(*,*) "gout(3,:,2,1,1) = ", gout(3,:,2,1,1)
-    ! write(*,*) "gout(4,:,2,1,1) = ", gout(4,:,2,1,1)
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
@@ -2124,8 +2077,6 @@ contains
     use fields_arrays, only: phi, apar, shift_state
     use stella_transforms, only: transform_y2ky,transform_x2kx
     use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
-    !use stella_transforms, only: transform_ky2y_extra_padding, transform_kx2x_extra_padding
-    ! use stella_diagnostics, only: write_nonlinear_data_to_file
     use stella_time, only: code_dt
     use run_parameters, only: fphi
     use physics_flags, only: override_vexb, vexb_x, vexb_y
@@ -2191,8 +2142,6 @@ contains
     use fields_arrays, only: phi, apar, shift_state
     use stella_transforms, only: transform_y2ky,transform_x2kx
     use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
-    !use stella_transforms, only: transform_ky2y_extra_padding, transform_kx2x_extra_padding
-    ! use stella_diagnostics, only: write_nonlinear_data_to_file
     use stella_time, only: code_dt
     use run_parameters, only: fphi
     use physics_flags, only: override_vexb, vexb_x, vexb_y
@@ -2229,7 +2178,6 @@ contains
 
     if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
-    !write(*,*) "In advance_exb_nonlinearity_nisl"
     ! Assume no perp shear; yfirst = true
 
     single_step_local = .false.
@@ -2253,29 +2201,9 @@ contains
     allocate (g0k_swap(2*naky-1,ikx_max))
     allocate (g0kxy(ny,ikx_max))
     allocate (g0kxy_extra_padding(2*ny,ikx_max))
-    ! write(*,*) "naky, nakx, ny, nx = ", naky, nakx, ny, nx
-    ! write(*,*) "aky = ", aky
-    ! write(*,*) "akx = ", akx
-    ! write(*,*) "x = ", x
-    ! write(*,*) "dx, dy, x0, y0 = ", dx, dy, x0, y0
-    ! stop "Stopping now"
-    !write(*,*) ""
-    write(*,*) "BEFORE"
-    write(*,*) "golder(1,:,2,1,1) = ", golder(1,:,2,1,1)
-    write(*,*) "golder(2,:,2,1,1) = ", golder(2,:,2,1,1)
-    write(*,*) "golder(3,:,2,1,1) = ", golder(3,:,2,1,1)
-    write(*,*) "golder(4,:,2,1,1) = ", golder(4,:,2,1,1)
-    write(*,*) "gold(1,:,2,1,1) = ", gold(1,:,2,1,1)
-    write(*,*) "gold(2,:,2,1,1) = ", gold(2,:,2,1,1)
-    write(*,*) "gold(3,:,2,1,1) = ", gold(3,:,2,1,1)
-    write(*,*) "gold(4,:,2,1,1) = ", gold(4,:,2,1,1)
-    write(*,*) "phi(1,:,2,1) = ", phi(1,:,2,1)
-    write(*,*) "phi(2,:,2,1) = ", phi(2,:,2,1)
-    write(*,*) "phi(3,:,2,1) = ", phi(3,:,2,1)
-    write(*,*) "phi(4,:,2,1) = ", phi(4,:,2,1)
+
     ia=1
-    ! write(*,*) "BEFORE golder(3,3,iz=0,it=1,ivmu=0) = ", golder(3,3,0,1,0)
-    ! write(*,*) "BEFORE gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
+
     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       imu = imu_idx(vmu_lo,ivmu)
       is = is_idx(vmu_lo,ivmu)
@@ -2298,9 +2226,6 @@ contains
           end if
           ! For testing - get dg/dy in the non-upsampled and upsampled forms and print
           ! call forward_transform(g0k,golderxy)
-          ! write(*,*) "dgold_dy (no extra padding) = ", golderxy
-          ! write(*,*) "dgold_dy (extra padding) = ", dgold_dy
-          ! stop "Stopping"
 
           call get_dchidx (iz, ivmu, phi(:,:,iz,it), apar(:,:,iz,it), g0k)
           call forward_transform(g0k,vchiold_y)
@@ -2323,12 +2248,6 @@ contains
           ! Step 2) Get golder(x,y)
           call forward_transform(golder(:,:,iz,it,ivmu),golderxy)
 
-          ! if ((iz == 1) .and. (ivmu == 1) ) then
-          !   write(*,*) "maxval(abs(dgold_dx)), maxval(abs(dgold_dy)) = ", maxval(abs(dgold_dx)), maxval(abs(dgold_dy))
-          ! end if
-          !!! Write everything to file
-          !call write_nonlinear_data_to_file(ny, nx, naky, nakx, golder(:,:,iz,it,ivmu), golderxy, dgold_dy, dgold_dx, vchiold_y, vchiold_x)
-
           if (single_step_local) then
             max_velocity_x = dx/(2*code_dt)
             max_velocity_y = dy/(2*code_dt)
@@ -2336,24 +2255,14 @@ contains
             max_velocity_x = dx/(4*code_dt)
             max_velocity_y = dy/(4*code_dt)
           end if
-          !! write(*,*) "max_velocity_x, max_velocity_y = ", max_velocity_x, max_velocity_y
-          !!  max_velocity_x, max_velocity_y =    15.703517587939697        11.219973762820690
-
-          ! Hack: force velocities to be some constant
-          ! vchiold_y = 0
-          ! vchiold_x = 0.2 ! 0-> 6E1 ; 0.1 -> 9E1 ; 0.5 -> 1E11 ; 0.3 -> 1E6 ; 0.2 -> 4E3; 0.15 -> 3E2
-          !                 ! 0.2 -> 4E3 at t=30 for delt=0.03, 0.015, 0.005, 0.1,
 
           if (override_vexb) then
             vchiold_y = vexb_y
             vchiold_x = vexb_x
-            !write(*,*) "vchiold_y, vchiold_x = ", vchiold_y, vchiold_x
           end if
           ! Step 3) Calculate departure points, and hence velocities and p, q
           do iy = 1, ny
             do ix = 1, nx
-              ! yval = y(iy)
-              ! xval = x(ix)
               if (override_vexb) then
                 velocity_x = vexb_x
                 velocity_y = vexb_y
@@ -2361,7 +2270,6 @@ contains
                 y_departure = y(iy) - 2*velocity_y*code_dt
               else
                 call get_approx_departure_point(vchiold_y, vchiold_x, iy, ix, y_departure, x_departure, single_step_local)
-                !write(*,*) "y,x,y_departure,x_departure) = ", y(iy),x(ix),y_departure,x_departure
                 velocity_x = (x(ix) - x_departure)/(2*code_dt)
                 velocity_y = (y(iy) - y_departure)/(2*code_dt)
               end if
@@ -2390,20 +2298,7 @@ contains
                   velocity_y = vexb_y
                 end if
               end if
-              !!! Some extra diagnostics
-              ! if ((p .ne. 0) .or. (q .ne. 0)) then
-              !   ! write(*,*) "p, q = ", p, q
-              !   ! stop "stopping"
-              ! else
-              !   if (abs(vchiold_x(iy, ix) - velocity_x) > 10) then
-              !     !write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(iy, ix), velocity_x
-              !     !stop "Aborting"
-              !   end if
-              !   if (abs(vchiold_y(iy, ix) - velocity_y) > 10) then
-              !     !write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(iy, ix), velocity_y
-              !     !stop "Aborting"
-              !   end if
-              ! end if
+
               ! Find idxs of gridpoint closest to departure point.
               ! Normal idxs must be in the range(1,2,3,...,nx(or ny))
               ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
@@ -2461,7 +2356,6 @@ contains
                         + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
               else
                 ! The 3-step version
-                !write(*,*) "dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx(yidx, xidx) = ", dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array), dgold_dx_normal(iy,ix)
 
                 !!! Original implemenation  - calculate RHS, then update g on an idx-by-idx basis
 
@@ -2492,23 +2386,14 @@ contains
                 gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure)
               end if
 
-              !!! A new implementation - Calculate the RHS as an array, and add it at the
-              !!! end. Allows easier checking between RHS implementation in real vs Fourier space.
-              ! rhs(iy, ix) = - 2*code_dt*(velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
-              !         + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array) )
-              ! gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs(iy,ix)
             end do
           end do
-          !stop "Stopping early"
+
           !! Invert to get golder(kx,ky)
           call transform_x2kx (gnewxy, g0kxy)
           call transform_y2ky (g0kxy, g0k_swap)
           call swap_kxky_back (g0k_swap, golder(:,:,iz,it,ivmu))
-          !!! Deprecated
-          ! For diagnostic purposes; store (gnew - golder) in g0k
-          !g0k = golder(:,:,iz,it,ivmu) - rhs_array_fourier
-          ! write(*,*) "gnew(:,:,iz,it,ivmu) - golder(:,:,iz,it,ivmu) = ", golder(:,:,iz,it,ivmu) - rhs_array_fourier
-          !!!
+
           !! Invert rhs_array to get rhs_array in Fourier space
           if (.not. add_nl_source_in_real_space) then
             call transform_x2kx (rhs_array, g0kxy)
@@ -2516,9 +2401,6 @@ contains
             call swap_kxky_back (g0k_swap, rhs_array_fourier)
             golder(:,:,iz,it,ivmu) = golder(:,:,iz,it,ivmu) + rhs_array_fourier
           end if
-          !write(*,*) "rhs_array_fourier = ", rhs_array_fourier
-          !write(*,*) "maxval(abs((delta g (Fourier) - rhs (Fourier))/rhs (Fourier)))) = ", maxval(abs((g0k - rhs_array_fourier)/rhs_array_fourier))
-          ! stop "Stopping early"
         end do
       end do
       ! ! enforce periodicity for zonal mode
@@ -2526,7 +2408,6 @@ contains
       ! ! AND MAY INDEED BE THE WRONG THING TO DO
       golder(1,:,-nzgrid,:,ivmu) = 0.5*(golder(1,:,nzgrid,:,ivmu)+golder(1,:,-nzgrid,:,ivmu))
       golder(1,:,nzgrid,:,ivmu) = golder(1,:,-nzgrid,:,ivmu)
-      !golder(1,1,:,:,ivmu) = 0
     end do
 
     deallocate (g0k, dgold_dx, dgold_dy, vchiold_x, vchiold_y, golderxy)
@@ -2542,13 +2423,6 @@ contains
     if(runtype_option_switch == runtype_multibox) call scope(subprocs)
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance, nisl')
-    !stop "Finished the NISL advance"
-
-    write(*,*) "AFTER"
-    write(*,*) "golder(1,:,2,1,1) = ", golder(1,:,2,1,1)
-    write(*,*) "golder(2,:,2,1,1) = ", golder(2,:,2,1,1)
-    write(*,*) "golder(3,:,2,1,1) = ", golder(3,:,2,1,1)
-    write(*,*) "golder(4,:,2,1,1) = ", golder(4,:,2,1,1)
 
     contains
 
@@ -3460,7 +3334,6 @@ contains
 !       gy => g
 !       gk => g_dual
 !    end if
-    !write(*,*) "In implicit_advance"
     ! start the timer for the implicit part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
 
@@ -3476,7 +3349,6 @@ contains
     ! Apply the operators sequentially, order depending on the reverse_implicit_order
     ! logical
     if (.not. reverse_implicit_order) then
-       !write(*,*) "In implicit_advance, reverse_implicit_order = .false."
 
        if (prp_shear_enabled) then
           call advance_perp_flow_shear(g)
@@ -3517,7 +3389,6 @@ contains
        call advance_fields (g, phi, apar, dist='gbar')
        if (drifts_implicit .and. include_drifts) call advance_drifts_implicit (g, phi, apar)
     else
-       !write(*,*) "In implicit_advance, reverse_implicit_order = .true."
        ! get updated fields corresponding to advanced g
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update

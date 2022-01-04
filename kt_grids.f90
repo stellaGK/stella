@@ -148,11 +148,11 @@ contains
     if (exist) read (in_file, nml=kt_grids_box_parameters)
 
     ! get the number of de-aliased modes in y and x
-    ! naky = (ny-1)/3 + 1
-    ! nakx = 2*((nx-1)/3) +  1
+    naky = (ny-1)/3 + 1
+    nakx = 2*((nx-1)/3) +  1
     !!! Do even more padding - might improve stability properties
-    naky = (ny-1)/4 + 1
-    nakx = 2*((nx-1)/4) +  1
+    ! naky = (ny-1)/4 + 1
+    ! nakx = 2*((nx-1)/4) +  1
 
     reality = .true.
 
