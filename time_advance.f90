@@ -943,7 +943,6 @@ contains
     ! save value of phi
     ! for use in diagnostics (to obtain frequency)
     phi_old = phi
-    !write(*,*) "In advance_stella"
     ! We can use the leapfrog step provided:
     ! 1) istep > 1 (need gold and golder)
     ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
@@ -1062,6 +1061,7 @@ contains
       golder = gold
       call advance_initial_nisl_step()
 
+    !!! Bob: Should be in a separate branch?
     else
       ! Perform the Lie or flip-flopping step until we've done it without the
       ! timestep changing.
@@ -1084,7 +1084,6 @@ contains
         ! as part of alternating direction operator splitting
         ! this is needed to ensure 2nd order accuracy in time
         if (mod(istep,2)==1 .or. .not.flip_flop) then
-          !write(*,*) ".not. flip_flop!"
           reverse_implicit_order = .false.
           ! advance the explicit parts of the GKE
           call advance_explicit (gnew, restart_time_step)
@@ -1103,10 +1102,8 @@ contains
         end if
 
         if (.not. restart_time_step) then
-          !write(*,*) "Normal step, restart_time_step false"
           time_advance_successful = .true.
         else
-          !write(*,*) "Normal step, restart_time_step true"
           ! We're discarding changes to gnew and starting over, so fields will
           ! need to be re-calculated
           fields_updated = .false.
@@ -1171,10 +1168,9 @@ contains
     !!! Take a series of steps using an explicit calculation of the nonlinear term.
     !!! We don't know how many steps this will be, because the CFL constraint
     !!! depends upon how big vexb is.
-    write(*,*) "In advance_initial_nisl_step"
+    ! write(*,*) "In advance_initial_nisl_step"
 
     if (exact_exb_nonlinear_solution_first_step) then
-      write(*,*) "First step is exact"
       call advance_ExB_nonlinearity_exact (gold, gnew)
       gold = gnew
       fields_updated = .false.
@@ -1192,28 +1188,23 @@ contains
       ! ~ machine precision less than code_dt
       tolerance = 1E-9
       do while (total_dt .lt. (nisl_step_dt-tolerance))
-        ! write(*,*) "total_dt = ", total_dt
-        ! write(*,*) "(nisl_step_dt-tolerance) = ", (nisl_step_dt-tolerance)
         !write(*,*) "BEFORE gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
         ! Take a single time step. As before, keep going until
         ! restart_time_step = .false.
         time_advance_successful = .false.
         do while (.not. time_advance_successful)
-          write(*,*) "Trying to take a step"
           ! We're definitely not flip-flopping here, so no need to
           ! reverse order of operations
           reverse_implicit_order = .false.
           ! advance the explicit parts of the GKE
           !
           call advance_explicit (gnew, restart_time_step)
-
           ! enforce periodicity for zonal mode
           !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
 
           ! use operator splitting to separately evolve
           ! all terms treated implicitly
           if (.not. restart_time_step .and. .not. none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, gnew)
-
           if (.not. restart_time_step) then
             write(*,*) "Successful step"
             !write(*,*) "Normal step, restart_time_step false"
@@ -1262,7 +1253,6 @@ contains
         call reset_dt
       end if
     end if
-
   end subroutine advance_initial_nisl_step
 
 !  subroutine advance_explicit (phi, apar, g)
@@ -1361,6 +1351,7 @@ contains
         call advance_ExB_nonlinearity_exact (gold, golder)
       else
         call advance_ExB_nonlinearity_nisl (gold, golder)
+        stop "STOPPING"
       end if
       fields_updated = .false.
     else
@@ -1612,7 +1603,6 @@ contains
        end if
 
        if ((include_drifts .and. .not. drifts_implicit) .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
-         !write(*,*) "Advancing drifts in the explicit way."
          ! calculate and add alpha-component of magnetic drift term to RHS of GK eqn
          call advance_wdrifty_explicit (gin, phi, rhs)
 
@@ -1888,6 +1878,19 @@ contains
       allocate (g0xky(naky,nx))
     endif
 
+    ! write(*,*) "BEFORE. gout(1,:,2,1,1) = ", gout(1,:,2,1,1)
+    ! write(*,*) "BEFORE. gout(2,:,2,1,1) = ", gout(2,:,2,1,1)
+    ! write(*,*) "BEFORE. gout(3,:,2,1,1) = ", gout(3,:,2,1,1)
+    ! write(*,*) "BEFORE. gout(4,:,2,1,1) = ", gout(4,:,2,1,1)
+    ! write(*,*) "g(1,:,2,1,1) = ", g(1,:,2,1,1)
+    ! write(*,*) "g(2,:,2,1,1) = ", g(2,:,2,1,1)
+    ! write(*,*) "g(3,:,2,1,1) = ", g(3,:,2,1,1)
+    ! write(*,*) "g(4,:,2,1,1) = ", g(4,:,2,1,1)
+    ! write(*,*) "phi(1,:,2,1) = ", phi(1,:,2,1)
+    ! write(*,*) "phi(2,:,2,1) = ", phi(2,:,2,1)
+    ! write(*,*) "phi(3,:,2,1) = ", phi(3,:,2,1)
+    ! write(*,*) "phi(4,:,2,1) = ", phi(4,:,2,1)
+
     prefac = 1.0
     if(prp_shear_enabled.and.hammett_flow_shear) then
       prefac = exp(-zi*g_exb*g_exbfac*spread(x,1,naky)*spread(aky*shift_state,2,nx))
@@ -1899,6 +1902,9 @@ contains
        is = is_idx(vmu_lo,ivmu)
        do it = 1, ntubes
           do iz = -nzgrid, nzgrid
+             ! write(*,*) "BEFORE. gout(:,:,iz,it,ivmu) = ", gout(:,:,iz,it,ivmu)
+             ! write(*,*) "g(:,:,iz,it,ivmu) = ", g(:,:,iz,it,ivmu)
+             ! write(*,*) "phi(:,:,iz,it) = ", phi(:,:,iz,it)
              call get_dgdy (g(:,:,iz,it,ivmu), g0k)
              call forward_transform(g0k,g0xy)
 
@@ -2049,6 +2055,11 @@ contains
     else
        gout = code_dt*gout
     end if
+
+    ! write(*,*) "gout(1,:,2,1,1) = ", gout(1,:,2,1,1)
+    ! write(*,*) "gout(2,:,2,1,1) = ", gout(2,:,2,1,1)
+    ! write(*,*) "gout(3,:,2,1,1) = ", gout(3,:,2,1,1)
+    ! write(*,*) "gout(4,:,2,1,1) = ", gout(4,:,2,1,1)
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance')
 
@@ -2249,6 +2260,19 @@ contains
     ! write(*,*) "dx, dy, x0, y0 = ", dx, dy, x0, y0
     ! stop "Stopping now"
     !write(*,*) ""
+    write(*,*) "BEFORE"
+    write(*,*) "golder(1,:,2,1,1) = ", golder(1,:,2,1,1)
+    write(*,*) "golder(2,:,2,1,1) = ", golder(2,:,2,1,1)
+    write(*,*) "golder(3,:,2,1,1) = ", golder(3,:,2,1,1)
+    write(*,*) "golder(4,:,2,1,1) = ", golder(4,:,2,1,1)
+    write(*,*) "gold(1,:,2,1,1) = ", gold(1,:,2,1,1)
+    write(*,*) "gold(2,:,2,1,1) = ", gold(2,:,2,1,1)
+    write(*,*) "gold(3,:,2,1,1) = ", gold(3,:,2,1,1)
+    write(*,*) "gold(4,:,2,1,1) = ", gold(4,:,2,1,1)
+    write(*,*) "phi(1,:,2,1) = ", phi(1,:,2,1)
+    write(*,*) "phi(2,:,2,1) = ", phi(2,:,2,1)
+    write(*,*) "phi(3,:,2,1) = ", phi(3,:,2,1)
+    write(*,*) "phi(4,:,2,1) = ", phi(4,:,2,1)
     ia=1
     ! write(*,*) "BEFORE golder(3,3,iz=0,it=1,ivmu=0) = ", golder(3,3,0,1,0)
     ! write(*,*) "BEFORE gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
@@ -2366,19 +2390,20 @@ contains
                   velocity_y = vexb_y
                 end if
               end if
-              if ((p .ne. 0) .or. (q .ne. 0)) then
-                ! write(*,*) "p, q = ", p, q
-                ! stop "stopping"
-              else
-                if (abs(vchiold_x(iy, ix) - velocity_x) > 10) then
-                  write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(iy, ix), velocity_x
-                  !stop "Aborting"
-                end if
-                if (abs(vchiold_y(iy, ix) - velocity_y) > 10) then
-                  write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(iy, ix), velocity_y
-                  !stop "Aborting"
-                end if
-              end if
+              !!! Some extra diagnostics
+              ! if ((p .ne. 0) .or. (q .ne. 0)) then
+              !   ! write(*,*) "p, q = ", p, q
+              !   ! stop "stopping"
+              ! else
+              !   if (abs(vchiold_x(iy, ix) - velocity_x) > 10) then
+              !     !write(*,*) "vchiold_x(ix, iy), velocity_x = ", vchiold_x(iy, ix), velocity_x
+              !     !stop "Aborting"
+              !   end if
+              !   if (abs(vchiold_y(iy, ix) - velocity_y) > 10) then
+              !     !write(*,*) "vchiold_y(ix, iy), velocity_y = ", vchiold_y(iy, ix), velocity_y
+              !     !stop "Aborting"
+              !   end if
+              ! end if
               ! Find idxs of gridpoint closest to departure point.
               ! Normal idxs must be in the range(1,2,3,...,nx(or ny))
               ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
@@ -2501,9 +2526,8 @@ contains
       ! ! AND MAY INDEED BE THE WRONG THING TO DO
       golder(1,:,-nzgrid,:,ivmu) = 0.5*(golder(1,:,nzgrid,:,ivmu)+golder(1,:,-nzgrid,:,ivmu))
       golder(1,:,nzgrid,:,ivmu) = golder(1,:,-nzgrid,:,ivmu)
+      !golder(1,1,:,:,ivmu) = 0
     end do
-    ! write(*,*) "AFTER golder(3,3,iz=0,it=1,ivmu=0) = ", golder(3,3,0,1,0)
-    ! write(*,*) "AFTER gold(3,3,iz=0,it=1,ivmu=0) = ", gold(3,3,0,1,0)
 
     deallocate (g0k, dgold_dx, dgold_dy, vchiold_x, vchiold_y, golderxy)
     if (allocated(g0k_swap)) deallocate(g0k_swap)
@@ -2519,6 +2543,12 @@ contains
 
     if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance, nisl')
     !stop "Finished the NISL advance"
+
+    write(*,*) "AFTER"
+    write(*,*) "golder(1,:,2,1,1) = ", golder(1,:,2,1,1)
+    write(*,*) "golder(2,:,2,1,1) = ", golder(2,:,2,1,1)
+    write(*,*) "golder(3,:,2,1,1) = ", golder(3,:,2,1,1)
+    write(*,*) "golder(4,:,2,1,1) = ", golder(4,:,2,1,1)
 
     contains
 
@@ -3392,7 +3422,7 @@ contains
     use stella_layouts, only: vmu_lo
     use zgrid, only: nzgrid
     use dissipation, only: hyper_dissipation, advance_hyper_dissipation
-    use physics_flags, only: include_parallel_streaming
+    use physics_flags, only: include_parallel_streaming, include_drifts
     use physics_flags, only: radial_variation, full_flux_surface
     use physics_flags, only: include_mirror, prp_shear_enabled
     use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
@@ -3452,20 +3482,17 @@ contains
           call advance_perp_flow_shear(g)
           fields_updated = .false.
        end if
-
        if (hyper_dissipation) then
 !          ! for hyper-dissipation, need to be in k-alpha space
 !          if (alpha_space) call transform_y2ky (gy, gk)
           call advance_hyper_dissipation (g)
           fields_updated = .false.
        end if
-
        if (collisions_implicit .and. include_collisions) then
           call advance_fields (g, phi, apar, dist='gbar')
           call advance_collisions_implicit (mirror_implicit, phi, apar, g)
           fields_updated = .false.
        end if
-
        if (mirror_implicit .and. include_mirror) then
 !          if (full_flux_surface) then
 !             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -3476,7 +3503,6 @@ contains
           call advance_mirror_implicit (collisions_implicit, g)
           fields_updated = .false.
        end if
-
        ! get updated fields corresponding to advanced g
        ! note that hyper-dissipation and mirror advances
        ! depended only on g and so did not need field update
@@ -3488,12 +3514,9 @@ contains
             call advance_parallel_streaming_implicit (g, phi, apar)
             if(radial_variation.or.full_flux_surface) fields_updated = .false.
        endif
-
        call advance_fields (g, phi, apar, dist='gbar')
-       if (drifts_implicit) call advance_drifts_implicit (g, phi, apar)
-
+       if (drifts_implicit .and. include_drifts) call advance_drifts_implicit (g, phi, apar)
     else
-
        !write(*,*) "In implicit_advance, reverse_implicit_order = .true."
        ! get updated fields corresponding to advanced g
        ! note that hyper-dissipation and mirror advances
@@ -3537,7 +3560,6 @@ contains
 
     ! stop the timer for the implict part of the solve
     if (proc0) call time_message(.false.,time_gke(:,9),' implicit')
-
   end subroutine advance_implicit
 
   subroutine advance_drifts_implicit (g, phi, apar)
