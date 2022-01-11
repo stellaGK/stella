@@ -67,12 +67,12 @@ contains
    subroutine init_stella(istep0, VERNUM, VERDATE)
 
       use mp, only: init_mp, broadcast, sum_allreduce
-      use mp, only: proc0, job, scope, subprocs, crossdomprocs
+      use mp, only: proc0, job
       use file_utils, only: init_file_utils
       use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: run_name, init_job_name
       use file_utils, only: flush_output_file, error_unit
-      use job_manage, only: checktime, time_message, njobs
+      use job_manage, only: checktime, time_message
       use physics_parameters, only: init_physics_parameters
       use physics_flags, only: init_physics_flags, radial_variation
       use run_parameters, only: init_run_parameters
@@ -81,33 +81,34 @@ contains
       use run_parameters, only: delt_option_switch, delt_option_auto
       use run_parameters, only: mat_gen, mat_read
       use species, only: init_species, read_species_knobs
-      use species, only: nspec, communicate_species_multibox
+      use species, only: nspec
       use zgrid, only: init_zgrid
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: init_geometry, communicate_geo_multibox
+      use stella_geometry, only: init_geometry
       use stella_geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use response_matrix, only: init_response_matrix, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
       use init_g, only: tstart
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
+      use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
       use stella_diagnostics, only: init_stella_diagnostics
       use fields_arrays, only: phi, apar
-      use dist_fn_arrays, only: gnew, gvmu
+      use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
       use time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
-      use kt_grids, only: init_kt_grids, read_kt_grids_parameters, communicate_ktgrids_multibox
+      use kt_grids, only: init_kt_grids, read_kt_grids_parameters
       use kt_grids, only: naky, nakx, ny, nx, nalpha
       use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
       use vpamu_grids, only: nvgrid, nmu
       use stella_transforms, only: init_transforms
       use stella_save, only: init_dt
-      use multibox, only: read_multibox_parameters, init_multibox, rhoL, rhoR
-      use multibox, only: communicate_multibox_parameters, multibox_communicate
+      use multibox, only: read_multibox_parameters, init_multibox
       use multibox, only: use_dirichlet_BC, apply_radial_boundary_conditions
+      use multibox, only: multibox_communicate
       use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation
       use sources, only: init_sources
@@ -126,7 +127,7 @@ contains
       character(500), target :: cbuff
       integer, dimension(:), allocatable  :: seed
       integer :: i, n, ierr
-      real :: delt_saved, phi2, rescale
+      real :: delt_saved
 
       !> initialize mpi message passing
       if (.not. mpi_initialized) call init_mp
@@ -232,25 +233,8 @@ contains
       !> setup the (kx,ky) grids and (x,y) grids, if applicable
       if (debug) write (6, *) 'stella::init_stella::init_kt_grids'
       call init_kt_grids
-      !> MAB: could multibox/radial variation code below be tidied away
-      !> so that only one or two subroutine calls need appear here?
-      if (debug) write (6, *) 'stella::init_stella::init_multibox'
-      call init_multibox
-      if (proc0 .and. runtype_option_switch == runtype_multibox &
-          .and. (job == 1) .and. radial_variation) then
-         if (debug) write (6, *) 'stella::init_stella::init_multibox_geo'
-         call communicate_geo_multibox(rhoL, rhoR)
-         if (debug) write (6, *) 'stella::init_stella::init_multibox_spec'
-         call communicate_species_multibox(rhoL, rhoR)
-      end if
-      if (runtype_option_switch == runtype_multibox .and. (job == 1)) then
-         call communicate_multibox_parameters
-      end if
-      if (runtype_option_switch == runtype_multibox .and. radial_variation) then
-         if (debug) write (6, *) 'stella::init_stella::init_multibox_ktgrid'
-         call communicate_ktgrids_multibox
-      end if
-      !> not sure that it needs to be separated from init_geometry, but
+      if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
+      call init_multibox_subcalls
       !> finish_init_geometry deallocates various geometric arrays that
       !> were defined locally within the millerlocal module when using Miller geometry
       if (debug) write (6, *) 'stella::init_stella::finish_init_geometry'
@@ -328,6 +312,8 @@ contains
          call get_radial_correction(gnew, phi, dist='gbar')
       end if
 
+      !> fill in the boundary regions using auxilliary simulations if using
+      !> multibox, or zero it out if using Dirichlet boundary conditions
       if (runtype_option_switch == runtype_multibox) then
          if (debug) write (6, *) 'stella::init_stella:multibox_communicate'
          call multibox_communicate(gnew)
@@ -342,20 +328,9 @@ contains
          call advance_fields(gnew, phi, apar, dist='gbar')
       end if
 
-      ! FLAG - the following code should probably go elsewhere
-      if (.not. restarted .and. scale_to_phiinit) then
-         call volume_average(phi, phi2)
-         if (runtype_option_switch == runtype_multibox) then
-            call scope(crossdomprocs)
-            call sum_allreduce(phi2)
-            call scope(subprocs)
-            phi2 = phi2 / njobs
-         end if
-         rescale = phiinit / sqrt(phi2)
-         phi = rescale * phi
-         gnew = rescale * gnew
-         gvmu = rescale * gvmu
-      end if
+      !> rescale to phiinit if just beginning a new run
+      if (.not. restarted .and. scale_to_phiinit) call rescale_fields (phiinit)
+
       !> read stella_diagnostics_knob namelist from the input file,
       !> open ascii output files and initialise the neetcdf file with extension .out.nc
       if (debug) write (6, *) 'stella::init_stella::init_stella_diagnostics'
@@ -373,6 +348,41 @@ contains
       if (proc0) call time_message(.false., time_init, ' Initialization')
 
    end subroutine init_stella
+
+   !> call all the multibox communication subroutines to make sure all the jobs have
+   !> the appropriate information
+   subroutine init_multibox_subcalls
+
+      use mp, only: proc0, job
+      use species, only: communicate_species_multibox
+      use stella_geometry, only: communicate_geo_multibox
+      use kt_grids, only: communicate_ktgrids_multibox
+      use file_utils, only: runtype_option_switch, runtype_multibox
+      use physics_flags, only: radial_variation
+      use multibox, only: init_multibox, rhoL, rhoR
+      use multibox, only: communicate_multibox_parameters, multibox_communicate
+
+      implicit none
+
+      if (debug) write (6, *) 'stella::init_stella::init_multibox'
+      call init_multibox
+      if (runtype_option_switch == runtype_multibox) then
+         if (proc0 .and. (job == 1) .and. radial_variation) then
+            if (debug) write (6, *) 'stella::init_stella::init_multibox_geo'
+            call communicate_geo_multibox(rhoL, rhoR)
+            if (debug) write (6, *) 'stella::init_stella::init_multibox_spec'
+            call communicate_species_multibox(rhoL, rhoR)
+         end if
+         if (job == 1) then
+           call communicate_multibox_parameters
+         end if
+         if (radial_variation) then
+            if (debug) write (6, *) 'stella::init_stella::init_multibox_ktgrid'
+            call communicate_ktgrids_multibox
+         end if
+      end if
+
+   end subroutine init_multibox_subcalls
 
    !> check_transforms checks the various physics flag choices
    !> to determine if FFTs are needed for the simulation
