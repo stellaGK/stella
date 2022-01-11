@@ -14,6 +14,7 @@ module fields
    public :: advance_fields, get_fields
    public :: get_radial_correction
    public :: enforce_reality_field
+   public :: rescale_fields
    public :: get_fields_by_spec, get_fields_by_spec_idx
    public :: gamtot_h, gamtot3_h
    public :: time_field_solve
@@ -1292,6 +1293,8 @@ contains
       complex :: tmp
       logical :: skip_fsa_local
       logical :: has_elec, adia_elec
+      logical :: global_quasineutrality, center_cell
+      logical :: multibox
 #if defined MPI && ISO_C_BINDING
       integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
       integer :: prior_focus, ierr
@@ -1309,16 +1312,15 @@ contains
       adia_elec = .not. has_elec &
                   .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
+      global_quasineutrality = radial_variation .and. ky_solve_radial > 0
+      multibox = runtype_option_switch == runtype_multibox
+      center_cell = multibox .and. job == 1 .and. .not. ky_solve_real
+
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
       if (dist == 'h') then
          phi = phi / gamtot_h
       else if (dist == 'gbar') then
-         if ((radial_variation .and. ky_solve_radial > 0 &
-              .and. runtype_option_switch /= runtype_multibox) &
-             .or. &!DSO -> sorry for this if statement
-             (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
-              .and. runtype_option_switch == runtype_multibox &
-              .and. .not. ky_solve_real)) then
+         if (global_quasineutrality .and. (center_cell .or. .not. multibox) .and. .not. ky_solve_real) then
 
             allocate (g0k(1, nakx))
             allocate (g0x(1, nakx))
@@ -1384,8 +1386,7 @@ contains
                phi(1, 1, :, :) = 0.0
 
             deallocate (g0k, g0x, g0a)
-         else if (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
-                  .and. runtype_option_switch == runtype_multibox) then
+         else if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
             call mb_get_phi(phi, has_elec, adia_elec)
          else
             ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
@@ -1413,15 +1414,10 @@ contains
                end do
             end do
          else if (dist == 'gbar') then
-            if (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
-                .and. runtype_option_switch == runtype_multibox .and. ky_solve_real) then
+            if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
                !this is already taken care of in mb_get_phi
-            elseif ((radial_variation .and. ky_solve_radial > 0 &
-                     .and. runtype_option_switch /= runtype_multibox) &
-                    .or. &
-                    (radial_variation .and. ky_solve_radial > 0 .and. job == 1 &
-                     .and. runtype_option_switch == runtype_multibox &
-                     .and. .not. ky_solve_real)) then
+            elseif (global_quasineutrality .and. (center_cell .or. .not. multibox) &
+                    .and. .not. ky_solve_real) then
 
                allocate (g0k(1, nakx))
                allocate (g1k(1, nakx))
@@ -1582,8 +1578,7 @@ contains
 
    end subroutine get_phi_ffs
 
-   ! the following routine gets the correction in phi both from gyroaveraging and quasineutrality
-   ! the output, phi,
+   !> the following routine gets the correction in phi both from gyroaveraging and quasineutrality
    subroutine get_radial_correction(g, phi_in, dist)
 
       use mp, only: proc0, mp_abort, sum_allreduce
@@ -1679,7 +1674,7 @@ contains
             end if
          end if
 
-         !collect quasineutrality corrections in wavenumber space
+         !> collect quasineutrality corrections in wavenumber space
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                g0k = phi(:, :, iz, it)
@@ -1687,14 +1682,14 @@ contains
                phi_corr_QN(:, :, iz, it) = g0k
             end do
          end do
-         !zero out the ones we have already solved for using the full method
+         !> zero out the ones we have already solved for using the full method
          do iky = 1, min(ky_solve_radial, naky)
             phi_corr_QN(iky, :, :, :) = 0.0
          end do
 
          deallocate (phi)
 
-         !collect gyroaveraging corrections in wavenumber space
+         !> collect gyroaveraging corrections in wavenumber space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -1717,6 +1712,39 @@ contains
       end if
 
    end subroutine get_radial_correction
+
+   !> rescale fields, including the distribution function
+   subroutine rescale_fields(target_amplitude)
+
+      use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
+      use fields_arrays, only: phi, apar
+      use dist_fn_arrays, only: gnew, gvmu
+      use volume_averages, only: volume_average
+      use job_manage, only: njobs
+      use file_utils, only: runtype_option_switch, runtype_multibox
+
+      implicit none
+
+      real, intent (in) :: target_amplitude
+      real :: phi2, rescale
+
+      call volume_average (phi, phi2)
+
+      if (runtype_option_switch == runtype_multibox) then
+         call scope (crossdomprocs)
+         call sum_allreduce (phi2)
+         call scope (subprocs)
+         phi2 = phi2 / njobs
+      end if
+
+      rescale = target_amplitude / sqrt(phi2)
+
+      phi  = rescale * phi
+      apar = rescale * apar
+      gnew = rescale * gnew
+      gvmu = rescale * gvmu
+
+   end subroutine rescale_fields
 
    !> compute d<chi>/dy in (ky,kx,z,tube) space
    subroutine get_dchidy_4d(phi, apar, dchidy)
