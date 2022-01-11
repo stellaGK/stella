@@ -1725,21 +1725,21 @@ contains
 
       implicit none
 
-      real, intent (in) :: target_amplitude
+      real, intent(in) :: target_amplitude
       real :: phi2, rescale
 
-      call volume_average (phi, phi2)
+      call volume_average(phi, phi2)
 
       if (runtype_option_switch == runtype_multibox) then
-         call scope (crossdomprocs)
-         call sum_allreduce (phi2)
-         call scope (subprocs)
+         call scope(crossdomprocs)
+         call sum_allreduce(phi2)
+         call scope(subprocs)
          phi2 = phi2 / njobs
       end if
 
       rescale = target_amplitude / sqrt(phi2)
 
-      phi  = rescale * phi
+      phi = rescale * phi
       apar = rescale * apar
       gnew = rescale * gnew
       gvmu = rescale * gvmu
