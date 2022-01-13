@@ -161,6 +161,18 @@ include Makefile.$(GK_SYSTEM)
 
 sinclude Makefile.local
 
+# Files that we know are going to be in the submodule directories.
+# This is in case the directories exist but the submodules haven't
+# actually been initialised
+GIT_VERSION_SENTINEL := externals/git_version/README.md
+
+.PRECIOUS: $(GIT_VERSION_SENTINEL)
+
+# Make sure the submodules exist; they all currently share the same recipe
+$(GIT_VERSION_SENTINEL) submodules:
+	@echo "Downloading submodules"
+	git submodule update --init --recursive
+
 #############################################################################
 
 export F90FLAGS
@@ -289,7 +301,7 @@ ifneq ($(TOPDIR),$(CURDIR))
 	SUBDIR=true
 endif
 
-VPATH = $(UTILS):$(GEO):$(VMEC):git_version/src
+VPATH = $(UTILS):$(GEO):$(VMEC):externals/git_version/src
 # this just removes non-existing directory from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
 VPATH = .:$(shell echo $(VPATH_tmp) | sed "s/ /:/g")
@@ -310,37 +322,36 @@ DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && ech
 F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 
 GIT_SHA1:=$(shell git rev-parse HEAD)
-CPPFLAGS += -DGIT_SHA1='"$(GIT_SHA1)"'
 
 # Version string, including current commit if not on a release, plus
 # '-dirty' if there are uncommitted changes
 GIT_VERSION := $(shell git describe --tags --always --dirty --match "v*")
 GIT_DATE := $(shell git show -q --pretty=format:%as HEAD)
-CPPFLAGS += -DGIT_VERSION='"$(GIT_VERSION)"' -DGIT_DATE='"$(GIT_DATE)"'
 
 # Find if there are any modified tracked files (except Makefile.depend)
 ifeq ($(shell git status --short -uno -- . | wc -l), 0)
 	GIT_STATE:="clean"
-	CPPFLAGS+=-DGIT_STATE='$(GIT_STATE)'
-$(shell touch $(PATCHFILE))
 else
 	GIT_STATE:="modified"
-	CPPFLAGS+=-DGIT_STATE='$(GIT_STATE)'
 endif
+FORTRAN_GIT_DEFS += -DGIT_SHA1='"$(GIT_SHA1)"' -DGIT_VERSION='"$(GIT_VERSION)"' -DGIT_DATE='"$(GIT_DATE)"' -DGIT_STATE='$(GIT_STATE)'
+FORTRAN_GIT_DEFS += -DFORTRAN_GIT_DONT_USE_VERSION_HEADER
 
 # Dump the compilation flags to a file, so we can check if they change between
 # invocations of `make`. The `cmp` bit checks if the file contents
 # change. Adding a dependency of a file on `.compiler_flags` causes it to be
 # rebuilt when the flags change. Taken from
 # https://stackoverflow.com/a/3237349/2043465
-COMPILER_FLAGS_CONTENTS = "FC = $(FC)\CFPPFLAGS = $(CPPFLAGS)\nF90FLAGS = $(F90FLAGS)\nINC_FLAGS = $(INC_FLAGS)\nCFLAGS = $(CFLAGS)"
+COMPILER_FLAGS_CONTENTS = "FC = $(FC)\n CPPFLAGS = $(CPPFLAGS)\n F90FLAGS = $(F90FLAGS)\n INC_FLAGS = $(INC_FLAGS)\n CFLAGS = $(CFLAGS)"
+COMPILER_FLAGS_CONTENTS += "\n FORTRAN_GIT_DEFS = $(FORTRAN_GIT_DEFS)"
 .PHONY: force
 .compiler_flags: force
 	@echo -e $(COMPILER_FLAGS_CONTENTS) | cmp -s - $@ || echo -e $(COMPILER_FLAGS_CONTENTS) > $@
 
 # Things that should be rebuilt if the compilation flags change (for example, on a new commit)
-git_version_impl.o: .compiler_flags git_version.o
-git_version/src/git_version_impl.fpp: .compiler_flags
+git_version_impl.o: externals/git_version/src/git_version_impl.F90 .compiler_flags git_version.o $(GIT_VERSION_SENTINEL)
+	$(FC) $(F90FLAGS) $(CPPFLAGS) $(FORTRAN_GIT_DEFS) $(INC_FLAGS) -c $<
+externals/git_version/src/git_version_impl.F90: .compiler_flags
 
 ####################################################################### RULES
 
@@ -403,7 +414,7 @@ depend:
 	@$(DEPEND_CMD) -m "$(MAKE)" -1 -o -v=0 $(VPATH)
 
 clean:
-	-rm -f *.o *.mod *.g90 *.h core */core *~
+	-rm -f *.o *.mod *.g90 *.h core */core *~ *.smod
 	-rm -f $(GEO)/*.o $(GEO)/*~
 	-rm -f Makefiles/*~
 	-rm -f $(UTILS)/*.o $(UTILS)/*~
