@@ -108,7 +108,6 @@ contains
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: g1
 
-
       ia = 1
       zm = 0
 
@@ -274,7 +273,6 @@ contains
       end if
 
    end subroutine init_fields_fluxtube
-
 
    subroutine init_radial_field_solve
       use mp, only: job
@@ -495,7 +493,6 @@ contains
       end if
 
    end subroutine init_radial_field_solve
-
 
    !> init_fields_ffs allocates and fills arrays needed during main time advance
    !> loop for the field solve for full_flux_surface simulations
