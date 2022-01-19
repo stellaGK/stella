@@ -612,8 +612,8 @@ contains
       else
          !> if simulating a flux tube, a gyro-average is local in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-           call gyro_average (field(:,:,:,:,ivmu), ivmu, gyro_field(:,:,:,:,ivmu))
-         enddo
+            call gyro_average(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
+         end do
       end if
 
    end subroutine gyro_average_kxkyzv_local

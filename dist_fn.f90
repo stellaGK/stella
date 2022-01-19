@@ -284,10 +284,10 @@ contains
 
       implicit none
 
-      if (allocated(gnew))   deallocate (gnew)
-      if (allocated(gold))   deallocate (gold)
+      if (allocated(gnew)) deallocate (gnew)
+      if (allocated(gold)) deallocate (gold)
       if (allocated(g_gyro)) deallocate (g_gyro)
-      if (allocated(gvmu))   deallocate (gvmu)
+      if (allocated(gvmu)) deallocate (gvmu)
 
    end subroutine deallocate_arrays
 
