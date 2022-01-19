@@ -938,7 +938,7 @@ contains
          end if
 
          ! integrate <g> over velocity space and sum over species
-         call integrate_species (g_gyro, spec%z * spec%dens_psi0, phi)
+         call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
 
          if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
          !> gather sub-sums from each processor and add them together
