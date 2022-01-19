@@ -874,7 +874,7 @@ contains
       use run_parameters, only: fphi, fapar
       use stella_geometry, only: dBdrho, bmag
       use physics_flags, only: radial_variation
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use dist_fn_arrays, only: g_gyro, kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, vperp2
       use kt_grids, only: nakx, naky, multiply_by_rho
@@ -890,7 +890,6 @@ contains
 
       integer :: ivmu, iz, it, ia, imu, is, iky
       logical :: skip_fsa_local
-      complex, dimension(:, :, :), allocatable :: gyro_g
       complex, dimension(:, :), allocatable :: g0k
 
       skip_fsa_local = .false.
@@ -904,24 +903,26 @@ contains
       if (fphi > epsilon(0.0)) then
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          allocate (g0k(naky, nakx))
-         allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         ! loop over flux tubes in flux tube train
-         do it = 1, ntubes
-            ! loop over zed location within flux tube
-            do iz = -nzgrid, nzgrid
-               ! loop over super-index ivmu, which include vpa, mu and spec
-               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  ! is = species index
-                  is = is_idx(vmu_lo, ivmu)
-                  ! imu = mu index
-                  imu = imu_idx(vmu_lo, ivmu)
-                  ! gyroaverage the distribution function g at each phase space location
-                  call gyro_average(g(:, :, iz, it, ivmu), iz, ivmu, gyro_g(:, :, ivmu))
-                  ! <g> requires modification if radial profile variation is included
-                  if (radial_variation) then
+
+         ! gyroaverage the distribution function g at each phase space location
+         call gyro_average(g, g_gyro)
+
+         ! <g> requires modification if radial profile variation is included
+         if (radial_variation) then
+            ! loop over super-index ivmu, which include vpa, mu and spec
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               ! is = species index
+               is = is_idx(vmu_lo, ivmu)
+               ! imu = mu index
+               imu = imu_idx(vmu_lo, ivmu)
+
+               ! loop over flux tubes in flux tube train
+               do it = 1, ntubes
+                  ! loop over zed location within flux tube
+                  do iz = -nzgrid, nzgrid
                      g0k = 0.0
                      do iky = 1, min(ky_solve_radial, naky)
-                        g0k(iky, :) = gyro_g(iky, :, ivmu) &
+                        g0k(iky, :) = g_gyro(iky, :, iz, it, ivmu) &
                                       * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
                                          * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                          * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
@@ -930,17 +931,14 @@ contains
                      end do
                      !g0k(1,1) = 0.
                      call multiply_by_rho(g0k)
-                     gyro_g(:, :, ivmu) = gyro_g(:, :, ivmu) + g0k
-                  end if
+                     g_gyro(:, :, iz, it, ivmu) = g_gyro(:, :, iz, it, ivmu) + g0k
+                  end do
                end do
-               ! integrate <g> over velocity space and sum over species within each processor
-               ! as v-space and species possibly spread over processors, wlil need to
-               ! gather sums from each proceessor and sum them all together below
-               call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, phi(:, :, iz, it), reduce_in=.false.)
             end do
-         end do
-         ! no longer need <g>, so deallocate
-         deallocate (gyro_g)
+         end if
+
+         ! integrate <g> over velocity space and sum over species
+         call integrate_species (g_gyro, spec%z * spec%dens_psi0, phi)
 
          if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
          !> gather sub-sums from each processor and add them together
