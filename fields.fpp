@@ -915,7 +915,6 @@ contains
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo'
 
-
       phi = 0.
       if (fphi > epsilon(0.0)) then
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -924,12 +923,12 @@ contains
          call gyro_average(g, g_gyro)
 
          ! <g> requires modification if radial profile variation is included
-         if (radial_variation) call add_radial_correction_int_species (g_gyro)
+         if (radial_variation) call add_radial_correction_int_species(g_gyro)
 
          ! integrate <g> over velocity space and sum over species
          !> store result in phi, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
-         call integrate_species (g_gyro, spec%z * spec%dens_psi0, phi)
+         call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -1563,9 +1562,9 @@ contains
 
    end subroutine get_phi_ffs
 
-   !> Add radial variation of the Jacobian and gyroaveraing in the velocity integration of 
+   !> Add radial variation of the Jacobian and gyroaveraing in the velocity integration of
    !> <g>, needed for radially global simulations
-   subroutine add_radial_correction_int_species (g_in)
+   subroutine add_radial_correction_int_species(g_in)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
@@ -1603,10 +1602,10 @@ contains
                g0k = 0.0
                do iky = 1, min(ky_solve_radial, naky)
                   g0k(iky, :) = g_in(iky, :, iz, it, ivmu) &
-                              * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                 * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                 * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                 + dBdrho(iz) / bmag(ia, iz))
+                                * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                   * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                                   * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                                   + dBdrho(iz) / bmag(ia, iz))
 
                end do
                !g0k(1,1) = 0.
@@ -1618,8 +1617,7 @@ contains
 
       deallocate (g0k)
 
-   end subroutine add_radial_correction_int_species 
-
+   end subroutine add_radial_correction_int_species
 
    !> the following routine gets the correction in phi both from gyroaveraging and quasineutrality
    subroutine get_radial_correction(g, phi_in, dist)
@@ -1755,7 +1753,6 @@ contains
       end if
 
    end subroutine get_radial_correction
-
 
    !> rescale fields, including the distribution function
    subroutine rescale_fields(target_amplitude)
