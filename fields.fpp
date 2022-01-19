@@ -866,19 +866,15 @@ contains
 
    subroutine get_fields_vmulo(g, phi, apar, dist, skip_fsa)
 
-      use mp, only: mp_abort, sum_allreduce, proc0
+      use mp, only: mp_abort, proc0
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: imu_idx, is_idx
-      use gyro_averages, only: gyro_average, aj0x, aj1x
+      use gyro_averages, only: gyro_average
       use run_parameters, only: fphi, fapar
-      use stella_geometry, only: dBdrho, bmag
       use physics_flags, only: radial_variation
-      use dist_fn_arrays, only: g_gyro, kperp2, dkperp2dr
-      use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: integrate_species, vperp2
-      use kt_grids, only: nakx, naky, multiply_by_rho
-      use run_parameters, only: ky_solve_radial
+      use dist_fn_arrays, only: g_gyro
+      use zgrid, only: nzgrid
+      use vpamu_grids, only: integrate_species
       use species, only: spec
 
       implicit none
@@ -888,62 +884,29 @@ contains
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
 
-      integer :: ivmu, iz, it, ia, imu, is, iky
       logical :: skip_fsa_local
-      complex, dimension(:, :), allocatable :: g0k
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo'
 
-      ia = 1
 
       phi = 0.
       if (fphi > epsilon(0.0)) then
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         allocate (g0k(naky, nakx))
 
          ! gyroaverage the distribution function g at each phase space location
          call gyro_average(g, g_gyro)
 
          ! <g> requires modification if radial profile variation is included
-         if (radial_variation) then
-            ! loop over super-index ivmu, which include vpa, mu and spec
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               ! is = species index
-               is = is_idx(vmu_lo, ivmu)
-               ! imu = mu index
-               imu = imu_idx(vmu_lo, ivmu)
-
-               ! loop over flux tubes in flux tube train
-               do it = 1, ntubes
-                  ! loop over zed location within flux tube
-                  do iz = -nzgrid, nzgrid
-                     g0k = 0.0
-                     do iky = 1, min(ky_solve_radial, naky)
-                        g0k(iky, :) = g_gyro(iky, :, iz, it, ivmu) &
-                                      * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                         * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                         * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                         + dBdrho(iz) / bmag(ia, iz))
-
-                     end do
-                     !g0k(1,1) = 0.
-                     call multiply_by_rho(g0k)
-                     g_gyro(:, :, iz, it, ivmu) = g_gyro(:, :, iz, it, ivmu) + g0k
-                  end do
-               end do
-            end do
-         end if
+         if (radial_variation) call add_radial_correction_int_species (g_gyro)
 
          ! integrate <g> over velocity space and sum over species
+         !> store result in phi, which will be further modified below to account for polarization term
+         if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
          call integrate_species (g_gyro, spec%z * spec%dens_psi0, phi)
 
-         if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
-         !> gather sub-sums from each processor and add them together
-         !> store result in phi, which will be further modified below to account for polarization term
-         call sum_allreduce(phi)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          call get_phi(phi, dist, skip_fsa_local)
@@ -1576,6 +1539,64 @@ contains
 
    end subroutine get_phi_ffs
 
+   !> Add radial variation of the Jacobian and gyroaveraing in the velocity integration of 
+   !> <g>, needed for radially global simulations
+   subroutine add_radial_correction_int_species (g_in)
+
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: imu_idx, is_idx
+      use gyro_averages, only: aj0x, aj1x
+      use stella_geometry, only: dBdrho, bmag
+      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: vperp2
+      use kt_grids, only: nakx, naky, multiply_by_rho
+      use run_parameters, only: ky_solve_radial
+      use species, only: spec
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: g_in
+
+      integer :: ivmu, iz, it, ia, imu, is, iky
+      complex, dimension(:, :), allocatable :: g0k
+
+      allocate (g0k(naky, nakx))
+
+      ia = 1
+
+      ! loop over super-index ivmu, which include vpa, mu and spec
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         ! is = species index
+         is = is_idx(vmu_lo, ivmu)
+         ! imu = mu index
+         imu = imu_idx(vmu_lo, ivmu)
+
+         ! loop over flux tubes in flux tube train
+         do it = 1, ntubes
+            ! loop over zed location within flux tube
+            do iz = -nzgrid, nzgrid
+               g0k = 0.0
+               do iky = 1, min(ky_solve_radial, naky)
+                  g0k(iky, :) = g_in(iky, :, iz, it, ivmu) &
+                              * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                 * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                                 * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                                 + dBdrho(iz) / bmag(ia, iz))
+
+               end do
+               !g0k(1,1) = 0.
+               call multiply_by_rho(g0k)
+               g_in(:, :, iz, it, ivmu) = g_in(:, :, iz, it, ivmu) + g0k
+            end do
+         end do
+      end do
+
+      deallocate (g0k)
+
+   end subroutine add_radial_correction_int_species 
+
+
    !> the following routine gets the correction in phi both from gyroaveraging and quasineutrality
    subroutine get_radial_correction(g, phi_in, dist)
 
@@ -1710,6 +1731,7 @@ contains
       end if
 
    end subroutine get_radial_correction
+
 
    !> rescale fields, including the distribution function
    subroutine rescale_fields(target_amplitude)
