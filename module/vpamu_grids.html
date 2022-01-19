@@ -138,7 +138,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.4% of total for modules and submodules.">534 statements</a>
+    title=" 1.5% of total for modules and submodules.">563 statements</a>
      </li> 
      
      
@@ -295,6 +295,8 @@
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_vmu_vmulo_complex">integrate_vmu_vmulo_complex</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_vmu_vmulo_ivmu_only_real">integrate_vmu_vmulo_ivmu_only_real</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_species_vmu">integrate_species_vmu</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_species_vmu_single">integrate_species_vmu_single</a>
       
@@ -472,6 +474,8 @@
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_vmu_vmulo_complex">integrate_vmu_vmulo_complex</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_vmu_vmulo_ivmu_only_real">integrate_vmu_vmulo_ivmu_only_real</a>
+      
+      <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_species_vmu">integrate_species_vmu</a>
       
       <a class="list-group-item" href="../module/vpamu_grids.html#proc-integrate_species_vmu_single">integrate_species_vmu_single</a>
       
@@ -954,6 +958,99 @@
   <ul class="list-group">
   
   
+  
+    <li class="list-group-item">
+    
+    
+    <h3>
+public subroutine <a href='../proc/integrate_species_vmu.html'>integrate_species_vmu</a>(g, weights, total, ia_in)
+    
+    
+   
+</h3>
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>weights</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>total</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>ia_in</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+    </li>
   
     <li class="list-group-item">
     
@@ -2626,6 +2723,102 @@ public subroutine <a href='../proc/integrate_vmu_vmulo_ivmu_only_real.html'>inte
     
     
   <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-integrate_species_vmu"></span><h3>
+public subroutine <a href='../proc/integrate_species_vmu.html'>integrate_species_vmu</a>(g, weights, total, ia_in)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>g</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real,</td>
+  <td>intent(in),</td>
+  <td></td>
+  
+  <td>dimension (:)</td><td>::</td>
+  <td><strong>weights</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>dimension (:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>total</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>ia_in</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-integrate_species_vmu_single"></span><h3>
 public subroutine <a href='../proc/integrate_species_vmu_single.html'>integrate_species_vmu_single</a>(g, iz, weights, total, ia_in, reduce_in)
     
@@ -3501,13 +3694,13 @@ public subroutine <a href='../proc/finish_vpamu_grids.html'>finish_vpamu_grids</
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.3-320-g1e6e8ccdd</small></p>
+                                          <br /><small>v0.3-322-g958e064a4</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-11T10:07:29.433425 
+             on 2022-01-19T10:39:54.407025 
             
           </p>
         </div>

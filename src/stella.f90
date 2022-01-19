@@ -329,7 +329,7 @@ contains
       end if
 
       !> rescale to phiinit if just beginning a new run
-      if (.not. restarted .and. scale_to_phiinit) call rescale_fields (phiinit)
+      if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
 
       !> read stella_diagnostics_knob namelist from the input file,
       !> open ascii output files and initialise the neetcdf file with extension .out.nc
@@ -374,7 +374,7 @@ contains
             call communicate_species_multibox(rhoL, rhoR)
          end if
          if (job == 1) then
-           call communicate_multibox_parameters
+            call communicate_multibox_parameters
          end if
          if (radial_variation) then
             if (debug) write (6, *) 'stella::init_stella::init_multibox_ktgrid'
