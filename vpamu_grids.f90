@@ -390,8 +390,8 @@ contains
 
    end subroutine integrate_vmu_vmulo_ivmu_only_real
 
-    ! integrave over v-space and sum over species
-    subroutine integrate_species_vmu (g, weights, total, ia_in)
+   ! integrave over v-space and sum over species
+   subroutine integrate_species_vmu(g, weights, total, ia_in)
 
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -401,10 +401,10 @@ contains
 
       integer :: ivmu, iv, it, iz, is, imu, ia
 
-      complex, dimension (:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (in) :: g
-      real, dimension (:), intent (in) :: weights
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
       integer, intent(in), optional :: ia_in
-      complex, dimension (:, :, -nzgrid:, :), intent (out) :: total
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: total
 
       if (present(ia_in)) then
          ia = ia_in
@@ -415,20 +415,20 @@ contains
       total = 0.
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo,ivmu)
-         imu = imu_idx(vmu_lo,ivmu)
-         is = is_idx(vmu_lo,ivmu)
-         do it = 1, ntubes 
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                total(:, :, iz, it) = total(:, :, iz, it) + &
-                        wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:,:,iz,it,ivmu) * weights(is)
+                                     wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, it, ivmu) * weights(is)
             end do
          end do
       end do
 
-      call sum_allreduce (total)
+      call sum_allreduce(total)
 
-    end subroutine integrate_species_vmu
+   end subroutine integrate_species_vmu
 
    ! integrave over v-space and sum over species for given (ky,kx,z) point
    subroutine integrate_species_vmu_single(g, iz, weights, total, ia_in, reduce_in)
