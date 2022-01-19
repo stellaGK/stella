@@ -55,10 +55,13 @@ contains
 
    subroutine init_fields
 
+      use mp, only: proc0
       use linear_solve, only: lu_decomposition
       use physics_flags, only: full_flux_surface
 
       implicit none
+
+      debug = debug .and. proc0
 
       if (full_flux_surface) then
          call init_fields_ffs
@@ -75,63 +78,36 @@ contains
    !> loop for the field solve for flux tube simulations
    subroutine init_fields_fluxtube
 
-      use mp, only: sum_allreduce, job
-#if defined MPI && defined ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use fields_arrays, only: qn_window, phi_shared
-      use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
-      use mp, only: scope, real_size, nbytes_real, iproc, nproc, proc0
-      use mpi
-#else
-#endif
+      use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
       use run_parameters, only: fphi, fapar
-      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use run_parameters, only: ky_solve_radial
       use physics_parameters, only: tite, nine, beta
       use physics_flags, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
       use stella_geometry, only: dl_over_b, d_dl_over_b_drho, dBdrho, bmag
-      use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use zgrid, only: nzgrid, ntubes, nztot
+      use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: integrate_vmu
       use species, only: spec, nspec
       use kt_grids, only: naky, nakx, akx
-      use kt_grids, only: zonal_mode, rho_d_clamped
+      use kt_grids, only: zonal_mode
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
-      use linear_solve, only: lu_decomposition, lu_inverse
-      use multibox, only: init_mb_get_phi
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3, dgamtot3dr
-      use fields_arrays, only: phi_solve, c_mat, theta
-      use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
 
-      integer :: ikxkyz, iz, it, ikx, iky, is, ia, zmi, naky_r
-      real :: tmp, tmp2, wgt, dum
+      integer :: ikxkyz, iz, it, ikx, iky, is, ia
+      real :: tmp, tmp2, wgt
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: g1
-      logical :: has_elec, adia_elec
-#if defined MPI && ISO_C_BINDING
-      integer :: prior_focus, ierr
-      integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
-      integer :: disp_unit = 1
-      integer*8 :: cur_pos
-      integer(kind=MPI_ADDRESS_KIND) :: win_size
-      complex, dimension(:), pointer :: phi_shared_temp
-      type(c_ptr) :: cptr
-#endif
 
-      complex, dimension(:, :), allocatable :: g0k, g0x
-
-      debug = debug .and. proc0
 
       ia = 1
       zm = 0
@@ -268,184 +244,10 @@ contains
             end if
          end if
 
-         if (radial_variation .and. ky_solve_radial > 0) then
-
-            naky_r = min(naky, ky_solve_radial)
-
-            has_elec = has_electron_species(spec)
-            adia_elec = .not. has_elec .and. zonal_mode(1) &
-                        .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
-
-            if (runtype_option_switch == runtype_multibox .and. job == 1 .and. ky_solve_real) then
-               call init_mb_get_phi(has_elec, adia_elec, efac, efacp)
-            elseif (runtype_option_switch /= runtype_multibox .or. &
-                    (job == 1 .and. .not. ky_solve_real)) then
-               allocate (g0k(1, nakx))
-               allocate (g0x(1, nakx))
-
-               if (.not. allocated(phi_solve)) allocate (phi_solve(naky_r, -nzgrid:nzgrid))
-#if defined MPI && ISO_C_BINDING
-               prior_focus = curr_focus
-               call scope(sharedsubprocs)
-               !the following is to parallelize the calculation of QN for radial variation sims
-               if (debug) write (*, *) 'fields::init_fields::phi_shared_init'
-               if (phi_shared_window == MPI_WIN_NULL) then
-                  win_size = 0
-                  if (sgproc0) then
-                     win_size = int(naky * nakx * nztot * ntubes, MPI_ADDRESS_KIND) * 2 * real_size !complex size
-                  end if
-
-                  call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                               mp_comm, cptr, phi_shared_window, ierr)
-
-                  if (.not. sgproc0) then
-                     !make sure all the procs have the right memory address
-                     call mpi_win_shared_query(phi_shared_window, 0, win_size, disp_unit, cptr, ierr)
-                  end if
-                  call mpi_win_fence(0, phi_shared_window, ierr)
-
-                  if (.not. associated(phi_shared)) then
-                     ! associate array with lower bounds of 1
-                     call c_f_pointer(cptr, phi_shared_temp, (/naky * nakx * nztot * ntubes/))
-                     ! now get the correct bounds
-                     phi_shared(1:naky, 1:nakx, -nzgrid:nzgrid, 1:ntubes) => phi_shared_temp
-                  end if
-                  call mpi_win_fence(0, phi_shared_window, ierr)
-               end if
-
-               if (debug) write (*, *) 'fields::init_fields::qn_window_init'
-               if ((.not. qn_window_initialized) .or. (qn_window == MPI_WIN_NULL)) then
-                  win_size = 0
-                  if (sgproc0) then
-                     win_size = int(nakx * nztot * naky_r, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                                + int(nakx**2 * nztot * naky_r, MPI_ADDRESS_KIND) * 2 * real_size !complex size
-                  end if
-
-                  call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                               mp_comm, cptr, qn_window, ierr)
-
-                  if (.not. sgproc0) then
-                     !make sure all the procs have the right memory address
-                     call mpi_win_shared_query(qn_window, 0, win_size, disp_unit, cptr, ierr)
-                  end if
-                  call mpi_win_fence(0, qn_window, ierr)
-                  cur_pos = transfer(cptr, cur_pos)
-
-                  !allocate the memory
-                  do iky = 1, naky_r
-                     zmi = 0
-                     if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
-                     do iz = -nzgrid, nzgrid
-                        if (.not. associated(phi_solve(iky, iz)%zloc)) then
-                           allocate (phi_solve(iky, iz)%zloc(nakx - zmi, nakx - zmi))
-                           cptr = transfer(cur_pos, cptr)
-                           call c_f_pointer(cptr, phi_solve(iky, iz)%zloc, (/nakx - zmi, nakx - zmi/))
-                        end if
-                        cur_pos = cur_pos + (nakx - zmi)**2 * 2 * nbytes_real
-                        if (.not. associated(phi_solve(iky, iz)%idx)) then
-                           cptr = transfer(cur_pos, cptr)
-                           call c_f_pointer(cptr, phi_solve(iky, iz)%idx, (/nakx - zmi/))
-                        end if
-                        cur_pos = cur_pos + (nakx - zmi) * 4
-                     end do
-                  end do
-
-                  call mpi_win_fence(0, qn_window, ierr)
-
-                  qn_window_initialized = .true.
-               end if
-               c_max = nztot * naky_r
-               c_div = c_max / nproc
-               c_mod = mod(c_max, nproc)
-
-               c_lo = iproc * c_div + 1 + min(iproc, c_mod)
-               c_hi = c_lo + c_div - 1
-               if (iproc < c_mod) c_hi = c_hi + 1
-
-               call scope(prior_focus)
-               counter = 0
-#else
-               do iky = 1, naky_r
-                  zmi = 0
-                  if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
-                  do iz = -nzgrid, nzgrid
-                     if (.not. associated(phi_solve(iky, iz)%zloc)) &
-                        allocate (phi_solve(iky, iz)%zloc(nakx - zmi, nakx - zmi))
-                     if (.not. associated(phi_solve(iky, iz)%idx)) &
-                        allocate (phi_solve(iky, iz)%idx(nakx - zmi))
-                  end do
-               end do
-#endif
-
-               do iky = 1, naky_r
-                  zmi = 0
-                  if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
-                  do iz = -nzgrid, nzgrid
-#if defined MPI && ISO_C_BINDING
-                     counter = counter + 1
-                     if ((counter >= c_lo) .and. (counter <= c_hi)) then
-#endif
-                        phi_solve(iky, iz)%zloc = 0.0
-                        phi_solve(iky, iz)%idx = 0
-                        do ikx = 1 + zmi, nakx
-                           g0k(1, :) = 0.0
-                           g0k(1, ikx) = dgamtotdr(iky, ikx, iz)
-
-                           call transform_kx2x_unpadded(g0k, g0x)
-                           g0x(1, :) = rho_d_clamped * g0x(1, :)
-                           call transform_x2kx_unpadded(g0x, g0k)
-
-                           !row column
-                           phi_solve(iky, iz)%zloc(:, ikx - zmi) = g0k(1, (1 + zmi):)
-                           phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) = phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) &
-                                                                           + gamtot(iky, ikx, iz)
-                        end do
-
-                        call lu_decomposition(phi_solve(iky, iz)%zloc, phi_solve(iky, iz)%idx, dum)
-#if defined MPI && ISO_C_BINDING
-                     end if
-#endif
-                  end do
-               end do
-
-               if (adia_elec) then
-                  if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-                  if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
-                  !get C
-                  do ikx = 1, nakx
-                     g0k(1, :) = 0.0
-                     g0k(1, ikx) = 1.0
-
-                     call transform_kx2x_unpadded(g0k, g0x)
-                     g0x(1, :) = (efac + efacp * rho_d_clamped) * g0x(1, :)
-                     call transform_x2kx_unpadded(g0x, g0k)
-
-                     !row column
-                     c_mat(:, ikx) = g0k(1, :)
-                  end do
-
-                  !get Theta
-                  do iz = -nzgrid, nzgrid
-
-                     !get Theta
-                     do ikx = 1, nakx
-                        g0k(1, :) = 0.0
-                        g0k(1, ikx) = dgamtotdr(1, ikx, iz) - efacp
-
-                        call transform_kx2x_unpadded(g0k, g0x)
-                        g0x(1, :) = rho_d_clamped * g0x(1, :)
-                        call transform_x2kx_unpadded(g0x, g0k)
-
-                        !row column
-                        theta(:, ikx, iz) = g0k(1, :)
-                        theta(ikx, ikx, iz) = theta(ikx, ikx, iz) + gamtot(1, ikx, iz) - efac
-                     end do
-                  end do
-               end if
-               deallocate (g0k, g0x)
-            end if
-         end if
          deallocate (g0)
+
+         if (radial_variation .and. ky_solve_radial > 0) call init_radial_field_solve
+
       end if
 
       if (fapar > epsilon(0.)) then
@@ -472,6 +274,228 @@ contains
       end if
 
    end subroutine init_fields_fluxtube
+
+
+   subroutine init_radial_field_solve
+      use mp, only: job
+#if defined MPI && defined ISO_C_BINDING
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+      use fields_arrays, only: qn_window, phi_shared
+      use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
+      use mp, only: scope, real_size, nbytes_real, iproc, nproc
+      use mpi
+#endif
+      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use species, only: spec, has_electron_species
+      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use zgrid, only: nzgrid, ntubes, nztot
+      use species, only: spec
+      use kt_grids, only: naky, nakx
+      use kt_grids, only: zonal_mode, rho_d_clamped
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
+      use linear_solve, only: lu_decomposition, lu_inverse
+      use multibox, only: init_mb_get_phi
+      use fields_arrays, only: gamtot, dgamtotdr
+      use fields_arrays, only: phi_solve, c_mat, theta
+      use file_utils, only: runtype_option_switch, runtype_multibox
+
+      implicit none
+
+      integer :: iz, ikx, iky, ia, zmi, naky_r
+      real :: dum
+      logical :: has_elec, adia_elec
+#if defined MPI && ISO_C_BINDING
+      integer :: prior_focus, ierr
+      integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
+      integer :: disp_unit = 1
+      integer*8 :: cur_pos
+      integer(kind=MPI_ADDRESS_KIND) :: win_size
+      complex, dimension(:), pointer :: phi_shared_temp
+      type(c_ptr) :: cptr
+#endif
+
+      complex, dimension(:, :), allocatable :: g0k, g0x
+
+      ia = 1
+      zm = 0
+
+      naky_r = min(naky, ky_solve_radial)
+
+      has_elec = has_electron_species(spec)
+      adia_elec = .not. has_elec .and. zonal_mode(1) &
+                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+
+      if (runtype_option_switch == runtype_multibox .and. job == 1 .and. ky_solve_real) then
+         call init_mb_get_phi(has_elec, adia_elec, efac, efacp)
+      elseif (runtype_option_switch /= runtype_multibox .or. (job == 1 .and. .not. ky_solve_real)) then
+         allocate (g0k(1, nakx))
+         allocate (g0x(1, nakx))
+
+         if (.not. allocated(phi_solve)) allocate (phi_solve(naky_r, -nzgrid:nzgrid))
+#if defined MPI && ISO_C_BINDING
+         prior_focus = curr_focus
+         call scope(sharedsubprocs)
+         !the following is to parallelize the calculation of QN for radial variation sims
+         if (debug) write (*, *) 'fields::init_fields::phi_shared_init'
+         if (phi_shared_window == MPI_WIN_NULL) then
+            win_size = 0
+            if (sgproc0) then
+               win_size = int(naky * nakx * nztot * ntubes, MPI_ADDRESS_KIND) * 2 * real_size !complex size
+            end if
+
+            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
+                                         mp_comm, cptr, phi_shared_window, ierr)
+
+            if (.not. sgproc0) then
+               !make sure all the procs have the right memory address
+               call mpi_win_shared_query(phi_shared_window, 0, win_size, disp_unit, cptr, ierr)
+            end if
+            call mpi_win_fence(0, phi_shared_window, ierr)
+
+            if (.not. associated(phi_shared)) then
+               ! associate array with lower bounds of 1
+               call c_f_pointer(cptr, phi_shared_temp, (/naky * nakx * nztot * ntubes/))
+               ! now get the correct bounds
+               phi_shared(1:naky, 1:nakx, -nzgrid:nzgrid, 1:ntubes) => phi_shared_temp
+            end if
+            call mpi_win_fence(0, phi_shared_window, ierr)
+         end if
+
+         if (debug) write (*, *) 'fields::init_fields::qn_window_init'
+         if ((.not. qn_window_initialized) .or. (qn_window == MPI_WIN_NULL)) then
+            win_size = 0
+            if (sgproc0) then
+               win_size = int(nakx * nztot * naky_r, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
+                          + int(nakx**2 * nztot * naky_r, MPI_ADDRESS_KIND) * 2 * real_size !complex size
+            end if
+
+            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
+                                         mp_comm, cptr, qn_window, ierr)
+
+            if (.not. sgproc0) then
+               !make sure all the procs have the right memory address
+               call mpi_win_shared_query(qn_window, 0, win_size, disp_unit, cptr, ierr)
+            end if
+            call mpi_win_fence(0, qn_window, ierr)
+            cur_pos = transfer(cptr, cur_pos)
+
+            !allocate the memory
+            do iky = 1, naky_r
+               zmi = 0
+               if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
+               do iz = -nzgrid, nzgrid
+                  if (.not. associated(phi_solve(iky, iz)%zloc)) then
+                     allocate (phi_solve(iky, iz)%zloc(nakx - zmi, nakx - zmi))
+                     cptr = transfer(cur_pos, cptr)
+                     call c_f_pointer(cptr, phi_solve(iky, iz)%zloc, (/nakx - zmi, nakx - zmi/))
+                  end if
+                  cur_pos = cur_pos + (nakx - zmi)**2 * 2 * nbytes_real
+                  if (.not. associated(phi_solve(iky, iz)%idx)) then
+                     cptr = transfer(cur_pos, cptr)
+                     call c_f_pointer(cptr, phi_solve(iky, iz)%idx, (/nakx - zmi/))
+                  end if
+                  cur_pos = cur_pos + (nakx - zmi) * 4
+               end do
+            end do
+
+            call mpi_win_fence(0, qn_window, ierr)
+
+            qn_window_initialized = .true.
+         end if
+         c_max = nztot * naky_r
+         c_div = c_max / nproc
+         c_mod = mod(c_max, nproc)
+
+         c_lo = iproc * c_div + 1 + min(iproc, c_mod)
+         c_hi = c_lo + c_div - 1
+         if (iproc < c_mod) c_hi = c_hi + 1
+
+         call scope(prior_focus)
+         counter = 0
+#else
+         do iky = 1, naky_r
+            zmi = 0
+            if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
+            do iz = -nzgrid, nzgrid
+               if (.not. associated(phi_solve(iky, iz)%zloc)) &
+                  allocate (phi_solve(iky, iz)%zloc(nakx - zmi, nakx - zmi))
+               if (.not. associated(phi_solve(iky, iz)%idx)) &
+                  allocate (phi_solve(iky, iz)%idx(nakx - zmi))
+            end do
+         end do
+#endif
+
+         do iky = 1, naky_r
+            zmi = 0
+            if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
+            do iz = -nzgrid, nzgrid
+#if defined MPI && ISO_C_BINDING
+               counter = counter + 1
+               if ((counter >= c_lo) .and. (counter <= c_hi)) then
+#endif
+                  phi_solve(iky, iz)%zloc = 0.0
+                  phi_solve(iky, iz)%idx = 0
+                  do ikx = 1 + zmi, nakx
+                     g0k(1, :) = 0.0
+                     g0k(1, ikx) = dgamtotdr(iky, ikx, iz)
+
+                     call transform_kx2x_unpadded(g0k, g0x)
+                     g0x(1, :) = rho_d_clamped * g0x(1, :)
+                     call transform_x2kx_unpadded(g0x, g0k)
+
+                     !row column
+                     phi_solve(iky, iz)%zloc(:, ikx - zmi) = g0k(1, (1 + zmi):)
+                     phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) = phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) &
+                                                                     + gamtot(iky, ikx, iz)
+                  end do
+
+                  call lu_decomposition(phi_solve(iky, iz)%zloc, phi_solve(iky, iz)%idx, dum)
+#if defined MPI && ISO_C_BINDING
+               end if
+#endif
+            end do
+         end do
+
+         if (adia_elec) then
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            !get C
+            do ikx = 1, nakx
+               g0k(1, :) = 0.0
+               g0k(1, ikx) = 1.0
+
+               call transform_kx2x_unpadded(g0k, g0x)
+               g0x(1, :) = (efac + efacp * rho_d_clamped) * g0x(1, :)
+               call transform_x2kx_unpadded(g0x, g0k)
+
+               !row column
+               c_mat(:, ikx) = g0k(1, :)
+            end do
+
+            !get Theta
+            do iz = -nzgrid, nzgrid
+
+               !get Theta
+               do ikx = 1, nakx
+                  g0k(1, :) = 0.0
+                  g0k(1, ikx) = dgamtotdr(1, ikx, iz) - efacp
+
+                  call transform_kx2x_unpadded(g0k, g0x)
+                  g0x(1, :) = rho_d_clamped * g0x(1, :)
+                  call transform_x2kx_unpadded(g0x, g0k)
+
+                  !row column
+                  theta(:, ikx, iz) = g0k(1, :)
+                  theta(ikx, ikx, iz) = theta(ikx, ikx, iz) + gamtot(1, ikx, iz) - efac
+               end do
+            end do
+         end if
+         deallocate (g0k, g0x)
+      end if
+
+   end subroutine init_radial_field_solve
+
 
    !> init_fields_ffs allocates and fills arrays needed during main time advance
    !> loop for the field solve for full_flux_surface simulations
