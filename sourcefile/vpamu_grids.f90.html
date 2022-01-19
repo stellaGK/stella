@@ -665,8 +665,8 @@
 <a name="ln-390"></a>
 <a name="ln-391"></a>   <span class="k">end subroutine </span><span class="n">integrate_vmu_vmulo_ivmu_only_real</span>
 <a name="ln-392"></a>
-<a name="ln-393"></a>    <span class="c">! integrave over v-space and sum over species</span>
-<a name="ln-394"></a>    <span class="k">subroutine </span><span class="n">integrate_species_vmu</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">ia_in</span><span class="p">)</span>
+<a name="ln-393"></a>   <span class="c">! integrave over v-space and sum over species</span>
+<a name="ln-394"></a>   <span class="k">subroutine </span><span class="n">integrate_species_vmu</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">ia_in</span><span class="p">)</span>
 <a name="ln-395"></a>
 <a name="ln-396"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">sum_allreduce</span>
 <a name="ln-397"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span><span class="p">,</span> <span class="n">iv_idx</span><span class="p">,</span> <span class="n">imu_idx</span><span class="p">,</span> <span class="n">is_idx</span>
@@ -676,10 +676,10 @@
 <a name="ln-401"></a>
 <a name="ln-402"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ivmu</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="k">is</span><span class="p">,</span> <span class="n">imu</span><span class="p">,</span> <span class="n">ia</span>
 <a name="ln-403"></a>
-<a name="ln-404"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">g</span>
-<a name="ln-405"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">weights</span>
+<a name="ln-404"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">g</span>
+<a name="ln-405"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">weights</span>
 <a name="ln-406"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">optional</span> <span class="kd">::</span> <span class="n">ia_in</span>
-<a name="ln-407"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span> <span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:),</span> <span class="k">intent</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">total</span>
+<a name="ln-407"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">total</span>
 <a name="ln-408"></a>
 <a name="ln-409"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">ia_in</span><span class="p">))</span> <span class="k">then</span>
 <a name="ln-410"></a><span class="k">         </span><span class="n">ia</span> <span class="o">=</span> <span class="n">ia_in</span>
@@ -690,20 +690,20 @@
 <a name="ln-415"></a><span class="k">      </span><span class="n">total</span> <span class="o">=</span> <span class="mf">0.</span>
 <a name="ln-416"></a>
 <a name="ln-417"></a>      <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
-<a name="ln-418"></a>         <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-419"></a>         <span class="n">imu</span> <span class="o">=</span> <span class="n">imu_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-420"></a>         <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span>
-<a name="ln-421"></a>         <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span> 
+<a name="ln-418"></a>         <span class="n">iv</span> <span class="o">=</span> <span class="n">iv_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-419"></a>         <span class="n">imu</span> <span class="o">=</span> <span class="n">imu_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-420"></a>         <span class="k">is</span> <span class="o">=</span> <span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span>
+<a name="ln-421"></a>         <span class="k">do </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ntubes</span>
 <a name="ln-422"></a>            <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
 <a name="ln-423"></a>               <span class="n">total</span><span class="p">(:,</span> <span class="p">:,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">)</span> <span class="o">=</span> <span class="n">total</span><span class="p">(:,</span> <span class="p">:,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
-<a name="ln-424"></a>                        <span class="n">wgts_mu</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">imu</span><span class="p">)</span> <span class="o">*</span> <span class="n">wgts_vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span> <span class="o">*</span> <span class="n">g</span><span class="p">(:,:,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">(</span><span class="k">is</span><span class="p">)</span>
+<a name="ln-424"></a>                                     <span class="n">wgts_mu</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">imu</span><span class="p">)</span> <span class="o">*</span> <span class="n">wgts_vpa</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span> <span class="o">*</span> <span class="n">g</span><span class="p">(:,</span> <span class="p">:,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">ivmu</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">(</span><span class="k">is</span><span class="p">)</span>
 <a name="ln-425"></a>            <span class="k">end do</span>
 <a name="ln-426"></a><span class="k">         end do</span>
 <a name="ln-427"></a><span class="k">      end do</span>
 <a name="ln-428"></a>
-<a name="ln-429"></a><span class="k">      call </span><span class="n">sum_allreduce</span> <span class="p">(</span><span class="n">total</span><span class="p">)</span>
+<a name="ln-429"></a><span class="k">      call </span><span class="n">sum_allreduce</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
 <a name="ln-430"></a>
-<a name="ln-431"></a>    <span class="k">end subroutine </span><span class="n">integrate_species_vmu</span>
+<a name="ln-431"></a>   <span class="k">end subroutine </span><span class="n">integrate_species_vmu</span>
 <a name="ln-432"></a>
 <a name="ln-433"></a>   <span class="c">! integrave over v-space and sum over species for given (ky,kx,z) point</span>
 <a name="ln-434"></a>   <span class="k">subroutine </span><span class="n">integrate_species_vmu_single</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">ia_in</span><span class="p">,</span> <span class="n">reduce_in</span><span class="p">)</span>
@@ -1119,13 +1119,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.3-322-g958e064a4</small></p>
+                                          <br /><small>v0.3-325-gcffa1d91a</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-19T10:39:54.407025 
+             on 2022-01-19T11:36:27.610446 
             
           </p>
         </div>
