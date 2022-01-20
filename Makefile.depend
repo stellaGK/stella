@@ -206,7 +206,6 @@ gauss_quad.o: \
 git_version.o: 
 gyro_averages.o: \
 	 common_types.o \
-	 constants.o \
 	 dist_fn_arrays.o \
 	 kt_grids.o \
 	 mp.o \
@@ -386,7 +385,6 @@ sfincs_interface.o: \
 	 zgrid.o 
 sources.o: \
 	 constants.o \
-	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
@@ -523,7 +521,6 @@ stella_save.o: \
 	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
-	 physics_flags.o \
 	 sources.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
