@@ -11,6 +11,7 @@ helplocal:
 		# make FRONT_END=on : serial build (no MPI) to run gs2, ingen on ARCHER Front End.
 
 define STANDARD_SYSTEM_CONFIGURATION
+module restore PrgEnv-gnu ;\
 module load cray-fftw ;\
 module load cray-hdf5 ;\
 module load cray-libsci ;\

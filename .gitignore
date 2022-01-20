@@ -1,17 +1,22 @@
 *.o
 *.a
 *.mod
+*.smod
 *.swp
 stella
 .DS_Store
 geo/vmec_interface/test_vmec_to_stella_geometry_interface
 post_processing/clean_hist
+build*/
 
 command_line.f90
 constants.f90
 file_utils.f90
 job_manage.f90
 mp.f90
+mp_lu_decomposition.f90
+fields.f90
+sources.f90
 multibox.f90
 netcdf_utils.f90
 ran.f90
@@ -20,6 +25,7 @@ sfincs_interface.f90
 spfunc.f90
 stella_io.f90
 stella_save.f90
+system_fortran.f90
 *.ini
 *.pickle
 *.py~
@@ -27,6 +33,8 @@ stella_save.f90
 externals/pFUnit_build
 unit_tests
 tests/unit/*.F90
+docs/html/
+.compiler_flags
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

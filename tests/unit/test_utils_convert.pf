@@ -1,4 +1,4 @@
-module test_utils_convert_mod
+module test_utils_convert
   use funit
   use convert
   implicit none
@@ -107,4 +107,4 @@ contains
     @assertEqual(expected, output)
   end subroutine test_r2c_5D
 
-end module test_utils_convert_mod
+end module test_utils_convert
