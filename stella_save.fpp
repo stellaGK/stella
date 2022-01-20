@@ -401,7 +401,7 @@ contains
 ! we need shift_state variable defined in netcdf file even if no exb
 ! shear present in simulation) -- MAB + CMR
             istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, &
-                                      (/kyid/), shift_id)
+                                   (/kyid/), shift_id)
             if (istatus /= NF90_NOERR) then
                ierr = error_unit()
                write (ierr, *) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
@@ -1034,7 +1034,7 @@ contains
 
       end if
 
-      if (.not.allocated(shift_state)) allocate (shift_state(naky))
+      if (.not. allocated(shift_state)) allocate (shift_state(naky))
       istatus = nf90_get_var(ncid, shift_id, shift_state)
       if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
 
