@@ -44,13 +44,11 @@ module vpamu_grids
    real, dimension(:, :, :), allocatable :: vperp2
 
    interface integrate_species
-!     module procedure integrate_species_vmu
+      module procedure integrate_species_vmu
       module procedure integrate_species_vmu_single
       module procedure integrate_species_vmu_single_real
       module procedure integrate_species_vmu_block_complex
       module procedure integrate_species_vmu_block_real
-!     module procedure integrate_species_local_complex
-!     module procedure integrate_species_local_real
    end interface
 
    interface integrate_vmu
@@ -392,89 +390,45 @@ contains
 
    end subroutine integrate_vmu_vmulo_ivmu_only_real
 
-!   subroutine integrate_species_local_real (g, weights, iz, total)
+   ! integrave over v-space and sum over species
+   subroutine integrate_species_vmu(g, weights, total, ia_in)
 
-!     use species, only: nspec
-!     use stella_geometry, only: bmag
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use zgrid, only: nzgrid, ntubes
 
-!     implicit none
+      implicit none
 
-!     real, dimension (:,:,:), intent (in) :: g
-!     real, dimension (:), intent (in) :: weights
-!     integer, intent (in) :: iz
-!     real, intent (out) :: total
+      integer :: ivmu, iv, it, iz, is, imu, ia
 
-!     integer :: iv, imu, is
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      integer, intent(in), optional :: ia_in
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: total
 
-!     total = 0.
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
 
-!     do is = 1, nspec
-!        do imu = 1, nmu
-!           do iv = 1, nvpa
-!              total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
-!           end do
-!        end do
-!     end do
+      total = 0.
 
-!   end subroutine integrate_species_local_real
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               total(:, :, iz, it) = total(:, :, iz, it) + &
+                                     wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, it, ivmu) * weights(is)
+            end do
+         end do
+      end do
 
-!   subroutine integrate_species_local_complex (g, weights, iz, total)
+      call sum_allreduce(total)
 
-!     use species, only: nspec
-!     use stella_geometry, only: bmag
-
-!     implicit none
-
-!     complex, dimension (:,:,:), intent (in) :: g
-!     real, dimension (:), intent (in) :: weights
-!     integer, intent (in) :: iz
-!     complex, intent (out) :: total
-
-!     integer :: iv, imu, is
-
-!     total = 0.
-
-!     do is = 1, nspec
-!        do imu = 1, nmu
-!           do iv = 1, nvpa
-!              total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
-!           end do
-!        end do
-!     end do
-
-!   end subroutine integrate_species_local_complex
-
-!   ! integrave over v-space and sum over species
-!   subroutine integrate_species_vmu (g, weights, total)
-
-!     use mp, only: sum_allreduce
-!     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-!     use zgrid, only: nzgrid
-!     use stella_geometry, only: bmag
-
-!     implicit none
-
-!     integer :: ivmu, iv, iz, is, imu
-
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-!     real, dimension (:), intent (in) :: weights
-!     complex, dimension (:,:,-nzgrid:), intent (out) :: total
-
-!     total = 0.
-
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        do iz = -nzgrid, nzgrid
-!           total(:,:,iz) = total(:,:,iz) + &
-!                wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(:,:,iz,ivmu)*weights(is)
-!        end do
-!     end do
-
-!     call sum_allreduce (total)
-
-!   end subroutine integrate_species_vmu
+   end subroutine integrate_species_vmu
 
    ! integrave over v-space and sum over species for given (ky,kx,z) point
    subroutine integrate_species_vmu_single(g, iz, weights, total, ia_in, reduce_in)

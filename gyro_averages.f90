@@ -14,6 +14,7 @@ module gyro_averages
    interface gyro_average
       module procedure gyro_average_kxky_local
       module procedure gyro_average_kxkyz_local
+      module procedure gyro_average_kxkyzv_local
       module procedure gyro_average_vmu_local
       module procedure gyro_average_vmus_nonlocal
       module procedure gyro_average_ffs_kxky_local
@@ -591,6 +592,31 @@ contains
       end if
 
    end subroutine gyro_average_kxkyz_local
+
+   subroutine gyro_average_kxkyzv_local(field, gyro_field)
+
+      use physics_flags, only: full_flux_surface
+      use zgrid, only: nzgrid, ntubes
+      use stella_layouts, only: vmu_lo
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: field
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_field
+      integer :: ivmu
+
+      if (full_flux_surface) then
+         !> if simulating a full flux surface, the alpha dependence present
+         !> in kperp makes gyro-averaging non-local in k-space
+         call gyro_average(field, gyro_field, j0_ffs)
+      else
+         !> if simulating a flux tube, a gyro-average is local in k-space
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call gyro_average(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
+         end do
+      end if
+
+   end subroutine gyro_average_kxkyzv_local
 
    subroutine gyro_average_ffs_kxky_local(field, gyro_field, coefs)
 

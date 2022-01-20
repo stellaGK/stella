@@ -10,6 +10,7 @@ module dist_fn
    logical :: dist_fn_initialized = .false.
    logical :: gxyz_initialized = .false.
    logical :: kp2init = .false.
+   logical :: dkp2drinit = .false.
    logical :: vp2init = .false.
 
    logical :: debug = .false.
@@ -84,6 +85,7 @@ contains
    subroutine init_dist_fn
 
       use mp, only: proc0
+      use physics_flags, only: radial_variation
       use stella_layouts, only: init_dist_fn_layouts
       use gyro_averages, only: init_bessel
 
@@ -96,12 +98,16 @@ contains
 
       if (debug) write (*, *) 'dist_fn::init_dist_fn::allocate_arrays'
       call allocate_arrays
+
       !> allocate and initialise kperp2 and dkperp2dr
       if (debug) write (*, *) 'dist_fn::init_dist_fn::init_kperp2'
       call init_kperp2
+      if (radial_variation) call init_dkperp2dr
+
       !> allocate and initialise vperp2
       if (debug) write (*, *) 'dist_fn::init_dist_fn::init_vperp2'
       call init_vperp2
+
       !> init_bessel sets up arrays needed for gyro-averaging;
       !> for a flux tube simulation, this is j0 and j1;
       !> for a flux annulus simulation, gyro-averaging is non-local in ky
@@ -111,14 +117,11 @@ contains
 
    end subroutine init_dist_fn
 
-   !> init_kperp2 allocates and initialises the kperp2 and dkperp2dr arrays
-   !> @todo would be tidier if dkperp2dr were initialised separately in, e.g., init_dkperp2dr
+   !> init_kperp2 allocates and initialises the kperp2 array
    subroutine init_kperp2
 
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use dist_fn_arrays, only: kperp2
       use stella_geometry, only: gds2, gds21, gds22
-      use stella_geometry, only: dgds2dr, dgds21dr
-      use stella_geometry, only: dgds22dr
       use stella_geometry, only: geo_surf, q_as_x
       use zgrid, only: nzgrid
       use kt_grids, only: naky, nakx, theta0
@@ -136,26 +139,13 @@ contains
       !> allocate the kperp2 array to contain |k_perp|^2
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
 
-      !> @todo as dkperp2dr is only needed for radially global simulations
-      !> should only allocate/compute it when needed
-      allocate (dkperp2dr(naky, nakx, nalpha, -nzgrid:nzgrid))
       do iky = 1, naky
          if (zonal_mode(iky)) then
             do ikx = 1, nakx
                if (q_as_x) then
                   kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22
-                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
-                     dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / kperp2(iky, ikx, :, :)
-                  elsewhere
-                     dkperp2dr(iky, ikx, :, :) = 0.0
-                  end where
                else
                   kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22 / (geo_surf%shat**2)
-                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
-                     dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / (geo_surf%shat**2 * kperp2(iky, ikx, :, :))
-                  elsewhere
-                     dkperp2dr(iky, ikx, :, :) = 0.0
-                  end where
                end if
             end do
          else
@@ -163,11 +153,6 @@ contains
                kperp2(iky, ikx, :, :) = aky(iky) * aky(iky) &
                                         * (gds2 + 2.0 * theta0(iky, ikx) * gds21 &
                                            + theta0(iky, ikx) * theta0(iky, ikx) * gds22)
-               dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) &
-                                           * (dgds2dr + 2.0 * theta0(iky, ikx) * dgds21dr &
-                                              + theta0(iky, ikx) * theta0(iky, ikx) * dgds22dr)
-               dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
-               if (any(kperp2(iky, ikx, :, :) < epsilon(0.))) dkperp2dr(iky, ikx, :, :) = 0.
             end do
          end if
       end do
@@ -182,6 +167,56 @@ contains
       call enforce_single_valued_kperp2
 
    end subroutine init_kperp2
+
+   !> init_dkperp2dr allocates and initialises the dkperp2dr array, needed for radial variation
+   subroutine init_dkperp2dr
+
+      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use stella_geometry, only: dgds2dr, dgds21dr, dgds22dr
+      use stella_geometry, only: geo_surf, q_as_x
+      use zgrid, only: nzgrid
+      use kt_grids, only: naky, nakx, theta0
+      use kt_grids, only: akx, aky
+      use kt_grids, only: zonal_mode
+      use kt_grids, only: nalpha
+
+      implicit none
+
+      integer :: iky, ikx
+
+      if (dkp2drinit) return
+      dkp2drinit = .true.
+
+      allocate (dkperp2dr(naky, nakx, nalpha, -nzgrid:nzgrid))
+      do iky = 1, naky
+         if (zonal_mode(iky)) then
+            do ikx = 1, nakx
+               if (q_as_x) then
+                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
+                     dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / kperp2(iky, ikx, :, :)
+                  elsewhere
+                     dkperp2dr(iky, ikx, :, :) = 0.0
+                  end where
+               else
+                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
+                     dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / (geo_surf%shat**2 * kperp2(iky, ikx, :, :))
+                  elsewhere
+                     dkperp2dr(iky, ikx, :, :) = 0.0
+                  end where
+               end if
+            end do
+         else
+            do ikx = 1, nakx
+               dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) &
+                                           * (dgds2dr + 2.0 * theta0(iky, ikx) * dgds21dr &
+                                              + theta0(iky, ikx) * theta0(iky, ikx) * dgds22dr)
+               dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
+               if (any(kperp2(iky, ikx, :, :) < epsilon(0.))) dkperp2dr(iky, ikx, :, :) = 0.
+            end do
+         end if
+      end do
+
+   end subroutine init_dkperp2dr
 
    subroutine enforce_single_valued_kperp2
 
@@ -219,7 +254,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
-      use dist_fn_arrays, only: gnew, gold
+      use dist_fn_arrays, only: gnew, gold, g_gyro
       use dist_fn_arrays, only: gvmu
 
       implicit none
@@ -230,6 +265,9 @@ contains
       if (.not. allocated(gold)) &
          allocate (gold(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       gold = 0.
+      if (.not. allocated(g_gyro)) &
+         allocate (g_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_gyro = 0.
       if (.not. allocated(gvmu)) &
          allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       gvmu = 0.
@@ -277,12 +315,13 @@ contains
 
    subroutine deallocate_arrays
 
-      use dist_fn_arrays, only: gnew, gold, gvmu
+      use dist_fn_arrays, only: gnew, gold, g_gyro, gvmu
 
       implicit none
 
       if (allocated(gnew)) deallocate (gnew)
       if (allocated(gold)) deallocate (gold)
+      if (allocated(g_gyro)) deallocate (g_gyro)
       if (allocated(gvmu)) deallocate (gvmu)
 
    end subroutine deallocate_arrays
@@ -297,6 +336,7 @@ contains
       if (allocated(dkperp2dr)) deallocate (dkperp2dr)
 
       kp2init = .false.
+      dkp2drinit = .false.
 
    end subroutine finish_kperp2
 
