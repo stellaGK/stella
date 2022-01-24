@@ -31,6 +31,7 @@
 &physics_flags
  full_flux_surface = .false.
  nonlinear = .false.
+ adiabatic_option="field-line-average-term"
 /
 
 &parameters
@@ -44,10 +45,6 @@
  nvgrid = 24
  nmu = 12
  vpa_max = 3.0
-/
-
-&dist_fn_knobs
- adiabatic_option="field-line-average-term"
 /
 
 &time_advance_knobs
