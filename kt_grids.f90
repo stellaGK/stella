@@ -379,7 +379,7 @@ contains
 
       x_shift = pi * x0
       pfac = 1.0
-
+      if (periodic_variation) pfac = 0.5
       if (centered_in_rho) then
          if (q_as_x) then
             dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
