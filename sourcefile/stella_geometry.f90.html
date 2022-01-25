@@ -734,21 +734,21 @@
 <a name="ln-459"></a>      <span class="k">end do</span>
 <a name="ln-460"></a>
 <a name="ln-461"></a><span class="k">      select case</span> <span class="p">(</span><span class="n">boundary_option_switch</span><span class="p">)</span>
-<a name="ln-462"></a>         <span class="k">case</span> <span class="p">(</span><span class="n">boundary_option_linked</span><span class="p">)</span>
-<a name="ln-463"></a>            <span class="c">! if magnetic shear almost zero, override parallel</span>
-<a name="ln-464"></a>            <span class="c">! boundary condition so that it is periodic if using the standard</span>
-<a name="ln-465"></a>            <span class="c">! twist and shift bc, in which kx_shift is proportional to shat</span>
-<a name="ln-466"></a>            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">shat</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">shat_zero</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-467"></a>               <span class="n">boundary_option_switch</span> <span class="o">=</span> <span class="n">boundary_option_self_periodic</span>
-<a name="ln-468"></a>         <span class="k">case</span> <span class="p">(</span><span class="n">boundary_option_linked_stellarator</span><span class="p">)</span>
-<a name="ln-469"></a>            <span class="c">! if magnetic nabla x. nabla y is almost zero, override parallel</span>
-<a name="ln-470"></a>            <span class="c">! boundary condition so that it is periodic if using the stellarator</span>
-<a name="ln-471"></a>            <span class="c">! symmetric twist and shift bc, in which kx_shift is proportional to nabla</span>
-<a name="ln-472"></a>            <span class="c">! x. nabla y</span>
-<a name="ln-473"></a>            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grad_x_grad_y_end</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">grad_x_grad_y_zero</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-474"></a>               <span class="n">boundary_option_switch</span> <span class="o">=</span> <span class="n">boundary_option_self_periodic</span>
-<a name="ln-475"></a>         <span class="k">case </span><span class="n">default</span>
-<a name="ln-476"></a>            <span class="c">! low shear is fine for periodic/zero parallel BCs, so do nothing</span>
+<a name="ln-462"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">boundary_option_linked</span><span class="p">)</span>
+<a name="ln-463"></a>         <span class="c">! if magnetic shear almost zero, override parallel</span>
+<a name="ln-464"></a>         <span class="c">! boundary condition so that it is periodic if using the standard</span>
+<a name="ln-465"></a>         <span class="c">! twist and shift bc, in which kx_shift is proportional to shat</span>
+<a name="ln-466"></a>         <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">shat</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">shat_zero</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-467"></a>            <span class="n">boundary_option_switch</span> <span class="o">=</span> <span class="n">boundary_option_self_periodic</span>
+<a name="ln-468"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">boundary_option_linked_stellarator</span><span class="p">)</span>
+<a name="ln-469"></a>         <span class="c">! if magnetic nabla x. nabla y is almost zero, override parallel</span>
+<a name="ln-470"></a>         <span class="c">! boundary condition so that it is periodic if using the stellarator</span>
+<a name="ln-471"></a>         <span class="c">! symmetric twist and shift bc, in which kx_shift is proportional to nabla</span>
+<a name="ln-472"></a>         <span class="c">! x. nabla y</span>
+<a name="ln-473"></a>         <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grad_x_grad_y_end</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">grad_x_grad_y_zero</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-474"></a>            <span class="n">boundary_option_switch</span> <span class="o">=</span> <span class="n">boundary_option_self_periodic</span>
+<a name="ln-475"></a>      <span class="k">case </span><span class="n">default</span>
+<a name="ln-476"></a>         <span class="c">! low shear is fine for periodic/zero parallel BCs, so do nothing</span>
 <a name="ln-477"></a>      <span class="k">end select</span>
 <a name="ln-478"></a>
 <a name="ln-479"></a>      <span class="c">! theta_eqarc is parallel coordinate such that</span>
@@ -1350,13 +1350,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.5-8-g783f3e024</small></p>
+                                          <br /><small>v0.5-10-g5de07582b</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-25T09:57:55.960663 
+             on 2022-01-25T10:01:15.847056 
             
           </p>
         </div>
