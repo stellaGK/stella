@@ -247,8 +247,8 @@ contains
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use zgrid, only: shat_zero, nperiod, grad_x_grad_y_zero
-      use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_stellarator
-      use zgrid, only: twist_shift_option_periodic
+      use zgrid, only: boundary_option_switch, boundary_option_linked
+      use zgrid, only: boundary_option_linked_stellarator
       use ran, only: ranf
 
       implicit none
@@ -292,12 +292,12 @@ contains
 
       ! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition
       ! except for the periodic ones
-      select case (twist_shift_option_switch)
-      case (twist_shift_option_std)
+      select case (boundary_option_switch)
+      case (boundary_option_linked)
          dkx = (2 * nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-      case (twist_shift_option_stellarator)
+      case (boundary_option_linked_stellarator)
          dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-      case (twist_shift_option_periodic)
+      case default
          !> MAB: this seems overly restrictive; should allow for arbitrary box aspect ratio via inpur parameter
          dkx = dky
       end select
