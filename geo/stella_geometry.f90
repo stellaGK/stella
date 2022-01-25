@@ -459,21 +459,21 @@ contains
       end do
 
       select case (boundary_option_switch)
-         case (boundary_option_linked)
-            ! if magnetic shear almost zero, override parallel
-            ! boundary condition so that it is periodic if using the standard
-            ! twist and shift bc, in which kx_shift is proportional to shat
-            if (abs(geo_surf%shat) <= shat_zero) &
-               boundary_option_switch = boundary_option_self_periodic
-         case (boundary_option_linked_stellarator)
-            ! if magnetic nabla x. nabla y is almost zero, override parallel
-            ! boundary condition so that it is periodic if using the stellarator
-            ! symmetric twist and shift bc, in which kx_shift is proportional to nabla
-            ! x. nabla y
-            if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
-               boundary_option_switch = boundary_option_self_periodic
-         case default
-            ! low shear is fine for periodic/zero parallel BCs, so do nothing
+      case (boundary_option_linked)
+         ! if magnetic shear almost zero, override parallel
+         ! boundary condition so that it is periodic if using the standard
+         ! twist and shift bc, in which kx_shift is proportional to shat
+         if (abs(geo_surf%shat) <= shat_zero) &
+            boundary_option_switch = boundary_option_self_periodic
+      case (boundary_option_linked_stellarator)
+         ! if magnetic nabla x. nabla y is almost zero, override parallel
+         ! boundary condition so that it is periodic if using the stellarator
+         ! symmetric twist and shift bc, in which kx_shift is proportional to nabla
+         ! x. nabla y
+         if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
+            boundary_option_switch = boundary_option_self_periodic
+      case default
+         ! low shear is fine for periodic/zero parallel BCs, so do nothing
       end select
 
       ! theta_eqarc is parallel coordinate such that
