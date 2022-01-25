@@ -522,8 +522,8 @@
 <a name="ln-247"></a>      <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">full_flux_surface</span><span class="p">,</span> <span class="n">radial_variation</span>
 <a name="ln-248"></a>      <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">runtype_option_switch</span><span class="p">,</span> <span class="n">runtype_multibox</span>
 <a name="ln-249"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">shat_zero</span><span class="p">,</span> <span class="n">nperiod</span><span class="p">,</span> <span class="n">grad_x_grad_y_zero</span>
-<a name="ln-250"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">twist_shift_option_switch</span><span class="p">,</span> <span class="n">twist_shift_option_std</span><span class="p">,</span> <span class="n">twist_shift_option_stellarator</span>
-<a name="ln-251"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">twist_shift_option_periodic</span>
+<a name="ln-250"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">boundary_option_switch</span><span class="p">,</span> <span class="n">boundary_option_linked</span>
+<a name="ln-251"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">boundary_option_linked_stellarator</span>
 <a name="ln-252"></a>      <span class="k">use </span><span class="n">ran</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ranf</span>
 <a name="ln-253"></a>
 <a name="ln-254"></a>      <span class="k">implicit none</span>
@@ -567,12 +567,12 @@
 <a name="ln-292"></a>
 <a name="ln-293"></a>      <span class="c">! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition</span>
 <a name="ln-294"></a>      <span class="c">! except for the periodic ones</span>
-<a name="ln-295"></a>      <span class="k">select case</span> <span class="p">(</span><span class="n">twist_shift_option_switch</span><span class="p">)</span>
-<a name="ln-296"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">twist_shift_option_std</span><span class="p">)</span>
+<a name="ln-295"></a>      <span class="k">select case</span> <span class="p">(</span><span class="n">boundary_option_switch</span><span class="p">)</span>
+<a name="ln-296"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">boundary_option_linked</span><span class="p">)</span>
 <a name="ln-297"></a>         <span class="n">dkx</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nperiod</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dky</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">twist_and_shift_geo_fac</span><span class="p">)</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
-<a name="ln-298"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">twist_shift_option_stellarator</span><span class="p">)</span>
+<a name="ln-298"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">boundary_option_linked_stellarator</span><span class="p">)</span>
 <a name="ln-299"></a>         <span class="n">dkx</span> <span class="o">=</span> <span class="n">dky</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">twist_and_shift_geo_fac</span><span class="p">)</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
-<a name="ln-300"></a>      <span class="k">case</span> <span class="p">(</span><span class="n">twist_shift_option_periodic</span><span class="p">)</span>
+<a name="ln-300"></a>      <span class="k">case </span><span class="n">default</span>
 <a name="ln-301"></a>         <span class="c">!&gt; MAB: this seems overly restrictive; should allow for arbitrary box aspect ratio via inpur parameter</span>
 <a name="ln-302"></a>         <span class="n">dkx</span> <span class="o">=</span> <span class="n">dky</span>
 <a name="ln-303"></a>      <span class="k">end select</span>
@@ -1184,13 +1184,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.5-7-g2af58d569</small></p>
+                                          <br /><small>v0.5-8-g783f3e024</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-24T11:24:12.028252 
+             on 2022-01-25T09:57:55.960663 
             
           </p>
         </div>
