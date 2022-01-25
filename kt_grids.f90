@@ -303,7 +303,7 @@ contains
             dkx = dky
          else
             dkx = 1./x0
-         endif
+         end if
       end select
 
       x0 = 1./dkx
