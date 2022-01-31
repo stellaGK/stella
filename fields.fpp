@@ -1275,7 +1275,7 @@ contains
       logical :: skip_fsa_local
       logical :: has_elec, adia_elec
       logical :: global_quasineutrality, center_cell
-      logical :: multibox
+      logical :: multibox_mode
 #if defined MPI && ISO_C_BINDING
       integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
       integer :: prior_focus, ierr
@@ -1294,14 +1294,14 @@ contains
                   .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
       global_quasineutrality = radial_variation .and. ky_solve_radial > 0
-      multibox = runtype_option_switch == runtype_multibox
-      center_cell = multibox .and. job == 1 .and. .not. ky_solve_real
+      multibox_mode = runtype_option_switch == runtype_multibox
+      center_cell = multibox_mode .and. job == 1 .and. .not. ky_solve_real
 
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
       if (dist == 'h') then
          phi = phi / gamtot_h
       else if (dist == 'gbar') then
-         if (global_quasineutrality .and. (center_cell .or. .not. multibox) .and. .not. ky_solve_real) then
+         if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
 
             allocate (g0k(1, nakx))
             allocate (g0x(1, nakx))
@@ -1397,7 +1397,7 @@ contains
          else if (dist == 'gbar') then
             if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
                !this is already taken care of in mb_get_phi
-            elseif (global_quasineutrality .and. (center_cell .or. .not. multibox) &
+            elseif (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) &
                     .and. .not. ky_solve_real) then
 
                allocate (g0k(1, nakx))
