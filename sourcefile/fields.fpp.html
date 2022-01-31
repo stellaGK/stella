@@ -1550,7 +1550,7 @@
 <a name="ln-1275"></a>      <span class="kt">logical</span> <span class="kd">::</span> <span class="n">skip_fsa_local</span>
 <a name="ln-1276"></a>      <span class="kt">logical</span> <span class="kd">::</span> <span class="n">has_elec</span><span class="p">,</span> <span class="n">adia_elec</span>
 <a name="ln-1277"></a>      <span class="kt">logical</span> <span class="kd">::</span> <span class="n">global_quasineutrality</span><span class="p">,</span> <span class="n">center_cell</span>
-<a name="ln-1278"></a>      <span class="kt">logical</span> <span class="kd">::</span> <span class="n">multibox</span>
+<a name="ln-1278"></a>      <span class="kt">logical</span> <span class="kd">::</span> <span class="n">multibox_mode</span>
 <a name="ln-1279"></a><span class="cp">#if defined MPI &amp;&amp; ISO_C_BINDING</span>
 <a name="ln-1280"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">counter</span><span class="p">,</span> <span class="n">c_lo</span><span class="p">,</span> <span class="n">c_hi</span><span class="p">,</span> <span class="n">c_max</span><span class="p">,</span> <span class="n">c_div</span><span class="p">,</span> <span class="n">c_mod</span>
 <a name="ln-1281"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">prior_focus</span><span class="p">,</span> <span class="n">ierr</span>
@@ -1569,14 +1569,14 @@
 <a name="ln-1294"></a>                  <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">adiabatic_option_switch</span> <span class="o">==</span> <span class="n">adiabatic_option_fieldlineavg</span>
 <a name="ln-1295"></a>
 <a name="ln-1296"></a>      <span class="n">global_quasineutrality</span> <span class="o">=</span> <span class="n">radial_variation</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">ky_solve_radial</span> <span class="o">&gt;</span> <span class="mi">0</span>
-<a name="ln-1297"></a>      <span class="n">multibox</span> <span class="o">=</span> <span class="n">runtype_option_switch</span> <span class="o">==</span> <span class="n">runtype_multibox</span>
-<a name="ln-1298"></a>      <span class="n">center_cell</span> <span class="o">=</span> <span class="n">multibox</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">job</span> <span class="o">==</span> <span class="mi">1</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">ky_solve_real</span>
+<a name="ln-1297"></a>      <span class="n">multibox_mode</span> <span class="o">=</span> <span class="n">runtype_option_switch</span> <span class="o">==</span> <span class="n">runtype_multibox</span>
+<a name="ln-1298"></a>      <span class="n">center_cell</span> <span class="o">=</span> <span class="n">multibox_mode</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">job</span> <span class="o">==</span> <span class="mi">1</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">ky_solve_real</span>
 <a name="ln-1299"></a>
 <a name="ln-1300"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_field_solve</span><span class="p">(:,</span> <span class="mi">4</span><span class="p">),</span> <span class="s1">&#39; get_phi&#39;</span><span class="p">)</span>
 <a name="ln-1301"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">dist</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-1302"></a><span class="k">         </span><span class="n">phi</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">/</span> <span class="n">gamtot_h</span>
 <a name="ln-1303"></a>      <span class="k">else if</span> <span class="p">(</span><span class="n">dist</span> <span class="o">==</span> <span class="s1">&#39;gbar&#39;</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-1304"></a><span class="k">         if</span> <span class="p">(</span><span class="n">global_quasineutrality</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">center_cell</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">multibox</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">ky_solve_real</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-1304"></a><span class="k">         if</span> <span class="p">(</span><span class="n">global_quasineutrality</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">center_cell</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">multibox_mode</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">ky_solve_real</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-1305"></a>
 <a name="ln-1306"></a><span class="k">            allocate</span> <span class="p">(</span><span class="n">g0k</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
 <a name="ln-1307"></a>            <span class="k">allocate</span> <span class="p">(</span><span class="n">g0x</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
@@ -1672,7 +1672,7 @@
 <a name="ln-1397"></a><span class="k">         else if</span> <span class="p">(</span><span class="n">dist</span> <span class="o">==</span> <span class="s1">&#39;gbar&#39;</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-1398"></a><span class="k">            if</span> <span class="p">(</span><span class="n">global_quasineutrality</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">center_cell</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">ky_solve_real</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-1399"></a>               <span class="c">!this is already taken care of in mb_get_phi</span>
-<a name="ln-1400"></a>            <span class="n">elseif</span> <span class="p">(</span><span class="n">global_quasineutrality</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">center_cell</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">multibox</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-1400"></a>            <span class="n">elseif</span> <span class="p">(</span><span class="n">global_quasineutrality</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">center_cell</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">multibox_mode</span><span class="p">)</span> <span class="p">&amp;</span>
 <a name="ln-1401"></a>                    <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">ky_solve_real</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-1402"></a>
 <a name="ln-1403"></a><span class="k">               allocate</span> <span class="p">(</span><span class="n">g0k</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
@@ -2234,13 +2234,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.5-10-g5de07582b</small></p>
+                                          <br /><small>v0.5-12-g8a9e35ed0</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-25T10:01:15.847056 
+             on 2022-01-31T10:19:06.050390 
             
           </p>
         </div>
