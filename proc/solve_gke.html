@@ -4,9 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-   
    <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
-    
     <meta name="author" content="The stella team" >
     <link rel="icon" href="../favicon.png">
 
@@ -16,10 +14,7 @@
     <link href="../css/pygments.css" rel="stylesheet">
     <link href="../css/font-awesome.min.css" rel="stylesheet">
     <link href="../css/local.css" rel="stylesheet">
-    
     <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
-    
-    
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -48,60 +43,28 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-        
             <li><a href='../page/index.html'>README</a></li>
-      
             <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
               <a href="#" class="dropdown-toggle"
               data-toggle="dropdown" role="button"
               aria-haspopup="true"
      aria-expanded="false">Contents <span class="caret"></span></a>
         <ul class="dropdown-menu">
-          
-              
             <li><a href="../lists/files.html">Source Files</a></li>
-        
-        
-        
             <li><a href="../lists/modules.html">Modules</a></li>
-        
-            
-                                
             <li><a href="../lists/procedures.html">Procedures</a></li>
-        
-               
-            <li><a href="../lists/types.html">Derived Types</a></li>
-        
-        
+                   <li><a href="../lists/types.html">Derived Types</a></li>
             <li><a href="../lists/programs.html">Programs</a></li>
-               
-        
-        
+       
             </ul>
         
             </li>
-
-
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
-
-
-
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
-
-
-
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
-
-                             
-<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
-
-
+                             <li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
-
-
-
           </ul>
-        
         <form action="../search.html" class="navbar-form navbar-right" role="search">
         <div class="form-group">
           <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
@@ -110,51 +73,29 @@
         <button type="submit" class="btn btn-default">Submit</button>
 -->
         </form>
-        
         </div><!--/.nav-collapse -->
       </div>
     </nav>
 
     <div class="container">
-    
-  
   <div class="row">
     <h1>solve_gke
       <small>Subroutine</small>
-    
     </h1>
-    
-<div class="row">
+    <div class="row">
   <div class="col-lg-12">
 <div class="well well-sm">
   <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     
-     
-     
-     
-     
-    
-    
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
     title=" 0.2% of total for procedures.">84 statements</a>
      </li> 
-     
-     
-     
     <li><i class="fa fa-code"></i><a href="../src/time_advance.f90"> Source File</a></li>
-     
-     
   </ul>
   <ol class="breadcrumb in-well text-right">
-  
-    
      <li><a href='../sourcefile/time_advance.f90.html'>time_advance.f90</a></li>
-    
      <li><a href='../module/time_advance.html'>time_advance</a></li>
-    
-  
      <li class="active">solve_gke</li>
   </ol>
 </div>
@@ -170,102 +111,59 @@
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-    
-<div id="sidebar">
-  
-<h3>Contents</h3>
+    <div id="sidebar">
+  <h3>Contents</h3>
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<em>None</em>
-
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-rhs_y">rhs_y</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-rhs~3">rhs</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-rhs_ky_swap">rhs_ky_swap</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-iz~143">iz</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-it~80">it</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-ivmu~68">ivmu</a>
+    </div>
+  </div>
+</div>
 
 </div>
 
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>
-private subroutine solve_gke(gin, rhs_ky, restart_time_step)
-    
-    
-   
-</h2>
-    
-  
-    <div class="panel panel-default">
+    <h2>private subroutine solve_gke(gin, rhs_ky, restart_time_step)</h2>
+        <div class="panel panel-default">
       <div class="panel-heading">
   <h3 class="panel-title">Uses</h3>
       </div>
       <ul class="list-group">
-      
       <li class="list-group-item">
   <ul class="list-inline">
-    
-    <li><a href='../module/multibox.html'>multibox</a></li>
-    
-    <li><a href='../module/fields.html'>fields</a></li>
-    
-    <li><a href='../module/sources.html'>sources</a></li>
-    
     <li><a href='../module/fields_arrays.html'>fields_arrays</a></li>
-    
-    <li><a href='../module/stella_transforms.html'>stella_transforms</a></li>
-    
-    <li><a href='../module/job_manage.html'>job_manage</a></li>
-    
-    <li><a href='../module/physics_parameters.html'>physics_parameters</a></li>
-    
-    <li><a href='../module/zgrid.html'>zgrid</a></li>
-    
-    <li><a href='../module/stella_layouts.html'>stella_layouts</a></li>
-    
-    <li><a href='../module/physics_flags.html'>physics_flags</a></li>
-    
-    <li><a href='../module/run_parameters.html'>run_parameters</a></li>
-    
-    <li><a href='../module/mirror_terms.html'>mirror_terms</a></li>
-    
-    <li><a href='../module/flow_shear.html'>flow_shear</a></li>
-    
-    <li><a href='../module/parallel_streaming.html'>parallel_streaming</a></li>
-    
-    <li><a href='../module/dissipation.html'>dissipation</a></li>
-    
-    <li><a href='../module/redistribute.html'>redistribute</a></li>
-    
     <li><a href='../module/kt_grids.html'>kt_grids</a></li>
-    
+    <li><a href='../module/parallel_streaming.html'>parallel_streaming</a></li>
+    <li><a href='../module/sources.html'>sources</a></li>
+    <li><a href='../module/fields.html'>fields</a></li>
+    <li><a href='../module/job_manage.html'>job_manage</a></li>
+    <li><a href='../module/run_parameters.html'>run_parameters</a></li>
+    <li><a href='../module/physics_parameters.html'>physics_parameters</a></li>
+    <li><a href='../module/stella_transforms.html'>stella_transforms</a></li>
+    <li><a href='../module/multibox.html'>multibox</a></li>
+    <li><a href='../module/flow_shear.html'>flow_shear</a></li>
+    <li><a href='../module/redistribute.html'>redistribute</a></li>
+    <li><a href='../module/dissipation.html'>dissipation</a></li>
+    <li><a href='../module/mirror_terms.html'>mirror_terms</a></li>
+    <li><a href='../module/physics_flags.html'>physics_flags</a></li>
+    <li><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+    <li><a href='../module/zgrid.html'>zgrid</a></li>
   </ul>
       </li>
-      
-      
-      
       </ul>
     </div>
-    
 
 
-    
     <p>solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
 and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
 i.e., if dg/dt = r, then rhs_ky = r*dt</p>
@@ -296,128 +194,106 @@ calculate and add contribution from collisions to RHS of GK eqn</p>
 if simulating a full flux surface (flux annulus), all terms to this point have been calculated
 in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
 NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes</p>
-    
 
     <h3>Arguments</h3>
-    
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
+      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
-
-  
-  
-  
-  
 <tr>
-  
-  <td><span class="anchor" id="variable-gin~4"></span>complex,</td>
-  <td>intent(inout),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><span class="anchor" id="variable-gin~11"></span>complex,</td>
+<td>intent(inout),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
   <td><strong>gin</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" id="variable-rhs_ky"></span>complex,</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target</td><td>::</td>
+<td>intent(out),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target</td><td>::</td>
   <td><strong>rhs_ky</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
-  <td><span class="anchor" id="variable-restart_time_step"></span>logical,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+  <td><span class="anchor" id="variable-restart_time_step~4"></span>logical,</td>
+<td>intent(out)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>restart_time_step</strong></td><td></td>
-  
 </tr>
-
 </tbody>
 </table>
 
-    
-    
-    
-    
-     
     <br>
 
     <section class="visible-xs visible-sm hidden-md">
-      
-<h3>Contents</h3>
+      <h3>Contents</h3>
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<em>None</em>
-
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-rhs_y">rhs_y</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-rhs~3">rhs</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-rhs_ky_swap">rhs_ky_swap</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-iz~143">iz</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-it~80">it</a>
+      <a class="list-group-item" href="../proc/solve_gke.html#variable-ivmu~68">ivmu</a>
+    </div>
+  </div>
+</div>
 
     </section>
     <br class="visible-xs visible-sm hidden-md">
 
+
+    <section>    
+      <h2>Variables</h2>
+    <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th><th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" id="variable-rhs_y"></span>complex,</td>
+<td>private,</td>  <td>dimension(:, :, :, :, :), allocatable, target</td><td>::</td>
+  <td><strong>rhs_y</strong></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-rhs~3"></span>complex,</td>
+<td>private,</td>  <td>dimension(:, :, :, :, :), pointer</td><td>::</td>
+  <td><strong>rhs</strong></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-rhs_ky_swap"></span>complex,</td>
+<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
+  <td><strong>rhs_ky_swap</strong></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-iz~143"></span>integer,</td>
+<td>private</td>  <td></td><td>::</td>
+  <td><strong>iz</strong></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-it~80"></span>integer,</td>
+<td>private</td>  <td></td><td>::</td>
+  <td><strong>it</strong></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-ivmu~68"></span>integer,</td>
+<td>private</td>  <td></td><td>::</td>
+  <td><strong>ivmu</strong></td><td></td><td></td><td></td>
+</tr>
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
     
 
     
     
-    
-    
-    
-
-    
-    
-    
-    
-    
 
 
-    
-    
     
     
     </div>
   </div>
-
 
     <hr>    
     </div> <!-- /container -->
@@ -425,15 +301,13 @@ NB: it may be that for fully explicit calculation, this transform can be elimina
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.5-12-g8a9e35ed0</small></p>
+<br /><small>v0.5-13-g857312078</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-31T10:19:06.050390 
-            
-          </p>
+ on 2022-02-03T14:31:28.868021           </p>
         </div>
       </div>
       <br>
@@ -460,14 +334,11 @@ NB: it may be that for fully explicit calculation, this transform can be elimina
         extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
       });
     </script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
     
     <script src="../tipuesearch/tipuesearch_content.js"></script>
     <script src="../tipuesearch/tipuesearch_set.js"></script>
     <script src="../tipuesearch/tipuesearch.js"></script>
-    
     
   </body>
 </html>

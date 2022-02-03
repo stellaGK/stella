@@ -4,9 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-   
    <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
-    
     <meta name="author" content="The stella team" >
     <link rel="icon" href="../favicon.png">
 
@@ -16,10 +14,7 @@
     <link href="../css/pygments.css" rel="stylesheet">
     <link href="../css/font-awesome.min.css" rel="stylesheet">
     <link href="../css/local.css" rel="stylesheet">
-    
     <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
-    
-    
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -48,60 +43,28 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-        
             <li><a href='../page/index.html'>README</a></li>
-      
             <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
               <a href="#" class="dropdown-toggle"
               data-toggle="dropdown" role="button"
               aria-haspopup="true"
      aria-expanded="false">Contents <span class="caret"></span></a>
         <ul class="dropdown-menu">
-          
-              
             <li><a href="../lists/files.html">Source Files</a></li>
-        
-        
-        
             <li><a href="../lists/modules.html">Modules</a></li>
-        
-            
-                                
             <li><a href="../lists/procedures.html">Procedures</a></li>
-        
-               
-            <li><a href="../lists/types.html">Derived Types</a></li>
-        
-        
+                   <li><a href="../lists/types.html">Derived Types</a></li>
             <li><a href="../lists/programs.html">Programs</a></li>
-               
-        
-        
+       
             </ul>
         
             </li>
-
-
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
-
-
-
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
-
-
-
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
-
-                             
-<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
-
-
+                             <li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
 <li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
-
-
-
           </ul>
-        
         <form action="../search.html" class="navbar-form navbar-right" role="search">
         <div class="form-group">
           <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
@@ -110,51 +73,29 @@
         <button type="submit" class="btn btn-default">Submit</button>
 -->
         </form>
-        
         </div><!--/.nav-collapse -->
       </div>
     </nav>
 
     <div class="container">
-    
-  
   <div class="row">
     <h1>cdf_setatt
    <small>Interface</small>
-    
     </h1>
-    
-<div class="row">
+    <div class="row">
   <div class="col-lg-12">
 <div class="well well-sm">
   <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     
-     
-     
-     
-     
-    
-    
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
     title="<p> 0.0% of total for procedures.</p>Including implementation: 77 statements,  0.2% of total for procedures.">3 statements</a>
      </li> 
-     
-     
-     
     <li><i class="fa fa-code"></i><a href="../src/ezcdf_attrib.f90"> Source File</a></li>
-     
-     
   </ul>
   <ol class="breadcrumb in-well text-right">
-  
-    
      <li><a href='../sourcefile/ezcdf_attrib.f90.html'>ezcdf_attrib.f90</a></li>
-    
      <li><a href='../module/ezcdf_attrib.html'>ezcdf_attrib</a></li>
-    
-  
      <li class="active">cdf_setatt</li>
   </ol>
 </div>
@@ -170,50 +111,20 @@
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-      
-<div id="sidebar">
-  
-<h3>Contents</h3>
+      <div id="sidebar">
+  <h3>Contents</h3>
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#modprocs-0">Module Procedures</a></h3></div>
   <div id="modprocs-0" class="panel-collapse collapse">
     <div class="list-group">
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsetatt">cdfSetatt</a>
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsa_i">cdfsa_i</a>
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsa_d">cdfsa_d</a>
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsa_f">cdfsa_f</a>
-      
     </div>
   </div>
 </div>
-
-
-
 
 </div>
 
@@ -222,573 +133,231 @@
     <div class="col-md-9" id='text'>
       <h2>public interface cdf_setatt</h2>
    
-     
-     
-    
 
      <section class="visible-xs visible-sm hidden-md">
-       
-<h3>Contents</h3>
+       <h3>Contents</h3>
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#modprocs-1">Module Procedures</a></h3></div>
   <div id="modprocs-1" class="panel-collapse collapse">
     <div class="list-group">
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsetatt">cdfSetatt</a>
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsa_i">cdfsa_i</a>
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsa_d">cdfsa_d</a>
-      
       <a class="list-group-item" href="../interface/cdf_setatt.html#moduleprocedure-cdfsa_f">cdfsa_f</a>
-      
     </div>
   </div>
 </div>
 
-
-
-
      </section>
      <br class="visible-xs visible-sm hidden-md">
      
-  
 
-  
 
-  
    <h2>Module Procedures</h2>
-   
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsetatt"></span><h3>
-public subroutine <a href='../proc/cdfsetatt.html'>cdfSetatt</a>(ncid, varnam, long_name, units, ier, varid)
-    
-    
-   
-</h3></div>
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsetatt"></span><h3>public subroutine <a href='../proc/cdfsetatt.html'>cdfSetatt</a>(ncid, varnam, long_name, units, ier, varid)</h3></div>
   <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>ncid</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>varnam</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>long_name</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>units</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(out),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>ier</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(out),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>varid</strong></td><td></td>
-  
 </tr>
-
 </tbody>
 </table>
 
-      
-    
-    
 
   </div>
   </div>
 
-   
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsa_i"></span><h3>
-public subroutine <a href='../proc/cdfsa_i.html'>cdfsa_i</a>(ncid, varnam, valid_range, long_name, units, ier)
-    
-    
-   
-</h3></div>
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsa_i"></span><h3>public subroutine <a href='../proc/cdfsa_i.html'>cdfsa_i</a>(ncid, varnam, valid_range, long_name, units, ier)</h3></div>
   <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>ncid</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>varnam</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(2)</td><td>::</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(2)</td><td>::</td>
   <td><strong>valid_range</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>long_name</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>units</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(out),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>ier</strong></td><td></td>
-  
 </tr>
-
 </tbody>
 </table>
 
-      
-    
-    
 
   </div>
   </div>
 
-   
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsa_d"></span><h3>
-public subroutine <a href='../proc/cdfsa_d.html'>cdfsa_d</a>(ncid, varnam, valid_range, long_name, units, ier)
-    
-    
-   
-</h3></div>
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsa_d"></span><h3>public subroutine <a href='../proc/cdfsa_d.html'>cdfsa_d</a>(ncid, varnam, valid_range, long_name, units, ier)</h3></div>
   <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>ncid</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>varnam</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>real(kind=r8),</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(2)</td><td>::</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(2)</td><td>::</td>
   <td><strong>valid_range</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>long_name</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>units</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(out),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>ier</strong></td><td></td>
-  
 </tr>
-
 </tbody>
 </table>
 
-      
-    
-    
 
   </div>
   </div>
 
-   
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsa_f"></span><h3>
-public subroutine <a href='../proc/cdfsa_f.html'>cdfsa_f</a>(ncid, varnam, valid_range, long_name, units, ier)
-    
-    
-   
-</h3></div>
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-cdfsa_f"></span><h3>public subroutine <a href='../proc/cdfsa_f.html'>cdfsa_f</a>(ncid, varnam, valid_range, long_name, units, ier)</h3></div>
   <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>ncid</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
   <td><strong>varnam</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>real(kind=r4),</td>
-  <td>intent(in),</td>
-  <td></td>
-  
-  <td>dimension(2)</td><td>::</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(2)</td><td>::</td>
   <td><strong>valid_range</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>long_name</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>character(len=*),</td>
-  <td>intent(in),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>units</strong></td><td></td>
-  
 </tr>
-
-  
-  
-  
-  
 <tr>
-  
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out),</td>
-  <td>optional</td>
-  
-  <td></td><td>::</td>
+<td>intent(out),</td>
+  <td>optional</td>  <td></td><td>::</td>
   <td><strong>ier</strong></td><td></td>
-  
 </tr>
-
 </tbody>
 </table>
 
-      
-    
-    
 
   </div>
   </div>
 
-   
-     
 
  </div>
 </div>
-
 
     <hr>    
     </div> <!-- /container -->
@@ -796,15 +365,13 @@ public subroutine <a href='../proc/cdfsa_f.html'>cdfsa_f</a>(ncid, varnam, valid
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-                                          <br /><small>v0.5-12-g8a9e35ed0</small></p>
+<br /><small>v0.5-13-g857312078</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
-             on 2022-01-31T10:19:06.050390 
-            
-          </p>
+ on 2022-02-03T14:31:28.868021           </p>
         </div>
       </div>
       <br>
@@ -831,14 +398,11 @@ public subroutine <a href='../proc/cdfsa_f.html'>cdfsa_f</a>(ncid, varnam, valid
         extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
       });
     </script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
     
     <script src="../tipuesearch/tipuesearch_content.js"></script>
     <script src="../tipuesearch/tipuesearch_set.js"></script>
     <script src="../tipuesearch/tipuesearch.js"></script>
-    
     
   </body>
 </html>
