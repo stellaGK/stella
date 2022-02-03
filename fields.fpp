@@ -277,7 +277,7 @@ contains
    subroutine init_radial_field_solve
       use mp, only: job
 #if defined MPI && defined ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_window, phi_shared
       use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real, iproc, nproc
@@ -307,7 +307,7 @@ contains
       integer :: prior_focus, ierr
       integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
       integer :: disp_unit = 1
-      integer*8 :: cur_pos
+      integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       complex, dimension(:), pointer :: phi_shared_temp
       type(c_ptr) :: cptr

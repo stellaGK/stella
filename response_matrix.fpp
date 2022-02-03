@@ -38,7 +38,7 @@ contains
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
       use system_fortran, only: systemf
 #if defined MPI && defined ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
       use mp, only: real_size, nbytes_real
       use mpi
@@ -55,7 +55,7 @@ contains
       integer :: prior_focus, ierr
       integer :: disp_unit = 1
       integer(kind=MPI_ADDRESS_KIND) :: win_size
-      integer*8 :: cur_pos
+      integer(c_intptr_t) :: cur_pos
       type(c_ptr) :: bptr, cptr
 #endif
       real :: dum

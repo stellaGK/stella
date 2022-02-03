@@ -653,7 +653,7 @@ contains
    subroutine init_quasineutrality_source
 
 #if defined MPI && defined ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_zf_window
       use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
       use mp, only: scope, real_size, nbytes_real
@@ -677,7 +677,7 @@ contains
 #if defined MPI && ISO_C_BINDING
       integer :: prior_focus, ierr, temp_window
       integer :: disp_unit = 1
-      integer*8 :: cur_pos
+      integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       type(c_ptr) :: cptr
       complex, dimension(:, :), pointer :: temp_mat
