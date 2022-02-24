@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.5% of total for source files.">596 statements</a>
+    title=" 1.5% of total for source files.">597 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/kt_grids.f90"> Source File</a></li>
   </ul>
@@ -698,366 +698,368 @@
 <a name="ln-540"></a>         <span class="n">akx</span> <span class="o">=</span> <span class="p">(</span><span class="o">/</span><span class="p">(</span><span class="n">akx_min</span> <span class="o">+</span> <span class="n">dkx</span> <span class="o">*</span> <span class="kt">real</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nakx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">)</span>
 <a name="ln-541"></a>      <span class="k">end if</span>
 <a name="ln-542"></a>
-<a name="ln-543"></a><span class="k">      </span><span class="n">ikx_max</span> <span class="o">=</span> <span class="n">nakx</span>
-<a name="ln-544"></a>      <span class="n">naky_all</span> <span class="o">=</span> <span class="n">naky</span>
-<a name="ln-545"></a>
-<a name="ln-546"></a>   <span class="k">end subroutine </span><span class="n">init_kt_grids_range</span>
+<a name="ln-543"></a><span class="k">      </span><span class="n">zed0</span> <span class="o">=</span> <span class="n">theta0</span> <span class="o">*</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">zed0_fac</span>
+<a name="ln-544"></a>
+<a name="ln-545"></a>      <span class="n">ikx_max</span> <span class="o">=</span> <span class="n">nakx</span>
+<a name="ln-546"></a>      <span class="n">naky_all</span> <span class="o">=</span> <span class="n">naky</span>
 <a name="ln-547"></a>
-<a name="ln-548"></a>   <span class="k">subroutine </span><span class="n">broadcast_input</span>
+<a name="ln-548"></a>   <span class="k">end subroutine </span><span class="n">init_kt_grids_range</span>
 <a name="ln-549"></a>
-<a name="ln-550"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">broadcast</span>
+<a name="ln-550"></a>   <span class="k">subroutine </span><span class="n">broadcast_input</span>
 <a name="ln-551"></a>
-<a name="ln-552"></a>      <span class="k">implicit none</span>
+<a name="ln-552"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">broadcast</span>
 <a name="ln-553"></a>
-<a name="ln-554"></a><span class="k">      call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">gridopt_switch</span><span class="p">)</span>
-<a name="ln-555"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">centered_in_rho</span><span class="p">)</span>
-<a name="ln-556"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">periodic_variation</span><span class="p">)</span>
-<a name="ln-557"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">naky</span><span class="p">)</span>
-<a name="ln-558"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">naky_all</span><span class="p">)</span>
-<a name="ln-559"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nakx</span><span class="p">)</span>
-<a name="ln-560"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
-<a name="ln-561"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span>
-<a name="ln-562"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nalpha</span><span class="p">)</span>
-<a name="ln-563"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">reality</span><span class="p">)</span>
-<a name="ln-564"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
-<a name="ln-565"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">jtwistfac</span><span class="p">)</span>
-<a name="ln-566"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">y0</span><span class="p">)</span>
-<a name="ln-567"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">aky_min</span><span class="p">)</span>
-<a name="ln-568"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">aky_max</span><span class="p">)</span>
-<a name="ln-569"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">akx_min</span><span class="p">)</span>
-<a name="ln-570"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">akx_max</span><span class="p">)</span>
-<a name="ln-571"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">theta0_min</span><span class="p">)</span>
-<a name="ln-572"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">theta0_max</span><span class="p">)</span>
-<a name="ln-573"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">randomize_phase_shift</span><span class="p">)</span>
-<a name="ln-574"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">)</span>
-<a name="ln-575"></a>
-<a name="ln-576"></a>   <span class="k">end subroutine </span><span class="n">broadcast_input</span>
+<a name="ln-554"></a>      <span class="k">implicit none</span>
+<a name="ln-555"></a>
+<a name="ln-556"></a><span class="k">      call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">gridopt_switch</span><span class="p">)</span>
+<a name="ln-557"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">centered_in_rho</span><span class="p">)</span>
+<a name="ln-558"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">periodic_variation</span><span class="p">)</span>
+<a name="ln-559"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">naky</span><span class="p">)</span>
+<a name="ln-560"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">naky_all</span><span class="p">)</span>
+<a name="ln-561"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nakx</span><span class="p">)</span>
+<a name="ln-562"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
+<a name="ln-563"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span>
+<a name="ln-564"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nalpha</span><span class="p">)</span>
+<a name="ln-565"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">reality</span><span class="p">)</span>
+<a name="ln-566"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">jtwist</span><span class="p">)</span>
+<a name="ln-567"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">jtwistfac</span><span class="p">)</span>
+<a name="ln-568"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">y0</span><span class="p">)</span>
+<a name="ln-569"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">aky_min</span><span class="p">)</span>
+<a name="ln-570"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">aky_max</span><span class="p">)</span>
+<a name="ln-571"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">akx_min</span><span class="p">)</span>
+<a name="ln-572"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">akx_max</span><span class="p">)</span>
+<a name="ln-573"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">theta0_min</span><span class="p">)</span>
+<a name="ln-574"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">theta0_max</span><span class="p">)</span>
+<a name="ln-575"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">randomize_phase_shift</span><span class="p">)</span>
+<a name="ln-576"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">)</span>
 <a name="ln-577"></a>
-<a name="ln-578"></a>   <span class="k">subroutine </span><span class="n">dump_radial_grid</span>
+<a name="ln-578"></a>   <span class="k">end subroutine </span><span class="n">broadcast_input</span>
 <a name="ln-579"></a>
-<a name="ln-580"></a>      <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">run_name</span>
-<a name="ln-581"></a>      <span class="k">use </span><span class="n">physics_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">rhostar</span>
-<a name="ln-582"></a>      <span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">q_as_x</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">,</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="n">drhodpsi</span>
-<a name="ln-583"></a>
-<a name="ln-584"></a>      <span class="k">implicit none</span>
+<a name="ln-580"></a>   <span class="k">subroutine </span><span class="n">dump_radial_grid</span>
+<a name="ln-581"></a>
+<a name="ln-582"></a>      <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">run_name</span>
+<a name="ln-583"></a>      <span class="k">use </span><span class="n">physics_parameters</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">rhostar</span>
+<a name="ln-584"></a>      <span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">q_as_x</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">,</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="n">drhodpsi</span>
 <a name="ln-585"></a>
-<a name="ln-586"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ix</span>
-<a name="ln-587"></a>      <span class="kt">character</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">filename</span>
-<a name="ln-588"></a>
-<a name="ln-589"></a>      <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;.radial_grid&#39;</span><span class="p">)</span>
-<a name="ln-590"></a>      <span class="k">open</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
-<a name="ln-591"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">q_as_x</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-592"></a><span class="k">         write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-593"></a>            <span class="s1">&#39;#dxdXcoord = &#39;</span><span class="p">,</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-594"></a>            <span class="s1">&#39; q    = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">qinp</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-595"></a>            <span class="s1">&#39; dqdr = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">shat</span> <span class="o">*</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">qinp</span> <span class="o">/</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhoc</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-596"></a>            <span class="s1">&#39; d2qdr2 = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">d2qdr2</span>
-<a name="ln-597"></a>         <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3a12)&#39;</span><span class="p">)</span> <span class="s1">&#39;#1.x&#39;</span><span class="p">,</span> <span class="s1">&#39;2.q&#39;</span><span class="p">,</span> <span class="s1">&#39;3.rho&#39;</span>
-<a name="ln-598"></a>         <span class="k">do </span><span class="n">ix</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx</span>
-<a name="ln-599"></a>            <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3e12.4,i9)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-600"></a>               <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-601"></a>               <span class="n">rhostar</span> <span class="o">*</span> <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">/</span> <span class="n">dxdXcoord</span> <span class="o">+</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">qinp</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-602"></a>               <span class="n">rho</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">+</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhoc</span>
-<a name="ln-603"></a>         <span class="k">end do</span>
-<a name="ln-604"></a><span class="k">      else</span>
-<a name="ln-605"></a><span class="k">         write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-606"></a>            <span class="s1">&#39;#dxdXcoord = &#39;</span><span class="p">,</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-607"></a>            <span class="s1">&#39; dpsidr    = &#39;</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">drhodpsi</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-608"></a>            <span class="s1">&#39; d2psidr2 = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">d2psidr2</span>
-<a name="ln-609"></a>         <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3a12,a9)&#39;</span><span class="p">)</span> <span class="s1">&#39;#1.x&#39;</span><span class="p">,</span> <span class="s1">&#39;2.psi-psi0&#39;</span><span class="p">,</span> <span class="s1">&#39;3.rho&#39;</span>
-<a name="ln-610"></a>         <span class="k">do </span><span class="n">ix</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx</span>
-<a name="ln-611"></a>            <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3e12.4,i9)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-612"></a>               <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-613"></a>               <span class="n">rhostar</span> <span class="o">*</span> <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">/</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-614"></a>               <span class="n">rho</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">+</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhoc</span>
-<a name="ln-615"></a>         <span class="k">end do</span>
-<a name="ln-616"></a><span class="k">      end if</span>
-<a name="ln-617"></a>
-<a name="ln-618"></a><span class="k">      close</span> <span class="p">(</span><span class="mi">1047</span><span class="p">)</span>
+<a name="ln-586"></a>      <span class="k">implicit none</span>
+<a name="ln-587"></a>
+<a name="ln-588"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ix</span>
+<a name="ln-589"></a>      <span class="kt">character</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">filename</span>
+<a name="ln-590"></a>
+<a name="ln-591"></a>      <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">run_name</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;.radial_grid&#39;</span><span class="p">)</span>
+<a name="ln-592"></a>      <span class="k">open</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+<a name="ln-593"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">q_as_x</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-594"></a><span class="k">         write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-595"></a>            <span class="s1">&#39;#dxdXcoord = &#39;</span><span class="p">,</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-596"></a>            <span class="s1">&#39; q    = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">qinp</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-597"></a>            <span class="s1">&#39; dqdr = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">shat</span> <span class="o">*</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">qinp</span> <span class="o">/</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhoc</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-598"></a>            <span class="s1">&#39; d2qdr2 = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">d2qdr2</span>
+<a name="ln-599"></a>         <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3a12)&#39;</span><span class="p">)</span> <span class="s1">&#39;#1.x&#39;</span><span class="p">,</span> <span class="s1">&#39;2.q&#39;</span><span class="p">,</span> <span class="s1">&#39;3.rho&#39;</span>
+<a name="ln-600"></a>         <span class="k">do </span><span class="n">ix</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx</span>
+<a name="ln-601"></a>            <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3e12.4,i9)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-602"></a>               <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-603"></a>               <span class="n">rhostar</span> <span class="o">*</span> <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">/</span> <span class="n">dxdXcoord</span> <span class="o">+</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">qinp</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-604"></a>               <span class="n">rho</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">+</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhoc</span>
+<a name="ln-605"></a>         <span class="k">end do</span>
+<a name="ln-606"></a><span class="k">      else</span>
+<a name="ln-607"></a><span class="k">         write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-608"></a>            <span class="s1">&#39;#dxdXcoord = &#39;</span><span class="p">,</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-609"></a>            <span class="s1">&#39; dpsidr    = &#39;</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">drhodpsi</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-610"></a>            <span class="s1">&#39; d2psidr2 = &#39;</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">d2psidr2</span>
+<a name="ln-611"></a>         <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3a12,a9)&#39;</span><span class="p">)</span> <span class="s1">&#39;#1.x&#39;</span><span class="p">,</span> <span class="s1">&#39;2.psi-psi0&#39;</span><span class="p">,</span> <span class="s1">&#39;3.rho&#39;</span>
+<a name="ln-612"></a>         <span class="k">do </span><span class="n">ix</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx</span>
+<a name="ln-613"></a>            <span class="k">write</span> <span class="p">(</span><span class="mi">1047</span><span class="p">,</span> <span class="s1">&#39;(3e12.4,i9)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-614"></a>               <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-615"></a>               <span class="n">rhostar</span> <span class="o">*</span> <span class="n">x</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">/</span> <span class="n">dxdXcoord</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-616"></a>               <span class="n">rho</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="o">+</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhoc</span>
+<a name="ln-617"></a>         <span class="k">end do</span>
+<a name="ln-618"></a><span class="k">      end if</span>
 <a name="ln-619"></a>
-<a name="ln-620"></a>   <span class="k">end subroutine </span><span class="n">dump_radial_grid</span>
+<a name="ln-620"></a><span class="k">      close</span> <span class="p">(</span><span class="mi">1047</span><span class="p">)</span>
 <a name="ln-621"></a>
-<a name="ln-622"></a>   <span class="k">subroutine </span><span class="n">allocate_arrays</span>
+<a name="ln-622"></a>   <span class="k">end subroutine </span><span class="n">dump_radial_grid</span>
 <a name="ln-623"></a>
-<a name="ln-624"></a>      <span class="k">implicit none</span>
+<a name="ln-624"></a>   <span class="k">subroutine </span><span class="n">allocate_arrays</span>
 <a name="ln-625"></a>
-<a name="ln-626"></a><span class="k">      allocate</span> <span class="p">(</span><span class="n">akx</span><span class="p">(</span><span class="n">nakx</span><span class="p">))</span>
-<a name="ln-627"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">aky</span><span class="p">(</span><span class="n">naky</span><span class="p">))</span>
-<a name="ln-628"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">aky_all</span><span class="p">(</span><span class="n">naky_all</span><span class="p">))</span>
-<a name="ln-629"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">aky_all_ordered</span><span class="p">(</span><span class="n">naky_all</span><span class="p">))</span>
-<a name="ln-630"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">theta0</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
-<a name="ln-631"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">zed0</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
-<a name="ln-632"></a>
-<a name="ln-633"></a>   <span class="k">end subroutine </span><span class="n">allocate_arrays</span>
+<a name="ln-626"></a>      <span class="k">implicit none</span>
+<a name="ln-627"></a>
+<a name="ln-628"></a><span class="k">      allocate</span> <span class="p">(</span><span class="n">akx</span><span class="p">(</span><span class="n">nakx</span><span class="p">))</span>
+<a name="ln-629"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">aky</span><span class="p">(</span><span class="n">naky</span><span class="p">))</span>
+<a name="ln-630"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">aky_all</span><span class="p">(</span><span class="n">naky_all</span><span class="p">))</span>
+<a name="ln-631"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">aky_all_ordered</span><span class="p">(</span><span class="n">naky_all</span><span class="p">))</span>
+<a name="ln-632"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">theta0</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
+<a name="ln-633"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">zed0</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
 <a name="ln-634"></a>
-<a name="ln-635"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
-<a name="ln-636"></a>   <span class="c">! and uses reality condition to return array</span>
-<a name="ln-637"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)</span>
-<a name="ln-638"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_complex</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
-<a name="ln-639"></a>
-<a name="ln-640"></a>      <span class="k">implicit none</span>
+<a name="ln-635"></a>   <span class="k">end subroutine </span><span class="n">allocate_arrays</span>
+<a name="ln-636"></a>
+<a name="ln-637"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
+<a name="ln-638"></a>   <span class="c">! and uses reality condition to return array</span>
+<a name="ln-639"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)</span>
+<a name="ln-640"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_complex</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
 <a name="ln-641"></a>
-<a name="ln-642"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
-<a name="ln-643"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
-<a name="ln-644"></a>
-<a name="ln-645"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
-<a name="ln-646"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
-<a name="ln-647"></a>
-<a name="ln-648"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
-<a name="ln-649"></a>      <span class="n">gout</span><span class="p">(:</span><span class="n">naky</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
-<a name="ln-650"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
-<a name="ln-651"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-652"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
-<a name="ln-653"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
-<a name="ln-654"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-655"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-656"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-657"></a>      <span class="k">end do</span>
-<a name="ln-658"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
-<a name="ln-659"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-660"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
-<a name="ln-661"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-662"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-663"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-664"></a>         <span class="k">end do</span>
-<a name="ln-665"></a><span class="k">      end do</span>
-<a name="ln-666"></a>
-<a name="ln-667"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_complex</span>
+<a name="ln-642"></a>      <span class="k">implicit none</span>
+<a name="ln-643"></a>
+<a name="ln-644"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-645"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
+<a name="ln-646"></a>
+<a name="ln-647"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
+<a name="ln-648"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
+<a name="ln-649"></a>
+<a name="ln-650"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
+<a name="ln-651"></a>      <span class="n">gout</span><span class="p">(:</span><span class="n">naky</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
+<a name="ln-652"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
+<a name="ln-653"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-654"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
+<a name="ln-655"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
+<a name="ln-656"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-657"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-658"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-659"></a>      <span class="k">end do</span>
+<a name="ln-660"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
+<a name="ln-661"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-662"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
+<a name="ln-663"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-664"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-665"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-666"></a>         <span class="k">end do</span>
+<a name="ln-667"></a><span class="k">      end do</span>
 <a name="ln-668"></a>
-<a name="ln-669"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
-<a name="ln-670"></a>   <span class="c">! and uses reality condition to return array</span>
-<a name="ln-671"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)</span>
-<a name="ln-672"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_real</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
-<a name="ln-673"></a>
-<a name="ln-674"></a>      <span class="k">implicit none</span>
+<a name="ln-669"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_complex</span>
+<a name="ln-670"></a>
+<a name="ln-671"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
+<a name="ln-672"></a>   <span class="c">! and uses reality condition to return array</span>
+<a name="ln-673"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)</span>
+<a name="ln-674"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_real</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
 <a name="ln-675"></a>
-<a name="ln-676"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
-<a name="ln-677"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
-<a name="ln-678"></a>
-<a name="ln-679"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
-<a name="ln-680"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
-<a name="ln-681"></a>
-<a name="ln-682"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
-<a name="ln-683"></a>      <span class="n">gout</span><span class="p">(:</span><span class="n">naky</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
-<a name="ln-684"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
-<a name="ln-685"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-686"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
-<a name="ln-687"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
-<a name="ln-688"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-689"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-690"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
-<a name="ln-691"></a>      <span class="k">end do</span>
-<a name="ln-692"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
-<a name="ln-693"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-694"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
-<a name="ln-695"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-696"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-697"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
-<a name="ln-698"></a>         <span class="k">end do</span>
-<a name="ln-699"></a><span class="k">      end do</span>
-<a name="ln-700"></a>
-<a name="ln-701"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_real</span>
+<a name="ln-676"></a>      <span class="k">implicit none</span>
+<a name="ln-677"></a>
+<a name="ln-678"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-679"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
+<a name="ln-680"></a>
+<a name="ln-681"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
+<a name="ln-682"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
+<a name="ln-683"></a>
+<a name="ln-684"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
+<a name="ln-685"></a>      <span class="n">gout</span><span class="p">(:</span><span class="n">naky</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
+<a name="ln-686"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
+<a name="ln-687"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-688"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
+<a name="ln-689"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
+<a name="ln-690"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-691"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-692"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
+<a name="ln-693"></a>      <span class="k">end do</span>
+<a name="ln-694"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
+<a name="ln-695"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-696"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky_all</span>
+<a name="ln-697"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-698"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-699"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
+<a name="ln-700"></a>         <span class="k">end do</span>
+<a name="ln-701"></a><span class="k">      end do</span>
 <a name="ln-702"></a>
-<a name="ln-703"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
-<a name="ln-704"></a>   <span class="c">! and uses reality condition to return array</span>
-<a name="ln-705"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)</span>
-<a name="ln-706"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_ordered_real</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
-<a name="ln-707"></a>
-<a name="ln-708"></a>      <span class="k">implicit none</span>
+<a name="ln-703"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_real</span>
+<a name="ln-704"></a>
+<a name="ln-705"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
+<a name="ln-706"></a>   <span class="c">! and uses reality condition to return array</span>
+<a name="ln-707"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)</span>
+<a name="ln-708"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_ordered_real</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
 <a name="ln-709"></a>
-<a name="ln-710"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
-<a name="ln-711"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
-<a name="ln-712"></a>
-<a name="ln-713"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
-<a name="ln-714"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
-<a name="ln-715"></a>
-<a name="ln-716"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
-<a name="ln-717"></a>      <span class="n">gout</span><span class="p">(</span><span class="n">naky</span><span class="p">:,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
-<a name="ln-718"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
-<a name="ln-719"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-720"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
-<a name="ln-721"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-722"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-723"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-724"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
-<a name="ln-725"></a>      <span class="k">end do</span>
-<a name="ln-726"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
-<a name="ln-727"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-728"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-729"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-730"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-731"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
-<a name="ln-732"></a>         <span class="k">end do</span>
-<a name="ln-733"></a><span class="k">      end do</span>
-<a name="ln-734"></a>
-<a name="ln-735"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_ordered_real</span>
+<a name="ln-710"></a>      <span class="k">implicit none</span>
+<a name="ln-711"></a>
+<a name="ln-712"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-713"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
+<a name="ln-714"></a>
+<a name="ln-715"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
+<a name="ln-716"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
+<a name="ln-717"></a>
+<a name="ln-718"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
+<a name="ln-719"></a>      <span class="n">gout</span><span class="p">(</span><span class="n">naky</span><span class="p">:,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
+<a name="ln-720"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
+<a name="ln-721"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-722"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
+<a name="ln-723"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-724"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-725"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-726"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
+<a name="ln-727"></a>      <span class="k">end do</span>
+<a name="ln-728"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
+<a name="ln-729"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-730"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-731"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-732"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-733"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">)</span>
+<a name="ln-734"></a>         <span class="k">end do</span>
+<a name="ln-735"></a><span class="k">      end do</span>
 <a name="ln-736"></a>
-<a name="ln-737"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
-<a name="ln-738"></a>   <span class="c">! and uses reality condition to return array</span>
-<a name="ln-739"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)</span>
-<a name="ln-740"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_ordered_complex</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
-<a name="ln-741"></a>
-<a name="ln-742"></a>      <span class="k">implicit none</span>
+<a name="ln-737"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_ordered_real</span>
+<a name="ln-738"></a>
+<a name="ln-739"></a>   <span class="c">! take an array with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
+<a name="ln-740"></a>   <span class="c">! and uses reality condition to return array</span>
+<a name="ln-741"></a>   <span class="c">! with kx &gt;= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)</span>
+<a name="ln-742"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_ordered_complex</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
 <a name="ln-743"></a>
-<a name="ln-744"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
-<a name="ln-745"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
-<a name="ln-746"></a>
-<a name="ln-747"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
-<a name="ln-748"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
-<a name="ln-749"></a>
-<a name="ln-750"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
-<a name="ln-751"></a>      <span class="n">gout</span><span class="p">(</span><span class="n">naky</span><span class="p">:,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
-<a name="ln-752"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
-<a name="ln-753"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-754"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
-<a name="ln-755"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-756"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-757"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-758"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-759"></a>      <span class="k">end do</span>
-<a name="ln-760"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
-<a name="ln-761"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-762"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-763"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
-<a name="ln-764"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-765"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-766"></a>         <span class="k">end do</span>
-<a name="ln-767"></a><span class="k">      end do</span>
-<a name="ln-768"></a>
-<a name="ln-769"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_ordered_complex</span>
+<a name="ln-744"></a>      <span class="k">implicit none</span>
+<a name="ln-745"></a>
+<a name="ln-746"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-747"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
+<a name="ln-748"></a>
+<a name="ln-749"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
+<a name="ln-750"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
+<a name="ln-751"></a>
+<a name="ln-752"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
+<a name="ln-753"></a>      <span class="n">gout</span><span class="p">(</span><span class="n">naky</span><span class="p">:,</span> <span class="p">:)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span>
+<a name="ln-754"></a>      <span class="c">! next fill in ky &lt; 0, kx &gt;= 0 elements of array using reality</span>
+<a name="ln-755"></a>      <span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-756"></a>      <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">ikx</span>
+<a name="ln-757"></a>      <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-758"></a>         <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-759"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-760"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-761"></a>      <span class="k">end do</span>
+<a name="ln-762"></a><span class="k">      do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ikx_max</span>
+<a name="ln-763"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-764"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-765"></a>            <span class="c">! this is the ky index corresponding to +ky in original array</span>
+<a name="ln-766"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-767"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-768"></a>         <span class="k">end do</span>
+<a name="ln-769"></a><span class="k">      end do</span>
 <a name="ln-770"></a>
-<a name="ln-771"></a>   <span class="c">! take an array with kx &gt;= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)</span>
-<a name="ln-772"></a>   <span class="c">! and uses reality condition to return array</span>
-<a name="ln-773"></a>   <span class="c">! with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
-<a name="ln-774"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_back</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
-<a name="ln-775"></a>
-<a name="ln-776"></a>      <span class="k">implicit none</span>
+<a name="ln-771"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_ordered_complex</span>
+<a name="ln-772"></a>
+<a name="ln-773"></a>   <span class="c">! take an array with kx &gt;= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)</span>
+<a name="ln-774"></a>   <span class="c">! and uses reality condition to return array</span>
+<a name="ln-775"></a>   <span class="c">! with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
+<a name="ln-776"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_back</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
 <a name="ln-777"></a>
-<a name="ln-778"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
-<a name="ln-779"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
-<a name="ln-780"></a>
-<a name="ln-781"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
-<a name="ln-782"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
-<a name="ln-783"></a>
-<a name="ln-784"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
-<a name="ln-785"></a>      <span class="n">gout</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:</span><span class="n">naky</span><span class="p">,</span> <span class="p">:)</span>
-<a name="ln-786"></a>      <span class="c">! next fill in kx &lt; 0, ky &gt;= 0 elements of array using reality</span>
-<a name="ln-787"></a>      <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="n">ikx_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
-<a name="ln-788"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-789"></a>         <span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-790"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">iky</span>
-<a name="ln-791"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-792"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">naky</span>
-<a name="ln-793"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-794"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-795"></a>         <span class="k">end do</span>
-<a name="ln-796"></a><span class="k">      end do</span>
-<a name="ln-797"></a>
-<a name="ln-798"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_back</span>
+<a name="ln-778"></a>      <span class="k">implicit none</span>
+<a name="ln-779"></a>
+<a name="ln-780"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-781"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
+<a name="ln-782"></a>
+<a name="ln-783"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
+<a name="ln-784"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
+<a name="ln-785"></a>
+<a name="ln-786"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
+<a name="ln-787"></a>      <span class="n">gout</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(:</span><span class="n">naky</span><span class="p">,</span> <span class="p">:)</span>
+<a name="ln-788"></a>      <span class="c">! next fill in kx &lt; 0, ky &gt;= 0 elements of array using reality</span>
+<a name="ln-789"></a>      <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="n">ikx_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
+<a name="ln-790"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-791"></a>         <span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-792"></a>         <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">iky</span>
+<a name="ln-793"></a>         <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-794"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">naky</span>
+<a name="ln-795"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky_all</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-796"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-797"></a>         <span class="k">end do</span>
+<a name="ln-798"></a><span class="k">      end do</span>
 <a name="ln-799"></a>
-<a name="ln-800"></a>   <span class="c">! take an array with kx &gt;= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)</span>
-<a name="ln-801"></a>   <span class="c">! and uses reality condition to return array</span>
-<a name="ln-802"></a>   <span class="c">! with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
-<a name="ln-803"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_back_ordered</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
-<a name="ln-804"></a>
-<a name="ln-805"></a>      <span class="k">implicit none</span>
+<a name="ln-800"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_back</span>
+<a name="ln-801"></a>
+<a name="ln-802"></a>   <span class="c">! take an array with kx &gt;= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)</span>
+<a name="ln-803"></a>   <span class="c">! and uses reality condition to return array</span>
+<a name="ln-804"></a>   <span class="c">! with ky &gt;= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)</span>
+<a name="ln-805"></a>   <span class="k">subroutine </span><span class="n">swap_kxky_back_ordered</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">gout</span><span class="p">)</span>
 <a name="ln-806"></a>
-<a name="ln-807"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
-<a name="ln-808"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
-<a name="ln-809"></a>
-<a name="ln-810"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
-<a name="ln-811"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
-<a name="ln-812"></a>
-<a name="ln-813"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
-<a name="ln-814"></a>      <span class="n">gout</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">naky</span><span class="p">:,</span> <span class="p">:)</span>
-<a name="ln-815"></a>      <span class="c">! next fill in kx &lt; 0, ky &gt;= 0 elements of array using reality</span>
-<a name="ln-816"></a>      <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="n">ikx_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
-<a name="ln-817"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-818"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span>
-<a name="ln-819"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-820"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
-<a name="ln-821"></a>         <span class="k">end do</span>
-<a name="ln-822"></a><span class="k">      end do</span>
-<a name="ln-823"></a>
-<a name="ln-824"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_back_ordered</span>
+<a name="ln-807"></a>      <span class="k">implicit none</span>
+<a name="ln-808"></a>
+<a name="ln-809"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-810"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gout</span>
+<a name="ln-811"></a>
+<a name="ln-812"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ikxneg</span>
+<a name="ln-813"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iky</span><span class="p">,</span> <span class="n">ikyneg</span>
+<a name="ln-814"></a>
+<a name="ln-815"></a>      <span class="c">! first set arrays equal for ky &gt;= 0 and kx &gt;= 0</span>
+<a name="ln-816"></a>      <span class="n">gout</span><span class="p">(:,</span> <span class="p">:</span><span class="n">ikx_max</span><span class="p">)</span> <span class="o">=</span> <span class="n">gin</span><span class="p">(</span><span class="n">naky</span><span class="p">:,</span> <span class="p">:)</span>
+<a name="ln-817"></a>      <span class="c">! next fill in kx &lt; 0, ky &gt;= 0 elements of array using reality</span>
+<a name="ln-818"></a>      <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="n">ikx_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
+<a name="ln-819"></a>         <span class="n">ikxneg</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">-</span> <span class="n">ikx</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-820"></a>         <span class="k">do </span><span class="n">iky</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span>
+<a name="ln-821"></a>            <span class="n">ikyneg</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">-</span> <span class="n">iky</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-822"></a>            <span class="n">gout</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span> <span class="n">ikx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">gin</span><span class="p">(</span><span class="n">ikyneg</span><span class="p">,</span> <span class="n">ikxneg</span><span class="p">))</span>
+<a name="ln-823"></a>         <span class="k">end do</span>
+<a name="ln-824"></a><span class="k">      end do</span>
 <a name="ln-825"></a>
-<a name="ln-826"></a>   <span class="k">subroutine </span><span class="n">communicate_ktgrids_multibox</span>
-<a name="ln-827"></a>      <span class="k">use </span><span class="n">job_manage</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">njobs</span>
-<a name="ln-828"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">job</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-829"></a>                    <span class="n">crossdomprocs</span><span class="p">,</span> <span class="n">subprocs</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-830"></a>                    <span class="n">send</span><span class="p">,</span> <span class="n">receive</span>
-<a name="ln-831"></a>
-<a name="ln-832"></a>      <span class="k">implicit none</span>
+<a name="ln-826"></a><span class="k">   end subroutine </span><span class="n">swap_kxky_back_ordered</span>
+<a name="ln-827"></a>
+<a name="ln-828"></a>   <span class="k">subroutine </span><span class="n">communicate_ktgrids_multibox</span>
+<a name="ln-829"></a>      <span class="k">use </span><span class="n">job_manage</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">njobs</span>
+<a name="ln-830"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">job</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-831"></a>                    <span class="n">crossdomprocs</span><span class="p">,</span> <span class="n">subprocs</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-832"></a>                    <span class="n">send</span><span class="p">,</span> <span class="n">receive</span>
 <a name="ln-833"></a>
-<a name="ln-834"></a><span class="k">      call </span><span class="n">scope</span><span class="p">(</span><span class="n">crossdomprocs</span><span class="p">)</span>
+<a name="ln-834"></a>      <span class="k">implicit none</span>
 <a name="ln-835"></a>
-<a name="ln-836"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">job</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-837"></a><span class="k">         call </span><span class="n">send</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
-<a name="ln-838"></a>         <span class="k">call </span><span class="n">send</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="n">njobs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">130</span><span class="p">)</span>
-<a name="ln-839"></a>      <span class="n">elseif</span> <span class="p">(</span><span class="n">job</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-840"></a><span class="k">         call </span><span class="n">receive</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
-<a name="ln-841"></a>      <span class="n">elseif</span> <span class="p">(</span><span class="n">job</span> <span class="o">==</span> <span class="n">njobs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-842"></a><span class="k">         call </span><span class="n">receive</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">130</span><span class="p">)</span>
-<a name="ln-843"></a>      <span class="k">end if</span>
-<a name="ln-844"></a>
-<a name="ln-845"></a><span class="k">      call </span><span class="n">scope</span><span class="p">(</span><span class="n">subprocs</span><span class="p">)</span>
+<a name="ln-836"></a><span class="k">      call </span><span class="n">scope</span><span class="p">(</span><span class="n">crossdomprocs</span><span class="p">)</span>
+<a name="ln-837"></a>
+<a name="ln-838"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">job</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-839"></a><span class="k">         call </span><span class="n">send</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<a name="ln-840"></a>         <span class="k">call </span><span class="n">send</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="n">njobs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">130</span><span class="p">)</span>
+<a name="ln-841"></a>      <span class="n">elseif</span> <span class="p">(</span><span class="n">job</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-842"></a><span class="k">         call </span><span class="n">receive</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<a name="ln-843"></a>      <span class="n">elseif</span> <span class="p">(</span><span class="n">job</span> <span class="o">==</span> <span class="n">njobs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-844"></a><span class="k">         call </span><span class="n">receive</span><span class="p">(</span><span class="n">phase_shift_fac</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">130</span><span class="p">)</span>
+<a name="ln-845"></a>      <span class="k">end if</span>
 <a name="ln-846"></a>
-<a name="ln-847"></a>   <span class="k">end subroutine </span><span class="n">communicate_ktgrids_multibox</span>
+<a name="ln-847"></a><span class="k">      call </span><span class="n">scope</span><span class="p">(</span><span class="n">subprocs</span><span class="p">)</span>
 <a name="ln-848"></a>
-<a name="ln-849"></a>   <span class="k">subroutine </span><span class="n">finish_kt_grids</span>
+<a name="ln-849"></a>   <span class="k">end subroutine </span><span class="n">communicate_ktgrids_multibox</span>
 <a name="ln-850"></a>
-<a name="ln-851"></a>      <span class="k">implicit none</span>
+<a name="ln-851"></a>   <span class="k">subroutine </span><span class="n">finish_kt_grids</span>
 <a name="ln-852"></a>
-<a name="ln-853"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">aky</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">aky</span><span class="p">)</span>
-<a name="ln-854"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">aky_all</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">aky_all</span><span class="p">)</span>
-<a name="ln-855"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">aky_all_ordered</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">aky_all_ordered</span><span class="p">)</span>
-<a name="ln-856"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">akx</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">akx</span><span class="p">)</span>
-<a name="ln-857"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">theta0</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">theta0</span><span class="p">)</span>
-<a name="ln-858"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">zed0</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">zed0</span><span class="p">)</span>
-<a name="ln-859"></a>
-<a name="ln-860"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">x</span><span class="p">)</span>
-<a name="ln-861"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">y</span><span class="p">)</span>
-<a name="ln-862"></a>
-<a name="ln-863"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">x_d</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">x_d</span><span class="p">)</span>
-<a name="ln-864"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho</span><span class="p">)</span>
-<a name="ln-865"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho_d</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho_d</span><span class="p">)</span>
-<a name="ln-866"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho_clamped</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho_clamped</span><span class="p">)</span>
-<a name="ln-867"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho_d_clamped</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho_d_clamped</span><span class="p">)</span>
-<a name="ln-868"></a>
-<a name="ln-869"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">g0x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">g0x</span><span class="p">)</span>
+<a name="ln-853"></a>      <span class="k">implicit none</span>
+<a name="ln-854"></a>
+<a name="ln-855"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">aky</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">aky</span><span class="p">)</span>
+<a name="ln-856"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">aky_all</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">aky_all</span><span class="p">)</span>
+<a name="ln-857"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">aky_all_ordered</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">aky_all_ordered</span><span class="p">)</span>
+<a name="ln-858"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">akx</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">akx</span><span class="p">)</span>
+<a name="ln-859"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">theta0</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">theta0</span><span class="p">)</span>
+<a name="ln-860"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">zed0</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">zed0</span><span class="p">)</span>
+<a name="ln-861"></a>
+<a name="ln-862"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<a name="ln-863"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<a name="ln-864"></a>
+<a name="ln-865"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">x_d</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">x_d</span><span class="p">)</span>
+<a name="ln-866"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+<a name="ln-867"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho_d</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho_d</span><span class="p">)</span>
+<a name="ln-868"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho_clamped</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho_clamped</span><span class="p">)</span>
+<a name="ln-869"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">rho_d_clamped</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">rho_d_clamped</span><span class="p">)</span>
 <a name="ln-870"></a>
-<a name="ln-871"></a>      <span class="n">reality</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-872"></a>      <span class="n">read_kt_grids_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-873"></a>      <span class="n">init_kt_grids_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-874"></a>
-<a name="ln-875"></a>   <span class="k">end subroutine </span><span class="n">finish_kt_grids</span>
+<a name="ln-871"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">g0x</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">g0x</span><span class="p">)</span>
+<a name="ln-872"></a>
+<a name="ln-873"></a>      <span class="n">reality</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-874"></a>      <span class="n">read_kt_grids_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-875"></a>      <span class="n">init_kt_grids_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
 <a name="ln-876"></a>
-<a name="ln-877"></a>   <span class="k">subroutine </span><span class="n">multiply_by_rho</span><span class="p">(</span><span class="n">gin</span><span class="p">)</span>
+<a name="ln-877"></a>   <span class="k">end subroutine </span><span class="n">finish_kt_grids</span>
 <a name="ln-878"></a>
-<a name="ln-879"></a>      <span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">transform_kx2x_unpadded</span><span class="p">,</span> <span class="n">transform_x2kx_unpadded</span>
-<a name="ln-880"></a><span class="c">!   use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst</span>
-<a name="ln-881"></a>
-<a name="ln-882"></a>      <span class="k">implicit none</span>
+<a name="ln-879"></a>   <span class="k">subroutine </span><span class="n">multiply_by_rho</span><span class="p">(</span><span class="n">gin</span><span class="p">)</span>
+<a name="ln-880"></a>
+<a name="ln-881"></a>      <span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">transform_kx2x_unpadded</span><span class="p">,</span> <span class="n">transform_x2kx_unpadded</span>
+<a name="ln-882"></a><span class="c">!   use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst</span>
 <a name="ln-883"></a>
-<a name="ln-884"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
+<a name="ln-884"></a>      <span class="k">implicit none</span>
 <a name="ln-885"></a>
-<a name="ln-886"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">g0x</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">g0x</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
+<a name="ln-886"></a><span class="k">      </span><span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
 <a name="ln-887"></a>
-<a name="ln-888"></a>      <span class="k">call </span><span class="n">transform_kx2x_unpadded</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">g0x</span><span class="p">)</span>
-<a name="ln-889"></a>      <span class="n">g0x</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">rho_d_clamped</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span><span class="p">)</span> <span class="o">*</span> <span class="n">g0x</span>
-<a name="ln-890"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">zonal_mode</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="n">g0x</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">g0x</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">:))</span>
-<a name="ln-891"></a>      <span class="k">call </span><span class="n">transform_x2kx_unpadded</span><span class="p">(</span><span class="n">g0x</span><span class="p">,</span> <span class="n">gin</span><span class="p">)</span>
-<a name="ln-892"></a>
-<a name="ln-893"></a><span class="c">!   if(.not.allocated(g0x)) allocate(g0x(naky,nx))</span>
+<a name="ln-888"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">g0x</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">g0x</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
+<a name="ln-889"></a>
+<a name="ln-890"></a>      <span class="k">call </span><span class="n">transform_kx2x_unpadded</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span> <span class="n">g0x</span><span class="p">)</span>
+<a name="ln-891"></a>      <span class="n">g0x</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">rho_d_clamped</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naky</span><span class="p">)</span> <span class="o">*</span> <span class="n">g0x</span>
+<a name="ln-892"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">zonal_mode</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="n">g0x</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">g0x</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">:))</span>
+<a name="ln-893"></a>      <span class="k">call </span><span class="n">transform_x2kx_unpadded</span><span class="p">(</span><span class="n">g0x</span><span class="p">,</span> <span class="n">gin</span><span class="p">)</span>
 <a name="ln-894"></a>
-<a name="ln-895"></a><span class="c">!   call transform_kx2x_xfirst(gin,g0x)</span>
-<a name="ln-896"></a><span class="c">!   g0x = spread(rho_clamped,1,naky)*g0x</span>
-<a name="ln-897"></a><span class="c">!   if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))</span>
-<a name="ln-898"></a><span class="c">!   call transform_x2kx_xfirst(g0x,gin)</span>
-<a name="ln-899"></a>
-<a name="ln-900"></a>   <span class="k">end subroutine </span><span class="n">multiply_by_rho</span>
+<a name="ln-895"></a><span class="c">!   if(.not.allocated(g0x)) allocate(g0x(naky,nx))</span>
+<a name="ln-896"></a>
+<a name="ln-897"></a><span class="c">!   call transform_kx2x_xfirst(gin,g0x)</span>
+<a name="ln-898"></a><span class="c">!   g0x = spread(rho_clamped,1,naky)*g0x</span>
+<a name="ln-899"></a><span class="c">!   if(zonal_mode(1)) g0x(1,:) = real(g0x(1,:))</span>
+<a name="ln-900"></a><span class="c">!   call transform_x2kx_xfirst(g0x,gin)</span>
 <a name="ln-901"></a>
-<a name="ln-902"></a><span class="k">end module </span><span class="n">kt_grids</span>
+<a name="ln-902"></a>   <span class="k">end subroutine </span><span class="n">multiply_by_rho</span>
+<a name="ln-903"></a>
+<a name="ln-904"></a><span class="k">end module </span><span class="n">kt_grids</span>
 </pre></div>
 
     </section>
@@ -1070,13 +1072,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-13-g857312078</small></p>
+<br /><small>v0.5-14-gc43fbd5ae</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-02-03T14:31:28.868021           </p>
+ on 2022-02-24T14:27:47.834765           </p>
         </div>
       </div>
       <br>
