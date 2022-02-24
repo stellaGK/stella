@@ -540,6 +540,8 @@ contains
          akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
       end if
 
+      zed0 = theta0 * geo_surf%zed0_fac
+
       ikx_max = nakx
       naky_all = naky
 

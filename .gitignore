@@ -70,6 +70,18 @@ MANIFEST
 *.manifest
 *.spec
 
+# Code output files
+millerlocal.*.input
+millerlocal.*.output
+*.out.nc
+*.out
+response_mat_*
+*.geometry
+*.fluxes
+*.error
+*.scratch
+.*.in
+*.species.input
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
