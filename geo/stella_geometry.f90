@@ -104,8 +104,7 @@ contains
       use zgrid, only: shat_zero, zed_equal_arc
       use zgrid, only: grad_x_grad_y_zero
       use zgrid, only: boundary_option_switch, boundary_option_self_periodic
-      use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_stellarator
-      use zgrid, only: twist_shift_option_periodic
+      use zgrid, only: boundary_option_linked, boundary_option_linked_stellarator
       use file_utils, only: get_unused_unit
       use physics_flags, only: include_geometric_variation, const_alpha_geo
 
@@ -331,8 +330,17 @@ contains
             !> to be used for twist-and-shift BC
             allocate (twist_and_shift_geo_fac_full(nalpha, -nzgrid:nzgrid))
             grad_x_grad_y_end = grad_alpha_grad_psi(1, nzgrid) * (aref * aref * bref)
-            select case (twist_shift_option_switch)
-            case (twist_shift_option_std)
+            select case (boundary_option_switch)
+            case (boundary_option_linked_stellarator)
+               !to be used for stellarator symmetric twist-and-shift BC
+               !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2
+               write (*, *) 'Stellarator symmetric twist and shift BC selected'
+               twist_and_shift_geo_fac_full = -4 * (geo_surf%rhotor * geo_surf%rhotor * geo_surf%psitor_lcfs) &
+                                              * (grad_alpha_grad_psi) / (grad_psi_grad_psi * aref * aref * bref) * field_period_ratio
+               if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
+                  write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
+               write (*, *)
+            case default
                ! to be used for std twist-and-shift BC
                ! twist_and_shift_geo_fac =
                ! -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
@@ -341,15 +349,6 @@ contains
                                               * field_period_ratio
                if (abs(geo_surf%shat) <= shat_zero) &
                   write (*, *) 'Using periodic boundary conditions as shat < shat_zero'
-               write (*, *)
-            case (twist_shift_option_stellarator)
-               !to be used for stellarator symmetric twist-and-shift BC
-               !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2
-               write (*, *) 'Stellarator symmetric twist and shift BC selected'
-               twist_and_shift_geo_fac_full = -4 * (geo_surf%rhotor * geo_surf%rhotor * geo_surf%psitor_lcfs) &
-                                              * (grad_alpha_grad_psi) / (grad_psi_grad_psi * aref * aref * bref) * field_period_ratio
-               if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
-                  write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
                write (*, *)
             end select
             twist_and_shift_geo_fac = twist_and_shift_geo_fac_full(1, nzgrid)
@@ -459,28 +458,23 @@ contains
          call get_dzed(nzgrid, delzed, bmag(iy, :), dbdzed(iy, :))
       end do
 
-      ! if magnetic shear almost zero, override parallel
-      ! boundary condition so that it is periodic
-      if (abs(geo_surf%shat) <= shat_zero) &
-         boundary_option_switch = boundary_option_self_periodic
-
-      if (vmec_chosen) then
-         select case (twist_shift_option_switch)
-         case (twist_shift_option_std)
-            ! if magnetic shear almost zero, override parallel
-            ! boundary condition so that it is periodic if using the standard
-            ! twist and shift bc, in which kx_shift is proportional to shat
-            if (abs(geo_surf%shat) <= shat_zero) &
-               twist_shift_option_switch = twist_shift_option_periodic
-         case (twist_shift_option_stellarator)
-            ! if magnetic nabla x. nabla y is almost zero, override parallel
-            ! boundary condition so that it is periodic if using the stellarator
-            ! symmetric twist and shift bc, in which kx_shift is proportional to nabla
-            ! x. nabla y
-            if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
-               twist_shift_option_switch = twist_shift_option_periodic
-         end select
-      end if
+      select case (boundary_option_switch)
+      case (boundary_option_linked)
+         ! if magnetic shear almost zero, override parallel
+         ! boundary condition so that it is periodic if using the standard
+         ! twist and shift bc, in which kx_shift is proportional to shat
+         if (abs(geo_surf%shat) <= shat_zero) &
+            boundary_option_switch = boundary_option_self_periodic
+      case (boundary_option_linked_stellarator)
+         ! if magnetic nabla x. nabla y is almost zero, override parallel
+         ! boundary condition so that it is periodic if using the stellarator
+         ! symmetric twist and shift bc, in which kx_shift is proportional to nabla
+         ! x. nabla y
+         if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
+            boundary_option_switch = boundary_option_self_periodic
+      case default
+         ! low shear is fine for periodic/zero parallel BCs, so do nothing
+      end select
 
       ! theta_eqarc is parallel coordinate such that
       ! b . grad theta_eqarc = constant

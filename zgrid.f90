@@ -12,14 +12,11 @@ module zgrid
    public :: get_arc_length_grid
    public :: shat_zero
    public :: grad_x_grad_y_zero
-   public :: twist_shift_option_switch
-   public :: twist_shift_option_std
-   public :: twist_shift_option_stellarator
-   public :: twist_shift_option_periodic
    public :: boundary_option_switch
    public :: boundary_option_zero
    public :: boundary_option_self_periodic
    public :: boundary_option_linked
+   public :: boundary_option_linked_stellarator
 
    private
 
@@ -32,12 +29,8 @@ module zgrid
    integer :: boundary_option_switch
    integer, parameter :: boundary_option_zero = 1, &
                          boundary_option_self_periodic = 2, &
-                         boundary_option_linked = 3
-
-   integer :: twist_shift_option_switch
-   integer, parameter :: twist_shift_option_std = 1, &
-                         twist_shift_option_stellarator = 2, &
-                         twist_shift_option_periodic = 3
+                         boundary_option_linked = 3, &
+                         boundary_option_linked_stellarator = 4
 
    logical :: zgridinit = .false.
 
@@ -84,30 +77,24 @@ contains
       integer :: in_file, ierr
       logical :: exist
 
-      type(text_option), dimension(6), parameter :: boundaryopts = &
+      type(text_option), dimension(7), parameter :: boundaryopts = &
                                                     (/text_option('default', boundary_option_zero), &
                                                       text_option('zero', boundary_option_zero), &
                                                       text_option('unconnected', boundary_option_zero), &
                                                       text_option('self-periodic', boundary_option_self_periodic), &
                                                       text_option('periodic', boundary_option_self_periodic), &
-                                                      text_option('linked', boundary_option_linked)/)
+                                                      text_option('linked', boundary_option_linked), &
+                                                      text_option('stellarator', boundary_option_linked_stellarator)/)
       character(20) :: boundary_option
-
-      type(text_option), dimension(3), parameter :: twistshiftopts = &
-                                                    (/text_option('standard', twist_shift_option_std), &
-                                                      text_option('stellarator', twist_shift_option_stellarator), &
-                                                      text_option('periodic', twist_shift_option_periodic)/)
-      character(20) :: twist_shift_option
 
       namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
          shat_zero, boundary_option, zed_equal_arc, &
-         boundary_option, zed_equal_arc, grad_x_grad_y_zero, twist_shift_option
+         boundary_option, zed_equal_arc, grad_x_grad_y_zero
 
       nzed = 24
       nperiod = 1
       ntubes = 1
       boundary_option = 'default'
-      twist_shift_option = 'standard'
       ! if zed_equal_arc = T, then zed is chosen to be arc length
       ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
       ! or zeta (toroidal) angle
@@ -126,10 +113,6 @@ contains
       call get_option_value &
          (boundary_option, boundaryopts, boundary_option_switch, &
           ierr, "boundary_option in dist_fn_knobs")
-
-      call get_option_value &
-         (twist_shift_option, twistshiftopts, twist_shift_option_switch, &
-          ierr, "twist_shift_option in dist_fn_knobs")
 
       ! note that boundary_option may be changed to self-periodic later
       ! if magnetic shear or nabla x \cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
@@ -156,7 +139,6 @@ contains
       call broadcast(zed_equal_arc)
       call broadcast(shat_zero)
       call broadcast(boundary_option_switch)
-      call broadcast(twist_shift_option_switch)
       call broadcast(grad_x_grad_y_zero)
 
    end subroutine broadcast_parameters

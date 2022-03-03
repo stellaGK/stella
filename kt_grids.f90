@@ -129,7 +129,7 @@ contains
       integer :: in_file
       logical :: exist
 
-      namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, y0, &
+      namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, x0, y0, &
          centered_in_rho, periodic_variation, &
          randomize_phase_shift, phase_shift_fac
 
@@ -145,6 +145,7 @@ contains
       jtwist = -1
       jtwistfac = 1.
       phase_shift_fac = 0.
+      x0 = -1.0
       y0 = -1.0
       nalpha = 1
       centered_in_rho = .true.
@@ -247,8 +248,8 @@ contains
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use zgrid, only: shat_zero, nperiod, grad_x_grad_y_zero
-      use zgrid, only: twist_shift_option_switch, twist_shift_option_std, twist_shift_option_stellarator
-      use zgrid, only: twist_shift_option_periodic
+      use zgrid, only: boundary_option_switch, boundary_option_linked
+      use zgrid, only: boundary_option_linked_stellarator
       use ran, only: ranf
 
       implicit none
@@ -292,14 +293,17 @@ contains
 
       ! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition
       ! except for the periodic ones
-      select case (twist_shift_option_switch)
-      case (twist_shift_option_std)
+      select case (boundary_option_switch)
+      case (boundary_option_linked)
          dkx = (2 * nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-      case (twist_shift_option_stellarator)
+      case (boundary_option_linked_stellarator)
          dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-      case (twist_shift_option_periodic)
-         !> MAB: this seems overly restrictive; should allow for arbitrary box aspect ratio via inpur parameter
-         dkx = dky
+      case default
+         if (x0 < epsilon(0.0)) then
+            dkx = dky
+         else
+            dkx = 1./x0
+         end if
       end select
 
       x0 = 1./dkx
@@ -379,7 +383,7 @@ contains
 
       x_shift = pi * x0
       pfac = 1.0
-
+      if (periodic_variation) pfac = 0.5
       if (centered_in_rho) then
          if (q_as_x) then
             dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
@@ -535,6 +539,8 @@ contains
          if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
          akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
       end if
+
+      zed0 = theta0 * geo_surf%zed0_fac
 
       ikx_max = nakx
       naky_all = naky

@@ -93,7 +93,6 @@ contains
       use sources, only: include_krook_operator, int_krook
       use sources, only: remove_zero_projection, int_proj
       use sources, only: include_qn_source
-      use physics_flags, only: prp_shear_enabled
 
       implicit none
 
@@ -399,14 +398,14 @@ contains
 
             end if
 
-            if (prp_shear_enabled) then
-               istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, &
-                                      (/kyid/), shift_id)
-               if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
+! we need shift_state variable defined in netcdf file even if no exb
+! shear present in simulation) -- MAB + CMR
+            istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, &
+                                   (/kyid/), shift_id)
+            if (istatus /= NF90_NOERR) then
+               ierr = error_unit()
+               write (ierr, *) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
+               goto 1
             end if
 
 !           if (fbpar > epsilon(0.)) then
@@ -428,20 +427,6 @@ contains
 !           end if
 
          end if
-
-! remove allocated conditional because we want to be able to restart
-! using exb shear from a case which does not have exb shear (i.e.
-! we need kx_shift variable defined in netcdf file even if no exb
-! shear present in simulation) -- MAB + CMR
-!       if (allocated(kx_shift)) then   ! MR begin
-!       istatus = nf90_def_var (ncid, "kx_shift", netcdf_real, &
-!            (/ kyid /), kx_shift_id)
-!       if (istatus /= NF90_NOERR) then
-!          ierr = error_unit()
-!          write(ierr,*) "nf90_def_var kx_shift error: ", nf90_strerror(istatus)
-!          goto 1
-!       endif
-!       endif   ! MR end
 
 !    if (proc0) then
 !      write (*,*) "Finished definitions"
@@ -643,10 +628,8 @@ contains
 
          end if
 
-         if (prp_shear_enabled) then
-            istatus = nf90_put_var(ncid, shift_id, shift_state)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
-         end if
+         istatus = nf90_put_var(ncid, shift_id, shift_state)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
 
          if (include_qn_source .and. iproc == 0) then
             if (.not. allocated(pptmpr)) &
@@ -738,7 +721,6 @@ contains
       use file_utils, only: error_unit
       use sources, only: include_krook_operator, int_krook
       use sources, only: remove_zero_projection, int_proj
-      use physics_flags, only: prp_shear_enabled
       use sources, only: include_qn_source
 
       implicit none
@@ -880,10 +862,8 @@ contains
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='phiproji')
          end if
 
-         if (prp_shear_enabled) then
-            istatus = nf90_inq_varid(ncid, "shiftstate", shift_id)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='shiftstate')
-         end if
+         istatus = nf90_inq_varid(ncid, "shiftstate", shift_id)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='shiftstate')
 
 !        if (fbpar > epsilon(0.)) then
 !           istatus = nf90_inq_varid (ncid, "bpar_r", bparr_id)
@@ -1054,10 +1034,9 @@ contains
 
       end if
 
-      if (prp_shear_enabled) then
-         istatus = nf90_get_var(ncid, shift_id, shift_state)
-         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
-      end if
+      if (.not. allocated(shift_state)) allocate (shift_state(naky))
+      istatus = nf90_get_var(ncid, shift_id, shift_state)
+      if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
 
       if (scale > 0.) then
          g = g * scale
