@@ -6,9 +6,8 @@ module run_parameters
 
    public :: init_run_parameters, finish_run_parameters
    public :: fphi, fapar, fbpar
-   public :: code_delt_max
    public :: nstep, tend, delt
-   public :: cfl_cushion, delt_adjust
+   public :: cfl_cushion, delt_adjust, delt_max
    public :: avail_cpu_time
    public :: stream_implicit, mirror_implicit
    public :: drifts_implicit
@@ -26,7 +25,7 @@ module run_parameters
 
    real :: cfl_cushion, delt_adjust
    real :: fphi, fapar, fbpar
-   real :: delt, tend, code_delt_max
+   real :: delt, tend, delt_max
    real :: zed_upwind, vpa_upwind, time_upwind
    logical :: stream_implicit, mirror_implicit
    logical :: driftkinetic_implicit
@@ -85,7 +84,7 @@ contains
 
       namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
          delt_option, lu_option, &
-         avail_cpu_time, cfl_cushion, delt_adjust, &
+         avail_cpu_time, cfl_cushion, delt_adjust, delt_max, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
@@ -115,6 +114,7 @@ contains
          avail_cpu_time = 1.e10
          cfl_cushion = 0.5
          delt_adjust = 2.0
+         delt_max = -1
          rng_seed = -1 !negative values use current time as seed
          ky_solve_radial = 0
          ky_solve_real = .false.
@@ -154,6 +154,7 @@ contains
       call broadcast(lu_option_switch)
       call broadcast(cfl_cushion)
       call broadcast(delt_adjust)
+      call broadcast(delt_max)
       call broadcast(fphi)
       call broadcast(fapar)
       call broadcast(fbpar)
@@ -178,8 +179,6 @@ contains
       call broadcast(mat_read)
 
       if (.not. include_mirror) mirror_implicit = .false.
-
-      code_delt_max = delt
 
       if (driftkinetic_implicit) then
          stream_implicit = .false.
