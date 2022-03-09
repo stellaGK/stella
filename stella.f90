@@ -76,7 +76,7 @@ contains
       use physics_parameters, only: init_physics_parameters
       use physics_flags, only: init_physics_flags, radial_variation
       use run_parameters, only: init_run_parameters
-      use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt
+      use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use run_parameters, only: delt_option_switch, delt_option_auto
       use run_parameters, only: mat_gen, mat_read
@@ -288,7 +288,7 @@ contains
       end if
       !> set the internal time step size variable code_dt from the input variable delt
       if (debug) write (6, *) "stella::init_stella::init_delt"
-      call init_delt(delt)
+      call init_delt(delt, delt_max)
       !> allocate and calculate arrays needed for the mirror, parallel streaming,
       !> magnetic drifts, gradient drive, etc. terms during time advance
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'

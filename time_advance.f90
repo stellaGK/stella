@@ -1808,8 +1808,8 @@ contains
             write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
             write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
             write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
-        write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
+            write (*, '(A65)') '     ==> The code_dt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+        write (*, '(A61,ES12.4)') '     ==> Decreasing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
          end if
          code_dt = cfl_dt * cfl_cushion / delt_adjust
@@ -1823,8 +1823,8 @@ contains
             write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
             write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
             write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
-        write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
+            write (*, '(A65)') '     ==> The code_dt is smaller than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+        write (*, '(A61,ES12.4)') '     ==> Increasing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
          end if
          code_dt = min(cfl_dt * cfl_cushion / delt_adjust, code_dt_max)
@@ -2122,8 +2122,8 @@ contains
             write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
             write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
             write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
-        write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
+            write (*, '(A65)') '     ==> The code_dt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+        write (*, '(A61,ES12.4)') '     ==> Decreasing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
          end if
          code_dt = cfl_dt * cfl_cushion / delt_adjust
@@ -2137,8 +2137,8 @@ contains
             write (*, '(A16, ES10.2E2)') "   cfl_dt:"//REPEAT(' ', 50), cfl_dt
             write (*, '(A16, ES10.2E2)') "   cfl_cushion:"//REPEAT(' ', 50), cfl_cushion
             write (*, '(A16, ES10.2E2)') "   delt_adjust:"//REPEAT(' ', 50), delt_adjust
-            write (*, '(A65)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
-        write (*, '(A61,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
+            write (*, '(A65)') '     ==> The code_dt is smaller than cfl_dt*cfl_cushion.'//REPEAT(' ', 50)
+        write (*, '(A61,ES12.4)') '     ==> Increasing code_dt to cfl_dt*cfl_cushion/delt_adjust ='//REPEAT(' ', 50), cfl_dt * cfl_cushion / delt_adjust
             write (*, *) ' '
          end if
          code_dt = min(cfl_dt * cfl_cushion / delt_adjust, code_dt_max)
