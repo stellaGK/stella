@@ -34,16 +34,16 @@ contains
       real, intent(in) :: delt, delt_max
 
       code_dt = delt
-      
+
       ! Do not allow code_dt to increase beyond the input value
       ! Unless we specified delt_max in the input file
       ! For example, when restarting the simulation
       if (delt_max < 0) then
-          code_dt_max = code_dt
+         code_dt_max = code_dt
       else
-          code_dt_max = delt_max
+         code_dt_max = delt_max
       end if
-      
+
    end subroutine init_delt
 
    subroutine update_time
