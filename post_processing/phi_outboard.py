@@ -7,6 +7,7 @@ basedir = '/work/e607/e607/dstonge/rho_CBC/200/'
 infile = basedir + 'master.out.nc'
 infile_nc = netcdf.netcdf_file(infile,'r')
 
+keepZonal = False
 
 def read_stella_float(infile, var):
 
@@ -50,7 +51,7 @@ kx  = np.copy(infile_nc.variables['kx'][:])
 Lx = 2*np.pi/kx[1]
 Ly = 2*np.pi/ky[1]
 dx = Lx/nakx
-dy = Ly/naky
+dy = Ly/ny
 
 
 t  = np.copy(infile_nc.variables['t'][:])
@@ -64,6 +65,8 @@ omp = ((nzed+1)//2) - 1
 print('2')
 
 phi_xky = phi_vs_t(infile_nc,'phi_vs_t',naky,nakx)
+if not keepZonal:
+    phi_xky[:,:,:,0] = 0.0
 phi_xky2 = np.zeros((nt,nzed,nakx,ny),dtype=numpy.complex128)
 
 phi_xky2[:,:,:,0:naky] = phi_xky
