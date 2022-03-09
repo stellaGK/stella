@@ -164,115 +164,115 @@
 <a name="ln-6"></a>
 <a name="ln-7"></a><span class="k">   public</span> <span class="kd">::</span> <span class="n">init_run_parameters</span><span class="p">,</span> <span class="n">finish_run_parameters</span>
 <a name="ln-8"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span><span class="p">,</span> <span class="n">fbpar</span>
-<a name="ln-9"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">code_delt_max</span>
-<a name="ln-10"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">tend</span><span class="p">,</span> <span class="n">delt</span>
-<a name="ln-11"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">cfl_cushion</span><span class="p">,</span> <span class="n">delt_adjust</span>
-<a name="ln-12"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">avail_cpu_time</span>
-<a name="ln-13"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">stream_implicit</span><span class="p">,</span> <span class="n">mirror_implicit</span>
-<a name="ln-14"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">drifts_implicit</span>
-<a name="ln-15"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">driftkinetic_implicit</span>
-<a name="ln-16"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">fully_explicit</span>
-<a name="ln-17"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">ky_solve_radial</span><span class="p">,</span> <span class="n">ky_solve_real</span>
-<a name="ln-18"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">maxwellian_inside_zed_derivative</span>
-<a name="ln-19"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">stream_matrix_inversion</span>
-<a name="ln-20"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">mirror_semi_lagrange</span><span class="p">,</span> <span class="n">mirror_linear_interp</span>
-<a name="ln-21"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">zed_upwind</span><span class="p">,</span> <span class="n">vpa_upwind</span><span class="p">,</span> <span class="n">time_upwind</span>
-<a name="ln-22"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">fields_kxkyz</span><span class="p">,</span> <span class="n">mat_gen</span><span class="p">,</span> <span class="n">mat_read</span>
-<a name="ln-23"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">rng_seed</span>
-<a name="ln-24"></a>
-<a name="ln-25"></a>   <span class="k">private</span>
-<a name="ln-26"></a>
-<a name="ln-27"></a><span class="k">   </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">cfl_cushion</span><span class="p">,</span> <span class="n">delt_adjust</span>
-<a name="ln-28"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span><span class="p">,</span> <span class="n">fbpar</span>
-<a name="ln-29"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">delt</span><span class="p">,</span> <span class="n">tend</span><span class="p">,</span> <span class="n">code_delt_max</span>
-<a name="ln-30"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">zed_upwind</span><span class="p">,</span> <span class="n">vpa_upwind</span><span class="p">,</span> <span class="n">time_upwind</span>
-<a name="ln-31"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">stream_implicit</span><span class="p">,</span> <span class="n">mirror_implicit</span>
-<a name="ln-32"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">driftkinetic_implicit</span>
-<a name="ln-33"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fully_explicit</span><span class="p">,</span> <span class="n">drifts_implicit</span>
-<a name="ln-34"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">maxwellian_inside_zed_derivative</span>
-<a name="ln-35"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">stream_matrix_inversion</span>
-<a name="ln-36"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">mirror_semi_lagrange</span><span class="p">,</span> <span class="n">mirror_linear_interp</span>
-<a name="ln-37"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fields_kxkyz</span><span class="p">,</span> <span class="n">mat_gen</span><span class="p">,</span> <span class="n">mat_read</span>
-<a name="ln-38"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">ky_solve_real</span>
-<a name="ln-39"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">avail_cpu_time</span>
-<a name="ln-40"></a>   <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">ky_solve_radial</span>
-<a name="ln-41"></a>   <span class="kt">integer</span> <span class="kd">::</span> <span class="n">rng_seed</span>
-<a name="ln-42"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">public</span> <span class="kd">::</span> <span class="n">delt_option_switch</span><span class="p">,</span> <span class="n">lu_option_switch</span>
-<a name="ln-43"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">public</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">delt_option_hand</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">delt_option_auto</span> <span class="o">=</span> <span class="mi">2</span>
-<a name="ln-44"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">public</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">lu_option_none</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-45"></a>                                 <span class="n">lu_option_local</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-46"></a>                                 <span class="n">lu_option_global</span> <span class="o">=</span> <span class="mi">3</span>
-<a name="ln-47"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-48"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">knexist</span>
-<a name="ln-49"></a>
-<a name="ln-50"></a><span class="k">contains</span>
-<a name="ln-51"></a>
-<a name="ln-52"></a><span class="k">   subroutine </span><span class="n">init_run_parameters</span>
-<a name="ln-53"></a>
-<a name="ln-54"></a>      <span class="k">implicit none</span>
-<a name="ln-55"></a>
-<a name="ln-56"></a><span class="k">      if</span> <span class="p">(</span><span class="n">initialized</span><span class="p">)</span> <span class="k">return</span>
-<a name="ln-57"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-58"></a>
-<a name="ln-59"></a>      <span class="k">call </span><span class="n">read_parameters</span>
-<a name="ln-60"></a>
-<a name="ln-61"></a>   <span class="k">end subroutine </span><span class="n">init_run_parameters</span>
-<a name="ln-62"></a>
-<a name="ln-63"></a>   <span class="k">subroutine </span><span class="n">read_parameters</span>
-<a name="ln-64"></a>
-<a name="ln-65"></a>      <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">input_unit</span><span class="p">,</span> <span class="n">error_unit</span><span class="p">,</span> <span class="n">input_unit_exist</span>
-<a name="ln-66"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">broadcast</span>
-<a name="ln-67"></a>      <span class="k">use </span><span class="n">text_options</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">text_option</span><span class="p">,</span> <span class="n">get_option_value</span>
-<a name="ln-68"></a>      <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">include_mirror</span><span class="p">,</span> <span class="n">full_flux_surface</span>
-<a name="ln-69"></a>
-<a name="ln-70"></a>      <span class="k">implicit none</span>
-<a name="ln-71"></a>
-<a name="ln-72"></a><span class="k">      type</span><span class="p">(</span><span class="n">text_option</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">deltopts</span> <span class="o">=</span> <span class="p">&amp;</span>
-<a name="ln-73"></a>                                                    <span class="p">(</span><span class="o">/</span><span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">delt_option_auto</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-74"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;set_by_hand&#39;</span><span class="p">,</span> <span class="n">delt_option_hand</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-75"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;check_restart&#39;</span><span class="p">,</span> <span class="n">delt_option_auto</span><span class="p">)</span><span class="o">/</span><span class="p">)</span>
-<a name="ln-76"></a>      <span class="k">type</span><span class="p">(</span><span class="n">text_option</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">lu_opts</span> <span class="o">=</span> <span class="p">&amp;</span>
-<a name="ln-77"></a>                                                    <span class="p">(</span><span class="o">/</span><span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">lu_option_none</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-78"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">lu_option_none</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-79"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;local&#39;</span><span class="p">,</span> <span class="n">lu_option_local</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-80"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="n">lu_option_global</span><span class="p">)</span><span class="o">/</span><span class="p">)</span>
-<a name="ln-81"></a>
-<a name="ln-82"></a>      <span class="kt">character</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span> <span class="kd">::</span> <span class="n">delt_option</span><span class="p">,</span> <span class="n">lu_option</span>
-<a name="ln-83"></a>
-<a name="ln-84"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ierr</span><span class="p">,</span> <span class="n">in_file</span>
-<a name="ln-85"></a>
-<a name="ln-86"></a>      <span class="k">namelist</span> <span class="o">/</span><span class="n">knobs</span><span class="o">/</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span><span class="p">,</span> <span class="n">fbpar</span><span class="p">,</span> <span class="n">delt</span><span class="p">,</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">tend</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-87"></a>         <span class="n">delt_option</span><span class="p">,</span> <span class="n">lu_option</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-88"></a>         <span class="n">avail_cpu_time</span><span class="p">,</span> <span class="n">cfl_cushion</span><span class="p">,</span> <span class="n">delt_adjust</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-89"></a>         <span class="n">stream_implicit</span><span class="p">,</span> <span class="n">mirror_implicit</span><span class="p">,</span> <span class="n">driftkinetic_implicit</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-90"></a>         <span class="n">drifts_implicit</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-91"></a>         <span class="n">stream_matrix_inversion</span><span class="p">,</span> <span class="n">maxwellian_inside_zed_derivative</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-92"></a>         <span class="n">mirror_semi_lagrange</span><span class="p">,</span> <span class="n">mirror_linear_interp</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-93"></a>         <span class="n">zed_upwind</span><span class="p">,</span> <span class="n">vpa_upwind</span><span class="p">,</span> <span class="n">time_upwind</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-94"></a>         <span class="n">fields_kxkyz</span><span class="p">,</span> <span class="n">mat_gen</span><span class="p">,</span> <span class="n">mat_read</span><span class="p">,</span> <span class="n">rng_seed</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-95"></a>         <span class="n">ky_solve_radial</span><span class="p">,</span> <span class="n">ky_solve_real</span>
-<a name="ln-96"></a>
-<a name="ln-97"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-98"></a><span class="k">         </span><span class="n">fphi</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-99"></a>         <span class="n">fapar</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-100"></a>         <span class="n">fbpar</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
-<a name="ln-101"></a>         <span class="n">fields_kxkyz</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-102"></a>         <span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-103"></a>         <span class="n">mirror_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-104"></a>         <span class="n">drifts_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-105"></a>         <span class="n">driftkinetic_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-106"></a>         <span class="n">maxwellian_inside_zed_derivative</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-107"></a>         <span class="n">mirror_semi_lagrange</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-108"></a>         <span class="n">mirror_linear_interp</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-109"></a>         <span class="n">stream_matrix_inversion</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-110"></a>         <span class="n">delt_option</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
-<a name="ln-111"></a>         <span class="n">lu_option</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
-<a name="ln-112"></a>         <span class="n">zed_upwind</span> <span class="o">=</span> <span class="mf">0.02</span>
-<a name="ln-113"></a>         <span class="n">vpa_upwind</span> <span class="o">=</span> <span class="mf">0.02</span>
-<a name="ln-114"></a>         <span class="n">time_upwind</span> <span class="o">=</span> <span class="mf">0.02</span>
-<a name="ln-115"></a>         <span class="n">avail_cpu_time</span> <span class="o">=</span> <span class="mf">1.e10</span>
-<a name="ln-116"></a>         <span class="n">cfl_cushion</span> <span class="o">=</span> <span class="mf">0.5</span>
-<a name="ln-117"></a>         <span class="n">delt_adjust</span> <span class="o">=</span> <span class="mf">2.0</span>
+<a name="ln-9"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">tend</span><span class="p">,</span> <span class="n">delt</span>
+<a name="ln-10"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">cfl_cushion</span><span class="p">,</span> <span class="n">delt_adjust</span><span class="p">,</span> <span class="n">delt_max</span>
+<a name="ln-11"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">avail_cpu_time</span>
+<a name="ln-12"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">stream_implicit</span><span class="p">,</span> <span class="n">mirror_implicit</span>
+<a name="ln-13"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">drifts_implicit</span>
+<a name="ln-14"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">driftkinetic_implicit</span>
+<a name="ln-15"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">fully_explicit</span>
+<a name="ln-16"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">ky_solve_radial</span><span class="p">,</span> <span class="n">ky_solve_real</span>
+<a name="ln-17"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">maxwellian_inside_zed_derivative</span>
+<a name="ln-18"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">stream_matrix_inversion</span>
+<a name="ln-19"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">mirror_semi_lagrange</span><span class="p">,</span> <span class="n">mirror_linear_interp</span>
+<a name="ln-20"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">zed_upwind</span><span class="p">,</span> <span class="n">vpa_upwind</span><span class="p">,</span> <span class="n">time_upwind</span>
+<a name="ln-21"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">fields_kxkyz</span><span class="p">,</span> <span class="n">mat_gen</span><span class="p">,</span> <span class="n">mat_read</span>
+<a name="ln-22"></a>   <span class="k">public</span> <span class="kd">::</span> <span class="n">rng_seed</span>
+<a name="ln-23"></a>
+<a name="ln-24"></a>   <span class="k">private</span>
+<a name="ln-25"></a>
+<a name="ln-26"></a><span class="k">   </span><span class="kt">real</span> <span class="kd">::</span> <span class="n">cfl_cushion</span><span class="p">,</span> <span class="n">delt_adjust</span>
+<a name="ln-27"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span><span class="p">,</span> <span class="n">fbpar</span>
+<a name="ln-28"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">delt</span><span class="p">,</span> <span class="n">tend</span><span class="p">,</span> <span class="n">delt_max</span>
+<a name="ln-29"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">zed_upwind</span><span class="p">,</span> <span class="n">vpa_upwind</span><span class="p">,</span> <span class="n">time_upwind</span>
+<a name="ln-30"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">stream_implicit</span><span class="p">,</span> <span class="n">mirror_implicit</span>
+<a name="ln-31"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">driftkinetic_implicit</span>
+<a name="ln-32"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fully_explicit</span><span class="p">,</span> <span class="n">drifts_implicit</span>
+<a name="ln-33"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">maxwellian_inside_zed_derivative</span>
+<a name="ln-34"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">stream_matrix_inversion</span>
+<a name="ln-35"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">mirror_semi_lagrange</span><span class="p">,</span> <span class="n">mirror_linear_interp</span>
+<a name="ln-36"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fields_kxkyz</span><span class="p">,</span> <span class="n">mat_gen</span><span class="p">,</span> <span class="n">mat_read</span>
+<a name="ln-37"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">ky_solve_real</span>
+<a name="ln-38"></a>   <span class="kt">real</span> <span class="kd">::</span> <span class="n">avail_cpu_time</span>
+<a name="ln-39"></a>   <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">ky_solve_radial</span>
+<a name="ln-40"></a>   <span class="kt">integer</span> <span class="kd">::</span> <span class="n">rng_seed</span>
+<a name="ln-41"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">public</span> <span class="kd">::</span> <span class="n">delt_option_switch</span><span class="p">,</span> <span class="n">lu_option_switch</span>
+<a name="ln-42"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">public</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">delt_option_hand</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">delt_option_auto</span> <span class="o">=</span> <span class="mi">2</span>
+<a name="ln-43"></a>   <span class="kt">integer</span><span class="p">,</span> <span class="k">public</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">lu_option_none</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-44"></a>                                 <span class="n">lu_option_local</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-45"></a>                                 <span class="n">lu_option_global</span> <span class="o">=</span> <span class="mi">3</span>
+<a name="ln-46"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-47"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">knexist</span>
+<a name="ln-48"></a>
+<a name="ln-49"></a><span class="k">contains</span>
+<a name="ln-50"></a>
+<a name="ln-51"></a><span class="k">   subroutine </span><span class="n">init_run_parameters</span>
+<a name="ln-52"></a>
+<a name="ln-53"></a>      <span class="k">implicit none</span>
+<a name="ln-54"></a>
+<a name="ln-55"></a><span class="k">      if</span> <span class="p">(</span><span class="n">initialized</span><span class="p">)</span> <span class="k">return</span>
+<a name="ln-56"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-57"></a>
+<a name="ln-58"></a>      <span class="k">call </span><span class="n">read_parameters</span>
+<a name="ln-59"></a>
+<a name="ln-60"></a>   <span class="k">end subroutine </span><span class="n">init_run_parameters</span>
+<a name="ln-61"></a>
+<a name="ln-62"></a>   <span class="k">subroutine </span><span class="n">read_parameters</span>
+<a name="ln-63"></a>
+<a name="ln-64"></a>      <span class="k">use </span><span class="n">file_utils</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">input_unit</span><span class="p">,</span> <span class="n">error_unit</span><span class="p">,</span> <span class="n">input_unit_exist</span>
+<a name="ln-65"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">proc0</span><span class="p">,</span> <span class="n">broadcast</span>
+<a name="ln-66"></a>      <span class="k">use </span><span class="n">text_options</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">text_option</span><span class="p">,</span> <span class="n">get_option_value</span>
+<a name="ln-67"></a>      <span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">include_mirror</span><span class="p">,</span> <span class="n">full_flux_surface</span>
+<a name="ln-68"></a>
+<a name="ln-69"></a>      <span class="k">implicit none</span>
+<a name="ln-70"></a>
+<a name="ln-71"></a><span class="k">      type</span><span class="p">(</span><span class="n">text_option</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">deltopts</span> <span class="o">=</span> <span class="p">&amp;</span>
+<a name="ln-72"></a>                                                    <span class="p">(</span><span class="o">/</span><span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">delt_option_auto</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-73"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;set_by_hand&#39;</span><span class="p">,</span> <span class="n">delt_option_hand</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-74"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;check_restart&#39;</span><span class="p">,</span> <span class="n">delt_option_auto</span><span class="p">)</span><span class="o">/</span><span class="p">)</span>
+<a name="ln-75"></a>      <span class="k">type</span><span class="p">(</span><span class="n">text_option</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">lu_opts</span> <span class="o">=</span> <span class="p">&amp;</span>
+<a name="ln-76"></a>                                                    <span class="p">(</span><span class="o">/</span><span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">lu_option_none</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-77"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">lu_option_none</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-78"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;local&#39;</span><span class="p">,</span> <span class="n">lu_option_local</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-79"></a>                                                      <span class="n">text_option</span><span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="n">lu_option_global</span><span class="p">)</span><span class="o">/</span><span class="p">)</span>
+<a name="ln-80"></a>
+<a name="ln-81"></a>      <span class="kt">character</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span> <span class="kd">::</span> <span class="n">delt_option</span><span class="p">,</span> <span class="n">lu_option</span>
+<a name="ln-82"></a>
+<a name="ln-83"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ierr</span><span class="p">,</span> <span class="n">in_file</span>
+<a name="ln-84"></a>
+<a name="ln-85"></a>      <span class="k">namelist</span> <span class="o">/</span><span class="n">knobs</span><span class="o">/</span> <span class="n">fphi</span><span class="p">,</span> <span class="n">fapar</span><span class="p">,</span> <span class="n">fbpar</span><span class="p">,</span> <span class="n">delt</span><span class="p">,</span> <span class="n">nstep</span><span class="p">,</span> <span class="n">tend</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-86"></a>         <span class="n">delt_option</span><span class="p">,</span> <span class="n">lu_option</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-87"></a>         <span class="n">avail_cpu_time</span><span class="p">,</span> <span class="n">cfl_cushion</span><span class="p">,</span> <span class="n">delt_adjust</span><span class="p">,</span> <span class="n">delt_max</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-88"></a>         <span class="n">stream_implicit</span><span class="p">,</span> <span class="n">mirror_implicit</span><span class="p">,</span> <span class="n">driftkinetic_implicit</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-89"></a>         <span class="n">drifts_implicit</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-90"></a>         <span class="n">stream_matrix_inversion</span><span class="p">,</span> <span class="n">maxwellian_inside_zed_derivative</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-91"></a>         <span class="n">mirror_semi_lagrange</span><span class="p">,</span> <span class="n">mirror_linear_interp</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-92"></a>         <span class="n">zed_upwind</span><span class="p">,</span> <span class="n">vpa_upwind</span><span class="p">,</span> <span class="n">time_upwind</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-93"></a>         <span class="n">fields_kxkyz</span><span class="p">,</span> <span class="n">mat_gen</span><span class="p">,</span> <span class="n">mat_read</span><span class="p">,</span> <span class="n">rng_seed</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-94"></a>         <span class="n">ky_solve_radial</span><span class="p">,</span> <span class="n">ky_solve_real</span>
+<a name="ln-95"></a>
+<a name="ln-96"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-97"></a><span class="k">         </span><span class="n">fphi</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-98"></a>         <span class="n">fapar</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-99"></a>         <span class="n">fbpar</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+<a name="ln-100"></a>         <span class="n">fields_kxkyz</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-101"></a>         <span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-102"></a>         <span class="n">mirror_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-103"></a>         <span class="n">drifts_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-104"></a>         <span class="n">driftkinetic_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-105"></a>         <span class="n">maxwellian_inside_zed_derivative</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-106"></a>         <span class="n">mirror_semi_lagrange</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-107"></a>         <span class="n">mirror_linear_interp</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-108"></a>         <span class="n">stream_matrix_inversion</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-109"></a>         <span class="n">delt_option</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+<a name="ln-110"></a>         <span class="n">lu_option</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+<a name="ln-111"></a>         <span class="n">zed_upwind</span> <span class="o">=</span> <span class="mf">0.02</span>
+<a name="ln-112"></a>         <span class="n">vpa_upwind</span> <span class="o">=</span> <span class="mf">0.02</span>
+<a name="ln-113"></a>         <span class="n">time_upwind</span> <span class="o">=</span> <span class="mf">0.02</span>
+<a name="ln-114"></a>         <span class="n">avail_cpu_time</span> <span class="o">=</span> <span class="mf">1.e10</span>
+<a name="ln-115"></a>         <span class="n">cfl_cushion</span> <span class="o">=</span> <span class="mf">0.5</span>
+<a name="ln-116"></a>         <span class="n">delt_adjust</span> <span class="o">=</span> <span class="mf">2.0</span>
+<a name="ln-117"></a>         <span class="n">delt_max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
 <a name="ln-118"></a>         <span class="n">rng_seed</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="c">!negative values use current time as seed</span>
 <a name="ln-119"></a>         <span class="n">ky_solve_radial</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-120"></a>         <span class="n">ky_solve_real</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
@@ -312,83 +312,82 @@
 <a name="ln-154"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">lu_option_switch</span><span class="p">)</span>
 <a name="ln-155"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">cfl_cushion</span><span class="p">)</span>
 <a name="ln-156"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">delt_adjust</span><span class="p">)</span>
-<a name="ln-157"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">fphi</span><span class="p">)</span>
-<a name="ln-158"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">fapar</span><span class="p">)</span>
-<a name="ln-159"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">fbpar</span><span class="p">)</span>
-<a name="ln-160"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">stream_implicit</span><span class="p">)</span>
-<a name="ln-161"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mirror_implicit</span><span class="p">)</span>
-<a name="ln-162"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">drifts_implicit</span><span class="p">)</span>
-<a name="ln-163"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">driftkinetic_implicit</span><span class="p">)</span>
-<a name="ln-164"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">maxwellian_inside_zed_derivative</span><span class="p">)</span>
-<a name="ln-165"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mirror_semi_lagrange</span><span class="p">)</span>
-<a name="ln-166"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mirror_linear_interp</span><span class="p">)</span>
-<a name="ln-167"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">stream_matrix_inversion</span><span class="p">)</span>
-<a name="ln-168"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">zed_upwind</span><span class="p">)</span>
-<a name="ln-169"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">vpa_upwind</span><span class="p">)</span>
-<a name="ln-170"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">time_upwind</span><span class="p">)</span>
-<a name="ln-171"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nstep</span><span class="p">)</span>
-<a name="ln-172"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">tend</span><span class="p">)</span>
-<a name="ln-173"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">avail_cpu_time</span><span class="p">)</span>
-<a name="ln-174"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">rng_seed</span><span class="p">)</span>
-<a name="ln-175"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">ky_solve_radial</span><span class="p">)</span>
-<a name="ln-176"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">ky_solve_real</span><span class="p">)</span>
-<a name="ln-177"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mat_gen</span><span class="p">)</span>
-<a name="ln-178"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mat_read</span><span class="p">)</span>
-<a name="ln-179"></a>
-<a name="ln-180"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="n">include_mirror</span><span class="p">)</span> <span class="n">mirror_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-181"></a>
-<a name="ln-182"></a>      <span class="n">code_delt_max</span> <span class="o">=</span> <span class="n">delt</span>
-<a name="ln-183"></a>
-<a name="ln-184"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">driftkinetic_implicit</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-185"></a><span class="k">         </span><span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-186"></a>      <span class="k">else if</span> <span class="p">(</span><span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-187"></a><span class="k">         </span><span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-188"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-189"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;!!!WARNING!!!&quot;</span>
-<a name="ln-190"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;The option stream_implicit=T is not supported for full_flux_surface=T.&quot;</span>
-<a name="ln-191"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Setting driftkinetic_implicit=T instead.&quot;</span>
-<a name="ln-192"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;!!!WARNING!!!&quot;</span>
-<a name="ln-193"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-194"></a>         <span class="n">driftkinetic_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-195"></a>      <span class="k">end if</span>
-<a name="ln-196"></a>
-<a name="ln-197"></a><span class="k">      if</span> <span class="p">(</span><span class="n">mirror_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">driftkinetic_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">drifts_implicit</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-198"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-199"></a>      <span class="k">else</span>
-<a name="ln-200"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-201"></a>      <span class="k">end if</span>
-<a name="ln-202"></a>
-<a name="ln-203"></a>      <span class="c">!&gt; print warning messages and override inconsistent or unsupported options for full_flux_surface = T</span>
-<a name="ln-204"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-205"></a><span class="k">         if</span> <span class="p">(</span><span class="n">fields_kxkyz</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-206"></a><span class="k">            write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-207"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
-<a name="ln-208"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option fields_kxkyz=T is not currently supported for full_flux_surface=T.&#39;</span>
-<a name="ln-209"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing fields_kxkyz=F.&#39;</span>
-<a name="ln-210"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
-<a name="ln-211"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-212"></a>            <span class="n">fields_kxkyz</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-213"></a>         <span class="k">end if</span>
-<a name="ln-214"></a><span class="k">         if</span> <span class="p">(</span><span class="n">mirror_semi_lagrange</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-215"></a><span class="k">            write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-216"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
-<a name="ln-217"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.&#39;</span>
-<a name="ln-218"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing mirror_semi_lagrange=F.&#39;</span>
-<a name="ln-219"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
-<a name="ln-220"></a>         <span class="k">end if</span>
-<a name="ln-221"></a><span class="k">      end if</span>
-<a name="ln-222"></a>
-<a name="ln-223"></a><span class="k">   end subroutine </span><span class="n">read_parameters</span>
-<a name="ln-224"></a>
-<a name="ln-225"></a>   <span class="k">subroutine </span><span class="n">finish_run_parameters</span>
-<a name="ln-226"></a>
-<a name="ln-227"></a>      <span class="k">implicit none</span>
-<a name="ln-228"></a>
-<a name="ln-229"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-230"></a>
-<a name="ln-231"></a>   <span class="k">end subroutine </span><span class="n">finish_run_parameters</span>
-<a name="ln-232"></a>
-<a name="ln-233"></a><span class="k">end module </span><span class="n">run_parameters</span>
+<a name="ln-157"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">delt_max</span><span class="p">)</span>
+<a name="ln-158"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">fphi</span><span class="p">)</span>
+<a name="ln-159"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">fapar</span><span class="p">)</span>
+<a name="ln-160"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">fbpar</span><span class="p">)</span>
+<a name="ln-161"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">stream_implicit</span><span class="p">)</span>
+<a name="ln-162"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mirror_implicit</span><span class="p">)</span>
+<a name="ln-163"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">drifts_implicit</span><span class="p">)</span>
+<a name="ln-164"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">driftkinetic_implicit</span><span class="p">)</span>
+<a name="ln-165"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">maxwellian_inside_zed_derivative</span><span class="p">)</span>
+<a name="ln-166"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mirror_semi_lagrange</span><span class="p">)</span>
+<a name="ln-167"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mirror_linear_interp</span><span class="p">)</span>
+<a name="ln-168"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">stream_matrix_inversion</span><span class="p">)</span>
+<a name="ln-169"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">zed_upwind</span><span class="p">)</span>
+<a name="ln-170"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">vpa_upwind</span><span class="p">)</span>
+<a name="ln-171"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">time_upwind</span><span class="p">)</span>
+<a name="ln-172"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">nstep</span><span class="p">)</span>
+<a name="ln-173"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">tend</span><span class="p">)</span>
+<a name="ln-174"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">avail_cpu_time</span><span class="p">)</span>
+<a name="ln-175"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">rng_seed</span><span class="p">)</span>
+<a name="ln-176"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">ky_solve_radial</span><span class="p">)</span>
+<a name="ln-177"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">ky_solve_real</span><span class="p">)</span>
+<a name="ln-178"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mat_gen</span><span class="p">)</span>
+<a name="ln-179"></a>      <span class="k">call </span><span class="n">broadcast</span><span class="p">(</span><span class="n">mat_read</span><span class="p">)</span>
+<a name="ln-180"></a>
+<a name="ln-181"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="n">include_mirror</span><span class="p">)</span> <span class="n">mirror_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-182"></a>
+<a name="ln-183"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">driftkinetic_implicit</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-184"></a><span class="k">         </span><span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-185"></a>      <span class="k">else if</span> <span class="p">(</span><span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-186"></a><span class="k">         </span><span class="n">stream_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-187"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-188"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;!!!WARNING!!!&quot;</span>
+<a name="ln-189"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;The option stream_implicit=T is not supported for full_flux_surface=T.&quot;</span>
+<a name="ln-190"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Setting driftkinetic_implicit=T instead.&quot;</span>
+<a name="ln-191"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;!!!WARNING!!!&quot;</span>
+<a name="ln-192"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-193"></a>         <span class="n">driftkinetic_implicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-194"></a>      <span class="k">end if</span>
+<a name="ln-195"></a>
+<a name="ln-196"></a><span class="k">      if</span> <span class="p">(</span><span class="n">mirror_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">stream_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">driftkinetic_implicit</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">drifts_implicit</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-197"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-198"></a>      <span class="k">else</span>
+<a name="ln-199"></a><span class="k">         </span><span class="n">fully_explicit</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-200"></a>      <span class="k">end if</span>
+<a name="ln-201"></a>
+<a name="ln-202"></a>      <span class="c">!&gt; print warning messages and override inconsistent or unsupported options for full_flux_surface = T</span>
+<a name="ln-203"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-204"></a><span class="k">         if</span> <span class="p">(</span><span class="n">fields_kxkyz</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-205"></a><span class="k">            write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-206"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-207"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option fields_kxkyz=T is not currently supported for full_flux_surface=T.&#39;</span>
+<a name="ln-208"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing fields_kxkyz=F.&#39;</span>
+<a name="ln-209"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-210"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-211"></a>            <span class="n">fields_kxkyz</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-212"></a>         <span class="k">end if</span>
+<a name="ln-213"></a><span class="k">         if</span> <span class="p">(</span><span class="n">mirror_semi_lagrange</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-214"></a><span class="k">            write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-215"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-216"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.&#39;</span>
+<a name="ln-217"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Forcing mirror_semi_lagrange=F.&#39;</span>
+<a name="ln-218"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;!!!WARNING!!!&#39;</span>
+<a name="ln-219"></a>         <span class="k">end if</span>
+<a name="ln-220"></a><span class="k">      end if</span>
+<a name="ln-221"></a>
+<a name="ln-222"></a><span class="k">   end subroutine </span><span class="n">read_parameters</span>
+<a name="ln-223"></a>
+<a name="ln-224"></a>   <span class="k">subroutine </span><span class="n">finish_run_parameters</span>
+<a name="ln-225"></a>
+<a name="ln-226"></a>      <span class="k">implicit none</span>
+<a name="ln-227"></a>
+<a name="ln-228"></a><span class="k">      </span><span class="n">initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-229"></a>
+<a name="ln-230"></a>   <span class="k">end subroutine </span><span class="n">finish_run_parameters</span>
+<a name="ln-231"></a>
+<a name="ln-232"></a><span class="k">end module </span><span class="n">run_parameters</span>
 </pre></div>
 
     </section>
@@ -401,13 +400,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-14-gc43fbd5ae</small></p>
+<br /><small>v0.5-19-g42eb903d1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-02-24T14:27:47.834765           </p>
+ on 2022-03-09T09:51:47.932706           </p>
         </div>
       </div>
       <br>
