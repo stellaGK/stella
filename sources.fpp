@@ -201,7 +201,7 @@ contains
       if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
 #if defined MPI && defined ISO_C_BINDING
-      if (qn_zf_window /= MPI_WIN_NULL) then
+      if (qn_window_initialized .and. qn_zf_window /= MPI_WIN_NULL) then
          call mpi_win_free(qn_zf_window, ierr)
          qn_window_initialized = .false.
       end if
