@@ -33,6 +33,7 @@ for it in range (ntime):
   zonal_flow_kx[it,:] = 1j*kx_stella*zonal_phi_kx[it,:]
   zonal_shear_kx[it,:] = -kx_stella**2*zonal_phi_kx[it,:]
 
+# the highest filter_fraction*100 percent of the kx values are filtered
 filter_fraction = 0.7
 # filter high |kx| from zonal shear
 zonal_flow_kx_filtered = np.copy(zonal_flow_kx)
@@ -127,65 +128,21 @@ xlabel = '$x$'
 ylabel = '$zonal flow$'
 movie_1d(xgrid, zonal_flow_x, xmin, xmax, ymin, ymax, ntime-1, outdir+file_prefix+'.zonal_vs_x.mp4',xlabel,ylabel)
 
-#p_ave   = np.mean(phizfc[tind:nti,:],0)
-#v_ave   = np.mean(vxc[tind:nti,:],0)
-#e_ave   = np.squeeze(np.mean(exbc[tind:nti,:],0))
-#spec_ave=np.mean(np.abs(exbc_k[tind:nti]),0)
-
-cout = open(outdir + file_prefix + '.zonal_vs_x_t','w')
-cout.write('[1] t     ')
-cout.write('[2] x     ')
-cout.write('[3] phi   ')
-cout.write('[4] flow  ')
-cout.write('[5] shear ')
-cout.write('\n')
-for it in range (ntime):
-  for ikx in range (nakx):
-    cout.write('%e ' % time[it])
-    cout.write('%e ' % xgrid[ikx])
-    cout.write('%e ' % zonal_phi_x[it,ikx])
-    cout.write('%e ' % zonal_flow_x[it,ikx])
-    cout.write('%e ' % zonal_shear_x[it,ikx])
-    cout.write('\n')
-  cout.write('\n')
-
-cout.close()
-
-# cout = open(basedir + fpref + '.exb_ave','w')
-# cout.write('#Average from t=' + str(t[tind])+ ' to t=' + str(t[nti-1]) + '\n')
-# cout.write('[1] x     ')
-# cout.write('[2] phi   ')
-# cout.write('[3] v     ')
-# cout.write('[4] exb   ')
-# cout.write('[5] exb_k ')
-# #cout.write('[5] exb smooth')
-# cout.write('[6] spec ave')
-# cout.write('\n')
-# #for j in range (w2,nakxc-w2):
-# for j in range (nakxc):
-# #  cout.write('%e ' % radgrid[j,0])
-#   cout.write('%e ' % (dx*j))
-#   cout.write('%e ' % p_ave[j])
-#   cout.write('%e ' % v_ave[j])
-#   cout.write('%e ' % e_ave[j])
-# #  cout.write('%e ' % ma_vec[j])
-#   cout.write('%e ' % spec_ave[j])
-#   cout.write('\n')
-# cout.close()
-
-# cout = open(basedir + fpref + '.exb_en','w')
+# cout = open(outdir + file_prefix + '.zonal_vs_x_t','w')
 # cout.write('[1] t     ')
-# cout.write('[2] phi2  ')
-# cout.write('[3] uzf2  ')
-# cout.write('[4] exb2  ')
-# cout.write('[5] exbk2  ')
+# cout.write('[2] x     ')
+# cout.write('[3] phi   ')
+# cout.write('[4] flow  ')
+# cout.write('[5] shear ')
 # cout.write('\n')
-# for i in range (nt):
-#     cout.write('%e ' % t[i])
-#     cout.write('%e ' % np.mean(phizfc[i,:]**2))
-#     cout.write('%e ' % np.mean(vxc[i,:]**2))
-#     cout.write('%e ' % np.mean(exbc[i,:]**2))
-#     cout.write('%e ' % np.mean(np.abs(exbc_k[i,:])**2))
+# for it in range (ntime):
+#   for ikx in range (nakx):
+#     cout.write('%e ' % time[it])
+#     cout.write('%e ' % xgrid[ikx])
+#     cout.write('%e ' % zonal_phi_x[it,ikx])
+#     cout.write('%e ' % zonal_flow_x[it,ikx])
+#     cout.write('%e ' % zonal_shear_x[it,ikx])
 #     cout.write('\n')
-# cout.close()
+#   cout.write('\n')
 
+# cout.close()
