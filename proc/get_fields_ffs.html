@@ -114,26 +114,7 @@
     <div id="sidebar">
   <h3>Contents</h3>
  
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
-  <div id="vars-0" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-iz~11">iz</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-ikx~15">ikx</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-phi_fsa">phi_fsa</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-phi_swap">phi_swap</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-source">source</a>
-    </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-0" class="panel-collapse collapse">
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#proc-get_g_integral_contribution">get_g_integral_contribution</a>
-    </div>
-  </div>
-</div>
+<em>None</em>
 
 </div>
 
@@ -148,13 +129,13 @@
       <ul class="list-group">
       <li class="list-group-item">
   <ul class="list-inline">
+    <li><a href='../module/mp.html'>mp</a></li>
+    <li><a href='../module/run_parameters.html'>run_parameters</a></li>
     <li><a href='../module/stella_layouts.html'>stella_layouts</a></li>
-    <li><a href='../module/volume_averages.html'>volume_averages</a></li>
     <li><a href='../module/zgrid.html'>zgrid</a></li>
     <li><a href='../module/kt_grids.html'>kt_grids</a></li>
+    <li><a href='../module/volume_averages.html'>volume_averages</a></li>
     <li><a href='../module/species.html'>species</a></li>
-    <li><a href='../module/run_parameters.html'>run_parameters</a></li>
-    <li><a href='../module/mp.html'>mp</a></li>
     <li><a href='../module/physics_parameters.html'>physics_parameters</a></li>
   </ul>
       </li>
@@ -212,66 +193,12 @@ hack for now is to set it equal to zero.</p>
     <section class="visible-xs visible-sm hidden-md">
       <h3>Contents</h3>
  
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
-  <div id="vars-1" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-iz~11">iz</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-ikx~15">ikx</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-phi_fsa">phi_fsa</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-phi_swap">phi_swap</a>
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#variable-source">source</a>
-    </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-1" class="panel-collapse collapse">
-      <a class="list-group-item" href="../proc/get_fields_ffs.html#proc-get_g_integral_contribution">get_g_integral_contribution</a>
-    </div>
-  </div>
-</div>
+<em>None</em>
 
     </section>
     <br class="visible-xs visible-sm hidden-md">
 
 
-    <section>    
-      <h2>Variables</h2>
-    <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Visibility</th><th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" id="variable-iz~11"></span>integer,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>iz</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-ikx~15"></span>integer,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>ikx</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-phi_fsa"></span>complex,</td>
-<td>private,</td>  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>phi_fsa</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-phi_swap"></span>complex,</td>
-<td>private,</td>  <td>dimension(:, :, :), allocatable</td><td>::</td>
-  <td><strong>phi_swap</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-source"></span>complex,</td>
-<td>private,</td>  <td>dimension(:, :, :), allocatable</td><td>::</td>
-  <td><strong>source</strong></td><td></td><td></td><td></td>
-</tr>
-</tbody>
-</table>
-
-    </section>
-    <br>
     
     
 
@@ -279,46 +206,6 @@ hack for now is to set it equal to zero.</p>
     
 
 
-    <section>
-    <h2>Subroutines</h2>
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_g_integral_contribution"></span><h3>subroutine get_g_integral_contribution(g, source)</h3></div>
-  <div class="panel-body">
-       
-<p>assume there is only a single flux surface being simulated
-loop over zed location within flux tube
-loop over super-index ivmu, which include vpa, mu and spec
-gyroaverage the distribution function g at each phase space location
-integrate <g> over velocity space and sum over species within each processor
-as v-space and species possibly spread over processors, wlil need to
-gather sums from each proceessor and sum them all together below
-gather sub-sums from each processor and add them together
-store result in phi, which will be further modified below to account for polarization term
-no longer need <g>, so deallocate</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
-<td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
-<td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:)</td><td>::</td>
-  <td><strong>source</strong></td><td></td>
-</tr>
-</tbody>
-</table>
-
-
-  </div>
-  </div>
-
-    </section>    
     
     
     </div>
@@ -330,13 +217,13 @@ no longer need <g>, so deallocate</p>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-21-g02e35cfca</small></p>
+<br /><small>v0.5-30-g881f0aab1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-03-09T14:50:22.875972           </p>
+ on 2022-03-15T01:57:43.379995           </p>
         </div>
       </div>
       <br>
