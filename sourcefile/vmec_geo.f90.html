@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for source files.">274 statements</a>
+    title=" 0.7% of total for source files.">275 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/vmec_geo.f90"> Source File</a></li>
   </ul>
@@ -502,163 +502,164 @@
 <a name="ln-344"></a>      <span class="c">!&gt; gradpar is b . grad zed (or its alpha-average, in the case of full_flux_surface=T),</span>
 <a name="ln-345"></a>      <span class="c">!&gt; with zed = zeta or normalised arc-length, both scaled to run from -pi to pi</span>
 <a name="ln-346"></a>      <span class="n">gradpar</span> <span class="o">=</span> <span class="n">gradpar</span> <span class="o">*</span> <span class="n">zed_scalefac</span>
-<a name="ln-347"></a>      <span class="n">gds23</span> <span class="o">=</span> <span class="n">gds23</span> <span class="o">*</span> <span class="n">zed_scalefac</span>
-<a name="ln-348"></a>      <span class="n">gds24</span> <span class="o">=</span> <span class="n">gds24</span> <span class="o">*</span> <span class="n">zed_scalefac</span>
-<a name="ln-349"></a>
-<a name="ln-350"></a>      <span class="c">! arrays over extended zeta-grid no longer needed, so deallocate</span>
-<a name="ln-351"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">zed_domain_size</span><span class="p">)</span>
-<a name="ln-352"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">zeta_vmec</span><span class="p">)</span>
-<a name="ln-353"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">thetamod_vmec</span><span class="p">)</span>
-<a name="ln-354"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">B_sub_theta_vmec_mod</span><span class="p">)</span>
-<a name="ln-355"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">B_sub_zeta_mod</span><span class="p">)</span>
-<a name="ln-356"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">bmag_vmec</span><span class="p">,</span> <span class="n">gradpar_vmec</span><span class="p">)</span>
-<a name="ln-357"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">gradpar_zeta</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">gradpar_zeta</span><span class="p">)</span>
-<a name="ln-358"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">grad_alpha_grad_alpha_vmec</span><span class="p">,</span> <span class="n">grad_alpha_grad_psi_vmec</span><span class="p">,</span> <span class="n">grad_psi_grad_psi_vmec</span><span class="p">)</span>
-<a name="ln-359"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">gds23_vmec</span><span class="p">,</span> <span class="n">gds24_vmec</span><span class="p">,</span> <span class="n">gds25_vmec</span><span class="p">,</span> <span class="n">gds26_vmec</span><span class="p">)</span>
-<a name="ln-360"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">gbdrift_alpha_vmec</span><span class="p">,</span> <span class="n">gbdrift0_psi_vmec</span><span class="p">)</span>
-<a name="ln-361"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">cvdrift_alpha_vmec</span><span class="p">,</span> <span class="n">cvdrift0_psi_vmec</span><span class="p">)</span>
-<a name="ln-362"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">x_displacement_fac_vmec</span><span class="p">)</span>
-<a name="ln-363"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">arc_length</span><span class="p">)</span>
-<a name="ln-364"></a>
-<a name="ln-365"></a>      <span class="c">!&gt; vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc</span>
-<a name="ln-366"></a>      <span class="c">!&gt; stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor</span>
-<a name="ln-367"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span><span class="p">)</span>
-<a name="ln-368"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">rhotor</span> <span class="o">=</span> <span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span>
-<a name="ln-369"></a>
-<a name="ln-370"></a>      <span class="c">! rho = sqrt(psi_t / psi_{t,LCFS})</span>
-<a name="ln-371"></a>      <span class="c">! Bref = 2|psi_LCFS|/a^2</span>
-<a name="ln-372"></a>
-<a name="ln-373"></a>      <span class="c">! grho = a * |grad rho| = a * |drho/dpsi_t| * |grad psi_t|</span>
-<a name="ln-374"></a>      <span class="c">! = |drho/dpsi_t|*(a^2*Bref) * |grad psi_t|/(a*Bref)</span>
-<a name="ln-375"></a>      <span class="c">! = a^2*Bref/(2*rho)/|psi_LCFS| * sqrt(grad_psi_grad_psi)</span>
-<a name="ln-376"></a>      <span class="c">! = 1/rho * sqrt(grad_psi_grad_psi)</span>
-<a name="ln-377"></a>      <span class="n">grho</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">grad_psi_grad_psi</span><span class="p">)</span> <span class="o">/</span> <span class="n">surf</span><span class="p">%</span><span class="n">rhotor</span>
-<a name="ln-378"></a>
-<a name="ln-379"></a>      <span class="c">! grho = |grad rho| = |drho/dx| * |grad x|</span>
-<a name="ln-380"></a>      <span class="c">! |drho/dx| = L_reference</span>
-<a name="ln-381"></a>      <span class="c">! gds22 = shat^2 * |grad x|^2</span>
-<a name="ln-382"></a><span class="c">!    grho = sqrt(gds22/surf%shat**2)/L_reference</span>
-<a name="ln-383"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">drhotordrho</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a name="ln-384"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">psitor_lcfs</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">sign_torflux</span>
-<a name="ln-385"></a>
-<a name="ln-386"></a>      <span class="c">! this is zeta0 that appears everywhere in tandem with zeta-zeta0</span>
-<a name="ln-387"></a>      <span class="c">! converted to the zed coordinate (which is possibly arc-length</span>
-<a name="ln-388"></a>      <span class="c">! and is compressed to fit on the range -pi,pi)</span>
-<a name="ln-389"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">zed0_fac</span> <span class="o">=</span> <span class="o">-</span><span class="n">zed</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">)</span> <span class="o">/</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">)</span> <span class="o">*</span> <span class="n">surf</span><span class="p">%</span><span class="n">qinp</span>
-<a name="ln-390"></a>
-<a name="ln-391"></a>      <span class="c">! scale the vmec output</span>
-<a name="ln-392"></a>      <span class="c">! alpha = theta_pest - iota*zeta</span>
-<a name="ln-393"></a>      <span class="c">! theta_pest = theta_vmec + Lambda(psi,alpha,theta_vmec)</span>
-<a name="ln-394"></a>      <span class="c">! with theta_pest a straight-field-line angle</span>
-<a name="ln-395"></a>      <span class="c">! but not theta_vmec</span>
-<a name="ln-396"></a>      <span class="c">! so theta is theta_pest up to constant (alpha)</span>
-<a name="ln-397"></a>
-<a name="ln-398"></a><span class="c">!    theta = zeta/nfp/surf%qinp</span>
-<a name="ln-399"></a>      <span class="n">theta</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nzgrid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">zeta</span> <span class="o">/</span> <span class="n">surf</span><span class="p">%</span><span class="n">qinp</span>
-<a name="ln-400"></a>      <span class="c">! this is the vmec theta (not straight-field-line coordinate)</span>
-<a name="ln-401"></a>      <span class="c">! scaled to run between -pi and pi</span>
-<a name="ln-402"></a>      <span class="n">theta_vmec</span> <span class="o">=</span> <span class="n">theta_vmec</span> <span class="o">/</span> <span class="n">nfp</span>
-<a name="ln-403"></a>
-<a name="ln-404"></a>      <span class="k">call </span><span class="n">open_output_file</span><span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;.vmec.geo&#39;</span><span class="p">)</span>
-<a name="ln-405"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(6a12)&#39;</span><span class="p">)</span> <span class="s1">&#39;#rhotor&#39;</span><span class="p">,</span> <span class="s1">&#39;qinp&#39;</span><span class="p">,</span> <span class="s1">&#39;shat&#39;</span><span class="p">,</span> <span class="s1">&#39;aref&#39;</span><span class="p">,</span> <span class="s1">&#39;Bref&#39;</span><span class="p">,</span> <span class="s1">&#39;z_scalefac&#39;</span>
-<a name="ln-406"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(6e12.4)&#39;</span><span class="p">)</span> <span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span><span class="p">,</span> <span class="n">surf</span><span class="p">%</span><span class="n">qinp</span><span class="p">,</span> <span class="n">surf</span><span class="p">%</span><span class="n">shat</span><span class="p">,</span> <span class="n">L_reference</span><span class="p">,</span> <span class="n">B_reference</span><span class="p">,</span> <span class="n">zed_scalefac</span>
-<a name="ln-407"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(17a12)&#39;</span><span class="p">)</span> <span class="s1">&#39;#    alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;zeta&#39;</span><span class="p">,</span> <span class="s1">&#39;bmag&#39;</span><span class="p">,</span> <span class="s1">&#39;gradpar&#39;</span><span class="p">,</span> <span class="s1">&#39;bdot_grad_z&#39;</span><span class="p">,</span> <span class="s1">&#39;grad_alpha2&#39;</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-408"></a>         <span class="s1">&#39;gd_alph_psi&#39;</span><span class="p">,</span> <span class="s1">&#39;grad_psi2&#39;</span><span class="p">,</span> <span class="s1">&#39;gds23&#39;</span><span class="p">,</span> <span class="s1">&#39;gds24&#39;</span><span class="p">,</span> <span class="s1">&#39;gbdriftalph&#39;</span><span class="p">,</span> <span class="s1">&#39;gbdrift0psi&#39;</span><span class="p">,</span> <span class="s1">&#39;cvdriftalph&#39;</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-409"></a>         <span class="s1">&#39;cvdrift0psi&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_vmec&#39;</span><span class="p">,</span> <span class="s1">&#39;B_sub_theta&#39;</span><span class="p">,</span> <span class="s1">&#39;B_sub_zeta&#39;</span> <span class="c">! JFP adding B_poloidal and B_toroidal Apr21</span>
-<a name="ln-410"></a>      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
-<a name="ln-411"></a>         <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nalpha</span>
-<a name="ln-412"></a>            <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(17e12.4)&#39;</span><span class="p">)</span> <span class="n">alpha</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">zeta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">bmag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">gradpar</span><span class="p">(</span><span class="n">j</span><span class="p">),</span> <span class="n">b_dot_grad_z</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-413"></a>               <span class="n">grad_alpha_grad_alpha</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">grad_alpha_grad_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">grad_psi_grad_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-414"></a>               <span class="n">gds23</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">gds24</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-415"></a>    <span class="n">gbdrift_alpha</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">gbdrift0_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">cvdrift_alpha</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">cvdrift0_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">theta_vmec</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">B_sub_theta_vmec</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">B_sub_zeta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="c">! JFP</span>
-<a name="ln-416"></a>         <span class="k">end do</span>
-<a name="ln-417"></a><span class="k">         write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-418"></a>      <span class="k">end do</span>
-<a name="ln-419"></a><span class="k">      close</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">)</span>
-<a name="ln-420"></a>
-<a name="ln-421"></a>   <span class="k">end subroutine </span><span class="n">get_vmec_geo</span>
-<a name="ln-422"></a>
-<a name="ln-423"></a>   <span class="k">subroutine </span><span class="n">filter_geo_coef</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">geocoef</span><span class="p">)</span>
-<a name="ln-424"></a>
-<a name="ln-425"></a>      <span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">transform_alpha2kalpha</span><span class="p">,</span> <span class="n">transform_kalpha2alpha</span>
-<a name="ln-426"></a>
-<a name="ln-427"></a>      <span class="k">implicit none</span>
-<a name="ln-428"></a>
-<a name="ln-429"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">naky</span>
-<a name="ln-430"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">geocoef</span>
-<a name="ln-431"></a>
-<a name="ln-432"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fourier</span>
-<a name="ln-433"></a>
-<a name="ln-434"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">fourier</span><span class="p">(</span><span class="n">naky</span><span class="p">))</span>
-<a name="ln-435"></a>
-<a name="ln-436"></a>      <span class="c">! filtering and padding are built-in to the</span>
-<a name="ln-437"></a>      <span class="c">! Fourier transform routines below</span>
-<a name="ln-438"></a>      <span class="k">call </span><span class="n">transform_alpha2kalpha</span><span class="p">(</span><span class="n">geocoef</span><span class="p">,</span> <span class="n">fourier</span><span class="p">)</span>
-<a name="ln-439"></a>      <span class="k">call </span><span class="n">transform_kalpha2alpha</span><span class="p">(</span><span class="n">fourier</span><span class="p">,</span> <span class="n">geocoef</span><span class="p">)</span>
-<a name="ln-440"></a>
-<a name="ln-441"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">fourier</span><span class="p">)</span>
-<a name="ln-442"></a>
-<a name="ln-443"></a>   <span class="k">end subroutine </span><span class="n">filter_geo_coef</span>
-<a name="ln-444"></a>
-<a name="ln-445"></a>   <span class="k">subroutine </span><span class="n">get_modified_vmec_zeta_grid</span><span class="p">(</span><span class="n">nzgrid_modified</span><span class="p">,</span> <span class="n">dzeta_modified</span><span class="p">)</span>
-<a name="ln-446"></a>
-<a name="ln-447"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span>
-<a name="ln-448"></a>      <span class="k">use </span><span class="n">vmec_to_stella_geometry_interface_mod</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">get_nominal_vmec_zeta_grid</span>
-<a name="ln-449"></a>
-<a name="ln-450"></a>      <span class="k">implicit none</span>
-<a name="ln-451"></a>
-<a name="ln-452"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nzgrid_modified</span>
-<a name="ln-453"></a>
-<a name="ln-454"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid_excess</span>
-<a name="ln-455"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">nfield_periods_device</span>
-<a name="ln-456"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">zeta_max</span><span class="p">,</span> <span class="n">excess_zeta</span>
-<a name="ln-457"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">dzeta</span><span class="p">,</span> <span class="n">dzeta_modified</span>
-<a name="ln-458"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zeta</span>
-<a name="ln-459"></a>
-<a name="ln-460"></a>      <span class="c">!&gt; need to extend the maximum and minimum zeta values</span>
-<a name="ln-461"></a>      <span class="c">!&gt; by zgrid_scalefac to ensure that we have information</span>
-<a name="ln-462"></a>      <span class="c">!&gt; about geometric coefficients everywhere on a fixed</span>
-<a name="ln-463"></a>      <span class="c">!&gt; equal-arc grid in zed</span>
-<a name="ln-464"></a>
-<a name="ln-465"></a>      <span class="c">!&gt; first figure out how many extra zeta grid points are</span>
-<a name="ln-466"></a>      <span class="c">!&gt; required at the nominal grid spacing to get out</span>
-<a name="ln-467"></a>      <span class="c">!&gt; to the ends of the extended zeta domain</span>
-<a name="ln-468"></a>
-<a name="ln-469"></a>      <span class="c">!&gt; first calculate the nominal zeta grid used for vmec</span>
-<a name="ln-470"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">zeta</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">zeta</span><span class="p">(</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">))</span>
-<a name="ln-471"></a>      <span class="c">!&gt; note that nfield_periods is the number of field periods</span>
-<a name="ln-472"></a>      <span class="c">!&gt; sampled in stella, while nfield_periods_device</span>
-<a name="ln-473"></a>      <span class="c">!&gt; is the number of field periods in the device</span>
-<a name="ln-474"></a>      <span class="c">!&gt; nfield_periods may be reasonably bigger than nfield_periods_device</span>
-<a name="ln-475"></a>      <span class="c">!&gt; as the former is sampled while keeping alpha fixed (rather than theta)</span>
-<a name="ln-476"></a>      <span class="k">call </span><span class="n">get_nominal_vmec_zeta_grid</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta_center</span><span class="p">,</span> <span class="n">nfield_periods</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-477"></a>                                      <span class="n">nfield_periods_device</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
-<a name="ln-478"></a>
-<a name="ln-479"></a>      <span class="c">!&gt; maximum zeta value for nominal zeta grid</span>
-<a name="ln-480"></a>      <span class="n">zeta_max</span> <span class="o">=</span> <span class="n">zeta</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">)</span>
-<a name="ln-481"></a>      <span class="c">!&gt; excess_zeta is difference between expanded zeta_max and nominal zeta_max</span>
-<a name="ln-482"></a>      <span class="n">excess_zeta</span> <span class="o">=</span> <span class="n">zeta_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">zgrid_scalefac</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
-<a name="ln-483"></a>      <span class="c">!&gt; assumes equal grid spacing in zeta</span>
-<a name="ln-484"></a>      <span class="n">dzeta</span> <span class="o">=</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<a name="ln-485"></a>      <span class="n">tmp</span> <span class="o">=</span> <span class="n">excess_zeta</span> <span class="o">/</span> <span class="n">dzeta</span>
-<a name="ln-486"></a>      <span class="c">!&gt; nzgrid_excess is the number of additional zeta grid points needed to</span>
-<a name="ln-487"></a>      <span class="c">!&gt; cover at least excess_zeta</span>
-<a name="ln-488"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">tmp</span> <span class="o">-</span> <span class="nb">nint</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-489"></a><span class="k">         </span><span class="n">nzgrid_excess</span> <span class="o">=</span> <span class="nb">nint</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
-<a name="ln-490"></a>      <span class="k">else</span>
-<a name="ln-491"></a><span class="k">         </span><span class="n">nzgrid_excess</span> <span class="o">=</span> <span class="nb">nint</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-492"></a>      <span class="k">end if</span>
-<a name="ln-493"></a>
-<a name="ln-494"></a>      <span class="c">!&gt; now refine the zeta grid by desired amount in</span>
-<a name="ln-495"></a>      <span class="c">!&gt; preparation for interpolation</span>
-<a name="ln-496"></a>      <span class="n">nzgrid_modified</span> <span class="o">=</span> <span class="p">(</span><span class="n">nzgrid</span> <span class="o">+</span> <span class="n">nzgrid_excess</span><span class="p">)</span> <span class="o">*</span> <span class="n">zgrid_refinement_factor</span>
-<a name="ln-497"></a>      <span class="n">dzeta_modified</span> <span class="o">=</span> <span class="n">dzeta</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">zgrid_refinement_factor</span><span class="p">)</span>
-<a name="ln-498"></a>
-<a name="ln-499"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">zeta</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">zeta</span><span class="p">)</span>
-<a name="ln-500"></a>
-<a name="ln-501"></a>   <span class="k">end subroutine </span><span class="n">get_modified_vmec_zeta_grid</span>
-<a name="ln-502"></a>
-<a name="ln-503"></a><span class="k">end module </span><span class="n">vmec_geo</span>
+<a name="ln-347"></a>      <span class="n">b_dot_grad_z</span> <span class="o">=</span> <span class="n">b_dot_grad_z</span> <span class="o">*</span> <span class="n">zed_scalefac</span>
+<a name="ln-348"></a>      <span class="n">gds23</span> <span class="o">=</span> <span class="n">gds23</span> <span class="o">*</span> <span class="n">zed_scalefac</span>
+<a name="ln-349"></a>      <span class="n">gds24</span> <span class="o">=</span> <span class="n">gds24</span> <span class="o">*</span> <span class="n">zed_scalefac</span>
+<a name="ln-350"></a>
+<a name="ln-351"></a>      <span class="c">! arrays over extended zeta-grid no longer needed, so deallocate</span>
+<a name="ln-352"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">zed_domain_size</span><span class="p">)</span>
+<a name="ln-353"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">zeta_vmec</span><span class="p">)</span>
+<a name="ln-354"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">thetamod_vmec</span><span class="p">)</span>
+<a name="ln-355"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">B_sub_theta_vmec_mod</span><span class="p">)</span>
+<a name="ln-356"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">B_sub_zeta_mod</span><span class="p">)</span>
+<a name="ln-357"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">bmag_vmec</span><span class="p">,</span> <span class="n">gradpar_vmec</span><span class="p">)</span>
+<a name="ln-358"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">gradpar_zeta</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">gradpar_zeta</span><span class="p">)</span>
+<a name="ln-359"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">grad_alpha_grad_alpha_vmec</span><span class="p">,</span> <span class="n">grad_alpha_grad_psi_vmec</span><span class="p">,</span> <span class="n">grad_psi_grad_psi_vmec</span><span class="p">)</span>
+<a name="ln-360"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">gds23_vmec</span><span class="p">,</span> <span class="n">gds24_vmec</span><span class="p">,</span> <span class="n">gds25_vmec</span><span class="p">,</span> <span class="n">gds26_vmec</span><span class="p">)</span>
+<a name="ln-361"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">gbdrift_alpha_vmec</span><span class="p">,</span> <span class="n">gbdrift0_psi_vmec</span><span class="p">)</span>
+<a name="ln-362"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">cvdrift_alpha_vmec</span><span class="p">,</span> <span class="n">cvdrift0_psi_vmec</span><span class="p">)</span>
+<a name="ln-363"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">x_displacement_fac_vmec</span><span class="p">)</span>
+<a name="ln-364"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">arc_length</span><span class="p">)</span>
+<a name="ln-365"></a>
+<a name="ln-366"></a>      <span class="c">!&gt; vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc</span>
+<a name="ln-367"></a>      <span class="c">!&gt; stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor</span>
+<a name="ln-368"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span><span class="p">)</span>
+<a name="ln-369"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">rhotor</span> <span class="o">=</span> <span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span>
+<a name="ln-370"></a>
+<a name="ln-371"></a>      <span class="c">! rho = sqrt(psi_t / psi_{t,LCFS})</span>
+<a name="ln-372"></a>      <span class="c">! Bref = 2|psi_LCFS|/a^2</span>
+<a name="ln-373"></a>
+<a name="ln-374"></a>      <span class="c">! grho = a * |grad rho| = a * |drho/dpsi_t| * |grad psi_t|</span>
+<a name="ln-375"></a>      <span class="c">! = |drho/dpsi_t|*(a^2*Bref) * |grad psi_t|/(a*Bref)</span>
+<a name="ln-376"></a>      <span class="c">! = a^2*Bref/(2*rho)/|psi_LCFS| * sqrt(grad_psi_grad_psi)</span>
+<a name="ln-377"></a>      <span class="c">! = 1/rho * sqrt(grad_psi_grad_psi)</span>
+<a name="ln-378"></a>      <span class="n">grho</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">grad_psi_grad_psi</span><span class="p">)</span> <span class="o">/</span> <span class="n">surf</span><span class="p">%</span><span class="n">rhotor</span>
+<a name="ln-379"></a>
+<a name="ln-380"></a>      <span class="c">! grho = |grad rho| = |drho/dx| * |grad x|</span>
+<a name="ln-381"></a>      <span class="c">! |drho/dx| = L_reference</span>
+<a name="ln-382"></a>      <span class="c">! gds22 = shat^2 * |grad x|^2</span>
+<a name="ln-383"></a><span class="c">!    grho = sqrt(gds22/surf%shat**2)/L_reference</span>
+<a name="ln-384"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">drhotordrho</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-385"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">psitor_lcfs</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">sign_torflux</span>
+<a name="ln-386"></a>
+<a name="ln-387"></a>      <span class="c">! this is zeta0 that appears everywhere in tandem with zeta-zeta0</span>
+<a name="ln-388"></a>      <span class="c">! converted to the zed coordinate (which is possibly arc-length</span>
+<a name="ln-389"></a>      <span class="c">! and is compressed to fit on the range -pi,pi)</span>
+<a name="ln-390"></a>      <span class="n">surf</span><span class="p">%</span><span class="n">zed0_fac</span> <span class="o">=</span> <span class="o">-</span><span class="n">zed</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">)</span> <span class="o">/</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">)</span> <span class="o">*</span> <span class="n">surf</span><span class="p">%</span><span class="n">qinp</span>
+<a name="ln-391"></a>
+<a name="ln-392"></a>      <span class="c">! scale the vmec output</span>
+<a name="ln-393"></a>      <span class="c">! alpha = theta_pest - iota*zeta</span>
+<a name="ln-394"></a>      <span class="c">! theta_pest = theta_vmec + Lambda(psi,alpha,theta_vmec)</span>
+<a name="ln-395"></a>      <span class="c">! with theta_pest a straight-field-line angle</span>
+<a name="ln-396"></a>      <span class="c">! but not theta_vmec</span>
+<a name="ln-397"></a>      <span class="c">! so theta is theta_pest up to constant (alpha)</span>
+<a name="ln-398"></a>
+<a name="ln-399"></a><span class="c">!    theta = zeta/nfp/surf%qinp</span>
+<a name="ln-400"></a>      <span class="n">theta</span> <span class="o">=</span> <span class="nb">spread</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nzgrid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">zeta</span> <span class="o">/</span> <span class="n">surf</span><span class="p">%</span><span class="n">qinp</span>
+<a name="ln-401"></a>      <span class="c">! this is the vmec theta (not straight-field-line coordinate)</span>
+<a name="ln-402"></a>      <span class="c">! scaled to run between -pi and pi</span>
+<a name="ln-403"></a>      <span class="n">theta_vmec</span> <span class="o">=</span> <span class="n">theta_vmec</span> <span class="o">/</span> <span class="n">nfp</span>
+<a name="ln-404"></a>
+<a name="ln-405"></a>      <span class="k">call </span><span class="n">open_output_file</span><span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;.vmec.geo&#39;</span><span class="p">)</span>
+<a name="ln-406"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(6a12)&#39;</span><span class="p">)</span> <span class="s1">&#39;#rhotor&#39;</span><span class="p">,</span> <span class="s1">&#39;qinp&#39;</span><span class="p">,</span> <span class="s1">&#39;shat&#39;</span><span class="p">,</span> <span class="s1">&#39;aref&#39;</span><span class="p">,</span> <span class="s1">&#39;Bref&#39;</span><span class="p">,</span> <span class="s1">&#39;z_scalefac&#39;</span>
+<a name="ln-407"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(6e12.4)&#39;</span><span class="p">)</span> <span class="n">surf</span><span class="p">%</span><span class="n">rhoc</span><span class="p">,</span> <span class="n">surf</span><span class="p">%</span><span class="n">qinp</span><span class="p">,</span> <span class="n">surf</span><span class="p">%</span><span class="n">shat</span><span class="p">,</span> <span class="n">L_reference</span><span class="p">,</span> <span class="n">B_reference</span><span class="p">,</span> <span class="n">zed_scalefac</span>
+<a name="ln-408"></a>      <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(17a12)&#39;</span><span class="p">)</span> <span class="s1">&#39;#    alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;zeta&#39;</span><span class="p">,</span> <span class="s1">&#39;bmag&#39;</span><span class="p">,</span> <span class="s1">&#39;gradpar&#39;</span><span class="p">,</span> <span class="s1">&#39;bdot_grad_z&#39;</span><span class="p">,</span> <span class="s1">&#39;grad_alpha2&#39;</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-409"></a>         <span class="s1">&#39;gd_alph_psi&#39;</span><span class="p">,</span> <span class="s1">&#39;grad_psi2&#39;</span><span class="p">,</span> <span class="s1">&#39;gds23&#39;</span><span class="p">,</span> <span class="s1">&#39;gds24&#39;</span><span class="p">,</span> <span class="s1">&#39;gbdriftalph&#39;</span><span class="p">,</span> <span class="s1">&#39;gbdrift0psi&#39;</span><span class="p">,</span> <span class="s1">&#39;cvdriftalph&#39;</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-410"></a>         <span class="s1">&#39;cvdrift0psi&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_vmec&#39;</span><span class="p">,</span> <span class="s1">&#39;B_sub_theta&#39;</span><span class="p">,</span> <span class="s1">&#39;B_sub_zeta&#39;</span> <span class="c">! JFP adding B_poloidal and B_toroidal Apr21</span>
+<a name="ln-411"></a>      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
+<a name="ln-412"></a>         <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nalpha</span>
+<a name="ln-413"></a>            <span class="k">write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="s1">&#39;(17e12.4)&#39;</span><span class="p">)</span> <span class="n">alpha</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">zeta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">bmag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">gradpar</span><span class="p">(</span><span class="n">j</span><span class="p">),</span> <span class="n">b_dot_grad_z</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-414"></a>               <span class="n">grad_alpha_grad_alpha</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">grad_alpha_grad_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">grad_psi_grad_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-415"></a>               <span class="n">gds23</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">gds24</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-416"></a>    <span class="n">gbdrift_alpha</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">gbdrift0_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">cvdrift_alpha</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">cvdrift0_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">theta_vmec</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">B_sub_theta_vmec</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">B_sub_zeta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="c">! JFP</span>
+<a name="ln-417"></a>         <span class="k">end do</span>
+<a name="ln-418"></a><span class="k">         write</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-419"></a>      <span class="k">end do</span>
+<a name="ln-420"></a><span class="k">      close</span> <span class="p">(</span><span class="n">tmpunit</span><span class="p">)</span>
+<a name="ln-421"></a>
+<a name="ln-422"></a>   <span class="k">end subroutine </span><span class="n">get_vmec_geo</span>
+<a name="ln-423"></a>
+<a name="ln-424"></a>   <span class="k">subroutine </span><span class="n">filter_geo_coef</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">geocoef</span><span class="p">)</span>
+<a name="ln-425"></a>
+<a name="ln-426"></a>      <span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">transform_alpha2kalpha</span><span class="p">,</span> <span class="n">transform_kalpha2alpha</span>
+<a name="ln-427"></a>
+<a name="ln-428"></a>      <span class="k">implicit none</span>
+<a name="ln-429"></a>
+<a name="ln-430"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">naky</span>
+<a name="ln-431"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">geocoef</span>
+<a name="ln-432"></a>
+<a name="ln-433"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">fourier</span>
+<a name="ln-434"></a>
+<a name="ln-435"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">fourier</span><span class="p">(</span><span class="n">naky</span><span class="p">))</span>
+<a name="ln-436"></a>
+<a name="ln-437"></a>      <span class="c">! filtering and padding are built-in to the</span>
+<a name="ln-438"></a>      <span class="c">! Fourier transform routines below</span>
+<a name="ln-439"></a>      <span class="k">call </span><span class="n">transform_alpha2kalpha</span><span class="p">(</span><span class="n">geocoef</span><span class="p">,</span> <span class="n">fourier</span><span class="p">)</span>
+<a name="ln-440"></a>      <span class="k">call </span><span class="n">transform_kalpha2alpha</span><span class="p">(</span><span class="n">fourier</span><span class="p">,</span> <span class="n">geocoef</span><span class="p">)</span>
+<a name="ln-441"></a>
+<a name="ln-442"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">fourier</span><span class="p">)</span>
+<a name="ln-443"></a>
+<a name="ln-444"></a>   <span class="k">end subroutine </span><span class="n">filter_geo_coef</span>
+<a name="ln-445"></a>
+<a name="ln-446"></a>   <span class="k">subroutine </span><span class="n">get_modified_vmec_zeta_grid</span><span class="p">(</span><span class="n">nzgrid_modified</span><span class="p">,</span> <span class="n">dzeta_modified</span><span class="p">)</span>
+<a name="ln-447"></a>
+<a name="ln-448"></a>      <span class="k">use </span><span class="n">zgrid</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">nzgrid</span>
+<a name="ln-449"></a>      <span class="k">use </span><span class="n">vmec_to_stella_geometry_interface_mod</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">get_nominal_vmec_zeta_grid</span>
+<a name="ln-450"></a>
+<a name="ln-451"></a>      <span class="k">implicit none</span>
+<a name="ln-452"></a>
+<a name="ln-453"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nzgrid_modified</span>
+<a name="ln-454"></a>
+<a name="ln-455"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nzgrid_excess</span>
+<a name="ln-456"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">nfield_periods_device</span>
+<a name="ln-457"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">zeta_max</span><span class="p">,</span> <span class="n">excess_zeta</span>
+<a name="ln-458"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">dzeta</span><span class="p">,</span> <span class="n">dzeta_modified</span>
+<a name="ln-459"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">zeta</span>
+<a name="ln-460"></a>
+<a name="ln-461"></a>      <span class="c">!&gt; need to extend the maximum and minimum zeta values</span>
+<a name="ln-462"></a>      <span class="c">!&gt; by zgrid_scalefac to ensure that we have information</span>
+<a name="ln-463"></a>      <span class="c">!&gt; about geometric coefficients everywhere on a fixed</span>
+<a name="ln-464"></a>      <span class="c">!&gt; equal-arc grid in zed</span>
+<a name="ln-465"></a>
+<a name="ln-466"></a>      <span class="c">!&gt; first figure out how many extra zeta grid points are</span>
+<a name="ln-467"></a>      <span class="c">!&gt; required at the nominal grid spacing to get out</span>
+<a name="ln-468"></a>      <span class="c">!&gt; to the ends of the extended zeta domain</span>
+<a name="ln-469"></a>
+<a name="ln-470"></a>      <span class="c">!&gt; first calculate the nominal zeta grid used for vmec</span>
+<a name="ln-471"></a>      <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">zeta</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">zeta</span><span class="p">(</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">))</span>
+<a name="ln-472"></a>      <span class="c">!&gt; note that nfield_periods is the number of field periods</span>
+<a name="ln-473"></a>      <span class="c">!&gt; sampled in stella, while nfield_periods_device</span>
+<a name="ln-474"></a>      <span class="c">!&gt; is the number of field periods in the device</span>
+<a name="ln-475"></a>      <span class="c">!&gt; nfield_periods may be reasonably bigger than nfield_periods_device</span>
+<a name="ln-476"></a>      <span class="c">!&gt; as the former is sampled while keeping alpha fixed (rather than theta)</span>
+<a name="ln-477"></a>      <span class="k">call </span><span class="n">get_nominal_vmec_zeta_grid</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta_center</span><span class="p">,</span> <span class="n">nfield_periods</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-478"></a>                                      <span class="n">nfield_periods_device</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
+<a name="ln-479"></a>
+<a name="ln-480"></a>      <span class="c">!&gt; maximum zeta value for nominal zeta grid</span>
+<a name="ln-481"></a>      <span class="n">zeta_max</span> <span class="o">=</span> <span class="n">zeta</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">)</span>
+<a name="ln-482"></a>      <span class="c">!&gt; excess_zeta is difference between expanded zeta_max and nominal zeta_max</span>
+<a name="ln-483"></a>      <span class="n">excess_zeta</span> <span class="o">=</span> <span class="n">zeta_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">zgrid_scalefac</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+<a name="ln-484"></a>      <span class="c">!&gt; assumes equal grid spacing in zeta</span>
+<a name="ln-485"></a>      <span class="n">dzeta</span> <span class="o">=</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a name="ln-486"></a>      <span class="n">tmp</span> <span class="o">=</span> <span class="n">excess_zeta</span> <span class="o">/</span> <span class="n">dzeta</span>
+<a name="ln-487"></a>      <span class="c">!&gt; nzgrid_excess is the number of additional zeta grid points needed to</span>
+<a name="ln-488"></a>      <span class="c">!&gt; cover at least excess_zeta</span>
+<a name="ln-489"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">tmp</span> <span class="o">-</span> <span class="nb">nint</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-490"></a><span class="k">         </span><span class="n">nzgrid_excess</span> <span class="o">=</span> <span class="nb">nint</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+<a name="ln-491"></a>      <span class="k">else</span>
+<a name="ln-492"></a><span class="k">         </span><span class="n">nzgrid_excess</span> <span class="o">=</span> <span class="nb">nint</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-493"></a>      <span class="k">end if</span>
+<a name="ln-494"></a>
+<a name="ln-495"></a>      <span class="c">!&gt; now refine the zeta grid by desired amount in</span>
+<a name="ln-496"></a>      <span class="c">!&gt; preparation for interpolation</span>
+<a name="ln-497"></a>      <span class="n">nzgrid_modified</span> <span class="o">=</span> <span class="p">(</span><span class="n">nzgrid</span> <span class="o">+</span> <span class="n">nzgrid_excess</span><span class="p">)</span> <span class="o">*</span> <span class="n">zgrid_refinement_factor</span>
+<a name="ln-498"></a>      <span class="n">dzeta_modified</span> <span class="o">=</span> <span class="n">dzeta</span> <span class="o">/</span> <span class="kt">real</span><span class="p">(</span><span class="n">zgrid_refinement_factor</span><span class="p">)</span>
+<a name="ln-499"></a>
+<a name="ln-500"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">zeta</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">zeta</span><span class="p">)</span>
+<a name="ln-501"></a>
+<a name="ln-502"></a>   <span class="k">end subroutine </span><span class="n">get_modified_vmec_zeta_grid</span>
+<a name="ln-503"></a>
+<a name="ln-504"></a><span class="k">end module </span><span class="n">vmec_geo</span>
 </pre></div>
 
     </section>
@@ -671,13 +672,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-22-g514771216</small></p>
+<br /><small>v0.5-32-gfb5b6925c</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-03-15T13:21:35.478082           </p>
+ on 2022-03-16T13:32:09.030774           </p>
         </div>
       </div>
       <br>
