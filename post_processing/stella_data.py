@@ -7,25 +7,16 @@ import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-infile = '/Users/michaelbarnes/Documents/stella_data/parallel_nonlinearity/tprim1p5_nopnl/jet92404_nu0p005_tprim1p5_fprim0p7_nl.out.nc'
-#infile = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/jet92404_base/jet92404_base.out.nc'
-#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_impcoll.out.nc'
-#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_expcoll.out.nc'
-#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/mu_conserve.out.nc'
-#infile = '/Users/michaelbarnes/codes/stella/runs/collisions/vpadiff.out.nc'
+input_directory = '/Users/barnesm/Documents/stella_data/bistability/'
+file_prefix = 'jet68448_nogexb'
+infile = input_directory + file_prefix + '.out.nc'
 #infile = '../stella.out.nc'
-print()
+#print()
 #outdir = input("Path for output: ")
-outdir = '/Users/michaelbarnes/Documents/stella_data/parallel_nonlinearity/tprim1p5_nopnl/'
-#outdir = '/Users/michaelbarnes/codes/stella/runs/parallel_nonlinearity/jet92404_base/jet92404_base_figures/'
-#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/conserve_energy_figures/'
-#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_impcoll_figures/'
-#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/stella_tprim2p9_expcoll_figures/'
-#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/mu_conserve_figures/'
-#outdir = '/Users/michaelbarnes/codes/stella/runs/collisions/vpadiff_figures/'
+outdir = input_directory
 ncfile = netcdf.netcdf_file(infile,'r')
 
-print()
+#print()
 print('reading data from netcdf file...')
 print()
 
@@ -43,6 +34,7 @@ kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])
 nzed = zed.size
+delzed = zed[1]-zed[0]
 iz0 = nzed//2+1
 
 # get time grid
@@ -159,7 +151,13 @@ if vpa_present == False:
     es_mom_sym_present = False
 xgrid, xgrid_present = \
     read_stella_float('xgrid')
-xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
+if (xgrid_present):
+    xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
+else:
+    xgrid = np.arange(nakx,dtype=float)
+    dx = 2*np.pi/(kx_stella[1]*nakx)
+    for ikx in range(nakx):
+        xgrid[ikx] = ikx*dx
 # density fluctuation (kx,ky,z,t)
 density, density_present = \
     read_stella_float('density')
