@@ -344,6 +344,7 @@ contains
       !> gradpar is b . grad zed (or its alpha-average, in the case of full_flux_surface=T),
       !> with zed = zeta or normalised arc-length, both scaled to run from -pi to pi
       gradpar = gradpar * zed_scalefac
+      b_dot_grad_z = b_dot_grad_z * zed_scalefac
       gds23 = gds23 * zed_scalefac
       gds24 = gds24 * zed_scalefac
 
