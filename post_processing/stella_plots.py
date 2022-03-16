@@ -74,13 +74,16 @@ def movie_2d(z,xin,yin,zmin,zmax,nframes,outfile,xlab='',ylab='',title='',step=1
     ani = animation.ArtistAnimation(fig,ims,interval=50,blit=True)
     ani.save(outfile)
 
-def movie_1d(x,y,xmin,xmax,ymin,ymax,nframes):
+def movie_1d(x,y,xmin,xmax,ymin,ymax,nframes,outfile,xlab,ylab):
 
     from matplotlib import animation
 
     fig = plt.figure(figsize=(12,8))
     ax=plt.axes(xlim=(xmin,xmax),ylim=(ymin,ymax))
     line, = ax.plot([],[],lw=2)
+
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
 
     def init():
         line.set_data([],[])
@@ -93,4 +96,4 @@ def movie_1d(x,y,xmin,xmax,ymin,ymax,nframes):
     anim=animation.FuncAnimation(fig, animate, init_func=init, 
                                  frames=nframes, interval=20)
 
-    anim.save('test.mp4')
+    anim.save(outfile)
