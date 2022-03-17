@@ -191,7 +191,7 @@ contains
                                                 alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, &
                                                 grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
                                                 gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-                                                theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac)
+                                                theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac)
 
       use fzero_mod, only: fzero
 
@@ -213,6 +213,9 @@ contains
       ! The zeta domain is centered at zeta_center. Setting zeta_center = 2*pi*N/nfp for any integer N should
       ! yield identical results to setting zeta_center = 0, where nfp is the number of field periods (as in VMEC).
       real, intent(in) :: zeta_center
+
+      ! gradpar_zeta_prefac only rescales b dot grad zeta
+      real, intent(in) :: gradpar_zeta_prefac
 
       ! If number_of_field_periods_to_include is > 0, then this parameter does what you think:
       ! the extent of the toroidal in zeta will be 2*pi*number_of_field_periods_to_include/nfp.
@@ -1349,7 +1352,7 @@ contains
 
       bmag = B / B_reference
 
-      gradpar_zeta = L_reference * B_sup_zeta / B
+      gradpar_zeta = gradpar_zeta_prefac * L_reference * B_sup_zeta / B
 
       ! grad alpha . grad alpha in units of 1/L_ref^2, with alpha = theta_pest - iota * zeta
       grad_alpha_grad_alpha = L_reference * L_reference * (grad_alpha_X * grad_alpha_X + grad_alpha_Y * grad_alpha_Y + grad_alpha_Z * grad_alpha_Z)
