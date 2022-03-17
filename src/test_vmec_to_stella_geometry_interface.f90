@@ -13,6 +13,7 @@ program test_vmec_to_stella_geometry_interface
    integer, parameter :: nalpha = 5
    integer, parameter :: nzgrid = 7
    real :: alpha0 = 0.0
+   real :: gradpar_zeta_prefac = 1.0 ! JFP Feb 11 2022
    real :: zeta_center = 0.0
    real :: number_of_field_periods_to_include = 1
    real :: desired_normalized_toroidal_flux = 0.6354167d+0
@@ -52,7 +53,7 @@ program test_vmec_to_stella_geometry_interface
                                           sign_toroidal_flux, &
                                           alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
                                           gbdrift, gbdrift0, cvdrift, cvdrift0, &
-                                          theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement)
+                                          theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement, gradpar_zeta_prefac)
 
    print *, "-------------- Input parameters ------------------"
    print *, "vmec_filename: ", trim(vmec_filename)
@@ -63,6 +64,7 @@ program test_vmec_to_stella_geometry_interface
    print *, "number_of_field_periods_to_include:", number_of_field_periods_to_include
    print *, "desired_normalized_toroidal_flux:", desired_normalized_toroidal_flux
    print *, "vmec_surface_option:", vmec_surface_option
+   print *,"gradpar_zeta_prefac:",gradpar_zeta_prefac
 
    print *, "-------------- Output parameters -----------------"
    print *, "normalized_toroidal_flux_used:", normalized_toroidal_flux_used
