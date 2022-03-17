@@ -64,7 +64,7 @@ program test_vmec_to_stella_geometry_interface
    print *, "number_of_field_periods_to_include:", number_of_field_periods_to_include
    print *, "desired_normalized_toroidal_flux:", desired_normalized_toroidal_flux
    print *, "vmec_surface_option:", vmec_surface_option
-   print *,"gradpar_zeta_prefac:",gradpar_zeta_prefac
+   print *, "gradpar_zeta_prefac:", gradpar_zeta_prefac
 
    print *, "-------------- Output parameters -----------------"
    print *, "normalized_toroidal_flux_used:", normalized_toroidal_flux_used
