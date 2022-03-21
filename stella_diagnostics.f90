@@ -919,7 +919,6 @@ contains
                              pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)
 
       use constants, only: zi
-      use species, only: nspec
       use zgrid, only: nzgrid, delzed
       use kt_grids, only: naky, nakx, ny
       use kt_grids, only: aky, dy
@@ -1221,7 +1220,7 @@ contains
       use gyro_averages, only: aj0x, aj1x, gyro_average
       use fields_arrays, only: phi, phi_corr_QN, phi_proj
       use run_parameters, only: fphi
-      use physics_flags, only: radial_variation, full_flux_surface
+      use physics_flags, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
 
       implicit none

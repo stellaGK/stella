@@ -958,7 +958,6 @@ contains
       use sources, only: include_krook_operator, update_tcorr_krook
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: remove_zero_projection, project_out_zero
-      use kt_grids, only: nakx
 
       implicit none
 
@@ -2388,7 +2387,7 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, akx, nakx
+      use kt_grids, only: akx, nakx
 
       implicit none
 
@@ -2414,7 +2413,7 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, akx, nakx
+      use kt_grids, only: akx, nakx
 
       implicit none
 
@@ -2702,7 +2701,7 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use stella_geometry, only: dl_over_b
-      use run_parameters, only: fphi, fapar, time_upwind
+      use run_parameters, only: fphi, time_upwind!, fapar
       use dist_fn_arrays, only: g1
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g

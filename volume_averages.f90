@@ -23,7 +23,7 @@ contains
 
    subroutine init_volume_averages
 
-      use zgrid, only: nzgrid, nztot, ntubes, delzed
+      use zgrid, only: nzgrid, nztot, delzed
       use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
       use stella_geometry, only: geo_surf, drhodpsi
       use stella_geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume

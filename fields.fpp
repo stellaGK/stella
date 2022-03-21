@@ -94,7 +94,7 @@ contains
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: integrate_vmu
-      use species, only: spec, nspec
+      use species, only: spec
       use kt_grids, only: naky, nakx, akx
       use kt_grids, only: zonal_mode
       use physics_flags, only: adiabatic_option_switch
@@ -1247,7 +1247,7 @@ contains
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
       use job_manage, only: time_message
-      use physics_flags, only: full_flux_surface, radial_variation
+      use physics_flags, only: radial_variation
       use run_parameters, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
