@@ -247,7 +247,7 @@ contains
       use physics_parameters, only: rhostar
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use zgrid, only: shat_zero, nperiod, grad_x_grad_y_zero
+      use zgrid, only: nperiod
       use zgrid, only: boundary_option_switch, boundary_option_linked
       use zgrid, only: boundary_option_linked_stellarator
       use ran, only: ranf
