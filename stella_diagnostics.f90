@@ -480,6 +480,8 @@ contains
    end subroutine diagnose_stella
 
    !> Calculate fluxes
+   !>
+   !> Assumes that the non-Boltzmann part of df is passed in (aka h)
    subroutine get_fluxes(g, pflx, vflx, qflx, &
                          pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)
 
