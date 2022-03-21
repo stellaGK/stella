@@ -669,7 +669,7 @@ contains
 
    subroutine apply_radial_boundary_conditions(gin)
 
-      use kt_grids, only: nakx, naky, zonal_mode
+      use kt_grids, only: naky, zonal_mode
       use kt_grids, only: periodic_variation, boundary_size
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid

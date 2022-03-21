@@ -46,7 +46,7 @@ contains
 
       use dist_fn_arrays, only: kperp2
       use physics_flags, only: full_flux_surface
-      use species, only: spec, nspec
+      use species, only: spec
       use stella_geometry, only: bmag
       use zgrid, only: nzgrid
       use vpamu_grids, only: vperp2, nmu
@@ -596,7 +596,7 @@ contains
    subroutine gyro_average_kxkyzv_local(field, gyro_field)
 
       use physics_flags, only: full_flux_surface
-      use zgrid, only: nzgrid, ntubes
+      use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
 
       implicit none
@@ -620,7 +620,7 @@ contains
 
    subroutine gyro_average_ffs_kxky_local(field, gyro_field, coefs)
 
-      use kt_grids, only: naky, nakx
+      use kt_grids, only: naky
       use kt_grids, only: naky_all, ikx_max
       use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
 

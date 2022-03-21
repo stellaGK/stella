@@ -110,7 +110,7 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit_exist
-      use physics_flags, only: full_flux_surface, radial_variation
+      use physics_flags, only: radial_variation
       use mp, only: proc0, broadcast
       use kt_grids, only: ikx_max, periodic_variation
       use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
@@ -219,12 +219,11 @@ contains
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes
       use constants, only: pi, zi
-      use kt_grids, only: naky, akx, nakx, zonal_mode, boundary_size
+      use kt_grids, only: akx, nakx, zonal_mode, boundary_size
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use dist_fn_arrays, only: g_krook, g_symm
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use physics_flags, only: radial_variation
 
       implicit none
 
@@ -442,7 +441,7 @@ contains
    subroutine enforce_density_conservation(g_work)
 
       use mp, only: sum_allreduce
-      use species, only: spec, nspec
+      use species, only: spec
       use physics_flags, only: radial_variation
       use vpamu_grids, only: integrate_species, mu, vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -660,11 +659,10 @@ contains
       use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
       use mpi
 #endif
-      use physics_flags, only: radial_variation
       use stella_geometry, only: dl_over_b, d_dl_over_b_drho
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, nztot
-      use kt_grids, only: naky, nakx, rho_d_clamped, boundary_size
+      use kt_grids, only: nakx, rho_d_clamped, boundary_size
       use linear_solve, only: lu_decomposition
       use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
       use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
@@ -831,6 +829,7 @@ contains
          call mpi_win_fence(0, qn_zf_window, ierr)
 
          if (debug) write (6, *) 'sources::init_quasineutrality_source::temp_mat'
+         prior_focus = curr_focus
          call scope(sharedsubprocs)
          win_size = 0
          if (sgproc0) then
