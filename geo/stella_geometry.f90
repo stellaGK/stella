@@ -567,6 +567,7 @@ contains
                   gds24_file, gbdrift_file, cvdrift_file, gbdrift0_file
                if (overwrite_bmag) bmag(ia, iz) = bmag_file
                if (overwrite_gradpar) gradpar(iz) = gradpar_file
+               if (overwrite_gradpar) b_dot_grad_z(1, iz) = gradpar_file ! assuming we are only reading in for a single alpha. Usually, gradpar is the average of all b_dot_grad_z values.    
                if (overwrite_gds2) gds2(ia, iz) = gds2_file
                if (overwrite_gds21) gds21(ia, iz) = gds21_file
                if (overwrite_gds22) gds22(ia, iz) = gds22_file
