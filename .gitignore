@@ -35,6 +35,7 @@ unit_tests
 tests/unit/*.F90
 docs/html/
 .compiler_flags
+.fortran_git_version
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
