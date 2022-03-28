@@ -39,6 +39,11 @@ module stella_diagnostics
    !> Debugging
    logical :: debug = .false.
 
+   interface get_one_flux_vmulo
+      module procedure get_one_flux_vmulo_int
+      module procedure get_one_flux_vmulo_kxkyz
+   end interface
+
 contains
 
    !> Initialise the [[stella_diagnostics]] module
@@ -359,7 +364,8 @@ contains
 !     handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
 !     call g_to_h (gnew, phi, fphi, phi_corr_QN)
          call get_fluxes_vmulo(gnew, phi_out, part_flux, mom_flux, heat_flux, &
-                               part_flux_x, mom_flux_x, heat_flux_x)
+                               part_flux_x, mom_flux_x, heat_flux_x, &
+                               pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
 !     call g_to_h (gnew, phi, -fphi, phi_corr_QN)
       else if (full_flux_surface) then
          !> calculate the particle density, parallel flow and pressure in (y,kx,z) space
@@ -633,7 +639,9 @@ contains
    !==============================================
    !============ GET FLUXES VMULO ================
    !==============================================
-   subroutine get_fluxes_vmulo(g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x)
+   subroutine get_fluxes_vmulo(g, phi, pflx, vflx, qflx, &
+                               pflx_x, vflx_x, qflx_x, &
+                               pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)
 
       use mp, only: sum_reduce
       use constants, only: zi
@@ -661,6 +669,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       real, dimension(:), intent(out) :: pflx, vflx, qflx
       real, dimension(:, :), intent(out) :: pflx_x, vflx_x, qflx_x
+      real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz
 
       integer :: ivmu, imu, iv, iz, it, is, ia
       real :: flx_norm
@@ -668,6 +677,7 @@ contains
 
       pflx = 0.; vflx = 0.; qflx = 0.
       pflx_x = 0.; vflx_x = 0.; qflx_x = 0.
+      pflx_vs_kxkyz = 0.; vflx_vs_kxkyz = 0.; qflx_vs_kxkyz = 0.
 
       ia = 1
       if (flux_norm) then
@@ -678,14 +688,6 @@ contains
 
       allocate (g0k(naky, nakx))
       allocate (g1k(naky, nakx))
-
-      ! if(radial_variation) then
-      !   where (dl_over_b(ia,:) .gt. epsilon(0.0))
-      !     dflx_norm = d_dl_over_b_drho(ia,:)/dl_over_b(ia,:)
-      !   elsewhere
-      !     dflx_norm = 0.
-      !   endwhere
-      ! endif
 
       ! FLAG - electrostatic for now
       ! get electrostatic contributions to fluxes
@@ -735,6 +737,7 @@ contains
             end do
          end do
          call get_one_flux_vmulo(flx_norm * spec%dens_psi0, g1, phi, pflx)
+         call get_one_flux_vmulo(flx_norm * spec%dens_psi0, g1, phi, pflx_vs_kxkyz)
 
          if (write_radial_fluxes) then
             call get_one_flux_radial(flx_norm * spec%dens_psi0, g1, phi, pflx_x)
@@ -788,6 +791,7 @@ contains
             end do
          end do
          call get_one_flux_vmulo(flx_norm * spec%dens_psi0 * spec%temp_psi0, g1, phi, qflx)
+         call get_one_flux_vmulo(flx_norm * spec%dens_psi0 * spec%temp_psi0, g1, phi, qflx_vs_kxkyz)
 
          if (write_radial_fluxes) then
             call get_one_flux_radial(flx_norm * spec%dens_psi0 * spec%temp_psi0, g1, phi, qflx_x)
@@ -902,6 +906,7 @@ contains
 
          g1 = g1 + g2
          call get_one_flux_vmulo(flx_norm * spec%dens_psi0 * sqrt(spec%mass * spec%temp_psi0), g1, phi, vflx)
+         call get_one_flux_vmulo(flx_norm * spec%dens_psi0 * sqrt(spec%mass * spec%temp_psi0), g1, phi, vflx_vs_kxkyz)
 
          if (write_radial_fluxes) then
             call get_one_flux_radial(flx_norm * spec%dens_psi0 * sqrt(spec%mass * spec%temp_psi0), g1, phi, vflx_x)
@@ -1073,7 +1078,7 @@ contains
    !==============================================
    !============ GET ONE FLUX VMULO ==============
    !==============================================
-   subroutine get_one_flux_vmulo(weights, gin, fld, flxout)
+   subroutine get_one_flux_vmulo_int(weights, gin, fld, flxout)
 
       use vpamu_grids, only: integrate_vmu
       use stella_layouts, only: vmu_lo
@@ -1142,7 +1147,47 @@ contains
 
       deallocate (totals)
 
-   end subroutine get_one_flux_vmulo
+   end subroutine get_one_flux_vmulo_int
+
+   subroutine get_one_flux_vmulo_kxkyz(weights, gin, fld, flxout)
+
+      use vpamu_grids, only: integrate_vmu
+      use stella_layouts, only: vmu_lo
+      use kt_grids, only: aky, nakx, naky
+      use zgrid, only: nzgrid, ntubes
+      use species, only: nspec
+      use volume_averages, only: mode_fac
+
+      implicit none
+
+      real, dimension(:), intent(in) :: weights
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: fld
+      real, dimension(:, :, -nzgrid:, :, :), intent(in out) :: flxout
+
+      complex, dimension(:, :, :, :, :), allocatable :: totals
+
+      integer :: ia, is, it, iz, ikx
+
+      allocate (totals(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+
+      ia = 1
+
+      call integrate_vmu(gin, weights, totals)
+      do is = 1, nspec
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  flxout(:, ikx, iz, it, is) = 0.5 * mode_fac * aky &
+                                               * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:, ikx, iz, it)))
+               end do
+            end do
+         end do
+      end do
+
+      deallocate (totals)
+
+   end subroutine get_one_flux_vmulo_kxkyz
 
    !==============================================
    !=========== GET ONE FLUX RADIAL ==============
