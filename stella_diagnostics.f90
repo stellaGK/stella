@@ -1163,7 +1163,7 @@ contains
       real, dimension(:), intent(in) :: weights
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: fld
-      real, dimension(:,:, -nzgrid:, :, :), intent(in out) :: flxout
+      real, dimension(:, :, -nzgrid:, :, :), intent(in out) :: flxout
 
       complex, dimension(:, :, :, :, :), allocatable :: totals
 
@@ -1179,7 +1179,7 @@ contains
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   flxout(:, ikx, iz, it, is) = 0.5 * mode_fac * aky &
-                                * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:,ikx,iz,it)))
+                                               * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:, ikx, iz, it)))
                end do
             end do
          end do
