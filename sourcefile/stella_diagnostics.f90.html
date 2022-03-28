@@ -1321,7 +1321,7 @@
 <a name="ln-1163"></a><span class="k">      </span><span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">weights</span>
 <a name="ln-1164"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gin</span>
 <a name="ln-1165"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fld</span>
-<a name="ln-1166"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flxout</span>
+<a name="ln-1166"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span> <span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">flxout</span>
 <a name="ln-1167"></a>
 <a name="ln-1168"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">totals</span>
 <a name="ln-1169"></a>
@@ -1337,7 +1337,7 @@
 <a name="ln-1179"></a>            <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
 <a name="ln-1180"></a>               <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
 <a name="ln-1181"></a>                  <span class="n">flxout</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="k">is</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">mode_fac</span> <span class="o">*</span> <span class="n">aky</span> <span class="p">&amp;</span>
-<a name="ln-1182"></a>                                <span class="o">*</span> <span class="nb">aimag</span><span class="p">(</span><span class="n">totals</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="k">is</span><span class="p">)</span> <span class="o">*</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">fld</span><span class="p">(:,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">it</span><span class="p">)))</span>
+<a name="ln-1182"></a>                                               <span class="o">*</span> <span class="nb">aimag</span><span class="p">(</span><span class="n">totals</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="k">is</span><span class="p">)</span> <span class="o">*</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">fld</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">)))</span>
 <a name="ln-1183"></a>               <span class="k">end do</span>
 <a name="ln-1184"></a><span class="k">            end do</span>
 <a name="ln-1185"></a><span class="k">         end do</span>
@@ -2019,13 +2019,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-44-g3841f13eb</small></p>
+<br /><small>v0.5-47-g352274870</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-03-28T17:16:16.931239           </p>
+ on 2022-03-28T17:20:34.059766           </p>
         </div>
       </div>
       <br>
