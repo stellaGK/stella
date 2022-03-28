@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 3.0% of total for modules and submodules.">1150 statements</a>
+    title=" 3.1% of total for modules and submodules.">1189 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/stella_diagnostics.f90"> Source File</a></li>
   </ul>
@@ -152,6 +152,14 @@
   </div>
 </div>
 <div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-0">Interfaces</a></h3></div>
+  <div id="inters-0" class="panel-collapse collapse">
+    <div class="list-group">
+      <a class="list-group-item" href="../module/stella_diagnostics.html#interface-get_one_flux_vmulo">get_one_flux_vmulo</a>
+    </div>
+  </div>
+</div>
+<div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
   <div class="list-group">
     <div id="subs-0" class="panel-collapse collapse">
@@ -167,7 +175,8 @@
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_ffs">get_one_flux_ffs</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_modified_fourier_coefficient">get_modified_fourier_coefficient</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux">get_one_flux</a>
-      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo">get_one_flux_vmulo</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo_int">get_one_flux_vmulo_int</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo_kxkyz">get_one_flux_vmulo_kxkyz</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_radial">get_one_flux_radial</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments">get_moments</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments_ffs">get_moments_ffs</a>
@@ -234,6 +243,14 @@
   </div>
 </div>
 <div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-1">Interfaces</a></h3></div>
+  <div id="inters-1" class="panel-collapse collapse">
+    <div class="list-group">
+      <a class="list-group-item" href="../module/stella_diagnostics.html#interface-get_one_flux_vmulo">get_one_flux_vmulo</a>
+    </div>
+  </div>
+</div>
+<div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
   <div class="list-group">
     <div id="subs-1" class="panel-collapse collapse">
@@ -249,7 +266,8 @@
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_ffs">get_one_flux_ffs</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_modified_fourier_coefficient">get_modified_fourier_coefficient</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux">get_one_flux</a>
-      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo">get_one_flux_vmulo</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo_int">get_one_flux_vmulo_int</a>
+      <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_vmulo_kxkyz">get_one_flux_vmulo_kxkyz</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_radial">get_one_flux_radial</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments">get_moments</a>
       <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments_ffs">get_moments_ffs</a>
@@ -435,6 +453,84 @@
     <br>
     
     
+    <section>
+   <h2>Interfaces</h2>
+     <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="interface-get_one_flux_vmulo"></span><h3>private interface <a href='../interface/get_one_flux_vmulo.html'>get_one_flux_vmulo</a>  </h3></div>
+  <ul class="list-group">
+    <li class="list-group-item">
+    <h3>private subroutine <a href='../proc/get_one_flux_vmulo_int.html'>get_one_flux_vmulo_int</a>(weights, gin, fld, flxout)</h3>    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>weights</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(inout),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>flxout</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+    </li>
+    <li class="list-group-item">
+    <h3>private subroutine <a href='../proc/get_one_flux_vmulo_kxkyz.html'>get_one_flux_vmulo_kxkyz</a>(weights, gin, fld, flxout)</h3>    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>weights</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(inout),</td>
+  <td></td>  <td>dimension(:,:, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>flxout</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+    </li>
+  </ul>
+</div>
+
+    </section>
+  <br>
 
     
     
@@ -605,7 +701,7 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_fluxes_vmulo"></span><h3>private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_fluxes_vmulo"></span><h3>private subroutine <a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a>(g, phi, pflx, vflx, qflx, pflx_x, vflx_x, qflx_x, pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)</h3></div>
   <div class="panel-body">
            
 <h4>Arguments</h4>      <table class="table table-striped varlist">
@@ -658,6 +754,24 @@
 <td>intent(out),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
   <td><strong>qflx_x</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(out),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>pflx_vs_kxkyz</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(out),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>vflx_vs_kxkyz</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(out),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, :)</td><td>::</td>
+  <td><strong>qflx_vs_kxkyz</strong></td><td></td>
 </tr>
 </tbody>
 </table>
@@ -871,7 +985,7 @@ swap from all ky and kx &gt;= 0 to all kx and ky &gt;= 0</p>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_one_flux_vmulo"></span><h3>private subroutine <a href='../proc/get_one_flux_vmulo.html'>get_one_flux_vmulo</a>(weights, gin, fld, flxout)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_one_flux_vmulo_int"></span><h3>private subroutine <a href='../proc/get_one_flux_vmulo_int.html'>get_one_flux_vmulo_int</a>(weights, gin, fld, flxout)</h3></div>
   <div class="panel-body">
            
 <h4>Arguments</h4>      <table class="table table-striped varlist">
@@ -899,6 +1013,44 @@ swap from all ky and kx &gt;= 0 to all kx and ky &gt;= 0</p>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(inout),</td>
   <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>flxout</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_one_flux_vmulo_kxkyz"></span><h3>private subroutine <a href='../proc/get_one_flux_vmulo_kxkyz.html'>get_one_flux_vmulo_kxkyz</a>(weights, gin, fld, flxout)</h3></div>
+  <div class="panel-body">
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>weights</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
+  <td><strong>gin</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>fld</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(inout),</td>
+  <td></td>  <td>dimension(:,:, -nzgrid:, :, :)</td><td>::</td>
   <td><strong>flxout</strong></td><td></td>
 </tr>
 </tbody>
@@ -1259,13 +1411,13 @@ f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-righ
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-42-ge694688c2</small></p>
+<br /><small>v0.5-44-g3841f13eb</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-03-26T01:12:27.151669           </p>
+ on 2022-03-28T17:16:16.931239           </p>
         </div>
       </div>
       <br>
