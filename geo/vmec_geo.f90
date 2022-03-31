@@ -7,7 +7,7 @@ module vmec_geo
 
    real :: alpha0
    integer :: zgrid_refinement_factor
-   real :: zgrid_scalefac
+   real :: zgrid_scalefac, gradpar_zeta_prefac
    integer :: surface_option
    real :: nfield_periods
    real :: zeta_center, torflux
@@ -28,7 +28,7 @@ contains
       logical :: exist
 
       namelist /vmec_parameters/ alpha0, zeta_center, nfield_periods, &
-         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, verbose, vmec_filename
+         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, verbose, vmec_filename, gradpar_zeta_prefac
 
       call init_vmec_defaults
 
@@ -65,6 +65,7 @@ contains
       torflux = 0.6354167d+0
       surface_option = 0
       verbose = .true.
+      gradpar_zeta_prefac = 1.0
       ! originally planned to make gradpar independent of alpha
       ! for full flux surface simulations. this required
       ! the code to obtain vmec geo quantities
@@ -197,7 +198,7 @@ contains
                                              gds25_vmec, gds26_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, &
                                              cvdrift_alpha_vmec, &
                                              cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, &
-                                             x_displacement_fac_vmec)
+                                             x_displacement_fac_vmec, gradpar_zeta_prefac)
 
       !> get ratio of number of simulated field periods to the number of field periods of the device
       field_period_ratio = nfield_periods / real(nfp)
@@ -344,6 +345,7 @@ contains
       !> gradpar is b . grad zed (or its alpha-average, in the case of full_flux_surface=T),
       !> with zed = zeta or normalised arc-length, both scaled to run from -pi to pi
       gradpar = gradpar * zed_scalefac
+      b_dot_grad_z = b_dot_grad_z * zed_scalefac
       gds23 = gds23 * zed_scalefac
       gds24 = gds24 * zed_scalefac
 

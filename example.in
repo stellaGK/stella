@@ -63,7 +63,8 @@
 &init_g_knobs
  chop_side = F
  phiinit=   1.0
- restart_file = "nc/example.nc"
+ restart_dir = "nc"
+ restart_file = "example.nc"
  ginit_option= "default"
  width0 = 1.0
 /

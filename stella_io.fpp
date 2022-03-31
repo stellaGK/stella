@@ -125,6 +125,7 @@ contains
          call nc_grids
          call nc_species
          call nc_geo
+         call save_input
       end if
 # endif
 
@@ -233,7 +234,6 @@ contains
       integer :: status
 
       if (proc0) then
-         call save_input
          status = nf90_close(ncid)
          if (status /= nf90_noerr) call netcdf_error(status)
       end if
