@@ -18,6 +18,7 @@ stella_mod = \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
+	 full_xzgrid.o \
 	 fzero.o \
 	 g_tofrom_h.o \
 	 gauss_quad.o \
@@ -186,6 +187,10 @@ flow_shear.o: \
 	 stella_time.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zgrid.o 
+full_xzgrid.o: \
+	 extended_zgrid.o \
+	 kt_grids.o \
 	 zgrid.o 
 fzero.o: 
 g_tofrom_h.o: \
@@ -375,6 +380,26 @@ response_matrix.o: \
 	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+response_matrix_radial.o: \
+	 common_types.o \
+	 extended_zgrid.o \
+	 fields_arrays.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 linear_solve.o \
+	 mp.o \
+	 mp_lu_decomposition.o \
+	 parallel_streaming.o \
+	 physics_flags.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 system_fortran.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
@@ -429,6 +454,7 @@ stella.o: \
 	 fields.o \
 	 fields_arrays.o \
 	 file_utils.o \
+	 full_xzgrid.o \
 	 git_version.o \
 	 init_g.o \
 	 job_manage.o \

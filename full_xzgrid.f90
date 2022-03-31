@@ -1,181 +1,185 @@
 module full_xzgrid
 
-  implicit none
+   implicit none
 
-  public :: init_full_xzgrid, finish_full_xzgrid
-  public :: map_to_full_xzgrid
-  public :: map_from_full_xzgrid
+   public :: init_full_xzgrid, finish_full_xzgrid
+   public :: map_to_full_xzgrid
+   public :: map_from_full_xzgrid
 
-  interface map_to_full_xzgrid
-    module procedure map_to_full_xzgrid
-    module procedure map_from_ezgrid_to_full_xzgrid
-  end interface map_to_full_xzgrid
+   interface map_to_full_xzgrid
+      module procedure map_to_full_xzgrid
+      module procedure map_from_ezgrid_to_full_xzgrid
+   end interface map_to_full_xzgrid
 
 
-  interface map_from_full_xzgrid
-    module procedure map_to_full_xzgrid
-    module procedure map_from_ezgrid_to_full_xzgrid
-  end interface map_from_full_xzgrid
+   interface map_from_full_xzgrid
+      module procedure map_from_full_xzgrid
+      module procedure map_to_ezgrid_from_full_xzgrid
+   end interface map_from_full_xzgrid
+
+   integer, dimension (:), allocatable :: nelements
+
+   logical :: full_xzgrid_initialized = .false.
 
 contains
 
-  subroutine init_full_xzgrid
+   subroutine init_full_xzgrid
 
-    use zgrid, only: boundary_option_switch
-    use zgrid, only: boundary_option_self_periodic
-    use zgrid, only: boundary_option_linked
-    use zgrid, only: nperiod, nzgrid, nzed, ntubes
-    use kt_grids, only: nakx, naky
-    use kt_grids, only: jtwist, ikx_twist_shift
-    use kt_grids, only: aky, ikx_max
-    use species, only: nspec
+      use zgrid, only: nztot
+      use kt_grids, only: nakx, naky
 
-    implicit none
+      implicit none
 
-  end subroutine init_extended_zgrid
+      if (full_xzgrid_initialized) return
+      full_xzgrid_initialized = .true.
 
-  subroutine fill_zed_ghost_zones (it, iseg, ie, iky, g, gleft, gright)
+      if (.not. allocated(nelements)) allocate (nelements(naky))
 
-    use zgrid, only: nzgrid
-    use kt_grids, only: zonal_mode
+      nelements = nztot*nakx
 
-    implicit none
+   end subroutine init_full_xzgrid
 
-    integer, intent (in) :: it, iseg, ie, iky
-    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
-    complex, dimension (:), intent (out) :: gleft, gright
+   subroutine map_to_full_xzgrid (it, iky, g, g_full)
 
-    ! stream_sign > 0 --> stream speed < 0
+      use zgrid, only: nzgrid
+      use kt_grids, only: nakx
 
-    if (iseg == 1) then
-       ! if zonal mode, then periodic BC instead of zero BC
-       if (zonal_mode(iky)) then
-          gleft = g(iky,ikxmod(iseg,ie,iky),iz_up(iseg)-2:iz_up(iseg)-1,it)
-       else
-          gleft = 0.0
-       end if
-    else
-       gleft = g(iky,ikxmod(iseg-1,ie,iky),iz_up(iseg-1)-2:iz_up(iseg-1)-1,it_left(it))
-    end if
-    
-    if (nsegments(ie,iky) > iseg) then
-       ! connect to segment with larger theta-theta0 (on right)
-       gright = g(iky,ikxmod(iseg+1,ie,iky),iz_low(iseg+1)+1:iz_low(iseg+1)+2,it_right(it))
-    else
-       ! apply periodic BC to zonal mode and zero BC otherwise
-       if (zonal_mode(iky)) then
-          gright = g(iky,ikxmod(iseg,ie,iky),iz_low(iseg)+1:iz_low(iseg)+2,it)
-       else
-          gright = 0.0
-       end if
-    end if
-    
-  end subroutine fill_zed_ghost_zones
+      implicit none
 
-  subroutine map_to_xzgrid (it, ie, iky, g, g_full, ulim)
+      integer, intent (in) :: it, iky
+      complex, dimension (:,-nzgrid:,:), intent (in) :: g
+      complex, dimension (:), intent (out) :: g_full
 
-    use zgrid, only: nzgrid
+      integer :: ikx, iz
 
-    implicit none
+      !integer :: zm = 0
+      !if(aky(iky).lt.epsilon(0.0)) zm = 1
 
-    integer, intent (in) :: it, ie, iky
-    complex, dimension (:,-nzgrid:,:), intent (in) :: g
-    complex, dimension (:), intent (out) :: gext
-    integer, intent (out) :: ulim
+      do iz = -nzgrid, nzgrid
+         do ikx = 1, nakx
+            g_full(xz_idx(ikx, iz)) = g(ikx, iz, it)
+         enddo
+      enddo
 
-    integer :: iseg, ikx, itmod
-    integer :: llim, zm = 0
+   end subroutine map_to_full_xzgrid
 
-    if(ky.eq.0) zm = 1
+   subroutine map_from_ezgrid_to_full_xzgrid (it, ie, iky, g_ext, g_full)
 
-    ! avoid double-counting at boundaries between 2pi segments
-    do iz = -nzgrid, nzgrid
-      do ikx = 1+zm, nakx
-          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)
-       enddo
-     enddo
-    end if
+      use zgrid, only: nzgrid
+      use extended_zgrid, only: ikxmod, nzed_segment, nsegments
+      use extended_zgrid, only: iz_low, it_right
 
-  end subroutine map_to_xzgrid
+      implicit none
 
-  subroutine map_from_ezgrid_to_xzgrid (it, ie, iky, g_ext, g_full, ulim)
+      integer, intent (in) :: it, ie, iky
+      complex, dimension (:), intent (in) :: g_ext
+      complex, dimension (:), intent (out) :: g_full
 
-    use zgrid, only: nzgrid
-    use extended_zgrid, only: ikxmod
+      integer :: idx, iseg, ikx, itmod
+      integer :: llim, ulim
 
-    implicit none
+      ! avoid double-counting at boundaries between 2pi segments
+      iseg = 1
+      ikx = ikxmod(iseg,ie,iky)
+      llim = 1 ; ulim = nzed_segment+1
+      do idx = llim, ulim
+         g_full(xz_idx(ikx, iz_low(iseg) + idx - llim)) = g_ext(idx)
+      enddo
+      if (nsegments(ie,iky) > 1) then
+         itmod = it
+         do iseg = 2, nsegments(ie, iky)
+            ikx = ikxmod(iseg,ie,iky)
+            itmod = it_right(itmod)
+            llim = ulim+1
+            ulim = llim+nzed_segment-1
+            g_full(xz_idx(ikx, iz_low(iseg))) = g_ext(llim - 1)
+            do idx = llim, ulim
+               g_full(xz_idx(ikx, iz_low(iseg) + idx - llim + 1)) = g_ext(idx)
+            enddo
+         end do
+      end if
 
-    integer, intent (in) :: it, ie, iky
-    complex, dimension (:), intent (out) :: gext
-    complex, dimension (:,-nzgrid:,:), intent (in) :: gext
-    integer, intent (out) :: ulim
+   end subroutine map_from_ezgrid_to_full_xzgrid
 
-    integer :: iseg, ikx, itmod
-    integer :: llim
+   subroutine map_from_full_xzgrid (it, iky, g_full, g)
 
-    ! avoid double-counting at boundaries between 2pi segments
-    iseg = 1
-    ikx = ikxmod(iseg,ie,iky)
-    llim = 1 ; ulim = nzed_segment+1
-    gext(llim:ulim) = g(ikx,iz_low(iseg):iz_up(iseg),it)
-    if (nsegments(ie,iky) > 1) then
-       itmod = it
-       do iseg = 2, nsegments(ie,iky)
-          ikx = ikxmod(iseg,ie,iky)
-          itmod = it_right(itmod)
-          llim = ulim+1
-          ulim = llim+nzed_segment-1
-          gext(llim:ulim) = g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod)
-       end do
-    end if
+      use zgrid, only: nzgrid
+      use kt_grids, only: nakx
 
-  end subroutine map_from_ezgrid_to_xzgrid
+      implicit none
 
-  subroutine map_from_xzgrid (it, ie, iky, gext, g)
+      integer, intent (in) :: it, iky
+      complex, dimension (:), intent (in) :: g_full
+      complex, dimension (:,-nzgrid:,:), intent (in out) :: g
 
-    use zgrid, only: nzgrid
+      integer :: iz, ikx
 
-    implicit none
+      do iz = -nzgrid, nzgrid
+         do ikx = 1, nakx
+            g(ikx, iz, it) = g_full(xz_idx(ikx, iz))
+         enddo
+      enddo
 
-    integer, intent (in) :: it, ie, iky
-    complex, dimension (:), intent (in) :: gext
-    complex, dimension (:,-nzgrid:,:), intent (in out) :: g
+  end subroutine map_from_full_xzgrid
 
-    integer :: iseg, ikx, itmod
-    integer :: llim, ulim
+  subroutine map_to_ezgrid_from_full_xzgrid (it, ie, iky, g_full, g_ext)
+      use zgrid, only: nzgrid
+      use extended_zgrid, only: ikxmod, nzed_segment, nsegments
+      use extended_zgrid, only: iz_low, it_right
 
-    iseg = 1
-    ikx = ikxmod(iseg,ie,iky)
-    llim = 1 ; ulim = nzed_segment+1
-    g(ikx,iz_low(iseg):iz_up(iseg),it) = gext(llim:ulim)
-    if (nsegments(ie,iky) > 1) then
-       itmod = it
-       do iseg = 2, nsegments(ie,iky)
-          llim = ulim+1
-          ulim = llim+nzed_segment-1
-          ikx = ikxmod(iseg,ie,iky)
-          itmod = it_right(itmod)
-          g(ikx,iz_low(iseg),itmod) = gext(llim-1)
-          g(ikx,iz_low(iseg)+1:iz_up(iseg),itmod) = gext(llim:ulim)
-       end do
-    end if
+      implicit none
 
-  end subroutine map_from_xzgrid
+      integer, intent (in) :: it, ie, iky
+      complex, dimension (:), intent (out) :: g_ext
+      complex, dimension (:), intent (in) :: g_full
 
-  subroutine finish_extended_zgrid
+      integer :: idx, iseg, ikx, itmod
+      integer :: llim, ulim
 
-    implicit none
+      ! avoid double-counting at boundaries between 2pi segments
+      iseg = 1
+      ikx = ikxmod(iseg,ie,iky)
+      llim = 1 ; ulim = nzed_segment+1
+      do idx = llim, ulim
+         g_ext(idx) = g_full(xz_idx(ikx, iz_low(iseg) + idx - llim))
+      enddo
+      if (nsegments(ie,iky) > 1) then
+         itmod = it
+         do iseg = 2, nsegments(ie, iky)
+            ikx = ikxmod(iseg,ie,iky)
+            itmod = it_right(itmod)
+            llim = ulim+1
+            ulim = llim+nzed_segment-1
+            do idx = llim, ulim
+               g_ext(idx) = g_full(xz_idx(ikx, iz_low(iseg) + idx - llim + 1))
+            enddo
+         end do
+      end if
 
-    if (allocated(neigen)) deallocate (neigen)
-    if (allocated(periodic)) deallocate (periodic)
-    if (allocated(nsegments)) deallocate (nsegments)
-    if (allocated(iz_low)) deallocate (iz_low, iz_mid, iz_up)
-    if (allocated(ikxmod)) deallocate (ikxmod)
-    if (allocated(it_right)) deallocate (it_right)
-    if (allocated(it_left)) deallocate (it_left)
+  end subroutine map_to_ezgrid_from_full_xzgrid
 
-    extended_zgrid_initialized = .false.
+   subroutine finish_full_xzgrid
 
-  end subroutine finish_extended_zgrid
+      implicit none
 
-end module extended_zgrid
+      if (allocated(nelements)) deallocate (nelements)
+
+      full_xzgrid_initialized = .false.
+
+   end subroutine finish_full_xzgrid
+
+   elemental function xz_idx(ikx, iz)
+
+      use zgrid, only: nzgrid
+      use kt_grids, only: nakx
+
+      implicit none
+
+      integer xz_idx
+      integer, intent(in) :: ikx, iz
+
+      xz_idx = ikx + (iz + nzgrid) * nakx
+
+   end function xz_idx
+
+end module full_xzgrid

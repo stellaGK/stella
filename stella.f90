@@ -100,6 +100,7 @@ contains
       use dist_redistribute, only: init_redistribute
       use time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
+      use full_xzgrid, only: init_full_xzgrid
       use kt_grids, only: init_kt_grids, read_kt_grids_parameters
       use kt_grids, only: naky, nakx, ny, nx, nalpha
       use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
@@ -248,6 +249,7 @@ contains
       !> kx modes arising from the twist-and-shift boundary condition
       if (debug) write (6, *) 'stella::init_stella::init_extended_zgrid'
       call init_extended_zgrid
+      call init_full_xzgrid
       !> when doing a volume average using Fourier coefficients, the
       !> ky=0 mode gets a different weighting than finite ky modes, due
       !> to the reality condition being imposed; init_volume_averages accounts for this
