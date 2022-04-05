@@ -18,7 +18,7 @@ module physics_flags
    public :: adiabatic_option_fieldlineavg
    public :: const_alpha_geo
    public :: suppress_zonal_interaction
-   
+
    private
 
    logical :: full_flux_surface
@@ -33,7 +33,7 @@ module physics_flags
    logical :: hammett_flow_shear
    logical :: const_alpha_geo
    logical :: suppress_zonal_interaction
-   
+
    integer :: adiabatic_option_switch
    integer, parameter :: adiabatic_option_default = 1, &
                          adiabatic_option_zero = 2, &
@@ -116,7 +116,7 @@ contains
       call broadcast(adiabatic_option_switch)
       call broadcast(const_alpha_geo)
       call broadcast(suppress_zonal_interaction)
-      
+
    end subroutine read_parameters
 
    subroutine finish_physics_flags

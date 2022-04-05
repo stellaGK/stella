@@ -1704,7 +1704,7 @@ contains
                call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
                !> zero out the zonal contribution to d<chi>/dx if requested
                if (suppress_zonal_interaction) then
-                  g0k(1,:) = 0.0
+                  g0k(1, :) = 0.0
                end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
@@ -1739,7 +1739,7 @@ contains
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
                !> zero out the zonal contribution to dg/dx if requested
                if (suppress_zonal_interaction) then
-                  g0k(1,:) = 0.0
+                  g0k(1, :) = 0.0
                end if
                !> if running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
