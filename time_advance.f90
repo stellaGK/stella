@@ -1643,6 +1643,7 @@ contains
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use physics_flags, only: suppress_zonal_interaction
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -1701,6 +1702,10 @@ contains
                call forward_transform(g0k, g0xy)
                !> compute i*kx*<chi>
                call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               !> zero out the zonal contribution to d<chi>/dx if requested
+               if (suppress_zonal_interaction) then
+                  g0k(1,:) = 0.0
+               end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
@@ -1732,6 +1737,10 @@ contains
 
                !> compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+               !> zero out the zonal contribution to dg/dx if requested
+               if (suppress_zonal_interaction) then
+                  g0k(1,:) = 0.0
+               end if
                !> if running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dgdy(g(:, :, iz, it, ivmu), g0a)
