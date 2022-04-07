@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 3.2% of total for modules and submodules.">1247 statements</a>
+    title=" 3.2% of total for modules and submodules.">1252 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/fields.fpp"> Source File</a></li>
   </ul>
@@ -122,14 +122,12 @@
       <a class="list-group-item" href="../module/fields.html#variable-gamtot3_h">gamtot3_h</a>
       <a class="list-group-item" href="../module/fields.html#variable-efac~2">efac</a>
       <a class="list-group-item" href="../module/fields.html#variable-efacp~2">efacp</a>
-      <a class="list-group-item" href="../module/fields.html#variable-save1">save1</a>
-      <a class="list-group-item" href="../module/fields.html#variable-save2">save2</a>
       <a class="list-group-item" href="../module/fields.html#variable-gam0_ffs">gam0_ffs</a>
       <a class="list-group-item" href="../module/fields.html#variable-lu_gam0_ffs">lu_gam0_ffs</a>
       <a class="list-group-item" href="../module/fields.html#variable-adiabatic_response_factor">adiabatic_response_factor</a>
       <a class="list-group-item" href="../module/fields.html#variable-fields_updated">fields_updated</a>
       <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
-      <a class="list-group-item" href="../module/fields.html#variable-debug">debug</a>
+      <a class="list-group-item" href="../module/fields.html#variable-debug~4">debug</a>
       <a class="list-group-item" href="../module/fields.html#variable-zm">zm</a>
       <a class="list-group-item" href="../module/fields.html#variable-time_field_solve">time_field_solve</a>
     </div>
@@ -153,7 +151,7 @@
       <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
       <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
       <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
-      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
+      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~4">allocate_arrays</a>
       <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
       <a class="list-group-item" href="../module/fields.html#proc-advance_fields">advance_fields</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_fields">get_fields</a>
@@ -162,6 +160,8 @@
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec">get_fields_by_spec</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec_idx">get_fields_by_spec_idx</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_phi">get_phi</a>
+      <a class="list-group-item" href="../module/fields.html#proc-get_phi_radial">get_phi_radial</a>
+      <a class="list-group-item" href="../module/fields.html#proc-add_adiabatic_response_radial">add_adiabatic_response_radial</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_phi_ffs">get_phi_ffs</a>
       <a class="list-group-item" href="../module/fields.html#proc-add_radial_correction_int_species">add_radial_correction_int_species</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_radial_correction">get_radial_correction</a>
@@ -208,14 +208,12 @@
       <a class="list-group-item" href="../module/fields.html#variable-gamtot3_h">gamtot3_h</a>
       <a class="list-group-item" href="../module/fields.html#variable-efac~2">efac</a>
       <a class="list-group-item" href="../module/fields.html#variable-efacp~2">efacp</a>
-      <a class="list-group-item" href="../module/fields.html#variable-save1">save1</a>
-      <a class="list-group-item" href="../module/fields.html#variable-save2">save2</a>
       <a class="list-group-item" href="../module/fields.html#variable-gam0_ffs">gam0_ffs</a>
       <a class="list-group-item" href="../module/fields.html#variable-lu_gam0_ffs">lu_gam0_ffs</a>
       <a class="list-group-item" href="../module/fields.html#variable-adiabatic_response_factor">adiabatic_response_factor</a>
       <a class="list-group-item" href="../module/fields.html#variable-fields_updated">fields_updated</a>
       <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
-      <a class="list-group-item" href="../module/fields.html#variable-debug">debug</a>
+      <a class="list-group-item" href="../module/fields.html#variable-debug~4">debug</a>
       <a class="list-group-item" href="../module/fields.html#variable-zm">zm</a>
       <a class="list-group-item" href="../module/fields.html#variable-time_field_solve">time_field_solve</a>
     </div>
@@ -239,7 +237,7 @@
       <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
       <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
       <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
-      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
+      <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~4">allocate_arrays</a>
       <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
       <a class="list-group-item" href="../module/fields.html#proc-advance_fields">advance_fields</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_fields">get_fields</a>
@@ -248,6 +246,8 @@
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec">get_fields_by_spec</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec_idx">get_fields_by_spec_idx</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_phi">get_phi</a>
+      <a class="list-group-item" href="../module/fields.html#proc-get_phi_radial">get_phi_radial</a>
+      <a class="list-group-item" href="../module/fields.html#proc-add_adiabatic_response_radial">add_adiabatic_response_radial</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_phi_ffs">get_phi_ffs</a>
       <a class="list-group-item" href="../module/fields.html#proc-add_radial_correction_int_species">add_radial_correction_int_species</a>
       <a class="list-group-item" href="../module/fields.html#proc-get_radial_correction">get_radial_correction</a>
@@ -295,16 +295,6 @@
   <td><strong>efacp</strong></td><td></td><td></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-save1"></span>complex,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>save1</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-save2"></span>complex,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>save2</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
   <td><span class="anchor" id="variable-gam0_ffs"></span>type(<a href='../type/coupled_alpha_type.html'>coupled_alpha_type</a>),</td>
 <td>private,</td>  <td>dimension(:, :, :), allocatable</td><td>::</td>
   <td><strong>gam0_ffs</strong></td><td></td><td></td><td><p>arrays allocated/used if simulating a full flux surface</p></td>
@@ -330,7 +320,7 @@
   <td><strong>fields_initialized</strong></td><td> =</td><td>.false.</td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-debug"></span>logical,</td>
+  <td><span class="anchor" id="variable-debug~4"></span>logical,</td>
 <td>private</td>  <td></td><td>::</td>
   <td><strong>debug</strong></td><td> =</td><td>.false.</td><td></td>
 </tr>
@@ -507,7 +497,7 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~2"></span><h3>private subroutine <a href='../proc/allocate_arrays~2.html'>allocate_arrays</a>()</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~4"></span><h3>private subroutine <a href='../proc/allocate_arrays~4.html'>allocate_arrays</a>()</h3></div>
   <div class="panel-body">
            
 <h4>Arguments</h4>      <em>None</em>
@@ -804,6 +794,52 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
   </div>
 
       <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_phi_radial"></span><h3>private subroutine <a href='../proc/get_phi_radial.html'>get_phi_radial</a>(phi)</h3></div>
+  <div class="panel-body">
+       
+<p>Non-perturbative approach to solving quasineutrality for radially 
+global simulations</p>
+    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(inout),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-add_adiabatic_response_radial"></span><h3>private subroutine <a href='../proc/add_adiabatic_response_radial.html'>add_adiabatic_response_radial</a>(phi)</h3></div>
+  <div class="panel-body">
+       
+<p>Add the adiabatic eletron contribution for globally radial simulations.
+This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)</p>
+    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(inout),</td>
+  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
+  <td><strong>phi</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-get_phi_ffs"></span><h3>private subroutine <a href='../proc/get_phi_ffs.html'>get_phi_ffs</a>(rhs, phi)</h3></div>
   <div class="panel-body">
        
@@ -859,7 +895,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_radial_correction"></span><h3>public subroutine <a href='../proc/get_radial_correction.html'>get_radial_correction</a>(g, phi_in, dist)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_radial_correction"></span><h3>public subroutine <a href='../proc/get_radial_correction.html'>get_radial_correction</a>(g, phi0, dist)</h3></div>
   <div class="panel-body">
        
 <p>the following routine gets the correction in phi both from gyroaveraging and quasineutrality</p><a href="../proc/get_radial_correction.html" class="pull-right"><emph>Read more&hellip;</emph></a>
@@ -877,7 +913,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
   <td><span class="anchor" ></span>complex,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi_in</strong></td><td></td>
+  <td><strong>phi0</strong></td><td></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>character,</td>
@@ -1063,13 +1099,13 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-48-gc56a21d5a</small></p>
+<br /><small>v0.5-49-gaea22b7f9</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-03-31T18:59:08.265064           </p>
+ on 2022-04-07T01:50:32.319352           </p>
         </div>
       </div>
       <br>
