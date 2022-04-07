@@ -1313,7 +1313,7 @@ contains
 
    end subroutine get_phi
 
-   !> Non-perturbative approach to solving quasineutrality for radially 
+   !> Non-perturbative approach to solving quasineutrality for radially
    !> global simulations
    subroutine get_phi_radial(phi)
 
@@ -1423,7 +1423,7 @@ contains
 
 #if defined MPI && ISO_C_BINDING
       use mpi
-      use mp, only:  sgproc0, comm_sgroup
+      use mp, only: sgproc0, comm_sgroup
       use fields_arrays, only: qn_zf_window
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #else
@@ -1432,7 +1432,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-      use kt_grids, only: nakx,  boundary_size, rho_d_clamped
+      use kt_grids, only: nakx, boundary_size, rho_d_clamped
       use fields_arrays, only: phizf_solve, phi_ext
       use fields_arrays, only: phi_proj, phi_proj_stage, theta
       use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
@@ -1605,6 +1605,8 @@ contains
       integer :: ivmu, iz, it, ia, imu, is, iky
       complex, dimension(:, :), allocatable :: g0k
 
+      if(ky_solve_radial.le.0) return
+
       allocate (g0k(naky, nakx))
 
       ia = 1
@@ -1673,15 +1675,13 @@ contains
       complex :: tmp
       complex, dimension(:, :, :, :), allocatable :: phi1
       complex, dimension(:, :, :), allocatable :: gyro_g
-      complex, dimension(:, :), allocatable :: g0k, g0x
-      complex, dimension(:, :), allocatable :: g1k, g1x
+      complex, dimension(:, :), allocatable :: g0k, g1k, g1x
 
       ia = 1
 
       if (fphi > epsilon(0.0)) then
          allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0k(naky, nakx))
-         allocate (g0x(naky, nx))
          allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi1 = 0.
          do it = 1, ntubes
@@ -1699,13 +1699,19 @@ contains
 
                   call gyro_average(g0k, iz, ivmu, gyro_g(:, :, ivmu))
                end do
-               call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, g0k, reduce_in=.false.)
-               g0k = g0k - dgamtotdr(:, :, iz) * phi0(:, :, iz, it)
-               call multiply_by_rho(g0k)
-               phi1(:, :, iz, it) = g0k
+               call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, phi1(:, :, iz, it), reduce_in=.false.)
             end do
          end do
          call sum_allreduce(phi1)
+
+         !apply radial operator Xhat
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g0k = phi1(:, :, iz, it) - dgamtotdr(:, :, iz) * phi0(:, :, iz, it)
+               call multiply_by_rho(g0k)
+               phi1(:, :, iz, it) = g0k
+            enddo
+         enddo
 
          if (dist == 'gbar') then
             !call get_phi (phi)
@@ -1723,13 +1729,13 @@ contains
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             if (zonal_mode(1)) then
                if (dist == 'gbar') then
-                  allocate (g1k(1,nakx))
-                  allocate (g1x(1,nakx))
+                  allocate (g1k(1, nakx))
+                  allocate (g1x(1, nakx))
                   do it = 1, ntubes
                      do ikx = 1, nakx
                         g1k(1, ikx) = sum(phi0(1, ikx, :, it) &
-                                         * (efacp * dl_over_b(ia, :) + efac * d_dl_over_b_drho(ia, :)))
-                     enddo
+                                          * (efacp * dl_over_b(ia, :) + efac * d_dl_over_b_drho(ia, :)))
+                     end do
                      call transform_kx2x_unpadded(g1k, g1x)
                      g1x(1, :) = rho_d_clamped * g1x(1, :)
                      call transform_x2kx_unpadded(g1x, g1k)
@@ -1750,7 +1756,7 @@ contains
          end if
 
          !> collect quasineutrality corrections in wavenumber space
-         phi_corr_QN  = phi1
+         phi_corr_QN = phi1
 
          !> zero out the ones we have already solved for using the full method
          do iky = 1, min(ky_solve_radial, naky)
@@ -1776,7 +1782,7 @@ contains
             end do
          end do
 
-         deallocate (g0x, g0k)
+         deallocate (g0k)
          deallocate (gyro_g)
 
       end if
