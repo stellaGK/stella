@@ -2277,12 +2277,12 @@ contains
                call get_dgdx(g0a, g1k)
                g0k = g0k + g1k * wdriftx_phi(ia, iz, ivmu)
 
-!           !wdriftx F_M/T_s variation
-!           call gyro_average (phi(:,:,iz,it),iz,ivmu,g0a)
-!           g0a = adiabatic_phi(ia,iz,ivmu)*g0a
-!           call multiply_by_rho(g0a)
-!           call get_dgdx(g0a,g1k)
-!           g0k = g0k + g1k*wdriftx_phi(ia,iz,ivmu)
+!              !wdriftx F_M/T_s variation
+!              call gyro_average (phi(:, :, iz, it), iz, ivmu, g0a)
+!              g0a = adiabatic_phi(ia, iz, ivmu) * g0a
+!              call multiply_by_rho(g0a)
+!              call get_dgdx(g0a, g1k)
+!              g0k = g0k + g1k * wdriftx_phi(ia, iz, ivmu)
 
                gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + g0k
             end do
