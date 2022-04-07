@@ -4,6 +4,7 @@
 ##
 ##              This file assumes the data is equally spaced in time.
 
+import sys
 from scipy.io import netcdf
 from scipy.interpolate import UnivariateSpline
 import numpy as np
@@ -27,10 +28,14 @@ tave=200
 tcorr=100
 
 #open the file for reading
-fpref='master'
-basedir = '/Users/denisst-onge/stella/build/CBC_test/'
-master_file = basedir +fpref + '.fluxes'
-master_file = 'test.fluxes'
+num = ''
+basedir = '/work/e607/e607/dstonge/from4c/rad/rhostar_dirichlet/0.0002b/0.0002alt'
+if (len(sys.argv) > 1):
+    num = str(sys.argv[1])
+if (len(sys.argv) > 2):
+    basedir = str(sys.argv[2])
+fpref= num + '/'
+master_file = basedir +fpref + 'center.phys_flux'
 master_fluxes = np.transpose(np.loadtxt(master_file,skiprows=1))
 
 time  = master_fluxes[0,:]
@@ -60,10 +65,16 @@ pave, pstd, pcorr, psem, pauto = get_stats(psub,cind)
 uave, ustd, ucorr, usem, uauto = get_stats(usub,cind)
 qave, qstd, qcorr, qsem, qauto = get_stats(qsub,cind)
 
-print('#pflux ave:' + str(pave) + ' stddev:' + str(pstd) + ' tcorr:' + str(pcorr*dt) +  ' SEM:' + str(psem))
-print('#uflux ave:' + str(uave) + ' stddev:' + str(ustd) + ' tcorr:' + str(ucorr*dt) +  ' SEM:' + str(usem))
-print('#qflux ave:' + str(qave) + ' stddev:' + str(qstd) + ' tcorr:' + str(qcorr*dt) +  ' SEM:' + str(qsem))
+print('#pflux ave: ' + str(pave) + ' stddev: ' + str(pstd) + ' tcorr: ' + str(pcorr*dt) +  ' SEM: ' + str(psem))
+print('#uflux ave: ' + str(uave) + ' stddev: ' + str(ustd) + ' tcorr: ' + str(ucorr*dt) +  ' SEM: ' + str(usem))
+print('#qflux ave: ' + str(qave) + ' stddev: ' + str(qstd) + ' tcorr: ' + str(qcorr*dt) +  ' SEM: ' + str(qsem))
 for i in range(subsize):
     print(str(time[i]) + ' ' + str(pauto[i]) + ' ' + str(uauto[i]) +  '  ' + str(qauto[i]))
 
-
+cout = open(basedir + fpref + 'fluxes_stats','w')
+cout.write('#pflux ave: ' + str(pave) + ' stddev: ' + str(pstd) + ' tcorr: ' + str(pcorr*dt) +  ' SEM: ' + str(psem) + '\n')
+cout.write('#uflux ave: ' + str(uave) + ' stddev: ' + str(ustd) + ' tcorr: ' + str(ucorr*dt) +  ' SEM: ' + str(usem) + '\n')
+cout.write('#qflux ave: ' + str(qave) + ' stddev: ' + str(qstd) + ' tcorr: ' + str(qcorr*dt) +  ' SEM: ' + str(qsem) + '\n')
+for i in range(subsize):
+    cout.write(str(time[i]) + ' ' + str(pauto[i]) + ' ' + str(uauto[i]) +  '  ' + str(qauto[i]) + '\n')
+cout.close()
