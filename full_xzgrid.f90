@@ -25,24 +25,32 @@ contains
 
    subroutine init_full_xzgrid
 
-      use zgrid, only: nztot
       use kt_grids, only: nakx, naky
+      use zgrid, only: nztot, ntubes
+      use extended_zgrid, only: periodic
 
       implicit none
+
+      integer :: iky, zm
 
       if (full_xzgrid_initialized) return
       full_xzgrid_initialized = .true.
 
       if (.not. allocated(nelements)) allocate (nelements(naky))
 
-      nelements = nztot*nakx
+      do iky = 1, naky
+         zm = 0
+         if(periodic(iky)) zm = 1
+         nelements(iky) = nakx*((nztot - 1) * ntubes + 1 - zm)
+      enddo
 
    end subroutine init_full_xzgrid
 
    subroutine map_to_full_xzgrid (it, iky, g, g_full)
 
-      use zgrid, only: nzgrid
       use kt_grids, only: nakx
+      use zgrid, only: nzgrid
+      use extended_zgrid, only: periodic
 
       implicit none
 
@@ -50,14 +58,14 @@ contains
       complex, dimension (:,-nzgrid:,:), intent (in) :: g
       complex, dimension (:), intent (out) :: g_full
 
-      integer :: ikx, iz
+      integer :: ikx, iz, zm
 
-      !integer :: zm = 0
-      !if(aky(iky).lt.epsilon(0.0)) zm = 1
+      zm = 0
+      if(periodic(iky)) zm = 1
 
-      do iz = -nzgrid, nzgrid
+      do iz = -nzgrid, nzgrid - zm
          do ikx = 1, nakx
-            g_full(xz_idx(ikx, iz)) = g(ikx, iz, it)
+            g_full(xz_idx(ikx, iz, it)) = g(ikx, iz, it)
          enddo
       enddo
 
@@ -65,7 +73,6 @@ contains
 
    subroutine map_from_ezgrid_to_full_xzgrid (it, ie, iky, g_ext, g_full)
 
-      use zgrid, only: nzgrid
       use extended_zgrid, only: ikxmod, nzed_segment, nsegments
       use extended_zgrid, only: iz_low, it_right
 
@@ -83,7 +90,7 @@ contains
       ikx = ikxmod(iseg,ie,iky)
       llim = 1 ; ulim = nzed_segment+1
       do idx = llim, ulim
-         g_full(xz_idx(ikx, iz_low(iseg) + idx - llim)) = g_ext(idx)
+         g_full(xz_idx(ikx, iz_low(iseg) + idx - llim, it)) = g_ext(idx)
       enddo
       if (nsegments(ie,iky) > 1) then
          itmod = it
@@ -92,9 +99,9 @@ contains
             itmod = it_right(itmod)
             llim = ulim+1
             ulim = llim+nzed_segment-1
-            g_full(xz_idx(ikx, iz_low(iseg))) = g_ext(llim - 1)
+            g_full(xz_idx(ikx, iz_low(iseg), itmod)) = g_ext(llim - 1)
             do idx = llim, ulim
-               g_full(xz_idx(ikx, iz_low(iseg) + idx - llim + 1)) = g_ext(idx)
+               g_full(xz_idx(ikx, iz_low(iseg) + idx - llim + 1, itmod)) = g_ext(idx)
             enddo
          end do
       end if
@@ -103,8 +110,9 @@ contains
 
    subroutine map_from_full_xzgrid (it, iky, g_full, g)
 
-      use zgrid, only: nzgrid
       use kt_grids, only: nakx
+      use zgrid, only: nzgrid
+      use extended_zgrid, only: periodic
 
       implicit none
 
@@ -112,18 +120,22 @@ contains
       complex, dimension (:), intent (in) :: g_full
       complex, dimension (:,-nzgrid:,:), intent (in out) :: g
 
-      integer :: iz, ikx
+      integer :: iz, ikx, zm
 
-      do iz = -nzgrid, nzgrid
+      zm = 0
+      if(periodic(iky)) zm = 1
+      do iz = -nzgrid, nzgrid - zm
          do ikx = 1, nakx
-            g(ikx, iz, it) = g_full(xz_idx(ikx, iz))
+            g(ikx, iz, it) = g_full(xz_idx(ikx, iz, it))
          enddo
       enddo
+      if(periodic(iky)) g(:, nzgrid, :) = g(:, -nzgrid, :)
+
 
   end subroutine map_from_full_xzgrid
 
   subroutine map_to_ezgrid_from_full_xzgrid (it, ie, iky, g_full, g_ext)
-      use zgrid, only: nzgrid
+
       use extended_zgrid, only: ikxmod, nzed_segment, nsegments
       use extended_zgrid, only: iz_low, it_right
 
@@ -141,7 +153,7 @@ contains
       ikx = ikxmod(iseg,ie,iky)
       llim = 1 ; ulim = nzed_segment+1
       do idx = llim, ulim
-         g_ext(idx) = g_full(xz_idx(ikx, iz_low(iseg) + idx - llim))
+         g_ext(idx) = g_full(xz_idx(ikx, iz_low(iseg) + idx - llim, it))
       enddo
       if (nsegments(ie,iky) > 1) then
          itmod = it
@@ -151,7 +163,7 @@ contains
             llim = ulim+1
             ulim = llim+nzed_segment-1
             do idx = llim, ulim
-               g_ext(idx) = g_full(xz_idx(ikx, iz_low(iseg) + idx - llim + 1))
+               g_ext(idx) = g_full(xz_idx(ikx, iz_low(iseg) + idx - llim + 1, itmod))
             enddo
          end do
       end if
@@ -168,17 +180,17 @@ contains
 
    end subroutine finish_full_xzgrid
 
-   elemental function xz_idx(ikx, iz)
+   elemental function xz_idx(ikx, iz, it)
 
-      use zgrid, only: nzgrid
       use kt_grids, only: nakx
+      use zgrid, only: nzgrid, ntubes, nztot
 
       implicit none
 
       integer xz_idx
-      integer, intent(in) :: ikx, iz
+      integer, intent(in) :: ikx, iz, it
 
-      xz_idx = ikx + (iz + nzgrid) * nakx
+      xz_idx = ikx + nakx * (iz + nzgrid + (nztot - 1) * (it - 1))
 
    end function xz_idx
 
