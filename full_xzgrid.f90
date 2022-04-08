@@ -5,6 +5,7 @@ module full_xzgrid
    public :: init_full_xzgrid, finish_full_xzgrid
    public :: map_to_full_xzgrid
    public :: map_from_full_xzgrid
+   public :: xz_idx 
 
    interface map_to_full_xzgrid
       module procedure map_to_full_xzgrid

@@ -45,11 +45,13 @@ set(STELLA_SOURCES_f90
   fields_arrays.f90
   finite_differences.f90
   flow_shear.f90
+  full_xzgrid.f90
   g_tofrom_h.f90
   gyro_averages.f90
   init_g.f90
   kt_grids.f90
   mirror_terms.f90
+  mirror_radial_implicit.f90
   neoclassical_terms.f90
   parallel_streaming.f90
   physics_flags.f90

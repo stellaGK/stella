@@ -30,6 +30,7 @@ stella_mod = \
 	 kt_grids.o \
 	 linear_solve.o \
 	 millerlocal.o \
+	 mirror_radial_implicit.o \
 	 mirror_terms.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
@@ -270,6 +271,22 @@ millerlocal.o: \
 	 job_manage.o \
 	 mp.o \
 	 spl.o 
+mirror_radial_implicit.o: \
+	 dist_fn_arrays.o \
+	 dist_redistribute.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_flags.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 mirror_terms.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
@@ -277,6 +294,7 @@ mirror_terms.o: \
 	 finite_differences.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 mirror_radial_implicit.o \
 	 mp.o \
 	 neoclassical_terms.o \
 	 physics_flags.o \
@@ -381,7 +399,6 @@ response_matrix.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 response_matrix_radial.o: \
-	 common_types.o \
 	 extended_zgrid.o \
 	 fields_arrays.o \
 	 gyro_averages.o \

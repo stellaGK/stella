@@ -11,11 +11,6 @@ module mirror_terms
 
    private
 
-!  interface checksum
-!     module procedure checksum_field
-!     module procedure checksum_dist
-!  end interface
-
    logical :: mirror_initialized = .false.
    real, dimension(2, 2) :: time_mirror = 0.
 
@@ -43,6 +38,7 @@ contains
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange
       use physics_flags, only: include_mirror, radial_variation
+      use mirror_radial_implicit, only: init_mirror_radial, mirror_radial_initialized
 
       implicit none
 
@@ -51,6 +47,12 @@ contains
 
       if (mirror_initialized) return
       mirror_initialized = .true.
+
+      if (radial_variation .and. mirror_implicit) then
+         mirror_radial_initialized = .false.
+         call init_mirror_radial
+         return
+      endif
 
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
@@ -84,7 +86,6 @@ contains
             allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
             mirror_rad_var = 0.
          end if
-         !FLAG should include neoclassical corrections here?
          do imu = 1, nmu
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
@@ -393,7 +394,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use physics_flags, only: full_flux_surface
       use vpamu_grids, only: nvpa, nmu
-      use run_parameters, only: fields_kxkyz
+      use run_parameters, only: fields_kxkyz, mirror_implicit
       use dist_redistribute, only: kxkyz2vmu
 
       implicit none
@@ -404,6 +405,8 @@ contains
       complex, dimension(:, :, :), allocatable :: g0v
 
       integer :: iz, it, imu, is, ivmu, ia
+
+      if (mirror_implicit) return
 
       allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
@@ -572,7 +575,7 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use zgrid, only: nzgrid, ntubes
       use dist_fn_arrays, only: gvmu
-      use physics_flags, only: full_flux_surface
+      use physics_flags, only: full_flux_surface, radial_variation
       use kt_grids, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: dvpa, maxwell_vpa
@@ -580,6 +583,7 @@ contains
       use run_parameters, only: vpa_upwind, time_upwind
       use run_parameters, only: mirror_semi_lagrange
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use mirror_radial_implicit, only: advance_mirror_radially_implicit
 
       implicit none
 
@@ -591,6 +595,11 @@ contains
       real :: tupwnd
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
+
+      if (radial_variation) then
+         call advance_mirror_radially_implicit (time_mirror, g)
+         return
+      endif
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -877,6 +886,8 @@ contains
    subroutine finish_mirror
 
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+      use mirror_radial_implicit, only: finish_mirror_radial
+      use physics_flags, only: radial_variation
 
       implicit none
 
@@ -891,6 +902,10 @@ contains
             call finish_invert_mirror_operator
          end if
       end if
+
+      if (radial_variation) then
+         call finish_mirror_radial
+      endif
 
       mirror_initialized = .false.
 
@@ -918,89 +933,5 @@ contains
       if (allocated(mirror_int_fac)) deallocate (mirror_int_fac)
 
    end subroutine finish_invert_mirror_operator
-
-   ! subroutine checksum_field (field, total)
-
-   !   use zgrid, only: nzgrid, ntubes
-   !   use kt_grids, only: naky
-   !   use extended_zgrid, only: neigen, nsegments, ikxmod
-   !   use extended_zgrid, only: iz_low, iz_up
-
-   !   implicit none
-
-   !   complex, dimension (:,:,-nzgrid:,:), intent (in) :: field
-   !   real, intent (out) :: total
-
-   !   integer :: it, iky, ie, iseg
-   !   integer :: ikx
-
-   !   total = 0.
-
-   !   do iky = 1, naky
-   !      do it = 1, ntubes
-   !         do ie = 1, neigen(iky)
-   !            iseg = 1
-   !            ikx = ikxmod(iseg,ie,iky)
-   !            total = total + sum(cabs(field(iky,ikx,iz_low(iseg):iz_up(iseg),it)))
-   !            if (nsegments(ie,iky) > 1) then
-   !               do iseg = 2, nsegments(ie,iky)
-   !                  ikx = ikxmod(iseg,ie,iky)
-   !                  total = total + sum(cabs(field(iky,ikx,iz_low(iseg)+1:iz_up(iseg),it)))
-   !               end do
-   !            end if
-   !         end do
-   !      end do
-   !   end do
-
-   ! end subroutine checksum_field
-
-   ! subroutine checksum_dist (dist, total, norm)
-
-   !   use mp, only: sum_allreduce
-   !   use zgrid, only: nzgrid, ntubes
-   !   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-   !   use kt_grids, only: naky, nakx
-   !   use vpamu_grids, only: maxwell_vpa, maxwell_mu
-
-   !   implicit none
-
-   !   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: dist
-   !   real, intent (out) :: total
-   !   logical, intent (in), optional :: norm
-
-   !   integer :: ivmu, iv, imu, is
-   !   integer :: iky, ikx, it
-   !   real :: subtotal
-
-   !   complex, dimension (:,:,:,:), allocatable :: dist_single
-
-   !   total = 0.
-
-   !   allocate (dist_single(naky,nakx,-nzgrid:nzgrid,ntubes))
-   !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-   !      dist_single = dist(:,:,:,:,ivmu)
-   !      if (present(norm)) then
-   !         if (norm) then
-   !            iv = iv_idx(vmu_lo,ivmu)
-   !            imu = imu_idx(vmu_lo,ivmu)
-   !            is = is_idx(vmu_lo,ivmu)
-   !            do it = 1, ntubes
-   !               do ikx = 1, nakx
-   !                  do iky = 1, naky
-   !                     dist_single(iky,ikx,:,it) = dist_single(iky,ikx,:,it) * maxwell_vpa(iv,is) * maxwell_mu(1,:,imu,is)
-   !                  end do
-   !               end do
-   !            end do
-   !         else
-   !         end if
-   !      end if
-   !      call checksum (dist_single, subtotal)
-   !      total = total + subtotal
-   !   end do
-   !   deallocate (dist_single)
-
-   !   call sum_allreduce (total)
-
-   ! end subroutine checksum_dist
 
 end module mirror_terms
