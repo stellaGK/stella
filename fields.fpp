@@ -13,6 +13,7 @@ module fields
    public :: init_fields, finish_fields
    public :: advance_fields, get_fields
    public :: get_radial_correction
+   public :: add_radial_correction_int_species
    public :: enforce_reality_field
    public :: rescale_fields
    public :: get_fields_by_spec, get_fields_by_spec_idx

@@ -31,7 +31,7 @@ contains
 
       implicit none
 
-      integer :: iky, zm
+      integer :: iky, pm
 
       if (full_xzgrid_initialized) return
       full_xzgrid_initialized = .true.
@@ -39,35 +39,37 @@ contains
       if (.not. allocated(nelements)) allocate (nelements(naky))
 
       do iky = 1, naky
-         zm = 0
-         if (periodic(iky)) zm = 1
-         nelements(iky) = nakx * ((nztot - 1) * ntubes + 1 - zm)
+         pm = 0
+         if (periodic(iky)) pm = 1
+         nelements(iky) = nakx * ((nztot - 1) * ntubes + 1 - pm)
       end do
 
    end subroutine init_full_xzgrid
 
-   subroutine map_to_full_xzgrid(it, iky, g, g_full)
+   subroutine map_to_full_xzgrid(iky, g, g_full)
 
       use kt_grids, only: nakx
-      use zgrid, only: nzgrid
+      use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: periodic
 
       implicit none
 
-      integer, intent(in) :: it, iky
+      integer, intent(in) :: iky
       complex, dimension(:, -nzgrid:, :), intent(in) :: g
       complex, dimension(:), intent(out) :: g_full
 
-      integer :: ikx, iz, zm
+      integer :: ikx, iz, it, pm
 
-      zm = 0
-      if (periodic(iky)) zm = 1
+      pm = 0
+      if (periodic(iky)) pm = 1
 
-      do iz = -nzgrid, nzgrid - zm
-         do ikx = 1, nakx
-            g_full(xz_idx(ikx, iz, it)) = g(ikx, iz, it)
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid - pm
+            do ikx = 1, nakx
+               g_full(xz_idx(ikx, iz, it)) = g(ikx, iz, it)
+            end do
          end do
-      end do
+      enddo
 
    end subroutine map_to_full_xzgrid
 
@@ -108,25 +110,27 @@ contains
 
    end subroutine map_from_ezgrid_to_full_xzgrid
 
-   subroutine map_from_full_xzgrid(it, iky, g_full, g)
+   subroutine map_from_full_xzgrid(iky, g_full, g)
 
       use kt_grids, only: nakx
-      use zgrid, only: nzgrid
+      use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: periodic
 
       implicit none
 
-      integer, intent(in) :: it, iky
+      integer, intent(in) :: iky
       complex, dimension(:), intent(in) :: g_full
       complex, dimension(:, -nzgrid:, :), intent(in out) :: g
 
-      integer :: iz, ikx, zm
+      integer :: iz, ikx, it, pm
 
-      zm = 0
-      if (periodic(iky)) zm = 1
-      do iz = -nzgrid, nzgrid - zm
-         do ikx = 1, nakx
-            g(ikx, iz, it) = g_full(xz_idx(ikx, iz, it))
+      pm = 0
+      if (periodic(iky)) pm = 1
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid - pm
+            do ikx = 1, nakx
+               g(ikx, iz, it) = g_full(xz_idx(ikx, iz, it))
+            end do
          end do
       end do
       if (periodic(iky)) g(:, nzgrid, :) = g(:, -nzgrid, :)

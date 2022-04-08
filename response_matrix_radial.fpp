@@ -1,18 +1,15 @@
-module response_matrix
+module response_matrix_radial
 
-   use netcdf
    use mpi
 
    implicit none
 
    public :: init_response_matrix, finish_response_matrix
-   public :: read_response_matrix
    public :: response_matrix_initialized
 
    private
 
    logical :: response_matrix_initialized = .false.
-   integer, parameter :: mat_unit = 70
 
 #if defined MPI && defined ISO_C_BINDING
    integer :: window = MPI_WIN_NULL
@@ -26,14 +23,16 @@ contains
       use fields_arrays, only: response_matrix
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use kt_grids, only: naky
+      use kt_grids, only: naky, nakx
+      use zgrid, only: ntubes
+      use full_xzgrid, only: nelements
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: periodic
       use job_manage, only: time_message
-      use mp, only: proc0, job, mp_abort
+      use mp, only: proc0, mp_abort
       use run_parameters, only: lu_option_switch
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
       use system_fortran, only: systemf
@@ -67,12 +66,6 @@ contains
       real, dimension(2) :: time_response_matrix_QN
       real, dimension(2) :: time_response_matrix_lu
 
-      ! Related to the saving of the the matrices in netcdf format
-      character(len=15) :: fmt, job_str
-      character(len=100) :: file_name
-      integer :: istatus
-      istatus = 0
-
       if (proc0 .and. debug) then
          write (*, *) " "
          write (*, '(A)') "    ############################################################"
@@ -103,16 +96,10 @@ contains
          win_size = 0
          if (sgproc0) then
             do iky = 1, naky
-               do ie = 1, neigen(iky)
-                  if (periodic(iky)) then
-                     nresponse = nsegments(ie, iky) * nzed_segment
-                  else
-                     nresponse = nsegments(ie, iky) * nzed_segment + 1
-                  end if
-                  win_size = win_size &
-                             + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                             + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
-               end do
+               nresponse = nelements(iky)
+               win_size = win_size &
+                          + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
+                          + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
             end do
          end if
          call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
@@ -140,58 +127,53 @@ contains
          ! the response matrix for each ky has neigen(ky)
          ! independent sets of connected kx values
          if (.not. associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen(iky)))
+            allocate (response_matrix(iky)%eigen(1))
 
-         if (proc0 .and. debug) then
-            call time_message(.false., time_response_matrix_dgdphi, message_dgdphi)
+         ! treat zonal mode specially to avoid double counting
+         ! as it is periodic
+         nresponse = nelements(iky)
+
+#if !defined ISO_C_BINDING || !defined MPI
+         ! for each ky and set of connected kx values,
+         ! must have a response matrix that is N x N
+         ! with N = number of zeds per 2pi segment x number of 2pi segments
+         if (.not. associated(response_matrix(iky)%eigen(1)%zloc)) &
+            allocate (response_matrix(iky)%eigen(1)%zloc(nresponse, nresponse))
+
+         ! response_matrix%idx is needed to keep track of permutations
+         ! to the response matrix made during LU decomposition
+         ! it will be input to LU back substitution during linear solve
+         if (.not. associated(response_matrix(iky)%eigen(1)%idx)) &
+            allocate (response_matrix(iky)%eigen(1)%idx(nresponse))
+#else
+         !exploit MPIs shared memory framework to reduce memory consumption of
+         !response matrices
+
+         if (.not. associated(response_matrix(iky)%eigen(1)%zloc)) then
+            cptr = transfer(cur_pos, cptr)
+            call c_f_pointer(cptr, response_matrix(iky)%eigen(1)%zloc, (/nresponse, nresponse/))
+            cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
          end if
 
+         if (.not. associated(response_matrix(iky)%eigen(1)%idx)) then
+            cptr = transfer(cur_pos, cptr)
+            call c_f_pointer(cptr, response_matrix(iky)%eigen(1)%idx, (/nresponse/))
+            cur_pos = cur_pos + nresponse * 4
+         end if
+#endif
+
+         allocate (phiext(nresponse))
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
 
+            if (proc0 .and. debug) then
+               call time_message(.false., time_response_matrix_dgdphi, message_dgdphi)
+            end if
+
             ! number of zeds x number of segments
             nz_ext = nsegments(ie, iky) * nzed_segment + 1
-            nxz_ext = nakx*(nzed_segment * ntubes + 1)
-
-            ! treat zonal mode specially to avoid double counting
-            ! as it is periodic
-            if (periodic(iky)) then
-               nresponse = nz_ext - 1
-            else
-               nresponse = nz_ext
-            end if
-
-#if !defined ISO_C_BINDING || !defined MPI
-            ! for each ky and set of connected kx values,
-            ! must have a response matrix that is N x N
-            ! with N = number of zeds per 2pi segment x number of 2pi segments
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
-
-            ! response_matrix%idx is needed to keep track of permutations
-            ! to the response matrix made during LU decomposition
-            ! it will be input to LU back substitution during linear solve
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-#else
-            !exploit MPIs shared memory framework to reduce memory consumption of
-            !response matrices
-
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
-               cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
-            end if
-
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
-               cur_pos = cur_pos + nresponse * 4
-            end if
-#endif
 
             allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-            allocate (phiext(nxz_ext))
             ! idx is the index in the extended zed domain
             ! that we are giving a unit impulse
             idx = 0
@@ -229,8 +211,9 @@ contains
                   if (izl_offset == 0) izl_offset = 1
                end do
             end if
-            deallocate (gext, phiext)
+            deallocate (gext)
          end do
+         deallocate (phiext)
          !DSO - This ends parallelization over velocity space.
          !      At this point every processor has int dv dgdphi for a given ky
          !      and so the quasineutrality solve and LU decomposition can be
@@ -248,46 +231,16 @@ contains
          call mpi_win_fence(0, window, ierr)
 #endif
 
-         ! solve quasineutrality
-         ! for local stella, this is a diagonal process, but global stella
-         ! may require something more sophisticated
+         ! add quasineutrality operator, i.e. Gamma -  int dV (delta g / delta phi),
+         ! where Gamma = int dV (1 - J_0^2 ) (Z^2 e T / n) F_0
 
-         ! loop over the sets of connected kx values
-         do ie = 1, neigen(iky)
 #if defined ISO_C_BINDING && defined MPI
-            if (sgproc0) then
+         if (sgproc0) then
 #endif
-               ! number of zeds x number of segments
-               nz_ext = nsegments(ie, iky) * nzed_segment + 1
-
-               ! treat zonal mode specially to avoid double counting
-               ! as it is periodic
-               if (periodic(iky)) then
-                  nresponse = nz_ext - 1
-               else
-                  nresponse = nz_ext
-               end if
-
-               allocate (phiext(nz_ext))
-
-               do idx = 1, nresponse
-                  phiext(nz_ext) = 0.0
-                  phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
-                  call get_fields_for_response_matrix(phiext, iky, ie)
-
-                  ! next need to create column in response matrix from phiext
-                  ! negative sign because matrix to be inverted in streaming equation
-                  ! is identity matrix - response matrix
-                  ! add in contribution from identity matrix
-                  phiext(idx) = phiext(idx) - 1.0
-                  response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
-
-               end do
-               deallocate (phiext)
+            call get_fields_for_response_matrix(iky)
 #if defined ISO_C_BINDING && defined MPI
-            end if
+         end if
 #endif
-         end do
 
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, window, ierr)
@@ -301,8 +254,6 @@ contains
          !now we have the full response matrix. Finally, perform its LU decomposition
 #ifdef MPI
          select case (lu_option_switch)
-         case (lu_option_global)
-            call parallel_LU_decomposition_global(iky)
          case (lu_option_local)
 #ifdef ISO_C_BINDING
             call parallel_LU_decomposition_local(iky)
@@ -311,19 +262,17 @@ contains
 #endif
          case default
 #endif
-            do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
-               if (sgproc0) then
+            if (sgproc0) then
 #endif
-                  ! now that we have the reponse matrix for this ky and set of connected kx values
-                  !get the LU decomposition so we are ready to solve the linear system
-                  call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
-                                        response_matrix(iky)%eigen(ie)%idx, dum)
+               ! now that we have the reponse matrix for this ky and set of connected kx values
+               !get the LU decomposition so we are ready to solve the linear system
+               call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
+                                     response_matrix(iky)%eigen(1)%idx, dum)
 
 #ifdef ISO_C_BINDING
-               end if
+            end if
 #endif
-            end do
 #ifdef MPI
          end select
 #endif
@@ -336,7 +285,6 @@ contains
          time_response_matrix_QN = 0
          time_response_matrix_lu = 0
 
-         !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
       end do
 
 #ifdef ISO_C_BINDING
@@ -356,8 +304,9 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
-      use zgrid, only: delzed, nzgrid
+      use zgrid, only: delzed, nzgrid, ntubes
       use extended_zgrid, only: periodic
+      use full_xzgrid, only: xz_idx
       use species, only: spec
       use stella_geometry, only: gradpar, dbdzed
       use vpamu_grids, only: vpa, mu
@@ -379,7 +328,7 @@ contains
       complex, dimension(:), intent(in out) :: phiext
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
 
-      integer :: ivmu, iv, imu, is, ia
+      integer :: ivmu, iv, imu, is, ia, it
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
@@ -648,13 +597,15 @@ contains
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
       !  copy of phiext)
-      call integrate_over_velocity_radial(gext, phiext, iky, ie)
+      do it = 1, ntubes
+         call integrate_over_velocity_radial(gext, phiext, it, iky, ie)
 
 #if !defined ISO_C_BINDING || !defined MPI
-      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
+         response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it) = -phiext(:nresponse)
 #else
-      if (sgproc0) response_matrix(iky)%zloc(:, xz_idx(ikx, iz, 1)) = phiext(:nresponse)
+         if (sgproc0) response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it)) = -phiext(:nresponse)
 #endif
+      enddo
 
    end subroutine get_dgdphi_matrix_column
 
@@ -700,164 +651,172 @@ contains
 
    end subroutine sweep_zed_zonal_response
 
-   subroutine integrate_over_velocity_radial(g, phi, iky, ie)
+   subroutine integrate_over_velocity_radial(g, phi, it_in, iky, ie)
 
-      use stella_layouts, only: vmu_lo
+      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use stella_layouts, only: vmu_lo, imu_idx, is_idx
+      use stella_geometry, only: bmag, dBdrho
       use species, only: nspec, spec
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
-      use vpamu_grids, only: integrate_species
-      use gyro_averages, only: gyro_average
+      use kt_grids, only: nakx, rho_d_clamped
+      use zgrid, only: nzgrid, ntubes
+      use extended_zgrid, only: map_from_extended_zgrid
+      use full_xzgrid, only: map_to_full_xzgrid
+      use vpamu_grids, only: integrate_species, vperp2
+      use gyro_averages, only: aj0x, aj1x
       use mp, only: sum_allreduce
+      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi
-      integer, intent(in) :: iky, ie
+      integer, intent(in) :: iky, ie, it_in
 
-      integer :: idx, iseg, ikx, iz, ia, it
-      integer :: izl_offset
+      integer :: ikx, iz, ia, it, ivmu, imu, is
       real, dimension(nspec) :: wgt
-      complex, dimension(:, :), allocatable :: g0, g1
-      complex, dimension(:, :), allocatable :: gyro_0, gyro_1
-      complex, dimension(:,:,:,:), allocatable :: g_xz
+      complex, dimension(:, :), allocatable :: g0k, g0x
+      complex, dimension(:, :, :), allocatable :: g0, g1
+      complex, dimension(:, :, :, :), allocatable :: gyro_0, gyro_1
 
       ia = 1
 
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      allocate (g_xz(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g0k(1, nakx))
+      allocate (g0x(1, nakx))
+
+      allocate (gyro_0(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (gyro_1(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+      allocate (g0(nakx, -nzgrid:nzgrid, ntubes))
+      allocate (g1(nakx, -nzgrid:nzgrid, ntubes))
 
       wgt = spec%z * spec%dens_psi0
 
-      do it = 1, ntubes
-         g_xz = 0.0
-         call map_to_full_xzgrid(it, ie, iky, g, g_xy)
-         do ivmu
-         do iz = -nzgrid, nzgrid
-            do ikx = 1, nakx
-               call gyro_average(g(ikx, iz, it, :), iky, ikx, iz, gyro_0(ikx, iz, :))
-               call gyro_average(g(ikx, iz, it, :), iky, ikx, iz, gyro_1(ikx, iz, :))
-                                * (-0.5 * aj1x(ikx, iz, :) / aj0x(iky, ikx, iz, :) * (spec(is)%smz)**2 &
-                                   * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                   * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                   + dBdrho(iz) / bmag(ia, iz))
-               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-            enddo
-         enddo
+      gyro_0 = 0.0
+      gyro_1 = 0.0
 
-                  g0k(iky, :) = g_in(iky, :, iz, it, ivmu) &
-         phi = 0.
-
-         idx = 0; izl_offset = 0
-         iseg = 1
-         ikx = ikxmod(iseg, ie, iky)
-         do iz = iz_low(iseg), iz_up(iseg)
-            idx = idx + 1
-         end do
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
-                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-               end do
-               if (izl_offset == 0) izl_offset = 1
-            end do
-         end if
-
-         call sum_allreduce(phi)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call map_from_extended_zgrid(it_in, ie, iky, g(:,ivmu), gyro_0(:,:,:,ivmu))
+         call map_from_extended_zgrid(it_in, ie, iky, g(:,ivmu), gyro_1(:,:,:,ivmu))
       enddo
       
-      ! loop over super-index ivmu, which include vpa, mu and spec
+      gyro_0 = gyro_0 * spread(aj0x(iky,:,:,:),3,ntubes)
+      gyro_1 = gyro_1 * spread(aj0x(iky,:,:,:),3,ntubes)
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! is = species index
-         is = is_idx(vmu_lo, ivmu)
-         ! imu = mu index
          imu = imu_idx(vmu_lo, ivmu)
-
-         ! loop over flux tubes in flux tube train
+         is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
-            ! loop over zed location within flux tube
             do iz = -nzgrid, nzgrid
-               g0k = 0.0
-               do iky = 1, min(ky_solve_radial, naky)
+               gyro_1(:, iz, it, ivmu) = gyro_1(:, iz, it, ivmu) &
+                             * (-0.5 * aj1x(iky, : , iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                                * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                                + dBdrho(iz) / bmag(ia, iz))
+            enddo
+         enddo
+      enddo
 
-               end do
-               !g0k(1,1) = 0.
-               call multiply_by_rho(g0k)
-               g_in(:, :, iz, it, ivmu) = g_in(:, :, iz, it, ivmu) + g0k
-            end do
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               call integrate_species(gyro_0(ikx, iz, it, :), iz, wgt, g0(ikx, iz, it), reduce_in=.false.)
+               call integrate_species(gyro_1(ikx, iz, it, :), iz, wgt, g1(ikx, iz, it), reduce_in=.false.)
+            enddo
+         enddo
+      enddo
+
+      call sum_allreduce(g0)
+      call sum_allreduce(g1)
+
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            g0k(1, :) = g1(:, iz, it)
+            call transform_kx2x_unpadded(g0k, g0x)
+            g0x(1, :) = rho_d_clamped * g0x(1, :)
+            call transform_x2kx_unpadded(g0x, g0k)
+            g1(:, iz, it) = g0k(1, :)
          end do
       end do
+      g0 = g0 + g1
+
+      call map_to_full_xzgrid (iky, g0, phi)
+
+      deallocate (g0, g1, gyro_0, gyro_1, g0k, g0x)
 
    end subroutine integrate_over_velocity_radial
 
-   subroutine get_fields_for_response_matrix(phi, iky, ie)
+   subroutine get_fields_for_response_matrix(iky)
 
-      use stella_layouts, only: vmu_lo
-      use species, only: spec
-      use species, only: has_electron_species
-      use stella_geometry, only: dl_over_b
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
-      use fields_arrays, only: gamtot, gamtot3
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use fields_arrays, only: response_matrix
+      use fields_arrays, only: gamtot, dgamtotdr
+      use kt_grids, only: nakx, rho_d_clamped
+      use zgrid, only: nzgrid, ntubes
+      use full_xzgrid, only: xz_idx
+      use extended_zgrid, only: periodic
+      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+!     use species, only: spec
+!     use species, only: has_electron_species
+!     use stella_geometry, only: dl_over_b
+!     use physics_flags, only: adiabatic_option_switch
+!     use physics_flags, only: adiabatic_option_fieldlineavg
 
       implicit none
 
-      complex, dimension(:), intent(inout) :: phi
-      integer, intent(in) :: iky, ie
+      integer, intent(in) :: iky
 
-      integer :: idx, iseg, ikx, iz, ia
-      integer :: izl_offset
-      complex, dimension(:), allocatable :: g0
-      complex :: tmp
+      integer ::ikx, ix, jx, iz, it, ia, zmi, pm, idx1, idx2
+      complex, dimension(:, :), allocatable :: gamma_mat, g0k, g0x
+!     complex :: tmp
 
       ia = 1
+      zmi = 0 !worry about zero mode later
 
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (gamma_mat(nakx, nakx))
+      allocate (g0k(1, nakx))
+      allocate (g0x(1, nakx))
 
-      idx = 0; izl_offset = 0
-      iseg = 1
-      ikx = ikxmod(iseg, ie, iky)
-      if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
-         phi(:) = 0.0
-         return
-      end if
-      do iz = iz_low(iseg), iz_up(iseg)
-         idx = idx + 1
-         phi(idx) = phi(idx) / gamtot(iky, ikx, iz)
-      end do
-      izl_offset = 1
-      if (nsegments(ie, iky) > 1) then
-         do iseg = 2, nsegments(ie, iky)
-            ikx = ikxmod(iseg, ie, iky)
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               idx = idx + 1
-               phi(idx) = phi(idx) / gamtot(iky, ikx, iz)
-            end do
-            if (izl_offset == 0) izl_offset = 1
+      pm = 0
+      if (periodic(iky)) pm = 1
+      do iz = -nzgrid, nzgrid - pm
+         gamma_mat = 0.0
+         do ikx = 1 + zmi, nakx
+            g0k(1, :) = 0.0
+            g0k(1, ikx) = dgamtotdr(iky, ikx, iz)
+
+            call transform_kx2x_unpadded(g0k, g0x)
+            g0x(1, :) = rho_d_clamped * g0x(1, :)
+            call transform_x2kx_unpadded(g0x, g0k)
+
+            !row column
+            gamma_mat(:, ikx - zmi) = g0k(1, (1 + zmi):)
+            gamma_mat(ikx - zmi, ikx - zmi) = gamma_mat(ikx - zmi, ikx - zmi) + gamtot(iky, ikx, iz)
+
          end do
-      end if
+         do it = 1, ntubes
+            do ix= 1 + zmi, nakx
+               do jx= 1 + zmi, nakx
+                  idx1 = xz_idx(ix, iz, it)
+                  idx2 = xz_idx(jx, iz, it)
+                  response_matrix(iky)%eigen(1)%zloc(idx1, idx2) = response_matrix(iky)%eigen(1)%zloc(idx1, idx2) &
+                     + gamma_mat(idx1, idx2)
+               enddo
+            enddo
+         enddo
+!        call add_submatrix_to_full_matrix(iky, iz, gamma_mat, response_matrix(iky)%eigen(1)%zloc)
+      end do
 
-      if (.not. has_electron_species(spec) .and. &
-          adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-         if (zonal_mode(iky)) then
-            ! no connections for ky = 0
-            iseg = 1
-            tmp = sum(dl_over_b(ia, :) * phi)
-            phi = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
-         end if
-      end if
 
-      deallocate (g0)
+!     if (.not. has_electron_species(spec) .and. &
+!         adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+!        if (zonal_mode(iky)) then
+!           ! no connections for ky = 0
+!           iseg = 1
+!           tmp = sum(dl_over_b(ia, :) * phi)
+!           phi = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
+!        end if
+!     end if
+
+      deallocate (gamma_mat, g0k, g0x)
 
    end subroutine get_fields_for_response_matrix
 
@@ -906,7 +865,6 @@ contains
       use mp, only: job, iproc, proc0, nproc, numnodes, inode
       use mp_lu_decomposition, only: lu_decomposition_local
       use job_manage, only: njobs
-      use extended_zgrid, only: neigen
       use mpi
 
       implicit none
@@ -966,7 +924,7 @@ contains
 
          if (jroot == -1) cycle !no processors on this node are on this job
 
-         if (iproc == jroot) neig = neigen(iky)
+         if (iproc == jroot) neig = 1
 
          ! broadcast number of matrices
          call broadcast(neig, jroot)
@@ -1033,7 +991,7 @@ contains
 
       !copy all the matrices across all nodes
       if (sgproc0) then
-         do ie = 1, neigen(iky)
+         do ie = 1, 1
             nroot = 0
             if (needs_send .and. &
                 (ie >= eig_limits(inode, job + 1) .and. ie < eig_limits(inode + 1, job + 1))) nroot = iproc
@@ -1051,272 +1009,6 @@ contains
    end subroutine parallel_LU_decomposition_local
 
 #endif /* ISO_C_BINDING */
-
-   !this subroutine parallelizes the LU decomposition across
-   !all cores. Ideal speed up: ncores
-   subroutine parallel_LU_decomposition_global(iky)
-
-      use fields_arrays, only: response_matrix
-      use mp, only: barrier, broadcast, sum_allreduce
-      use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-      use mp, only: job, iproc, proc0, nproc, mpicmplx
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0, scrossdomprocs
-#endif
-      use job_manage, only: njobs
-      use extended_zgrid, only: neigen
-      use mpi
-      use linear_solve, only: imaxloc
-
-      implicit none
-
-      integer, intent(in) :: iky
-
-      integer, dimension(:), allocatable :: job_roots, eig_roots
-      integer, dimension(:), allocatable :: row_limits, eig_limits
-      integer, dimension(MPI_STATUS_SIZE) :: status
-
-      real, parameter :: zero = 1.0e-20
-      integer, dimension(:), allocatable :: idx
-      complex, dimension(:, :), allocatable :: lu
-      real, dimension(:), allocatable :: vv
-      complex, dimension(:), allocatable :: dum
-
-      integer :: sproc
-      logical :: sproc0
-
-      integer :: eig_comm, ceig_comm !c for 'cross'
-      integer :: ieig_core, ceig_core, eig_cores
-      integer :: ncomm
-      integer :: prior_focus
-      integer :: ie, ie_hi, r_lo, r_hi
-      integer :: ijob, i, j, k, n, n_send, rsize
-      integer :: imax, neig, ierr
-      integer :: istage, nstage
-      integer :: rdiv, rmod
-      integer :: ediv, emod
-
-      real :: dmax, tmp
-
-      prior_focus = curr_focus
-
-      sproc = iproc
-      sproc0 = proc0
-
-      call scope(allprocs)
-
-      allocate (job_roots(0:njobs - 1)); job_roots = 0
-
-      if (sproc0) job_roots(job) = iproc
-
-      call sum_allreduce(job_roots)
-
-      do ijob = 0, njobs - 1
-         if (job == ijob .and. sproc0) then
-            neig = neigen(iky)
-         end if
-
-         ! broadcast number of matrices for this job
-         call broadcast(neig, job_roots(ijob))
-
-         !set up communicator for cores working on a single matrix
-         call mpi_comm_split(mp_comm, mod(iproc, neig), iproc, eig_comm, ierr)
-         call mpi_comm_size(eig_comm, eig_cores, ierr)
-         call mpi_comm_rank(eig_comm, ieig_core, ierr)
-
-         !set up a communicator that crosses the previous one
-         call mpi_comm_split(mp_comm, ieig_core, iproc, ceig_comm, ierr)
-         call mpi_comm_rank(ceig_comm, ceig_core, ierr)
-
-         call mpi_bcast(ceig_core, 1, MPI_INT, 0, eig_comm, ierr)
-
-         ncomm = min(neig, nproc) !number of communicators
-
-         allocate (eig_roots(0:ncomm - 1)); eig_roots = 0
-         allocate (eig_limits(0:ncomm))
-         allocate (row_limits(0:eig_cores))
-
-         if (ieig_core == 0) eig_roots(ceig_core) = iproc
-
-         call sum_allreduce(eig_roots)
-
-         ! split up neigen across cores
-         ediv = neig / ncomm
-         emod = mod(neig, ncomm)
-
-         !how many stages will the LU decomposition take?
-         nstage = ediv
-         if (emod > 0) nstage = nstage + 1
-
-         !determine which parts of neigen this communicator processes
-         eig_limits(0) = 1
-         do j = 1, ncomm
-            eig_limits(j) = eig_limits(j - 1) + ediv
-            if (j <= emod) then
-               eig_limits(j) = eig_limits(j) + 1
-            end if
-         end do
-
-         do istage = 0, nstage - 1
-            !transfer the data from job root to root of subcommunicator
-            do j = 0, ncomm - 1
-               ie = eig_limits(j) + istage
-               ie_hi = eig_limits(j + 1) - 1
-               if (ie > ie_hi) cycle
-
-               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
-                  n = size(response_matrix(iky)%eigen(ie)%idx)
-                  allocate (lu(n, n))
-                  lu = response_matrix(iky)%eigen(ie)%zloc
-               else if (iproc == job_roots(ijob)) then !send data to subroots
-                  !send size of matrix
-                  n_send = size(response_matrix(iky)%eigen(ie)%idx)
-                  call mpi_send(n_send, 1, MPI_INT, eig_roots(j), j, mp_comm, ierr)
-                  !send matrix
-                  call mpi_send(response_matrix(iky)%eigen(ie)%zloc, &
-                                n_send * n_send, mpicmplx, eig_roots(j), nproc + j, mp_comm, ierr)
-               else if (iproc == eig_roots(j)) then !subroot gets the data
-                  !receive size of matrix
-                  call mpi_recv(n, 1, MPI_INT, job_roots(ijob), j, mp_comm, status, ierr)
-                  allocate (lu(n, n))
-                  !receive matrix
-                  call mpi_recv(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, status, ierr)
-               end if
-            end do
-
-            if (istage >= (eig_limits(ceig_core + 1) - eig_limits(ceig_core))) cycle !nothing for this communicator to do
-
-            !broadcast matrix and its size across the communicator
-            call mpi_bcast(n, 1, MPI_INT, 0, eig_comm, ierr)
-            if (.not. allocated(lu)) allocate (lu(n, n))
-            if (.not. allocated(vv)) allocate (vv(n))
-
-            call mpi_bcast(lu, n * n, mpicmplx, 0, eig_comm, ierr)
-
-            allocate (dum(n))
-            allocate (idx(n))
-
-            ! All the processors have the matrix.
-            ! Now perform LU decomposition
-            vv = maxval(cabs(lu), dim=2)
-            if (any(vv == 0.0)) &
-               write (*, *) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
-            vv = 1.0 / vv
-            do j = 1, n
-               !divide up the work using row_limits
-               rdiv = (n - j) / eig_cores
-               rmod = mod(n - j, eig_cores)
-               row_limits(0) = j + 1
-               if (rdiv == 0) then
-                  row_limits(rmod + 1:) = -1
-                  do k = 1, rmod
-                     row_limits(k) = row_limits(k - 1) + 1
-                  end do
-               else
-                  do k = 1, eig_cores
-                     row_limits(k) = row_limits(k - 1) + rdiv
-                     if (k <= rmod) row_limits(k) = row_limits(k) + 1
-                  end do
-               end if
-
-               !pivot if needed
-               dmax = -1.0
-               do k = j, n
-                  tmp = vv(k) * abs(lu(k, j))
-                  if (tmp > dmax) then
-                     dmax = tmp
-                     imax = k
-                  end if
-               end do
-!         imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
-               if (j /= imax) then
-                  dum = lu(imax, :)
-                  lu(imax, :) = lu(j, :)
-                  lu(j, :) = dum
-                  vv(imax) = vv(j)
-               end if
-               if (ieig_core == 0) idx(j) = imax
-
-               !get the lead multiplier
-               if (lu(j, j) == 0.0) lu(j, j) = zero
-               do i = j + 1, n
-                  lu(i, j) = lu(i, j) / lu(j, j)
-               end do
-
-               r_lo = row_limits(ieig_core)
-               r_hi = row_limits(ieig_core + 1) - 1
-
-               do k = r_lo, r_hi
-                  do i = j + 1, n
-                     lu(i, k) = lu(i, k) - lu(i, j) * lu(j, k)
-                  end do
-               end do
-
-               do i = 0, eig_cores - 1
-                  r_lo = row_limits(i)
-                  r_hi = row_limits(i + 1) - 1
-                  rsize = (r_hi - r_lo + 1) * (n - j)
-                  if (r_lo > r_hi) cycle
-                  !call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,mpicmplx,i,eig_comm,ierr)
-                  do k = r_lo, r_hi
-                     call mpi_bcast(lu(j + 1:n, k), n - j, mpicmplx, i, eig_comm, ierr)
-                  end do
-               end do
-            end do
-            !LU decomposition ends here
-
-            !copy the decomposed matrix over
-            do j = 0, ncomm - 1
-
-               ie = eig_limits(j) + istage
-               ie_hi = eig_limits(j + 1) - 1
-               if (ie > ie_hi) cycle
-
-               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
-                  response_matrix(iky)%eigen(ie)%zloc = lu
-                  response_matrix(iky)%eigen(ie)%idx = idx
-               else if (iproc == eig_roots(j)) then !subroot sends the data
-                  !send indices
-                  call mpi_send(idx, n, MPI_INT, job_roots(ijob), j, mp_comm, ierr)
-                  !send matrix
-                  call mpi_send(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, ierr)
-               else if (iproc == job_roots(ijob)) then !receive data from subroot
-                  !receive indices
-                  call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
-                                n, MPI_INT, eig_roots(j), j, mp_comm, status, ierr)
-                  !receive matrix
-                  call mpi_recv(response_matrix(iky)%eigen(ie)%zloc, &
-                                n * n, mpicmplx, eig_roots(j), nproc + j, mp_comm, status, ierr)
-               end if
-            end do
-            deallocate (vv, lu, idx, dum)
-         end do
-         deallocate (eig_roots, eig_limits, row_limits)
-      end do
-
-#ifdef ISO_C_BINDING
-      if (sgproc0) then
-         call scope(scrossdomprocs)
-         !copy all the matrices across all nodes
-         do ie = 1, neigen(iky)
-            call broadcast(response_matrix(iky)%eigen(ie)%zloc)
-            call broadcast(response_matrix(iky)%eigen(ie)%idx)
-         end do
-      end if
-
-      call scope(prior_focus)
-#else
-      call scope(prior_focus)
-
-      !copy all the matrices across all nodes
-      do ie = 1, neigen(iky)
-         call broadcast(response_matrix(iky)%eigen(ie)%zloc)
-         call broadcast(response_matrix(iky)%eigen(ie)%idx)
-      end do
-#endif
-      deallocate (job_roots)
-   end subroutine parallel_LU_decomposition_global
-
 #endif /* MPI */
 
-end module response_matrix
+end module response_matrix_radial
