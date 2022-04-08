@@ -1605,6 +1605,8 @@ contains
       integer :: ivmu, iz, it, ia, imu, is, iky
       complex, dimension(:, :), allocatable :: g0k
 
+      if (ky_solve_radial <= 0) return
+
       allocate (g0k(naky, nakx))
 
       ia = 1
@@ -1673,15 +1675,13 @@ contains
       complex :: tmp
       complex, dimension(:, :, :, :), allocatable :: phi1
       complex, dimension(:, :, :), allocatable :: gyro_g
-      complex, dimension(:, :), allocatable :: g0k, g0x
-      complex, dimension(:, :), allocatable :: g1k, g1x
+      complex, dimension(:, :), allocatable :: g0k, g1k, g1x
 
       ia = 1
 
       if (fphi > epsilon(0.0)) then
          allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0k(naky, nakx))
-         allocate (g0x(naky, nx))
          allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi1 = 0.
          do it = 1, ntubes
@@ -1699,13 +1699,19 @@ contains
 
                   call gyro_average(g0k, iz, ivmu, gyro_g(:, :, ivmu))
                end do
-               call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, g0k, reduce_in=.false.)
-               g0k = g0k - dgamtotdr(:, :, iz) * phi0(:, :, iz, it)
+               call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, phi1(:, :, iz, it), reduce_in=.false.)
+            end do
+         end do
+         call sum_allreduce(phi1)
+
+         !apply radial operator Xhat
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g0k = phi1(:, :, iz, it) - dgamtotdr(:, :, iz) * phi0(:, :, iz, it)
                call multiply_by_rho(g0k)
                phi1(:, :, iz, it) = g0k
             end do
          end do
-         call sum_allreduce(phi1)
 
          if (dist == 'gbar') then
             !call get_phi (phi)
@@ -1776,7 +1782,7 @@ contains
             end do
          end do
 
-         deallocate (g0x, g0k)
+         deallocate (g0k)
          deallocate (gyro_g)
 
       end if
