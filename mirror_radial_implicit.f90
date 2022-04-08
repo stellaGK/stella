@@ -109,12 +109,11 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      real, dimension(:, :), intent (inout) :: time_mirror 
+      real, dimension(:, :), intent(inout) :: time_mirror
 
       integer :: ivmu, iz, it
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :), allocatable :: g0k, g0x
-
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -127,9 +126,9 @@ contains
                g0k = g(:, :, iz, it, ivmu)
                call transform_kx2x_unpadded(g0k, g0x)
                g(:, :, iz, it, ivmu) = g0x
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 
       if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
       call scatter(kxkyz2vmu, g, gvmu)
@@ -152,9 +151,9 @@ contains
                g0x = g(:, :, iz, it, ivmu)
                call transform_x2kx_unpadded(g0x, g0k)
                g(:, :, iz, it, ivmu) = g0k
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
 
       deallocate (g0k, g0x)
 
@@ -192,7 +191,7 @@ contains
             sgn = mirror_sign(ix, iz)
 
             if (shift == 0) then
-            ! deal with boundary point near outgoing BC
+               ! deal with boundary point near outgoing BC
                ! using 2-point (linear) interpolation
                ! could do 3-point to improve accuracy
                fac1 = 1.0 - tmp0
