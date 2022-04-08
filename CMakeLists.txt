@@ -79,6 +79,7 @@ set(STELLA_SOURCES_fpp
   fields.fpp
   multibox.fpp
   response_matrix.fpp
+  response_matrix_radial.fpp
   sfincs_interface.fpp
   sources.fpp
   stella_io.fpp
