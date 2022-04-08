@@ -569,9 +569,14 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use dist_fn_arrays, only: g1
+      use dist_fn_arrays, only: g1, g_gyro
       use run_parameters, only: stream_matrix_inversion
-      use fields, only: advance_fields, fields_updated
+      use fields, only: add_radial_correction_int_species, fields_updated
+      use run_parameters, only: fphi
+      use physics_flags, only: radial_variation
+      use vpamu_grids, only: integrate_species
+      use gyro_averages, only:  gyro_average
+      use species, only: spec
 
       implicit none
 
@@ -611,7 +616,13 @@ contains
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist='gbar')
+      !call advance_fields(g, phi, apar, dist='gbar')
+      phi = 0.
+      if (fphi > epsilon(0.0)) then
+         call gyro_average(g, g_gyro)
+         if (radial_variation) call add_radial_correction_int_species(g_gyro)
+         call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
+      end if
 
       ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
       ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
@@ -992,13 +1003,8 @@ contains
 
       use linear_solve, only: lu_back_substitution
       use zgrid, only: nzgrid, ntubes
-      use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
-      use extended_zgrid, only: map_to_extended_zgrid
-      use extended_zgrid, only: map_from_extended_zgrid
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: periodic
+      use full_xzgrid, only: nelements
+      use full_xzgrid, only: map_to_full_xzgrid, map_from_full_xzgrid
       use kt_grids, only: naky
       use fields_arrays, only: response_matrix
 
@@ -1006,35 +1012,17 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
 
-      integer :: iky, ie, it, ulim
-      integer :: ikx
+      integer :: iky
       complex, dimension(:), allocatable :: gext
 
       ! need to put the fields into extended zed grid
       do iky = 1, naky
-         ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes
-         if (periodic(iky)) then
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  ikx = ikxmod(1, ie, iky)
-                  call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, phi(iky, ikx, :nzgrid - 1, it))
-                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it)
-               end do
-            end do
-         else
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-                  allocate (gext(nsegments(ie, iky) * nzed_segment + 1))
-                  call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext, ulim)
-                  call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, gext)
-                  call map_from_extended_zgrid(it, ie, iky, gext, phi(iky, :, :, :))
-                  deallocate (gext)
-               end do
-            end do
-         end if
+         allocate (gext(nelements(iky)))
+         call map_to_full_xzgrid(iky, phi(iky, :, :, :), gext)
+         call lu_back_substitution(response_matrix(iky)%eigen(1)%zloc, &
+                                   response_matrix(iky)%eigen(1)%idx, gext)
+         call map_from_full_xzgrid(iky, gext, phi(iky, :, :, :))
+         deallocate (gext)
       end do
 
    end subroutine invert_parstream_response

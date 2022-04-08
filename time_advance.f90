@@ -887,8 +887,8 @@ contains
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
-      use response_matrix, only: response_matrix_initialized
-      use response_matrix, only: init_response_matrix
+      use response_matrix_radial, only: response_matrix_initialized
+      use response_matrix_radial, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
       use mirror_terms, only: init_mirror
       use flow_shear, only: flow_shear_initialized

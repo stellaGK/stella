@@ -43,7 +43,7 @@ stella_mod = \
 	 physics_parameters.o \
 	 ran.o \
 	 redistribute.o \
-	 response_matrix.o \
+	 response_matrix_radial.o \
 	 run_parameters.o \
 	 sfincs_interface.o \
 	 sources.o \
@@ -351,6 +351,7 @@ parallel_streaming.o: \
 	 fields.o \
 	 fields_arrays.o \
 	 finite_differences.o \
+	 full_xzgrid.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -399,8 +400,10 @@ response_matrix.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 response_matrix_radial.o: \
+	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields_arrays.o \
+	 full_xzgrid.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -408,12 +411,12 @@ response_matrix_radial.o: \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
-	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
+	 stella_transforms.o \
 	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -484,7 +487,7 @@ stella.o: \
 	 physics_parameters.o \
 	 ran.o \
 	 redistribute.o \
-	 response_matrix.o \
+	 response_matrix_radial.o \
 	 run_parameters.o \
 	 sources.o \
 	 species.o \
@@ -600,7 +603,7 @@ time_advance.o: \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \
-	 response_matrix.o \
+	 response_matrix_radial.o \
 	 run_parameters.o \
 	 sources.o \
 	 species.o \

@@ -87,7 +87,7 @@ contains
       use stella_geometry, only: init_geometry
       use stella_geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
-      use response_matrix, only: init_response_matrix, read_response_matrix
+      use response_matrix_radial, only: init_response_matrix!, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
       use init_g, only: tstart
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
@@ -296,13 +296,13 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'
       call init_time_advance
       if (stream_implicit .or. driftkinetic_implicit) then
-         if (mat_read) then
-            if (debug) write (6, *) "stella::init_stella::read_response_matrix"
-            call read_response_matrix
-         else
+!        if (mat_read) then
+!           if (debug) write (6, *) "stella::init_stella::read_response_matrix"
+!           call read_response_matrix
+!        else
             if (debug) write (6, *) "stella::init_stella::init_response_matrix"
             call init_response_matrix
-         end if
+!        end if
       end if
 
       !> get initial field from initial distribution function
@@ -544,7 +544,7 @@ contains
       use fields, only: finish_fields
       use fields, only: time_field_solve
       use stella_diagnostics, only: finish_stella_diagnostics
-      use response_matrix, only: finish_response_matrix
+      use response_matrix_radial, only: finish_response_matrix
       use stella_geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
       use vpamu_grids, only: finish_vpamu_grids
