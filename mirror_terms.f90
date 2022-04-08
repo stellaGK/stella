@@ -52,7 +52,7 @@ contains
          mirror_radial_initialized = .false.
          call init_mirror_radial
          return
-      endif
+      end if
 
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
@@ -597,9 +597,9 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0x
 
       if (radial_variation) then
-         call advance_mirror_radially_implicit (time_mirror, g)
+         call advance_mirror_radially_implicit(time_mirror, g)
          return
-      endif
+      end if
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -905,7 +905,7 @@ contains
 
       if (radial_variation) then
          call finish_mirror_radial
-      endif
+      end if
 
       mirror_initialized = .false.
 
