@@ -69,7 +69,7 @@ contains
                g_full(xz_idx(ikx, iz, it)) = g(ikx, iz, it)
             end do
          end do
-      enddo
+      end do
 
    end subroutine map_to_full_xzgrid
 

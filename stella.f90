@@ -300,8 +300,8 @@ contains
 !           if (debug) write (6, *) "stella::init_stella::read_response_matrix"
 !           call read_response_matrix
 !        else
-            if (debug) write (6, *) "stella::init_stella::init_response_matrix"
-            call init_response_matrix
+         if (debug) write (6, *) "stella::init_stella::init_response_matrix"
+         call init_response_matrix
 !        end if
       end if
 
