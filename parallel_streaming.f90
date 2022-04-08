@@ -575,7 +575,7 @@ contains
       use run_parameters, only: fphi
       use physics_flags, only: radial_variation
       use vpamu_grids, only: integrate_species
-      use gyro_averages, only:  gyro_average
+      use gyro_averages, only: gyro_average
       use species, only: spec
 
       implicit none
