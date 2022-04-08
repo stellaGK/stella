@@ -161,6 +161,8 @@ contains
             cur_pos = cur_pos + nresponse * 4
          end if
 #endif
+         response_matrix(iky)%eigen(1)%zloc = 0.0
+         response_matrix(iky)%eigen(1)%idx = 0
 
          allocate (phiext(nresponse))
          ! loop over the sets of connected kx values
@@ -270,6 +272,8 @@ contains
                call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
                                      response_matrix(iky)%eigen(1)%idx, dum)
 
+               write (*,*) "CRENCH"
+
 #ifdef ISO_C_BINDING
             end if
 #endif
@@ -304,6 +308,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
       use zgrid, only: delzed, nzgrid, ntubes
+      use kt_grids, only: zonal_mode
       use extended_zgrid, only: periodic
       use full_xzgrid, only: xz_idx
       use species, only: spec
@@ -328,9 +333,11 @@ contains
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
 
       integer :: ivmu, iv, imu, is, ia, it
-      integer :: izp, izm
+      integer :: izp, izm, zm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
+
+      if(zonal_mode(iky).and.ikx.eq.1) return
 
       ia = 1
 
@@ -596,13 +603,15 @@ contains
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
       !  copy of phiext)
+      zm = 0
+      if (zonal_mode(iky)) zm = 1
       do it = 1, ntubes
          call integrate_over_velocity_radial(gext, phiext, it, iky, ie)
 
 #if !defined ISO_C_BINDING || !defined MPI
-         response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it)=-phiext(:nresponse)
+         response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it, zm) = -phiext(:nresponse)
 #else
-         if (sgproc0) response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it)) = -phiext(:nresponse)
+         if (sgproc0) response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it, zm)) = -phiext(:nresponse)
 #endif
       end do
 
@@ -664,6 +673,7 @@ contains
       use gyro_averages, only: aj0x, aj1x
       use mp, only: sum_allreduce
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use physics_flags, only: radial_variation
 
       implicit none
 
@@ -691,51 +701,64 @@ contains
       wgt = spec%z * spec%dens_psi0
 
       gyro_0 = 0.0
-      gyro_1 = 0.0
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call map_from_extended_zgrid(it_in, ie, iky, g(:, ivmu), gyro_0(:, :, :, ivmu))
-         call map_from_extended_zgrid(it_in, ie, iky, g(:, ivmu), gyro_1(:, :, :, ivmu))
       end do
 
       gyro_0 = gyro_0 * spread(aj0x(iky, :, :, :), 3, ntubes)
-      gyro_1 = gyro_1 * spread(aj0x(iky, :, :, :), 3, ntubes)
-
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               gyro_1(:, iz, it, ivmu) = gyro_1(:, iz, it, ivmu) &
-                                         * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                            * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                            * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                            + dBdrho(iz) / bmag(ia, iz))
-            end do
-         end do
-      end do
-
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
                call integrate_species(gyro_0(ikx, iz, it, :), iz, wgt, g0(ikx, iz, it), reduce_in=.false.)
-               call integrate_species(gyro_1(ikx, iz, it, :), iz, wgt, g1(ikx, iz, it), reduce_in=.false.)
             end do
          end do
       end do
-
       call sum_allreduce(g0)
-      call sum_allreduce(g1)
 
-      do it = 1, ntubes
-         do iz = -nzgrid, nzgrid
-            g0k(1, :) = g1(:, iz, it)
-            call transform_kx2x_unpadded(g0k, g0x)
-            g0x(1, :) = rho_d_clamped * g0x(1, :)
-            call transform_x2kx_unpadded(g0x, g0k)
-            g1(:, iz, it) = g0k(1, :)
+      g1 = 0.0
+      if(radial_variation) then
+         gyro_1 = 0.0
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call map_from_extended_zgrid(it_in, ie, iky, g(:, ivmu), gyro_1(:, :, :, ivmu))
          end do
-      end do
+
+         gyro_1 = gyro_1 * spread(aj0x(iky, :, :, :), 3, ntubes)
+
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            imu = imu_idx(vmu_lo, ivmu)
+            is = is_idx(vmu_lo, ivmu)
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  gyro_1(:, iz, it, ivmu) = gyro_1(:, iz, it, ivmu) &
+                                         * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                            * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                                            * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                                            + dBdrho(iz) / bmag(ia, iz))
+               end do
+            end do
+         end do
+
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  call integrate_species(gyro_1(ikx, iz, it, :), iz, wgt, g1(ikx, iz, it), reduce_in=.false.)
+               end do
+            end do
+         end do
+
+         call sum_allreduce(g1)
+
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g0k(1, :) = g1(:, iz, it)
+               call transform_kx2x_unpadded(g0k, g0x)
+               g0x(1, :) = rho_d_clamped * g0x(1, :)
+               call transform_x2kx_unpadded(g0x, g0k)
+               g1(:, iz, it) = g0k(1, :)
+            end do
+         end do
+      endif
       g0 = g0 + g1
 
       call map_to_full_xzgrid(iky, g0, phi)
@@ -748,11 +771,12 @@ contains
 
       use fields_arrays, only: response_matrix
       use fields_arrays, only: gamtot, dgamtotdr
-      use kt_grids, only: nakx, rho_d_clamped
+      use kt_grids, only: nakx, rho_d_clamped, zonal_mode
       use zgrid, only: nzgrid, ntubes
       use full_xzgrid, only: xz_idx
       use extended_zgrid, only: periodic
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use physics_flags, only: radial_variation
 !     use species, only: spec
 !     use species, only: has_electron_species
 !     use stella_geometry, only: dl_over_b
@@ -763,41 +787,42 @@ contains
 
       integer, intent(in) :: iky
 
-      integer ::ikx, ix, jx, iz, it, ia, zmi, pm, idx1, idx2
+      integer ::ikx, ix, jx, iz, it, ia, zm, pm, idx1, idx2
       complex, dimension(:, :), allocatable :: gamma_mat, g0k, g0x
 !     complex :: tmp
 
       ia = 1
-      zmi = 0 !worry about zero mode later
+      pm = 0 ; zm = 0
+      if (periodic(iky)) pm = 1
+      if (zonal_mode(iky)) zm = 1
 
-      allocate (gamma_mat(nakx, nakx))
+      allocate (gamma_mat(nakx - zm, nakx - zm))
       allocate (g0k(1, nakx))
       allocate (g0x(1, nakx))
 
-      pm = 0
-      if (periodic(iky)) pm = 1
       do iz = -nzgrid, nzgrid - pm
          gamma_mat = 0.0
-         do ikx = 1 + zmi, nakx
-            g0k(1, :) = 0.0
-            g0k(1, ikx) = dgamtotdr(iky, ikx, iz)
+         do ikx = 1 + zm, nakx
+            if(radial_variation) then
+               g0k(1, :) = 0.0
+               g0k(1, ikx) = dgamtotdr(iky, ikx, iz)
 
-            call transform_kx2x_unpadded(g0k, g0x)
-            g0x(1, :) = rho_d_clamped * g0x(1, :)
-            call transform_x2kx_unpadded(g0x, g0k)
+               call transform_kx2x_unpadded(g0k, g0x)
+               g0x(1, :) = rho_d_clamped * g0x(1, :)
+               call transform_x2kx_unpadded(g0x, g0k)
 
-            !row column
-            gamma_mat(:, ikx - zmi) = g0k(1, (1 + zmi):)
-            gamma_mat(ikx - zmi, ikx - zmi) = gamma_mat(ikx - zmi, ikx - zmi) + gamtot(iky, ikx, iz)
-
+               !row column
+               gamma_mat(:, ikx - zm) = g0k(1, (1 + zm):)
+            endif
+            gamma_mat(ikx - zm, ikx - zm) = gamma_mat(ikx - zm, ikx - zm) + gamtot(iky, ikx, iz)
          end do
          do it = 1, ntubes
-            do ix = 1 + zmi, nakx
-               do jx = 1 + zmi, nakx
-                  idx1 = xz_idx(ix, iz, it)
-                  idx2 = xz_idx(jx, iz, it)
+            do ix = 1 + zm, nakx
+               do jx = 1 + zm, nakx
+                  idx1 = xz_idx(ix, iz, it, zm)
+                  idx2 = xz_idx(jx, iz, it, zm)
                   response_matrix(iky)%eigen(1)%zloc(idx1, idx2) = response_matrix(iky)%eigen(1)%zloc(idx1, idx2) &
-                                                                   + gamma_mat(idx1, idx2)
+                                                                   + gamma_mat(ix - zm, jx - zm)
                end do
             end do
          end do
