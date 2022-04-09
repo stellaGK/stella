@@ -1404,7 +1404,7 @@ contains
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-            do iky = naky_r, naky
+            do iky = naky_r + 1, naky
                phi(iky, :, iz, it) = phi(iky, :, iz, it) / gamtot(iky, :, iz)
             end do
          end do
