@@ -294,7 +294,6 @@ contains
       complex, dimension(:, :), allocatable :: g0k, g0x
 
       ia = 1
-      zm = 0
 
       naky_r = min(naky, ky_solve_radial)
 
