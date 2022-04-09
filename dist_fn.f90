@@ -4,6 +4,7 @@ module dist_fn
 
    public :: init_gxyz
    public :: init_dist_fn, finish_dist_fn
+   public :: enforce_reality_dist
 
    private
 
@@ -247,6 +248,32 @@ contains
       deallocate (tmp)
 
    end subroutine enforce_single_valued_kperp2
+
+   subroutine enforce_reality_dist(gin)
+
+!DSO> while most of the modes in the box have reality built in (as we
+!     throw out half the kx-ky plane, modes with ky=0 do not have
+!     this enforcement built in. In theory this should not be a problem
+!     as these modes should be stable, but I made this function (and
+!     its relative in the dist file) just in case
+
+      use stella_layouts, only: vmu_lo
+      use kt_grids, only: nakx
+      use zgrid, only: nzgrid
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: gin
+
+      integer ikx
+
+      gin(1, 1, :, :, :) = real(gin(1, 1, :, :, :))
+      do ikx = 2, nakx / 2 + 1
+         gin(1, ikx, :, :, :) = 0.5 * (gin(1, ikx, :, :, :) + conjg(gin(1, nakx - ikx + 2, :, :, :)))
+         gin(1, nakx - ikx + 2, :, :, :) = conjg(gin(1, ikx, :, :, :))
+      end do
+
+   end subroutine enforce_reality_dist
 
    subroutine allocate_arrays
 

@@ -958,6 +958,8 @@ contains
       use sources, only: include_krook_operator, update_tcorr_krook
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: remove_zero_projection, project_out_zero
+      use dist_fn, only: enforce_reality_dist
+      use fields, only: enforce_reality_field
 
       implicit none
 
@@ -1003,6 +1005,8 @@ contains
          fields_updated = .false.
       end if
 
+      call enforce_reality_dist(gnew)
+      call enforce_reality_field(phi)
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.

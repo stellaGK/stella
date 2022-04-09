@@ -33,7 +33,6 @@ stella_mod = \
 	 mirror_radial_implicit.o \
 	 mirror_terms.o \
 	 mp.o \
-	 mp_lu_decomposition.o \
 	 mt19937.o \
 	 multibox.o \
 	 neoclassical_terms.o \
@@ -153,7 +152,6 @@ fields.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 mp_lu_decomposition.o \
 	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
@@ -310,8 +308,6 @@ mirror_terms.o: \
 mp.o: \
 	 constants.o \
 	 file_utils.o 
-mp_lu_decomposition.o: \
-	 linear_solve.o 
 mt19937.o: 
 multibox.o: \
 	 constants.o \
@@ -388,7 +384,6 @@ response_matrix.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
 	 physics_flags.o \
 	 run_parameters.o \
@@ -409,8 +404,8 @@ response_matrix_radial.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
+	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
@@ -439,7 +434,6 @@ sources.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 mp_lu_decomposition.o \
 	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -584,6 +578,7 @@ text_options.o: \
 time_advance.o: \
 	 constants.o \
 	 dissipation.o \
+	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
