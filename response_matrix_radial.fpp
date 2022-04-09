@@ -272,7 +272,7 @@ contains
                call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
                                      response_matrix(iky)%eigen(1)%idx, dum)
 
-               write (*,*) "CRENCH"
+               write (*, *) "CRENCH"
 
 #ifdef ISO_C_BINDING
             end if
@@ -337,7 +337,7 @@ contains
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
 
-      if(zonal_mode(iky).and.ikx.eq.1) return
+      if (zonal_mode(iky) .and. ikx == 1) return
 
       ia = 1
 
@@ -717,7 +717,7 @@ contains
       call sum_allreduce(g0)
 
       g1 = 0.0
-      if(radial_variation) then
+      if (radial_variation) then
          gyro_1 = 0.0
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call map_from_extended_zgrid(it_in, ie, iky, g(:, ivmu), gyro_1(:, :, :, ivmu))
@@ -731,10 +731,10 @@ contains
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   gyro_1(:, iz, it, ivmu) = gyro_1(:, iz, it, ivmu) &
-                                         * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                            * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                            * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                            + dBdrho(iz) / bmag(ia, iz))
+                                            * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                               * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                                               * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                                               + dBdrho(iz) / bmag(ia, iz))
                end do
             end do
          end do
@@ -758,7 +758,7 @@ contains
                g1(:, iz, it) = g0k(1, :)
             end do
          end do
-      endif
+      end if
       g0 = g0 + g1
 
       call map_to_full_xzgrid(iky, g0, phi)
@@ -792,7 +792,7 @@ contains
 !     complex :: tmp
 
       ia = 1
-      pm = 0 ; zm = 0
+      pm = 0; zm = 0
       if (periodic(iky)) pm = 1
       if (zonal_mode(iky)) zm = 1
 
@@ -803,7 +803,7 @@ contains
       do iz = -nzgrid, nzgrid - pm
          gamma_mat = 0.0
          do ikx = 1 + zm, nakx
-            if(radial_variation) then
+            if (radial_variation) then
                g0k(1, :) = 0.0
                g0k(1, ikx) = dgamtotdr(iky, ikx, iz)
 
@@ -813,7 +813,7 @@ contains
 
                !row column
                gamma_mat(:, ikx - zm) = g0k(1, (1 + zm):)
-            endif
+            end if
             gamma_mat(ikx - zm, ikx - zm) = gamma_mat(ikx - zm, ikx - zm) + gamtot(iky, ikx, iz)
          end do
          do it = 1, ntubes

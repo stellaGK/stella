@@ -93,7 +93,7 @@ contains
       ! avoid double-counting at boundaries between 2pi segments
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
-      if (zonal_mode(iky).and.ikx.eq.1) return
+      if (zonal_mode(iky) .and. ikx == 1) return
       zm = 0
       if (zonal_mode(iky)) zm = 1
       llim = 1; ulim = nzed_segment + 1
@@ -141,7 +141,7 @@ contains
          end do
       end do
       if (periodic(iky)) g(:, nzgrid, :) = g(:, -nzgrid, :)
-      if (zm.eq.1) g(zm, : , :) = 0.0
+      if (zm == 1) g(zm, :, :) = 0.0
 
    end subroutine map_from_full_xzgrid
 
@@ -163,7 +163,7 @@ contains
       ! avoid double-counting at boundaries between 2pi segments
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
-      if (zonal_mode(iky).and.ikx.eq.1) return
+      if (zonal_mode(iky) .and. ikx == 1) return
       zm = 0
       if (zonal_mode(iky)) zm = 1
       llim = 1; ulim = nzed_segment + 1
