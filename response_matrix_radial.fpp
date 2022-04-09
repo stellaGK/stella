@@ -609,7 +609,7 @@ contains
          call integrate_over_velocity_radial(gext, phiext, it, iky, ie)
 
 #if !defined ISO_C_BINDING || !defined MPI
-         response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it, zm) = -phiext(:nresponse)
+         response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it, zm)) = -phiext(:nresponse)
 #else
          if (sgproc0) response_matrix(iky)%eigen(1)%zloc(:, xz_idx(ikx, iz, it, zm)) = -phiext(:nresponse)
 #endif

@@ -260,12 +260,13 @@ contains
       use fields_arrays, only: qn_window, phi_shared
       use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real, iproc, nproc
+      use zgrid, only: nztot
       use mpi
 #endif
       use run_parameters, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use zgrid, only: nzgrid, ntubes, nztot
+      use zgrid, only: nzgrid, ntubes
       use species, only: spec
       use kt_grids, only: naky, nakx
       use kt_grids, only: zonal_mode, rho_d_clamped
@@ -282,7 +283,7 @@ contains
       integer :: iz, ikx, iky, ia, zmi, naky_r
       real :: dum
       logical :: has_elec, adia_elec
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       integer :: prior_focus, ierr
       integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
       integer :: disp_unit = 1
@@ -295,7 +296,6 @@ contains
       complex, dimension(:, :), allocatable :: g0k, g0x
 
       ia = 1
-      zm = 0
 
       naky_r = min(naky, ky_solve_radial)
 
@@ -310,7 +310,7 @@ contains
          allocate (g0x(1, nakx))
 
          if (.not. allocated(phi_solve)) allocate (phi_solve(naky_r, -nzgrid:nzgrid))
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
          prior_focus = curr_focus
          call scope(sharedsubprocs)
          !the following is to parallelize the calculation of QN for radial variation sims
@@ -407,7 +407,7 @@ contains
             zmi = 0
             if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
             do iz = -nzgrid, nzgrid
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
                counter = counter + 1
                if ((counter >= c_lo) .and. (counter <= c_hi)) then
 #endif
@@ -428,7 +428,7 @@ contains
                   end do
 
                   call lu_decomposition(phi_solve(iky, iz)%zloc, phi_solve(iky, iz)%idx, dum)
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
                end if
 #endif
             end do
@@ -1318,7 +1318,7 @@ contains
    !> global simulations
    subroutine get_phi_radial(phi)
 
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       use mpi
       use mp, only: iproc, nproc, sgproc0
       use mp, only: curr_focus, sharedsubprocs, scope
@@ -1343,7 +1343,7 @@ contains
       integer :: naky_r
       complex, dimension(:, :), allocatable :: g0k, g0x
       logical :: has_elec, adia_elec
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
       integer :: prior_focus, ierr
 #endif
@@ -1356,7 +1356,7 @@ contains
                   .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
       naky_r = min(naky, ky_solve_radial)
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       prior_focus = curr_focus
       call scope(sharedsubprocs)
       c_max = nztot * ntubes * naky_r
@@ -1375,7 +1375,7 @@ contains
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do iky = 1, naky_r
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
                counter = counter + 1
                if ((counter >= c_lo) .and. (counter <= c_hi)) then
                   if (.not. (adia_elec .and. zonal_mode(iky))) then
@@ -1398,14 +1398,14 @@ contains
             end do
          end do
       end do
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       call mpi_win_fence(0, phi_shared_window, ierr)
       phi = phi_shared
 #endif
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-            do iky = naky_r, naky
+            do iky = naky_r + 1, naky
                phi(iky, :, iz, it) = phi(iky, :, iz, it) / gamtot(iky, :, iz)
             end do
          end do
@@ -1422,7 +1422,7 @@ contains
    !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
    subroutine add_adiabatic_response_radial(phi)
 
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       use mpi
       use mp, only: sgproc0, comm_sgroup
       use fields_arrays, only: qn_zf_window
@@ -1444,7 +1444,7 @@ contains
       integer :: ia, it, iz, ikx
       integer :: inmat
       complex, dimension(:, :), allocatable :: g0k, g1k, g0x
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       integer :: ierr
 #endif
 
@@ -1487,7 +1487,7 @@ contains
             end do
          end if
 
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
          if (sgproc0) then
 #endif
             do iz = -nzgrid, nzgrid - 1
@@ -1496,12 +1496,12 @@ contains
                   phi_ext(inmat) = phi(1, ikx, iz, it)
                end do
             end do
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
          end if
          call mpi_win_fence(0, qn_zf_window, ierr)
 #endif
 
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
          call lu_matrix_multiply_local(comm_sgroup, qn_zf_window, phizf_solve%zloc, phi_ext)
          call mpi_win_fence(0, qn_zf_window, ierr)
 #else
@@ -1936,7 +1936,7 @@ contains
       use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
       use fields_arrays, only: c_mat, theta
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       use fields_arrays, only: qn_window
       use mpi
 #else
@@ -1944,7 +1944,7 @@ contains
 #endif
       implicit none
 
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       integer ierr
 #endif
 
@@ -1960,7 +1960,7 @@ contains
       if (allocated(dgamtotdr)) deallocate (dgamtotdr)
       if (allocated(apar_denom)) deallocate (apar_denom)
 
-#if defined MPI && ISO_C_BINDING
+#if defined MPI && defined ISO_C_BINDING
       if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
       if (qn_window_initialized .and. qn_window /= MPI_WIN_NULL) then
          call mpi_win_free(qn_window, ierr)

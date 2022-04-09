@@ -312,6 +312,7 @@ contains
 
    subroutine add_parallel_streaming_radial_variation(g, gout, rhs)
 
+      use run_parameters, only: stream_implicit
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
@@ -355,8 +356,12 @@ contains
          call get_dgdz_centered(phi_corr_GA(:, :, :, :, ivmu), ivmu, g2)
 
          ! get variation in quasineutrality and store in g3
-         call gyro_average(phi_corr_QN, ivmu, g0)
-         call get_dgdz_centered(g0, ivmu, g3)
+         if (stream_implicit) then
+            g3 = 0.0
+         else
+            call gyro_average(phi_corr_QN, ivmu, g0)
+            call get_dgdz_centered(g0, ivmu, g3)
+         endif
 
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
 
