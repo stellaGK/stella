@@ -1404,7 +1404,7 @@ contains
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-            do iky = naky_r, naky
+            do iky = naky_r + 1, naky
                phi(iky, :, iz, it) = phi(iky, :, iz, it) / gamtot(iky, :, iz)
             end do
          end do
@@ -1605,7 +1605,7 @@ contains
       integer :: ivmu, iz, it, ia, imu, is, iky
       complex, dimension(:, :), allocatable :: g0k
 
-      if(ky_solve_radial.le.0) return
+      if (ky_solve_radial <= 0) return
 
       allocate (g0k(naky, nakx))
 
@@ -1710,8 +1710,8 @@ contains
                g0k = phi1(:, :, iz, it) - dgamtotdr(:, :, iz) * phi0(:, :, iz, it)
                call multiply_by_rho(g0k)
                phi1(:, :, iz, it) = g0k
-            enddo
-         enddo
+            end do
+         end do
 
          if (dist == 'gbar') then
             !call get_phi (phi)
