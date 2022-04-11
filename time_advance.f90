@@ -2288,7 +2288,10 @@ contains
               end if
               p = nint((x(ix) - x_departure)/dx)
               q = nint((y(iy) - y_departure)/dy)
-
+              ! if ((p /= 0) .or. (q /=0)) then
+              !   stop "Not equal to zero!"
+              !
+              ! end if
               if (override_vexb) then
                 if (p == 0) then
                   velocity_x = vexb_x
