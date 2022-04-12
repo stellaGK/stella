@@ -361,7 +361,7 @@ contains
          else
             call gyro_average(phi_corr_QN, ivmu, g0)
             call get_dgdz_centered(g0, ivmu, g3)
-         endif
+         end if
 
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
 
