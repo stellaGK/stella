@@ -201,7 +201,7 @@ contains
 
       if ((stream_implicit .or. driftkinetic_implicit) .and. radial_variation) then
          ky_solve_radial = huge(ky_solve_radial)
-      endif
+      end if
 
       !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
       if (full_flux_surface) then
