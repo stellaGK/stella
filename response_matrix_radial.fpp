@@ -250,15 +250,25 @@ contains
 
          if (proc0 .and. debug) then
             call time_message(.true., time_response_matrix_QN, message_QN)
-            call time_message(.false., time_response_matrix_lu, message_lu)
          end if
 
-         !now we have the full response matrix. Finally, perform its LU decomposition
+         time_response_matrix_dgdphi = 0
+         time_response_matrix_QN = 0
+
+      end do
+
+
+      !now we have the full response matrix. Finally, perform its LU decomposition
+
+      if (proc0 .and. debug) then
+         call time_message(.false., time_response_matrix_lu, message_lu)
+
+      end if
 #ifdef MPI
-         select case (lu_option_switch)
+      select case (lu_option_switch)
          case (lu_option_local)
 #ifdef ISO_C_BINDING
-            call parallel_LU_decomposition_local(iky)
+            call parallel_LU_decomposition_local()
 #else
             call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
 #endif
@@ -269,27 +279,23 @@ contains
 #endif
                ! now that we have the reponse matrix for this ky and set of connected kx values
                !get the LU decomposition so we are ready to solve the linear system
-               call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
-                                     response_matrix(iky)%eigen(1)%idx, dum)
+               do iky = 1, naky
+                  call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
+                                        response_matrix(iky)%eigen(1)%idx, dum)
 
-               write (*,*) "CRENCH"
-
+               enddo
 #ifdef ISO_C_BINDING
             end if
 #endif
 #ifdef MPI
-         end select
+      end select
 #endif
 
-         if (proc0 .and. debug) then
-            call time_message(.true., time_response_matrix_lu, message_lu)
-         end if
+      if (proc0 .and. debug) then
+         call time_message(.true., time_response_matrix_lu, message_lu)
+      end if
 
-         time_response_matrix_dgdphi = 0
-         time_response_matrix_QN = 0
-         time_response_matrix_lu = 0
-
-      end do
+      time_response_matrix_lu = 0
 
 #ifdef ISO_C_BINDING
       call mpi_win_fence(0, window, ierr)
@@ -878,7 +884,7 @@ contains
    !node using MPIs shared memory interface
    !It also splits up jtwist the independent matrices across nodes
    !Ideal speed up: cores_per_node*min(jtwist,ncores)
-   subroutine parallel_LU_decomposition_local(iky)
+   subroutine parallel_LU_decomposition_local
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use fields_arrays, only: response_matrix
@@ -889,12 +895,11 @@ contains
       use mp_lu_decomposition, only: lu_decomposition_local
       use job_manage, only: njobs
       use mpi
+      use kt_grids, only: naky
 
       implicit none
 
-      integer, intent(in) :: iky
-
-      integer, dimension(:, :), allocatable :: eig_limits
+      integer, dimension(:, :), allocatable :: ky_limits
       integer, dimension(:), allocatable :: job_list
       integer, dimension(:), allocatable :: row_limits
       logical, dimension(:, :), allocatable :: node_jobs
@@ -906,8 +911,8 @@ contains
       logical :: needs_send = .false.
 
       integer :: prior_focus, nodes_on_job
-      integer :: ijob, j, ie, n, ediv, emod
-      integer :: jroot, neig, ierr, win, nroot
+      integer :: ijob, j, iky, n, ydiv, ymod
+      integer :: jroot, ierr, win, nroot
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer :: disp_unit = 1
       real :: dmax
@@ -919,7 +924,7 @@ contains
       allocate (node_jobs(numnodes, njobs)); node_jobs = .false.
       allocate (job_list(nproc)); job_list = 0
       allocate (row_limits(0:nproc))
-      allocate (eig_limits(0:numnodes, njobs)); eig_limits = 0
+      allocate (ky_limits(0:numnodes, njobs)); ky_limits = 0
 
       job_list(iproc + 1) = job
       call sum_allreduce(job_list)
@@ -945,34 +950,29 @@ contains
             end if
          end do
 
-         if (iproc == jroot) neig = 1
-
-         ! broadcast number of matrices
-         call broadcast(neig, jroot)
-
-         ! split up neig across nodes that have the current job
+         ! split up naky across nodes that have the current job
          nodes_on_job = count(node_jobs(:, ijob + 1))
-         ediv = neig / nodes_on_job
-         emod = mod(neig, nodes_on_job)
+         ydiv = naky / nodes_on_job
+         ymod = mod(naky, nodes_on_job)
 
-         eig_limits(0, ijob + 1) = 1
+         ky_limits(0, ijob + 1) = 1
          do j = 1, numnodes
             if (node_jobs(j, ijob + 1)) then
-               eig_limits(j, ijob + 1) = eig_limits(j - 1, ijob + 1) + ediv
-               if (emod > 0) then
-                  eig_limits(j, ijob + 1) = eig_limits(j, ijob + 1) + 1
-                  emod = emod - 1
+               ky_limits(j, ijob + 1) = ky_limits(j - 1, ijob + 1) + ydiv
+               if (ymod > 0) then
+                  ky_limits(j, ijob + 1) = ky_limits(j, ijob + 1) + 1
+                  ymod = ymod - 1
                end if
             else
-               eig_limits(j, ijob + 1) = eig_limits(j - 1, ijob + 1)
+               ky_limits(j, ijob + 1) = ky_limits(j - 1, ijob + 1)
             end if
          end do
 
-         do ie = eig_limits(inode, ijob + 1), eig_limits(inode + 1, ijob + 1) - 1
+         do iky = ky_limits(inode, ijob + 1), ky_limits(inode + 1, ijob + 1) - 1
             win_size = 0
             if (iproc == jroot) then
                needs_send = .true.
-               n = size(response_matrix(iky)%eigen(ie)%idx)
+               n = size(response_matrix(iky)%eigen(1)%idx)
                win_size = int(n * n, MPI_ADDRESS_KIND) * 2 * real_size !complex size
             end if
 
@@ -991,7 +991,7 @@ contains
             call c_f_pointer(bptr, lu, (/n, n/))
 
             !load the matrix
-            if (iproc == jroot) lu = response_matrix(iky)%eigen(ie)%zloc
+            if (iproc == jroot) lu = response_matrix(iky)%eigen(1)%zloc
 
             !syncronize the processors
             call mpi_win_fence(0, win, ierr)
@@ -999,10 +999,10 @@ contains
             ! All the processors have the matrix.
             ! Now perform LU decomposition
             call lu_decomposition_local(mp_comm, jroot, win, lu, &
-                                        response_matrix(iky)%eigen(ie)%idx, dmax)
+                                        response_matrix(iky)%eigen(1)%idx, dmax)
 
             !copy the decomposed matrix over
-            if (iproc == jroot) response_matrix(iky)%eigen(ie)%zloc = lu
+            if (iproc == jroot) response_matrix(iky)%eigen(1)%zloc = lu
 
             call mpi_win_free(win, ierr)
          end do
@@ -1010,21 +1010,22 @@ contains
 
       !copy all the matrices across all nodes
       if (sgproc0) then
-         do ie = 1, 1
+         do iky = 1, naky
             nroot = 0
             if (needs_send .and. &
-                (ie >= eig_limits(inode, job + 1) .and. ie < eig_limits(inode + 1, job + 1))) nroot = iproc
+                iky >= ky_limits(inode, job + 1) .and. &
+                iky < ky_limits(inode + 1, job + 1)) nroot = iproc
             !first let processors know who is sending the data
             call sum_allreduce(nroot)
             !now send the data
-            call broadcast(response_matrix(iky)%eigen(ie)%zloc, nroot)
-            call broadcast(response_matrix(iky)%eigen(ie)%idx, nroot)
+            call broadcast(response_matrix(iky)%eigen(1)%zloc, nroot)
+            call broadcast(response_matrix(iky)%eigen(1)%idx, nroot)
          end do
       end if
 
       call scope(prior_focus)
 
-      deallocate (node_jobs, job_list, row_limits, eig_limits)
+      deallocate (node_jobs, job_list, row_limits, ky_limits)
    end subroutine parallel_LU_decomposition_local
 
 #endif /* ISO_C_BINDING */
