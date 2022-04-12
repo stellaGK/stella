@@ -64,7 +64,7 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface
+      use physics_flags, only: include_mirror, full_flux_surface, radial_variation
 
       implicit none
 
@@ -198,6 +198,10 @@ contains
       else
          fully_explicit = .true.
       end if
+
+      if ((stream_implicit .or. driftkinetic_implicit) .and. radial_variation) then
+         ky_solve_radial = huge(ky_solve_radial)
+      endif
 
       !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
       if (full_flux_surface) then
