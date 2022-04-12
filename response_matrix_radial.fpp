@@ -261,8 +261,8 @@ contains
 
       if (proc0 .and. debug) then
          call time_message(.false., time_response_matrix_lu, message_lu)
-
       end if
+
 #ifdef MPI
       select case (lu_option_switch)
       case (lu_option_local)
@@ -948,6 +948,8 @@ contains
             end if
          end do
 
+         if (jroot == -1) cycle !no processors on this node are on this job
+
          ! split up naky across nodes that have the current job
          nodes_on_job = count(node_jobs(:, ijob + 1))
          ydiv = naky / nodes_on_job
@@ -1005,6 +1007,8 @@ contains
             call mpi_win_free(win, ierr)
          end do
       end do
+
+      call scope(scrossdomprocs)
 
       !copy all the matrices across all nodes
       if (sgproc0) then
