@@ -257,7 +257,6 @@ contains
 
       end do
 
-
       !now we have the full response matrix. Finally, perform its LU decomposition
 
       if (proc0 .and. debug) then
@@ -266,25 +265,25 @@ contains
       end if
 #ifdef MPI
       select case (lu_option_switch)
-         case (lu_option_local)
+      case (lu_option_local)
 #ifdef ISO_C_BINDING
-            call parallel_LU_decomposition_local()
+         call parallel_LU_decomposition_local()
 #else
-            call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
+         call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
 #endif
-         case default
+      case default
 #endif
 #ifdef ISO_C_BINDING
-            if (sgproc0) then
+         if (sgproc0) then
 #endif
-               ! now that we have the reponse matrix for this ky and set of connected kx values
-               !get the LU decomposition so we are ready to solve the linear system
-               do iky = 1, naky
-                  call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
-                                        response_matrix(iky)%eigen(1)%idx, dum)
-               enddo
+            ! now that we have the reponse matrix for this ky and set of connected kx values
+            !get the LU decomposition so we are ready to solve the linear system
+            do iky = 1, naky
+               call lu_decomposition(response_matrix(iky)%eigen(1)%zloc, &
+                                     response_matrix(iky)%eigen(1)%idx, dum)
+            end do
 #ifdef ISO_C_BINDING
-            end if
+         end if
 #endif
 #ifdef MPI
       end select
