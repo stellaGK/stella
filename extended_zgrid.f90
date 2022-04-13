@@ -8,6 +8,7 @@ module extended_zgrid
    public :: iz_low, iz_mid, iz_up
    public :: periodic
    public :: nzed_segment
+   public :: phase_shift
    public :: fill_zed_ghost_zones
    public :: init_extended_zgrid, finish_extended_zgrid
    public :: map_to_extended_zgrid

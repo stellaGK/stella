@@ -31,6 +31,7 @@ contains
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: periodic
+      use extended_zgrid, only: phase_shift
       use job_manage, only: time_message
       use mp, only: proc0, mp_abort
       use run_parameters, only: lu_option_switch
@@ -61,6 +62,7 @@ contains
       complex, dimension(:), allocatable :: phiext
       complex, dimension(:, :), allocatable :: gext
       logical :: debug = .false.
+      complex :: phase
       character(100) :: message_dgdphi, message_QN, message_lu
       real, dimension(2) :: time_response_matrix_dgdphi
       real, dimension(2) :: time_response_matrix_QN
@@ -186,6 +188,7 @@ contains
             ! since domain is [z0-pi:z0+pi], including both endpoints
             ! i.e., one endpoint is shared with the previous segment
             iseg = 1
+            phase = 1.0
             ! ikxmod gives the kx corresponding to iseg,ie,iky
             ikx = ikxmod(iseg, ie, iky)
             izl_offset = 0
@@ -198,17 +201,18 @@ contains
             ! no need to obtain response to impulses at negative kx values
             do iz = iz_low(iseg), izup
                idx = idx + 1
-               call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+               call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phase, phiext, gext)
             end do
             ! once we have used one segments, remaining segments
             ! have one fewer unique zed point
             izl_offset = 1
             if (nsegments(ie, iky) > 1) then
                do iseg = 2, nsegments(ie, iky)
+                  phase = phase / phase_shift(iky)
                   ikx = ikxmod(iseg, ie, iky)
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
-                     call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                     call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phase, phiext, gext)
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
@@ -306,7 +310,7 @@ contains
 
    end subroutine init_response_matrix
 
-   subroutine get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+   subroutine get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phase, phiext, gext)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -333,6 +337,7 @@ contains
       implicit none
 
       integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
+      complex, intent(in) :: phase
       complex, dimension(:), intent(in out) :: phiext
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
 
@@ -601,6 +606,8 @@ contains
 
          end do
       end if
+
+      gext = phase * gext
 
       ! we now have g on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location
