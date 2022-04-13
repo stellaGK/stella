@@ -357,13 +357,19 @@ contains
 
          ! get variation in quasineutrality and store in g3
          if (stream_implicit) then
-            g3 = 0.0
+            g3 = 0.0 !this term is incorporated in the response matrix
          else
             call gyro_average(phi_corr_QN, ivmu, g0)
             call get_dgdz_centered(g0, ivmu, g3)
          end if
 
-         call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
+         !centered differencing is more consistent with the response matrix
+         !stencil if time_upwind ~ 0, otherwise fully explicit uses upwinding
+         if (stream_implicit) then
+            call get_dgdz_centered(g(:, :, :, :, ivmu), ivmu, g0)
+         else
+            call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
+         endif
 
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
