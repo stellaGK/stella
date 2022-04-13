@@ -368,7 +368,7 @@ contains
             call get_dgdz_centered(g(:, :, :, :, ivmu), ivmu, g0)
          else
             call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
-         endif
+         end if
 
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -384,7 +384,7 @@ contains
 
     !!#2 - variation in F_s/T_s
                g0k = g0k + g1(:, :, iz, it) * stream_rad_var2(ia, iz, ivmu) &
-                            * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                     * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + g0k
 
@@ -1045,10 +1045,10 @@ contains
 
       y_lo = iproc * y_div + 1 + min(iproc, y_mod)
       y_hi = y_lo + y_div - 1
-      if (iproc <  y_mod) y_hi = y_hi + 1
+      if (iproc < y_mod) y_hi = y_hi + 1
 
       call scope(prior_focus)
-      
+
       if (sgproc0) phi_shared = phi
       call mpi_win_fence(0, phi_shared_window, ierr)
 
