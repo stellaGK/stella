@@ -22,6 +22,7 @@ module fields
    public :: fields_updated
    public :: get_dchidy, get_dchidx
    public :: efac, efacp
+   public :: phi_shared_window
 
    private
 

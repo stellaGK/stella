@@ -821,13 +821,12 @@ contains
          !while other quantities should go here, parallel streaming with electrons
          !is what will limit us
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_rad_var1)), zero)
-         cfl_dt_stream = cfl_dt_stream / abs(rho(nx) + zero)
+         cfl_dt_stream = cfl_dt_stream / max(maxval(abs(rho)), zero)
          cfl_dt = min(cfl_dt, cfl_dt_stream)
 
-         cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_rad_var2)), zero)
-         cfl_dt_stream = cfl_dt_stream / abs(rho(nx) + zero)
-         cfl_dt = min(cfl_dt, cfl_dt_stream)
-
+!        cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_rad_var2)), zero)
+!        cfl_dt_stream = cfl_dt_stream / max(maxval(abs(rho)), zero)
+!        cfl_dt = min(cfl_dt, cfl_dt_stream)
       end if
 
       if (include_collisions .and. .not. collisions_implicit) then

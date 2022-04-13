@@ -32,7 +32,7 @@ module parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
    real, dimension(:, :), allocatable :: gradpar_c
 
-   real, dimension(2) :: time_parallel_streaming
+   real, dimension(2, 2) :: time_parallel_streaming
 
 contains
 
@@ -99,7 +99,6 @@ contains
             energy = (vpa(iv)**2 + vperp2(ia, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             stream_rad_var2(ia, :, ivmu) = &
                +code_dt * spec(is)%stm_psi0 * vpa(iv) * gradpar &
-               * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, :, imu, is) * maxwell_fac(is) &
                * (pfac * (spec(is)%fprim + spec(is)%tprim * (energy - 2.5)) &
                   + gfac * 2 * mu(imu) * dBdrho)
          end do
@@ -208,7 +207,7 @@ contains
       !> if full flux surface (flux annulus), will need to calculate in y space
 
       !> start the timer for the parallel streaming part of the time advance
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       !> allocate arrays needed for intermmediate calculations
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -306,7 +305,7 @@ contains
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
 
       !> finish timing the subroutine
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_explicit
 
@@ -384,7 +383,8 @@ contains
                g0k = g0k * stream_rad_var1(iz, iv, is)
 
     !!#2 - variation in F_s/T_s
-               g0k = g0k + g1(:, :, iz, it) * stream_rad_var2(ia, iz, ivmu)
+               g0k = g0k + g1(:, :, iz, it) * stream_rad_var2(ia, iz, ivmu) &
+                            * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + g0k
 
@@ -597,7 +597,7 @@ contains
       integer :: ivmu, iv
       complex, dimension(:, :, :, :), allocatable :: phi1
 
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
 
@@ -637,7 +637,9 @@ contains
 
       ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
       ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' Stream advance (response)')
       call invert_parstream_response(phi)
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' Stream advance (response)')
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
@@ -660,7 +662,7 @@ contains
 
       deallocate (phi1)
 
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
 
@@ -1018,6 +1020,12 @@ contains
       use full_xzgrid, only: map_to_full_xzgrid, map_from_full_xzgrid
       use kt_grids, only: naky
       use fields_arrays, only: response_matrix
+#if defined MPI && defined ISO_C_BINDING
+      use fields, only: phi_shared_window
+      use fields_arrays, only: phi_shared
+      use mp, only: iproc, nproc, sgproc0
+      use mp, only: curr_focus, sharedsubprocs, scope
+#endif
 
       implicit none
 
@@ -1026,6 +1034,36 @@ contains
       integer :: iky
       complex, dimension(:), allocatable :: gext
 
+#if defined MPI && defined ISO_C_BINDING
+      integer :: y_div, y_mod, y_lo, y_hi, prior_focus, ierr
+
+      prior_focus = curr_focus
+      call scope(sharedsubprocs)
+
+      y_div = naky / nproc
+      y_mod = mod(naky, nproc)
+
+      y_lo = iproc * y_div + 1 + min(iproc, y_mod)
+      y_hi = y_lo + y_div - 1
+      if (iproc <  y_mod) y_hi = y_hi + 1
+
+      call scope(prior_focus)
+      
+      if (sgproc0) phi_shared = phi
+      call mpi_win_fence(0, phi_shared_window, ierr)
+
+      do iky = y_lo, y_hi
+         allocate (gext(nelements(iky)))
+         call map_to_full_xzgrid(iky, phi_shared(iky, :, :, :), gext)
+         call lu_back_substitution(response_matrix(iky)%eigen(1)%zloc, &
+                                   response_matrix(iky)%eigen(1)%idx, gext)
+         call map_from_full_xzgrid(iky, gext, phi_shared(iky, :, :, :))
+         deallocate (gext)
+      end do
+      call mpi_win_fence(0, phi_shared_window, ierr)
+      phi = phi_shared
+
+#else
       ! need to put the fields into extended zed grid
       do iky = 1, naky
          allocate (gext(nelements(iky)))
@@ -1035,6 +1073,7 @@ contains
          call map_from_full_xzgrid(iky, gext, phi(iky, :, :, :))
          deallocate (gext)
       end do
+#endif
 
    end subroutine invert_parstream_response
 
