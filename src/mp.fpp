@@ -35,6 +35,7 @@ module mp
    public :: numnodes, inode
    public :: barrier
    public :: waitany
+   public :: split_n_tasks
    public :: mp_abort
    public :: mpireal, mpicmplx, real_size, nbytes_real
    public :: sgproc0
@@ -540,7 +541,31 @@ contains
       call min_allreduce(min_proc)
 
 # endif
+
    end subroutine init_job_topology
+
+!> split n tasks over current communicator. Returns the low and high
+!> indices for a given processor. Assumes indices start at 1
+   subroutine split_n_tasks(n, lo, hi)
+
+      implicit none
+
+      integer, intent(in) :: n
+      integer, intent(out) :: lo, hi
+      
+      integer :: n_div, n_mod
+
+# ifdef MPI
+      n_div = n / nproc
+      n_mod = mod(n, nproc)
+
+      lo = iproc * n_div + 1 + min(iproc, n_mod)
+      hi = lo + n_div - 1
+      if (iproc < n_mod) hi = hi + 1
+# else
+      lo = 1; hi = n;
+# endif
+   end subroutine split_n_tasks
 
    subroutine finish_mp
 # ifdef MPI
