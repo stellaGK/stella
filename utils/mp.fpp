@@ -1889,7 +1889,6 @@ contains
 
    end subroutine mp_abort
 
-
    ! this gathers a single integer from each processor into an array on proc0
    subroutine mp_gather(senddata, recvarray)
 

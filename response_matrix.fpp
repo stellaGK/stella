@@ -183,7 +183,7 @@ contains
                write (unit=mat_unit) ie, nresponse
             end if
 
-#ifdef ISO_C_BINDING 
+#ifdef ISO_C_BINDING
             !exploit MPIs shared memory framework to reduce memory consumption of
             !response matrices
 
