@@ -33,11 +33,9 @@ endif
 
 include Makefile.$(COMPILER)
 
-ifdef USE_MPI
-	MPIFC := $(FC)
-	MPICC := $(CC)
-	LIBS	+= -lmpi
-endif
+MPIFC := $(FC)
+MPICC := $(CC)
+LIBS	+= -lmpi
 
 ifeq ($(USE_FFT),fftw)
 	FFT_INC = $$FFTW

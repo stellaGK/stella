@@ -48,8 +48,6 @@ OPT ?= on
 STATIC ?=
 # promotes precisions of real and complex (bin)
 DBLE ?= on
-# turns on distributed memory parallelization using MPI (bin)
-USE_MPI ?= on
 # which FFT library to use (fftw,fftw3,mkl_fftw,undefined) 
 USE_FFT ?= fftw3
 # uses netcdf library (bin)
@@ -175,14 +173,8 @@ GIT_VERSION_DIR := $(GK_HEAD_DIR)/externals/git_version
 
 ifeq ($(MAKECMDGOALS),depend)
 # must invoke full functionality when make depend
-	MAKE += USE_HDF5=on USE_FFT=fftw3 USE_NETCDF=on USE_MPI=on \
+	MAKE += USE_HDF5=on USE_FFT=fftw3 USE_NETCDF=on \
 		USE_LOCAL_BESSEL=on USE_LOCAL_RAN=mt
-endif
-
-ifdef USE_HDF5
-	ifndef USE_MPI
-$(error Currently, USE_HDF5 works with USE_MPI)
-	endif
 endif
 
 ifndef USE_FFT
@@ -194,11 +186,10 @@ ifdef HAS_ISO_C_BINDING
 	CPPFLAGS += -DISO_C_BINDING
 endif
 
-ifdef USE_MPI
-	FC = $(MPIFC)
-	CC = $(MPICC)
-	CPPFLAGS += -DMPI
-endif
+FC = $(MPIFC)
+CC = $(MPICC)
+CPPFLAGS += -DMPI
+
 ifeq ($(USE_FFT),fftw)
 	CPPFLAGS += -DFFT=_FFTW_
 	ifeq ($(FFT_LIB),)
@@ -228,17 +219,12 @@ ifdef USE_LAPACK
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
-	ifdef USE_MPI
-		FC = $(H5FC_par)
-		CC = $(H5CC_par)
-		ifdef USE_PARALLEL_NETCDF
-			CPPFLAGS += -DNETCDF_PARALLEL
-		endif
-
-	else
-		FC = $(H5FC)
-		CC = $(H5CC)
+	FC = $(H5FC_par)
+	CC = $(H5CC_par)
+	ifdef USE_PARALLEL_NETCDF
+		CPPFLAGS += -DNETCDF_PARALLEL
 	endif
+
 	CPPFLAGS += -DHDF
 endif
 ifeq ($(USE_LOCAL_RAN),mt)
@@ -395,7 +381,7 @@ check: check-unit check-integrated
 #.PRECIOUS: $(F90FROMFPP)
 
 .INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
-		mp.f90 fft_work.f90 response_matrix.f90 multibox.f90 sources.f90 \
+		mp.f90 fft_work.f90 response_matrix.f90 sources.f90 \
 		fields.f90 mp_lu_decomposition.f90 git_version_impl.f90
 
 ############################################################# MORE DIRECTIVES
@@ -441,7 +427,6 @@ test_make:
 	@echo  DBLE is $(DBLE)
 	@echo
 	@echo Functions:
-	@echo  USE_MPI is $(USE_MPI)
 	@echo  USE_FFT is $(USE_FFT)
 	@echo  USE_NETCDF is $(USE_NETCDF)
 	@echo  USE_HDF5 is $(USE_HDF5)

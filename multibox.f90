@@ -335,7 +335,7 @@ contains
          rho_mb_clamped = rho_d_clamped
          return
       end if
-#ifdef MPI
+
       call scope(crossdomprocs)
 
       dx_mb = (2 * pi * x0) / x_fft_size
@@ -423,7 +423,6 @@ contains
       end if
 
       call scope(subprocs)
-#endif
 
    end subroutine init_multibox
 
@@ -434,7 +433,6 @@ contains
 
       implicit none
 
-#ifdef MPI
       if (job == 1) then
          call scope(crossdomprocs)
 
@@ -447,7 +445,7 @@ contains
          call scope(subprocs)
 
       end if
-#endif
+
    end subroutine communicate_multibox_parameters
 
    subroutine finish_multibox
@@ -507,9 +505,6 @@ contains
       complex, dimension(:, :), allocatable :: prefac
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: gin
 
-#ifndef MPI
-      return
-#else
       if (runtype_option_switch /= runtype_multibox) return
       if (LR_debug_switch /= LR_debug_option_default) return
       if (njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
@@ -664,7 +659,6 @@ contains
 
       if (proc0) call time_message(.false., time_multibox(:, 1), ' mb_comm')
 
-#endif
    end subroutine multibox_communicate
 
    subroutine apply_radial_boundary_conditions(gin)

@@ -29,14 +29,6 @@ include Makefile.$(COMPILER)
 F90FLAGS += -m64 -Wall
 CFLAGS += -m64
 
-ifdef FRONT_END
-      override USE_MPI = 
-endif
-
-USE_LOCAL_SPFUNC=on
-
-MPIFC=openmpif90
-
 USE_LOCAL_SPFUNC=on
 
 ifeq ($(USE_FFT),fftw)
@@ -59,8 +51,5 @@ endif
 
 FC=gfortran
 CC=gcc
-ifdef USE_MPI
-	MPIFC=openmpif90
-	MPICC=openmpicc
-endif
-
+MPIFC=openmpif90
+MPICC=openmpicc

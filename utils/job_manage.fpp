@@ -17,24 +17,17 @@ contains
 
 !!! returns CPU time in second
    function timer_local()
-# ifdef MPI
 # ifndef MPIINC
       use mpi, only: mpi_wtime
 # else
       include "mpif.h" ! CMR following Michele Weiland's advice
 # endif
-
-# endif
       real :: timer_local
+
 
       timer_local = 0.
 
-# ifdef MPI
       timer_local = mpi_wtime()
-# else
-      ! this routine is F95 standard
-      call cpu_time(timer_local)
-# endif
 
    end function timer_local
 

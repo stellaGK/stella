@@ -50,6 +50,7 @@ set(STELLA_SOURCES_f90
   init_g.f90
   kt_grids.f90
   mirror_terms.f90
+  multibox.f90
   neoclassical_terms.f90
   parallel_streaming.f90
   physics_flags.f90
@@ -75,7 +76,6 @@ set(STELLA_SOURCES_f90
 # Sources that _do_ need preprocessing
 set(STELLA_SOURCES_fpp
   fields.fpp
-  multibox.fpp
   response_matrix.fpp
   sfincs_interface.fpp
   sources.fpp

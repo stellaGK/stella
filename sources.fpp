@@ -1,6 +1,6 @@
 module sources
 
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
    use mpi
 #endif
 
@@ -33,7 +33,7 @@ module sources
 
    logical :: debug = .false.
 
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
    logical :: qn_window_initialized = .false.
 #endif
 
@@ -184,7 +184,7 @@ contains
 
       use dist_fn_arrays, only: g_krook, g_proj, g_symm
       use fields_arrays, only: phi_proj, phi_proj_stage
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
       use fields_arrays, only: qn_zf_window
 #else
       use fields_arrays, only: phizf_solve, phi_ext
@@ -200,7 +200,7 @@ contains
       if (allocated(phi_proj)) deallocate (phi_proj)
       if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
       if (qn_window_initialized .and. qn_zf_window /= MPI_WIN_NULL) then
          call mpi_win_free(qn_zf_window, ierr)
          qn_window_initialized = .false.
@@ -651,7 +651,7 @@ contains
 
    subroutine init_quasineutrality_source
 
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_zf_window
       use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
@@ -672,7 +672,7 @@ contains
       integer :: iz, ikx, ia, jkx, jz
       integer :: inmat, jnmat, nmat_zf
       real :: dum
-#if defined MPI && ISO_C_BINDING
+#ifdef ISO_C_BINDING
       integer :: prior_focus, ierr, temp_window
       integer :: disp_unit = 1
       integer(c_intptr_t):: cur_pos
@@ -689,7 +689,7 @@ contains
 
       if (include_qn_source) then
          nmat_zf = nakx * (nztot - 1)
-#if defined MPI && ISO_C_BINDING
+#ifdef ISO_C_BINDING
          if ((.not. qn_window_initialized) .or. (qn_zf_window == MPI_WIN_NULL)) then
             prior_focus = curr_focus
             call scope(sharedsubprocs)
@@ -741,7 +741,7 @@ contains
          if (.not. associated(phi_ext)) allocate (phi_ext(nmat_zf))
 #endif
 
-#if defined MPI && ISO_C_BINDING
+#ifdef ISO_C_BINDING
          if (sgproc0) then
 #endif
             allocate (g0k(1, nakx))
@@ -818,7 +818,7 @@ contains
                end do
             end do
             deallocate (g0k, g1k, g0x)
-#if defined MPI && ISO_C_BINDING
+#ifdef ISO_C_BINDING
          end if
 
          call mpi_win_fence(0, qn_zf_window, ierr)

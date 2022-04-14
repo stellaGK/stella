@@ -19,7 +19,6 @@ endef
 
 COMPILER=intel
 
-USE_MPI=on
 USE_FFT = fftw3
 USE_NETCDF = on
 
@@ -31,10 +30,8 @@ include Makefile.$(COMPILER)
 
 FC=mpiifort
 CC=icc
-ifdef USE_MPI
-	MPIFC=mpiifort
-	MPICC=mpiicc
-endif
+MPIFC=mpiifort
+MPICC=mpiicc
 
 ifeq ($(USE_FFT),fftw3)	
 	FFT_INC =
@@ -55,11 +52,7 @@ ifdef USE_NETCDF
   NETCDF_LIB= -L $(NETCDF_DIR)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 endif
 
-ifdef USE_MPI
-  #MPI_INC=-I$(MPI_ROOT)/intel64/include/
-  MPI_INC=-I$(MPI_ROOT)/include64/
-  MPI_LIB=-lmpi
-endif
+MPI_INC=-I$(MPI_ROOT)/include64/
+MPI_LIB=-lmpi
 
-$(warning USE_MPI=$(USE_MPI))
 $(warning USE_NETCDF=$(USE_NETCDF))
