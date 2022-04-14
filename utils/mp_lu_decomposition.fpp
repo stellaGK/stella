@@ -39,9 +39,8 @@ contains
       real, parameter :: zero = 1.0e-20
       real, dimension(size(lu, 1)) :: vv
       complex, dimension(size(lu, 2)) :: dum
-      integer, dimension(:), allocatable :: row_limits
 
-      integer :: i, j, k, n, imax, rdiv, rmod
+      integer :: i, j, k, n, imax, lo, hi
       integer :: iproc, nproc, ierr
       real :: dmax, tmp
 
@@ -49,8 +48,6 @@ contains
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
-
-      allocate (row_limits(0:nproc))
 
       d = 1.0
       !the following is a loop to avoid copying entire matrix
@@ -63,20 +60,7 @@ contains
       vv = 1.0 / vv
       do j = 1, n
          !divide up the work using row_limits
-         rdiv = (n - j) / nproc
-         rmod = mod(n - j, nproc)
-         row_limits(0) = j + 1
-         if (rdiv == 0) then
-            row_limits(rmod + 1:) = -1
-            do k = 1, rmod
-               row_limits(k) = row_limits(k - 1) + 1
-            end do
-         else
-            do k = 1, nproc
-               row_limits(k) = row_limits(k - 1) + rdiv
-               if (k <= rmod) row_limits(k) = row_limits(k) + 1
-            end do
-         end if
+         call split_n_tasks (n - j, iproc, nproc, lo, hi, llim = j + 1)
 
          !pivot if needed
          dmax = -1.0
@@ -105,13 +89,13 @@ contains
          call mpi_win_fence(0, win, ierr)
 
          !get the lead multiplier
-         do i = row_limits(iproc), row_limits(iproc + 1) - 1
+         do i = lo, hi 
             lu(i, j) = lu(i, j) / lu(j, j)
          end do
 
          call mpi_win_fence(0, win, ierr)
 
-         do k = row_limits(iproc), row_limits(iproc + 1) - 1
+         do k = lo, hi
             do i = j + 1, n
                lu(i, k) = lu(i, k) - lu(i, j) * lu(j, k)
             end do
@@ -119,8 +103,6 @@ contains
 
          call mpi_win_fence(0, win, ierr)
       end do
-
-      deallocate (row_limits)
 
    end subroutine lu_decomposition_local_complex
 
@@ -135,28 +117,24 @@ contains
       integer, dimension(:), intent(in) :: idx
       complex, dimension(:, :), intent(out) :: inverse
 
-      integer :: i, n, nproc, iproc, rdiv, rmod, ierr
-      integer :: llim, ulim
+      integer :: i, n, nproc, iproc, ierr
+      integer :: lo, hi
 
       n = size(lu, 1)
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
 
-      rdiv = n / nproc
-      rmod = mod(n, nproc)
+      call split_n_tasks (n, iproc, nproc, lo, hi)
 
-      llim = 1 + iproc * rdiv + min(rmod, iproc)
-      ulim = (iproc + 1) * rdiv + min(rmod, iproc + 1)
-
-      do i = llim, ulim
+      do i = lo, hi
          inverse(i, :) = 0
          inverse(i, i) = 1.0
       end do
 
       call mpi_win_fence(0, win, ierr)
 
-      do i = llim, ulim
+      do i = lo, hi
          call lu_back_substitution(lu, idx, inverse(:, i))
       end do
 
@@ -173,33 +151,53 @@ contains
       complex, dimension(:), intent(out) :: b
       complex, dimension(size(b)) :: a
 
-      integer :: i, n, nproc, iproc, rdiv, rmod
-      integer :: llim, ulim, ierr
+      integer :: i, n, nproc, iproc
+      integer :: lo, hi, ierr
 
       n = size(mat, 1)
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
 
-      rdiv = n / nproc
-      rmod = mod(n, nproc)
+      call split_n_tasks (n, iproc, nproc, lo, hi)
 
-      llim = 1 + iproc * rdiv + min(rmod, iproc)
-      ulim = (iproc + 1) * rdiv + min(rmod, iproc + 1)
-
-      do i = llim, ulim
+      do i = lo, hi
          a(i) = sum(mat(i, :) * b(:))
       end do
 
       call mpi_win_fence(0, win, ierr)
 
-      do i = llim, ulim
+      do i = lo, hi
          b(i) = a(i)
       end do
 
       call mpi_win_fence(0, win, ierr)
 
    end subroutine lu_matrix_multiply_local_complex
+
+   subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim)
+
+      implicit none
+
+      integer, intent(in) :: n, iproc, nproc
+      integer, intent(out) :: lo, hi
+      integer, optional, intent(in) :: llim
+      
+      integer :: n_div, n_mod, llim_local
+      
+      llim_local = 1
+      if (present(llim)) llim_local = llim
+
+      n_div = n / nproc
+      n_mod = mod(n, nproc)
+
+      lo = iproc * n_div + min(iproc, n_mod) + llim_local
+      hi = lo + n_div - 1
+      if (iproc < n_mod) hi = hi + 1
+
+
+
+   end subroutine split_n_tasks
 
 #endif
 
