@@ -258,7 +258,8 @@ contains
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_window, phi_shared
       use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
-      use mp, only: scope, real_size, nbytes_real, iproc, nproc
+      use mp, only: scope, real_size, nbytes_real
+      use mp, only: split_n_tasks
       use mpi
 #endif
       use run_parameters, only: ky_solve_radial, ky_solve_real
@@ -283,7 +284,7 @@ contains
       logical :: has_elec, adia_elec
 #if defined MPI && ISO_C_BINDING
       integer :: prior_focus, ierr
-      integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
+      integer :: counter, c_lo, c_hi
       integer :: disp_unit = 1
       integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
@@ -378,13 +379,8 @@ contains
 
             qn_window_initialized = .true.
          end if
-         c_max = nztot * naky_r
-         c_div = c_max / nproc
-         c_mod = mod(c_max, nproc)
 
-         c_lo = iproc * c_div + 1 + min(iproc, c_mod)
-         c_hi = c_lo + c_div - 1
-         if (iproc < c_mod) c_hi = c_hi + 1
+         call split_n_tasks(nztot * naky_r, c_lo, c_hi)
 
          call scope(prior_focus)
          counter = 0
@@ -1318,8 +1314,8 @@ contains
 
 #if defined MPI && ISO_C_BINDING
       use mpi
-      use mp, only: iproc, nproc, sgproc0
       use mp, only: curr_focus, sharedsubprocs, scope
+      use mp, only: split_n_tasks, sgproc0
       use zgrid, only: nztot
       use fields_arrays, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
@@ -1342,7 +1338,7 @@ contains
       complex, dimension(:, :), allocatable :: g0k, g0x
       logical :: has_elec, adia_elec
 #if defined MPI && ISO_C_BINDING
-      integer :: counter, c_lo, c_hi, c_max, c_div, c_mod
+      integer :: counter, c_lo, c_hi
       integer :: prior_focus, ierr
 #endif
 
@@ -1357,13 +1353,8 @@ contains
 #if defined MPI && ISO_C_BINDING
       prior_focus = curr_focus
       call scope(sharedsubprocs)
-      c_max = nztot * ntubes * naky_r
-      c_div = c_max / nproc
-      c_mod = mod(c_max, nproc)
 
-      c_lo = iproc * c_div + 1 + min(iproc, c_mod)
-      c_hi = c_lo + c_div - 1
-      if (iproc < c_mod) c_hi = c_hi + 1
+      call split_n_tasks (nztot * ntubes * naky_r, c_lo, c_hi)
 
       call scope(prior_focus)
       counter = 0

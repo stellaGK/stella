@@ -1006,7 +1006,6 @@ contains
 
       integer, dimension(:, :), allocatable :: eig_limits
       integer, dimension(:), allocatable :: job_list
-      integer, dimension(:), allocatable :: row_limits
       logical, dimension(:, :), allocatable :: node_jobs
 
       complex, dimension(:, :), pointer :: lu
@@ -1026,17 +1025,16 @@ contains
 
       call scope(sharedprocs)
 
-      allocate (node_jobs(numnodes, njobs)); node_jobs = .false.
-      allocate (job_list(nproc)); job_list = 0
-      allocate (row_limits(0:nproc))
-      allocate (eig_limits(0:numnodes, njobs)); eig_limits = 0
+      allocate (node_jobs(0:(numnodes-1), 0:(njobs-1))); node_jobs = .false.
+      allocate (job_list(0:(nproc-1))); job_list = 0
+      allocate (eig_limits(0:numnodes, 0:(njobs-1))); eig_limits = 0
 
-      job_list(iproc + 1) = job
+      job_list(iproc) = job
       call sum_allreduce(job_list)
 
       if (proc0) then
-         do j = 1, nproc
-            node_jobs(inode + 1, job_list(j) + 1) = .true. !create a map of which nodes have which jobs
+         do j = 0, nproc - 1
+            node_jobs(inode, job_list(j)) = .true. !create a map of which nodes have which jobs
          end do
       end if
 
@@ -1048,9 +1046,9 @@ contains
 
       do ijob = 0, njobs - 1
          jroot = -1
-         do j = 1, nproc
+         do j = 0, nproc - 1
             if (job_list(j) == ijob) then
-               jroot = j - 1 !the first processor on this job will be the root process
+               jroot = j !the first processor on this job will be the root process
                exit
             end if
          end do
@@ -1063,24 +1061,24 @@ contains
          call broadcast(neig, jroot)
 
          ! split up neig across nodes that have the current job
-         nodes_on_job = count(node_jobs(:, ijob + 1))
+         nodes_on_job = count(node_jobs(:, ijob))
          ediv = neig / nodes_on_job
          emod = mod(neig, nodes_on_job)
 
-         eig_limits(0, ijob + 1) = 1
+         eig_limits(0, ijob) = 1
          do j = 1, numnodes
-            if (node_jobs(j, ijob + 1)) then
-               eig_limits(j, ijob + 1) = eig_limits(j - 1, ijob + 1) + ediv
+            if (node_jobs(j - 1, ijob)) then
+               eig_limits(j, ijob) = eig_limits(j - 1, ijob) + ediv
                if (emod > 0) then
-                  eig_limits(j, ijob + 1) = eig_limits(j, ijob + 1) + 1
+                  eig_limits(j, ijob) = eig_limits(j, ijob) + 1
                   emod = emod - 1
                end if
             else
-               eig_limits(j, ijob + 1) = eig_limits(j - 1, ijob + 1)
+               eig_limits(j, ijob) = eig_limits(j - 1, ijob)
             end if
          end do
 
-         do ie = eig_limits(inode, ijob + 1), eig_limits(inode + 1, ijob + 1) - 1
+         do ie = eig_limits(inode, ijob), eig_limits(inode + 1, ijob) - 1
             win_size = 0
             if (iproc == jroot) then
                needs_send = .true.
@@ -1127,7 +1125,7 @@ contains
          do ie = 1, neigen(iky)
             nroot = 0
             if (needs_send .and. &
-                (ie >= eig_limits(inode, job + 1) .and. ie < eig_limits(inode + 1, job + 1))) nroot = iproc
+                (ie >= eig_limits(inode, job) .and. ie < eig_limits(inode + 1, job))) nroot = iproc
             !first let processors know who is sending the data
             call sum_allreduce(nroot)
             !now send the data
@@ -1138,7 +1136,7 @@ contains
 
       call scope(prior_focus)
 
-      deallocate (node_jobs, job_list, row_limits, eig_limits)
+      deallocate (node_jobs, job_list, eig_limits)
    end subroutine parallel_LU_decomposition_local
 
 #endif /* ISO_C_BINDING */
