@@ -552,7 +552,7 @@ contains
 
       integer, intent(in) :: n
       integer, intent(out) :: lo, hi
-      
+
       integer :: n_div, n_mod
 
 # ifdef MPI
@@ -563,7 +563,7 @@ contains
       hi = lo + n_div - 1
       if (iproc < n_mod) hi = hi + 1
 # else
-      lo = 1; hi = n;
+      lo = 1; hi = n; 
 # endif
    end subroutine split_n_tasks
 

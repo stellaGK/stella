@@ -1025,9 +1025,9 @@ contains
 
       call scope(sharedprocs)
 
-      allocate (node_jobs(0:(numnodes-1), 0:(njobs-1))); node_jobs = .false.
-      allocate (job_list(0:(nproc-1))); job_list = 0
-      allocate (eig_limits(0:numnodes, 0:(njobs-1))); eig_limits = 0
+      allocate (node_jobs(0:(numnodes - 1), 0:(njobs - 1))); node_jobs = .false.
+      allocate (job_list(0:(nproc - 1))); job_list = 0
+      allocate (eig_limits(0:numnodes, 0:(njobs - 1))); eig_limits = 0
 
       job_list(iproc) = job
       call sum_allreduce(job_list)
