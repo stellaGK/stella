@@ -24,7 +24,6 @@ contains
 # endif
       real :: timer_local
 
-
       timer_local = 0.
 
       timer_local = mpi_wtime()
