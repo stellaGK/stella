@@ -60,7 +60,7 @@ contains
       vv = 1.0 / vv
       do j = 1, n
          !divide up the work using row_limits
-         call split_n_tasks (n - j, iproc, nproc, lo, hi, llim = j + 1)
+         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim=j + 1)
 
          !pivot if needed
          dmax = -1.0
@@ -89,7 +89,7 @@ contains
          call mpi_win_fence(0, win, ierr)
 
          !get the lead multiplier
-         do i = lo, hi 
+         do i = lo, hi
             lu(i, j) = lu(i, j) / lu(j, j)
          end do
 
@@ -125,7 +125,7 @@ contains
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
 
-      call split_n_tasks (n, iproc, nproc, lo, hi)
+      call split_n_tasks(n, iproc, nproc, lo, hi)
 
       do i = lo, hi
          inverse(i, :) = 0
@@ -159,7 +159,7 @@ contains
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
 
-      call split_n_tasks (n, iproc, nproc, lo, hi)
+      call split_n_tasks(n, iproc, nproc, lo, hi)
 
       do i = lo, hi
          a(i) = sum(mat(i, :) * b(:))
@@ -182,9 +182,9 @@ contains
       integer, intent(in) :: n, iproc, nproc
       integer, intent(out) :: lo, hi
       integer, optional, intent(in) :: llim
-      
+
       integer :: n_div, n_mod, llim_local
-      
+
       llim_local = 1
       if (present(llim)) llim_local = llim
 
@@ -194,8 +194,6 @@ contains
       lo = iproc * n_div + min(iproc, n_mod) + llim_local
       hi = lo + n_div - 1
       if (iproc < n_mod) hi = hi + 1
-
-
 
    end subroutine split_n_tasks
 

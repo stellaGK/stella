@@ -983,9 +983,6 @@ contains
          if (debug) write (*, *) 'time_advance::advance_explicit'
          call advance_explicit(gnew)
 
-         ! enforce periodicity for zonal mode
-!    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
-
          !> use operator splitting to separately evolve
          !> all terms treated implicitly
          if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
@@ -1023,7 +1020,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use zgrid, only: nzgrid
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
       use parallel_streaming, only: stream_sign
@@ -1057,7 +1054,8 @@ contains
                iv = iv_idx(vmu_lo, ivmu)
                !> stream_sign > 0 corresponds to dz/dt < 0
                sgn = stream_sign(iv)
-               g(iky, :, sgn * nzgrid, :, ivmu) = g(iky, :, -sgn * nzgrid, :, ivmu)
+               g(iky, :, sgn * nzgrid, :, ivmu) = & 
+                            g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
             end do
          end if
       end do
@@ -1780,11 +1778,6 @@ contains
                end if
             end do
          end do
-         ! enforce periodicity for zonal mode
-         ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
-         ! AND MAY INDEED BE THE WRONG THING TO DO
-         gout(1, :, -nzgrid, :, ivmu) = 0.5 * (gout(1, :, nzgrid, :, ivmu) + gout(1, :, -nzgrid, :, ivmu))
-         gout(1, :, nzgrid, :, ivmu) = gout(1, :, -nzgrid, :, ivmu)
       end do
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)

@@ -56,13 +56,19 @@ contains
 
       if (.not. allocated(neigen)) allocate (neigen(naky))
       if (.not. allocated(periodic)) allocate (periodic(naky)); periodic = .false.
-      if (.not. allocated(phase_shift)) allocate (phase_shift(naky)); phase_shift = 1.
+      if (.not. allocated(phase_shift)) allocate (phase_shift(naky))
 
       if (boundary_option_switch == boundary_option_self_periodic) then
          periodic = .true.
       else
          where (abs(aky) < epsilon(0.0)) periodic = .true.
       end if
+
+      !> phase shift due to the twist-and-shift boundary condition
+      !> Usually set to zero for standard local simulation, but can
+      !> have an effect for global simulations and simulations with low
+      !> magnetic shear that use periodic boundary conditions everywhere
+      phase_shift = exp(zi * aky * phase_shift_fac)
 
       select case (boundary_option_switch)
       case (boundary_option_linked)
@@ -199,8 +205,6 @@ contains
             allocate (iz_mid(nseg_max)); iz_mid = 0
             allocate (iz_up(nseg_max)); iz_up = nzgrid
          end if
-
-         phase_shift = exp(zi * aky * phase_shift_fac)
 
       case default
 

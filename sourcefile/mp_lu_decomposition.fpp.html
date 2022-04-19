@@ -218,7 +218,7 @@
 <a name="ln-60"></a>      <span class="n">vv</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">vv</span>
 <a name="ln-61"></a>      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span>
 <a name="ln-62"></a>         <span class="c">!divide up the work using row_limits</span>
-<a name="ln-63"></a>         <span class="k">call </span><span class="n">split_n_tasks</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">j</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">llim</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-63"></a>         <span class="k">call </span><span class="n">split_n_tasks</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">j</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">llim</span><span class="o">=</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 <a name="ln-64"></a>
 <a name="ln-65"></a>         <span class="c">!pivot if needed</span>
 <a name="ln-66"></a>         <span class="nb">dmax</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
@@ -247,7 +247,7 @@
 <a name="ln-89"></a><span class="k">         call </span><span class="n">mpi_win_fence</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">win</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-90"></a>
 <a name="ln-91"></a>         <span class="c">!get the lead multiplier</span>
-<a name="ln-92"></a>         <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> 
+<a name="ln-92"></a>         <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span>
 <a name="ln-93"></a>            <span class="n">lu</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="n">lu</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="o">/</span> <span class="n">lu</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
 <a name="ln-94"></a>         <span class="k">end do</span>
 <a name="ln-95"></a>
@@ -283,7 +283,7 @@
 <a name="ln-125"></a>      <span class="k">call </span><span class="n">mpi_comm_size</span><span class="p">(</span><span class="n">mp_comm</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-126"></a>      <span class="k">call </span><span class="n">mpi_comm_rank</span><span class="p">(</span><span class="n">mp_comm</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-127"></a>
-<a name="ln-128"></a>      <span class="k">call </span><span class="n">split_n_tasks</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
+<a name="ln-128"></a>      <span class="k">call </span><span class="n">split_n_tasks</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
 <a name="ln-129"></a>
 <a name="ln-130"></a>      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span>
 <a name="ln-131"></a>         <span class="n">inverse</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">:)</span> <span class="o">=</span> <span class="mi">0</span>
@@ -317,7 +317,7 @@
 <a name="ln-159"></a>      <span class="k">call </span><span class="n">mpi_comm_size</span><span class="p">(</span><span class="n">mp_comm</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-160"></a>      <span class="k">call </span><span class="n">mpi_comm_rank</span><span class="p">(</span><span class="n">mp_comm</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-161"></a>
-<a name="ln-162"></a>      <span class="k">call </span><span class="n">split_n_tasks</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
+<a name="ln-162"></a>      <span class="k">call </span><span class="n">split_n_tasks</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
 <a name="ln-163"></a>
 <a name="ln-164"></a>      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span>
 <a name="ln-165"></a>         <span class="n">a</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mat</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">:)</span> <span class="o">*</span> <span class="n">b</span><span class="p">(:))</span>
@@ -340,9 +340,9 @@
 <a name="ln-182"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span><span class="p">,</span> <span class="n">iproc</span><span class="p">,</span> <span class="n">nproc</span>
 <a name="ln-183"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span>
 <a name="ln-184"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">llim</span>
-<a name="ln-185"></a>      
+<a name="ln-185"></a>
 <a name="ln-186"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_div</span><span class="p">,</span> <span class="n">n_mod</span><span class="p">,</span> <span class="n">llim_local</span>
-<a name="ln-187"></a>      
+<a name="ln-187"></a>
 <a name="ln-188"></a>      <span class="n">llim_local</span> <span class="o">=</span> <span class="mi">1</span>
 <a name="ln-189"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">llim</span><span class="p">))</span> <span class="n">llim_local</span> <span class="o">=</span> <span class="n">llim</span>
 <a name="ln-190"></a>
@@ -353,13 +353,11 @@
 <a name="ln-195"></a>      <span class="n">hi</span> <span class="o">=</span> <span class="n">lo</span> <span class="o">+</span> <span class="n">n_div</span> <span class="o">-</span> <span class="mi">1</span>
 <a name="ln-196"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">iproc</span> <span class="o">&lt;</span> <span class="n">n_mod</span><span class="p">)</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">hi</span> <span class="o">+</span> <span class="mi">1</span>
 <a name="ln-197"></a>
-<a name="ln-198"></a>
+<a name="ln-198"></a>   <span class="k">end subroutine </span><span class="n">split_n_tasks</span>
 <a name="ln-199"></a>
-<a name="ln-200"></a>   <span class="k">end subroutine </span><span class="n">split_n_tasks</span>
+<a name="ln-200"></a><span class="cp">#endif</span>
 <a name="ln-201"></a>
-<a name="ln-202"></a><span class="cp">#endif</span>
-<a name="ln-203"></a>
-<a name="ln-204"></a><span class="k">end module </span><span class="n">mp_lu_decomposition</span>
+<a name="ln-202"></a><span class="k">end module </span><span class="n">mp_lu_decomposition</span>
 </pre></div>
 
     </section>
@@ -372,13 +370,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-56-g34e1f92dd</small></p>
+<br /><small>v0.5-60-g6852a6e96</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-04-14T01:47:28.640010           </p>
+ on 2022-04-19T19:13:52.024237           </p>
         </div>
       </div>
       <br>
