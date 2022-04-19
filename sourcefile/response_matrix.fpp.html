@@ -980,7 +980,7 @@
 <a name="ln-822"></a>      <span class="k">else</span>
 <a name="ln-823"></a><span class="k">         </span><span class="n">iz1</span> <span class="o">=</span> <span class="n">nzgrid</span><span class="p">;</span> <span class="n">iz2</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span>
 <a name="ln-824"></a>      <span class="k">end if</span>
-<a name="ln-825"></a><span class="k">      </span><span class="n">pf</span> <span class="o">=</span> <span class="n">phase_shift</span><span class="p">(</span><span class="n">iky</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">sgn</span><span class="p">)</span>
+<a name="ln-825"></a><span class="k">      </span><span class="n">pf</span> <span class="o">=</span> <span class="n">phase_shift</span><span class="p">(</span><span class="n">iky</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">sgn</span><span class="p">)</span>
 <a name="ln-826"></a>      <span class="n">gpi</span><span class="p">(</span><span class="n">iz1</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span> <span class="n">gcf</span><span class="p">(</span><span class="n">iz1</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.</span>
 <a name="ln-827"></a>      <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="n">iz1</span> <span class="o">-</span> <span class="n">sgn</span><span class="p">,</span> <span class="n">iz2</span><span class="p">,</span> <span class="o">-</span><span class="n">sgn</span>
 <a name="ln-828"></a>         <span class="n">fac1</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">zed_upwind</span> <span class="o">+</span> <span class="n">sgn</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">time_upwind</span><span class="p">)</span> <span class="o">*</span> <span class="n">stream_c</span><span class="p">(</span><span class="n">iz</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="k">is</span><span class="p">)</span> <span class="o">/</span> <span class="n">delzed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -989,7 +989,7 @@
 <a name="ln-831"></a>         <span class="n">gcf</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="n">gcf</span><span class="p">(</span><span class="n">iz</span> <span class="o">+</span> <span class="n">sgn</span><span class="p">)</span> <span class="o">*</span> <span class="n">fac2</span> <span class="o">/</span> <span class="n">fac1</span>
 <a name="ln-832"></a>      <span class="k">end do</span>
 <a name="ln-833"></a>      <span class="c">! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF</span>
-<a name="ln-834"></a>      <span class="n">g</span> <span class="o">=</span> <span class="n">gpi</span> <span class="o">+</span> <span class="p">(</span><span class="n">pf</span> <span class="o">*</span> <span class="nb">spread</span><span class="p">(</span><span class="n">gpi</span><span class="p">(</span><span class="n">iz2</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nztot</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">pf</span> <span class="o">*</span> <span class="n">gcf</span><span class="p">(</span><span class="n">iz2</span><span class="p">)))</span> <span class="o">*</span> <span class="n">gcf</span>
+<a name="ln-834"></a>      <span class="n">g</span> <span class="o">=</span> <span class="n">gpi</span> <span class="o">+</span> <span class="p">(</span><span class="n">pf</span> <span class="o">*</span> <span class="nb">spread</span><span class="p">(</span><span class="n">gpi</span><span class="p">(</span><span class="n">iz2</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nztot</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span><span class="o">-</span><span class="n">pf</span> <span class="o">*</span> <span class="n">gcf</span><span class="p">(</span><span class="n">iz2</span><span class="p">)))</span> <span class="o">*</span> <span class="n">gcf</span>
 <a name="ln-835"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">gpi</span><span class="p">,</span> <span class="n">gcf</span><span class="p">)</span>
 <a name="ln-836"></a>
 <a name="ln-837"></a>   <span class="k">end subroutine </span><span class="n">sweep_zed_zonal_response</span>
@@ -1582,13 +1582,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-60-g6852a6e96</small></p>
+<br /><small>v0.5-64-g4feba7414</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-04-19T19:13:52.024237           </p>
+ on 2022-04-19T19:32:00.324291           </p>
         </div>
       </div>
       <br>
