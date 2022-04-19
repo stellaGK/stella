@@ -822,7 +822,7 @@ contains
       else
          iz1 = nzgrid; iz2 = -nzgrid
       end if
-      pf = phase_shift(iky) ** (-sgn)
+      pf = phase_shift(iky)**(-sgn)
       gpi(iz1) = 0.; gcf(iz1) = 1.
       do iz = iz1 - sgn, iz2, -sgn
          fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
@@ -831,7 +831,7 @@ contains
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (pf * spread(gpi(iz2), 1, nztot) / (1. - pf * gcf(iz2))) * gcf
+      g = gpi + (pf * spread(gpi(iz2), 1, nztot) / (1.-pf * gcf(iz2))) * gcf
       deallocate (gpi, gcf)
 
    end subroutine sweep_zed_zonal_response

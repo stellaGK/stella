@@ -1054,8 +1054,8 @@ contains
                iv = iv_idx(vmu_lo, ivmu)
                !> stream_sign > 0 corresponds to dz/dt < 0
                sgn = stream_sign(iv)
-               g(iky, :, sgn * nzgrid, :, ivmu) = & 
-                            g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
+               g(iky, :, sgn * nzgrid, :, ivmu) = &
+                  g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
             end do
          end if
       end do
