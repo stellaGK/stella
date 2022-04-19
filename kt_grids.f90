@@ -194,6 +194,7 @@ contains
       akx_max = -1.0
       theta0_min = 0.0
       theta0_max = -1.0
+      phase_shift_fac = 0.
 
       in_file = input_unit_exist("kt_grids_range_parameters", exist)
       if (exist) read (in_file, nml=kt_grids_range_parameters)
