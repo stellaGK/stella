@@ -360,10 +360,10 @@ contains
       if (rhostar > 0.) then
          phase_shift_fac = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
       else if (randomize_phase_shift) then
-         if (proc0) phase_shift_fac = 2.*pi * ranf() / norm
+         if (proc0) phase_shift_fac = 2.* pi * ranf() / norm
          call broadcast(phase_shift_fac)
       else
-         phase_shift_fac = phase_shift_fac / norm
+         phase_shift_fac = 2. * pi * phase_shift_fac / norm
       end if
 
       !> MAB: a lot of the radial variation coding below should probably be tidied away
