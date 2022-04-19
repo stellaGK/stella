@@ -801,7 +801,7 @@ contains
 
       do iky = 1, naky
          if (periodic(iky)) then
-            call sweep_zed_zonal(iv, is, sgn, g(iky, :, :, :))
+            call sweep_zed_zonal(iky, iv, is, sgn, g(iky, :, :, :))
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -913,7 +913,7 @@ contains
       ! and solve for g on the extended z-grid
       do iky = 1, naky
          if (periodic(iky)) then
-            call sweep_zed_zonal(iv, is, sgn, g(iky, :, :, :))
+            call sweep_zed_zonal(iky, iv, is, sgn, g(iky, :, :, :))
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -948,19 +948,21 @@ contains
 
    end subroutine sweep_g_zed
 
-   subroutine sweep_zed_zonal(iv, is, sgn, g)
+   subroutine sweep_zed_zonal(iky, iv, is, sgn, g)
 
       use zgrid, only: nzgrid, delzed, nztot, ntubes
       use kt_grids, only: nakx
+      use extended_zgrid, only: phase_shift
       use run_parameters, only: zed_upwind, time_upwind
 
       implicit none
 
-      integer, intent(in) :: iv, is, sgn
+      integer, intent(in) :: iky, iv, is, sgn
       complex, dimension(:, -nzgrid:, :), intent(in out) :: g
 
       integer :: iz, iz1, iz2
       real :: fac1, fac2
+      complex :: pf
       complex, dimension(:), allocatable :: gcf
       complex, dimension(:, :, :), allocatable :: gpi
 
@@ -975,6 +977,7 @@ contains
       else
          iz1 = nzgrid; iz2 = -nzgrid
       end if
+      pf = phase_shift(iky)**(-sgn)
       gpi(:, iz1, :) = 0.; gcf(iz1) = 1.
       do iz = iz1 - sgn, iz2, -sgn
          fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
@@ -983,7 +986,8 @@ contains
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (spread(gpi(:, iz2, :), 2, nztot) / (1.-gcf(iz2))) * spread(spread(gcf, 1, nakx), 3, ntubes)
+      g = gpi + (pf * spread(gpi(:, iz2, :), 2, nztot) & 
+                                / (1. - pf * gcf(iz2))) * spread(spread(gcf, 1, nakx), 3, ntubes)
       deallocate (gpi, gcf)
 
    end subroutine sweep_zed_zonal
@@ -998,7 +1002,7 @@ contains
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: map_from_extended_zgrid
       use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use fields_arrays, only: response_matrix
 
@@ -1019,7 +1023,7 @@ contains
                   ikx = ikxmod(1, ie, iky)
                   call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
                                             response_matrix(iky)%eigen(ie)%idx, phi(iky, ikx, :nzgrid - 1, it))
-                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it)
+                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
                end do
             end do
          else

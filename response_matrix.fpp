@@ -490,7 +490,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
       use zgrid, only: delzed, nzgrid
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
       use species, only: spec
       use stella_geometry, only: gradpar, dbdzed
       use vpamu_grids, only: vpa, mu
@@ -591,9 +591,9 @@ contains
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = fac0
+                     gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
                   else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = -fac1
+                     gext(1, ivmu) = -fac1 * phase_shift(iky)
                   end if
                end if
             else
@@ -639,17 +639,17 @@ contains
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = -fac0
-                     gext(nz_ext - 1, ivmu) = fac1
+                     gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
+                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
                   else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1
+                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
                   end if
                end if
             end if
 
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal_response(iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -718,9 +718,9 @@ contains
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = fac0
+                     gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
                   else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = -fac1
+                     gext(1, ivmu) = -fac1 * phase_shift(iky)
                   end if
                end if
             else
@@ -756,17 +756,17 @@ contains
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = -fac0
-                     gext(nz_ext - 1, ivmu) = fac1
+                     gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
+                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
                   else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1
+                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
                   end if
                end if
             end if
 
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal_response(iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -794,19 +794,21 @@ contains
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
 
-   subroutine sweep_zed_zonal_response(iv, is, sgn, g)
+   subroutine sweep_zed_zonal_response(iky, iv, is, sgn, g)
 
       use zgrid, only: nzgrid, delzed, nztot
+      use extended_zgrid, only: phase_shift
       use run_parameters, only: zed_upwind, time_upwind
       use parallel_streaming, only: stream_c
 
       implicit none
 
-      integer, intent(in) :: iv, is, sgn
+      integer, intent(in) :: iky, iv, is, sgn
       complex, dimension(:), intent(in out) :: g
 
       integer :: iz, iz1, iz2
       real :: fac1, fac2
+      complex :: pf
       complex, dimension(:), allocatable :: gcf, gpi
 
       allocate (gpi(-nzgrid:nzgrid))
@@ -820,6 +822,7 @@ contains
       else
          iz1 = nzgrid; iz2 = -nzgrid
       end if
+      pf = phase_shift(iky) ** (-sgn)
       gpi(iz1) = 0.; gcf(iz1) = 1.
       do iz = iz1 - sgn, iz2, -sgn
          fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
@@ -828,7 +831,7 @@ contains
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (spread(gpi(iz2), 1, nztot) / (1.-gcf(iz2))) * gcf
+      g = gpi + (pf * spread(gpi(iz2), 1, nztot) / (1. - pf * gcf(iz2))) * gcf
       deallocate (gpi, gcf)
 
    end subroutine sweep_zed_zonal_response

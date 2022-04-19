@@ -382,7 +382,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: ikxmod, nsegments, neigen
       use extended_zgrid, only: it_right
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky, nakx, reality, zonal_mode
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -456,7 +456,7 @@ contains
          ! enforce periodicity where required
          do iky = 1, naky
             if (periodic(iky)) then
-               phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :)
+               phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :) / phase_shift(iky)
             end if
          end do
 
