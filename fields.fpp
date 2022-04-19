@@ -1354,7 +1354,7 @@ contains
       prior_focus = curr_focus
       call scope(sharedsubprocs)
 
-      call split_n_tasks (nztot * ntubes * naky_r, c_lo, c_hi)
+      call split_n_tasks(nztot * ntubes * naky_r, c_lo, c_hi)
 
       call scope(prior_focus)
       counter = 0
