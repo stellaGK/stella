@@ -456,7 +456,7 @@ contains
          ! enforce periodicity where required
          do iky = 1, naky
             if (periodic(iky)) then
-               phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :) / phase_shift(iky)
+               phi(iky, :, nzgrid, :) = phi(iky, :, -nzgrid, :) / phase_shift(iky)
             end if
          end do
 
