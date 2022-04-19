@@ -986,8 +986,8 @@ contains
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (pf * spread(gpi(:, iz2, :), 2, nztot) & 
-                                / (1. - pf * gcf(iz2))) * spread(spread(gcf, 1, nakx), 3, ntubes)
+      g = gpi + (pf * spread(gpi(:, iz2, :), 2, nztot) &
+                 / (1.-pf * gcf(iz2))) * spread(spread(gcf, 1, nakx), 3, ntubes)
       deallocate (gpi, gcf)
 
    end subroutine sweep_zed_zonal
