@@ -566,6 +566,7 @@ contains
       call broadcast(reality)
       call broadcast(jtwist)
       call broadcast(jtwistfac)
+      call broadcast(x0)
       call broadcast(y0)
       call broadcast(aky_min)
       call broadcast(aky_max)
