@@ -53,7 +53,7 @@ contains
 
       use mp, only: broadcast
 
-      implicit none 
+      implicit none
 
       !> Read the namelist "stella_diagnostics_knobs" in the input file
       call read_parameters
