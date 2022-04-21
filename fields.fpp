@@ -1730,9 +1730,8 @@ contains
                      g1x(1, :) = rho_d_clamped * g1x(1, :)
                      call transform_x2kx_unpadded(g1x, g1k)
 
-                     phi1(1, ikx, :, it) = phi1(1, ikx, :, it) + g1k(1, ikx) / gamtot(1, ikx, :)
-
                      do ikx = 1, nakx
+                        phi1(1, ikx, :, it) = phi1(1, ikx, :, it) + g1k(1, ikx) / gamtot(1, ikx, :)
                         tmp = sum(dl_over_b(ia, :) * phi1(1, ikx, :, it))
                         phi1(1, ikx, :, it) = phi1(1, ikx, :, it) + gamtot3(ikx, :) * tmp
                      end do

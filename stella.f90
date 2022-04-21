@@ -93,7 +93,7 @@ contains
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
       use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
-      use stella_diagnostics, only: init_stella_diagnostics
+      use stella_diagnostics, only: read_stella_diagnostics_knobs, init_stella_diagnostics
       use fields_arrays, only: phi, apar
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
@@ -185,6 +185,8 @@ contains
       call read_vpamu_grids_parameters
       if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
       call read_multibox_parameters
+      if (debug) write (6, *) "stella::init_stella::read_stella_diagnostics_knobs"
+      call read_stella_diagnostics_knobs
       !> setup the various data layouts for the distribution function;
       !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       !> amongst processors, depending on the number of phase space points and processors
@@ -393,6 +395,7 @@ contains
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: hammett_flow_shear
       use physics_parameters, only: g_exb, g_exbfac
+      use stella_diagnostics, only: write_radial_fluxes, write_radial_moments
 
       implicit none
 
@@ -408,6 +411,8 @@ contains
       !> if including flow shear using anything other than wavenumber re-mapping, need FFTs
       if (abs(g_exb * g_exbfac) > epsilon(0.) .and. .not. hammett_flow_shear) &
          needs_transforms = .true.
+      !> if printing out flux-surface-averaged radial fluxes or moments, need FFTs
+      if (write_radial_fluxes .or. write_radial_moments) needs_transforms = .true.
 
    end subroutine check_transforms
 

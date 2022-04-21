@@ -4,7 +4,8 @@ module stella_diagnostics
    implicit none
 
    public :: init_stella_diagnostics, finish_stella_diagnostics
-   public :: diagnose_stella
+   public :: diagnose_stella, read_stella_diagnostics_knobs
+   public :: write_radial_fluxes, write_radial_moments
    public :: nsave
 
    private
@@ -45,6 +46,36 @@ module stella_diagnostics
    end interface
 
 contains
+   !> Read-in the parameters for the [[stella_diagnostics]] module
+   !>
+   !> Broadcast the parameters from the namelist "stella_diagnostics_knobs"
+   subroutine read_stella_diagnostics_knobs
+
+      use mp, only: broadcast
+
+      implicit none 
+
+      !> Read the namelist "stella_diagnostics_knobs" in the input file
+      call read_parameters
+
+      !> Broadcast the variables to all processors
+      call broadcast(nwrite)
+      call broadcast(navg)
+      call broadcast(nsave)
+      call broadcast(nc_mult)
+      call broadcast(save_for_restart)
+      call broadcast(write_omega)
+      call broadcast(write_kspectra)
+      call broadcast(write_moments)
+      call broadcast(write_phi_vs_time)
+      call broadcast(write_gvmus)
+      call broadcast(write_gzvs)
+      call broadcast(write_radial_fluxes)
+      call broadcast(write_radial_moments)
+      call broadcast(write_fluxes_kxkyz)
+      call broadcast(flux_norm)
+
+   end subroutine read_stella_diagnostics_knobs
 
    !> Initialise the [[stella_diagnostics]] module
    !>
@@ -52,7 +83,7 @@ contains
    !> and open/append the netcdf file and the ascii files.
    subroutine init_stella_diagnostics(restart, tstart)
 
-      use zgrid, only: init_zgrid
+      use zgrid, only: init_zgrid, nperiod, nzed
       use kt_grids, only: init_kt_grids
       use physics_parameters, only: init_physics_parameters
       use run_parameters, only: init_run_parameters
@@ -85,26 +116,10 @@ contains
       call init_init_g
       call init_dist_fn
 
-      !> Read the namelist "stella_diagnostics_knobs" in the input file
-      call read_parameters
+      !> Allocate the necessary arrays
       call allocate_arrays
 
-      !> Broadcast the variables to all processors
-      call broadcast(nwrite)
-      call broadcast(navg)
-      call broadcast(nsave)
-      call broadcast(nc_mult)
-      call broadcast(save_for_restart)
-      call broadcast(write_omega)
-      call broadcast(write_kspectra)
-      call broadcast(write_moments)
-      call broadcast(write_phi_vs_time)
-      call broadcast(write_gvmus)
-      call broadcast(write_gzvs)
-      call broadcast(write_radial_fluxes)
-      call broadcast(write_radial_moments)
-      call broadcast(write_fluxes_kxkyz)
-      call broadcast(flux_norm)
+      ntg_out = nzed / 2 + (nperiod - 1) * nzed
 
       !> Initiate the netcdf file with extension '.out.nc'
       call init_stella_io(restart, write_phi_vs_time, write_kspectra, &
@@ -127,7 +142,6 @@ contains
 
       use mp, only: proc0
       use file_utils, only: input_unit_exist
-      use zgrid, only: nperiod, nzed
       use physics_flags, only: radial_variation
 
       implicit none
@@ -162,7 +176,6 @@ contains
 
          if (.not. save_for_restart) nsave = -1
       end if
-      ntg_out = nzed / 2 + (nperiod - 1) * nzed
 
    end subroutine read_parameters
 
@@ -363,6 +376,7 @@ contains
       if (radial_variation .or. write_radial_fluxes) then
 !     handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
 !     call g_to_h (gnew, phi, fphi, phi_corr_QN)
+         if (debug) write (*, *) 'stella_diagnostics::write_fluxes_vmulo'
          call get_fluxes_vmulo(gnew, phi_out, part_flux, mom_flux, heat_flux, &
                                part_flux_x, mom_flux_x, heat_flux_x, &
                                pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
@@ -370,11 +384,13 @@ contains
       else if (full_flux_surface) then
          !> calculate the particle density, parallel flow and pressure in (y,kx,z) space
          !> for all species
+         if (debug) write (*, *) 'stella_diagnostics::write_fluxes_ffs'
          call get_moments_ffs(gnew, dens_ffs, upar_ffs, pres_ffs)
          !> calculate the (ky,kx) contributions to the particle, parallel momentum and energy fluxes
          call get_fluxes_ffs(dens_ffs, upar_ffs, pres_ffs, part_flux, mom_flux, heat_flux, &
                              pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
       else
+         if (debug) write (*, *) 'stella_diagnostics::write_fluxes'
          !> redistribute data so that data for each vpa and mu are guaranteed to be on each processor
          call scatter(kxkyz2vmu, gnew, gvmu)
          !> get_fluxes assumes the non-Boltzmann part of the distribution, h, is passed in;
