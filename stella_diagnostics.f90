@@ -1151,9 +1151,9 @@ contains
                do iz = -nzgrid, nzgrid
                   do ikx = 1, nakx
                      flux_sum(is) = flux_sum(is) + &
-                                    sum(0.5 * mode_fac * aky * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:, ikx, iz, it))) * dVolume(ia, ikx, iz))
-                     volume = volume + dVolume(ia, ikx, iz)
+                                    sum(0.5 * mode_fac * aky * aimag(totals(:, ikx, iz, it, is) * conjg(fld(:, ikx, iz, it))) * dVolume(ia, 1, iz))
                   end do
+                  volume = volume + dVolume(ia, 1, iz)
                end do
             end do
          end do
