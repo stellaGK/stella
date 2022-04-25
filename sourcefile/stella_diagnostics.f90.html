@@ -211,7 +211,7 @@
 <a name="ln-53"></a>
 <a name="ln-54"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">broadcast</span>
 <a name="ln-55"></a>
-<a name="ln-56"></a>      <span class="k">implicit none</span> 
+<a name="ln-56"></a>      <span class="k">implicit none</span>
 <a name="ln-57"></a>
 <a name="ln-58"></a>      <span class="c">!&gt; Read the namelist &quot;stella_diagnostics_knobs&quot; in the input file</span>
 <a name="ln-59"></a>      <span class="k">call </span><span class="n">read_parameters</span>
@@ -1309,10 +1309,10 @@
 <a name="ln-1151"></a>               <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
 <a name="ln-1152"></a>                  <span class="k">do </span><span class="n">ikx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span>
 <a name="ln-1153"></a>                     <span class="n">flux_sum</span><span class="p">(</span><span class="k">is</span><span class="p">)</span> <span class="o">=</span> <span class="n">flux_sum</span><span class="p">(</span><span class="k">is</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
-<a name="ln-1154"></a>                                    <span class="nb">sum</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">mode_fac</span> <span class="o">*</span> <span class="n">aky</span> <span class="o">*</span> <span class="nb">aimag</span><span class="p">(</span><span class="n">totals</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="k">is</span><span class="p">)</span> <span class="o">*</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">fld</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">)))</span> <span class="o">*</span> <span class="n">dVolume</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">))</span>
-<a name="ln-1155"></a>                     <span class="n">volume</span> <span class="o">=</span> <span class="n">volume</span> <span class="o">+</span> <span class="n">dVolume</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">)</span>
-<a name="ln-1156"></a>                  <span class="k">end do</span>
-<a name="ln-1157"></a><span class="k">               end do</span>
+<a name="ln-1154"></a>                                    <span class="nb">sum</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">mode_fac</span> <span class="o">*</span> <span class="n">aky</span> <span class="o">*</span> <span class="nb">aimag</span><span class="p">(</span><span class="n">totals</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="k">is</span><span class="p">)</span> <span class="o">*</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">fld</span><span class="p">(:,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">iz</span><span class="p">,</span> <span class="n">it</span><span class="p">)))</span> <span class="o">*</span> <span class="n">dVolume</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iz</span><span class="p">))</span>
+<a name="ln-1155"></a>                  <span class="k">end do</span>
+<a name="ln-1156"></a><span class="k">                  </span><span class="n">volume</span> <span class="o">=</span> <span class="n">volume</span> <span class="o">+</span> <span class="n">dVolume</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iz</span><span class="p">)</span>
+<a name="ln-1157"></a>               <span class="k">end do</span>
 <a name="ln-1158"></a><span class="k">            end do</span>
 <a name="ln-1159"></a><span class="k">         end do</span>
 <a name="ln-1160"></a><span class="k">      end if</span>
@@ -2035,13 +2035,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-67-g68bda5f19</small></p>
+<br /><small>v0.5-69-g8da4d0a15</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-04-21T17:14:11.724792           </p>
+ on 2022-04-25T01:19:14.721295           </p>
         </div>
       </div>
       <br>
