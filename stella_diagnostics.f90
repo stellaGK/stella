@@ -1274,7 +1274,7 @@ contains
       use vpamu_grids, only: integrate_vmu
       use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
-      use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
+      use kt_grids, only: ny, naky, nakx, multiply_by_rho, rho_d_clamped
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
@@ -1375,7 +1375,7 @@ contains
                end do
             end do
          end do
-         dens_x = naky * dens_x / ntubes
+         dens_x = ny * dens_x / ntubes
       end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1438,7 +1438,7 @@ contains
                end do
             end do
          end do
-         temp_x = naky * temp_x / ntubes
+         temp_x = ny * temp_x / ntubes
       end if
 
       ! for Spitzer problem tests of the collision operator
@@ -1485,7 +1485,7 @@ contains
                end do
             end do
          end do
-         upar_x = naky * upar_x / ntubes
+         upar_x = ny * upar_x / ntubes
       end if
 
       if (allocated(g0k)) deallocate (g0k)
