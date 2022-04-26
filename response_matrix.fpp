@@ -14,7 +14,7 @@ module response_matrix
    logical :: response_matrix_initialized = .false.
    integer, parameter :: mat_unit = 70
 
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
    integer :: window = MPI_WIN_NULL
 #endif
 
@@ -37,7 +37,7 @@ contains
       use run_parameters, only: mat_gen, lu_option_switch
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
       use system_fortran, only: systemf
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
       use mp, only: real_size, nbytes_real
@@ -51,7 +51,7 @@ contains
       integer :: nz_ext, nresponse
       integer :: idx
       integer :: izl_offset, izup
-#if defined MPI && defined ISO_C_BINDING
+#ifdef ISO_C_BINDING
       integer :: prior_focus, ierr
       integer :: disp_unit = 1
       integer(kind=MPI_ADDRESS_KIND) :: win_size
@@ -106,7 +106,7 @@ contains
 
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
 
-#if defined ISO_C_BINDING && defined MPI
+#ifdef ISO_C_BINDING
 
 !   Create a single shared memory window for all the response matrices and
 !   permutation arrays.
@@ -183,19 +183,7 @@ contains
                write (unit=mat_unit) ie, nresponse
             end if
 
-#if !defined ISO_C_BINDING || !defined MPI
-            ! for each ky and set of connected kx values,
-            ! must have a response matrix that is N x N
-            ! with N = number of zeds per 2pi segment x number of 2pi segments
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
-
-            ! response_matrix%idx is needed to keep track of permutations
-            ! to the response matrix made during LU decomposition
-            ! it will be input to LU back substitution during linear solve
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-#else
+#ifdef ISO_C_BINDING
             !exploit MPIs shared memory framework to reduce memory consumption of
             !response matrices
 
@@ -210,6 +198,18 @@ contains
                call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
                cur_pos = cur_pos + nresponse * 4
             end if
+#else
+            ! for each ky and set of connected kx values,
+            ! must have a response matrix that is N x N
+            ! with N = number of zeds per 2pi segment x number of 2pi segments
+            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
+               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+
+            ! response_matrix%idx is needed to keep track of permutations
+            ! to the response matrix made during LU decomposition
+            ! it will be input to LU back substitution during linear solve
+            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
+               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
 #endif
 
             allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -276,7 +276,7 @@ contains
 
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
-#if defined ISO_C_BINDING && defined MPI
+#ifdef ISO_C_BINDING
             if (sgproc0) then
 #endif
                ! number of zeds x number of segments
@@ -306,7 +306,7 @@ contains
 
                end do
                deallocate (phiext)
-#if defined ISO_C_BINDING && defined MPI
+#ifdef ISO_C_BINDING
             end if
 #endif
          end do
@@ -321,7 +321,6 @@ contains
          end if
 
          !now we have the full response matrix. Finally, perform its LU decomposition
-#ifdef MPI
          select case (lu_option_switch)
          case (lu_option_global)
             call parallel_LU_decomposition_global(iky)
@@ -332,7 +331,6 @@ contains
             call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
 #endif
          case default
-#endif
             do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
                if (sgproc0) then
@@ -346,9 +344,7 @@ contains
                end if
 #endif
             end do
-#ifdef MPI
          end select
-#endif
 
          if (proc0 .and. debug) then
             call time_message(.true., time_response_matrix_lu, message_lu)
@@ -502,7 +498,7 @@ contains
       use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
-#if defined ISO_C_BINDING && defined MPI
+#ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
 
@@ -783,10 +779,10 @@ contains
       !  copy of phiext)
       call integrate_over_velocity(gext, phiext, iky, ie)
 
-#if !defined ISO_C_BINDING || !defined MPI
-      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
-#else
+#ifdef ISO_C_BINDING
       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
+#else
+      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
 #endif
 
    end subroutine get_dgdphi_matrix_column
@@ -977,7 +973,6 @@ contains
 
    end subroutine finish_response_matrix
 
-#ifdef MPI
 !----------------------------------------------------------!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !
 ! !!!!!!!!!!!!!!PARALLEL LU DECOMPOSITIONS!!!!!!!!!!!!!!!! !
@@ -1408,7 +1403,5 @@ contains
 #endif
       deallocate (job_roots)
    end subroutine parallel_LU_decomposition_global
-
-#endif /* MPI */
 
 end module response_matrix

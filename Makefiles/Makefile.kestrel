@@ -19,9 +19,7 @@ endif
 
 include Makefile.$(COMPILER)
 
-ifdef USE_MPI
-	LIBS += -lmpichf90
-endif
+LIBS += -lmpichf90
 
 ifeq ($(USE_FFT),fftw)
 	FFT_INC = -I${FFTWHOME}/include

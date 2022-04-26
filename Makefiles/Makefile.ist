@@ -5,10 +5,8 @@ COMPILER=xl
 
 include Makefile.$(COMPILER)
 
-ifdef USE_MPI
-	MPIFC = mpxlf90
-	MPICC = mpcc
-endif
+MPIFC = mpxlf90
+MPICC = mpcc
 
 FFT_INC = -I${HOME}/local/include
 FFT_LIB = -L${HOME}/local/lib -lrfftw -lfftw
