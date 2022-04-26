@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.5% of total for source files.">585 statements</a>
+    title=" 1.4% of total for source files.">585 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/sources.fpp"> Source File</a></li>
   </ul>
@@ -158,7 +158,7 @@
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">module </span><span class="n">sources</span>
 <a name="ln-2"></a>
-<a name="ln-3"></a><span class="cp">#if defined MPI &amp;&amp; defined ISO_C_BINDING</span>
+<a name="ln-3"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-4"></a>   <span class="k">use </span><span class="n">mpi</span>
 <a name="ln-5"></a><span class="cp">#endif</span>
 <a name="ln-6"></a>
@@ -191,7 +191,7 @@
 <a name="ln-33"></a>
 <a name="ln-34"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">debug</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
 <a name="ln-35"></a>
-<a name="ln-36"></a><span class="cp">#if defined MPI &amp;&amp; defined ISO_C_BINDING</span>
+<a name="ln-36"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-37"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">qn_window_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
 <a name="ln-38"></a><span class="cp">#endif</span>
 <a name="ln-39"></a>
@@ -342,7 +342,7 @@
 <a name="ln-184"></a>
 <a name="ln-185"></a>      <span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">g_krook</span><span class="p">,</span> <span class="n">g_proj</span><span class="p">,</span> <span class="n">g_symm</span>
 <a name="ln-186"></a>      <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">phi_proj</span><span class="p">,</span> <span class="n">phi_proj_stage</span>
-<a name="ln-187"></a><span class="cp">#if defined MPI &amp;&amp; defined ISO_C_BINDING</span>
+<a name="ln-187"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-188"></a>      <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">qn_zf_window</span>
 <a name="ln-189"></a><span class="cp">#else</span>
 <a name="ln-190"></a>      <span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">phizf_solve</span><span class="p">,</span> <span class="n">phi_ext</span>
@@ -358,7 +358,7 @@
 <a name="ln-200"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_proj</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_proj</span><span class="p">)</span>
 <a name="ln-201"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">phi_proj_stage</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi_proj_stage</span><span class="p">)</span>
 <a name="ln-202"></a>
-<a name="ln-203"></a><span class="cp">#if defined MPI &amp;&amp; defined ISO_C_BINDING</span>
+<a name="ln-203"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-204"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">qn_window_initialized</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">qn_zf_window</span> <span class="o">/=</span> <span class="n">MPI_WIN_NULL</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-205"></a><span class="k">         call </span><span class="n">mpi_win_free</span><span class="p">(</span><span class="n">qn_zf_window</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
 <a name="ln-206"></a>         <span class="n">qn_window_initialized</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
@@ -809,7 +809,7 @@
 <a name="ln-651"></a>
 <a name="ln-652"></a>   <span class="k">subroutine </span><span class="n">init_quasineutrality_source</span>
 <a name="ln-653"></a>
-<a name="ln-654"></a><span class="cp">#if defined MPI &amp;&amp; defined ISO_C_BINDING</span>
+<a name="ln-654"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-655"></a>      <span class="k">use</span><span class="p">,</span> <span class="k">intrinsic</span> <span class="kd">::</span> <span class="nb">iso_c_binding</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="kt">c_ptr</span><span class="p">,</span> <span class="nb">c_f_pointer</span><span class="p">,</span> <span class="kt">c_intptr_t</span>
 <a name="ln-656"></a><span class="kt">      </span><span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">qn_zf_window</span>
 <a name="ln-657"></a>      <span class="k">use </span><span class="n">mp</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">sgproc0</span><span class="p">,</span> <span class="n">curr_focus</span><span class="p">,</span> <span class="n">mp_comm</span><span class="p">,</span> <span class="n">sharedsubprocs</span><span class="p">,</span> <span class="n">comm_sgroup</span>
@@ -830,7 +830,7 @@
 <a name="ln-672"></a><span class="k">      </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span><span class="p">,</span> <span class="n">ikx</span><span class="p">,</span> <span class="n">ia</span><span class="p">,</span> <span class="n">jkx</span><span class="p">,</span> <span class="n">jz</span>
 <a name="ln-673"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">inmat</span><span class="p">,</span> <span class="n">jnmat</span><span class="p">,</span> <span class="n">nmat_zf</span>
 <a name="ln-674"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">dum</span>
-<a name="ln-675"></a><span class="cp">#if defined MPI &amp;&amp; ISO_C_BINDING</span>
+<a name="ln-675"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-676"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">prior_focus</span><span class="p">,</span> <span class="n">ierr</span><span class="p">,</span> <span class="n">temp_window</span>
 <a name="ln-677"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">disp_unit</span> <span class="o">=</span> <span class="mi">1</span>
 <a name="ln-678"></a>      <span class="kt">integer</span><span class="p">(</span><span class="kt">c_intptr_t</span><span class="p">)</span><span class="kd">::</span> <span class="n">cur_pos</span>
@@ -847,7 +847,7 @@
 <a name="ln-689"></a>
 <a name="ln-690"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">include_qn_source</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-691"></a><span class="k">         </span><span class="n">nmat_zf</span> <span class="o">=</span> <span class="n">nakx</span> <span class="o">*</span> <span class="p">(</span><span class="n">nztot</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<a name="ln-692"></a><span class="cp">#if defined MPI &amp;&amp; ISO_C_BINDING</span>
+<a name="ln-692"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-693"></a>         <span class="k">if</span> <span class="p">((.</span><span class="nb">not</span><span class="p">.</span> <span class="n">qn_window_initialized</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">qn_zf_window</span> <span class="o">==</span> <span class="n">MPI_WIN_NULL</span><span class="p">))</span> <span class="k">then</span>
 <a name="ln-694"></a><span class="k">            </span><span class="n">prior_focus</span> <span class="o">=</span> <span class="n">curr_focus</span>
 <a name="ln-695"></a>            <span class="k">call </span><span class="n">scope</span><span class="p">(</span><span class="n">sharedsubprocs</span><span class="p">)</span>
@@ -899,7 +899,7 @@
 <a name="ln-741"></a>         <span class="k">if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">associated</span><span class="p">(</span><span class="n">phi_ext</span><span class="p">))</span> <span class="k">allocate</span> <span class="p">(</span><span class="n">phi_ext</span><span class="p">(</span><span class="n">nmat_zf</span><span class="p">))</span>
 <a name="ln-742"></a><span class="cp">#endif</span>
 <a name="ln-743"></a>
-<a name="ln-744"></a><span class="cp">#if defined MPI &amp;&amp; ISO_C_BINDING</span>
+<a name="ln-744"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-745"></a>         <span class="k">if</span> <span class="p">(</span><span class="n">sgproc0</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-746"></a><span class="cp">#endif</span>
 <a name="ln-747"></a>            <span class="k">allocate</span> <span class="p">(</span><span class="n">g0k</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nakx</span><span class="p">))</span>
@@ -976,7 +976,7 @@
 <a name="ln-818"></a><span class="k">               end do</span>
 <a name="ln-819"></a><span class="k">            end do</span>
 <a name="ln-820"></a><span class="k">            deallocate</span> <span class="p">(</span><span class="n">g0k</span><span class="p">,</span> <span class="n">g1k</span><span class="p">,</span> <span class="n">g0x</span><span class="p">)</span>
-<a name="ln-821"></a><span class="cp">#if defined MPI &amp;&amp; ISO_C_BINDING</span>
+<a name="ln-821"></a><span class="cp">#ifdef ISO_C_BINDING</span>
 <a name="ln-822"></a>         <span class="k">end if</span>
 <a name="ln-823"></a>
 <a name="ln-824"></a><span class="k">         call </span><span class="n">mpi_win_fence</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">qn_zf_window</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
@@ -1052,13 +1052,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-69-g8da4d0a15</small></p>
+<br /><small>v0.5-73-g622c2d50d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-04-25T01:19:14.721295           </p>
+ on 2022-04-26T12:06:09.246672           </p>
         </div>
       </div>
       <br>
