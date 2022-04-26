@@ -6,9 +6,7 @@ CHIP=xeon
 
 include Makefile.$(COMPILER)
 
-ifdef USE_MPI
-	MPIFC = cmpif90c
-endif
+MPIFC = cmpif90c
 
 ifeq ($(USE_FFT),fftw)
 	FFT_LIB = -L$$FFTW_HOME/lib -ldrfftw -ldfftw

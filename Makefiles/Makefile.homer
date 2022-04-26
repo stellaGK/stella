@@ -5,6 +5,5 @@ COMPILER= nag
 
 override USE_FFT=
 override USE_NETCDF=
-override USE_MPI=
 
 include Makefile.$(COMPILER)

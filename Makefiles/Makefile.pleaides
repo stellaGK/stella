@@ -25,12 +25,10 @@ USE_HDF5 =
 MPIINC = on
 include Makefile.$(COMPILER)
 
-ifdef USE_MPI
-	MPIFC := $(FC)
-	MPICC := $(CC)
-	LIBS	+= -lmpi
-	F90FLAGS += -I/nasa/sgi/mpt/1.25/include
-endif
+MPIFC := $(FC)
+MPICC := $(CC)
+LIBS	+= -lmpi
+F90FLAGS += -I/nasa/sgi/mpt/1.25/include
 
 ifeq ($(USE_FFT),mkl_fftw)
 	FFT_LIB = -L/nasa/intel/Compiler/11.1/046 -lfftw2xf_intel  -lmkl_core -lmkl_intel_lp64 -lmkl_sequential

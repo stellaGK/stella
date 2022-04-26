@@ -23,10 +23,8 @@ include Makefile.$(COMPILER)
 
 FC=ftn
 CC=cc
-ifdef USE_MPI
-	MPIFC=ftn
-	MPICC=cc
-endif
+MPIFC=ftn
+MPICC=cc
 
 ifeq ($(USE_FFT),fftw)
 	FFT_INC = -I/usr/local/packages/fftw-2.1.5/pgi/include

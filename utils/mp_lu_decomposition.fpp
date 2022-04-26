@@ -1,6 +1,6 @@
 module mp_lu_decomposition
 
-#if defined MPI && ISO_C_BINDING
+#ifdef ISO_C_BINDING
 
    implicit none
 
