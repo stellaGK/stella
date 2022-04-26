@@ -1432,7 +1432,7 @@
 <a name="ln-1274"></a>      <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">integrate_vmu</span>
 <a name="ln-1275"></a>      <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vpa</span><span class="p">,</span> <span class="n">vperp2</span><span class="p">,</span> <span class="n">mu</span>
 <a name="ln-1276"></a>      <span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">maxwell_mu</span><span class="p">,</span> <span class="n">ztmax</span><span class="p">,</span> <span class="n">maxwell_fac</span>
-<a name="ln-1277"></a>      <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">multiply_by_rho</span><span class="p">,</span> <span class="n">rho_d_clamped</span>
+<a name="ln-1277"></a>      <span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">ny</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="n">multiply_by_rho</span><span class="p">,</span> <span class="n">rho_d_clamped</span>
 <a name="ln-1278"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">vmu_lo</span>
 <a name="ln-1279"></a>      <span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">iv_idx</span><span class="p">,</span> <span class="n">imu_idx</span><span class="p">,</span> <span class="n">is_idx</span>
 <a name="ln-1280"></a>      <span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">kperp2</span><span class="p">,</span> <span class="n">dkperp2dr</span>
@@ -1533,7 +1533,7 @@
 <a name="ln-1375"></a>               <span class="k">end do</span>
 <a name="ln-1376"></a><span class="k">            end do</span>
 <a name="ln-1377"></a><span class="k">         end do</span>
-<a name="ln-1378"></a><span class="k">         </span><span class="n">dens_x</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">*</span> <span class="n">dens_x</span> <span class="o">/</span> <span class="n">ntubes</span>
+<a name="ln-1378"></a><span class="k">         </span><span class="n">dens_x</span> <span class="o">=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">dens_x</span> <span class="o">/</span> <span class="n">ntubes</span>
 <a name="ln-1379"></a>      <span class="k">end if</span>
 <a name="ln-1380"></a>
 <a name="ln-1381"></a><span class="k">      do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
@@ -1596,7 +1596,7 @@
 <a name="ln-1438"></a>               <span class="k">end do</span>
 <a name="ln-1439"></a><span class="k">            end do</span>
 <a name="ln-1440"></a><span class="k">         end do</span>
-<a name="ln-1441"></a><span class="k">         </span><span class="n">temp_x</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">*</span> <span class="n">temp_x</span> <span class="o">/</span> <span class="n">ntubes</span>
+<a name="ln-1441"></a><span class="k">         </span><span class="n">temp_x</span> <span class="o">=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">temp_x</span> <span class="o">/</span> <span class="n">ntubes</span>
 <a name="ln-1442"></a>      <span class="k">end if</span>
 <a name="ln-1443"></a>
 <a name="ln-1444"></a>      <span class="c">! for Spitzer problem tests of the collision operator</span>
@@ -1643,7 +1643,7 @@
 <a name="ln-1485"></a>               <span class="k">end do</span>
 <a name="ln-1486"></a><span class="k">            end do</span>
 <a name="ln-1487"></a><span class="k">         end do</span>
-<a name="ln-1488"></a><span class="k">         </span><span class="n">upar_x</span> <span class="o">=</span> <span class="n">naky</span> <span class="o">*</span> <span class="n">upar_x</span> <span class="o">/</span> <span class="n">ntubes</span>
+<a name="ln-1488"></a><span class="k">         </span><span class="n">upar_x</span> <span class="o">=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">upar_x</span> <span class="o">/</span> <span class="n">ntubes</span>
 <a name="ln-1489"></a>      <span class="k">end if</span>
 <a name="ln-1490"></a>
 <a name="ln-1491"></a><span class="k">      if</span> <span class="p">(</span><span class="nb">allocated</span><span class="p">(</span><span class="n">g0k</span><span class="p">))</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">g0k</span><span class="p">)</span>
@@ -2035,13 +2035,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5-73-g622c2d50d</small></p>
+<br /><small>v0.5-74-gbd78d003a</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-04-26T12:06:09.246672           </p>
+ on 2022-04-26T12:43:33.355247           </p>
         </div>
       </div>
       <br>
