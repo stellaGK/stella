@@ -133,7 +133,7 @@ contains
          remove_zero_projection = .false.
          nu_krook = 0.05
          tcorr_source = 0.02
-         tcorr_source_qn = -1.0
+         tcorr_source_qn = 0.0
          ikxmax_source = 1 ! kx=0
          if (periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
          krook_odd = .true. ! damp only the odd mode that can affect profiles
