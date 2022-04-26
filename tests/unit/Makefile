@@ -52,11 +52,7 @@ PFUNIT_TEST_LIST := $(PFUNIT_TEST_DIR)/testSuites.inc
 
 build-pfunit-library:
 	@echo "Building pFUnit in default location: $(GK_HEAD_DIR)/externals/pFUnit_build/install"
-ifdef USE_MPI
 	@scripts/build_pfunit -v ${PFUNIT_VERSION_MAJOR}
-else
-	@scripts/build_pfunit -v ${PFUNIT_VERSION_MAJOR} -m
-endif
 
 check-pfunit-install:
 ifeq ("$(wildcard $(PFUNIT_PREPROCESSOR))","")
