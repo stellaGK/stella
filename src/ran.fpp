@@ -17,6 +17,7 @@ module ran
 
    private
 
+
    public :: ranf
    public :: get_rnd_seed_length, get_rnd_seed, init_ranf
 
@@ -112,6 +113,7 @@ contains
       end if
 # else
       integer :: i, n
+      integer, parameter :: prim1 = 1824261409, prim2 = 1190494759
 
       if (present(mult)) then
          lmult = mult
@@ -121,7 +123,7 @@ contains
          call random_seed(size=n)
          call system_clock(count=clock)
 
-         init_seed = clock + 37 * lmult * (/(i - 1, i=1, n)/)
+         init_seed = clock * (/(prim1**i, i=1, n)/) + prim2 * lmult * (/(i - 1, i=1, n)/)
          call random_seed(put=init_seed)
       else
          call random_seed(put=init_seed * lmult)
