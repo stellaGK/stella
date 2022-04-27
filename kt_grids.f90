@@ -14,7 +14,7 @@ module kt_grids
    public :: rho, rho_d, rho_clamped, rho_d_clamped
    public :: nalpha
    public :: ikx_max, naky_all
-   public :: phase_shift_fac
+   public :: phase_shift_angle
    public :: zonal_mode
    public :: swap_kxky, swap_kxky_back
    public :: swap_kxky_ordered, swap_kxky_back_ordered
@@ -40,7 +40,7 @@ module kt_grids
    real, dimension(:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
    complex, dimension(:, :), allocatable :: g0x
    real :: dx, dy, dkx, dky, dx_d
-   real :: jtwistfac, phase_shift_fac
+   real :: jtwistfac, phase_shift_angle
    integer :: naky, nakx, nx, ny, nalpha
    integer :: jtwist, ikx_twist_shift
    integer :: ikx_max, naky_all
@@ -131,7 +131,7 @@ contains
 
       namelist /kt_grids_box_parameters/ nx, ny, jtwist, jtwistfac, x0, y0, &
          centered_in_rho, periodic_variation, &
-         randomize_phase_shift, phase_shift_fac
+         randomize_phase_shift, phase_shift_angle
 
       ! note that jtwist and y0 will possibly be modified
       ! later in init_kt_grids_box if they make it out
@@ -144,7 +144,7 @@ contains
       ny = 1
       jtwist = -1
       jtwistfac = 1.
-      phase_shift_fac = 0.
+      phase_shift_angle = 0.
       x0 = -1.0
       y0 = -1.0
       nalpha = 1
@@ -194,7 +194,7 @@ contains
       akx_max = -1.0
       theta0_min = 0.0
       theta0_max = -1.0
-      phase_shift_fac = 0.
+      phase_shift_angle = 0.
 
       in_file = input_unit_exist("kt_grids_range_parameters", exist)
       if (exist) read (in_file, nml=kt_grids_range_parameters)
@@ -355,15 +355,17 @@ contains
          end do
       end if
 
+
       norm = 1.
       if (naky > 1) norm = aky(2)
       if (rhostar > 0.) then
-         phase_shift_fac = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+         phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
       else if (randomize_phase_shift) then
-         if (proc0) phase_shift_fac = 2.*pi * ranf() / norm
-         call broadcast(phase_shift_fac)
+         if (proc0) phase_shift_angle = 2.*pi * ranf() / norm
+         write (*,*) phase_shift_angle
+         call broadcast(phase_shift_angle)
       else
-         phase_shift_fac = 2.*pi * phase_shift_fac / norm
+         phase_shift_angle = 2.*pi * phase_shift_angle / norm
       end if
 
       !> MAB: a lot of the radial variation coding below should probably be tidied away
@@ -575,7 +577,7 @@ contains
       call broadcast(theta0_min)
       call broadcast(theta0_max)
       call broadcast(randomize_phase_shift)
-      call broadcast(phase_shift_fac)
+      call broadcast(phase_shift_angle)
 
    end subroutine broadcast_input
 
@@ -838,12 +840,12 @@ contains
       call scope(crossdomprocs)
 
       if (job == 1) then
-         call send(phase_shift_fac, 0, 120)
-         call send(phase_shift_fac, njobs - 1, 130)
+         call send(phase_shift_angle, 0, 120)
+         call send(phase_shift_angle, njobs - 1, 130)
       elseif (job == 0) then
-         call receive(phase_shift_fac, 1, 120)
+         call receive(phase_shift_angle, 1, 120)
       elseif (job == njobs - 1) then
-         call receive(phase_shift_fac, 1, 130)
+         call receive(phase_shift_angle, 1, 130)
       end if
 
       call scope(subprocs)
