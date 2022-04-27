@@ -17,7 +17,6 @@ module ran
 
    private
 
-
    public :: ranf
    public :: get_rnd_seed_length, get_rnd_seed, init_ranf
 
