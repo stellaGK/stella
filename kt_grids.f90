@@ -355,14 +355,13 @@ contains
          end do
       end if
 
-
       norm = 1.
       if (naky > 1) norm = aky(2)
       if (rhostar > 0.) then
          phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
       else if (randomize_phase_shift) then
          if (proc0) phase_shift_angle = 2.*pi * ranf() / norm
-         write (*,*) phase_shift_angle
+         write (*, *) phase_shift_angle
          call broadcast(phase_shift_angle)
       else
          phase_shift_angle = 2.*pi * phase_shift_angle / norm
