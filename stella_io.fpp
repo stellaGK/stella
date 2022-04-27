@@ -58,7 +58,7 @@ module stella_io
    integer :: vnew_id, spec_type_id
    integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
    integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
-   integer :: kperp2_id, rad_grid_id
+   integer :: kperp2_id, rad_grid_id, phase_shift_angle_id
    integer :: grho_id, jacob_id, djacdrho_id, shat_id, drhodpsi_id, q_id, jtwist_id
    integer :: d2qdr2_id, d2psidr2_id
    integer :: beta_id
@@ -764,6 +764,12 @@ contains
          if (status /= nf90_noerr) call netcdf_error(status, var='d2psidr2')
       end if
 
+      status = nf90_inq_varid(ncid, 'phase_shift_angle', phase_shift_angle_id)
+      if (status /= nf90_noerr) then
+         status = nf90_def_var(ncid, 'phase_shift_angle', netcdf_real, phase_shift_angle_id)
+         if (status /= nf90_noerr) call netcdf_error(status, var='phase_shift_angle')
+      end if
+
       if (write_omega) then
          status = nf90_inq_varid(ncid, 'omega', omega_id)
          if (status /= nf90_noerr) then
@@ -1388,7 +1394,7 @@ contains
       use zgrid, only: nzgrid, zed, ntubes
       use stella_geometry, only: geo_surf, dxdXcoord, q_as_x
       use kt_grids, only: naky, nakx, x_d, rho_d
-      use kt_grids, only: theta0, akx, aky
+      use kt_grids, only: theta0, akx, aky, phase_shift_angle
       use species, only: nspec
       use vpamu_grids, only: nvpa, nmu, vpa, mu
       use physics_flags, only: radial_variation
@@ -1430,6 +1436,8 @@ contains
       if (status /= nf90_noerr) call netcdf_error(status, ncid, mu_id)
       status = nf90_put_var(ncid, vpa_id, vpa)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, vpa_id)
+      status = nf90_put_var(ncid, phase_shift_angle_id, phase_shift_angle)
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, phase_shift_angle_id)
 
       if (radial_variation) then
          allocate (rg(3, nakx))

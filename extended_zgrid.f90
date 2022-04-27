@@ -40,7 +40,7 @@ contains
       use zgrid, only: boundary_option_linked
       use zgrid, only: nperiod, nzgrid, nzed, ntubes
       use kt_grids, only: nakx, naky
-      use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_fac
+      use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
       use kt_grids, only: aky, ikx_max
       use constants, only: zi
 
@@ -68,7 +68,7 @@ contains
       !> Usually set to zero for standard local simulation, but can
       !> have an effect for global simulations and simulations with low
       !> magnetic shear that use periodic boundary conditions everywhere
-      phase_shift = exp(zi * aky * phase_shift_fac)
+      phase_shift = exp(zi * aky * phase_shift_angle)
 
       select case (boundary_option_switch)
       case (boundary_option_linked)
