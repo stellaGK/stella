@@ -1300,10 +1300,10 @@ contains
 
       if (radial_variation) then
          allocate (g0k(naky, nakx))
-         if (write_radial_moments) then
-            allocate (g1k(1, nakx))
-            allocate (g1x(1, nakx))
-         end if
+      end if
+      if (write_radial_moments) then
+         allocate (g1k(1, nakx))
+         allocate (g1x(1, nakx))
       end if
 
       ! Hack below. Works since J0^2 - 1 and its derivative are zero at the origin
@@ -1387,7 +1387,6 @@ contains
                                           * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
                                 * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
          if (radial_variation) then
-
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   !phi
