@@ -1263,7 +1263,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out), target :: rhs_ky
       logical, intent(out) :: restart_time_step
 
@@ -1359,7 +1359,7 @@ contains
                   call swap_kxky_back(rhs_ky_swap, rhs_ky(:, :, iz, it, ivmu))
                end do
             end do
-            deallocate (rhs_y, rhs_ky_swap)
+            deallocate (rhs_ky_swap)
          end if
 
          if (radial_variation) call advance_radial_variation(gin, rhs)
@@ -1372,6 +1372,7 @@ contains
 
       fields_updated = .false.
 
+      if (allocated(rhs_y)) deallocate (rhs_y)
       nullify (rhs)
 
    end subroutine solve_gke
