@@ -729,7 +729,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
       character(*), intent(in) :: dist
 
@@ -784,7 +784,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(inout) :: g
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
