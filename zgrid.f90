@@ -12,6 +12,7 @@ module zgrid
    public :: get_arc_length_grid
    public :: shat_zero
    public :: grad_x_grad_y_zero
+   public :: dkx_over_dky
    public :: boundary_option_switch
    public :: boundary_option_zero
    public :: boundary_option_self_periodic
@@ -23,7 +24,7 @@ module zgrid
    integer :: nzed, nzgrid, nztot, nz2pi
    integer :: nperiod, ntubes
    logical :: zed_equal_arc
-   real :: shat_zero, grad_x_grad_y_zero
+   real :: shat_zero, grad_x_grad_y_zero, dkx_over_dky
    real, dimension(:), allocatable :: zed, delzed
 
    integer :: boundary_option_switch
@@ -89,7 +90,7 @@ contains
 
       namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
          shat_zero, boundary_option, zed_equal_arc, &
-         boundary_option, zed_equal_arc, grad_x_grad_y_zero
+         boundary_option, zed_equal_arc, grad_x_grad_y_zero, dkx_over_dky
 
       nzed = 24
       nperiod = 1
@@ -105,6 +106,10 @@ contains
       ! set the minimum nabla x . nabla value at the end of the FT which we assume
       ! periodic BC instead of the stellarator symmetric ones
       grad_x_grad_y_zero = 1.e-5
+      ! set the ratio between dkx and dky, assuming jtwist = 1.
+      ! if it is < 0, the code will just use the nfield_periods in the input file
+      dkx_over_dky = -1
+
 
       in_file = input_unit_exist("zgrid_parameters", exist)
       if (exist) read (unit=in_file, nml=zgrid_parameters)
@@ -140,6 +145,7 @@ contains
       call broadcast(shat_zero)
       call broadcast(boundary_option_switch)
       call broadcast(grad_x_grad_y_zero)
+      call broadcast (dkx_over_dky)
 
    end subroutine broadcast_parameters
 
