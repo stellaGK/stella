@@ -566,7 +566,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo, iv_idx
+      use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g1
@@ -578,7 +578,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
 
-      integer :: ivmu, iv
+      integer :: ivmu
       complex, dimension(:, :, :, :), allocatable :: phi1
 
       if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
@@ -590,8 +590,6 @@ contains
       phi1 = phi
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-
          ! obtain RHS of inhomogeneous GK eqn;
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
@@ -618,8 +616,6 @@ contains
       call invert_parstream_response(phi)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-
          ! now have phi^{n+1} for non-negative kx
          ! obtain RHS of GK eqn;
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
@@ -717,7 +713,7 @@ contains
 
       if (maxwellian_inside_zed_derivative) then
          ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-         g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is) * maxwell_fac(is), 1, naky), 2, nakx), 4, ntubes)
+         g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
          call get_dzed(iv, g, dphidz)
          ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
          g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
@@ -730,7 +726,7 @@ contains
          call get_dzed(iv, g, dphidz)
          ! center Maxwellian factor in mu
          ! and store in dummy variable gp
-         gp = maxwell_mu(ia, :, imu, is) * maxwell_fac(is)
+         gp = maxwell_mu(ia, :, imu, is)
          call center_zed(iv, gp)
          ! multiply by Maxwellian factor
          dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
@@ -738,7 +734,7 @@ contains
 
       ! NB: could do this once at beginning of simulation to speed things up
       ! this is vpa*Z/T*exp(-vpa^2)
-      vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is)
+      vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
       ! if including neoclassical correction to equilibrium distribution function
       ! then must also account for -vpa*dF_neo/dvpa*Z/T
       ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -757,6 +753,7 @@ contains
       else
          gp = gradpar_c(:, 1)
       end if
+
 
       ! construct RHS of GK eqn
       fac = code_dt * spec(is)%stm_psi0
