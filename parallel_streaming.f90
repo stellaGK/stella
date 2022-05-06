@@ -727,7 +727,7 @@ contains
          ! center Maxwellian factor in mu
          ! and store in dummy variable gp
          gp = maxwell_mu(ia, :, imu, is)
-         call center_zed(iv, gp)
+         call center_zed_midpoint(iv, gp)
          ! multiply by Maxwellian factor
          dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
@@ -1138,6 +1138,23 @@ contains
       end if
 
    end subroutine center_zed_segment_real
+
+   subroutine center_zed_midpoint(iv, g)
+
+      use zgrid, only: nzgrid
+
+      integer, intent(in) :: iv
+      real, dimension(-nzgrid:), intent(in out) :: g
+
+      if (stream_sign(iv) > 0) then
+         g(:nzgrid - 1) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
+         g(nzgrid) = g(-nzgrid)
+      else
+         g(-nzgrid + 1:) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
+         g(-nzgrid) = g(nzgrid)
+      end if
+
+   end subroutine center_zed_midpoint
 
    subroutine finish_parallel_streaming
 

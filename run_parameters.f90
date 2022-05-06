@@ -118,7 +118,7 @@ contains
          rng_seed = -1 !negative values use current time as seed
          ky_solve_radial = 0
          ky_solve_real = .false.
-         mat_gen = .true.
+         mat_gen = .false.
          mat_read = .false.
          tend = -1.0
          nstep = -1
