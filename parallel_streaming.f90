@@ -754,7 +754,6 @@ contains
          gp = gradpar_c(:, 1)
       end if
 
-
       ! construct RHS of GK eqn
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
