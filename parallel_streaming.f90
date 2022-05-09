@@ -801,8 +801,8 @@ contains
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
-               enddo
-            enddo
+               end do
+            end do
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -917,8 +917,8 @@ contains
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
-               enddo
-            enddo
+               end do
+            end do
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -985,15 +985,15 @@ contains
 
       fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz1, iv, is) / delzed(0)
       fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz1, iv, is) / delzed(0)
-      gpi(iz1) =   2.0 * g(iz1) / fac1
-      gcf(iz1) =  - pf * fac2 / fac1 
+      gpi(iz1) = 2.0 * g(iz1) / fac1
+      gcf(iz1) = -pf * fac2 / fac1
 
       do iz = iz1 - sgn, iz2 + sgn, -sgn
          fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
          fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
          gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz)) / fac1
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
-      enddo
+      end do
 
       fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz2, iv, is) / delzed(0)
       fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz2, iv, is) / delzed(0)
@@ -1003,7 +1003,7 @@ contains
       g(iz2) = xend
       do iz = iz1, iz2 + sgn, -sgn
          g(iz) = gpi(iz) + xend * gcf(iz)
-      enddo
+      end do
 
       g(iz2 - sgn) = g(iz1)
 
