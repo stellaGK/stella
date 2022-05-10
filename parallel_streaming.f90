@@ -962,7 +962,6 @@ contains
       implicit none
 
       integer, intent(in) :: iky, iv, is, sgn
-      !complex, dimension(:), intent(in out) :: g
       complex, dimension(-nzgrid:), intent(in out) :: g
 
       integer :: iz, iz1, iz2
@@ -974,13 +973,16 @@ contains
       allocate (gcf(-nzgrid:nzgrid)); gcf = 0.0
       ! ky=0 is 2pi periodic (no extended zgrid)
       ! decompose into complementary function + particular integral
-      ! zero BC for particular integral
-      ! unit BC for complementary function (no source)
+      ! particular integral is sourced by the inout gext
+      ! complementary function is sourced using the single non-bidigaonal term in the cylic matrix
+
+      ! here we exclude the duplicate point
       if (sgn < 0) then
          iz1 = -nzgrid; iz2 = nzgrid - 1
       else
          iz1 = nzgrid; iz2 = -nzgrid + 1
       end if
+      ! Apply twist-and-shift phase shift for low-shear similations 
       pf = phase_shift(iky)**(-sgn)
 
       fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz1, iv, is) / delzed(0)
@@ -998,6 +1000,7 @@ contains
       fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz2, iv, is) / delzed(0)
       fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz2, iv, is) / delzed(0)
 
+      ! xend determined by bottom-most row in matrix equation (top most for negative advection)
       xend = (2.0 * g(iz2) - fac2 * gpi(iz2 + sgn)) / (fac1 + fac2 * gcf(iz2 + sgn))
 
       g(iz2) = xend
@@ -1005,6 +1008,7 @@ contains
          g(iz) = gpi(iz) + xend * gcf(iz)
       end do
 
+      ! enforce periodicity
       g(iz2 - sgn) = g(iz1)
 
       deallocate (gpi, gcf)
