@@ -982,7 +982,7 @@ contains
       else
          iz1 = nzgrid; iz2 = -nzgrid + 1
       end if
-      ! Apply twist-and-shift phase shift for low-shear similations 
+      ! Apply twist-and-shift phase shift for low-shear similations
       pf = phase_shift(iky)**(-sgn)
 
       fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz1, iv, is) / delzed(0)
