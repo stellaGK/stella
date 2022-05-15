@@ -68,6 +68,8 @@ contains
       call broadcast(write_kspectra)
       call broadcast(write_moments)
       call broadcast(write_phi_vs_time)
+      call broadcast(write_apar_vs_time)
+      call broadcast(write_bpar_vs_time)
       call broadcast(write_gvmus)
       call broadcast(write_gzvs)
       call broadcast(write_radial_fluxes)
@@ -150,8 +152,9 @@ contains
       integer :: in_file
 
       namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
-         save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
-         write_omega, write_kspectra, write_moments, write_radial_fluxes, &
+         save_for_restart, write_phi_vs_time, write_apar_vs_time, &
+         write_bpar_vs_time, write_gvmus, write_gzvs write_omega, &
+         write_kspectra, write_moments, write_radial_fluxes, &
          write_radial_moments, write_fluxes_kxkyz, flux_norm, nc_mult
 
       if (proc0) then
@@ -161,6 +164,8 @@ contains
          save_for_restart = .false.
          write_omega = .false.
          write_phi_vs_time = .false.
+         write_apar_vs_time = .false.
+         write_bpar_vs_time = .false.
          write_gvmus = .false.
          write_gzvs = .false.
          write_kspectra = .false.

@@ -22,7 +22,6 @@ module fields
 
    private
 
-   real, dimension(:, :, :), allocatable ::  apar_denom
    real :: gamtot_h, gamtot3_h, efac, efacp
 
    !> arrays allocated/used if simulating a full flux surface
@@ -79,7 +78,7 @@ contains
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi, fapar, fbpar
       use run_parameters, only: ky_solve_radial
       use physics_parameters, only: tite, nine, beta
       use physics_flags, only: radial_variation
@@ -96,6 +95,7 @@ contains
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
+      use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
 
       implicit none
 
@@ -114,6 +114,8 @@ contains
       fields_initialized = .true.
 
       ! could move these array allocations to allocate_arrays to clean up code
+      ! could we only allocate these if the fphi,fapar,fbpar=1? Rather than always
+      ! allocating?
       if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       if (.not. allocated(gamtot3)) then
          if (.not. has_electron_species(spec) &
@@ -128,6 +130,31 @@ contains
             allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
          else
             allocate (apar_denom(1, 1, 1)); apar_denom = 0.
+         end if
+      end if
+
+      if (.not.allocated(gamtot33)) then
+         if (fbpar > epsilon(0.0)) then
+            allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
+         else
+           allocate (gamtot33(1, 1, 1)); gamtot33 = 0.
+         end if
+      end if
+
+      ! gamtot13 and gamtot31 required if fphi!=0 and fbpar!=0
+      if (.not.allocated(gamtot13)) then
+         if ((fbpar > epsilon(0.0)) .and. (fphi > epsilon(0.0))) then
+            allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0.
+         else
+           allocate (gamtot13(1, 1, 1)); gamtot13 = 0.
+         end if
+      end if
+
+      if (.not.allocated(gamtot31)) then
+         if ((fbpar > epsilon(0.0)) .and. (fphi > epsilon(0.0))) then
+            allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0.
+         else
+           allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
          end if
       end if
 
@@ -225,25 +252,82 @@ contains
 
       end if
 
-      if (fapar > epsilon(0.)) then
-         allocate (g0(nvpa, nmu))
+      if (fbpar > epsilon(0.0)) then
+         ! gamtot33
+         allocate (g0(nvpa,nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            it = it_idx(kxkyz_lo, ikxkyz)
+             it = it_idx(kxkyz_lo,ikxkyz)
+             ! gamtot33 does not depend on flux tube index,
+             ! so only compute for one flux tube index
+             ! gamtot33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+             if (it /= 1) cycle
+             iky = iky_idx(kxkyz_lo,ikxkyz)
+             ikx = ikx_idx(kxkyz_lo,ikxkyz)
+             iz = iz_idx(kxkyz_lo,ikxkyz)
+             is = is_idx(kxkyz_lo,ikxkyz)
+             g0 = spread((mu(:) * mu(:) * aj1v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
+                  * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+             wgt = 8*spec(is)%temp*spec(is)%dens_psi0
+             call integrate_vmu (g0, iz, tmp)
+             gamtot33(iky,ikx,iz) = gamtot33(iky,ikx,iz) + tmp*wgt
+         end do
+         call sum_allreduce (gamtot33)
+
+         gamtot33 = 1.0+beta*gamtot33
+         deallocate (g0)
+
+         if (fphi > epsilon(0.0)) then
+
+            ! gamtot13
+            allocate (g0(nvpa,nmu))
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               it = it_idx(kxkyz_lo,ikxkyz)
+               ! gamtot13 does not depend on flux tube index,
+               ! so only compute for one flux tube index
+               ! gamtot13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+               if (it /= 1) cycle
+               iky = iky_idx(kxkyz_lo,ikxkyz)
+               ikx = ikx_idx(kxkyz_lo,ikxkyz)
+               iz = iz_idx(kxkyz_lo,ikxkyz)
+               is = is_idx(kxkyz_lo,ikxkyz)
+               g0 = spread((mu(:) * aj0v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
+                    * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+               wgt = -4*spec(is)%z*spec(is)%dens_psi0
+               call integrate_vmu (g0, iz, tmp)
+               gamtot13(iky,ikx,iz) = gamtot13(iky,ikx,iz) + tmp*wgt
+            end do
+
+            call sum_allreduce (gamtot13)
+            g0 = 0
+
+            ! gamtot31 = 2 * beta * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+            !          = -gamtot13/2 * beta
+            gamtot31 = -gamtot13/2 * beta
+            deallocate (g0)
+
+         end if
+      end if
+
+      if (fapar > epsilon(0.)) then
+         allocate (g0(nvpa,nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo,ikxkyz)
             ! apar_denom does not depend on flux tube index,
             ! so only compute for one flux tube index
             if (it /= 1) cycle
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            g0 = spread(maxwell_vpa(:, is) * vpa**2, 2, nmu) * maxwell_fac(is) &
-                 * spread(maxwell_mu(ia, iz, :, is) * aj0v(:, ikxkyz)**2, 1, nvpa)
-            wgt = 2.0 * beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
-            call integrate_vmu(g0, iz, tmp)
-            apar_denom(iky, ikx, iz) = apar_denom(iky, ikx, iz) + tmp * wgt
+            iky = iky_idx(kxkyz_lo,ikxkyz)
+            ikx = ikx_idx(kxkyz_lo,ikxkyz)
+            iz = iz_idx(kxkyz_lo,ikxkyz)
+            is = is_idx(kxkyz_lo,ikxkyz)
+            ! apar_denom = kperp^2 + 2 beta * sum(Z^2  * n / m * integrate_vmu (vpa*vpa*exp(-v^2) J0^2) )
+            g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu)*maxwell_fac(is) &
+                 * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)*aj0v(:,ikxkyz),1,nvpa)
+            wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
+            call integrate_vmu (g0, iz, tmp)
+            apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
          end do
-         call sum_allreduce(apar_denom)
-         apar_denom = apar_denom + kperp2(:, :, ia, :)
+         call sum_allreduce (apar_denom)
+         apar_denom = apar_denom + kperp2(:,:,ia,:)
 
          deallocate (g0)
       end if
@@ -427,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -647,13 +731,15 @@ contains
 
    subroutine allocate_arrays
 
-      use fields_arrays, only: phi, apar, phi_old
+      use fields_arrays, only: phi, apar, bpar, phi_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use run_parameters, only: fphi, fapar, fbpar
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use physics_flags, only: radial_variation
       use kt_grids, only: naky, nakx
+      use mp, only: mp_abort
 
       implicit none
 
@@ -664,6 +750,10 @@ contains
       if (.not. allocated(apar)) then
          allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
          apar = 0.
+      end if
+      if (.not. allocated(bpar)) then
+         allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
+         bpar = 0.
       end if
       if (.not. allocated(phi_old)) then
          allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -678,14 +768,36 @@ contains
          phi_corr_GA = 0.
       end if
       if (.not. allocated(apar_corr_QN) .and. radial_variation) then
+         if (fapar > epsilon(0.0)) then
+            call mp_abort("apar not supported with radial variation. Aborting.")
+         end if
          !allocate (apar_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (apar_corr_QN(1, 1, 1, 1))
          apar_corr_QN = 0.
       end if
       if (.not. allocated(apar_corr_GA) .and. radial_variation) then
+         if (fapar > epsilon(0.0)) then
+            call mp_abort("apar not supported with radial variation. Aborting.")
+         end if
          !allocate (apar_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (apar_corr_GA(1, 1, 1, 1, 1))
          apar_corr_GA = 0.
+      end if
+      if (.not. allocated(bpar_corr_QN) .and. radial_variation) then
+         if (fbpar > epsilon(0.0)) then
+            call mp_abort("bpar not supported with radial variation. Aborting.")
+         end if
+         !allocate (bpar_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (bpar_corr_QN(1, 1, 1, 1))
+         bpar_corr_QN = 0.
+      end if
+      if (.not. allocated(bpar_corr_GA) .and. radial_variation) then
+         if (fbpar > epsilon(0.0)) then
+            call mp_abort("bpar not supported with radial variation. Aborting.")
+         end if
+         !allocate (bpar_corr(naky,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (bpar_corr_GA(1, 1, 1, 1, 1))
+         bpar_corr_GA = 0.
       end if
 
    end subroutine allocate_arrays
@@ -825,34 +937,34 @@ contains
 
       end if
 
-      apar = 0.
-      if (fapar > epsilon(0.0)) then
-         allocate (g0(nvpa, nmu))
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, g0)
-            wgt = 2.0 * beta * spec(is)%z * spec(is)%dens * spec(is)%stm
-            call integrate_vmu(g0, iz, tmp)
-            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
-         end do
-         call sum_allreduce(apar)
-         if (dist == 'h') then
-            apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
-         else if (dist == 'gbar') then
-            apar = apar / spread(apar_denom, 4, ntubes)
-         else if (dist == 'gstar') then
-            write (*, *) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
-            call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
-         else
-            if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
-            call mp_abort('unknown dist option in get_fields. aborting')
-         end if
-         deallocate (g0)
-      end if
+      ! apar = 0.
+      ! if (fapar > epsilon(0.0)) then
+      !    allocate (g0(nvpa, nmu))
+      !    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+      !       iz = iz_idx(kxkyz_lo, ikxkyz)
+      !       it = it_idx(kxkyz_lo, ikxkyz)
+      !       ikx = ikx_idx(kxkyz_lo, ikxkyz)
+      !       iky = iky_idx(kxkyz_lo, ikxkyz)
+      !       is = is_idx(kxkyz_lo, ikxkyz)
+      !       call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, g0)
+      !       wgt = 2.0 * beta * spec(is)%z * spec(is)%dens * spec(is)%stm
+      !       call integrate_vmu(g0, iz, tmp)
+      !       apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+      !    end do
+      !    call sum_allreduce(apar)
+      !    if (dist == 'h') then
+      !       apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+      !    else if (dist == 'gbar') then
+      !       apar = apar / spread(apar_denom, 4, ntubes)
+      !    else if (dist == 'gstar') then
+      !       write (*, *) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
+      !       call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
+      !    else
+      !       if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
+      !       call mp_abort('unknown dist option in get_fields. aborting')
+      !    end if
+      !    deallocate (g0)
+      ! end if
 
    end subroutine get_fields
 
@@ -904,35 +1016,35 @@ contains
 
       end if
 
-      apar = 0.
-      if (fapar > epsilon(0.0)) then
-         ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
-         call mp_abort('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
-!        allocate (g0(-nvgrid:nvgrid,nmu))
-!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!           iz = iz_idx(kxkyz_lo,ikxkyz)
-!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!           iky = iky_idx(kxkyz_lo,ikxkyz)
-!           is = is_idx(kxkyz_lo,ikxkyz)
-!           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
-!           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
-!           call integrate_vmu (g0, iz, tmp)
-!           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
-!        end do
-!        call sum_allreduce (apar)
-!        if (dist == 'h') then
-!           apar = apar/kperp2
-!        else if (dist == 'gbar') then
-!           apar = apar/apar_denom
-!        else if (dist == 'gstar') then
-!           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
-!           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
-!        else
-!           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
-!           call mp_abort ('unknown dist option in get_fields. aborting')
-!        end if
-!        deallocate (g0)
-      end if
+!       apar = 0.
+!       if (fapar > epsilon(0.0)) then
+!          ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
+!          call mp_abort('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
+! !        allocate (g0(-nvgrid:nvgrid,nmu))
+! !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+! !           iz = iz_idx(kxkyz_lo,ikxkyz)
+! !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
+! !           iky = iky_idx(kxkyz_lo,ikxkyz)
+! !           is = is_idx(kxkyz_lo,ikxkyz)
+! !           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
+! !           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
+! !           call integrate_vmu (g0, iz, tmp)
+! !           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
+! !        end do
+! !        call sum_allreduce (apar)
+! !        if (dist == 'h') then
+! !           apar = apar/kperp2
+! !        else if (dist == 'gbar') then
+! !           apar = apar/apar_denom
+! !        else if (dist == 'gstar') then
+! !           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
+! !           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
+! !        else
+! !           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
+! !           call mp_abort ('unknown dist option in get_fields. aborting')
+! !        end if
+! !        deallocate (g0)
+!       end if
 
    end subroutine get_fields_vmulo
 
@@ -1920,7 +2032,9 @@ contains
       use fields_arrays, only: phi, phi_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
+      use fields_arrays, only: bpar, bpar_corr_QN, bpar_corr_GA
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
+      use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
       use fields_arrays, only: c_mat, theta
 #ifdef ISO_C_BINDING
       use fields_arrays, only: qn_window
@@ -1941,10 +2055,16 @@ contains
       if (allocated(apar)) deallocate (apar)
       if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
       if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
+      if (allocated(bpar)) deallocate (apar)
+      if (allocated(bpar_corr_QN)) deallocate (bpar_corr_QN)
+      if (allocated(bpar_corr_GA)) deallocate (bpar_corr_GA)
       if (allocated(gamtot)) deallocate (gamtot)
       if (allocated(gamtot3)) deallocate (gamtot3)
       if (allocated(dgamtotdr)) deallocate (dgamtotdr)
       if (allocated(apar_denom)) deallocate (apar_denom)
+      if (allocated(gamtot13)) deallocate (gamtot13)
+      if (allocated(gamtot31)) deallocate (gamtot31)
+      if (allocated(gamtot33)) deallocate (gamtot33)
 
 #ifdef ISO_C_BINDING
       if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
