@@ -17,6 +17,8 @@ module stella_diagnostics
    logical :: write_omega
    logical :: write_moments
    logical :: write_phi_vs_time
+   logical :: write_apar_vs_time
+   logical :: write_bpar_vs_time
    logical :: write_gvmus
    logical :: write_gzvs
    logical :: write_kspectra
