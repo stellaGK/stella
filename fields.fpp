@@ -133,28 +133,28 @@ contains
          end if
       end if
 
-      if (.not.allocated(gamtot33)) then
+      if (.not. allocated(gamtot33)) then
          if (fbpar > epsilon(0.0)) then
             allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
          else
-           allocate (gamtot33(1, 1, 1)); gamtot33 = 0.
+            allocate (gamtot33(1, 1, 1)); gamtot33 = 0.
          end if
       end if
 
       ! gamtot13 and gamtot31 required if fphi!=0 and fbpar!=0
-      if (.not.allocated(gamtot13)) then
+      if (.not. allocated(gamtot13)) then
          if ((fbpar > epsilon(0.0)) .and. (fphi > epsilon(0.0))) then
             allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0.
          else
-           allocate (gamtot13(1, 1, 1)); gamtot13 = 0.
+            allocate (gamtot13(1, 1, 1)); gamtot13 = 0.
          end if
       end if
 
-      if (.not.allocated(gamtot31)) then
+      if (.not. allocated(gamtot31)) then
          if ((fbpar > epsilon(0.0)) .and. (fphi > epsilon(0.0))) then
             allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0.
          else
-           allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
+            allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
          end if
       end if
 
@@ -254,80 +254,80 @@ contains
 
       if (fbpar > epsilon(0.0)) then
          ! gamtot33
-         allocate (g0(nvpa,nmu))
+         allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-             it = it_idx(kxkyz_lo,ikxkyz)
-             ! gamtot33 does not depend on flux tube index,
-             ! so only compute for one flux tube index
-             ! gamtot33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
-             if (it /= 1) cycle
-             iky = iky_idx(kxkyz_lo,ikxkyz)
-             ikx = ikx_idx(kxkyz_lo,ikxkyz)
-             iz = iz_idx(kxkyz_lo,ikxkyz)
-             is = is_idx(kxkyz_lo,ikxkyz)
-             g0 = spread((mu(:) * mu(:) * aj1v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
-                  * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
-             wgt = 8*spec(is)%temp*spec(is)%dens_psi0
-             call integrate_vmu (g0, iz, tmp)
-             gamtot33(iky,ikx,iz) = gamtot33(iky,ikx,iz) + tmp*wgt
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ! gamtot33 does not depend on flux tube index,
+            ! so only compute for one flux tube index
+            ! gamtot33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            g0 = spread((mu(:) * mu(:) * aj1v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
+                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            wgt = 8 * spec(is)%temp * spec(is)%dens_psi0
+            call integrate_vmu(g0, iz, tmp)
+            gamtot33(iky, ikx, iz) = gamtot33(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce (gamtot33)
+         call sum_allreduce(gamtot33)
 
-         gamtot33 = 1.0+beta*gamtot33
+         gamtot33 = 1.0 + beta * gamtot33
          deallocate (g0)
 
          if (fphi > epsilon(0.0)) then
 
             ! gamtot13
-            allocate (g0(nvpa,nmu))
+            allocate (g0(nvpa, nmu))
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-               it = it_idx(kxkyz_lo,ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
                ! gamtot13 does not depend on flux tube index,
                ! so only compute for one flux tube index
                ! gamtot13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
                if (it /= 1) cycle
-               iky = iky_idx(kxkyz_lo,ikxkyz)
-               ikx = ikx_idx(kxkyz_lo,ikxkyz)
-               iz = iz_idx(kxkyz_lo,ikxkyz)
-               is = is_idx(kxkyz_lo,ikxkyz)
-               g0 = spread((mu(:) * aj0v(:,ikxkyz)*aj1v(:,ikxkyz)),1,nvpa) &
-                    * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
-               wgt = -4*spec(is)%z*spec(is)%dens_psi0
-               call integrate_vmu (g0, iz, tmp)
-               gamtot13(iky,ikx,iz) = gamtot13(iky,ikx,iz) + tmp*wgt
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               g0 = spread((mu(:) * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
+                    * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+               wgt = -4 * spec(is)%z * spec(is)%dens_psi0
+               call integrate_vmu(g0, iz, tmp)
+               gamtot13(iky, ikx, iz) = gamtot13(iky, ikx, iz) + tmp * wgt
             end do
 
-            call sum_allreduce (gamtot13)
+            call sum_allreduce(gamtot13)
             g0 = 0
 
             ! gamtot31 = 2 * beta * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
             !          = -gamtot13/2 * beta
-            gamtot31 = -gamtot13/2 * beta
+            gamtot31 = -gamtot13 / 2 * beta
             deallocate (g0)
 
          end if
       end if
 
       if (fapar > epsilon(0.)) then
-         allocate (g0(nvpa,nmu))
+         allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            it = it_idx(kxkyz_lo,ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
             ! apar_denom does not depend on flux tube index,
             ! so only compute for one flux tube index
             if (it /= 1) cycle
-            iky = iky_idx(kxkyz_lo,ikxkyz)
-            ikx = ikx_idx(kxkyz_lo,ikxkyz)
-            iz = iz_idx(kxkyz_lo,ikxkyz)
-            is = is_idx(kxkyz_lo,ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
             ! apar_denom = kperp^2 + 2 beta * sum(Z^2  * n / m * integrate_vmu (vpa*vpa*exp(-v^2) J0^2) )
-            g0 = spread(maxwell_vpa(:,is)*vpa**2,2,nmu)*maxwell_fac(is) &
-                 * spread(maxwell_mu(ia,iz,:,is)*aj0v(:,ikxkyz)*aj0v(:,ikxkyz),1,nvpa)
-            wgt = 2.0*beta*spec(is)%z*spec(is)%z*spec(is)%dens/spec(is)%mass
-            call integrate_vmu (g0, iz, tmp)
-            apar_denom(iky,ikx,iz) = apar_denom(iky,ikx,iz) + tmp*wgt
+            g0 = spread(maxwell_vpa(:, is) * vpa**2, 2, nmu) * maxwell_fac(is) &
+                 * spread(maxwell_mu(ia, iz, :, is) * aj0v(:, ikxkyz) * aj0v(:, ikxkyz), 1, nvpa)
+            wgt = 2.0 * beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
+            call integrate_vmu(g0, iz, tmp)
+            apar_denom(iky, ikx, iz) = apar_denom(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce (apar_denom)
-         apar_denom = apar_denom + kperp2(:,:,ia,:)
+         call sum_allreduce(apar_denom)
+         apar_denom = apar_denom + kperp2(:, :, ia, :)
 
          deallocate (g0)
       end if
@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
