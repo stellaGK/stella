@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -734,6 +734,7 @@ contains
       use fields_arrays, only: phi, apar, bpar, phi_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use fields_arrays, only: bpar_corr_QN, bpar_corr_GA
       use run_parameters, only: fphi, fapar, fbpar
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
