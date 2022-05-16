@@ -318,7 +318,7 @@ contains
       real, dimension(:), allocatable :: part_flux, mom_flux, heat_flux
       real, dimension(:, :), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
       real, dimension(:, :), allocatable :: dens_x, upar_x, temp_x
-      real, dimension(:, :), allocatable :: phi2_vs_kxky
+      real, dimension(:, :), allocatable :: field2_vs_kxky
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature, spitzer2
 
@@ -449,10 +449,14 @@ contains
             end if
             if (write_kspectra) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
-               allocate (phi2_vs_kxky(naky, nakx))
-               call fieldline_average(real(phi_out * conjg(phi_out)), phi2_vs_kxky)
-               call write_kspectra_nc(nout, phi2_vs_kxky)
-               deallocate (phi2_vs_kxky)
+               allocate (field2_vs_kxky(naky, nakx))
+               call fieldline_average(real(phi_out * conjg(phi_out)), field2_vs_kxky)
+               call write_kspectra_nc(nout, field2_vs_kxky, "phi")
+               call fieldline_average(real(apar * conjg(apar)), field2_vs_kxky)
+               call write_kspectra_nc(nout, field2_vs_kxky, "apar")
+               call fieldline_average(real(bpar * conjg(bpar)), field2_vs_kxky)
+               call write_kspectra_nc(nout, field2_vs_kxky, "bpar")
+               deallocate (field2_vs_kxky)
             end if
             if (write_radial_fluxes) then
                call write_radial_fluxes_nc(nout, part_flux_x, mom_flux_x, heat_flux_x)

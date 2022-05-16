@@ -47,8 +47,8 @@ module stella_io
    integer :: nmu_id, nvtot_id, mu_id, vpa_id
    integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
    integer :: phi_vs_t_id, phi2_vs_kxky_id
-   integer :: apar_vs_t_id
-   integer :: bpar_vs_t_id
+   integer :: apar_vs_t_id, apar2_vs_kxky_id
+   integer :: bpar_vs_t_id, bpar2_vs_kxky_id
    integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
@@ -894,6 +894,24 @@ contains
             end if
             status = nf90_put_att(ncid, phi2_vs_kxky_id, 'long_name', 'Electrostatic Potential vs (ky,kx,t)')
             if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_vs_kxky_id, att='long_name')
+
+            status = nf90_inq_varid(ncid, 'apar2_vs_kxky', apar2_vs_kxky_id)
+            if (status /= nf90_noerr) then
+               status = nf90_def_var &
+                        (ncid, 'apar2_vs_kxky', netcdf_real, mode_dim, apar2_vs_kxky_id)
+               if (status /= nf90_noerr) call netcdf_error(status, var='apar2_vs_kxky')
+            end if
+            status = nf90_put_att(ncid, apar2_vs_kxky_id, 'long_name', 'Parallel Magnetic Potential vs (ky,kx,t)')
+            if (status /= nf90_noerr) call netcdf_error(status, ncid, apar2_vs_kxky_id, att='long_name')
+
+            status = nf90_inq_varid(ncid, 'bpar2_vs_kxky', bpar2_vs_kxky_id)
+            if (status /= nf90_noerr) then
+               status = nf90_def_var &
+                        (ncid, 'bpar2_vs_kxky', netcdf_real, mode_dim, bpar2_vs_kxky_id)
+               if (status /= nf90_noerr) call netcdf_error(status, var='bpar2_vs_kxky')
+            end if
+            status = nf90_put_att(ncid, bpar2_vs_kxky_id, 'long_name', 'Parallel Magnetic Field vs (ky,kx,t)')
+            if (status /= nf90_noerr) call netcdf_error(status, ncid, bpar2_vs_kxky_id, att='long_name')
          end if
       end if
 !
@@ -1204,7 +1222,7 @@ contains
 
    end subroutine write_radial_moments_nc
 
-   subroutine write_kspectra_nc(nout, phi2_vs_kxky)
+   subroutine write_kspectra_nc(nout, field2_vs_kxky, field_name)
 
       use kt_grids, only: nakx, naky
 # ifdef NETCDF
@@ -1214,7 +1232,8 @@ contains
       implicit none
 
       integer, intent(in) :: nout
-      real, dimension(:, :), intent(in) :: phi2_vs_kxky
+      real, dimension(:, :), intent(in) :: field2_vs_kxky
+      character(*), intent(in) :: field_name
 
 # ifdef NETCDF
       integer :: status
@@ -1226,12 +1245,23 @@ contains
       count(2) = nakx
       count(3) = 1
 
-      status = nf90_put_var(ncid, phi2_vs_kxky_id, phi2_vs_kxky, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_vs_kxky_id)
+      ! Set the appropriate ID
+      if (field_name == "phi") then
+         field2_vs_kxky_id = phi2_vs_kxky_id
+      else if (field_name == "apar") then
+         field2_vs_kxky_id = apar2_vs_kxky_id
+      else if (field_name == "bpar") then
+         field2_vs_kxky_id = bpar2_vs_kxky_id
+      else
+         call mp_abort("write_kspectra_nc: field_name not recognised. Aborting")
+      end if
+
+      status = nf90_put_var(ncid, field2_vs_kxky_id, field2_vs_kxky, start=start, count=count)
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, field2_vs_kxky_id)
 
 !   Buffers to disk
       status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_vs_kxky_id)
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, field2_vs_kxky_id)
 # endif
 
    end subroutine write_kspectra_nc
