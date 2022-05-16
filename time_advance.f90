@@ -963,6 +963,8 @@ contains
 
       integer, intent(in) :: istep
 
+      logical :: restart_time_step, time_advance_successful
+
       !> unless running in multibox mode, no need to worry about
       !> mb_communicate calls as the subroutine is immediately exited
       !> if not in multibox mode.
@@ -975,22 +977,49 @@ contains
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
 
-      !> reverse the order of operations every time step
-      !> as part of alternating direction operator splitting
-      !> this is needed to ensure 2nd order accuracy in time
-      if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-         !> advance the explicit parts of the GKE
-         if (debug) write (*, *) 'time_advance::advance_explicit'
-         call advance_explicit(gnew)
+      ! Flag which is set to true once we've taken a step without needing to
+      ! reset dt (which can be done by the nonlinear term(s))
+      time_advance_successful = .false.
 
-         !> use operator splitting to separately evolve
-         !> all terms treated implicitly
-         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
-      else
-         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
-         call advance_explicit(gnew)
-      end if
+      ! Attempt the Lie or flip-flop time advance until we've done it without the
+      ! timestep changing.
+      do while (.not. time_advance_successful)
+         ! If we've already attempted a time advance then we've updated gnew,
+         ! so reset it now.
+         gnew = gold
 
+         ! Ensure fields are consistent with gnew.
+         call advance_fields (gnew, phi, apar, dist='gbar')
+
+         ! if time step modified then we discard any
+         ! updates to g and try the timestep again).
+         restart_time_step = .false.
+
+         !> reverse the order of operations every time step
+         !> as part of alternating direction operator splitting
+         !> this is needed to ensure 2nd order accuracy in time
+         if (mod(istep, 2) == 1 .or. .not. flip_flop) then
+            !> advance the explicit parts of the GKE
+            if (debug) write (*, *) 'time_advance::advance_explicit'
+            call advance_explicit(gnew, restart_time_step)
+
+            !> use operator splitting to separately evolve
+            !> all terms treated implicitly
+            if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+         else
+            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+            call advance_explicit(gnew, restart_time_step)
+         end if
+
+         if (.not. restart_time_step) then
+           time_advance_successful = .true.
+         else
+           ! We're discarding changes to gnew and starting the timestep again, so fields will
+           ! need to be re-calculated
+           fields_updated = .false.
+         end if
+
+       end do
       ! presumably this is to do with the radially global version of the code?
       ! perhaps it could be packaged together with thee update_delay_krook code
       ! below and made into a single call where all of this happens so that
@@ -1015,7 +1044,7 @@ contains
    !> advance_explicit takes as input the guiding centre distribution function
    !> in k-space and updates it to account for all of the terms in the GKE that
    !> are advanced explicitly in time
-   subroutine advance_explicit(g)
+   subroutine advance_explicit(g, restart_time_step)
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -1029,6 +1058,7 @@ contains
 
 !    complex, dimension (:,:,-nzgrid:), intent (in out) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
 
       integer :: ivmu, iv, sgn, iky
 
@@ -1038,13 +1068,13 @@ contains
       select case (explicit_option_switch)
       case (explicit_option_rk2)
          !> SSP RK2
-         call advance_explicit_rk2(g)
+         call advance_explicit_rk2(g, restart_time_step)
       case (explicit_option_rk3)
          !> default is SSP RK3
-         call advance_explicit_rk3(g)
+         call advance_explicit_rk3(g, restart_time_step)
       case (explicit_option_rk4)
          !> RK4
-         call advance_explicit_rk4(g)
+         call advance_explicit_rk4(g, restart_time_step)
       end select
 
       !> enforce periodicity for periodic (including zonal) modes
@@ -1066,7 +1096,7 @@ contains
    end subroutine advance_explicit
 
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
-   subroutine advance_explicit_rk2(g)
+   subroutine advance_explicit_rk2(g, restart_time_step)
 
       use dist_fn_arrays, only: g0, g1
       use zgrid, only: nzgrid
@@ -1076,14 +1106,9 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
 
       integer :: icnt
-      logical :: restart_time_step
-
-      !> if CFL condition is violated by nonlinear term
-      !> then must modify time step size and restart time step
-      !> assume false and test
-      restart_time_step = .false.
 
       !> RK_step only true if running in multibox mode
       if (RK_step) call mb_communicate(g)
@@ -1104,6 +1129,8 @@ contains
             call solve_gke(g1, g, restart_time_step)
          end select
          if (restart_time_step) then
+           !> if CFL condition is violated by nonlinear term
+           !> then must modify time step size and restart time step
             icnt = 1
          else
             icnt = icnt + 1
@@ -1126,14 +1153,9 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
 
       integer :: icnt
-      logical :: restart_time_step
-
-      !> if CFL condition is violated by nonlinear term
-      !> then must modify time step size and restart time step
-      !> assume false and test
-      restart_time_step = .false.
 
       !> RK_STEP = false unless in multibox mode
       if (RK_step) call mb_communicate(g)
@@ -1158,6 +1180,8 @@ contains
             call solve_gke(g2, g, restart_time_step)
          end select
          if (restart_time_step) then
+           !> if CFL condition is violated by nonlinear term
+           !> then must modify time step size and restart time step
             icnt = 1
          else
             icnt = icnt + 1
@@ -1180,14 +1204,9 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
 
       integer :: icnt
-      logical :: restart_time_step
-
-      !> if CFL condition is violated by nonlinear term
-      !> then must modify time step size and restart time step
-      !> assume false and test
-      restart_time_step = .false.
 
       !> RK_step is false unless in multibox mode
       if (RK_step) call mb_communicate(g)
@@ -1222,6 +1241,8 @@ contains
             g1 = g1 + g
          end select
          if (restart_time_step) then
+           !> if CFL condition is violated by nonlinear term
+           !> then must modify time step size and restart time step           
             icnt = 1
          else
             icnt = icnt + 1
