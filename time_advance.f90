@@ -989,7 +989,7 @@ contains
          gnew = gold
 
          ! Ensure fields are consistent with gnew.
-         call advance_fields (gnew, phi, apar, dist='gbar')
+         call advance_fields(gnew, phi, apar, dist='gbar')
 
          ! if time step modified then we discard any
          ! updates to g and try the timestep again).
@@ -1012,14 +1012,14 @@ contains
          end if
 
          if (.not. restart_time_step) then
-           time_advance_successful = .true.
+            time_advance_successful = .true.
          else
-           ! We're discarding changes to gnew and starting the timestep again, so fields will
-           ! need to be re-calculated
-           fields_updated = .false.
+            ! We're discarding changes to gnew and starting the timestep again, so fields will
+            ! need to be re-calculated
+            fields_updated = .false.
          end if
 
-       end do
+      end do
       ! presumably this is to do with the radially global version of the code?
       ! perhaps it could be packaged together with thee update_delay_krook code
       ! below and made into a single call where all of this happens so that
@@ -1129,8 +1129,8 @@ contains
             call solve_gke(g1, g, restart_time_step)
          end select
          if (restart_time_step) then
-           !> if CFL condition is violated by nonlinear term
-           !> then must modify time step size and restart time step
+            !> if CFL condition is violated by nonlinear term
+            !> then must modify time step size and restart time step
             icnt = 1
          else
             icnt = icnt + 1
@@ -1180,8 +1180,8 @@ contains
             call solve_gke(g2, g, restart_time_step)
          end select
          if (restart_time_step) then
-           !> if CFL condition is violated by nonlinear term
-           !> then must modify time step size and restart time step
+            !> if CFL condition is violated by nonlinear term
+            !> then must modify time step size and restart time step
             icnt = 1
          else
             icnt = icnt + 1
@@ -1241,8 +1241,8 @@ contains
             g1 = g1 + g
          end select
          if (restart_time_step) then
-           !> if CFL condition is violated by nonlinear term
-           !> then must modify time step size and restart time step           
+            !> if CFL condition is violated by nonlinear term
+            !> then must modify time step size and restart time step
             icnt = 1
          else
             icnt = icnt + 1
