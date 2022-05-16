@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2056,7 +2056,7 @@ contains
       if (allocated(apar)) deallocate (apar)
       if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
       if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
-      if (allocated(bpar)) deallocate (apar)
+      if (allocated(bpar)) deallocate (bpar)
       if (allocated(bpar_corr_QN)) deallocate (bpar_corr_QN)
       if (allocated(bpar_corr_GA)) deallocate (bpar_corr_GA)
       if (allocated(gamtot)) deallocate (gamtot)
