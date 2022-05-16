@@ -1237,6 +1237,7 @@ contains
 
 # ifdef NETCDF
       integer :: status
+      integer :: field2_vs_kxky_id
       integer, dimension(3) :: start, count
 
       start = 1
