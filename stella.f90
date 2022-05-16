@@ -2,7 +2,7 @@ program stella
 
    use redistribute, only: scatter
    use job_manage, only: time_message, checkstop, job_fork
-   use run_parameters, only: nstep, tend, fphi, fapar
+   use run_parameters, only: nstep, tend
    use stella_time, only: update_time, code_time, code_dt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
@@ -94,7 +94,7 @@ contains
       use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
       use stella_diagnostics, only: read_stella_diagnostics_knobs, init_stella_diagnostics
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
