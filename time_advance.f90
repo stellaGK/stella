@@ -440,7 +440,7 @@ contains
       use dist_fn_arrays, only: wstar
       use fields_arrays, only: gamtot
       use fields, only: efac
-      use run_parameters, only: fphi, fapar, time_upwind
+      use run_parameters, only: fphi, fapar, fbpar, time_upwind
       use species, only: spec, has_electron_species
       use stella_geometry, only: dl_over_b
       use zgrid, only: nzgrid
@@ -528,6 +528,12 @@ contains
       if (fapar > epsilon(0.)) then
          write (*, *) 'APAR NOT SETUP FOR GSTAR YET. aborting'
          call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting')
+      end if
+
+      !> @todo -- NEED TO SORT OUT FINITE FBPAR FOR GSTAR
+      if (fbpar > epsilon(0.)) then
+         write (*, *) 'BPAR NOT SETUP FOR GSTAR YET. aborting'
+         call mp_abort('BPAR NOT SETUP FOR GSTAR YET. aborting')
       end if
 
    end subroutine init_drifts_implicit
@@ -1239,7 +1245,7 @@ contains
    subroutine solve_gke(gin, rhs_ky, restart_time_step)
 
       use job_manage, only: time_message
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
       use redistribute, only: gather, scatter
@@ -2653,7 +2659,7 @@ contains
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, bpar, dist='gbar')
-         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
+         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar, bpar)
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2690,7 +2696,7 @@ contains
 
    end subroutine advance_implicit
 
-   subroutine advance_drifts_implicit(g, phi, apar)
+   subroutine advance_drifts_implicit(g, phi, apar, bpar)
 
       use constants, only: zi
       use stella_layouts, only: vmu_lo
@@ -2715,7 +2721,7 @@ contains
       complex :: tmp
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       complex, dimension(:, :), allocatable :: wd_g, wd_phi, wstr
       complex, dimension(:, :, :), allocatable :: gyro_g
@@ -2811,7 +2817,7 @@ contains
       use zgrid, only: nzgrid
       use multibox, only: multibox_communicate, use_dirichlet_bc, apply_radial_boundary_conditions
       use fields, only: fields_updated, advance_fields
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
