@@ -1225,6 +1225,7 @@ contains
    subroutine write_kspectra_nc(nout, field2_vs_kxky, field_name)
 
       use kt_grids, only: nakx, naky
+      use mp, only: mp_abort
 # ifdef NETCDF
       use netcdf, only: nf90_put_var, nf90_sync
 # endif
