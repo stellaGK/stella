@@ -1116,7 +1116,7 @@ contains
       deallocate (field_ri)
 # endif
 
-end subroutine write_field_nc
+   end subroutine write_field_nc
 
    subroutine write_omega_nc(nout, omega)
 
