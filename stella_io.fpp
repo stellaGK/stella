@@ -14,7 +14,7 @@ module stella_io
    public :: init_stella_io, finish_stella_io
    public :: write_time_nc
    public :: write_phi2_nc
-   public :: write_fields_nc
+   public :: write_field_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
