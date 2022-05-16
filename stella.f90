@@ -307,7 +307,7 @@ contains
 
       !> get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, bpar, dist='gbar')
 
       if (radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
@@ -321,13 +321,13 @@ contains
          call multibox_communicate(gnew)
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(gnew, phi, apar, dist='gbar')
+            call advance_fields(gnew, phi, apar, bpar, dist='gbar')
          end if
       else if (use_dirichlet_BC) then
          if (debug) write (6, *) 'stella::init_stella:multibox_radial_BC'
          call apply_radial_boundary_conditions(gnew)
          fields_updated = .false.
-         call advance_fields(gnew, phi, apar, dist='gbar')
+         call advance_fields(gnew, phi, apar, bpar, dist='gbar')
       end if
 
       !> rescale to phiinit if just beginning a new run

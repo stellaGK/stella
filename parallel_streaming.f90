@@ -609,7 +609,7 @@ contains
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist='gbar')
+      call advance_fields(g, phi, apar, bpar, dist='gbar')
 
       ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
       ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}

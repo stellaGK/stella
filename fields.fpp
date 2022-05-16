@@ -828,7 +828,7 @@ contains
 
    end subroutine enforce_reality_field
 
-   subroutine advance_fields(g, phi, apar, dist)
+   subroutine advance_fields(g, phi, apar, bpar, dist)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -843,7 +843,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       character(*), intent(in) :: dist
 
       if (fields_updated) return
@@ -860,13 +860,13 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 2), ' fields_redist')
          !> given gvmu with vpa and mu local, calculate the corresponding fields
          if (debug) write (*, *) 'dist_fn::advance_stella::get_fields'
-         call get_fields(gvmu, phi, apar, dist)
+         call get_fields(gvmu, phi, apar, bpar, dist)
       else
          if (full_flux_surface) then
             if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs'
-            call get_fields_ffs(g, phi, apar)
+            call get_fields_ffs(g, phi, apar, bpar)
          else
-            call get_fields_vmulo(g, phi, apar, dist)
+            call get_fields_vmulo(g, phi, apar, bpar, dist)
          end if
       end if
 
@@ -878,7 +878,7 @@ contains
 
    end subroutine advance_fields
 
-   subroutine get_fields(g, phi, apar, dist, skip_fsa)
+   subroutine get_fields(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
@@ -898,7 +898,7 @@ contains
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
       complex :: tmp
@@ -938,6 +938,8 @@ contains
 
       end if
 
+      apar = 0.
+      bpar = 0.
       ! apar = 0.
       ! if (fapar > epsilon(0.0)) then
       !    allocate (g0(nvpa, nmu))
@@ -969,7 +971,7 @@ contains
 
    end subroutine get_fields
 
-   subroutine get_fields_vmulo(g, phi, apar, dist, skip_fsa)
+   subroutine get_fields_vmulo(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
@@ -985,7 +987,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
 
@@ -1017,6 +1019,8 @@ contains
 
       end if
 
+      apar = 0.
+      bpar = 0.
 !       apar = 0.
 !       if (fapar > epsilon(0.0)) then
 !          ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
@@ -1051,12 +1055,12 @@ contains
 
    !> get_fields_ffs accepts as input the guiding centre distribution function g
    !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
-   subroutine get_fields_ffs(g, phi, apar)
+   subroutine get_fields_ffs(g, phi, apar, bpar)
 
       use mp, only: mp_abort
       use physics_parameters, only: nine, tite
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi, fapar, fbpar
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
       use zgrid, only: nzgrid
       use kt_grids, only: nakx, ikx_max, naky, naky_all
@@ -1066,7 +1070,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
 
       integer :: iz, ikx
       complex, dimension(:), allocatable :: phi_fsa
@@ -1124,6 +1128,11 @@ contains
          call mp_abort('apar not yet supported for full_flux_surface = T. aborting.')
       end if
 
+      bpar = 0.
+      if (fbpar > epsilon(0.0)) then
+         call mp_abort('bpar not yet supported for full_flux_surface = T. aborting.')
+      end if
+
    contains
 
       subroutine get_g_integral_contribution(g, source)
@@ -1171,11 +1180,11 @@ contains
 
    subroutine get_fields_by_spec(g, fld, skip_fsa)
 
-      use mp, only: sum_allreduce
+      use mp, only: sum_allreduce, mp_abort
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi
+      use run_parameters, only: fphi, fapar, fbpar
       use stella_geometry, only: dl_over_b
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
@@ -1240,6 +1249,16 @@ contains
          deallocate (g0)
       end if
 
+      ! get_fields_by_spec only calculates fld, which looks like it's just
+      ! the electrostatic potential phi - EM effects not catered for
+      if (fapar > epsilon(0.0)) then
+         call mp_abort('apar not yet supported for get_fields_by_spec. aborting.')
+      end if
+
+      if (fbpar > epsilon(0.0)) then
+         call mp_abort('bpar not yet supported for get_fields_by_spec. aborting.')
+      end if
+
    end subroutine get_fields_by_spec
 
    subroutine get_fields_by_spec_idx(isa, g, fld)
@@ -1247,11 +1266,11 @@ contains
       ! apply phi_isa[ ] to all species indices contained in g
       ! ie get phi_isa[g_is1], phi_isa[g_is2], phi_isa[g_is3] ...
 
-      use mp, only: sum_allreduce
+      use mp, only: sum_allreduce, mp_abort
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi
+      use run_parameters, only: fphi, fapar, fbpar
       use stella_geometry, only: dl_over_b, bmag
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, nvpa, nmu
@@ -1315,6 +1334,16 @@ contains
          end if
 
          deallocate (g0)
+      end if
+
+      ! get_fields_by_spec_idx only calculates fld, which looks like it's just
+      ! the electrostatic potential phi - EM effects not catered for
+      if (fapar > epsilon(0.0)) then
+         call mp_abort('apar not yet supported for get_fields_by_spec_idx. aborting.')
+      end if
+
+      if (fbpar > epsilon(0.0)) then
+         call mp_abort('bpar not yet supported for get_fields_by_spec_idx. aborting.')
       end if
 
    end subroutine get_fields_by_spec_idx

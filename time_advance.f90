@@ -1003,7 +1003,7 @@ contains
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, bpar, dist='gbar')
 
       !update the delay parameters for the Krook operator
       if (include_krook_operator) call update_tcorr_krook(gnew)
@@ -1294,7 +1294,7 @@ contains
       !> start with gbar in k-space and (ky,kx,z) local
       !> obtain fields corresponding to gbar
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
-      call advance_fields(gin, phi, apar, dist='gbar')
+      call advance_fields(gin, phi, apar, bpar, dist='gbar')
 
       if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
 
@@ -2616,7 +2616,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='gbar')
+            call advance_fields(g, phi, apar, bpar, dist='gbar')
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
@@ -2635,7 +2635,7 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, bpar, dist='gbar')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2644,7 +2644,7 @@ contains
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, bpar, dist='gbar')
          if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
 
       else
@@ -2652,7 +2652,7 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, bpar, dist='gbar')
          if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
 
          ! g^{**} is input
@@ -2668,7 +2668,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='gbar')
+            call advance_fields(g, phi, apar, bpar, dist='gbar')
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
@@ -2727,7 +2727,7 @@ contains
       allocate (wstr(naky, nakx))
 
       ! given g^{*}, obtain phi^{*} and apar^{*}
-      call advance_fields(g, phi, apar, dist='gbar')
+      call advance_fields(g, phi, apar, bpar, dist='gbar')
 
       ! solve for g^inh
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -2820,19 +2820,19 @@ contains
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
-            call advance_fields(g_in, phi, apar, dist='gbar')
+            call advance_fields(g_in, phi, apar, bpar, dist='gbar')
          end if
 
          call multibox_communicate(g_in)
 
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(g_in, phi, apar, dist='gbar')
+            call advance_fields(g_in, phi, apar, bpar, dist='gbar')
          end if
       else if (use_dirichlet_BC) then
          call apply_radial_boundary_conditions(g_in)
          fields_updated = .false.
-         call advance_fields(g_in, phi, apar, dist='gbar')
+         call advance_fields(g_in, phi, apar, bpar, dist='gbar')
       end if
 
    end subroutine mb_communicate
