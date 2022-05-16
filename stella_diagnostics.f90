@@ -278,7 +278,7 @@ contains
       use mp, only: proc0
       use constants, only: zi
       use redistribute, only: scatter
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_old, phi_corr_QN
       use fields, only: fields_updated, advance_fields
       use dist_fn_arrays, only: gvmu, gnew
@@ -442,6 +442,10 @@ contains
             if (write_apar_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_field_nc'
                call write_field_nc(nout, apar, "apar")
+            end if
+            if (write_bpar_vs_time) then
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_field_nc'
+               call write_field_nc(nout, bpar, "bpar")
             end if
             if (write_kspectra) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
