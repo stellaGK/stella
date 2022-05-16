@@ -423,7 +423,7 @@ contains
          call volume_average(bpar, bpar2)
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
-         call write_loop_ascii_files(istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
+         call write_loop_ascii_files(istep, phi2, apar2, bpar2, part_flux, mom_flux, heat_flux, &
                                      omega_vs_time(mod(istep, navg) + 1, :, :), omega_avg)
 
          ! do not need omega_avg again this time step
@@ -1782,7 +1782,7 @@ contains
    !==============================================
    !========= WRITE LOOP ASCII FILES =============
    !==============================================
-   subroutine write_loop_ascii_files(istep, phi2, apar2, pflx, vflx, qflx, om, om_avg)
+   subroutine write_loop_ascii_files(istep, phi2, apar2, bpar2, pflx, vflx, qflx, om, om_avg)
 
       use stella_time, only: code_time
       use species, only: nspec
@@ -1792,7 +1792,7 @@ contains
       implicit none
 
       integer, intent(in) :: istep
-      real, intent(in) :: phi2, apar2
+      real, intent(in) :: phi2, apar2, bpar2
       real, dimension(:), intent(in) :: pflx, vflx, qflx
       complex, dimension(:, :), intent(in) :: om, om_avg
 
@@ -1800,8 +1800,8 @@ contains
       character(100) :: str
       integer :: ikx, iky
 
-      write (stdout_unit, '(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
-         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
+      write (stdout_unit, '(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4,a11,e12.4)') 'istep=', istep, &
+         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2, '|bpar|^2= ', bpar2
 
       call flush (stdout_unit)
 
@@ -1833,7 +1833,7 @@ contains
    subroutine write_final_ascii_files
 
       use file_utils, only: open_output_file, close_output_file
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use zgrid, only: nzgrid, ntubes
       use zgrid, only: zed
       use kt_grids, only: naky, nakx
@@ -1847,16 +1847,18 @@ contains
       integer :: iky, ikx, iz, it
 
       call open_output_file(tmpunit, '.final_fields')
-      write (tmpunit, '(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
+      write (tmpunit, '(12a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'z_eqarc-zed0', 'kperp2'
+         'real(bpar)', 'imag(bpar)', 'z_eqarc-zed0', 'kperp2'
       do iky = 1, naky
          do ikx = 1, nakx
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                  write (tmpunit, '(12es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
                      real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
-                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), zed_eqarc(iz) - zed0(iky, ikx), &
+                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), &
+                     real(bpar(iky, ikx, iz, it)), aimag(bpar(iky, ikx, iz, it)), &
+                     zed_eqarc(iz) - zed0(iky, ikx), &
                      kperp2(iky, ikx, it, iz), it
                end do
                write (tmpunit, *)
