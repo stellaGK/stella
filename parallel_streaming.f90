@@ -562,7 +562,7 @@ contains
 
    end subroutine add_stream_term_ffs
 
-   subroutine advance_parallel_streaming_implicit(g, phi, apar)
+   subroutine advance_parallel_streaming_implicit(g, phi, apar, bpar)
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -576,7 +576,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: ivmu
       complex, dimension(:, :, :, :), allocatable :: phi1

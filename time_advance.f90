@@ -950,7 +950,7 @@ contains
    subroutine advance_stella(istep)
 
       use dist_fn_arrays, only: gold, gnew
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_old
       use fields, only: advance_fields, fields_updated
       use run_parameters, only: fully_explicit
@@ -985,9 +985,9 @@ contains
 
          !> use operator splitting to separately evolve
          !> all terms treated implicitly
-         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
       else
-         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
          call advance_explicit(gnew)
       end if
 
@@ -2542,7 +2542,7 @@ contains
 
    ! end subroutine add_wstar_term_ffs
 
-   subroutine advance_implicit(istep, phi, apar, g)
+   subroutine advance_implicit(istep, phi, apar, bpar, g)
 !  subroutine advance_implicit (phi, apar, g)
 
       use mp, only: proc0
@@ -2566,7 +2566,7 @@ contains
       implicit none
 
       integer, intent(in) :: istep
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
@@ -2617,7 +2617,7 @@ contains
 
          if (collisions_implicit .and. include_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='gbar')
-            call advance_collisions_implicit(mirror_implicit, phi, apar, g)
+            call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
 
@@ -2640,12 +2640,12 @@ contains
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit(g, phi, apar)
+            call advance_parallel_streaming_implicit(g, phi, apar, bpar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
          call advance_fields(g, phi, apar, bpar, dist='gbar')
-         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
+         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar, bpar)
 
       else
 
@@ -2658,7 +2658,7 @@ contains
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit(g, phi, apar)
+            call advance_parallel_streaming_implicit(g, phi, apar, bpar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
@@ -2669,7 +2669,7 @@ contains
 
          if (collisions_implicit .and. include_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='gbar')
-            call advance_collisions_implicit(mirror_implicit, phi, apar, g)
+            call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
 

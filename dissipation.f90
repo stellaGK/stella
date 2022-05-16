@@ -2678,7 +2678,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       logical :: conservative_wgts
       real :: dum2
 
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum_apar, dum_bpar ! Dummy variables representing apar, bpar
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: sumdelta
       complex, dimension(:, :), allocatable :: gvmutr
@@ -2696,7 +2696,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          allocate (response_vpamu(nvpa, nmu, nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       end if
 
-      allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       allocate (sumdelta(nvpa, nmu)); sumdelta = 0.
       allocate (gvmutr(nvpa, nmu))
@@ -2729,7 +2730,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! gvmu contains dhs/dphi
       ! for phi equation, need 1-P[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h') ! note that get_fields sums over species, as required in response matrix
+      call get_fields(gvmu, field(:, :, :, :, 1), dum_apar, dum_bpar, dist='h') ! note that get_fields sums over species, as required in response matrix
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -2987,7 +2988,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
-      deallocate (dum1, field)
+      deallocate (dum_apar, dum_bpar, field)
 
    end subroutine init_fp_conserve
 
@@ -3474,7 +3475,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer :: idx
       logical :: conservative_wgts
       real :: dum2
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum_apar, dum_bpar ! Dummy variables representing apar, bpar
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: temp_mat
 
@@ -3498,7 +3499,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          end if
       end if
 
-      allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       ! set wgts to be equally spaced to ensure exact conservation properties
@@ -3520,7 +3522,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum_apar, dum_bpar, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -3695,7 +3697,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
-      deallocate (dum1, field)
+      deallocate (dum_apar, dum_bpar, field)
 
    end subroutine init_vpadiff_conserve
 
@@ -3726,7 +3728,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer :: idx
       real :: dum2
       complex, dimension(:, :), allocatable :: temp_mat
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum_apar, dum_bpar ! Dummy variables representing apar, bpar
       complex, dimension(:, :, :, :, :), allocatable :: field
 
       nresponse_mu = 1
@@ -3747,7 +3749,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          end if
       end if
 
-      allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -3765,7 +3768,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum_apar, dum_bpar, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -3940,7 +3943,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          deallocate (temp_mat)
       end if
 
-      deallocate (dum1, field)
+      deallocate (dum_apar, dum_bpar, field)
 
    end subroutine init_mudiff_conserve
 
@@ -5435,7 +5438,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine conserve_energy_vmulo
 
-   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, g)
+   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
@@ -5449,7 +5452,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       implicit none
 
       logical, intent(in) :: mirror_implicit
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       logical :: conservative_wgts
@@ -5464,8 +5467,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
       if (collision_model == "dougherty") then
-         if (vpa_operator) call advance_vpadiff_implicit(phi, apar, gvmu)
-         if (mu_operator) call advance_mudiff_implicit(phi, apar, gvmu)
+         if (vpa_operator) call advance_vpadiff_implicit(phi, apar, bpar, gvmu)
+         if (mu_operator) call advance_mudiff_implicit(phi, apar, bpar, gvmu)
       end if
       if (collision_model == "fokker-planck") then
 
@@ -5478,7 +5481,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             call set_vpa_weights(conservative_wgts)
          end if
 
-         call advance_implicit_fp(phi, apar, gvmu)
+         call advance_implicit_fp(phi, apar, bpar, gvmu)
       end if
 
       if (.not. mirror_implicit) then
@@ -5495,7 +5498,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_collisions_implicit
 
-   subroutine advance_implicit_fp(phi, apar, g)
+   subroutine advance_implicit_fp(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -5517,7 +5520,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       complex, dimension(:, :, :, :, :), allocatable :: flds
@@ -5593,7 +5596,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! first get phi_inh^{n+1}
       if (advfield_coll) then
-         call get_fields(g, phi, apar, dist='h')
+         call get_fields(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
       end if
 
@@ -5729,7 +5732,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_implicit_fp
 
-   subroutine advance_vpadiff_implicit(phi, apar, g)
+   subroutine advance_vpadiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -5753,7 +5756,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -5784,7 +5787,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -5893,7 +5896,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_vpadiff_implicit
 
-   subroutine advance_mudiff_implicit(phi, apar, g)
+   subroutine advance_mudiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -5921,7 +5924,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -5966,7 +5969,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
