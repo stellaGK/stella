@@ -1075,7 +1075,7 @@ contains
 
       integer, intent(in) :: nout
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: field
-      character(5), intent(in) :: field_name
+      character(*), intent(in) :: field_name
 
 # ifdef NETCDF
       integer :: status
