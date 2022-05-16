@@ -1241,13 +1241,8 @@ contains
             g1 = g1 + g
          end select
          if (restart_time_step) then
-<<<<<<< HEAD
-           !> if CFL condition is violated by nonlinear term
-           !> then must modify time step size and restart time step
-=======
             !> if CFL condition is violated by nonlinear term
             !> then must modify time step size and restart time step
->>>>>>> 85b1b7eeeba5f939cd1380c4b1c2394b5c96e90e
             icnt = 1
          else
             icnt = icnt + 1
