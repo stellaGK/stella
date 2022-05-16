@@ -95,8 +95,8 @@ contains
 
       if (proc0) then
          fphi = 1.0
-         fapar = 1.0
-         fbpar = 1.0
+         fapar = 0.0
+         fbpar = 0.0
          fields_kxkyz = .false.
          stream_implicit = .true.
          mirror_implicit = .true.
