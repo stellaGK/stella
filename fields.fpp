@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1893,7 +1893,7 @@ contains
    subroutine rescale_fields(target_amplitude)
 
       use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew, gvmu
       use volume_averages, only: volume_average
       use job_manage, only: njobs
@@ -1917,6 +1917,7 @@ contains
 
       phi = rescale * phi
       apar = rescale * apar
+      bpar = rescale * bpar
       gnew = rescale * gnew
       gvmu = rescale * gvmu
 
