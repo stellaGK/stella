@@ -1108,7 +1108,7 @@ contains
       if (status /= nf90_noerr) call netcdf_error(status, ncid, field2_id)
 # endif
 
-end subroutine write_field2_nc
+   end subroutine write_field2_nc
 
    !> Write a field (phi, apar, bpar) to the .out.nc file
    subroutine write_field_nc(nout, field, field_name)
