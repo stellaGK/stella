@@ -126,7 +126,8 @@ contains
       ntg_out = nzed / 2 + (nperiod - 1) * nzed
 
       !> Initiate the netcdf file with extension '.out.nc'
-      call init_stella_io(restart, write_phi_vs_time, write_kspectra, &
+      call init_stella_io(restart, write_phi_vs_time, write_apar_vs_time, &
+                          write_bpar_vs_time, write_kspectra, &
                           write_gvmus, write_gzvs, write_moments, write_omega, &
                           write_radial_fluxes, write_radial_moments, write_fluxes_kxkyz)
 
@@ -284,7 +285,7 @@ contains
       use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
       use stella_io, only: write_phi2_nc
-      use stella_io, only: write_phi_nc
+      use stella_io, only: write_field_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
       use stella_io, only: write_kspectra_nc
@@ -435,8 +436,12 @@ contains
             if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
             call write_phi2_nc(nout, phi2)
             if (write_phi_vs_time) then
-               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
-               call write_phi_nc(nout, phi_out)
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_field_nc'
+               call write_field_nc(nout, phi_out, "phi")
+            end if
+            if (write_apar_vs_time) then
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_field_nc'
+               call write_field_nc(nout, apar, "apar")
             end if
             if (write_kspectra) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'

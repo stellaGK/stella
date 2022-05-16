@@ -47,6 +47,8 @@ module stella_io
    integer :: nmu_id, nvtot_id, mu_id, vpa_id
    integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
    integer :: phi_vs_t_id, phi2_vs_kxky_id
+   integer :: apar_vs_t_id
+   integer :: bpar_vs_t_id
    integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
@@ -74,8 +76,9 @@ contains
    !==============================================
    !============ INITIATE STELLA IO ==============
    !==============================================
-   subroutine init_stella_io(restart, write_phi_vs_t, write_kspectra, write_gvmus, &
-                             write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
+   subroutine init_stella_io(restart, write_phi_vs_t, write_apar_vs_t, write_bpar_vs_t, &
+                             write_kspectra, write_gvmus, write_gzvs, write_moments, &
+                             write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
 
       use mp, only: proc0
       use file_utils, only: run_name
@@ -89,7 +92,8 @@ contains
       implicit none
 
       logical, intent(in) :: restart
-      logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
+      logical, intent(in) :: write_phi_vs_t, write_apar_vs_t, write_bpar_vs_t
+      logical, intent(in) :: write_kspectra, write_gvmus, write_gzvs
       logical, intent(in) :: write_moments, write_omega, write_radial_fluxes, write_radial_moments!, write_symmetry
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
@@ -119,7 +123,8 @@ contains
          if (status /= nf90_noerr) call netcdf_error(status, file=filename)
 
          call define_dims
-         call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
+         call define_vars(write_phi_vs_t, write_apar_vs_t, write_bpar_vs_t, &
+                          write_kspectra, write_gvmus, write_gzvs, &
                           write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
          call nc_grids
@@ -269,7 +274,8 @@ contains
 # endif
    end subroutine save_input
 
-   subroutine define_vars(write_phi_vs_t, write_kspectra, write_gvmus, &
+   subroutine define_vars(write_phi_vs_t, write_apar_vs_t, write_bpar_vs_t, &
+                          write_kspectra, write_gvmus, &
                           !       write_gzvs, write_symmetry, write_moments)
                           write_gzvs, write_moments, write_omega, write_radial_fluxes, &
                           write_radial_moments, write_fluxes_kxky)
@@ -286,7 +292,8 @@ contains
 
       implicit none
 
-      logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
+      logical, intent(in) :: write_phi_vs_t, write_apar_vs_t, write_bpar_vs_t
+      logical, intent(in) :: write_kspectra, write_gvmus, write_gzvs!, write_symmetry
       logical, intent(in) :: write_moments, write_omega, write_radial_fluxes, write_radial_moments
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
@@ -818,6 +825,26 @@ contains
             status = nf90_put_att(ncid, phi_vs_t_id, 'long_name', 'Electrostatic Potential vs time')
             if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id, att='long_name')
          end if
+         if (write_apar_vs_t) then
+            status = nf90_inq_varid(ncid, 'apar_vs_t', apar_vs_t_id)
+            if (status /= nf90_noerr) then
+               status = nf90_def_var &
+                        (ncid, 'apar_vs_t', netcdf_real, field_dim, apar_vs_t_id)
+               if (status /= nf90_noerr) call netcdf_error(status, var='apar_vs_t')
+            end if
+            status = nf90_put_att(ncid, apar_vs_t_id, 'long_name', 'Parallel Magnetic Potential vs time')
+            if (status /= nf90_noerr) call netcdf_error(status, ncid, apar_vs_t_id, att='long_name')
+         end if
+         if (write_bpar_vs_t) then
+            status = nf90_inq_varid(ncid, 'bpar_vs_t', bpar_vs_t_id)
+            if (status /= nf90_noerr) then
+               status = nf90_def_var &
+                        (ncid, 'bpar_vs_t', netcdf_real, field_dim, bpar_vs_t_id)
+               if (status /= nf90_noerr) call netcdf_error(status, var='bpar_vs_t')
+            end if
+            status = nf90_put_att(ncid, bpar_vs_t_id, 'long_name', 'Parallel Magnetic Field vs time')
+            if (status /= nf90_noerr) call netcdf_error(status, ncid, bpar_vs_t_id, att='long_name')
+         end if
          if (write_radial_moments) then
             status = nf90_inq_varid(ncid, 'dens_x', dens_x_id)
             if (status /= nf90_noerr) then
@@ -1033,11 +1060,13 @@ contains
 
    end subroutine write_phi2_nc
 
-   subroutine write_phi_nc(nout, phi)
+   !> Write a field (phi, apar, bpar) to the .out.nc file
+   subroutine write_field_nc(nout, field, field_name)
 
       use convert, only: c2r
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
+      use mp, only: mp_abort
 # ifdef NETCDF
       use netcdf, only: nf90_put_var, nf90_sync
 # endif
@@ -1045,12 +1074,14 @@ contains
       implicit none
 
       integer, intent(in) :: nout
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: field
+      character(5), intent(in) :: field_name
 
 # ifdef NETCDF
       integer :: status
+      integer :: field_vs_t_id
       integer, dimension(6) :: start, count
-      real, dimension(:, :, :, :, :), allocatable :: phi_ri
+      real, dimension(:, :, :, :, :), allocatable :: field_ri
 
       start = 1
       start(6) = nout
@@ -1061,19 +1092,31 @@ contains
       count(5) = ntubes
       count(6) = 1
 
-      allocate (phi_ri(2, naky, nakx, 2 * nzgrid + 1, ntubes))
-      call c2r(phi, phi_ri)
-      status = nf90_put_var(ncid, phi_vs_t_id, phi_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id)
+      allocate (field_ri(2, naky, nakx, 2 * nzgrid + 1, ntubes))
+      call c2r(field, field_ri)
+
+      ! Set the appropriate ID
+      if (field_name == "phi") then
+         field_vs_t_id = phi_vs_t_id
+      else if (field_name == "apar") then
+         field_vs_t_id = apar_vs_t_id
+      else if (field_name == "bpar") then
+         field_vs_t_id = bpar_vs_t_id
+      else
+         call mp_abort("write_field_nc: field_name not recognised. Aborting")
+      end if
+
+      status = nf90_put_var(ncid, field_vs_t_id, field_ri, start=start, count=count)
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, field_vs_t_id)
 
 !   Buffers to disk
       status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id)
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, field_vs_t_id)
 
-      deallocate (phi_ri)
+      deallocate (field_ri)
 # endif
 
-   end subroutine write_phi_nc
+end subroutine write_field_nc
 
    subroutine write_omega_nc(nout, omega)
 
