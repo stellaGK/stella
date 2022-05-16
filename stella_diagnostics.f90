@@ -310,7 +310,7 @@ contains
       !> The current timestep
       integer, intent(in) :: istep
 
-      real :: phi2, apar2
+      real :: phi2, apar2, bpar2
       real :: zero
       real, dimension(:, :, :), allocatable :: gvmus
       real, dimension(:, :, :, :), allocatable :: gzvs
@@ -420,6 +420,7 @@ contains
          end if
          call volume_average(phi_out, phi2)
          call volume_average(apar, apar2)
+         call volume_average(bpar, bpar2)
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
          call write_loop_ascii_files(istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
@@ -436,6 +437,7 @@ contains
             if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
             call write_field2_nc(nout, phi2, "phi")
             call write_field2_nc(nout, apar2, "apar")
+            call write_field2_nc(nout, bpar2, "bpar")
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_field_nc'
                call write_field_nc(nout, phi_out, "phi")
