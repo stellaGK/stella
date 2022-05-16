@@ -284,7 +284,7 @@ contains
       use dist_fn_arrays, only: gvmu, gnew
       use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
-      use stella_io, only: write_phi2_nc
+      use stella_io, only: write_field2_nc
       use stella_io, only: write_field_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
@@ -434,7 +434,8 @@ contains
             if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
             call write_time_nc(nout, code_time)
             if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
-            call write_phi2_nc(nout, phi2)
+            call write_field2_nc(nout, phi2, "phi")
+            call write_field2_nc(nout, apar2, "apar")
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_field_nc'
                call write_field_nc(nout, phi_out, "phi")

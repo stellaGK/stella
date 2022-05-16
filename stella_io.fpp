@@ -13,7 +13,7 @@ module stella_io
 
    public :: init_stella_io, finish_stella_io
    public :: write_time_nc
-   public :: write_phi2_nc
+   public :: write_field2_nc
    public :: write_field_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
@@ -47,8 +47,8 @@ module stella_io
    integer :: nmu_id, nvtot_id, mu_id, vpa_id
    integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
    integer :: phi_vs_t_id, phi2_vs_kxky_id
-   integer :: apar_vs_t_id, apar2_vs_kxky_id
-   integer :: bpar_vs_t_id, bpar2_vs_kxky_id
+   integer :: apar_vs_t_id, apar2_vs_kxky_id, apar2_id
+   integer :: bpar_vs_t_id, bpar2_vs_kxky_id, bpar2_id
    integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
@@ -791,12 +791,30 @@ contains
             status = nf90_def_var(ncid, 'phi2', netcdf_real, time_dim, phi2_id)
             if (status /= nf90_noerr) call netcdf_error(status, var='phi2')
          end if
-         status = nf90_put_att(ncid, phi2_id, 'long_name', '|Potential**2|')
+         status = nf90_put_att(ncid, phi2_id, 'long_name', '|Electrostatic Potential**2|')
          if (status /= nf90_noerr) &
             call netcdf_error(status, ncid, phi2_id, att='long_name')
          status = nf90_put_att(ncid, phi2_id, 'units', '(T/q rho/L)**2')
          if (status /= nf90_noerr) &
             call netcdf_error(status, ncid, phi2_id, att='units')
+
+         status = nf90_inq_varid(ncid, 'apar2', apar2_id)
+         if (status /= nf90_noerr) then
+            status = nf90_def_var(ncid, 'apar2', netcdf_real, time_dim, apar2_id)
+            if (status /= nf90_noerr) call netcdf_error(status, var='apar2')
+         end if
+         status = nf90_put_att(ncid, apar2_id, 'long_name', '|Parallel Magnetic Potential**2|')
+         if (status /= nf90_noerr) &
+            call netcdf_error(status, ncid, apar2_id, att='long_name')
+
+         status = nf90_inq_varid(ncid, 'bpar2', bpar2_id)
+         if (status /= nf90_noerr) then
+            status = nf90_def_var(ncid, 'bpar2', netcdf_real, time_dim, bpar2_id)
+            if (status /= nf90_noerr) call netcdf_error(status, var='bpar2')
+         end if
+         status = nf90_put_att(ncid, bpar2_id, 'long_name', '|Parallel Magnetic Field**2|')
+         if (status /= nf90_noerr) &
+            call netcdf_error(status, ncid, bpar2_id, att='long_name')
 
 !        status = nf90_def_var &
 !             (ncid, 'phi2_by_mode', netcdf_real, mode_dim, phi2_by_mode_id)
@@ -1058,8 +1076,9 @@ contains
 
    end subroutine write_time_nc
 
-   subroutine write_phi2_nc(nout, phi2)
+   subroutine write_field2_nc(nout, field2, field_name)
 
+      use mp, only: mp_abort
 # ifdef NETCDF
       use netcdf, only: nf90_put_var
 # endif
@@ -1067,16 +1086,29 @@ contains
       implicit none
 
       integer, intent(in) :: nout
-      real, intent(in) :: phi2
+      real, intent(in) :: field2
+      character(*), intent(in) :: field_name
 
 # ifdef NETCDF
       integer :: status
+      integer :: field2_id
 
-      status = nf90_put_var(ncid, phi2_id, phi2, start=(/nout/))
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_id)
+      ! Set the appropriate ID
+      if (field_name == "phi") then
+         field2_id = phi2_id
+      else if (field_name == "apar") then
+         field2_id = apar2_id
+      else if (field_name == "bpar") then
+         field2_id = bpar2_id
+      else
+         call mp_abort("write_field_nc: field_name not recognised. Aborting")
+      end if
+
+      status = nf90_put_var(ncid, field2_id, field2, start=(/nout/))
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, field2_id)
 # endif
 
-   end subroutine write_phi2_nc
+end subroutine write_field2_nc
 
    !> Write a field (phi, apar, bpar) to the .out.nc file
    subroutine write_field_nc(nout, field, field_name)
