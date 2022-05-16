@@ -1143,7 +1143,7 @@ contains
    end subroutine advance_explicit_rk2
 
    !> strong stability-preserving RK3
-   subroutine advance_explicit_rk3(g)
+   subroutine advance_explicit_rk3(g, restart_time_step)
 
       use dist_fn_arrays, only: g0, g1, g2
       use zgrid, only: nzgrid
@@ -1194,7 +1194,7 @@ contains
    end subroutine advance_explicit_rk3
 
    !> standard RK4
-   subroutine advance_explicit_rk4(g)
+   subroutine advance_explicit_rk4(g, restart_time_step)
 
       use dist_fn_arrays, only: g0, g1, g2, g3
       use zgrid, only: nzgrid
@@ -1242,7 +1242,7 @@ contains
          end select
          if (restart_time_step) then
            !> if CFL condition is violated by nonlinear term
-           !> then must modify time step size and restart time step           
+           !> then must modify time step size and restart time step
             icnt = 1
          else
             icnt = icnt + 1
