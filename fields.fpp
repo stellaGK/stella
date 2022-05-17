@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1051,9 +1051,9 @@ contains
             ! where
             ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
             ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
-            write(*,*) "phi & bpar simultaneous calculation"
+            write (*, *) "phi & bpar simultaneous calculation"
          else
-            write(*,*) "bpar calculation"
+            write (*, *) "bpar calculation"
             ! Calculate bpar only
          end if
 
