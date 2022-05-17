@@ -902,10 +902,14 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: integrate_vmu
       use species, only: spec
       use species, only: spec, has_electron_species
+      use kt_grids, only: nakx, naky
+      use fields_arrays, only: gamtot
+      use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
@@ -1024,19 +1028,33 @@ contains
                   / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
             bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
                    / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+
             deallocate (antot1)
             deallocate (antot3)
-
-
             deallocate (g0)
-            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
             ! where
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
-            write(*,*) "Calculating bpar only"
+
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
+               g0=g0*spread(mu,2,nvpa)
+               wgt = spec(is)%z * spec(is)%dens_psi0
+               call integrate_vmu(g0, iz, tmp)
+               bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
+            end do
+
+            ! Reduce so all processes have bpar for all ky, kx, z
+            call sum_allreduce(bpar)
+            bpar = bpar / (spread(gamtot33, 4, ntubes))
          end if
 
       end if
