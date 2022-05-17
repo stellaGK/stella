@@ -150,6 +150,9 @@ contains
     ! get the number of de-aliased modes in y and x
     naky = (ny-1)/3 + 1
     nakx = 2*((nx-1)/3) +  1
+    !!! Do even more padding - might improve stability properties
+    ! naky = (ny-1)/4 + 1
+    ! nakx = 2*((nx-1)/4) +  1
 
     reality = .true.
 

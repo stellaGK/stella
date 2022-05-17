@@ -78,7 +78,7 @@ contains
     use file_utils, only: input_unit, error_unit, input_unit_exist
     use mp, only: proc0, broadcast
     use text_options, only: text_option, get_option_value
-    use physics_flags, only: include_mirror, full_flux_surface, nonlinear
+    use physics_flags, only: include_mirror, full_flux_surface, nonlinear, include_drifts, include_parallel_streaming
 
     implicit none
 
@@ -212,6 +212,9 @@ contains
     call broadcast (exact_exb_nonlinear_solution_first_step)
 
     if (.not.include_mirror) mirror_implicit = .false.
+    if (.not.include_parallel_streaming) stream_implicit = .false.
+    if (.not.include_drifts) drifts_implicit = .false.
+    if (.not.include_drifts) drifts_implicit = .false.
 
     code_delt_max = delt
 
