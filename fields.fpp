@@ -988,11 +988,14 @@ contains
       use physics_flags, only: radial_variation
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: beta
       use dist_fn_arrays, only: g_gyro
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
       use vpamu_grids, only: integrate_species, mu
       use species, only: spec, has_electron_species
+      use fields_arrays, only: gamtot
+      use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
 
       implicit none
 
