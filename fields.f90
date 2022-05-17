@@ -848,6 +848,8 @@ contains
             iky = iky_idx(kxkyz_lo,ikxkyz)
             is = is_idx(kxkyz_lo,ikxkyz)
             call gyro_average (spread(vpa,2,nmu)*g(:,:,ikxkyz), ikxkyz, g0)
+            ! To check - with RJD definition of beta, apar, I think the factor
+            ! 2 should not be present here.
             wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
             call integrate_vmu (g0, iz, tmp)
             apar(iky,ikx,iz,it) = apar(iky,ikx,iz,it) + tmp*wgt
