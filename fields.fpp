@@ -878,7 +878,8 @@ contains
 
    end subroutine advance_fields
 
-   !> Calculate the fields (phi, apar, bpar) when the layout option is kykxz local.
+   !> Calculate the fields (phi, apar, bpar) when the layout option is vmu local
+   !> (kykxz-parallelised)
    !> If fbpar=0, we calculate phi using get_phi, then (if necessary) calculate
    !> apar. If fbpar!=0, calculate phi & bpar simultaneously (both require the
    !> same integrals of <g>), then apar if necessary. NB fbpar!=0, fapar!=0
@@ -980,6 +981,44 @@ contains
             ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
             ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            allocate (antot1(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc, ntubes)); antot1 = 0.
+            allocate (antot3(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc, ntubes)); antot3 = 0.
+
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+            allocate (g0(nvpa, nmu))
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
+               wgt = spec(is)%z * spec(is)%dens_psi0
+               call integrate_vmu(g0, iz, tmp)
+               antot1(iky, ikx, iz, it) = antot1(iky, ikx, iz, it) + wgt * tmp
+            end do
+
+            call sum_allreduce(antot1)
+
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+              iz = iz_idx(kxkyz_lo, ikxkyz)
+              it = it_idx(kxkyz_lo, ikxkyz)
+              ikx = ikx_idx(kxkyz_lo, ikxkyz)
+              iky = iky_idx(kxkyz_lo, ikxkyz)
+              is = is_idx(kxkyz_lo, ikxkyz)
+              call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
+              wgt = spec(is)%z * spec(is)%dens_psi0
+              call integrate_vmu(g0, iz, tmp)
+              antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
+            end do
+
+            call sum_allreduce(antot3)
+
+
+            deallocate (g0)
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
 
          else
             ! Calculate bpar only. The formulae is
