@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -982,8 +982,8 @@ contains
             ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-            allocate (antot1(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc, ntubes)); antot1 = 0.
-            allocate (antot3(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc, ntubes)); antot3 = 0.
+            allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
+            allocate (antot3(naky, nakx, -nzgrid:nzgrid, ntubes)); antot3 = 0.
 
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
             allocate (g0(nvpa, nmu))
@@ -999,6 +999,7 @@ contains
                antot1(iky, ikx, iz, it) = antot1(iky, ikx, iz, it) + wgt * tmp
             end do
 
+            ! Reduce so all processes have antot1 for all ky, kx, z
             call sum_allreduce(antot1)
 
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1013,19 +1014,29 @@ contains
               antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
             end do
 
+            ! Reduce so all processes have antot1 for all ky, kx, z
             call sum_allreduce(antot3)
+
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+            ! Now get phi, bpar
+            phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
+                  / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+            bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
+                   / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+            deallocate (antot1)
+            deallocate (antot3)
 
 
             deallocate (g0)
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-
 
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
             ! where
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
-
+            write(*,*) "Calculating bpar only"
          end if
 
       end if
