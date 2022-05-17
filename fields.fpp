@@ -990,6 +990,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use dist_fn_arrays, only: g_gyro
       use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, naky
       use vpamu_grids, only: integrate_species, mu
       use species, only: spec, has_electron_species
 
@@ -1002,7 +1003,7 @@ contains
 
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, is, imu
-      complex, dimension (:,:,:,:), allocatable :: antot1, antot3
+      complex, dimension (:,:,:,:), allocatable :: antot1, antot3, g_gyro_j1
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1059,6 +1060,7 @@ contains
             ! timestep at the expense of memory?
             allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes)) ; antot1=0.
             allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes)) ; antot3=0.
+            allocate (g_gyro_j1(naky,nakx,-nzgrid:nzgrid,ntubes)) ; g_gyro_j1=0.
 
             ! Time the routine
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -1071,13 +1073,12 @@ contains
             if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
             call integrate_species(g_gyro, spec%z * spec%dens_psi0, antot1)
 
-            ! Now get antot3
-            call gyro_average_j1(g, g_gyro)
-            ! Multiply by mu
+            ! Now get antot3; gyro_average_j1 and multiply by mu
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
               is = is_idx(vmu_lo,ivmu)
               imu = imu_idx(vmu_lo,ivmu)
-              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) * mu(imu)
+              call gyro_average_j1(g(:,:,:,:,ivmu), ivmu, g_gyro_j1)
+              g_gyro(:,:,:,:,ivmu) = g_gyro_j1 * mu(imu)
             end do
 
             ! Get antot3 by integrating gyro_g over velocity space and sum over
@@ -1093,7 +1094,8 @@ contains
             bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
                   / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
             deallocate(antot1)
-            deallocate(antot2)
+            deallocate(antot3)
+            deallocate(g_gyro_j1)
          else
            ! Calculate bpar only. The formulae is
            !   bpar = (antot3 / gamtot33 )
