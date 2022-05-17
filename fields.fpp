@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1006,7 +1006,7 @@ contains
 
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, is, imu
-      complex, dimension(:, :, :, :), allocatable :: antot1, antot3, g_gyro_j1
+      complex, dimension(:, :, :, :), allocatable :: antot1, antot3
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1063,7 +1063,6 @@ contains
             ! timestep at the expense of memory?
             allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
             allocate (antot3(naky, nakx, -nzgrid:nzgrid, ntubes)); antot3 = 0.
-            allocate (g_gyro_j1(naky, nakx, -nzgrid:nzgrid, ntubes)); g_gyro_j1 = 0.
 
             ! Time the routine
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -1080,8 +1079,9 @@ contains
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                is = is_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
-               call gyro_average_j1(g(:, :, :, :, ivmu), ivmu, g_gyro_j1)
-               g_gyro(:, :, :, :, ivmu) = g_gyro_j1 * mu(imu)
+               ! To save memory, save temporary variable in antot3
+               call gyro_average_j1(g(:, :, :, :, ivmu), ivmu, antot3)
+               g_gyro(:, :, :, :, ivmu) = antot3 * mu(imu)
             end do
 
             ! Get antot3 by integrating gyro_g over velocity space and sum over
@@ -1098,7 +1098,6 @@ contains
                    / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
             deallocate (antot1)
             deallocate (antot3)
-            deallocate (g_gyro_j1)
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
@@ -1106,6 +1105,16 @@ contains
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
             ! Save memory by storing antot3 as bpar
 
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               is = is_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               ! To save memory, save temporary variable in antot3
+               call gyro_average_j1(g(:, :, :, :, ivmu), ivmu, bpar)
+               g_gyro(:, :, :, :, ivmu) = bpar * mu(imu)
+            end do
+
+            call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
+            bpar = bpar / (spread(gamtot33, 4, ntubes))
          end if
 
       end if
