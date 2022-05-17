@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -981,16 +981,16 @@ contains
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
-      use gyro_averages, only: gyro_average
+      use stella_layouts, only: vmu_lo, is_idx, imu_idx
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: fphi, fapar, fbpar
       use run_parameters, only: ky_solve_radial
       use physics_flags, only: radial_variation
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use dist_fn_arrays, only: g_gyro
-      use zgrid, only: nzgrid
-      use vpamu_grids, only: integrate_species
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: integrate_species, mu
       use species, only: spec, has_electron_species
 
       implicit none
@@ -1001,6 +1001,8 @@ contains
       character(*), intent(in) :: dist
 
       logical :: skip_fsa_local, has_elec, adia_elec
+      integer :: ivmu, is, imu
+      complex, dimension (:,:,:,:), allocatable :: antot1, antot3
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1045,16 +1047,60 @@ contains
          end if
 
          if (fphi > epsilon(0.0)) then
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Calculate phi, bpar. The formulae are
             !   phi = (antot1 - (gamtot13/gamtot33)*antot3) / (gamtot - gamtot13*gamtot31/gamtot33 )
             !   bpar = (antot3 - (gamtot31/gamtot11)*antot1) / (gamtot33 - gamtot13*gamtot31/gamtot )
             ! where
             ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
             ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
-            write (*, *) "phi & bpar simultaneous calculation"
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! Allocate & initialise arrays. Could avoid allocating every
+            ! timestep at the expense of memory?
+            allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes)) ; antot1=0.
+            allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes)) ; antot3=0.
+
+            ! Time the routine
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+            ! gyroaverage the distribution function g at each phase space location
+            call gyro_average(g, g_gyro)
+
+            ! Get antot1 by integrating <g> over velocity space and sum over
+            ! species, with weighting Z_s*n_s.
+            if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0, antot1)
+
+            ! Now get antot3
+            call gyro_average_j1(g, g_gyro)
+            ! Multiply by mu
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+              is = is_idx(vmu_lo,ivmu)
+              imu = imu_idx(vmu_lo,ivmu)
+              gyro_g(:,:,ivmu) = gyro_g(:,:,ivmu) * mu(imu)
+            end do
+
+            ! Get antot3 by integrating gyro_g over velocity space and sum over
+            ! species, with weighting (-2*beta*n_s*T_s).
+            call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3)
+
+            ! Stop timer
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+            ! Now get phi, bpar
+            phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
+                  / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
+            bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
+                  / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
+            deallocate(antot1)
+            deallocate(antot2)
          else
-            write (*, *) "bpar calculation"
-            ! Calculate bpar only
+           ! Calculate bpar only. The formulae is
+           !   bpar = (antot3 / gamtot33 )
+           ! where
+           !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+           ! Save memory by storing antot3 as bpar
+
          end if
 
       end if
