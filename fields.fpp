@@ -1058,9 +1058,9 @@ contains
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Allocate & initialise arrays. Could avoid allocating every
             ! timestep at the expense of memory?
-            allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes)) ; antot1=0.
-            allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes)) ; antot3=0.
-            allocate (g_gyro_j1(naky,nakx,-nzgrid:nzgrid,ntubes)) ; g_gyro_j1=0.
+            allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes)); antot1=0.
+            allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes)); antot3=0.
+            allocate (g_gyro_j1(naky,nakx,-nzgrid:nzgrid,ntubes)); g_gyro_j1=0.
 
             ! Time the routine
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -1083,7 +1083,7 @@ contains
 
             ! Get antot3 by integrating gyro_g over velocity space and sum over
             ! species, with weighting (-2*beta*n_s*T_s).
-            call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0*spec%temp_psi0), antot3)
+            call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), antot3)
 
             ! Stop timer
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -1097,11 +1097,11 @@ contains
             deallocate(antot3)
             deallocate(g_gyro_j1)
          else
-           ! Calculate bpar only. The formulae is
-           !   bpar = (antot3 / gamtot33 )
-           ! where
-           !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
-           ! Save memory by storing antot3 as bpar
+            ! Calculate bpar only. The formulae is
+            !   bpar = (antot3 / gamtot33 )
+            ! where
+            !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            ! Save memory by storing antot3 as bpar
 
          end if
 
