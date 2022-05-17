@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -971,6 +971,12 @@ contains
 
    end subroutine get_fields
 
+   !> Calculate the fields (phi, apar, bpar) when the layout option is vmulo.
+   !> If fbpar=0, we calculate phi using get_phi, then (if necessary) calculate
+   !> apar. If fbpar!=0, calculate phi & bpar simultaneously (both require the
+   !> same integrals of <g>), then apar if necessary. NB fbpar!=0, fapar!=0
+   !> currently only supported for dist="gbar", no adiabatic species & no radial
+   !> variation.
    subroutine get_fields_vmulo(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: mp_abort, proc0
@@ -978,11 +984,14 @@ contains
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average
       use run_parameters, only: fphi, fapar
+      use run_parameters, only: ky_solve_radial
       use physics_flags, only: radial_variation
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
       use dist_fn_arrays, only: g_gyro
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_species
-      use species, only: spec
+      use species, only: spec, has_electron_species
 
       implicit none
 
@@ -999,28 +1008,57 @@ contains
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo'
 
       phi = 0.
-      if (fphi > epsilon(0.0)) then
-         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+      apar = 0.
+      bpar = 0.
+      ! If fbpar=0, the calculation for phi using get_phi works fine. If fbpar!=0, then
+      ! (1) we need to perform additional integrals over g (see below), and
+      ! (2) need to check calculations regarding adiabatic/global quasineutrality
+      ! options.
+      if (.not. fbpar > epsilon(0.0)) then
+         if (fphi > epsilon(0.0)) then
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
-         ! gyroaverage the distribution function g at each phase space location
-         call gyro_average(g, g_gyro)
+            ! gyroaverage the distribution function g at each phase space location
+            call gyro_average(g, g_gyro)
 
-         ! <g> requires modification if radial profile variation is included
-         if (radial_variation) call add_radial_correction_int_species(g_gyro)
+            ! <g> requires modification if radial profile variation is included
+            if (radial_variation) call add_radial_correction_int_species(g_gyro)
 
-         ! integrate <g> over velocity space and sum over species
-         !> store result in phi, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
-         call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
+            ! integrate <g> over velocity space and sum over species
+            !> store result in phi, which will be further modified below to account for polarization term
+            if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
 
-         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
-         call get_phi(phi, dist, skip_fsa_local)
+            call get_phi(phi, dist, skip_fsa_local)
+
+         end if
+      else
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
+         end if
+
+         if (fphi > epsilon(0.0)) then
+            ! Calculate phi, bpar. The formulae are
+            !   phi = (antot1 - (gamtot13/gamtot33)*antot3) / (gamtot - gamtot13*gamtot31/gamtot33 )
+            !   bpar = (antot3 - (gamtot31/gamtot11)*antot1) / (gamtot33 - gamtot13*gamtot31/gamtot )
+            ! where
+            ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
+            ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            write(*,*) "phi & bpar simultaneous calculation"
+         else
+            write(*,*) "bpar calculation"
+            ! Calculate bpar only
+         end if
 
       end if
 
-      apar = 0.
-      bpar = 0.
       !!! Old code - probably just delete this.
 !       apar = 0.
 !       if (fapar > epsilon(0.0)) then
