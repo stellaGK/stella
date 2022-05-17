@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1021,6 +1021,7 @@ contains
 
       apar = 0.
       bpar = 0.
+      !!! Old code - probably just delete this.
 !       apar = 0.
 !       if (fapar > epsilon(0.0)) then
 !          ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
