@@ -1014,7 +1014,7 @@ contains
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
                g0 = g0 * spread(mu, 2, nvpa)
-               wgt = -2 * beta * spec%dens_psi0 * spec%temp_psi0
+               wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
                call integrate_vmu(g0, iz, tmp)
                antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
             end do
@@ -1048,7 +1048,7 @@ contains
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
                g0 = g0 * spread(mu, 2, nvpa)
-               wgt = -2 * beta * spec%dens_psi0 * spec%temp_psi0
+               wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
                call integrate_vmu(g0, iz, tmp)
                bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
             end do
