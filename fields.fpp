@@ -992,7 +992,7 @@ contains
       use dist_fn_arrays, only: g_gyro
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
-      use vpamu_grids, only: integrate_species, mu
+      use vpamu_grids, only: integrate_species, mu, vpa
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
@@ -1005,7 +1005,7 @@ contains
       character(*), intent(in) :: dist
 
       logical :: skip_fsa_local, has_elec, adia_elec
-      integer :: ivmu, is, imu
+      integer :: ivmu, iv, imu
       complex, dimension(:, :, :, :), allocatable :: antot1, antot3
 
       skip_fsa_local = .false.
@@ -1050,6 +1050,11 @@ contains
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
          end if
 
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
+         end if
+
          if (fphi > epsilon(0.0)) then
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Calculate phi, bpar. The formulae are
@@ -1064,7 +1069,6 @@ contains
             allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
             allocate (antot3(naky, nakx, -nzgrid:nzgrid, ntubes)); antot3 = 0.
 
-            ! Time the routine
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! gyroaverage the distribution function g at each phase space location
@@ -1088,7 +1092,6 @@ contains
             ! species, with weighting (-2*beta*n_s*T_s).
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), antot3)
 
-            ! Stop timer
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! Now get phi, bpar
@@ -1106,19 +1109,58 @@ contains
             ! Save memory by storing antot3 as bpar
 
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               is = is_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                ! To save memory, save temporary variable in antot3
                call gyro_average_j1(g(:, :, :, :, ivmu), ivmu, bpar)
                g_gyro(:, :, :, :, ivmu) = bpar * mu(imu)
             end do
 
+            ! Sum species, integrate over velocity and store in bpar
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
             bpar = bpar / (spread(gamtot33, 4, ntubes))
          end if
 
       end if
 
+      if (fapar > epsilon(0.0)) then
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
+         end if
+
+
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fapar!=0. Aborting")
+         end if
+
+         ! Get apar. The formula is
+         !    apar = antot2/apar_denom
+         ! where
+         !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+         ! gyroaverage the distribution function g at each phase space location
+         call gyro_average(g, g_gyro)
+
+         ! Multiply g_gyro by vpa
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv = iv_idx(vmu_lo, ivmu)
+            ! To save memory, save temporary variable in antot3
+            g_gyro(:, :, :, :, ivmu) =  g_gyro(:, :, :, :, ivmu) * vpa(iv)
+         end do
+
+         ! Sum species, integrate over velocity and store in apar
+         call integrate_species(g_gyro, (spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
+         apar =  apar/spread(apar_denom,4,ntubes)
+
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+      end if
       !!! Old code - probably just delete this.
 !       apar = 0.
 !       if (fapar > epsilon(0.0)) then
