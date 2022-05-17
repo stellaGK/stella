@@ -1011,7 +1011,6 @@ contains
          !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
       end if
 
-
       !!! Old code - probably just delete this.
       ! apar = 0.
       ! if (fapar > epsilon(0.0)) then
