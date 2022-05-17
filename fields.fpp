@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -981,7 +981,7 @@ contains
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo, is_idx, imu_idx
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: fphi, fapar, fbpar
       use run_parameters, only: ky_solve_radial
@@ -1081,7 +1081,6 @@ contains
 
             ! Now get antot3; gyro_average_j1 and multiply by mu
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               is = is_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                ! To save memory, save temporary variable in antot3
                call gyro_average_j1(g(:, :, :, :, ivmu), ivmu, antot3)
