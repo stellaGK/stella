@@ -893,7 +893,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2
-      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: fphi, fapar, fbpar
       use run_parameters, only: ky_solve_radial
       use physics_parameters, only: beta
