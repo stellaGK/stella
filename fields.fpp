@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -916,7 +916,8 @@ contains
       real :: wgt
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
-      logical :: skip_fsa_local
+      logical :: skip_fsa_local, has_elec, adia_elec
+      complex, dimension(:, :, :, :), allocatable :: antot1, antot3
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
