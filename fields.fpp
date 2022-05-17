@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -988,9 +988,9 @@ contains
 
             allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
             allocate (antot3(naky, nakx, -nzgrid:nzgrid, ntubes)); antot3 = 0.
+            allocate (g0(nvpa, nmu))
 
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-            allocate (g0(nvpa, nmu))
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iz = iz_idx(kxkyz_lo, ikxkyz)
                it = it_idx(kxkyz_lo, ikxkyz)
@@ -1013,7 +1013,8 @@ contains
                iky = iky_idx(kxkyz_lo, ikxkyz)
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
-               wgt = spec(is)%z * spec(is)%dens_psi0
+               g0 = g0 * spread(mu, 2, nvpa)
+               wgt = -2 * beta * spec%dens_psi0 * spec%temp_psi0
                call integrate_vmu(g0, iz, tmp)
                antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
             end do
@@ -1047,7 +1048,7 @@ contains
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
                g0 = g0 * spread(mu, 2, nvpa)
-               wgt = spec(is)%z * spec(is)%dens_psi0
+               wgt = -2 * beta * spec%dens_psi0 * spec%temp_psi0
                call integrate_vmu(g0, iz, tmp)
                bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
             end do
@@ -1078,6 +1079,26 @@ contains
          !    apar = antot2/apar_denom
          ! where
          !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
+
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
+            g0 = g0*spread(vpa,1,nmu)
+            wgt = spec%z * spec%dens_psi0 * spec%stm_psi0
+            call integrate_vmu(g0, iz, tmp)
+            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + wgt * tmp
+         end do
+
+         ! Reduce so all processes have antot1 for all ky, kx, z
+         call sum_allreduce(apar)
+         apar = apar / spread(apar_denom, 4, ntubes)
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
       end if
 
       !!! Old code - probably just delete this.
