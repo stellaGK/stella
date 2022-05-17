@@ -1003,15 +1003,15 @@ contains
             call sum_allreduce(antot1)
 
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-              iz = iz_idx(kxkyz_lo, ikxkyz)
-              it = it_idx(kxkyz_lo, ikxkyz)
-              ikx = ikx_idx(kxkyz_lo, ikxkyz)
-              iky = iky_idx(kxkyz_lo, ikxkyz)
-              is = is_idx(kxkyz_lo, ikxkyz)
-              call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
-              wgt = spec(is)%z * spec(is)%dens_psi0
-              call integrate_vmu(g0, iz, tmp)
-              antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
+               wgt = spec(is)%z * spec(is)%dens_psi0
+               call integrate_vmu(g0, iz, tmp)
+               antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
             end do
 
             ! Reduce so all processes have antot1 for all ky, kx, z
