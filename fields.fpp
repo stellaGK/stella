@@ -1040,6 +1040,9 @@ contains
             ! where
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
 
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+            allocate (g0(nvpa, nmu))
+
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iz = iz_idx(kxkyz_lo, ikxkyz)
                it = it_idx(kxkyz_lo, ikxkyz)
@@ -1055,7 +1058,10 @@ contains
 
             ! Reduce so all processes have bpar for all ky, kx, z
             call sum_allreduce(bpar)
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
             bpar = bpar / (spread(gamtot33, 4, ntubes))
+            deallocate (g0)
          end if
 
       end if
@@ -1081,6 +1087,8 @@ contains
          !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+         allocate (g0(nvpa, nmu))
+
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -1096,9 +1104,10 @@ contains
 
          ! Reduce so all processes have antot1 for all ky, kx, z
          call sum_allreduce(apar)
-         apar = apar / spread(apar_denom, 4, ntubes)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
+         apar = apar / spread(apar_denom, 4, ntubes)
+         deallocate (g0)
       end if
 
       !!! Old code - probably just delete this.
