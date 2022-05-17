@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1027,7 +1027,6 @@ contains
             deallocate (antot1)
             deallocate (antot3)
 
-
             deallocate (g0)
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -1036,7 +1035,7 @@ contains
             !   bpar = (antot3 / gamtot33 )
             ! where
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
-            write(*,*) "Calculating bpar only"
+            write (*, *) "Calculating bpar only"
          end if
 
       end if
