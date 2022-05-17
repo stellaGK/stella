@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1003,7 +1003,7 @@ contains
 
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, is, imu
-      complex, dimension (:,:,:,:), allocatable :: antot1, antot3, g_gyro_j1
+      complex, dimension(:, :, :, :), allocatable :: antot1, antot3, g_gyro_j1
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1058,9 +1058,9 @@ contains
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Allocate & initialise arrays. Could avoid allocating every
             ! timestep at the expense of memory?
-            allocate (antot1(naky,nakx,-nzgrid:nzgrid,ntubes)); antot1=0.
-            allocate (antot3(naky,nakx,-nzgrid:nzgrid,ntubes)); antot3=0.
-            allocate (g_gyro_j1(naky,nakx,-nzgrid:nzgrid,ntubes)); g_gyro_j1=0.
+            allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
+            allocate (antot3(naky, nakx, -nzgrid:nzgrid, ntubes)); antot3 = 0.
+            allocate (g_gyro_j1(naky, nakx, -nzgrid:nzgrid, ntubes)); g_gyro_j1 = 0.
 
             ! Time the routine
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -1075,10 +1075,10 @@ contains
 
             ! Now get antot3; gyro_average_j1 and multiply by mu
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-              is = is_idx(vmu_lo,ivmu)
-              imu = imu_idx(vmu_lo,ivmu)
-              call gyro_average_j1(g(:,:,:,:,ivmu), ivmu, g_gyro_j1)
-              g_gyro(:,:,:,:,ivmu) = g_gyro_j1 * mu(imu)
+               is = is_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               call gyro_average_j1(g(:, :, :, :, ivmu), ivmu, g_gyro_j1)
+               g_gyro(:, :, :, :, ivmu) = g_gyro_j1 * mu(imu)
             end do
 
             ! Get antot3 by integrating gyro_g over velocity space and sum over
@@ -1089,13 +1089,13 @@ contains
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! Now get phi, bpar
-            phi = (antot1 - (spread(gamtot13,4,ntubes)/spread(gamtot33,4,ntubes))*antot3 ) &
-                  / (spread(gamtot,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes)/spread(gamtot33,4,ntubes)))
-            bpar = (antot3 - (spread(gamtot31,4,ntubes)/spread(gamtot,4,ntubes))*antot1) &
-                  / (spread(gamtot33,4,ntubes) - (spread(gamtot13,4,ntubes)*spread(gamtot31,4,ntubes))/spread(gamtot,4,ntubes))
-            deallocate(antot1)
-            deallocate(antot3)
-            deallocate(g_gyro_j1)
+            phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
+                  / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+            bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
+                   / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+            deallocate (antot1)
+            deallocate (antot3)
+            deallocate (g_gyro_j1)
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
