@@ -1132,7 +1132,6 @@ contains
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
          end if
 
-
          ! Check if dist="gbar". If not, abort.
          if (.not. dist == "gbar") then
             call mp_abort("Only gbar supported for fapar!=0. Aborting")
@@ -1151,12 +1150,12 @@ contains
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             ! To save memory, save temporary variable in antot3
-            g_gyro(:, :, :, :, ivmu) =  g_gyro(:, :, :, :, ivmu) * vpa(iv)
+            g_gyro(:, :, :, :, ivmu) = g_gyro(:, :, :, :, ivmu) * vpa(iv)
          end do
 
          ! Sum species, integrate over velocity and store in apar
          call integrate_species(g_gyro, (spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
-         apar =  apar/spread(apar_denom,4,ntubes)
+         apar = apar / spread(apar_denom, 4, ntubes)
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
