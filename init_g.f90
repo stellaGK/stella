@@ -19,7 +19,7 @@ module init_g
        ginitopt_noise = 2, ginitopt_restart_many = 3, &
        ginitopt_kpar = 4, ginitopt_nltest = 5, &
        ginitopt_kxtest = 6, ginitopt_rh = 7, &
-       ginitopt_remap = 8
+       ginitopt_remap = 8, ginitopt_kpar_self_periodic = 9
 
   real :: width0, phiinit, imfac, refac, zf_init
   real :: den0, upar0, tpar0, tperp0
@@ -118,12 +118,14 @@ contains
        call ginit_noise
     case (ginitopt_kpar)
        call ginit_kpar
+    case (ginitopt_kpar_self_periodic)
+       call ginit_kpar_self_periodic
      case (ginitopt_rh)
         call ginit_rh
      case (ginitopt_remap)
         call ginit_remap
     case (ginitopt_restart_many)
-       call ginit_restart_many 
+       call ginit_restart_many
        call init_tstart (tstart, istep0, istatus)
        restarted = .true.
        scale = 1.
@@ -132,7 +134,7 @@ contains
 !    case (ginitopt_kxtest)
 !       call ginit_kxtest
     end select
-    
+
   end subroutine ginit
 
   subroutine read_parameters
@@ -149,6 +151,7 @@ contains
             text_option('nltest', ginitopt_nltest), &
             text_option('kxtest', ginitopt_kxtest), &
             text_option('kpar', ginitopt_kpar), &
+            ! text_option('kpar_self_periodic', ginitopt_kpar_self_periodic), &
             text_option('rh', ginitopt_rh), &
             text_option('remap', ginitopt_remap) &
             /)
@@ -288,7 +291,7 @@ contains
 !     do ig = -nzgrid, nzgrid
 !        phi(ig,2,2) = 1.0!exp(-((theta(ig)-theta0(2,2))/width0)**2)*cmplx(1.0,1.0)
 !     end do
-    
+
 !     gnew = 0.0
 !     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
 !        iv = iv_idx(gxyz_lo,iglo)
@@ -335,9 +338,9 @@ contains
 !   end subroutine ginit_kxtest
 
 !   !> Initialise with only the kparallel = 0 mode.
-  
+
 !   subroutine single_initial_kx(phi)
-!     use zgrid, only: nzgrid 
+!     use zgrid, only: nzgrid
 !     use kt_grids, only: naky, ntheta0
 !     use mp, only: mp_abort
 !     implicit none
@@ -350,11 +353,11 @@ contains
 !     end if
 
 !     do it = 1, ntheta0
-!       if (it .ne. ikx_init) then 
+!       if (it .ne. ikx_init) then
 !          do ik = 1, naky
 !             do ig = -nzgrid, nzgrid
 !                a = 0.0
-!                b = 0.0 
+!                b = 0.0
 !                phi(ig,it,ik) = cmplx(a,b)
 !              end do
 !          end do
@@ -418,7 +421,7 @@ contains
          call scope(subprocs)
        end if
 
-       ! keep old (ikx, iky) loop order to get old results exactly: 
+       ! keep old (ikx, iky) loop order to get old results exactly:
        !Fill phi with random (complex) numbers between -0.5 and 0.5
        do ikx = 1, nakx
           do iky = 1, naky
@@ -457,18 +460,18 @@ contains
        if (zonal_mode(1)) then
           !Apply scaling factor
           phi(1,:,:,:) = phi(1,:,:,:)*zf_init
-          
+
           !Set ky=kx=0.0 mode to zero in amplitude
           phi(1,1,:,:) = 0.0
        end if
-       
+
        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
        if (reality) then
           do ikx = nakx/2+2, nakx
              phi(1,ikx,:,:) = conjg(phi(1,nakx-ikx+2,:,:))
           enddo
        end if
-       
+
     end if
 
     do iky = 1, naky
@@ -490,7 +493,7 @@ contains
           end if
        end do
     end do
-    
+
     call broadcast (phi)
 
     !Now set g using data in phi
@@ -524,7 +527,7 @@ contains
     real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
     integer :: ikxkyz
     integer :: iz, iky, ikx, imu, iv, ia, is
-    
+
     phi = 0.
     odd = 0.
     if (width0 > 0.) then
@@ -543,14 +546,19 @@ contains
           phi(:,:,1:) = 0.0
        end if
     end if
-    
-    odd = zi * phi
-    
-    dfac     = den0   + den1 * cos(zed) + den2 * cos(2.*zed) 
-    ufac     = upar0  + upar1* sin(zed) + upar2* sin(2.*zed) 
-    tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed) 
-    tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed) 
-    
+
+    !odd = zi * phi
+    odd = phi
+    dfac     = den0   + den1 * cos(zed) + den2 * cos(2.*zed)
+    ufac     = upar0  + upar1* sin(zed) + upar2* sin(2.*zed)
+    tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed)
+    tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed)
+    ! write(*,*) "odd = ", odd
+    ! write(*,*) "dfac = ", dfac
+    ! write(*,*) "ufac = ", ufac
+    ! write(*,*) "tparfac = ", tparfac
+    ! write(*,*) "tperpfac = ", tperpfac
+
     ia = 1
     ! charge dependence keeps initial Phi from being too small
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -575,13 +583,87 @@ contains
 !    if (has_electron_species(spec)) then
 !       call flae (gold, gnew)
 !       gold = gold - gnew
-!    end if   
+!    end if
 !    gnew = gold
 
   end subroutine ginit_kpar
 
+  subroutine ginit_kpar_self_periodic
+
+!    use species, only: spec, has_electron_species
+    use zgrid, only: nzgrid, zed
+    use kt_grids, only: naky, nakx, theta0
+    use vpamu_grids, only: nvpa, nmu
+    use vpamu_grids, only: vpa, vperp2
+    use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+    use dist_fn_arrays, only: gvmu
+    use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
+    use constants, only: zi
+
+    implicit none
+
+    complex, dimension (naky,nakx,-nzgrid:nzgrid) :: phi, odd
+    real, dimension (-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
+    integer :: ikxkyz
+    integer :: iz, iky, ikx, imu, iv, ia, is
+
+    phi = 0.
+    odd = 0.
+    if (width0 > 0.) then
+       do iz = -nzgrid, nzgrid
+          phi(:,:,iz) = exp(-((zed(iz)-theta0)/width0)**2)*cmplx(refac, imfac)
+       end do
+    else
+       do iz = -nzgrid, nzgrid
+          phi(:,:,iz) = cmplx(refac, imfac)
+       end do
+    end if
+    if (chop_side) then
+       if (left) then
+          phi(:,:,:-1) = 0.0
+       else
+          phi(:,:,1:) = 0.0
+       end if
+    end if
+
+    odd = zi * phi
+
+    dfac     = den0   + den1 * cos(zed) + den2 * cos(2.*zed)
+    ufac     = upar0  + upar1* sin(zed) + upar2* sin(2.*zed)
+    tparfac  = tpar0  + tpar1* cos(zed) + tpar2* cos(2.*zed)
+    tperpfac = tperp0 + tperp1*cos(zed) + tperp2*cos(2.*zed)
+
+    ia = 1
+    ! charge dependence keeps initial Phi from being too small
+    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iky = iky_idx(kxkyz_lo,ikxkyz)
+       ikx = ikx_idx(kxkyz_lo,ikxkyz)
+       iz = iz_idx(kxkyz_lo,ikxkyz)
+       is = is_idx(kxkyz_lo,ikxkyz)
+       do imu = 1, nmu
+          do iv = 1, nvpa
+             gvmu(iv,imu,ikxkyz) = phiinit &
+                  * ( dfac(iz)*phi(iky,ikx,iz) &
+                  + 2.0*vpa(iv)*ufac(iz)*odd(iky,ikx,iz) &
+                  + (vpa(iv)**2-0.5)*tparfac(iz)*phi(iky,ikx,iz) &
+                  + tperpfac(iz)*(vperp2(ia,iz,imu)-1.)*phi(iky,ikx,iz) )
+          end do
+       end do
+       gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+            * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
+    end do
+
+! FLAG -- should be uncommented, which means I need to fix flae
+!    if (has_electron_species(spec)) then
+!       call flae (gold, gnew)
+!       gold = gold - gnew
+!    end if
+!    gnew = gold
+
+  end subroutine ginit_kpar_self_periodic
+
   subroutine ginit_rh
-    
+
     use species, only: spec
     use dist_fn_arrays, only: gvmu, kperp2
     use stella_layouts, only: kxkyz_lo
@@ -591,20 +673,20 @@ contains
     use kt_grids, only: akx
 
     implicit none
-    
+
     integer :: ikxkyz, iky, ikx, iz, is, ia
-    
+
     ! initialize g to be a Maxwellian with a constant density perturbation
 
     gvmu = 0.
-    
+
     ia = 1
     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
        iky = iky_idx(kxkyz_lo,ikxkyz) ; if (iky /= 1) cycle
        ikx = ikx_idx(kxkyz_lo,ikxkyz)
        iz = iz_idx(kxkyz_lo,ikxkyz)
        is = is_idx(kxkyz_lo,ikxkyz)
-       
+
        if(abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
          gvmu(:,:,ikxkyz) = spec(is)%z*0.5*phiinit*kperp2(iky,ikx,ia,iz) &
             * spread(maxwell_vpa(:,is),2,nmu)*spread(maxwell_mu(ia,iz,:,is),1,nvpa)*maxwell_fac(is)
@@ -652,7 +734,7 @@ contains
     use stella_save, only: stella_restore
     use mp, only: proc0
     use file_utils, only: error_unit
-    
+
     implicit none
 
     integer :: istatus, ierr
@@ -677,7 +759,7 @@ contains
 
 !   subroutine flae (g, gavg)
 
-!     use species, only: spec, electron_species 
+!     use species, only: spec, electron_species
 !     use zgrid, only: nzgrid, delthet, jacob
 !     use kt_grids, only: aky, ntheta0
 !     use vpamu_grids, only: nvgrid
@@ -687,11 +769,11 @@ contains
 
 !     real :: wgt
 !     integer :: iglo, it, ik
-    
+
 !     gavg = 0.
 !     wgt = 1./sum(delthet*jacob)
 
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc       
+!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
 !        if (spec(is_idx(gxyz_lo, iglo))%type /= electron_species) cycle
 !        ik = 1
 !        if (aky(ik) > epsilon(0.)) cycle
@@ -699,7 +781,7 @@ contains
 !           gavg(:,it,ik,iglo) = sum(g(:,it,ik,iglo)*delthet*jacob)*wgt
 !        end do
 !     end do
-    
+
 !   end subroutine flae
 
   subroutine finish_init_g

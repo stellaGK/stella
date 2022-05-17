@@ -17,6 +17,7 @@ module stella_diagnostics
   logical :: write_omega
   logical :: write_moments
   logical :: write_phi_vs_time
+  logical :: write_apar_vs_time
   logical :: write_gvmus
   logical :: write_gzvs
   logical :: write_kspectra
@@ -93,6 +94,7 @@ contains
     call broadcast (write_kspectra)
     call broadcast (write_moments)
     call broadcast (write_phi_vs_time)
+    call broadcast (write_apar_vs_time)
     call broadcast (write_gvmus)
     call broadcast (write_gzvs)
     call broadcast (write_radial_fluxes)
@@ -100,7 +102,7 @@ contains
     call broadcast (flux_norm)
 
     ! Initiate the netcdf file with extension '.out.nc'
-    call init_stella_io (restart, write_phi_vs_time, write_kspectra, &
+    call init_stella_io (restart, write_phi_vs_time, write_apar_vs_time, write_kspectra, &
          write_gvmus, write_gzvs, write_moments, write_radial_fluxes, &
          write_fluxes_kxkyz)
 
@@ -129,7 +131,7 @@ contains
     integer :: in_file
 
     namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
-         save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
+         save_for_restart, write_phi_vs_time, write_apar_vs_time, write_gvmus, write_gzvs, &
          write_omega, write_kspectra, write_moments, write_radial_fluxes, &
          write_fluxes_kxkyz, flux_norm
 
@@ -140,6 +142,7 @@ contains
        save_for_restart = .false.
        write_omega = .false.
        write_phi_vs_time = .false.
+       write_apar_vs_time = .false.
        write_gvmus = .false.
        write_gzvs = .false.
        write_kspectra = .false.
@@ -256,6 +259,7 @@ contains
     use stella_io, only: write_time_nc
     use stella_io, only: write_phi2_nc
     use stella_io, only: write_phi_nc
+    use stella_io, only: write_apar_nc
     use stella_io, only: write_gvmus_nc
     use stella_io, only: write_gzvs_nc
     use stella_io, only: write_kspectra_nc
@@ -379,6 +383,10 @@ contains
        if (write_phi_vs_time) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_phi_nc'
           call write_phi_nc (nout, phi_out)
+       end if
+       if (write_apar_vs_time) then
+          if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_apar_nc'
+          call write_apar_nc (nout, apar)
        end if
        if (write_kspectra) then
           if (debug) write (*,*) 'stella_diagnostics::diagnose_stella::write_kspectra'
