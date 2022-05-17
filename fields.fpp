@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1046,7 +1046,7 @@ contains
                iky = iky_idx(kxkyz_lo, ikxkyz)
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
-               g0=g0*spread(mu,2,nvpa)
+               g0 = g0 * spread(mu, 2, nvpa)
                wgt = spec(is)%z * spec(is)%dens_psi0
                call integrate_vmu(g0, iz, tmp)
                bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
