@@ -983,7 +983,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi, fapar, fbpar
       use run_parameters, only: ky_solve_radial
       use physics_flags, only: radial_variation
       use physics_flags, only: adiabatic_option_switch
@@ -1000,7 +1000,7 @@ contains
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
 
-      logical :: skip_fsa_local
+      logical :: skip_fsa_local has_elec, adia_elec
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
