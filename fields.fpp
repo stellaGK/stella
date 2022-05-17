@@ -878,6 +878,12 @@ contains
 
    end subroutine advance_fields
 
+   !> Calculate the fields (phi, apar, bpar) when the layout option is kykxz local.
+   !> If fbpar=0, we calculate phi using get_phi, then (if necessary) calculate
+   !> apar. If fbpar!=0, calculate phi & bpar simultaneously (both require the
+   !> same integrals of <g>), then apar if necessary. NB fbpar!=0, fapar!=0
+   !> currently only supported for dist="gbar", no adiabatic species & no radial
+   !> variation.
    subroutine get_fields(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: proc0
@@ -887,14 +893,18 @@ contains
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi, fapar, fbpar
+      use run_parameters, only: ky_solve_radial
       use physics_parameters, only: beta
+      use physics_flags, only: radial_variation
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: integrate_vmu
       use species, only: spec
-
+      use species, only: spec, has_electron_species
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
@@ -916,30 +926,93 @@ contains
       ia = 1
 
       phi = 0.
-      if (fphi > epsilon(0.0)) then
-         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         allocate (g0(nvpa, nmu))
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
-            wgt = spec(is)%z * spec(is)%dens_psi0
-            call integrate_vmu(g0, iz, tmp)
-            phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
-         end do
-         deallocate (g0)
-         call sum_allreduce(phi)
-         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+      apar = 0.
+      bpar = 0.
 
-         call get_phi(phi, dist, skip_fsa_local)
+      ! If fbpar=0, the calculation for phi using get_phi works fine. If fbpar!=0, then
+      ! (1) we need to perform additional integrals over g (see below), and
+      ! (2) need to check calculations regarding adiabatic/global quasineutrality
+      ! options.
+      if (.not. fbpar > epsilon(0.0)) then
+         if (fphi > epsilon(0.0)) then
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+            allocate (g0(nvpa, nmu))
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
+               wgt = spec(is)%z * spec(is)%dens_psi0
+               call integrate_vmu(g0, iz, tmp)
+               phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
+            end do
+            deallocate (g0)
+            call sum_allreduce(phi)
+            if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+            call get_phi(phi, dist, skip_fsa_local)
+
+         end if
+      else
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
+         end if
+
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
+         end if
+
+         if (fphi > epsilon(0.0)) then
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! Calculate phi, bpar. The formulae are
+            !   phi = (antot1 - (gamtot13/gamtot33)*antot3) / (gamtot - gamtot13*gamtot31/gamtot33 )
+            !   bpar = (antot3 - (gamtot31/gamtot11)*antot1) / (gamtot33 - gamtot13*gamtot31/gamtot )
+            ! where
+            ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
+            ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+         else
+            ! Calculate bpar only. The formulae is
+            !   bpar = (antot3 / gamtot33 )
+            ! where
+            !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+
+         end if
 
       end if
 
-      apar = 0.
-      bpar = 0.
+      if (fapar > epsilon(0.0)) then
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
+         end if
+
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fapar!=0. Aborting")
+         end if
+
+         ! Get apar. The formula is
+         !    apar = antot2/apar_denom
+         ! where
+         !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
+      end if
+
+
+      !!! Old code - probably just delete this.
       ! apar = 0.
       ! if (fapar > epsilon(0.0)) then
       !    allocate (g0(nvpa, nmu))
