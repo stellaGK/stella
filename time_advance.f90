@@ -369,6 +369,7 @@ contains
                * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
        end if
     end do
+
     deallocate (energy)
 
   end subroutine init_wstar
