@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1084,7 +1084,7 @@ contains
          ! Get apar. The formula is
          !    apar = antot2/apar_denom
          ! where
-         !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
+         !    antot2 = beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          allocate (g0(nvpa, nmu))
@@ -1097,12 +1097,12 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
             g0 = g0 * spread(vpa, 1, nmu)
-            wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
+            wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
             call integrate_vmu(g0, iz, tmp)
             apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + wgt * tmp
          end do
 
-         ! Reduce so all processes have antot1 for all ky, kx, z
+         ! Reduce so all processes have apar for all ky, kx, z
          call sum_allreduce(apar)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -1324,7 +1324,7 @@ contains
          end do
 
          ! Sum species, integrate over velocity and store in apar
-         call integrate_species(g_gyro, (spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
+         call integrate_species(g_gyro, (beta * spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
          apar = apar / spread(apar_denom, 4, ntubes)
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
