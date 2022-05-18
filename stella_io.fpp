@@ -36,7 +36,7 @@ module stella_io
    integer, dimension(7) :: moment_dim
    integer, dimension(6) :: field_dim
    integer, dimension(5) :: zvs_dim
-   integer, dimension(4) :: om_dim, vmus_dim, kykxaz_dim
+   integer, dimension(4) :: vmus_dim, kykxaz_dim
    integer, dimension(6) :: flx_dim
    integer, dimension(3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
    integer, dimension(2) :: kx_dim, ky_dim, flux_dim, nin_dim, fmode_dim
@@ -48,7 +48,6 @@ module stella_io
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
    integer :: density_id, upar_id, temperature_id, spitzer2_id
-   integer :: omega_id
    integer :: gvmus_id, gzvs_id
    integer :: code_id
 
@@ -68,7 +67,7 @@ contains
    !============ INITIATE STELLA IO ==============
    !==============================================
    subroutine init_stella_io(restart, write_phi_vs_t, write_kspectra, write_gvmus, &
-                             write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
+                             write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
 
       use mp, only: proc0
       use file_utils, only: run_name
@@ -83,7 +82,7 @@ contains
 
       logical, intent(in) :: restart
       logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
-      logical, intent(in) :: write_moments, write_omega, write_radial_fluxes, write_radial_moments!, write_symmetry
+      logical, intent(in) :: write_moments, write_radial_fluxes, write_radial_moments!, write_symmetry
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
       character(300) :: filename
@@ -105,7 +104,7 @@ contains
                               software_version=get_git_version(), auto_date=.true.)
          call write_grids(ncid)
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
-                          write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
+                          write_moments, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
          call nc_species(ncid)
          call nc_geo(ncid)
@@ -251,7 +250,7 @@ contains
 
    subroutine define_vars(write_phi_vs_t, write_kspectra, write_gvmus, &
                           !       write_gzvs, write_symmetry, write_moments)
-                          write_gzvs, write_moments, write_omega, write_radial_fluxes, &
+                          write_gzvs, write_moments, write_radial_fluxes, &
                           write_radial_moments, write_fluxes_kxky)
 
       use run_parameters, only: fphi!, fapar, fbpar
@@ -266,7 +265,7 @@ contains
       implicit none
 
       logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
-      logical, intent(in) :: write_moments, write_omega, write_radial_fluxes, write_radial_moments
+      logical, intent(in) :: write_moments, write_radial_fluxes, write_radial_moments
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
 
@@ -297,11 +296,6 @@ contains
 
       ky_dim(1) = naky_dim
       ky_dim(2) = time_dim
-
-      om_dim(1) = ri_dim
-      om_dim(2) = naky_dim
-      om_dim(3) = nakx_dim
-      om_dim(4) = time_dim
 
       nin_dim(1) = char200_dim
       nin_dim(2) = nlines_dim
@@ -424,14 +418,6 @@ contains
       status = nf90_put_att(ncid, code_id, trim(ci), &
                             'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
-
-      if (write_omega) then
-         status = nf90_inq_varid(ncid, 'omega', omega_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var(ncid, 'omega', netcdf_real, om_dim, omega_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='omega')
-         end if
-      end if
 
       if (fphi > zero) then
          status = nf90_inq_varid(ncid, 'phi2', phi2_id)
@@ -716,24 +702,19 @@ contains
 
    end subroutine write_phi_nc
 
+   !> Write the complex frequency to netCDF
    subroutine write_omega_nc(nout, omega)
-
-# ifdef NETCDF
-      use netcdf, only: nf90_put_var
-# endif
-
       implicit none
 
       integer, intent(in) :: nout
       complex, dimension(:, :), intent(in) :: omega
 
 # ifdef NETCDF
-      integer :: status
-
-      status = nf90_put_var(ncid, omega_id, [real(omega), aimag(omega)], start=[1, 1, 1, nout])
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, omega_id)
+      call netcdf_write_complex(ncid, "omega", omega, &
+                                dim_names=["ri", "kx", "ky", "t "], &
+                                start=[1, 1, 1, nout], &
+                                long_name="Complex frequency", units="aref/vtref")
 # endif
-
    end subroutine write_omega_nc
 
    subroutine write_radial_fluxes_nc(nout, pflux, vflux, qflux)
@@ -1221,7 +1202,7 @@ contains
 
       call c2r(values, real_values)
       call neasyf_write(parent_id, name, real_values, dim_names=dim_names, units=units, long_name=long_name, start=start)
-    end subroutine write_complex_rank4
+   end subroutine write_complex_rank4
 
    subroutine write_complex_rank5(parent_id, name, values, dim_names, units, long_name, start)
       use neasyf, only: neasyf_write
