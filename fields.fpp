@@ -1013,7 +1013,6 @@ contains
                iky = iky_idx(kxkyz_lo, ikxkyz)
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
-<<<<<<< HEAD
                ! g0 has shape (nvpa, nmu). Want to multiply by mu, but spread out
                ! into a 2D array with shape (nvpa, mu)
                g0 = g0 * transpose(spread(mu, 2, nvpa))
@@ -1022,10 +1021,6 @@ contains
                write(*,*) "SHAPE(spread(mu, 2, nvpa)) = ", SHAPE(spread(mu, 2, nvpa))
                write(*,*) "SHAPE(transpose(spread(mu, 2, nvpa))) = ", SHAPE(transpose(spread(mu, 2, nvpa)))
                stop "stopping"
-=======
-               g0 = g0 * spread(mu, 2, nvpa)
-               write (*, *) "SHAPE(g0), SHAPE(spread(mu, 2, nvpa)) = ", SHAPE(g0), SHAPE(spread(mu, 2, nvpa))
->>>>>>> 18c38d2a82795c18341b75c607f5ab23d729f825
                wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
                call integrate_vmu(g0, iz, tmp)
                antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
