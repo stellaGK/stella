@@ -79,7 +79,8 @@ contains
 
 # ifdef NETCDF
       use netcdf_utils, only: get_netcdf_code_precision, netcdf_real
-      use neasyf, only: neasyf_open
+      use neasyf, only: neasyf_open, neasyf_metadata
+      use git_version, only: get_git_version
 # endif
 
       implicit none
@@ -106,6 +107,8 @@ contains
             ncid = neasyf_open(trim(filename), "w")
          end if
 
+         call neasyf_metadata(ncid, title="stella simulation data", software_name="stella", &
+                              software_version=get_git_version(), auto_date=.true.)
          call write_grids(ncid)
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
                           write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
@@ -363,8 +366,6 @@ contains
 
       ! Write some useful general information such as the website,
       ! date and time into the NetCDF file
-      status = nf90_put_att(ncid, nf90_global, 'title', 'stella simulation data')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nf90_global, att='title')
 
       datestamp(:) = ' '
       timestamp(:) = ' '
