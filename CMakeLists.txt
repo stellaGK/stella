@@ -155,7 +155,8 @@ endif()
 
 if (STELLA_ENABLE_NETCDF)
   find_package(netCDFFortran REQUIRED)
-  target_link_libraries(libstella PUBLIC netCDF::netcdff)
+  add_subdirectory(externals/neasyf)
+  target_link_libraries(libstella PUBLIC netCDF::netcdff neasyf::neasyf)
   target_compile_definitions(libstella PUBLIC NETCDF=_DEFAULT_)
 endif()
 
