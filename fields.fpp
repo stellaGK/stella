@@ -52,8 +52,8 @@ module fields
    end interface
 
    interface get_gyroaverage_chi
-     module procedure get_gyroaverage_chi_4d
-     module procedure get_gyroaverage_chi_2d
+      module procedure get_gyroaverage_chi_4d
+      module procedure get_gyroaverage_chi_2d
    end interface
 
 contains
@@ -521,8 +521,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2251,11 +2251,11 @@ contains
 
       implicit none
 
-      complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
-      complex, dimension (:,:,-nzgrid:,:), intent (out) :: chi
-      integer, intent (in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: chi
+      integer, intent(in) :: ivmu
 
-      write(*,*) "Not currently supported!"
+      write (*, *) "Not currently supported!"
       stop "Stopping"
 
    end subroutine get_chi
@@ -2274,30 +2274,30 @@ contains
       use kt_grids, only: naky, nakx
       use run_parameters, only: fphi, fapar, fbpar
       implicit none
-      complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
-      integer, intent (in) :: ivmu
-      complex, dimension (:,:,-nzgrid:,:), intent (out) :: gyro_chi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: gyro_chi
       integer :: is, imu, iv
-      complex, dimension (:,:,:,:), allocatable :: gyro_field
+      complex, dimension(:, :, :, :), allocatable :: gyro_field
 
       gyro_chi = 0.
 
       ! Get vpa, mu and species from ivmu
-      is = is_idx(vmu_lo,ivmu)
-      imu = imu_idx(vmu_lo,ivmu)
-      iv = iv_idx(vmu_lo,ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      iv = iv_idx(vmu_lo, ivmu)
 
-      allocate(gyro_field(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (gyro_field(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       call gyro_average(phi, ivmu, gyro_field)
-      gyro_chi = gyro_chi + fphi*gyro_field
+      gyro_chi = gyro_chi + fphi * gyro_field
 
       call gyro_average(apar, ivmu, gyro_field)
-      gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+      gyro_chi = gyro_chi - fapar * 2 * vpa(iv) * spec(is)%stm * gyro_field
 
       call gyro_average_j1(bpar, ivmu, gyro_field)
-      gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
-      deallocate(gyro_field)
+      gyro_chi = gyro_chi + fbpar * 4 * mu(imu) * (spec(is)%tz) * gyro_field
+      deallocate (gyro_field)
 
    end subroutine get_gyroaverage_chi_4d
 
@@ -2315,33 +2315,32 @@ contains
 
       implicit none
 
-      complex, dimension (:,:), intent (in) :: phi, apar, bpar
-      integer, intent (in) :: ivmu
-      complex, dimension (:,:), intent (out) :: gyro_chi
+      complex, dimension(:, :), intent(in) :: phi, apar, bpar
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :), intent(out) :: gyro_chi
       integer :: is, imu, iv
-      complex, dimension (:,:), allocatable :: gyro_field
+      complex, dimension(:, :), allocatable :: gyro_field
 
       gyro_chi = 0.
 
       ! Get vpa, mu and species from ivmu
-      is = is_idx(vmu_lo,ivmu)
-      imu = imu_idx(vmu_lo,ivmu)
-      iv = iv_idx(vmu_lo,ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      iv = iv_idx(vmu_lo, ivmu)
 
-      allocate(gyro_field(naky,nakx))
+      allocate (gyro_field(naky, nakx))
 
       call gyro_average(phi, ivmu, gyro_field)
-      gyro_chi = gyro_chi + fphi*gyro_field
+      gyro_chi = gyro_chi + fphi * gyro_field
 
       call gyro_average(apar, ivmu, gyro_field)
-      gyro_chi = gyro_chi -  fapar*2*vpa(iv)*spec(is)%stm*gyro_field
+      gyro_chi = gyro_chi - fapar * 2 * vpa(iv) * spec(is)%stm * gyro_field
 
       call gyro_average_j1(bpar, ivmu, gyro_field)
-      gyro_chi = gyro_chi +  fbpar*4*mu(imu)*(spec(is)%tz)*gyro_field
-      deallocate(gyro_field)
+      gyro_chi = gyro_chi + fbpar * 4 * mu(imu) * (spec(is)%tz) * gyro_field
+      deallocate (gyro_field)
 
    end subroutine get_gyroaverage_chi_2d
-
 
    !> rescale fields, including the distribution function
    subroutine rescale_fields(target_amplitude)
@@ -2379,30 +2378,30 @@ contains
 
    ! Take phi, apar, bpar(ky, kx) and return
    ! d<chi>/dy (ky,kx)
-   subroutine get_dchidy_2d (ivmu, phi, apar, bpar, dchidy)
+   subroutine get_dchidy_2d(ivmu, phi, apar, bpar, dchidy)
 
       use constants, only: zi
       use kt_grids, only: nakx, aky, naky
 
       implicit none
 
-      integer, intent (in) :: ivmu
-      complex, dimension (:,:), intent (in) :: phi, apar, bpar
-      complex, dimension (:,:), intent (out) :: dchidy
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :), intent(out) :: dchidy
 
       !integer :: iv, is
-      complex, dimension (:,:), allocatable :: gyro_chi
+      complex, dimension(:, :), allocatable :: gyro_chi
 
-      allocate (gyro_chi(naky,nakx))
+      allocate (gyro_chi(naky, nakx))
       call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
-      dchidy = zi*spread(aky,2,nakx) * gyro_chi
+      dchidy = zi * spread(aky, 2, nakx) * gyro_chi
       deallocate (gyro_chi)
 
    end subroutine get_dchidy_2d
 
    ! Take phi, apar, bpar(ky,kx,z,tube) and return
    ! d<chi>/dx (ky,kx,z,tube,vmu)
-   subroutine get_dchidx_4d (phi, apar, bpar, dchidx)
+   subroutine get_dchidx_4d(phi, apar, bpar, dchidx)
 
       use constants, only: zi
       use stella_layouts, only: vmu_lo
@@ -2411,18 +2410,18 @@ contains
 
       implicit none
 
-      complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
-      complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidx
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidx
 
       integer :: ivmu
-      complex, dimension (:,:,:,:), allocatable :: gyro_chi
+      complex, dimension(:, :, :, :), allocatable :: gyro_chi
 
-      allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (gyro_chi(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
-         dchidx(:,:,:,:,ivmu) = zi*spread(spread(spread(akx,1,naky),3,2*nzgrid+1),4,ntubes) &
-              * gyro_chi
+         dchidx(:, :, :, :, ivmu) = zi * spread(spread(spread(akx, 1, naky), 3, 2 * nzgrid + 1), 4, ntubes) &
+                                    * gyro_chi
       end do
 
       deallocate (gyro_chi)
@@ -2431,22 +2430,22 @@ contains
 
    ! Take phi, apar, bpar(ky, kx) and return
    ! d<chi>/dx (ky,kx)
-   subroutine get_dchidx_2d (ivmu, phi, apar, bpar, dchidx)
+   subroutine get_dchidx_2d(ivmu, phi, apar, bpar, dchidx)
 
       use constants, only: zi
       use kt_grids, only: akx, naky, nakx
 
       implicit none
 
-      integer, intent (in) :: ivmu
-      complex, dimension (:,:), intent (in) :: phi, apar, bpar
-      complex, dimension (:,:), intent (out) :: dchidx
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :), intent(out) :: dchidx
 
-      complex, dimension (:,:), allocatable :: gyro_chi
+      complex, dimension(:, :), allocatable :: gyro_chi
 
-      allocate (gyro_chi(naky,nakx))
+      allocate (gyro_chi(naky, nakx))
       call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
-      dchidx = zi*spread(akx,1,naky)*gyro_chi
+      dchidx = zi * spread(akx, 1, naky) * gyro_chi
       deallocate (gyro_chi)
 
    end subroutine get_dchidx_2d
