@@ -2378,7 +2378,7 @@ contains
 
    ! Take phi, apar, bpar(ky,kx,z,tube) and return
    ! d<chi>/dy (ky,kx,z,tube,vmu)
-   subroutine get_dchidy_4d (phi, apar, bpar, dchidy)
+   subroutine get_dchidy_4d(phi, apar, bpar, dchidy)
 
       use constants, only: zi
       use stella_layouts, only: vmu_lo
@@ -2388,18 +2388,18 @@ contains
 
       implicit none
 
-      complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
-      complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidy
 
       integer :: ivmu
-      complex, dimension (:,:,:,:), allocatable :: gyro_chi
+      complex, dimension(:, :, :, :), allocatable :: gyro_chi
 
-      allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (gyro_chi(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
-         dchidy(:,:,:,:,ivmu) = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
-              * gyro_chi
+         dchidy(:, :, :, :, ivmu) = zi * spread(spread(spread(aky, 2, nakx), 3, 2 * nzgrid + 1), 4, ntubes) &
+                                    * gyro_chi
       end do
 
       deallocate (gyro_chi)
