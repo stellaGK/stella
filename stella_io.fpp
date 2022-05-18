@@ -51,11 +51,16 @@ module stella_io
    integer :: omega_id
    integer :: gvmus_id, gzvs_id
    integer :: code_id
+
+   !> Write a `complex` array to netcdf
+   !>
+   !> Converts the `complex` array to a `real` array with an extra dimension
+   interface netcdf_write_complex
+      module procedure write_complex_rank2, write_complex_rank4, write_complex_rank5
+   end interface netcdf_write_complex
 # endif
 
-   real :: zero
-
-!  include 'netcdf.inc'
+   real, parameter :: zero = epsilon(0.0)
 
 contains
 
@@ -82,8 +87,6 @@ contains
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
       character(300) :: filename
-
-      zero = epsilon(0.0)
 
       if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
 
@@ -1166,4 +1169,86 @@ contains
 # endif
    end subroutine sync_nc
 
+   subroutine write_complex_rank2(parent_id, name, values, dim_names, units, long_name, start)
+      use neasyf, only: neasyf_write
+      use convert, only: c2r
+      !> Name of the variable
+      character(len=*), intent(in) :: name
+      !> NetCDF ID of the parent group/file
+      integer, intent(in) :: parent_id
+      !> Array to be written
+      complex, dimension(:, :), intent(in) :: values
+      !> Array of dimension names
+      character(len=*), dimension(:), intent(in) :: dim_names
+      !> Units of coordinate
+      character(len=*), optional, intent(in) :: units
+      !> Long descriptive name
+      character(len=*), optional, intent(in) :: long_name
+      integer, dimension(:), optional, intent(in) :: start
+
+      real, dimension(2, &
+                      size(values, 1), &
+                      size(values, 2) &
+                      ) :: real_values
+
+      call c2r(values, real_values)
+      call neasyf_write(parent_id, name, real_values, dim_names=dim_names, units=units, long_name=long_name, start=start)
+   end subroutine write_complex_rank2
+
+   subroutine write_complex_rank4(parent_id, name, values, dim_names, units, long_name, start)
+      use neasyf, only: neasyf_write
+      use convert, only: c2r
+      !> Name of the variable
+      character(len=*), intent(in) :: name
+      !> NetCDF ID of the parent group/file
+      integer, intent(in) :: parent_id
+      !> Array to be written
+      complex, dimension(:, :, :, :), intent(in) :: values
+      !> Array of dimension names
+      character(len=*), dimension(:), intent(in) :: dim_names
+      !> Units of coordinate
+      character(len=*), optional, intent(in) :: units
+      !> Long descriptive name
+      character(len=*), optional, intent(in) :: long_name
+      integer, dimension(:), optional, intent(in) :: start
+
+      real, dimension(2, &
+                      size(values, 1), &
+                      size(values, 2), &
+                      size(values, 3), &
+                      size(values, 4) &
+                      ) :: real_values
+
+      call c2r(values, real_values)
+      call neasyf_write(parent_id, name, real_values, dim_names=dim_names, units=units, long_name=long_name, start=start)
+    end subroutine write_complex_rank4
+
+   subroutine write_complex_rank5(parent_id, name, values, dim_names, units, long_name, start)
+      use neasyf, only: neasyf_write
+      use convert, only: c2r
+      !> Name of the variable
+      character(len=*), intent(in) :: name
+      !> NetCDF ID of the parent group/file
+      integer, intent(in) :: parent_id
+      !> Array to be written
+      complex, dimension(:, :, :, :, :), intent(in) :: values
+      !> Array of dimension names
+      character(len=*), dimension(:), intent(in) :: dim_names
+      !> Units of coordinate
+      character(len=*), optional, intent(in) :: units
+      !> Long descriptive name
+      character(len=*), optional, intent(in) :: long_name
+      integer, dimension(:), optional, intent(in) :: start
+
+      real, dimension(2, &
+                      size(values, 1), &
+                      size(values, 2), &
+                      size(values, 3), &
+                      size(values, 4), &
+                      size(values, 5) &
+                      ) :: real_values
+
+      call c2r(values, real_values)
+      call neasyf_write(parent_id, name, real_values, dim_names=dim_names, units=units, long_name=long_name, start=start)
+   end subroutine write_complex_rank5
 end module stella_io
