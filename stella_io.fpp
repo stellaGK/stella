@@ -215,14 +215,10 @@ contains
    subroutine finish_stella_io
       use mp, only: proc0
 # ifdef NETCDF
-      use netcdf, only: nf90_close
-      use netcdf_utils, only: netcdf_error
-
-      integer :: status
+      use neasyf, only: neasyf_close
 
       if (proc0) then
-         status = nf90_close(ncid)
-         if (status /= nf90_noerr) call netcdf_error(status)
+         call neasyf_close(ncid)
       end if
 # endif
    end subroutine finish_stella_io
