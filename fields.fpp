@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1006,30 +1006,29 @@ contains
             ! Reduce so all processes have antot1 for all ky, kx, z
             call sum_allreduce(antot1)
 
-            ! do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            !    iz = iz_idx(kxkyz_lo, ikxkyz)
-            !    it = it_idx(kxkyz_lo, ikxkyz)
-            !    ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            !    iky = iky_idx(kxkyz_lo, ikxkyz)
-            !    is = is_idx(kxkyz_lo, ikxkyz)
-            !    call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
-            !    g0 = g0 * spread(mu, 2, nvpa)
-            !    wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
-            !    call integrate_vmu(g0, iz, tmp)
-            !    antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
-            ! end do
-            !
-            ! ! Reduce so all processes have antot1 for all ky, kx, z
-            ! call sum_allreduce(antot3)
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
+               g0 = g0 * spread(mu, 2, nvpa)
+               wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
+               call integrate_vmu(g0, iz, tmp)
+               antot3(iky, ikx, iz, it) = antot3(iky, ikx, iz, it) + wgt * tmp
+            end do
+
+            ! Reduce so all processes have antot1 for all ky, kx, z
+            call sum_allreduce(antot3)
 
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! Now get phi, bpar
-            phi = antot1 / (spread(gamtot, 4, ntubes) )
-            ! phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-            !       / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
-            ! bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
-            !        / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+            phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
+                  / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+            bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
+                   / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
 
             deallocate (antot1)
             deallocate (antot3)
@@ -1067,49 +1066,49 @@ contains
 
       end if
 
-      ! if (fapar > epsilon(0.0)) then
-      !    ! Check we don't have adiabatic species, or radial_variation, or
-      !    ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
-      !    has_elec = has_electron_species(spec)
-      !    adia_elec = .not. has_elec &
-      !                .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
-      !    if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
-      !       call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
-      !    end if
-      !
-      !    ! Check if dist="gbar". If not, abort.
-      !    if (.not. dist == "gbar") then
-      !       call mp_abort("Only gbar supported for fapar!=0. Aborting")
-      !    end if
-      !
-      !    ! Get apar. The formula is
-      !    !    apar = antot2/apar_denom
-      !    ! where
-      !    !    antot2 = beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
-      !
-      !    if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-      !    allocate (g0(nvpa, nmu))
-      !
-      !    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-      !       iz = iz_idx(kxkyz_lo, ikxkyz)
-      !       it = it_idx(kxkyz_lo, ikxkyz)
-      !       ikx = ikx_idx(kxkyz_lo, ikxkyz)
-      !       iky = iky_idx(kxkyz_lo, ikxkyz)
-      !       is = is_idx(kxkyz_lo, ikxkyz)
-      !       call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
-      !       g0 = g0 * spread(vpa, 1, nmu)
-      !       wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
-      !       call integrate_vmu(g0, iz, tmp)
-      !       apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + wgt * tmp
-      !    end do
-      !
-      !    ! Reduce so all processes have apar for all ky, kx, z
-      !    call sum_allreduce(apar)
-      !    if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-      !
-      !    apar = apar / spread(apar_denom, 4, ntubes)
-      !    deallocate (g0)
-      ! end if
+      if (fapar > epsilon(0.0)) then
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
+         end if
+
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fapar!=0. Aborting")
+         end if
+
+         ! Get apar. The formula is
+         !    apar = antot2/apar_denom
+         ! where
+         !    antot2 = beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
+
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+         allocate (g0(nvpa, nmu))
+
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
+            g0 = g0 * spread(vpa, 1, nmu)
+            wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
+            call integrate_vmu(g0, iz, tmp)
+            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + wgt * tmp
+         end do
+
+         ! Reduce so all processes have apar for all ky, kx, z
+         call sum_allreduce(apar)
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+         apar = apar / spread(apar_denom, 4, ntubes)
+         deallocate (g0)
+      end if
 
       !!! Old code - probably just delete this.
       ! apar = 0.
