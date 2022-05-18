@@ -1025,7 +1025,7 @@ contains
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! Now get phi, bpar
-            phi = antot1 / (spread(gamtot, 4, ntubes) )
+            phi = antot1 / (spread(gamtot, 4, ntubes))
             ! phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
             !       / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
             ! bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
