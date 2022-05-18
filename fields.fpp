@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1017,9 +1017,9 @@ contains
                ! into a 2D array with shape (nvpa, mu)
                g0 = g0 * transpose(spread(mu, 2, nvpa))
 
-               write(*,*) "SHAPE(g0) = ", SHAPE(g0)
-               write(*,*) "SHAPE(spread(mu, 2, nvpa)) = ", SHAPE(spread(mu, 2, nvpa))
-               write(*,*) "SHAPE(transpose(spread(mu, 2, nvpa))) = ", SHAPE(transpose(spread(mu, 2, nvpa)))
+               write (*, *) "SHAPE(g0) = ", SHAPE(g0)
+               write (*, *) "SHAPE(spread(mu, 2, nvpa)) = ", SHAPE(spread(mu, 2, nvpa))
+               write (*, *) "SHAPE(transpose(spread(mu, 2, nvpa))) = ", SHAPE(transpose(spread(mu, 2, nvpa)))
                stop "stopping"
                wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
                call integrate_vmu(g0, iz, tmp)
