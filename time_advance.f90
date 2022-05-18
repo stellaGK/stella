@@ -1388,7 +1388,7 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: apar
+      use fields_arrays, only: apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
@@ -1414,7 +1414,7 @@ contains
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
       !> get d<chi>/dy in k-space
-      call get_dchidy(phi, apar, g0)
+      call get_dchidy(phi, apar, bpar, g0)
 
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
@@ -1634,7 +1634,7 @@ contains
       use job_manage, only: time_message
       use gyro_averages, only: gyro_average
       use fields, only: get_dchidx, get_dchidy
-      use fields_arrays, only: phi, apar, shift_state
+      use fields_arrays, only: phi, apar, bpar, shift_state
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use stella_transforms, only: transform_y2ky, transform_x2kx
@@ -1705,11 +1705,11 @@ contains
                !> FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute i*kx*<chi>
-               call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0a)
+                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0a)
                   g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                end if
                !> FFT to get d<chi>/dx in (y,x) space
@@ -1745,7 +1745,7 @@ contains
                !> FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute d<chi>/dy in k-space
-               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                !> FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
                !> multiply by the geometric factor appearing in the Poisson bracket;
@@ -2155,7 +2155,7 @@ contains
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use stella_layouts, only: vmu_lo
@@ -2222,7 +2222,7 @@ contains
                g0k = 0.
 
                !wstar variation
-               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0a)
+               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0a)
                g0k = g0k + g0a * wstarp(ia, iz, ivmu)
 
                !radial variation in ExB nonlinearity is handled in advance_ExB_nonlinearity
