@@ -81,9 +81,8 @@ contains
       use file_utils, only: run_name
 
 # ifdef NETCDF
-      use netcdf, only: nf90_create, nf90_open, nf90_redef
-      use netcdf, only: nf90_clobber, nf90_noclobber, nf90_write
       use netcdf_utils, only: get_netcdf_code_precision, netcdf_real
+      use neasyf, only: neasyf_open
 # endif
 
       implicit none
@@ -94,12 +93,10 @@ contains
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
       character(300) :: filename
-      integer :: status
 
       zero = epsilon(0.0)
 
       if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
-      status = nf90_noerr
 
       ! The netcdf file has the extension ".out.nc"
       filename = trim(trim(run_name)//'.out.nc')
@@ -107,16 +104,10 @@ contains
       ! Only the first processor (proc0) opens the file
       if (proc0) then
          if (restart) then
-            status = nf90_create(trim(filename), nf90_noclobber, ncid)
-            if (status /= nf90_noerr) then
-               status = nf90_open(trim(filename), nf90_write, ncid)
-               if (status /= nf90_noerr) call netcdf_error(status, file=filename)
-               status = nf90_redef(ncid)
-            end if
+            ncid = neasyf_open(trim(filename), "rw")
          else
-            status = nf90_create(trim(filename), nf90_clobber, ncid)
+            ncid = neasyf_open(trim(filename), "w")
          end if
-         if (status /= nf90_noerr) call netcdf_error(status, file=filename)
 
          call define_dims
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
