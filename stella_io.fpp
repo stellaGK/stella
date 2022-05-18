@@ -765,28 +765,25 @@ contains
 # endif
    end subroutine define_vars
 
+   !> Write simulation time to netCDF output file
+   !>
+   !> Also flushes to disk
    subroutine write_time_nc(nout, time)
-
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_sync
+      use neasyf, only: neasyf_write, neasyf_error
 # endif
-
       implicit none
-
+      !> Current timestep
       integer, intent(in) :: nout
+      !> Current simulation time
       real, intent(in) :: time
 
 # ifdef NETCDF
-      integer :: status
+      call neasyf_write(ncid, "t", time, dim_names=["t"], start=[nout])
 
-      status = nf90_put_var(ncid, time_id, time, start=(/nout/))
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, time_id)
-
-!   The two lines below are added to flush buffers to disk
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, time_id)
+      call neasyf_error(nf90_sync(ncid), ncid=ncid, message="Couldn't flush to disk")
 # endif
-
    end subroutine write_time_nc
 
    subroutine write_phi2_nc(nout, phi2)
