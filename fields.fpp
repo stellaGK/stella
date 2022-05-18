@@ -2377,6 +2377,36 @@ contains
 
    end subroutine rescale_fields
 
+   ! Take phi, apar, bpar(ky,kx,z,tube) and return
+   ! d<chi>/dy (ky,kx,z,tube,vmu)
+   subroutine get_dchidy_4d (phi, apar, bpar, dchidy)
+
+      use constants, only: zi
+      use stella_layouts, only: vmu_lo
+      use run_parameters, only: fphi, fapar
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, aky, naky
+
+      implicit none
+
+      complex, dimension (:,:,-nzgrid:,:), intent (in) :: phi, apar, bpar
+      complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: dchidy
+
+      integer :: ivmu
+      complex, dimension (:,:,:,:), allocatable :: gyro_chi
+
+      allocate (gyro_chi(naky,nakx,-nzgrid:nzgrid,ntubes))
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
+         dchidy(:,:,:,:,ivmu) = zi*spread(spread(spread(aky,2,nakx),3,2*nzgrid+1),4,ntubes) &
+              * gyro_chi
+      end do
+
+      deallocate (gyro_chi)
+
+   end subroutine get_dchidy_4d
+
    ! Take phi, apar, bpar(ky, kx) and return
    ! d<chi>/dy (ky,kx)
    subroutine get_dchidy_2d (ivmu, phi, apar, bpar, dchidy)
