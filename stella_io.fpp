@@ -51,8 +51,6 @@ module stella_io
    integer :: omega_id
    integer :: gvmus_id, gzvs_id
    integer :: input_id
-   integer :: charge_id, mass_id, dens_id, temp_id, tprim_id, fprim_id
-   integer :: vnew_id, spec_type_id
    integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
    integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
    integer :: kperp2_id
@@ -113,7 +111,7 @@ contains
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
                           write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
-         call nc_species
+         call nc_species(ncid)
          call nc_geo
          call save_input
       end if
@@ -229,8 +227,8 @@ contains
 # endif
    end subroutine finish_stella_io
 
+   !> Save the input file in the NetCDF file
    subroutine save_input
-      !<doc> Save the input file in the NetCDF file </doc>
 # ifdef NETCDF
       use file_utils, only: num_input_lines, get_input_unit
       use netcdf, only: nf90_put_var
@@ -433,78 +431,6 @@ contains
       status = nf90_put_att(ncid, code_id, trim(ci), &
                             'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
-
-      status = nf90_inq_varid(ncid, 'charge', charge_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'charge', nf90_int, nspec_dim, charge_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='charge')
-      end if
-      status = nf90_put_att(ncid, charge_id, 'long_name', 'Charge')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, charge_id, att='long_name')
-      status = nf90_put_att(ncid, charge_id, 'units', 'q')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, charge_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'mass', mass_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'mass', netcdf_real, nspec_dim, mass_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='mass')
-      end if
-      status = nf90_put_att(ncid, mass_id, 'long_name', 'Atomic mass')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, mass_id, att='long_name')
-      status = nf90_put_att(ncid, mass_id, 'units', 'm')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, mass_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'dens', dens_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'dens', netcdf_real, nspec_dim, dens_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='dens')
-      end if
-      status = nf90_put_att(ncid, dens_id, 'long_name', 'Density')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, dens_id, att='long_name')
-      status = nf90_put_att(ncid, dens_id, 'units', 'n_e')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, dens_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'temp', temp_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'temp', netcdf_real, nspec_dim, temp_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='temp')
-      end if
-      status = nf90_put_att(ncid, temp_id, 'long_name', 'Temperature')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, temp_id, att='long_name')
-      status = nf90_put_att(ncid, temp_id, 'units', 'T')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, temp_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'tprim', tprim_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'tprim', netcdf_real, nspec_dim, tprim_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='tprim')
-      end if
-      status = nf90_put_att(ncid, tprim_id, 'long_name', '-1/rho dT/drho')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, tprim_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'fprim', fprim_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'fprim', netcdf_real, nspec_dim, fprim_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='fprim')
-      end if
-      status = nf90_put_att(ncid, fprim_id, 'long_name', '-1/rho dn/drho')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, fprim_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'vnew', vnew_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'vnew', netcdf_real, nspec_dim, vnew_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='vnew')
-      end if
-      status = nf90_put_att(ncid, vnew_id, 'long_name', 'Collisionality')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, vnew_id, att='long_name')
-      status = nf90_put_att(ncid, vnew_id, 'units', 'v_t/L')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, vnew_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'type_of_species', spec_type_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'type_of_species', nf90_int, nspec_dim, spec_type_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='type_of_species')
-      end if
 
       status = nf90_inq_varid(ncid, 'bmag', bmag_id)
       if (status /= nf90_noerr) then
@@ -1251,39 +1177,41 @@ contains
 
    end subroutine write_gzvs_nc
 
-   subroutine nc_species
-
+   !> Write [[species:spec]] to output netCDF file
+   subroutine nc_species(file_id)
+#ifdef NETCDF
       use species, only: spec, nspec
-# ifdef NETCDF
-      use netcdf, only: nf90_put_var
-
-      integer :: status
+      use neasyf, only: neasyf_write
+#endif
+      implicit none
+      !> NetCDF ID of the file to write to
+      integer, intent(in) :: file_id
+#ifdef NETCDF
       integer :: is
-
-      ! FLAG - ignoring cross-species collisions for now
+      ! FIXME: FLAG - ignoring cross-species collisions for now
       real, dimension(nspec) :: vnew
       do is = 1, nspec
          vnew(is) = spec(is)%vnew(is)
       end do
 
-      status = nf90_put_var(ncid, charge_id, spec%z)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, charge_id)
-      status = nf90_put_var(ncid, mass_id, spec%mass)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, mass_id)
-      status = nf90_put_var(ncid, dens_id, spec%dens)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, dens_id)
-      status = nf90_put_var(ncid, temp_id, spec%temp)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, temp_id)
-      status = nf90_put_var(ncid, tprim_id, spec%tprim)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, tprim_id)
-      status = nf90_put_var(ncid, fprim_id, spec%fprim)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, fprim_id)
-      status = nf90_put_var(ncid, vnew_id, vnew)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, vnew_id)
-      status = nf90_put_var(ncid, spec_type_id, spec%type)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, spec_type_id)
-
-# endif
+      ! Additional brackets around `(spec%z)` etc to workaround gfortran bug
+      call neasyf_write(file_id, "charge", (spec%z), dim_names=["species"], &
+                        long_name="Charge", units="e")
+      call neasyf_write(file_id, "mass", (spec%mass), dim_names=["species"], &
+                        long_name="Atomic mass", units="AMU")
+      call neasyf_write(file_id, "dens", (spec%dens), dim_names=["species"], &
+                        long_name="Normalised density", units="nref")
+      call neasyf_write(file_id, "temp", (spec%temp), dim_names=["species"], &
+                        long_name="Normalised temperature", units="Tref")
+      call neasyf_write(file_id, "tprim", (spec%tprim), dim_names=["species"], &
+                        long_name="Normalised temperature gradient scale length -1/rho dT/drho", units="1/aref")
+      call neasyf_write(file_id, "fprim", (spec%fprim), dim_names=["species"], &
+                        long_name="Normalised density gradient scale length -1/rho dn/drho", units="1/aref")
+      call neasyf_write(file_id, "vnew", vnew, dim_names=["species"], &
+                        long_name="Collisionality", units="vtref/aref")
+      call neasyf_write(file_id, "type_of_species", (spec%type), dim_names=["species"], &
+                        long_name="Species type: 1=ion, 2=electron, 3=slowing down, 4=trace")
+#endif
    end subroutine nc_species
 
    subroutine nc_geo
