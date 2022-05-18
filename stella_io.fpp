@@ -50,7 +50,6 @@ module stella_io
    integer :: density_id, upar_id, temperature_id, spitzer2_id
    integer :: omega_id
    integer :: gvmus_id, gzvs_id
-   integer :: input_id
    integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
    integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
    integer :: kperp2_id
@@ -113,7 +112,7 @@ contains
                           write_fluxes_kxky)
          call nc_species(ncid)
          call nc_geo
-         call save_input
+         call save_input(ncid)
       end if
 # endif
 
@@ -224,32 +223,33 @@ contains
    end subroutine finish_stella_io
 
    !> Save the input file in the NetCDF file
-   subroutine save_input
-# ifdef NETCDF
+   subroutine save_input(file_id)
+#ifdef NETCDF
       use file_utils, only: num_input_lines, get_input_unit
-      use netcdf, only: nf90_put_var
+      use neasyf, only: neasyf_write
+#endif
+      implicit none
+      !> NetCDF ID of the file to write to
+      integer, intent(in) :: file_id
+#ifdef NETCDF
+      integer, parameter :: line_length = 200
+      character(line_length), dimension(:), allocatable ::  input_file_array
+      integer :: n, unit
 
-      character(200) line
-      integer, dimension(2) :: nin_start, nin_count
+      ! Don't attempt to write zero-sized arrays
+      if (num_input_lines <= 0) return
 
-      integer :: status, n, unit
-
-      nin_start(1) = 1
-      nin_start(2) = 1
-
-      nin_count(2) = 1
+      allocate (input_file_array(num_input_lines))
 
       call get_input_unit(unit)
       rewind (unit=unit)
       do n = 1, num_input_lines
-         read (unit=unit, fmt="(a)") line
-         nin_count(1) = len(trim(line))
-!       status = nf_put_vara_text (ncid, input_id, nin_start, nin_count, line)
-         status = nf90_put_var(ncid, input_id, line, start=nin_start, count=nin_count)
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, input_id)
-         nin_start(2) = nin_start(2) + 1
+         read (unit=unit, fmt="(a)") input_file_array(n)
       end do
-# endif
+
+      call neasyf_write(file_id, "input_file", input_file_array, &
+                        long_name="Input file", dim_names=["char200", "nlines "])
+#endif
    end subroutine save_input
 
    subroutine define_vars(write_phi_vs_t, write_kspectra, write_gvmus, &
@@ -758,14 +758,6 @@ contains
 !             'guiding center distribution function averaged over (kx,ky,mu)')
 !        if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id, att='long_name')
 !    end if
-
-      status = nf90_inq_varid(ncid, 'input_file', input_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'input_file', nf90_char, nin_dim, input_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='input_file')
-      end if
-      status = nf90_put_att(ncid, input_id, 'long_name', 'Input file')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, input_id, att='long_name')
 
       status = nf90_enddef(ncid)  ! out of definition mode
       if (status /= nf90_noerr) call netcdf_error(status)
