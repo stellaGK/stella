@@ -50,12 +50,6 @@ module stella_io
    integer :: density_id, upar_id, temperature_id, spitzer2_id
    integer :: omega_id
    integer :: gvmus_id, gzvs_id
-   integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
-   integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
-   integer :: kperp2_id
-   integer :: grho_id, jacob_id, djacdrho_id, shat_id, drhodpsi_id, q_id, jtwist_id
-   integer :: d2qdr2_id, d2psidr2_id
-   integer :: beta_id
    integer :: code_id
 # endif
 
@@ -111,7 +105,7 @@ contains
                           write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
          call nc_species(ncid)
-         call nc_geo
+         call nc_geo(ncid)
          call save_input(ncid)
       end if
 # endif
@@ -427,135 +421,6 @@ contains
       status = nf90_put_att(ncid, code_id, trim(ci), &
                             'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
-
-      status = nf90_inq_varid(ncid, 'bmag', bmag_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'bmag', netcdf_real, flux_surface_dim, bmag_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='bmag')
-      end if
-      status = nf90_put_att(ncid, bmag_id, 'long_name', '|B|(alpha,zed)')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, bmag_id, att='long_name')
-      status = nf90_put_att(ncid, bmag_id, 'units', 'B_0')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, bmag_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'b_dot_grad_z', b_dot_grad_z_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'b_dot_grad_z', netcdf_real, flux_surface_dim, b_dot_grad_z_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='b_dot_grad_z')
-      end if
-      status = nf90_put_att(ncid, b_dot_grad_z_id, 'long_name', 'b . grad z(alpha,zed)')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, b_dot_grad_z_id, att='long_name')
-      status = nf90_put_att(ncid, b_dot_grad_z_id, 'units', 'dimensionless')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, b_dot_grad_z_id, att='units')
-
-      status = nf90_inq_varid(ncid, 'gradpar', gradpar_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'gradpar', netcdf_real, nttot_dim, gradpar_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='gradpar')
-      end if
-      status = nf90_inq_varid(ncid, 'gbdrift', gbdrift_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'gbdrift', netcdf_real, flux_surface_dim, gbdrift_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='gbdrift')
-      end if
-      status = nf90_inq_varid(ncid, 'gbdrift0', gbdrift0_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'gbdrift0', netcdf_real, flux_surface_dim, gbdrift0_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='gbdrift0')
-      end if
-      status = nf90_inq_varid(ncid, 'cvdrift', cvdrift_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'cvdrift', netcdf_real, flux_surface_dim, cvdrift_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='cvdrift')
-      end if
-      status = nf90_inq_varid(ncid, 'cvdrift0', cvdrift0_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'cvdrift0', netcdf_real, flux_surface_dim, cvdrift0_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='cvdrift0')
-      end if
-
-      status = nf90_inq_varid(ncid, 'kperp2', kperp2_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'kperp2', netcdf_real, kykxaz_dim, kperp2_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='kperp2')
-      end if
-      status = nf90_inq_varid(ncid, 'gds2', gds2_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'gds2', netcdf_real, flux_surface_dim, gds2_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='gds2')
-      end if
-      status = nf90_inq_varid(ncid, 'gds21', gds21_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'gds21', netcdf_real, flux_surface_dim, gds21_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='gds21')
-      end if
-      status = nf90_inq_varid(ncid, 'gds22', gds22_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'gds22', netcdf_real, flux_surface_dim, gds22_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='gds22')
-      end if
-      status = nf90_inq_varid(ncid, 'grho', grho_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'grho', netcdf_real, flux_surface_dim, grho_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='grho')
-      end if
-      status = nf90_inq_varid(ncid, 'jacob', jacob_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'jacob', netcdf_real, flux_surface_dim, jacob_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='jacob')
-      end if
-      status = nf90_inq_varid(ncid, 'djacdrho', djacdrho_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'djacdrho', netcdf_real, flux_surface_dim, djacdrho_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='djacdrho')
-      end if
-
-      status = nf90_inq_varid(ncid, 'q', q_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'q', netcdf_real, q_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='q')
-      end if
-      status = nf90_put_att(ncid, q_id, 'long_name', 'local safety factor')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, q_id, att='long_name')
-      status = nf90_inq_varid(ncid, 'beta', beta_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'beta', netcdf_real, beta_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='beta')
-      end if
-      status = nf90_put_att(ncid, beta_id, 'long_name', 'reference beta')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, beta_id, att='long_name')
-      status = nf90_inq_varid(ncid, 'shat', shat_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'shat', netcdf_real, shat_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='shat')
-      end if
-      status = nf90_put_att(ncid, shat_id, 'long_name', '(rho/q) dq/drho')
-      status = nf90_inq_varid(ncid, 'd2qdr2', d2qdr2_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'd2qdr2', netcdf_real, d2qdr2_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='d2qdr2')
-      end if
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, shat_id, att='long_name')
-      status = nf90_inq_varid(ncid, 'jtwist', jtwist_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'jtwist', netcdf_real, jtwist_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='jtwist')
-      end if
-      status = nf90_put_att(ncid, jtwist_id, 'long_name', '2*pi*shat*dky/dkx')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, jtwist_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'drhodpsi', drhodpsi_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'drhodpsi', netcdf_real, drhodpsi_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='drhodpsi')
-      end if
-      status = nf90_put_att(ncid, drhodpsi_id, 'long_name', 'drho/dPsi')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, drhodpsi_id, att='long_name')
-      status = nf90_inq_varid(ncid, 'd2psidr2', d2psidr2_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'd2psidr2', netcdf_real, d2psidr2_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='d2psidr2')
-      end if
 
       if (write_omega) then
          status = nf90_inq_varid(ncid, 'omega', omega_id)
@@ -1199,78 +1064,54 @@ contains
 #endif
    end subroutine nc_species
 
-   subroutine nc_geo
-
+   !> Write various geometric quantities to output netCDF file
+   subroutine nc_geo(file_id)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
       use stella_geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
                                  cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
                                  drhodpsi, djacdrho, b_dot_grad_z
       use stella_geometry, only: geo_surf
-      use zgrid, only: nzgrid
       use physics_parameters, only: beta
       use dist_fn_arrays, only: kperp2
-      use kt_grids, only: naky, nakx, nalpha, jtwist
-# ifdef NETCDF
-      use netcdf, only: nf90_put_var
-
+      use kt_grids, only: naky, nakx, jtwist
+#endif
       implicit none
+      !> NetCDF ID of the file to write to
+      integer, intent(in) :: file_id
 
-      integer :: status
-      integer, dimension(2) :: start, count
-      integer, dimension(4) :: start2, count2
+# ifdef NETCDF
+      character(len=*), dimension(*), parameter :: flux_surface_dim = ["alpha", "zed  "]
 
-      start = 1
-      count(1) = nalpha
-      count(2) = 2 * nzgrid + 1
-
-      start2 = 1
-      count2(1) = naky
-      count2(2) = nakx
-      count2(3) = nalpha
-      count2(4) = 2 * nzgrid + 1
-
-      status = nf90_put_var(ncid, bmag_id, bmag, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, bmag_id)
-      status = nf90_put_var(ncid, b_dot_grad_z_id, b_dot_grad_z, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, b_dot_grad_z_id)
-      status = nf90_put_var(ncid, gradpar_id, gradpar)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gradpar_id)
-      status = nf90_put_var(ncid, gbdrift_id, gbdrift, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gbdrift_id)
-      status = nf90_put_var(ncid, gbdrift0_id, gbdrift0, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gbdrift0_id)
-      status = nf90_put_var(ncid, cvdrift_id, cvdrift, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, cvdrift_id)
-      status = nf90_put_var(ncid, cvdrift0_id, cvdrift0, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, cvdrift0_id)
-      status = nf90_put_var(ncid, kperp2_id, kperp2, start=start2, count=count2)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, kperp2_id)
-      status = nf90_put_var(ncid, gds2_id, gds2, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gds2_id)
-      status = nf90_put_var(ncid, gds21_id, gds21, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gds21_id)
-      status = nf90_put_var(ncid, gds22_id, gds22, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gds22_id)
-      status = nf90_put_var(ncid, grho_id, grho, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, grho_id)
-      status = nf90_put_var(ncid, jacob_id, jacob, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, jacob_id)
-      status = nf90_put_var(ncid, djacdrho_id, djacdrho, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, djacdrho_id)
-
-      status = nf90_put_var(ncid, beta_id, beta)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, beta_id)
-      status = nf90_put_var(ncid, q_id, geo_surf%qinp)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, q_id)
-      status = nf90_put_var(ncid, shat_id, geo_surf%shat)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, shat_id)
-      status = nf90_put_var(ncid, d2qdr2_id, geo_surf%d2qdr2)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, d2qdr2_id)
-      status = nf90_put_var(ncid, drhodpsi_id, drhodpsi)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, drhodpsi_id)
-      status = nf90_put_var(ncid, d2psidr2_id, geo_surf%d2psidr2)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, d2psidr2_id)
-      status = nf90_put_var(ncid, jtwist_id, jtwist)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, jtwist_id)
+      call neasyf_write(file_id, "bmag", bmag, dim_names=flux_surface_dim, &
+                        long_name="Magnitude of magnetic field", units="B_0")
+      call neasyf_write(file_id, "b_dot_grad_z", b_dot_grad_z, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "gradpar", gradpar, dim_names=["zed"], &
+                        long_name="Parallel derivative multiplier")
+      call neasyf_write(file_id, "gbdrift", gbdrift, dim_names=flux_surface_dim, &
+                        long_name="Magnetic gradient drift")
+      call neasyf_write(file_id, "gbdrift0", gbdrift0, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "cvdrift", cvdrift, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "cvdrift0", cvdrift0, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "kperp2", kperp2, dim_names=[character(len=5)::"ky", "kx", "alpha", "zed"])
+      call neasyf_write(file_id, "gds2", gds2, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "gds21", gds21, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "gds22", gds22, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "grho", grho, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "jacob", jacob, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "djacdrho", djacdrho, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "beta", beta, &
+                        long_name="Reference beta", units="2.mu0.nref.Tref/B_a**2")
+      call neasyf_write(file_id, "q", geo_surf%qinp, &
+                        long_name="Local safety factor")
+      call neasyf_write(file_id, "shat", geo_surf%shat, &
+                        long_name="(rho/q) dq/drho")
+      call neasyf_write(file_id, "d2qdr2", geo_surf%d2qdr2)
+      call neasyf_write(file_id, "drhodpsi", drhodpsi, &
+                        long_name="drho/dPsi")
+      call neasyf_write(file_id, "d2psidr2", geo_surf%d2psidr2)
+      call neasyf_write(file_id, "jtwist", jtwist, &
+                        long_name="2*pi*shat*dky/dkx")
 # endif
    end subroutine nc_geo
 
