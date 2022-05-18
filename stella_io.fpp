@@ -42,10 +42,7 @@ module stella_io
    integer, dimension(2) :: kx_dim, ky_dim, flux_dim, nin_dim, fmode_dim
    integer, dimension(2) :: flux_surface_dim, rad_grid_dim
 
-   integer :: nakx_id, ntubes_id
-   integer :: naky_id, nttot_id, akx_id, aky_id, zed_id, nspec_id
-   integer :: nmu_id, nvtot_id, mu_id, vpa_id
-   integer :: time_id, phi2_id, theta0_id, nproc_id, nmesh_id
+   integer :: time_id, phi2_id
    integer :: phi_vs_t_id, phi2_vs_kxky_id
    integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
@@ -58,7 +55,7 @@ module stella_io
    integer :: vnew_id, spec_type_id
    integer :: bmag_id, gradpar_id, gbdrift_id, gbdrift0_id, b_dot_grad_z_id
    integer :: cvdrift_id, cvdrift0_id, gds2_id, gds21_id, gds22_id
-   integer :: kperp2_id, rad_grid_id, phase_shift_angle_id
+   integer :: kperp2_id
    integer :: grho_id, jacob_id, djacdrho_id, shat_id, drhodpsi_id, q_id, jtwist_id
    integer :: d2qdr2_id, d2psidr2_id
    integer :: beta_id
@@ -109,11 +106,10 @@ contains
             ncid = neasyf_open(trim(filename), "w")
          end if
 
-         call define_dims
+         call write_grids(ncid)
          call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
                           write_moments, write_omega, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
-         call nc_grids
          call nc_species
          call nc_geo
          call save_input
@@ -122,99 +118,98 @@ contains
 
    end subroutine init_stella_io
 
-   subroutine define_dims
-
+   !> Ensure the netCDF file contains all the dimensions and grids,
+   !> creating them if necessary
+   subroutine write_grids(file_id)
+# ifdef NETCDF
       use file_utils, only: num_input_lines
-      use kt_grids, only: naky, nakx, nalpha
-      use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: nvpa, nmu
+      use kt_grids, only: nakx, naky, akx, aky, nalpha, theta0, phase_shift_angle, x_d, rho_d
+      use zgrid, only: nzgrid, ntubes, zed
+      use vpamu_grids, only: nvpa, vpa, nmu, mu
       use species, only: nspec
       use physics_flags, only: radial_variation
-# ifdef NETCDF
-      use netcdf, only: nf90_unlimited
-      use netcdf, only: nf90_def_dim, nf90_inq_dimid
+      use physics_parameters, only: rhostar
+      use stella_geometry, only: geo_surf, dxdXcoord, q_as_x
+      use mp, only: nproc
+      use neasyf, only: neasyf_dim, neasyf_write
 # endif
 
-# ifdef NETCDF
-      integer :: status
+      !> NetCDF ID of the file
+      integer, intent(in) :: file_id
 
-      ! Associate the grid variables, e.g. ky, kx, with their size, e.g. naky, nakx,
-      ! and a variable which is later used to store these sizes in the NetCDF file, e.g. naky_dim, nakx_dim
-      status = nf90_inq_dimid(ncid, 'ky', naky_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'ky', naky, naky_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='ky')
+# ifdef NETCDF
+      integer :: ix
+      ! Total number of mesh points
+      real :: nmesh
+      ! Radial grid
+      real, dimension(:, :), allocatable :: rg
+
+      ! Grids themselves
+      call neasyf_dim(file_id, "ky", values=aky, dimid=naky_dim, &
+                      long_name="Wavenumber perpendicular to flux surface", units="1/rho_r")
+      call neasyf_dim(file_id, "kx", values=akx, dimid=nakx_dim, &
+                      long_name="Wavenumber in direction of grad alpha", units="1/rho_r")
+      call neasyf_dim(file_id, "tube", dim_size=ntubes, dimid=ntubes_dim)
+      call neasyf_dim(file_id, "zed", values=zed, dimid=nttot_dim)
+      call neasyf_dim(file_id, "alpha", dim_size=nalpha, dimid=nalpha_dim)
+      call neasyf_dim(file_id, "vpa", values=vpa, dimid=nvtot_dim)
+      call neasyf_dim(file_id, "mu", values=mu, dimid=nmu_dim)
+      call neasyf_dim(file_id, "species", dim_size=nspec, dimid=nspec_dim)
+      call neasyf_dim(file_id, "t", unlimited=.true., dimid=time_dim, &
+                      long_name="Time", units="L/vt")
+
+      ! Dimensions for various string variables
+      call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
+      call neasyf_dim(file_id, "char200", dim_size=200, dimid=char200_dim)
+      if (num_input_lines > 0) then
+         ! netCDF interprets zero-sized dimensions as unlimited, which is not what we want
+         call neasyf_dim(file_id, "nlines", dim_size=num_input_lines, dimid=nlines_dim, long_name="Input file line number")
       end if
-      status = nf90_inq_dimid(ncid, 'kx', nakx_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'kx', nakx, nakx_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='kx')
-      end if
-      status = nf90_inq_dimid(ncid, 'tube', ntubes_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'tube', ntubes, ntubes_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='tube')
-      end if
-      status = nf90_inq_dimid(ncid, 'zed', nttot_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'zed', 2 * nzgrid + 1, nttot_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='zed')
-      end if
-      status = nf90_inq_dimid(ncid, 'alpha', nalpha_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'alpha', nalpha, nalpha_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='alpha')
-      end if
-      status = nf90_inq_dimid(ncid, 'vpa', nvtot_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'vpa', nvpa, nvtot_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='vpa')
-      end if
-      status = nf90_inq_dimid(ncid, 'mu', nmu_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'mu', nmu, nmu_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='mu')
-      end if
-      status = nf90_inq_dimid(ncid, 'species', nspec_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'species', nspec, nspec_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='species')
-      end if
-      status = nf90_inq_dimid(ncid, 't', time_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 't', nf90_unlimited, time_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='t')
-      end if
-      status = nf90_inq_dimid(ncid, 'char10', char10_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'char10', 10, char10_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='char10')
-      end if
-      status = nf90_inq_dimid(ncid, 'char200', char200_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'char200', 200, char200_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='char200')
-      end if
-      status = nf90_inq_dimid(ncid, 'nlines', nlines_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'nlines', num_input_lines, nlines_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='nlines')
-      end if
-      status = nf90_inq_dimid(ncid, 'ri', ri_dim)
-      if (status /= nf90_noerr) then
-         status = nf90_def_dim(ncid, 'ri', 2, ri_dim)
-         if (status /= nf90_noerr) call netcdf_error(status, dim='ri')
-      end if
+
+      call neasyf_dim(file_id, "ri", dim_size=2, dimid=ri_dim, &
+                      long_name="Complex components", units="(real, imaginary)")
+
       if (radial_variation) then
-         status = nf90_inq_dimid(ncid, 'radgridvar', radgridvar_dim)
-         if (status /= nf90_noerr) then
-            ! size 3: x, q/psi, rho
-            status = nf90_def_dim(ncid, 'radgridvar', 3, radgridvar_dim)
-            if (status /= nf90_noerr) call netcdf_error(status, dim='radgridvar')
-         end if
+         call neasyf_dim(file_id, "radgridvar", dim_size=3, dimid=radgridvar_dim, &
+                         long_name="x, q/psi, rho")
       end if
+
+      ! Grid sizes
+      call neasyf_write(file_id, "nkx", nakx, long_name="Number of kx points")
+      call neasyf_write(file_id, "nky", naky, long_name="Number of ky points")
+      call neasyf_write(file_id, "ntubes", ntubes, long_name="Number of tubes")
+      call neasyf_write(file_id, "nzed_tot", 2 * nzgrid + 1, long_name="Number of zed points")
+      call neasyf_write(file_id, "theta0", theta0, dim_names=["ky", "kx"], long_name="Theta_0")
+      call neasyf_write(file_id, "nspecies", nspec, long_name="Number of species")
+      call neasyf_write(file_id, "nvpa_tot", nvpa, long_name="Number of vpa points")
+      call neasyf_write(file_id, "nmu", nmu, long_name="Number of mu points")
+      call neasyf_write(file_id, "phase_shift_angle", phase_shift_angle)
+
+      call neasyf_write(file_id, "nproc", nproc, long_name="Number of processors")
+
+      if (radial_variation) then
+         allocate (rg(3, nakx))
+         if (q_as_x) then
+            do ix = 1, nakx
+               rg(1, ix) = x_d(ix)
+               rg(2, ix) = rhostar * x_d(ix) / dxdXcoord + geo_surf%qinp
+               rg(3, ix) = rho_d(ix) + geo_surf%rhoc
+            end do
+         else
+            do ix = 1, nakx
+               rg(1, ix) = x_d(ix)
+               rg(2, ix) = rhostar * x_d(ix) / dxdXcoord
+               rg(3, ix) = rho_d(ix) + geo_surf%rhoc
+            end do
+         end if
+         call neasyf_write(file_id, "rad_grid", rg, dim_names=[character(10)::"radgridvar", "kx"])
+         deallocate (rg)
+      end if
+
+      nmesh = (2 * nzgrid + 1) * ntubes * nvpa * nmu * nakx * naky * nspec
+      call neasyf_write(file_id, "nmesh", nmesh, long_name="Number of mesh points")
 # endif
-   end subroutine define_dims
+   end subroutine write_grids
 
    subroutine finish_stella_io
       use mp, only: proc0
@@ -265,7 +260,6 @@ contains
                           write_gzvs, write_moments, write_omega, write_radial_fluxes, &
                           write_radial_moments, write_fluxes_kxky)
 
-      use mp, only: nproc
       use run_parameters, only: fphi!, fapar, fbpar
       use physics_flags, only: radial_variation
 # ifdef NETCDF
@@ -439,70 +433,6 @@ contains
                             'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
 
-      ! Write lots of input variables (e.g. nproc, nkx, nky)
-      ! into the NetCDF file
-      status = nf90_inq_varid(ncid, 'nproc', nproc_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nproc', nf90_int, nproc_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nproc')
-      end if
-      status = nf90_put_att(ncid, nproc_id, 'long_name', 'Number of processors')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nproc_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'nmesh', nmesh_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nmesh', netcdf_real, nmesh_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nmesh')
-      end if
-      status = nf90_put_att(ncid, nmesh_id, 'long_name', 'Number of meshpoints')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nmesh_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'ntubes', ntubes_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'ntubes', nf90_int, ntubes_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='ntubes')
-      end if
-      status = nf90_inq_varid(ncid, 'nkx', nakx_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nkx', nf90_int, nakx_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nkx')
-      end if
-      status = nf90_inq_varid(ncid, 'nky', naky_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nky', nf90_int, naky_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nky')
-      end if
-      status = nf90_inq_varid(ncid, 'nzed_tot', nttot_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nzed_tot', nf90_int, nttot_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nzed_tot')
-      end if
-      status = nf90_inq_varid(ncid, 'nspecies', nspec_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nspecies', nf90_int, nspec_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nspecies')
-      end if
-      status = nf90_inq_varid(ncid, 'nmu', nmu_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nmu', nf90_int, nmu_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nmu')
-      end if
-      status = nf90_inq_varid(ncid, 'nvpa_tot', nvtot_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'nvpa_tot', nf90_int, nvtot_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='nvpa_tot')
-      end if
-
-      status = nf90_inq_varid(ncid, 't', time_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 't', netcdf_real, time_dim, time_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='t')
-      end if
-      status = nf90_put_att(ncid, time_id, 'long_name', 'Time')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, time_id, att='long_name')
-      status = nf90_put_att(ncid, time_id, 'units', 'L/vt')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, time_id, att='units')
-
       status = nf90_inq_varid(ncid, 'charge', charge_id)
       if (status /= nf90_noerr) then
          status = nf90_def_var(ncid, 'charge', nf90_int, nspec_dim, charge_id)
@@ -573,57 +503,6 @@ contains
       if (status /= nf90_noerr) then
          status = nf90_def_var(ncid, 'type_of_species', nf90_int, nspec_dim, spec_type_id)
          if (status /= nf90_noerr) call netcdf_error(status, var='type_of_species')
-      end if
-
-      status = nf90_inq_varid(ncid, 'theta0', theta0_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'theta0', netcdf_real, fmode_dim, theta0_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='theta0')
-      end if
-      status = nf90_put_att(ncid, theta0_id, 'long_name', 'Theta_0')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, theta0_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'kx', akx_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'kx', netcdf_real, nakx_dim, akx_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='kx')
-      end if
-      status = nf90_put_att(ncid, akx_id, 'long_name', 'kx rho')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, akx_id, att='long_name')
-
-      if (radial_variation) then
-         status = nf90_inq_varid(ncid, 'rad_grid', rad_grid_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var(ncid, 'rad_grid', netcdf_real, rad_grid_dim, rad_grid_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='rad_grid')
-         end if
-         status = nf90_put_att(ncid, rad_grid_id, 'long_name', 'x, q/psi, rho')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, rad_grid_id, att='long_name')
-      end if
-
-      status = nf90_inq_varid(ncid, 'ky', aky_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'ky', netcdf_real, naky_dim, aky_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='ky')
-      end if
-      status = nf90_put_att(ncid, aky_id, 'long_name', 'ky rho')
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, aky_id, att='long_name')
-
-      status = nf90_inq_varid(ncid, 'mu', mu_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'mu', netcdf_real, nmu_dim, mu_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='mu')
-      end if
-      status = nf90_inq_varid(ncid, 'vpa', vpa_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'vpa', netcdf_real, nvtot_dim, vpa_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='vpa')
-      end if
-
-      status = nf90_inq_varid(ncid, 'zed', zed_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'zed', netcdf_real, nttot_dim, zed_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='zed')
       end if
 
       status = nf90_inq_varid(ncid, 'bmag', bmag_id)
@@ -753,12 +632,6 @@ contains
       if (status /= nf90_noerr) then
          status = nf90_def_var(ncid, 'd2psidr2', netcdf_real, d2psidr2_id)
          if (status /= nf90_noerr) call netcdf_error(status, var='d2psidr2')
-      end if
-
-      status = nf90_inq_varid(ncid, 'phase_shift_angle', phase_shift_angle_id)
-      if (status /= nf90_noerr) then
-         status = nf90_def_var(ncid, 'phase_shift_angle', netcdf_real, phase_shift_angle_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='phase_shift_angle')
       end if
 
       if (write_omega) then
@@ -973,9 +846,6 @@ contains
 
       status = nf90_enddef(ncid)  ! out of definition mode
       if (status /= nf90_noerr) call netcdf_error(status)
-
-      status = nf90_put_var(ncid, nproc_id, nproc)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nproc_id)
 
 # endif
    end subroutine define_vars
@@ -1379,88 +1249,6 @@ contains
 # endif
 
    end subroutine write_gzvs_nc
-
-   subroutine nc_grids
-
-      use zgrid, only: nzgrid, zed, ntubes
-      use stella_geometry, only: geo_surf, dxdXcoord, q_as_x
-      use kt_grids, only: naky, nakx, x_d, rho_d
-      use kt_grids, only: theta0, akx, aky, phase_shift_angle
-      use species, only: nspec
-      use vpamu_grids, only: nvpa, nmu, vpa, mu
-      use physics_flags, only: radial_variation
-      use physics_parameters, only: rhostar
-!    use nonlinear_terms, only: nonlin
-# ifdef NETCDF
-      use netcdf, only: nf90_put_var
-      use constants, only: pi
-
-      integer :: status, ix
-      real :: nmesh
-      real, dimension(:, :), allocatable :: rg
-
-      ! Store the size of the grid dimensions (as defined in def_dims), in the NetCDF file
-      status = nf90_put_var(ncid, nttot_id, 2 * nzgrid + 1)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nttot_id)
-      status = nf90_put_var(ncid, naky_id, naky)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, ntubes_id)
-      status = nf90_put_var(ncid, ntubes_id, ntubes)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, naky_id)
-      status = nf90_put_var(ncid, nakx_id, nakx)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nakx_id)
-      status = nf90_put_var(ncid, nspec_id, nspec)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nspec_id)
-      status = nf90_put_var(ncid, nmu_id, nmu)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nmu_id)
-      status = nf90_put_var(ncid, nvtot_id, nvpa)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nvtot_id)
-
-      status = nf90_put_var(ncid, akx_id, akx)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, akx_id)
-      status = nf90_put_var(ncid, aky_id, aky)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, aky_id)
-      status = nf90_put_var(ncid, zed_id, zed)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, zed_id)
-      status = nf90_put_var(ncid, theta0_id, theta0)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, theta0_id)
-      status = nf90_put_var(ncid, mu_id, mu)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, mu_id)
-      status = nf90_put_var(ncid, vpa_id, vpa)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, vpa_id)
-      status = nf90_put_var(ncid, phase_shift_angle_id, phase_shift_angle)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phase_shift_angle_id)
-
-      if (radial_variation) then
-         allocate (rg(3, nakx))
-         if (q_as_x) then
-            do ix = 1, nakx
-               rg(1, ix) = x_d(ix)
-               rg(2, ix) = rhostar * x_d(ix) / dxdXcoord + geo_surf%qinp
-               rg(3, ix) = rho_d(ix) + geo_surf%rhoc
-            end do
-         else
-            do ix = 1, nakx
-               rg(1, ix) = x_d(ix)
-               rg(2, ix) = rhostar * x_d(ix) / dxdXcoord
-               rg(3, ix) = rho_d(ix) + geo_surf%rhoc
-            end do
-         end if
-         status = nf90_put_var(ncid, rad_grid_id, rg)
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, rad_grid_id)
-         deallocate (rg)
-      end if
-
-!    if (nonlin) then
-!       nmesh = (2*nzgrid+1)*(2*nvgrid+1)*nmu*nx*ny*nspec
-!    else
-      nmesh = (2 * nzgrid + 1) * ntubes * nvpa * nmu * nakx * naky * nspec
-!    end if
-
-      status = nf90_put_var(ncid, nmesh_id, nmesh)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, nmesh_id)
-
-# endif
-   end subroutine nc_grids
 
    subroutine nc_species
 
