@@ -1050,6 +1050,8 @@ contains
                iky = iky_idx(kxkyz_lo, ikxkyz)
                is = is_idx(kxkyz_lo, ikxkyz)
                call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, g0)
+               ! g0 has shape(nvpa, nmu). We want to multiply by mu, but also
+               ! spread out to be shape (nvpa, nmu)
                g0 = g0 * spread(mu, 2, nvpa)
                wgt = -2 * beta * spec(is)%dens_psi0 * spec(is)%temp_psi0
                call integrate_vmu(g0, iz, tmp)
@@ -1096,7 +1098,9 @@ contains
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
-            g0 = g0 * spread(vpa, 1, nmu)
+            ! g0 has shape(nvpa, nmu). We want to multiply by vpa, but also
+            ! spread out to be shape (nvpa, nmu)
+            g0 = g0 * spread(vpa, 2, nmu)
             wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
             call integrate_vmu(g0, iz, tmp)
             apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + wgt * tmp
