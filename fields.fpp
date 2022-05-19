@@ -521,8 +521,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2303,7 +2303,7 @@ contains
 
    ! The following subroutine takes the fields(ky,kx) and returns
    ! gyroaverage(chi)(ky,kx) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
-   subroutine get_gyroaverage_chi_2d(ivmu, phi, apar, bpar, gyro_chi)
+   subroutine get_gyroaverage_chi_2d(iz, ivmu, phi, apar, bpar, gyro_chi)
 
       use gyro_averages, only: gyro_average, gyro_average_j1
       use stella_layouts, only: vmu_lo
@@ -2316,7 +2316,7 @@ contains
       implicit none
 
       complex, dimension(:, :), intent(in) :: phi, apar, bpar
-      integer, intent(in) :: ivmu
+      integer, intent(in) :: ivmu, iz
       complex, dimension(:, :), intent(out) :: gyro_chi
       integer :: is, imu, iv
       complex, dimension(:, :), allocatable :: gyro_field
@@ -2330,13 +2330,13 @@ contains
 
       allocate (gyro_field(naky, nakx))
 
-      call gyro_average(phi, ivmu, gyro_field)
+      call gyro_average(phi, iz, ivmu, gyro_field)
       gyro_chi = gyro_chi + fphi * gyro_field
 
-      call gyro_average(apar, ivmu, gyro_field)
+      call gyro_average(apar, iz, ivmu, gyro_field)
       gyro_chi = gyro_chi - fapar * 2 * vpa(iv) * spec(is)%stm * gyro_field
 
-      call gyro_average_j1(bpar, ivmu, gyro_field)
+      call gyro_average_j1(bpar, iz, ivmu, gyro_field)
       gyro_chi = gyro_chi + fbpar * 4 * mu(imu) * (spec(is)%tz) * gyro_field
       deallocate (gyro_field)
 
@@ -2408,14 +2408,14 @@ contains
 
    ! Take phi, apar, bpar(ky, kx) and return
    ! d<chi>/dy (ky,kx)
-   subroutine get_dchidy_2d(ivmu, phi, apar, bpar, dchidy)
+   subroutine get_dchidy_2d(iz, ivmu, phi, apar, bpar, dchidy)
 
       use constants, only: zi
       use kt_grids, only: nakx, aky, naky
 
       implicit none
 
-      integer, intent(in) :: ivmu
+      integer, intent(in) :: iz, ivmu
       complex, dimension(:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :), intent(out) :: dchidy
 
@@ -2423,7 +2423,7 @@ contains
       complex, dimension(:, :), allocatable :: gyro_chi
 
       allocate (gyro_chi(naky, nakx))
-      call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
+      call get_gyroaverage_chi(iz, ivmu, phi, apar, bpar, gyro_chi)
       dchidy = zi * spread(aky, 2, nakx) * gyro_chi
       deallocate (gyro_chi)
 
@@ -2460,21 +2460,21 @@ contains
 
    ! Take phi, apar, bpar(ky, kx) and return
    ! d<chi>/dx (ky,kx)
-   subroutine get_dchidx_2d(ivmu, phi, apar, bpar, dchidx)
+   subroutine get_dchidx_2d(iz, ivmu, phi, apar, bpar, dchidx)
 
       use constants, only: zi
       use kt_grids, only: akx, naky, nakx
 
       implicit none
 
-      integer, intent(in) :: ivmu
+      integer, intent(in) :: iz, ivmu
       complex, dimension(:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :), intent(out) :: dchidx
 
       complex, dimension(:, :), allocatable :: gyro_chi
 
       allocate (gyro_chi(naky, nakx))
-      call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
+      call get_gyroaverage_chi(iz, ivmu, phi, apar, bpar, gyro_chi)
       dchidx = zi * spread(akx, 1, naky) * gyro_chi
       deallocate (gyro_chi)
 
