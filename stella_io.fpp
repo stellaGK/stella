@@ -624,7 +624,6 @@ contains
    !> Also flushes to disk
    subroutine write_time_nc(nout, time)
 # ifdef NETCDF
-      use netcdf, only: nf90_sync
       use neasyf, only: neasyf_write, neasyf_error
 # endif
       implicit none
@@ -635,8 +634,6 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "t", time, dim_names=["t"], start=[nout])
-
-      call neasyf_error(nf90_sync(ncid), ncid=ncid, message="Couldn't flush to disk")
 # endif
    end subroutine write_time_nc
 
@@ -666,7 +663,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_put_var
 # endif
 
       implicit none
@@ -691,10 +688,6 @@ contains
       allocate (phi_ri(2, naky, nakx, 2 * nzgrid + 1, ntubes))
       call c2r(phi, phi_ri)
       status = nf90_put_var(ncid, phi_vs_t_id, phi_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id)
-
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id)
 
       deallocate (phi_ri)
@@ -787,7 +780,7 @@ contains
 
       use kt_grids, only: nakx, naky
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_put_var
 # endif
 
       implicit none
@@ -807,10 +800,6 @@ contains
 
       status = nf90_put_var(ncid, phi2_vs_kxky_id, phi2_vs_kxky, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_vs_kxky_id)
-
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_vs_kxky_id)
 # endif
 
    end subroutine write_kspectra_nc
@@ -823,7 +812,7 @@ contains
       use zgrid, only: nztot, ntubes
       use species, only: nspec
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_put_var
 # endif
 
       implicit none
@@ -852,17 +841,6 @@ contains
 !
       status = nf90_put_var(ncid, qflx_kxkyz_id, qflx_kxkyz, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, qflx_kxkyz_id)
-!
-!   Buffers to disk
-!
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, pflx_kxkyz_id)
-!
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, vflx_kxkyz_id)
-!
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, qflx_kxkyz_id)
 # endif
 
    end subroutine write_fluxes_kxkyz_nc
@@ -874,7 +852,7 @@ contains
       use kt_grids, only: nakx, naky
       use species, only: nspec
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_put_var
 # endif
 
       implicit none
@@ -903,33 +881,17 @@ contains
       status = nf90_put_var(ncid, density_id, mom_ri, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, density_id)
 
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, density_id)
-
       call c2r(upar, mom_ri)
       status = nf90_put_var(ncid, upar_id, mom_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, upar_id)
-
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, upar_id)
 
       call c2r(temperature, mom_ri)
       status = nf90_put_var(ncid, temperature_id, mom_ri, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, temperature_id)
 
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, temperature_id)
-
       ! AVB: added: (move this to a separate diagnostic in the future)
       call c2r(spitzer2, mom_ri)
       status = nf90_put_var(ncid, spitzer2_id, mom_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, spitzer2_id)
-
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, spitzer2_id)
 
       deallocate (mom_ri)
@@ -943,7 +905,7 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use species, only: nspec
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_put_var
 # endif
 
       implicit none
@@ -965,11 +927,6 @@ contains
 
       status = nf90_put_var(ncid, gvmus_id, g, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, gvmus_id)
-
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gvmus_id)
-
 # endif
 
    end subroutine write_gvmus_nc
@@ -980,7 +937,7 @@ contains
       use vpamu_grids, only: nvpa
       use species, only: nspec
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var, nf90_sync
+      use netcdf, only: nf90_put_var
 # endif
 
       implicit none
@@ -1002,11 +959,6 @@ contains
 
       status = nf90_put_var(ncid, gzvs_id, g, start=start, count=count)
       if (status /= nf90_noerr) call netcdf_error(status, ncid, gzvs_id)
-
-!   Buffers to disk
-      status = NF90_SYNC(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gzvs_id)
-
 # endif
 
    end subroutine write_gzvs_nc
@@ -1136,18 +1088,14 @@ contains
 
    end subroutine get_nout
 
+   !> Flush netCDF file to disk
    subroutine sync_nc
-
-# ifdef NETCDF
+#ifdef NETCDF
       use netcdf, only: nf90_sync
+      use neasyf, only: neasyf_error
 
-      implicit none
-      integer :: status
-
-      status = nf90_sync(ncid)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid)
-
-# endif
+      call neasyf_error(nf90_sync(ncid), ncid=ncid, message="Couldn't flush to disk")
+#endif
    end subroutine sync_nc
 
    subroutine write_complex_rank2(parent_id, name, values, dim_names, units, long_name, start)
