@@ -42,8 +42,8 @@ module stella_io
    integer, dimension(2) :: kx_dim, ky_dim, flux_dim, nin_dim, fmode_dim
    integer, dimension(2) :: flux_surface_dim, rad_grid_dim
 
-   integer :: time_id, phi2_id
-   integer :: phi_vs_t_id, phi2_vs_kxky_id
+   integer :: time_id
+   integer :: phi2_vs_kxky_id
    integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflux_x_id, vflux_x_id, qflux_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
@@ -66,7 +66,7 @@ contains
    !==============================================
    !============ INITIATE STELLA IO ==============
    !==============================================
-   subroutine init_stella_io(restart, write_phi_vs_t, write_kspectra, write_gvmus, &
+   subroutine init_stella_io(restart, write_kspectra, write_gvmus, &
                              write_gzvs, write_moments, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)
 
       use mp, only: proc0
@@ -81,7 +81,7 @@ contains
       implicit none
 
       logical, intent(in) :: restart
-      logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs
+      logical, intent(in) :: write_kspectra, write_gvmus, write_gzvs
       logical, intent(in) :: write_moments, write_radial_fluxes, write_radial_moments!, write_symmetry
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
@@ -103,7 +103,7 @@ contains
          call neasyf_metadata(ncid, title="stella simulation data", software_name="stella", &
                               software_version=get_git_version(), auto_date=.true.)
          call write_grids(ncid)
-         call define_vars(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, &
+         call define_vars(write_kspectra, write_gvmus, write_gzvs, &
                           write_moments, write_radial_fluxes, write_radial_moments, &
                           write_fluxes_kxky)
          call nc_species(ncid)
@@ -248,7 +248,7 @@ contains
 #endif
    end subroutine save_input
 
-   subroutine define_vars(write_phi_vs_t, write_kspectra, write_gvmus, &
+   subroutine define_vars(write_kspectra, write_gvmus, &
                           !       write_gzvs, write_symmetry, write_moments)
                           write_gzvs, write_moments, write_radial_fluxes, &
                           write_radial_moments, write_fluxes_kxky)
@@ -264,7 +264,7 @@ contains
 
       implicit none
 
-      logical, intent(in) :: write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs!, write_symmetry
+      logical, intent(in) :: write_kspectra, write_gvmus, write_gzvs!, write_symmetry
       logical, intent(in) :: write_moments, write_radial_fluxes, write_radial_moments
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
@@ -420,18 +420,6 @@ contains
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
 
       if (fphi > zero) then
-         status = nf90_inq_varid(ncid, 'phi2', phi2_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var(ncid, 'phi2', netcdf_real, time_dim, phi2_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='phi2')
-         end if
-         status = nf90_put_att(ncid, phi2_id, 'long_name', '|Potential**2|')
-         if (status /= nf90_noerr) &
-            call netcdf_error(status, ncid, phi2_id, att='long_name')
-         status = nf90_put_att(ncid, phi2_id, 'units', '(T/q rho/L)**2')
-         if (status /= nf90_noerr) &
-            call netcdf_error(status, ncid, phi2_id, att='units')
-
 !        status = nf90_def_var &
 !             (ncid, 'phi2_by_mode', netcdf_real, mode_dim, phi2_by_mode_id)
 !        if (status /= nf90_noerr) call netcdf_error (status, var='phi2_by_mode')
@@ -449,16 +437,6 @@ contains
 !                call netcdf_error (status, var='phi2_by_ky')
 !        end if
 
-         if (write_phi_vs_t) then
-            status = nf90_inq_varid(ncid, 'phi_vs_t', phi_vs_t_id)
-            if (status /= nf90_noerr) then
-               status = nf90_def_var &
-                        (ncid, 'phi_vs_t', netcdf_real, field_dim, phi_vs_t_id)
-               if (status /= nf90_noerr) call netcdf_error(status, var='phi_vs_t')
-            end if
-            status = nf90_put_att(ncid, phi_vs_t_id, 'long_name', 'Electrostatic Potential vs time')
-            if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id, att='long_name')
-         end if
          if (write_radial_moments) then
             status = nf90_inq_varid(ncid, 'dens_x', dens_x_id)
             if (status /= nf90_noerr) then
@@ -637,62 +615,40 @@ contains
 # endif
    end subroutine write_time_nc
 
+   !> Write amplitude of electrostatic potential to netCDF
    subroutine write_phi2_nc(nout, phi2)
-
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var
+      use neasyf, only: neasyf_write
 # endif
-
       implicit none
-
+      !> Current timestep
       integer, intent(in) :: nout
+      !> Amplitude of electrostatic potential
       real, intent(in) :: phi2
 
 # ifdef NETCDF
-      integer :: status
-
-      status = nf90_put_var(ncid, phi2_id, phi2, start=(/nout/))
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi2_id)
+      call neasyf_write(ncid, "phi2", phi2, dim_names=["t"], &
+                        units="(T/q rho/L)**2", &
+                        long_name="Amplitude of electrostatic potential", &
+                        start=[nout])
 # endif
-
    end subroutine write_phi2_nc
 
+   !> Write time trace of electrostatic potential to netCDF
    subroutine write_phi_nc(nout, phi)
-
-      use convert, only: c2r
-      use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, naky
-# ifdef NETCDF
-      use netcdf, only: nf90_put_var
-# endif
-
+      use zgrid, only: nzgrid
       implicit none
-
+      !> Current timestep
       integer, intent(in) :: nout
+      !> Electrostatic potential
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
 
 # ifdef NETCDF
-      integer :: status
-      integer, dimension(6) :: start, count
-      real, dimension(:, :, :, :, :), allocatable :: phi_ri
-
-      start = 1
-      start(6) = nout
-      count(1) = 2
-      count(2) = naky
-      count(3) = nakx
-      count(4) = 2 * nzgrid + 1
-      count(5) = ntubes
-      count(6) = 1
-
-      allocate (phi_ri(2, naky, nakx, 2 * nzgrid + 1, ntubes))
-      call c2r(phi, phi_ri)
-      status = nf90_put_var(ncid, phi_vs_t_id, phi_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, phi_vs_t_id)
-
-      deallocate (phi_ri)
+      call netcdf_write_complex(ncid, "phi_vs_t", phi, &
+                                [character(len=4)::"ri", "ky", "kx", "zed", "tube", "t"], &
+                                long_name="Electrostatic potential", &
+                                start=[1, 1, 1, 1, 1, nout])
 # endif
-
    end subroutine write_phi_nc
 
    !> Write the complex frequency to netCDF
