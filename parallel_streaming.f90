@@ -223,13 +223,9 @@ contains
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
       end if
 
-<<<<<<< HEAD
       if (driftkinetic_implicit .and. ( (fapar > epsilon(0.0)) .or. (fbpar > epsilon(0.0)) ) ) then
-=======
-      if (driftkinetic_implicit .and. ((fapar > epsilon(0)) .or. (fbpar > epsilon(0)))) then
->>>>>>> 14fceaeef3e81e6f98a91c7a372dafdaf86ea0d6
          call mp_abort("driftkinetic_implicit not currently compatible with fapar>0 or fbpar>0. Aborting.")
-      end if 
+      end if
 
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             !> get (iv,imu,is) indices corresponding to ivmu super-index
