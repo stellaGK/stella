@@ -44,7 +44,6 @@ module stella_io
 
    integer :: time_id
    integer :: phi2_vs_kxky_id
-   integer :: dens_x_id, upar_x_id, temp_x_id
    integer :: pflx_kxkyz_id, vflx_kxkyz_id, qflx_kxkyz_id
    integer :: density_id, upar_id, temperature_id, spitzer2_id
    integer :: gvmus_id, gzvs_id
@@ -66,7 +65,7 @@ contains
    !============ INITIATE STELLA IO ==============
    !==============================================
    subroutine init_stella_io(restart, write_kspectra, write_gvmus, &
-                             write_gzvs, write_moments, write_radial_moments, write_fluxes_kxky)
+                             write_gzvs, write_moments, write_fluxes_kxky)
 
       use mp, only: proc0
       use file_utils, only: run_name
@@ -81,7 +80,7 @@ contains
 
       logical, intent(in) :: restart
       logical, intent(in) :: write_kspectra, write_gvmus, write_gzvs
-      logical, intent(in) :: write_moments, write_radial_moments!, write_symmetry
+      logical, intent(in) :: write_moments
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
       character(300) :: filename
@@ -103,7 +102,7 @@ contains
                               software_version=get_git_version(), auto_date=.true.)
          call write_grids(ncid)
          call define_vars(write_kspectra, write_gvmus, write_gzvs, &
-                          write_moments, write_radial_moments, &
+                          write_moments, &
                           write_fluxes_kxky)
          call nc_species(ncid)
          call nc_geo(ncid)
@@ -250,7 +249,7 @@ contains
    subroutine define_vars(write_kspectra, write_gvmus, &
                           !       write_gzvs, write_symmetry, write_moments)
                           write_gzvs, write_moments, &
-                          write_radial_moments, write_fluxes_kxky)
+                          write_fluxes_kxky)
 
       use run_parameters, only: fphi!, fapar, fbpar
       use physics_flags, only: radial_variation
@@ -264,7 +263,7 @@ contains
       implicit none
 
       logical, intent(in) :: write_kspectra, write_gvmus, write_gzvs!, write_symmetry
-      logical, intent(in) :: write_moments, write_radial_moments
+      logical, intent(in) :: write_moments
       logical, intent(in) :: write_fluxes_kxky
 # ifdef NETCDF
 
@@ -436,26 +435,6 @@ contains
 !                call netcdf_error (status, var='phi2_by_ky')
 !        end if
 
-         if (write_radial_moments) then
-            status = nf90_inq_varid(ncid, 'dens_x', dens_x_id)
-            if (status /= nf90_noerr) then
-               status = nf90_def_var &
-                        (ncid, 'dens_x', netcdf_real, flux_x_dim, dens_x_id)
-               if (status /= nf90_noerr) call netcdf_error(status, var='dens_x')
-            end if
-            status = nf90_inq_varid(ncid, 'upar_x', upar_x_id)
-            if (status /= nf90_noerr) then
-               status = nf90_def_var &
-                        (ncid, 'upar_x', netcdf_real, flux_x_dim, upar_x_id)
-               if (status /= nf90_noerr) call netcdf_error(status, var='upar_x')
-            end if
-            status = nf90_inq_varid(ncid, 'temp_x', temp_x_id)
-            if (status /= nf90_noerr) then
-               status = nf90_def_var &
-                        (ncid, 'temp_x', netcdf_real, flux_x_dim, temp_x_id)
-               if (status /= nf90_noerr) call netcdf_error(status, var='temp_x')
-            end if
-         end if
          if (write_kspectra) then
             status = nf90_inq_varid(ncid, 'phi2_vs_kxky', phi2_vs_kxky_id)
             if (status /= nf90_noerr) then
@@ -669,37 +648,28 @@ contains
 
    end subroutine write_radial_fluxes_nc
 
+   !> Write radial moments to netCDF
    subroutine write_radial_moments_nc(nout, dens_x, upar_x, temp_x)
-
-      use kt_grids, only: nakx
-      use species, only: nspec
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var
+      use neasyf, only: neasyf_write
 # endif
-
       implicit none
-
+      !> Current timestep
       integer, intent(in) :: nout
+      !> Radial moments for density, parallel velocity, temperature
       real, dimension(:, :), intent(in) :: dens_x, upar_x, temp_x
 
 # ifdef NETCDF
-      integer :: status
-      integer, dimension(3) :: start, count
-
-      start = 1
-      start(3) = nout
-      count(1) = nakx
-      count(2) = nspec
-      count(3) = 1
-
-      status = nf90_put_var(ncid, dens_x_id, dens_x, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, dens_x_id)
-      status = nf90_put_var(ncid, upar_x_id, upar_x, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, upar_x_id)
-      status = nf90_put_var(ncid, temp_x_id, temp_x, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, temp_x_id)
+      call neasyf_write(ncid, "dens_x", dens_x, &
+                        dim_names=[character(len=7)::"kx", "species", "t"], &
+                        start=[1, 1, nout])
+      call neasyf_write(ncid, "upar_x", upar_x, &
+                        dim_names=[character(len=7)::"kx", "species", "t"], &
+                        start=[1, 1, nout])
+      call neasyf_write(ncid, "temp_x", temp_x, &
+                        dim_names=[character(len=7)::"kx", "species", "t"], &
+                        start=[1, 1, nout])
 # endif
-
    end subroutine write_radial_moments_nc
 
    subroutine write_kspectra_nc(nout, phi2_vs_kxky)
