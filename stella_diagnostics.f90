@@ -122,7 +122,7 @@ contains
       ntg_out = nzed / 2 + (nperiod - 1) * nzed
 
       !> Initiate the netcdf file with extension '.out.nc'
-      call init_stella_io(restart, write_gvmus, write_gzvs)
+      call init_stella_io(restart)
 
       !> Open the '.out', '.fluxes' and '.omega' file
       if (proc0) call open_loop_ascii_files(restart)
