@@ -36,10 +36,13 @@ contains
       use species, only: spec, nspec
       use vpamu_grids, only: nmu
       use vpamu_grids, only: mu
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use zgrid, only: nzgrid, nztot
       use kt_grids, only: nalpha
       use stella_geometry, only: dbdzed, b_dot_grad_z, gfac
-      use stella_geometry, only: d2Bdrdth, dgradpardrho
+      use stella_geometry, only: d2Bdrdth, dgradpardrho, gradpar
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: imu_idx, is_idx, iv_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange, fapar
@@ -47,7 +50,7 @@ contains
 
       implicit none
 
-      integer :: iz, ia, imu
+      integer :: iz, ia, imu, iv, is, ivmu
       real, dimension(:, :), allocatable :: neoclassical_term
 
       if (mirror_initialized) return
@@ -77,7 +80,7 @@ contains
             end do
          end do
 
-         if (fapar > epsilon(0.) then
+         if (fapar > epsilon(0.)) then
             ! Using gbar, there's a term on the RHS of the mirror equation which looks like
             ! -2*Z/m * mu * (b.grad B) exp(-v^2) * gyro_average(apar)
             ! Calculate (-2*Z/m * mu * (b.grad B) exp(-v^2))*dt here
@@ -97,14 +100,14 @@ contains
                is = is_idx(vmu_lo,ivmu)
                imu = imu_idx(vmu_lo,ivmu)
                iv = iv_idx(vmu_lo,ivmu)
-               do iy = 1, nalpha
+               do ia = 1, nalpha
                   ! Exact
-                  mirror_apar_fac(iy,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
-                         *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
+                  mirror_apar_fac(ia,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
+                         *mu(imu)*dbdzed(ia,:)*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is)
                   ! if (numerical_mirror_apar_fac) then
                   !   !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
                   !   !!! because the third_order_upwind scheme has problems at the boundaries.
-                  !   mirror_apar_fac(iy,:,ivmu) = mirror_apar_fac(iy,:,ivmu) * dvpa_dvpa(iv)
+                  !   mirror_apar_fac(ia,:,ivmu) = mirror_apar_fac(ia,:,ivmu) * dvpa_dvpa(iv)
                   ! end if
                end do
             end do
@@ -119,7 +122,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
