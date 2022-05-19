@@ -97,13 +97,13 @@ contains
             ! end if
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               is = is_idx(vmu_lo,ivmu)
-               imu = imu_idx(vmu_lo,ivmu)
-               iv = iv_idx(vmu_lo,ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               iv = iv_idx(vmu_lo, ivmu)
                do ia = 1, nalpha
                   ! Exact
-                  mirror_apar_fac(ia,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
-                         *mu(imu)*dbdzed(ia,:)*maxwell_vpa(iv,is)*maxwell_mu(ia,:,imu,is)*maxwell_fac(is)
+                  mirror_apar_fac(ia, :, ivmu) = -2 * fapar * code_dt * spec(is)%zm * gradpar &
+                                                 * mu(imu) * dbdzed(ia, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, :, imu, is) * maxwell_fac(is)
                   ! if (numerical_mirror_apar_fac) then
                   !   !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
                   !   !!! because the third_order_upwind scheme has problems at the boundaries.
@@ -122,7 +122,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
