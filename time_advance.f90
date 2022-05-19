@@ -1332,7 +1332,7 @@ contains
          if (.not. drifts_implicit) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
-            call advance_wdrifty_explicit(gin, phi, rhs)
+            call advance_wdrifty_explicit(gin, rhs)
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
@@ -1340,7 +1340,7 @@ contains
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
-            call advance_wstar_explicit(phi, rhs)
+            call advance_wstar_explicit(rhs)
          end if
 
          !> calculate and add contribution from collisions to RHS of GK eqn
@@ -1383,12 +1383,12 @@ contains
 
    end subroutine solve_gke
 
-   subroutine advance_wstar_explicit(phi, gout)
+   subroutine advance_wstar_explicit(gout)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: apar, bpar
+      use fields_arrays, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
@@ -1399,7 +1399,6 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       complex, dimension(:, :, :, :, :), allocatable :: g0, g0y
@@ -1448,7 +1447,7 @@ contains
 
    !> advance_wdrifty_explicit subroutine calculates and adds the y-component of the
    !> magnetic drift term to the RHS of the GK equation
-   subroutine advance_wdrifty_explicit(g, phi, gout)
+   subroutine advance_wdrifty_explicit(g, gout)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -1460,6 +1459,8 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+      use fields, only: get_dchidy
+      use fields_arrays, only: phi, apar, bpar
 
       implicit none
 
@@ -1468,21 +1469,25 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       integer :: ivmu, iz, it
-      complex, dimension(:, :, :, :), allocatable :: dphidy
-      complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
+      complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y, dchidy
       complex, dimension(:, :), allocatable :: g0k_swap
 
       !> start the timing of the y component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
 
-      allocate (dphidy(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dchidy(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
       !> calculate dg/dy in (ky,kx) space
       call get_dgdy(g, g0k)
-      !> calculate dphi/dy in (ky,kx) space
-      call get_dgdy(phi, dphidy)
+      ! Bob: Modified to include EM effects. We should test this doesn't break
+      ! ffs electrostatically.
+      !> calculate d<chi>/dy in (ky,kx) space
+      call get_dchidy(phi, apar, bpar, dchidy)
+      ! Old
+      ! !> calculate dphi/dy in (ky,kx) space
+      ! call get_dgdy(phi, dphidy)
 
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
@@ -1499,15 +1504,17 @@ contains
          !> add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
 
-         !> get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-         end do
+         ! Bob: get_dchidy already performs the gyroaverage, so we don't
+         ! need to do it here.
+         ! !> get <dphi/dy> in k-space
+         ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !    call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
+         ! end do
 
-         !> transform d<phi>/dy from k-space to y-space
+         !> transform d<chi>/dy from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
-               call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
+               call swap_kxky(dchidy(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
             end do
          end do
@@ -1521,15 +1528,10 @@ contains
          ! add vM . grad y dg/dy term to equation
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
 
-         ! get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-         end do
-
          ! add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
+         call add_explicit_term(dchidy, wdrifty_phi(1, :, :), gout)
       end if
-      deallocate (g0k, dphidy)
+      deallocate (g0k, dchidy)
 
       !> stop the timing of the y component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
