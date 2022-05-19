@@ -110,7 +110,6 @@ contains
       ! if it is < 0, the code will just use the nfield_periods in the input file
       dkx_over_dky = -1
 
-
       in_file = input_unit_exist("zgrid_parameters", exist)
       if (exist) read (unit=in_file, nml=zgrid_parameters)
 
@@ -145,7 +144,7 @@ contains
       call broadcast(shat_zero)
       call broadcast(boundary_option_switch)
       call broadcast(grad_x_grad_y_zero)
-      call broadcast (dkx_over_dky)
+      call broadcast(dkx_over_dky)
 
    end subroutine broadcast_parameters
 
