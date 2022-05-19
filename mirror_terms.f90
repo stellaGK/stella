@@ -122,7 +122,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -323,7 +323,7 @@ contains
    !> due to the mirror force term; it treats all terms explicitly in time
    subroutine advance_mirror_explicit(g, gout)
 
-      use mp, only: proc0
+      use mp, only: proc0, mp_abort
       use redistribute, only: gather, scatter
       use dist_fn_arrays, only: gvmu
       use job_manage, only: time_message
@@ -337,7 +337,9 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, maxwell_vpa
       use run_parameters, only: fields_kxkyz
+      use run_parameters, only: fapar, fbpar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use fields_arrays, only: apar
 
       implicit none
 
@@ -355,6 +357,9 @@ contains
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       if (full_flux_surface) then
+        if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+           call mp_abort ('full_flux_surface mirror term not set up for apar, bpar. aborting')
+        end if
          !> assume we are simulating a single flux surface
          it = 1
 
@@ -415,7 +420,7 @@ contains
          call gather(kxkyz2vmu, g0v, g0x)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          ! get mirror term and add to source
-         call add_mirror_term(g0x, gout)
+         call add_mirror_term (g0x, apar, gout)
       end if
       deallocate (g0x, g0v)
 
@@ -542,32 +547,43 @@ contains
 
    end subroutine get_dgdvpa_explicit
 
-   subroutine add_mirror_term(g, src)
+   subroutine add_mirror_term(g, apar, src)
 
+      use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx
+      use kt_grids, only: nakx, naky
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension (:,:,-nzgrid:,:), intent (in) :: apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
 
       integer :: imu, is, ivmu
       integer :: it, iz, ikx
+      complex, dimension (:,:,:,:), allocatable :: gyro_apar
+
+      allocate(gyro_apar(naky,nakx,-nzgrid:nzgrid,ntubes))
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
+         call gyro_average(apar, ivmu, gyro_apar)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
-                  src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu)
+                  src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) &
+                                + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu) &
+                                + mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
+
                end do
             end do
          end do
       end do
+
+      deallocate(gyro_apar)
 
    end subroutine add_mirror_term
 
