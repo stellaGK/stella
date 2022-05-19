@@ -1539,7 +1539,7 @@ contains
 
    !> advance_wdriftx_explicit subroutine calculates and adds the x-component of the
    !> magnetic drift term to the RHS of the GK equation
-   subroutine advance_wdriftx_explicit(g, phi, gout)
+   subroutine advance_wdriftx_explicit(g, gout)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -1551,16 +1551,16 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
+      use fields, only: get_dchidy
+      use fields_arrays, only: phi, apar, bpar
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       integer :: ivmu, iz, it
-      complex, dimension(:, :, :, :), allocatable :: dphidx
-      complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
+      complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y, dchidx
       complex, dimension(:, :), allocatable :: g0k_swap
 
       !> start the timing of the x component of the magnetic drift advance
@@ -1572,14 +1572,19 @@ contains
          return
       end if
 
-      allocate (dphidx(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dchidx0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
-      !> calculate dphi/dx in (ky,kx) space
-      call get_dgdx(phi, dphidx)
+      ! Bob: Modified to include EM effects. We should test this doesn't break
+      ! ffs electrostatically.
+      !> calculate d<chi>/dx in (ky,kx) space
+      call get_dchidx(phi, apar, bpar, dchidx)
+      ! Old:
+      ! !> calculate dphi/dx in (ky,kx) space
+      ! call get_dgdx(phi, dphidx)
 
       if (full_flux_surface) then
          !> assume a single flux surface is simulated
@@ -1595,14 +1600,17 @@ contains
          end do
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
-         !> get <dphi/dx> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
-         end do
+
+         ! Bob: get_dchidy already performs the gyroaverage, so we don't
+         ! need to do it here.
+         ! !> get <dphi/dx> in k-space
+         ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !    call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
+         ! end do
          !> transform d<phi>/dx from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
-               call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
+               call swap_kxky(dchidx(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
             end do
          end do
@@ -1613,14 +1621,11 @@ contains
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
-         !> get <dphi/dx> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
-         end do
-         !> add vM . grad x d<phi>/dx term to equation
-         call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
+
+         !> add vM . grad x d<chi>/dx term to equation
+         call add_explicit_term(dchidx, wdriftx_phi(1, :, :), gout)
       end if
-      deallocate (g0k, dphidx)
+      deallocate (g0k, dchidx)
 
       !> stop the timing of the x component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
