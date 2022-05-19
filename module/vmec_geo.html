@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for modules and submodules.">276 statements</a>
+    title=" 0.7% of total for modules and submodules.">282 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/vmec_geo.f90"> Source File</a></li>
   </ul>
@@ -125,7 +125,7 @@
       <a class="list-group-item" href="../module/vmec_geo.html#variable-nfield_periods">nfield_periods</a>
       <a class="list-group-item" href="../module/vmec_geo.html#variable-zeta_center~3">zeta_center</a>
       <a class="list-group-item" href="../module/vmec_geo.html#variable-torflux">torflux</a>
-      <a class="list-group-item" href="../module/vmec_geo.html#variable-verbose~2">verbose</a>
+      <a class="list-group-item" href="../module/vmec_geo.html#variable-verbose~3">verbose</a>
       <a class="list-group-item" href="../module/vmec_geo.html#variable-vmec_filename~2">vmec_filename</a>
     </div>
   </div>
@@ -168,7 +168,7 @@
       <a class="list-group-item" href="../module/vmec_geo.html#variable-nfield_periods">nfield_periods</a>
       <a class="list-group-item" href="../module/vmec_geo.html#variable-zeta_center~3">zeta_center</a>
       <a class="list-group-item" href="../module/vmec_geo.html#variable-torflux">torflux</a>
-      <a class="list-group-item" href="../module/vmec_geo.html#variable-verbose~2">verbose</a>
+      <a class="list-group-item" href="../module/vmec_geo.html#variable-verbose~3">verbose</a>
       <a class="list-group-item" href="../module/vmec_geo.html#variable-vmec_filename~2">vmec_filename</a>
     </div>
   </div>
@@ -236,7 +236,7 @@
   <td><strong>torflux</strong></td><td></td><td></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-verbose~2"></span>logical,</td>
+  <td><span class="anchor" id="variable-verbose~3"></span>logical,</td>
 <td>public</td>  <td></td><td>::</td>
   <td><strong>verbose</strong></td><td></td><td></td><td></td>
 </tr>
@@ -277,10 +277,11 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_vmec_geo"></span><h3>public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(nzgrid, nalpha, naky, surf, grho, bmag, gradpar, b_dot_grad_z, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, sign_torflux, theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, field_period_ratio, x_displacement_fac)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_vmec_geo"></span><h3>public subroutine <a href='../proc/get_vmec_geo.html'>get_vmec_geo</a>(new_zeta_min, stellarator_symmetric_BC, nzgrid, nalpha, naky, surf, grho, bmag, gradpar, b_dot_grad_z, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, sign_torflux, theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, field_period_ratio, x_displacement_fac)</h3></div>
   <div class="panel-body">
        
-<p>first read in equilibrium information from vmec file
+<p>To avoid writting twice in the output file when recomputing zeta.
+first read in equilibrium information from vmec file
 this is stored as a set of global variables in read_wout_mod
 in mini_libstell.  it will be accessible
 if desired, increase number of sampled zeta grid points in VMEC data
@@ -290,6 +291,18 @@ onto stella zed grid</p><a href="../proc/get_vmec_geo.html" class="pull-right"><
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>new_zeta_min</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>logical,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>stellarator_symmetric_BC</strong></td><td></td>
+</tr>
 <tr>
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
@@ -492,7 +505,7 @@ onto stella zed grid</p><a href="../proc/get_vmec_geo.html" class="pull-right"><
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_modified_vmec_zeta_grid"></span><h3>public subroutine <a href='../proc/get_modified_vmec_zeta_grid.html'>get_modified_vmec_zeta_grid</a>(nzgrid_modified, dzeta_modified)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_modified_vmec_zeta_grid"></span><h3>public subroutine <a href='../proc/get_modified_vmec_zeta_grid.html'>get_modified_vmec_zeta_grid</a>(new_zeta_min, stellarator_symmetric_BC, nzgrid_modified, dzeta_modified)</h3></div>
   <div class="panel-body">
        
 <p>need to extend the maximum and minimum zeta values
@@ -512,6 +525,18 @@ as the former is sampled while keeping alpha fixed (rather than theta)</p><a hre
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>new_zeta_min</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>logical,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>stellarator_symmetric_BC</strong></td><td></td>
+</tr>
 <tr>
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(out)</td>
@@ -543,13 +568,13 @@ as the former is sampled while keeping alpha fixed (rather than theta)</p><a hre
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-6-gd2019f336</small></p>
+<br /><small>v0.5.1-11-g972b0b6b1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-05-06T19:15:58.812429           </p>
+ on 2022-05-19T13:18:45.720435           </p>
         </div>
       </div>
       <br>

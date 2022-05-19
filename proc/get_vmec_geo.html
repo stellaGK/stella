@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.5% of total for procedures.">182 statements</a>
+    title=" 0.5% of total for procedures.">186 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/vmec_geo.f90"> Source File</a></li>
   </ul>
@@ -121,7 +121,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>public subroutine get_vmec_geo(nzgrid, nalpha, naky, surf, grho, bmag, gradpar, b_dot_grad_z, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, sign_torflux, theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, field_period_ratio, x_displacement_fac)</h2>
+    <h2>public subroutine get_vmec_geo(new_zeta_min, stellarator_symmetric_BC, nzgrid, nalpha, naky, surf, grho, bmag, gradpar, b_dot_grad_z, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, sign_torflux, theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, field_period_ratio, x_displacement_fac)</h2>
         <div class="panel panel-default">
       <div class="panel-heading">
   <h3 class="panel-title">Uses</h3>
@@ -130,19 +130,20 @@
       <li class="list-group-item">
   <ul class="list-inline">
     <li><a href='../module/zgrid.html'>zgrid</a></li>
-    <li><a href='../module/physics_flags.html'>physics_flags</a></li>
-    <li><a href='../module/constants.html'>constants</a></li>
-    <li><a href='../module/file_utils.html'>file_utils</a></li>
-    <li><a href='../module/splines.html'>splines</a></li>
-    <li><a href='../module/common_types.html'>common_types</a></li>
     <li><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></li>
+    <li><a href='../module/file_utils.html'>file_utils</a></li>
+    <li><a href='../module/physics_flags.html'>physics_flags</a></li>
+    <li><a href='../module/common_types.html'>common_types</a></li>
+    <li><a href='../module/constants.html'>constants</a></li>
+    <li><a href='../module/splines.html'>splines</a></li>
   </ul>
       </li>
       </ul>
     </div>
 
 
-    <p>first read in equilibrium information from vmec file
+    <p>To avoid writting twice in the output file when recomputing zeta.
+first read in equilibrium information from vmec file
 this is stored as a set of global variables in read_wout_mod
 in mini_libstell.  it will be accessible
 if desired, increase number of sampled zeta grid points in VMEC data
@@ -194,37 +195,49 @@ stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor</p>
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
 <tr>
-  <td><span class="anchor" id="variable-nzgrid~13"></span>integer,</td>
+  <td><span class="anchor" id="variable-new_zeta_min"></span>real,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>new_zeta_min</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-stellarator_symmetric_bc"></span>logical,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>stellarator_symmetric_BC</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-nzgrid~10"></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
   <td><strong>nzgrid</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-nalpha~7"></span>integer,</td>
+  <td><span class="anchor" id="variable-nalpha~4"></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
   <td><strong>nalpha</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-naky~11"></span>integer,</td>
+  <td><span class="anchor" id="variable-naky~10"></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
   <td><strong>naky</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-surf~3"></span>type(<a href='../type/flux_surface_type.html'>flux_surface_type</a>),</td>
+  <td><span class="anchor" id="variable-surf"></span>type(<a href='../type/flux_surface_type.html'>flux_surface_type</a>),</td>
 <td>intent(out)</td>
   <td></td>  <td></td><td>::</td>
   <td><strong>surf</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-grho~8"></span>real,</td>
+  <td><span class="anchor" id="variable-grho"></span>real,</td>
 <td>intent(out),</td>
   <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>grho</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-bmag~3"></span>real,</td>
+  <td><span class="anchor" id="variable-bmag"></span>real,</td>
 <td>intent(out),</td>
   <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>bmag</strong></td><td></td>
@@ -260,13 +273,13 @@ stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor</p>
   <td><strong>grad_psi_grad_psi</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-gds23~2"></span>real,</td>
+  <td><span class="anchor" id="variable-gds23"></span>real,</td>
 <td>intent(out),</td>
   <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds23</strong></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-gds24~2"></span>real,</td>
+  <td><span class="anchor" id="variable-gds24"></span>real,</td>
 <td>intent(out),</td>
   <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
   <td><strong>gds24</strong></td><td></td>
@@ -393,13 +406,13 @@ stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor</p>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-6-gd2019f336</small></p>
+<br /><small>v0.5.1-11-g972b0b6b1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-05-06T19:15:58.812429           </p>
+ on 2022-05-19T13:18:45.720435           </p>
         </div>
       </div>
       <br>

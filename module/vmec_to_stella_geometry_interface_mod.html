@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.6% of total for modules and submodules.">1025 statements</a>
+    title=" 2.7% of total for modules and submodules.">1064 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/vmec_to_stella_geometry_interface.f90"> Source File</a></li>
   </ul>
@@ -180,6 +180,7 @@
       <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-get_nominal_vmec_zeta_grid">get_nominal_vmec_zeta_grid</a>
       <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-vmec_to_stella_geometry_interface">vmec_to_stella_geometry_interface</a>
       <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-get_root">get_root</a>
+      <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-desired_zmin">desired_zmin</a>
     </div>
   </div>
 </div>
@@ -264,6 +265,7 @@
       <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-get_nominal_vmec_zeta_grid">get_nominal_vmec_zeta_grid</a>
       <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-vmec_to_stella_geometry_interface">vmec_to_stella_geometry_interface</a>
       <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-get_root">get_root</a>
+      <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#proc-desired_zmin">desired_zmin</a>
     </div>
   </div>
 </div>
@@ -537,7 +539,7 @@
     <section>
     <h2>Subroutines</h2>
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_vmec_equilibrium"></span><h3>public subroutine <a href='../proc/read_vmec_equilibrium.html'>read_vmec_equilibrium</a>(vmec_filename)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_vmec_equilibrium"></span><h3>public subroutine <a href='../proc/read_vmec_equilibrium.html'>read_vmec_equilibrium</a>(vmec_filename, verbose)</h3></div>
   <div class="panel-body">
            
 <h4>Arguments</h4>      <table class="table table-striped varlist">
@@ -549,6 +551,12 @@
   <td></td>  <td></td><td>::</td>
   <td><strong>vmec_filename</strong></td><td></td>
 </tr>
+<tr>
+  <td><span class="anchor" ></span>logical,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>verbose</strong></td><td></td>
+</tr>
 </tbody>
 </table>
 
@@ -557,12 +565,24 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_nominal_vmec_zeta_grid"></span><h3>public subroutine <a href='../proc/get_nominal_vmec_zeta_grid.html'>get_nominal_vmec_zeta_grid</a>(nzgrid, zeta_center, number_of_field_periods_stella, number_of_field_periods_device, zeta)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-get_nominal_vmec_zeta_grid"></span><h3>public subroutine <a href='../proc/get_nominal_vmec_zeta_grid.html'>get_nominal_vmec_zeta_grid</a>(new_zeta_min, stellarator_symmetric_BC, nzgrid, zeta_center, number_of_field_periods_stella, number_of_field_periods_device, zeta)</h3></div>
   <div class="panel-body">
            
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>new_zeta_min</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>logical,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>stellarator_symmetric_BC</strong></td><td></td>
+</tr>
 <tr>
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
@@ -868,6 +888,56 @@
   </div>
   </div>
 
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-desired_zmin"></span><h3>public subroutine <a href='../proc/desired_zmin.html'>desired_zmin</a>(nalpha, nzgrid, zeta, twist_shift_factor_full, dkx_over_dky, new_zeta_min)</h3></div>
+  <div class="panel-body">
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>nalpha</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>nzgrid</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(nalpha,-nzgrid:nzgrid)</td><td>::</td>
+  <td><strong>zeta</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(nalpha,-nzgrid:nzgrid)</td><td>::</td>
+  <td><strong>twist_shift_factor_full</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>dkx_over_dky</strong></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>real,</td>
+<td>intent(out)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>new_zeta_min</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+  </div>
+  </div>
+
     </section>    
     <br>
     
@@ -880,13 +950,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-6-gd2019f336</small></p>
+<br /><small>v0.5.1-11-g972b0b6b1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-05-06T19:15:58.812429           </p>
+ on 2022-05-19T13:18:45.720435           </p>
         </div>
       </div>
       <br>

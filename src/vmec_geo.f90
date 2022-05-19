@@ -82,7 +82,8 @@ contains
 
    end subroutine init_vmec_defaults
 
-   subroutine get_vmec_geo(nzgrid, nalpha, naky, surf, grho, bmag, gradpar, &
+   subroutine get_vmec_geo(new_zeta_min, stellarator_symmetric_BC, &
+                           nzgrid, nalpha, naky, surf, grho, bmag, gradpar, &
                            b_dot_grad_z, grad_alpha_grad_alpha, &
                            grad_alpha_grad_psi, grad_psi_grad_psi, &
                            gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
@@ -103,6 +104,8 @@ contains
       implicit none
 
       integer, intent(in) :: nzgrid, nalpha, naky
+      logical, intent (in) :: stellarator_symmetric_BC
+      real, intent (in) :: new_zeta_min
       type(flux_surface_type), intent(out) :: surf
       real, dimension(-nzgrid:), intent(out) :: gradpar
       real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z, &
@@ -142,11 +145,13 @@ contains
       real :: dzeta_vmec, zmin, zmax
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
 
+      !> To avoid writting twice in the output file when recomputing zeta.
+      if (stellarator_symmetric_BC) verbose = .false.
       !> first read in equilibrium information from vmec file
       !> this is stored as a set of global variables in read_wout_mod
       !> in mini_libstell.  it will be accessible
       if (debug) write (*, *) 'get_vmec_geo::read_vmec_equilibrium'
-      call read_vmec_equilibrium(vmec_filename)
+      call read_vmec_equilibrium(vmec_filename, verbose)
 
       ! !> nzgrid_vmec is the number of positive/negative zeta locations
       ! !> at which to get geometry data from vmec
@@ -155,10 +160,10 @@ contains
       ! !> and thus a larger than usual range of zeta_max/min
       ! !> values are needed to avoid extrapolation
       ! if (zed_equal_arc) then
-      !    if (debug) write (*,*) 'get_vmec_geo::get_modified_vmec_zeta_grid'
-      !    call get_modified_vmec_zeta_grid (nzgrid_vmec, dzeta_vmec)
+      ! if (debug) write (*,*) 'get_vmec_geo::get_modified_vmec_zeta_grid'
+      call get_modified_vmec_zeta_grid (new_zeta_min, stellarator_symmetric_BC, nzgrid_vmec, dzeta_vmec)
       ! else
-      !    nzgrid_vmec = nzgrid
+      !   nzgrid_vmec = nzgrid
       ! end if
       !> if desired, increase number of sampled zeta grid points in VMEC data
       !> to increase accuracy of later integration in zeta and interpolation
@@ -444,13 +449,15 @@ contains
 
    end subroutine filter_geo_coef
 
-   subroutine get_modified_vmec_zeta_grid(nzgrid_modified, dzeta_modified)
+   subroutine get_modified_vmec_zeta_grid(new_zeta_min, stellarator_symmetric_BC, nzgrid_modified, dzeta_modified)
 
       use zgrid, only: nzgrid
       use vmec_to_stella_geometry_interface_mod, only: get_nominal_vmec_zeta_grid
 
       implicit none
 
+      logical, intent (in) :: stellarator_symmetric_BC
+      real, intent(in) :: new_zeta_min
       integer, intent(out) :: nzgrid_modified
 
       integer :: nzgrid_excess
@@ -475,8 +482,8 @@ contains
       !> is the number of field periods in the device
       !> nfield_periods may be reasonably bigger than nfield_periods_device
       !> as the former is sampled while keeping alpha fixed (rather than theta)
-      call get_nominal_vmec_zeta_grid(nzgrid, zeta_center, nfield_periods, &
-                                      nfield_periods_device, zeta)
+      call get_nominal_vmec_zeta_grid (new_zeta_min, stellarator_symmetric_BC, nzgrid, zeta_center, &
+                nfield_periods, nfield_periods_device, zeta)
 
       !> maximum zeta value for nominal zeta grid
       zeta_max = zeta(nzgrid)

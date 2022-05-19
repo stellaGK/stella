@@ -98,6 +98,7 @@ contains
       use millerlocal, only: read_local_parameters, get_local_geo
       use millerlocal, only: communicate_parameters_multibox
       use vmec_geo, only: read_vmec_parameters, get_vmec_geo
+      use vmec_to_stella_geometry_interface_mod, only: desired_zmin
       use inputprofiles_interface, only: read_inputprof_geo
       use zgrid, only: nzed, nzgrid
       use zgrid, only: zed, delzed
@@ -105,6 +106,7 @@ contains
       use zgrid, only: grad_x_grad_y_zero
       use zgrid, only: boundary_option_switch, boundary_option_self_periodic
       use zgrid, only: boundary_option_linked, boundary_option_linked_stellarator
+      use zgrid, only: dkx_over_dky
       use file_utils, only: get_unused_unit
       use physics_flags, only: include_geometric_variation, const_alpha_geo
 
@@ -113,8 +115,10 @@ contains
       logical, parameter :: debug = .false.
 
       integer, intent(in) :: nalpha, naky
+      logical :: stellarator_symmetric_BC
 
       real :: dpsidrho, dpsidrho_psi0
+      real :: new_zeta_min
       integer :: iy, ia, iz
       integer :: sign_torflux
       integer :: dxdXcoord_sign, dydalpha_sign
@@ -302,13 +306,48 @@ contains
             call allocate_temporary_arrays(nalpha, nzgrid)
             !> get geometry coefficients from vmec
             if (debug) write (*, *) 'init_geometry::get_vmec_geo'
-            call get_vmec_geo(nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
+            !> abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+            !> minus its sign gives the direction of the shift in kx
+            !> to be used for twist-and-shift BC
+            allocate(twist_and_shift_geo_fac_full(nalpha,-nzgrid:nzgrid))
+            twist_and_shift_geo_fac_full = 0
+            !> The code will start computing for the initial zgrid
+            stellarator_symmetric_BC = .false.
+            call get_vmec_geo(new_zeta_min, stellarator_symmetric_BC, &
+                              nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
                               b_dot_grad_z, grad_alpha_grad_alpha, &
                               grad_alpha_grad_psi, grad_psi_grad_psi, &
                               gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                               cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
                               field_period_ratio, x_displacement_fac)
+
+            write (*,*)"############################################################"
+            write (*,*)"                     BOUNDARY CONDITIONS"
+            write (*,*)"############################################################"
+            write (*,*)
+
+            if ((boundary_option_switch == boundary_option_linked_stellarator) .and. (dkx_over_dky > 0)) then 
+            ! If stellarator_symmetric_BC and dkx_over_dky>0 the code will compute the new 
+            ! zeta to work with
+               stellarator_symmetric_BC = .true.
+               ! twist_and_shift_geo_fac_full for the whole zgrid
+               twist_and_shift_geo_fac_full = 2*(geo_surf%rhotor*geo_surf%rhotor) &
+                       * (grad_alpha_grad_psi)/(grad_psi_grad_psi)
+               ! New min(zeta) to construct the new_number_of_periods_stella
+               call desired_zmin(nalpha, nzgrid, zeta, twist_and_shift_geo_fac_full, dkx_over_dky, new_zeta_min)
+               ! Final grid of zeta using new_zeta_min
+               call get_vmec_geo(new_zeta_min, stellarator_symmetric_BC, &
+                              nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
+                              b_dot_grad_z, grad_alpha_grad_alpha, &
+                              grad_alpha_grad_psi, grad_psi_grad_psi, &
+                              gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
+                              cvdrift_alpha, cvdrift0_psi, sign_torflux, &
+                              theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
+                              field_period_ratio, x_displacement_fac)
+                ! Restart the variable twist_and_shift_geo_fac_full
+                twist_and_shift_geo_fac_full = 0 
+            end if
             !> Bref = 2*abs(psi_tor_LCFS)/a^2
             !> a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
             !> psi = -psi_tor
@@ -324,19 +363,13 @@ contains
             drhodpsi = dxdXcoord_sign * sign_torflux / geo_surf%rhotor
             drhodpsi_psi0 = drhodpsi
             bmag_psi0 = bmag
-
-            !> abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
-            !> minus its sign gives the direction of the shift in kx
-            !> to be used for twist-and-shift BC
-            allocate (twist_and_shift_geo_fac_full(nalpha, -nzgrid:nzgrid))
             grad_x_grad_y_end = grad_alpha_grad_psi(1, nzgrid) * (aref * aref * bref)
             select case (boundary_option_switch)
             case (boundary_option_linked_stellarator)
                !to be used for stellarator symmetric twist-and-shift BC
                !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2
                write (*, *) 'Stellarator symmetric twist and shift BC selected'
-               twist_and_shift_geo_fac_full = -4 * (geo_surf%rhotor * geo_surf%rhotor * geo_surf%psitor_lcfs) &
-                                              * (grad_alpha_grad_psi) / (grad_psi_grad_psi * aref * aref * bref) * field_period_ratio
+               twist_and_shift_geo_fac_full = 2*(geo_surf%rhotor*geo_surf%rhotor)*(grad_alpha_grad_psi)/(grad_psi_grad_psi)
                if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
                   write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
                write (*, *)
