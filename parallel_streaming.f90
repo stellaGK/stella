@@ -234,7 +234,7 @@ contains
          is = is_idx(vmu_lo, ivmu)
 
          !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-         call get_gyroaverage_chi(phi, apar, bpar, ivmu, g0(:, :, :, :))
+         call get_gyroaverage_chi(ivmu, phi, apar, bpar, g0(:, :, :, :))
          if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
 
          !> get d<chi>/dz, with z the parallel coordinate and store in dgchi_dz
