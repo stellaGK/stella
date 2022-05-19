@@ -27,10 +27,11 @@ endfunction()
 # name stella_tests_${test_name} and adds to
 # list of know tests cases to give to ctest.
 function(stella_add_test test_source test_name)
-  add_pfunit_test(stella_tests_${test_name}
+  set(_stella_test_name stella_unit_tests_${test_name})
+  add_pfunit_test(${_stella_test_name}
     "${test_source}" "" "")
-  target_link_libraries(stella_tests_${test_name} libstella)
-  list(APPEND STELLA_CTEST_CASES stella_tests_${test_name})
+  target_link_libraries(${_stella_test_name} libstella)
+  list(APPEND STELLA_CTEST_CASES ${_stella_test_name})
   set(STELLA_CTEST_CASES ${STELLA_CTEST_CASES} PARENT_SCOPE)
 endfunction()
 
