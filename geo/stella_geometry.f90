@@ -309,7 +309,7 @@ contains
             !> abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
             !> minus its sign gives the direction of the shift in kx
             !> to be used for twist-and-shift BC
-            allocate(twist_and_shift_geo_fac_full(nalpha,-nzgrid:nzgrid))
+            allocate (twist_and_shift_geo_fac_full(nalpha, -nzgrid:nzgrid))
             twist_and_shift_geo_fac_full = 0
             !> The code will start computing for the initial zgrid
             stellarator_symmetric_BC = .false.
@@ -322,31 +322,31 @@ contains
                               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
                               field_period_ratio, x_displacement_fac)
 
-            write (*,*)"############################################################"
-            write (*,*)"                     BOUNDARY CONDITIONS"
-            write (*,*)"############################################################"
-            write (*,*)
+            write (*, *) "############################################################"
+            write (*, *) "                     BOUNDARY CONDITIONS"
+            write (*, *) "############################################################"
+            write (*, *)
 
-            if ((boundary_option_switch == boundary_option_linked_stellarator) .and. (dkx_over_dky > 0)) then 
-            ! If stellarator_symmetric_BC and dkx_over_dky>0 the code will compute the new 
-            ! zeta to work with
+            if ((boundary_option_switch == boundary_option_linked_stellarator) .and. (dkx_over_dky > 0)) then
+               ! If stellarator_symmetric_BC and dkx_over_dky>0 the code will compute the new
+               ! zeta to work with
                stellarator_symmetric_BC = .true.
                ! twist_and_shift_geo_fac_full for the whole zgrid
-               twist_and_shift_geo_fac_full = 2*(geo_surf%rhotor*geo_surf%rhotor) &
-                       * (grad_alpha_grad_psi)/(grad_psi_grad_psi)
+               twist_and_shift_geo_fac_full = 2 * (geo_surf%rhotor * geo_surf%rhotor) &
+                                              * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
                ! New min(zeta) to construct the new_number_of_periods_stella
                call desired_zmin(nalpha, nzgrid, zeta, twist_and_shift_geo_fac_full, dkx_over_dky, new_zeta_min)
                ! Final grid of zeta using new_zeta_min
                call get_vmec_geo(new_zeta_min, stellarator_symmetric_BC, &
-                              nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
-                              b_dot_grad_z, grad_alpha_grad_alpha, &
-                              grad_alpha_grad_psi, grad_psi_grad_psi, &
-                              gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
-                              cvdrift_alpha, cvdrift0_psi, sign_torflux, &
-                              theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
-                              field_period_ratio, x_displacement_fac)
-                ! Restart the variable twist_and_shift_geo_fac_full
-                twist_and_shift_geo_fac_full = 0 
+                                 nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
+                                 b_dot_grad_z, grad_alpha_grad_alpha, &
+                                 grad_alpha_grad_psi, grad_psi_grad_psi, &
+                                 gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
+                                 cvdrift_alpha, cvdrift0_psi, sign_torflux, &
+                                 theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
+                                 field_period_ratio, x_displacement_fac)
+               ! Restart the variable twist_and_shift_geo_fac_full
+               twist_and_shift_geo_fac_full = 0
             end if
             !> Bref = 2*abs(psi_tor_LCFS)/a^2
             !> a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
@@ -369,7 +369,7 @@ contains
                !to be used for stellarator symmetric twist-and-shift BC
                !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2
                write (*, *) 'Stellarator symmetric twist and shift BC selected'
-               twist_and_shift_geo_fac_full = 2*(geo_surf%rhotor*geo_surf%rhotor)*(grad_alpha_grad_psi)/(grad_psi_grad_psi)
+               twist_and_shift_geo_fac_full = 2 * (geo_surf%rhotor * geo_surf%rhotor) * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
                if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
                   write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
                write (*, *)

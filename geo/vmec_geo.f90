@@ -104,8 +104,8 @@ contains
       implicit none
 
       integer, intent(in) :: nzgrid, nalpha, naky
-      logical, intent (in) :: stellarator_symmetric_BC
-      real, intent (in) :: new_zeta_min
+      logical, intent(in) :: stellarator_symmetric_BC
+      real, intent(in) :: new_zeta_min
       type(flux_surface_type), intent(out) :: surf
       real, dimension(-nzgrid:), intent(out) :: gradpar
       real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z, &
@@ -161,7 +161,7 @@ contains
       ! !> values are needed to avoid extrapolation
       ! if (zed_equal_arc) then
       ! if (debug) write (*,*) 'get_vmec_geo::get_modified_vmec_zeta_grid'
-      call get_modified_vmec_zeta_grid (new_zeta_min, stellarator_symmetric_BC, nzgrid_vmec, dzeta_vmec)
+      call get_modified_vmec_zeta_grid(new_zeta_min, stellarator_symmetric_BC, nzgrid_vmec, dzeta_vmec)
       ! else
       !   nzgrid_vmec = nzgrid
       ! end if
@@ -456,7 +456,7 @@ contains
 
       implicit none
 
-      logical, intent (in) :: stellarator_symmetric_BC
+      logical, intent(in) :: stellarator_symmetric_BC
       real, intent(in) :: new_zeta_min
       integer, intent(out) :: nzgrid_modified
 
@@ -482,8 +482,8 @@ contains
       !> is the number of field periods in the device
       !> nfield_periods may be reasonably bigger than nfield_periods_device
       !> as the former is sampled while keeping alpha fixed (rather than theta)
-      call get_nominal_vmec_zeta_grid (new_zeta_min, stellarator_symmetric_BC, nzgrid, zeta_center, &
-                nfield_periods, nfield_periods_device, zeta)
+      call get_nominal_vmec_zeta_grid(new_zeta_min, stellarator_symmetric_BC, nzgrid, zeta_center, &
+                                      nfield_periods, nfield_periods_device, zeta)
 
       !> maximum zeta value for nominal zeta grid
       zeta_max = zeta(nzgrid)
