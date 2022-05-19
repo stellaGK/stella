@@ -122,6 +122,21 @@ target_link_libraries(stella PRIVATE libstella)
 ############################################################
 # Dependencies and build options
 
+# Adapted from https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
+# Update submodules as needed
+if(STELLA_UPDATE_GIT_SUBMODULES)
+  find_package(Git QUIET)
+  if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    message(STATUS "Submodule update")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.recurse=false submodule update --init --recursive
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+    endif()
+  endif()
+endif()
+
 # This might not be entirely sensible, but helps CMake to find the
 # correct MPI, workaround for https://gitlab.kitware.com/cmake/cmake/issues/18895
 find_program(MPIEXEC_EXECUTABLE NAMES mpiexec mpirun)
@@ -182,21 +197,6 @@ endif()
 if (STELLA_ENABLE_PETSC)
   find_package(PETSc REQUIRED)
   target_link_libraries(libstella PUBLIC PETSc::PETSc)
-endif()
-
-# Adapted from https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
-# Update submodules as needed
-if(STELLA_UPDATE_GIT_SUBMODULES)
-  find_package(Git QUIET)
-  if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    message(STATUS "Submodule update")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.recurse=false submodule update --init --recursive
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      RESULT_VARIABLE GIT_SUBMOD_RESULT)
-    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-      message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
-    endif()
-  endif()
 endif()
 
 add_subdirectory(externals/git_version)
