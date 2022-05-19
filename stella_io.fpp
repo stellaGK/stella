@@ -472,21 +472,21 @@ contains
       start = [1, 1, 1, 1, 1, 1, nout]
 
       call netcdf_write_complex(ncid, "density", density, &
-           dim_names=dims, start=start, &
-           long_name="Perturbed density")
+                                dim_names=dims, start=start, &
+                                long_name="Perturbed density")
 
       call netcdf_write_complex(ncid, "upar", upar, &
-           dim_names=dims, start=start, &
-           long_name="Perturbed upar")
+                                dim_names=dims, start=start, &
+                                long_name="Perturbed upar")
 
       call netcdf_write_complex(ncid, "temperature", temperature, &
-           dim_names=dims, start=start, &
-           long_name="Perturbed temperature")
+                                dim_names=dims, start=start, &
+                                long_name="Perturbed temperature")
 
       ! AVB: added: (move this to a separate diagnostic in the future)
       call netcdf_write_complex(ncid, "spitzer2", spitzer2, &
-           dim_names=dims, start=start, &
-           long_name="Integral required for second Spitzer coefficient")
+                                dim_names=dims, start=start, &
+                                long_name="Integral required for second Spitzer coefficient")
 # endif
    end subroutine write_moments_nc
 
@@ -503,9 +503,9 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "gvmus", gvmus, &
-           dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
-           start=[1, 1, 1, nout], &
-           long_name="Guiding center distribution function averaged over real space")
+                        dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+                        start=[1, 1, 1, nout], &
+                        long_name="Guiding center distribution function averaged over real space")
 # endif
    end subroutine write_gvmus_nc
 
@@ -522,9 +522,9 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "gzvs", gzvs, &
-           dim_names=[character(len=7)::"tube", "zed", "vpa", "species", "t"], &
-           start=[1, 1, 1, 1, nout], &
-           long_name="Guiding center distribution function averaged over (kx, ky, mu)")
+                        dim_names=[character(len=7)::"tube", "zed", "vpa", "species", "t"], &
+                        start=[1, 1, 1, 1, nout], &
+                        long_name="Guiding center distribution function averaged over (kx, ky, mu)")
 # endif
    end subroutine write_gzvs_nc
 
