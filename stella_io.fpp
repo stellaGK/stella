@@ -43,7 +43,6 @@ module stella_io
    integer, dimension(2) :: flux_surface_dim, rad_grid_dim
 
    integer :: time_id
-   integer :: density_id, upar_id, temperature_id, spitzer2_id
    integer :: gvmus_id, gzvs_id
    integer :: code_id
 
@@ -63,7 +62,7 @@ contains
    !============ INITIATE STELLA IO ==============
    !==============================================
    subroutine init_stella_io(restart, write_gvmus, &
-                             write_gzvs, write_moments)
+                             write_gzvs)
 
       use mp, only: proc0
       use file_utils, only: run_name
@@ -78,7 +77,6 @@ contains
 
       logical, intent(in) :: restart
       logical, intent(in) :: write_gvmus, write_gzvs
-      logical, intent(in) :: write_moments
 # ifdef NETCDF
       character(300) :: filename
 
@@ -98,8 +96,7 @@ contains
          call neasyf_metadata(ncid, title="stella simulation data", software_name="stella", &
                               software_version=get_git_version(), auto_date=.true.)
          call write_grids(ncid)
-         call define_vars(write_gvmus, write_gzvs, &
-                          write_moments)
+         call define_vars(write_gvmus, write_gzvs)
 
          call nc_species(ncid)
          call nc_geo(ncid)
@@ -244,7 +241,7 @@ contains
    end subroutine save_input
 
    subroutine define_vars(write_gvmus, &
-                          write_gzvs, write_moments)
+                          write_gzvs)
 
       use run_parameters, only: fphi!, fapar, fbpar
       use physics_flags, only: radial_variation
@@ -258,7 +255,6 @@ contains
       implicit none
 
       logical, intent(in) :: write_gvmus, write_gzvs!, write_symmetry
-      logical, intent(in) :: write_moments
 # ifdef NETCDF
 
       character(5) :: ci
@@ -410,43 +406,6 @@ contains
       status = nf90_put_att(ncid, code_id, trim(ci), &
                             'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
-
-
-      if (write_moments) then
-         status = nf90_inq_varid(ncid, 'density', density_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var &
-                     (ncid, 'density', netcdf_real, moment_dim, density_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='density')
-         end if
-         status = nf90_put_att(ncid, density_id, 'long_name', 'perturbed density vs (ky,kx,z,t)')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, density_id, att='long_name')
-         status = nf90_inq_varid(ncid, 'upar', upar_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var &
-                     (ncid, 'upar', netcdf_real, moment_dim, upar_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='upar')
-         end if
-         status = nf90_put_att(ncid, upar_id, 'long_name', 'perturbed parallel flow vs (ky,kx,z,t)')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, upar_id, att='long_name')
-         status = nf90_inq_varid(ncid, 'temperature', temperature_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var &
-                     (ncid, 'temperature', netcdf_real, moment_dim, temperature_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='temperature')
-         end if
-         status = nf90_put_att(ncid, temperature_id, 'long_name', 'perturbed temperature vs (ky,kx,z,t)')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, temperature_id, att='long_name')
-
-         status = nf90_inq_varid(ncid, 'spitzer2', spitzer2_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var &
-                     (ncid, 'spitzer2', netcdf_real, moment_dim, spitzer2_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='spitzer2')
-         end if
-         status = nf90_put_att(ncid, spitzer2_id, 'long_name', 'integral req. for 2. Spitzer coeff')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, spitzer2_id, att='long_name')
-      end if
 
       if (write_gvmus) then
          status = nf90_inq_varid(ncid, 'gvmus', gvmus_id)
@@ -644,60 +603,36 @@ contains
                         long_name="Heat flux")
 # endif
    end subroutine write_fluxes_kxkyz_nc
-!
+
    subroutine write_moments_nc(nout, density, upar, temperature, spitzer2)
-
-      use convert, only: c2r
-      use zgrid, only: nztot, ntubes
-      use kt_grids, only: nakx, naky
-      use species, only: nspec
-# ifdef NETCDF
-      use netcdf, only: nf90_put_var
-# endif
-
       implicit none
 
       integer, intent(in) :: nout
       complex, dimension(:, :, :, :, :), intent(in) :: density, upar, temperature, spitzer2
 
 # ifdef NETCDF
-      integer :: status
-      integer, dimension(7) :: start, count
-      real, dimension(:, :, :, :, :, :), allocatable :: mom_ri
+      character(*), dimension(*), parameter :: dims = [character(7)::"ri", "ky", "kx", "zed", "tube", "species", "t"]
+      integer, dimension(7) :: start
 
-      start = 1
-      start(7) = nout
-      count(1) = 2
-      count(2) = naky
-      count(3) = nakx
-      count(4) = nztot
-      count(5) = ntubes
-      count(6) = nspec
-      count(7) = 1
+      start = [1, 1, 1, 1, 1, 1, nout]
 
-      allocate (mom_ri(2, naky, nakx, nztot, ntubes, nspec))
+      call netcdf_write_complex(ncid, "density", density, &
+           dim_names=dims, start=start, &
+           long_name="Perturbed density")
 
-      call c2r(density, mom_ri)
-      status = nf90_put_var(ncid, density_id, mom_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, density_id)
+      call netcdf_write_complex(ncid, "upar", upar, &
+           dim_names=dims, start=start, &
+           long_name="Perturbed upar")
 
-      call c2r(upar, mom_ri)
-      status = nf90_put_var(ncid, upar_id, mom_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, upar_id)
-
-      call c2r(temperature, mom_ri)
-      status = nf90_put_var(ncid, temperature_id, mom_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, temperature_id)
+      call netcdf_write_complex(ncid, "temperature", temperature, &
+           dim_names=dims, start=start, &
+           long_name="Perturbed temperature")
 
       ! AVB: added: (move this to a separate diagnostic in the future)
-      call c2r(spitzer2, mom_ri)
-      status = nf90_put_var(ncid, spitzer2_id, mom_ri, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, spitzer2_id)
-
-      deallocate (mom_ri)
-
+      call netcdf_write_complex(ncid, "spitzer2", spitzer2, &
+           dim_names=dims, start=start, &
+           long_name="Integral required for second Spitzer coefficient")
 # endif
-
    end subroutine write_moments_nc
 
    subroutine write_gvmus_nc(nout, g)
