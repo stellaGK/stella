@@ -192,8 +192,8 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: fapar, fbpar
       use fields_arrays, only: phi, apar, bpar
-      use fields, only: fapar, fbpar
       use fields, only: get_gyroaverage_chi
 
       implicit none
