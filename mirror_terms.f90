@@ -122,7 +122,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -357,9 +357,9 @@ contains
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       if (full_flux_surface) then
-        if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
-           call mp_abort ('full_flux_surface mirror term not set up for apar, bpar. aborting')
-        end if
+         if ((fapar > epsilon(0.)) .or. (fbpar > epsilon(0.))) then
+            call mp_abort('full_flux_surface mirror term not set up for apar, bpar. aborting')
+         end if
          !> assume we are simulating a single flux surface
          it = 1
 
@@ -420,7 +420,7 @@ contains
          call gather(kxkyz2vmu, g0v, g0x)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          ! get mirror term and add to source
-         call add_mirror_term (g0x, apar, gout)
+         call add_mirror_term(g0x, apar, gout)
       end if
       deallocate (g0x, g0v)
 
@@ -558,14 +558,14 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension (:,:,-nzgrid:,:), intent (in) :: apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
 
       integer :: imu, is, ivmu
       integer :: it, iz, ikx
-      complex, dimension (:,:,:,:), allocatable :: gyro_apar
+      complex, dimension(:, :, :, :), allocatable :: gyro_apar
 
-      allocate(gyro_apar(naky,nakx,-nzgrid:nzgrid,ntubes))
+      allocate (gyro_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
@@ -575,15 +575,15 @@ contains
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) &
-                                + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu) &
-                                + mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
+                                              + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu) &
+                                              + mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
 
                end do
             end do
          end do
       end do
 
-      deallocate(gyro_apar)
+      deallocate (gyro_apar)
 
    end subroutine add_mirror_term
 
