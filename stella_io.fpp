@@ -43,7 +43,6 @@ module stella_io
    integer, dimension(2) :: flux_surface_dim, rad_grid_dim
 
    integer :: time_id
-   integer :: gvmus_id, gzvs_id
    integer :: code_id
 
    !> Write a `complex` array to netcdf
@@ -61,8 +60,7 @@ contains
    !==============================================
    !============ INITIATE STELLA IO ==============
    !==============================================
-   subroutine init_stella_io(restart, write_gvmus, &
-                             write_gzvs)
+   subroutine init_stella_io(restart)
 
       use mp, only: proc0
       use file_utils, only: run_name
@@ -76,7 +74,6 @@ contains
       implicit none
 
       logical, intent(in) :: restart
-      logical, intent(in) :: write_gvmus, write_gzvs
 # ifdef NETCDF
       character(300) :: filename
 
@@ -96,7 +93,7 @@ contains
          call neasyf_metadata(ncid, title="stella simulation data", software_name="stella", &
                               software_version=get_git_version(), auto_date=.true.)
          call write_grids(ncid)
-         call define_vars(write_gvmus, write_gzvs)
+         call define_vars()
 
          call nc_species(ncid)
          call nc_geo(ncid)
@@ -240,9 +237,7 @@ contains
 #endif
    end subroutine save_input
 
-   subroutine define_vars(write_gvmus, &
-                          write_gzvs)
-
+   subroutine define_vars()
       use run_parameters, only: fphi!, fapar, fbpar
       use physics_flags, only: radial_variation
 # ifdef NETCDF
@@ -251,10 +246,7 @@ contains
       use netcdf, only: nf90_inq_libvers
       use netcdf_utils, only: netcdf_real
 # endif
-
       implicit none
-
-      logical, intent(in) :: write_gvmus, write_gzvs!, write_symmetry
 # ifdef NETCDF
 
       character(5) :: ci
@@ -406,42 +398,6 @@ contains
       status = nf90_put_att(ncid, code_id, trim(ci), &
                             'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
-
-      if (write_gvmus) then
-         status = nf90_inq_varid(ncid, 'gvmus', gvmus_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var &
-                     (ncid, 'gvmus', netcdf_real, vmus_dim, gvmus_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='gvmus')
-         end if
-         status = nf90_put_att(ncid, gvmus_id, 'long_name', &
-                               'guiding center distribution function averaged over real space')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, gvmus_id, att='long_name')
-      end if
-
-      if (write_gzvs) then
-         status = nf90_inq_varid(ncid, 'gzvs', gzvs_id)
-         if (status /= nf90_noerr) then
-            status = nf90_def_var &
-                     (ncid, 'gzvs', netcdf_real, zvs_dim, gzvs_id)
-            if (status /= nf90_noerr) call netcdf_error(status, var='gzvs')
-         end if
-         status = nf90_put_att(ncid, gvmus_id, 'long_name', &
-                               'guiding center distribution function averaged over (kx,ky,mu)')
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, gzvs_id, att='long_name')
-      end if
-
-!    if (write_symmetry) then
-!        status = nf90_def_var &
-!             (ncid, 'pflx_zvpa', netcdf_real, zvs_dim, gzvs_id)
-!        if (status /= nf90_noerr) call netcdf_error (status, var='gzvs')
-!        status = nf90_put_att (ncid, gvmus_id, 'long_name', &
-!             'guiding center distribution function averaged over (kx,ky,mu)')
-!        if (status /= nf90_noerr) call netcdf_error (status, ncid, gzvs_id, att='long_name')
-!    end if
-
-      status = nf90_enddef(ncid)  ! out of definition mode
-      if (status /= nf90_noerr) call netcdf_error(status)
 
 # endif
    end subroutine define_vars
@@ -635,67 +591,42 @@ contains
 # endif
    end subroutine write_moments_nc
 
-   subroutine write_gvmus_nc(nout, g)
-
-      use vpamu_grids, only: nvpa, nmu
-      use species, only: nspec
+   !> Write guiding center distribution function averaged over real space
+   subroutine write_gvmus_nc(nout, gvmus)
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var
+      use neasyf, only: neasyf_write
 # endif
-
       implicit none
-
+      !> Current timestep
       integer, intent(in) :: nout
-      real, dimension(:, :, :), intent(in) :: g
+      !> Guiding centre distribution function
+      real, dimension(:, :, :), intent(in) :: gvmus
 
 # ifdef NETCDF
-      integer :: status
-      integer, dimension(4) :: start, count
-
-      start(1) = 1
-      start(2:3) = 1
-      start(4) = nout
-      count(1) = nvpa
-      count(2) = nmu
-      count(3) = nspec
-      count(4) = 1
-
-      status = nf90_put_var(ncid, gvmus_id, g, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gvmus_id)
+      call neasyf_write(ncid, "gvmus", gvmus, &
+           dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+           start=[1, 1, 1, nout], &
+           long_name="Guiding center distribution function averaged over real space")
 # endif
-
    end subroutine write_gvmus_nc
 
-   subroutine write_gzvs_nc(nout, g)
-
-      use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: nvpa
-      use species, only: nspec
+   !> Write guiding center distribution function averaged over (kx, ky, mu)
+   subroutine write_gzvs_nc(nout, gzvs)
 # ifdef NETCDF
-      use netcdf, only: nf90_put_var
+      use neasyf, only: neasyf_write
 # endif
-
       implicit none
-
+      !> Current timestep
       integer, intent(in) :: nout
-      real, dimension(:, :, :, :), intent(in) :: g
+      !> Guiding centre distribution function
+      real, dimension(:, :, :, :), intent(in) :: gzvs
 
 # ifdef NETCDF
-      integer :: status
-      integer, dimension(5) :: start, count
-
-      start = 1
-      start(5) = nout
-      count(1) = ntubes
-      count(2) = 2 * nzgrid + 1
-      count(3) = nvpa
-      count(4) = nspec
-      count(5) = 1
-
-      status = nf90_put_var(ncid, gzvs_id, g, start=start, count=count)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, gzvs_id)
+      call neasyf_write(ncid, "gzvs", gzvs, &
+           dim_names=[character(len=7)::"tube", "zed", "vpa", "species", "t"], &
+           start=[1, 1, 1, 1, nout], &
+           long_name="Guiding center distribution function averaged over (kx, ky, mu)")
 # endif
-
    end subroutine write_gzvs_nc
 
    !> Write [[species:spec]] to output netCDF file
