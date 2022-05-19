@@ -124,7 +124,7 @@ contains
       !> Initiate the netcdf file with extension '.out.nc'
       call init_stella_io(restart, write_kspectra, &
                           write_gvmus, write_gzvs, write_moments, &
-                          write_radial_fluxes, write_radial_moments, write_fluxes_kxkyz)
+                          write_radial_moments, write_fluxes_kxkyz)
 
       !> Open the '.out', '.fluxes' and '.omega' file
       if (proc0) call open_loop_ascii_files(restart)
