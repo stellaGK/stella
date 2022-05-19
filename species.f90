@@ -304,6 +304,7 @@ contains
          spec(is)%zstm = spec(is)%z / sqrt(spec(is)%temp * spec(is)%mass)
          spec(is)%tz = spec(is)%temp / spec(is)%z
          spec(is)%zt = spec(is)%z / spec(is)%temp
+         spec(is)%zm   = spec(is)%z/spec(is)%mass
          spec(is)%smz = abs(sqrt(spec(is)%temp * spec(is)%mass) / spec(is)%z)
 
          spec(is)%stm_psi0 = sqrt(spec(is)%temp_psi0 / spec(is)%mass)
@@ -443,6 +444,7 @@ contains
          call broadcast(spec(is)%zstm)
          call broadcast(spec(is)%tz)
          call broadcast(spec(is)%zt)
+         call broadcast(spec(is)%zm)
          call broadcast(spec(is)%smz)
       end do
 
