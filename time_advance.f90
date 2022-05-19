@@ -1336,7 +1336,7 @@ contains
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
-            call advance_wdriftx_explicit(gin, phi, rhs)
+            call advance_wdriftx_explicit(gin, rhs)
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
