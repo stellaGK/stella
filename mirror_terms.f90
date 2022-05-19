@@ -21,6 +21,7 @@ module mirror_terms
 
    integer, dimension(:, :), allocatable :: mirror_sign
    real, dimension(:, :, :, :), allocatable :: mirror
+   real, dimension (:,:,:), allocatable :: mirror_apar_fac
    real, dimension(:, :, :, :), allocatable :: mirror_rad_var
    real, dimension(:, :, :), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
    real, dimension(:, :, :), allocatable :: mirror_int_fac
@@ -54,6 +55,8 @@ contains
 
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
+      if (.not.allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      mirror_apar_fac = 0.
 
       allocate (neoclassical_term(-nzgrid:nzgrid, nspec))
       if (include_neoclassical_terms) then
@@ -73,6 +76,41 @@ contains
                end do
             end do
          end do
+
+         if (fapar > epsilon(0.) then
+            ! Using gbar, there's a term on the RHS of the mirror equation which looks like
+            ! -2*Z/m * mu * (b.grad B) exp(-v^2) * gyro_average(apar)
+            ! Calculate (-2*Z/m * mu * (b.grad B) exp(-v^2))*dt here
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !!!!!!!!!!!!!! For numerically evaulating dvpa/dpva !!!!!!!!!!!!!!!!!!!
+            !!! (in case there's some inexact calculation / cancellation error) !!!
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !! If we want to numerically evaluate d/dvpa (vpa)
+            ! if (numerical_mirror_apar_fac) then
+            !    allocate (dvpa_dvpa(nvpa))
+            !    call second_order_centered (1,vpa,dvpa,dvpa_dvpa)
+            !    write(*,*) "dvpa_dvpa = ", dvpa_dvpa
+            ! end if
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               is = is_idx(vmu_lo,ivmu)
+               imu = imu_idx(vmu_lo,ivmu)
+               iv = iv_idx(vmu_lo,ivmu)
+               do iy = 1, nalpha
+                  ! Exact
+                  mirror_apar_fac(iy,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
+                         *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
+                  ! if (numerical_mirror_apar_fac) then
+                  !   !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
+                  !   !!! because the third_order_upwind scheme has problems at the boundaries.
+                  !   mirror_apar_fac(iy,:,ivmu) = mirror_apar_fac(iy,:,ivmu) * dvpa_dvpa(iv)
+                  ! end if
+               end do
+            end do
+         else
+            mirror_apar_fac = 0.
+         end if
       else
          mirror = 0.
       end if
@@ -883,6 +921,7 @@ contains
       if (allocated(mirror)) deallocate (mirror)
       if (allocated(mirror_sign)) deallocate (mirror_sign)
       if (allocated(mirror_rad_var)) deallocate (mirror_rad_var)
+      if (allocated(mirror_apar_fac)) deallocate (mirror_apar_fac)
 
       if (mirror_implicit) then
          if (mirror_semi_lagrange) then
