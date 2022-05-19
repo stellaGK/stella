@@ -12,6 +12,9 @@ stella: git_version_impl.o $(stella_mod)
 stella.x: git_version_impl.o $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
+unit_tests:  git_version_impl.o
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
 .PHONY: modules utils_all geo_all vmec
 
 modules: utils_all geo_all
