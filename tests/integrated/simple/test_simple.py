@@ -25,7 +25,7 @@ def get_stella_path() -> pathlib.Path:
 
 def run_stella(stella_path: str, input_filename: str) -> int:
     """Run stella with a given input file"""
-    subprocess.run([stella_path, input_filename]).check_returncode()
+    subprocess.run([stella_path, input_filename], check=True)
 
 
 def copy_input_file(input_filename: str, destination):
@@ -55,3 +55,37 @@ def test_simple_run(tmp_path):
 
         assert len(df["t"]) == 11
         assert np.allclose(df["t"][-1], 10.0)
+
+
+def convert_byte_array(array):
+    return "\n".join((str(line, encoding="utf-8").strip() for line in array.data))
+
+
+def test_golden_answer(tmp_path):
+    """Check results are identical to a previous run.
+
+    PLEASE NOTE: IF RESULTS ARE EXPECTED TO CHANGE,
+    GOLDEN_ANSWER.out.nc MUST BE UPDATED
+
+    """
+
+    input_filename = "simple.in"
+    copy_input_file(input_filename, tmp_path)
+    os.chdir(tmp_path)
+    run_stella(get_stella_path(), input_filename)
+
+    test_file = tmp_path / input_filename.replace("in", "out.nc")
+    golden_file = get_test_directory() / "GOLDEN_ANSWER.out.nc"
+
+    with xr.open_dataset(test_file) as df, xr.open_dataset(golden_file) as golden:
+        assert set(df.keys()) == set(golden.keys())
+
+        for key in golden:
+            if golden[key].shape == ():
+                continue
+            if golden[key].dtype.kind == "S":
+                golden_str = convert_byte_array(golden[key])
+                df_str = convert_byte_array(df[key])
+                assert df_str == golden_str, key
+            else:
+                assert np.allclose(df[key], golden[key], equal_nan=True), key
