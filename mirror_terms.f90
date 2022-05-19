@@ -21,7 +21,7 @@ module mirror_terms
 
    integer, dimension(:, :), allocatable :: mirror_sign
    real, dimension(:, :, :, :), allocatable :: mirror
-   real, dimension (:,:,:), allocatable :: mirror_apar_fac
+   real, dimension(:, :, :), allocatable :: mirror_apar_fac
    real, dimension(:, :, :, :), allocatable :: mirror_rad_var
    real, dimension(:, :, :), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
    real, dimension(:, :, :), allocatable :: mirror_int_fac
@@ -55,7 +55,7 @@ contains
 
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
-      if (.not.allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       mirror_apar_fac = 0.
 
       allocate (neoclassical_term(-nzgrid:nzgrid, nspec))
@@ -94,13 +94,13 @@ contains
             ! end if
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               is = is_idx(vmu_lo,ivmu)
-               imu = imu_idx(vmu_lo,ivmu)
-               iv = iv_idx(vmu_lo,ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               iv = iv_idx(vmu_lo, ivmu)
                do iy = 1, nalpha
                   ! Exact
-                  mirror_apar_fac(iy,:,ivmu) = -2*fapar*code_dt*spec(is)%zm*gradpar &
-                         *mu(imu)*dbdzed(iy,:)*maxwell_vpa(iv,is)*maxwell_mu(iy,:,imu,is)*maxwell_fac(is)
+                  mirror_apar_fac(iy, :, ivmu) = -2 * fapar * code_dt * spec(is)%zm * gradpar &
+                                                 * mu(imu) * dbdzed(iy, :) * maxwell_vpa(iv, is) * maxwell_mu(iy, :, imu, is) * maxwell_fac(is)
                   ! if (numerical_mirror_apar_fac) then
                   !   !!! Numerical - accounts for the fact that d/dvpa (vpa) != 1 ,
                   !   !!! because the third_order_upwind scheme has problems at the boundaries.
