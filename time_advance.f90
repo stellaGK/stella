@@ -1551,7 +1551,7 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
-      use fields, only: get_dchidy
+      use fields, only: get_dchidx
       use fields_arrays, only: phi, apar, bpar
 
       implicit none
