@@ -1572,7 +1572,7 @@ contains
          return
       end if
 
-      allocate (dchidx0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (dchidx(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
