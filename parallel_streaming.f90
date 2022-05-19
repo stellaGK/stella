@@ -193,8 +193,8 @@ contains
       use gyro_averages, only: gyro_average
       use run_parameters, only: driftkinetic_implicit
       use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: fapar, fbpar
-      use fields_arrays, only: get_gyroaverage_chi
+      use fields, only: fapar, fbpar
+      use fields, only: get_gyroaverage_chi
 
       implicit none
 
@@ -223,9 +223,9 @@ contains
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
       end if
 
-      if (driftkinetic_implicit .and. ( (fapar > epsilon(0)) .or. (fbpar > epsilon(0)) ) ) then
+      if (driftkinetic_implicit .and. ( (fapar > epsilon(0.0)) .or. (fbpar > epsilon(0.0)) ) ) then
          call mp_abort("driftkinetic_implicit not currently compatible with fapar>0 or fbpar>0. Aborting.")
-      else
+      end if 
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          !> get (iv,imu,is) indices corresponding to ivmu super-index
