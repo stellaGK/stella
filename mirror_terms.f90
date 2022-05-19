@@ -21,7 +21,7 @@ module mirror_terms
 
    integer, dimension(:, :), allocatable :: mirror_sign
    real, dimension(:, :, :, :), allocatable :: mirror
-   real, dimension (:,:,:), allocatable :: mirror_apar_fac
+   real, dimension(:, :, :), allocatable :: mirror_apar_fac
    real, dimension(:, :, :, :), allocatable :: mirror_rad_var
    real, dimension(:, :, :), allocatable :: mirror_tri_a, mirror_tri_b, mirror_tri_c
    real, dimension(:, :, :), allocatable :: mirror_int_fac
@@ -58,7 +58,7 @@ contains
 
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
-      if (.not.allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha,-nzgrid:nzgrid,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(mirror_apar_fac)) allocate (mirror_apar_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       mirror_apar_fac = 0.
 
       allocate (neoclassical_term(-nzgrid:nzgrid, nspec))
