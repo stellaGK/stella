@@ -28,19 +28,7 @@ module stella_io
 
 # ifdef NETCDF
    integer(kind_nf) :: ncid
-   integer(kind_nf) :: naky_dim, nttot_dim, nmu_dim, nvtot_dim, nspec_dim
-   integer(kind_nf) :: nakx_dim, ntubes_dim, radgridvar_dim
-   integer(kind_nf) :: time_dim, char10_dim, char200_dim, ri_dim, nlines_dim, nheat_dim
-   integer(kind_nf) :: nalpha_dim
-
-   integer, dimension(7) :: moment_dim
-   integer, dimension(6) :: field_dim
-   integer, dimension(5) :: zvs_dim
-   integer, dimension(4) :: vmus_dim, kykxaz_dim
-   integer, dimension(6) :: flx_dim
-   integer, dimension(3) :: mode_dim, heat_dim, kykxz_dim, flux_x_dim
-   integer, dimension(2) :: kx_dim, ky_dim, flux_dim, nin_dim, fmode_dim
-   integer, dimension(2) :: flux_surface_dim, rad_grid_dim
+   integer(kind_nf) :: time_dim, char10_dim
 
    integer :: time_id
    integer :: code_id
@@ -61,23 +49,17 @@ contains
    !============ INITIATE STELLA IO ==============
    !==============================================
    subroutine init_stella_io(restart)
-
+# ifdef NETCDF
       use mp, only: proc0
       use file_utils, only: run_name
-
-# ifdef NETCDF
-      use netcdf_utils, only: get_netcdf_code_precision, netcdf_real
       use neasyf, only: neasyf_open, neasyf_metadata
       use git_version, only: get_git_version
 # endif
-
       implicit none
-
+      !> Is this run a restart?
       logical, intent(in) :: restart
 # ifdef NETCDF
       character(300) :: filename
-
-      if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
 
       ! The netcdf file has the extension ".out.nc"
       filename = trim(trim(run_name)//'.out.nc')
@@ -130,33 +112,28 @@ contains
       real, dimension(:, :), allocatable :: rg
 
       ! Grids themselves
-      call neasyf_dim(file_id, "ky", values=aky, dimid=naky_dim, &
-                      long_name="Wavenumber perpendicular to flux surface", units="1/rho_r")
-      call neasyf_dim(file_id, "kx", values=akx, dimid=nakx_dim, &
-                      long_name="Wavenumber in direction of grad alpha", units="1/rho_r")
-      call neasyf_dim(file_id, "tube", dim_size=ntubes, dimid=ntubes_dim)
-      call neasyf_dim(file_id, "zed", values=zed, dimid=nttot_dim)
-      call neasyf_dim(file_id, "alpha", dim_size=nalpha, dimid=nalpha_dim)
-      call neasyf_dim(file_id, "vpa", values=vpa, dimid=nvtot_dim)
-      call neasyf_dim(file_id, "mu", values=mu, dimid=nmu_dim)
-      call neasyf_dim(file_id, "species", dim_size=nspec, dimid=nspec_dim)
-      call neasyf_dim(file_id, "t", unlimited=.true., dimid=time_dim, &
-                      long_name="Time", units="L/vt")
+      call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_r")
+      call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_r")
+      call neasyf_dim(file_id, "tube", dim_size=ntubes)
+      call neasyf_dim(file_id, "zed", values=zed)
+      call neasyf_dim(file_id, "alpha", dim_size=nalpha)
+      call neasyf_dim(file_id, "vpa", values=vpa)
+      call neasyf_dim(file_id, "mu", values=mu)
+      call neasyf_dim(file_id, "species", dim_size=nspec)
+      call neasyf_dim(file_id, "t", unlimited=.true., dimid=time_dim, long_name="Time", units="L/vt")
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
-      call neasyf_dim(file_id, "char200", dim_size=200, dimid=char200_dim)
+      call neasyf_dim(file_id, "char200", dim_size=200)
       if (num_input_lines > 0) then
          ! netCDF interprets zero-sized dimensions as unlimited, which is not what we want
-         call neasyf_dim(file_id, "nlines", dim_size=num_input_lines, dimid=nlines_dim, long_name="Input file line number")
+         call neasyf_dim(file_id, "nlines", dim_size=num_input_lines, long_name="Input file line number")
       end if
 
-      call neasyf_dim(file_id, "ri", dim_size=2, dimid=ri_dim, &
-                      long_name="Complex components", units="(real, imaginary)")
+      call neasyf_dim(file_id, "ri", dim_size=2, long_name="Complex components", units="(real, imaginary)")
 
       if (radial_variation) then
-         call neasyf_dim(file_id, "radgridvar", dim_size=3, dimid=radgridvar_dim, &
-                         long_name="x, q/psi, rho")
+         call neasyf_dim(file_id, "radgridvar", dim_size=3, long_name="x, q/psi, rho")
       end if
 
       ! Grid sizes
@@ -238,13 +215,10 @@ contains
    end subroutine save_input
 
    subroutine define_vars()
-      use run_parameters, only: fphi!, fapar, fbpar
-      use physics_flags, only: radial_variation
 # ifdef NETCDF
-      use netcdf, only: nf90_char, nf90_int, nf90_global
-      use netcdf, only: nf90_def_var, nf90_inq_varid, nf90_put_att, nf90_enddef, nf90_put_var
+      use netcdf, only: nf90_char
+      use netcdf, only: nf90_def_var, nf90_inq_varid, nf90_put_att, nf90_put_var
       use netcdf, only: nf90_inq_libvers
-      use netcdf_utils, only: netcdf_real
 # endif
       implicit none
 # ifdef NETCDF
@@ -253,81 +227,6 @@ contains
       character(20) :: datestamp, timestamp, timezone
 
       integer :: status
-
-      flux_surface_dim(1) = nalpha_dim
-      flux_surface_dim(2) = nttot_dim
-
-      fmode_dim(1) = naky_dim
-      fmode_dim(2) = nakx_dim
-
-      mode_dim(1) = naky_dim
-      mode_dim(2) = nakx_dim
-      mode_dim(3) = time_dim
-
-      flx_dim(1) = naky_dim
-      flx_dim(2) = nakx_dim
-      flx_dim(3) = nttot_dim
-      flx_dim(4) = ntubes_dim
-      flx_dim(5) = nspec_dim
-      flx_dim(6) = time_dim
-
-      kx_dim(1) = nakx_dim
-      kx_dim(2) = time_dim
-
-      ky_dim(1) = naky_dim
-      ky_dim(2) = time_dim
-
-      nin_dim(1) = char200_dim
-      nin_dim(2) = nlines_dim
-
-      flux_dim(1) = nspec_dim
-      flux_dim(2) = time_dim
-
-      flux_x_dim(1) = nakx_dim
-      flux_x_dim(2) = nspec_dim
-      flux_x_dim(3) = time_dim
-
-      rad_grid_dim(1) = radgridvar_dim
-      rad_grid_dim(2) = nakx_dim
-
-      heat_dim(1) = nspec_dim
-      heat_dim(2) = nheat_dim
-      heat_dim(3) = time_dim
-
-      field_dim(1) = ri_dim
-      field_dim(2) = naky_dim
-      field_dim(3) = nakx_dim
-      field_dim(4) = nttot_dim
-      field_dim(5) = ntubes_dim
-      field_dim(6) = time_dim
-
-      moment_dim(1) = ri_dim
-      moment_dim(2) = naky_dim
-      moment_dim(3) = nakx_dim
-      moment_dim(4) = nttot_dim
-      moment_dim(5) = ntubes_dim
-      moment_dim(6) = nspec_dim
-      moment_dim(7) = time_dim
-
-      vmus_dim(1) = nvtot_dim
-      vmus_dim(2) = nmu_dim
-      vmus_dim(3) = nspec_dim
-      vmus_dim(4) = time_dim
-
-      zvs_dim(1) = ntubes_dim
-      zvs_dim(2) = nttot_dim
-      zvs_dim(3) = nvtot_dim
-      zvs_dim(4) = nspec_dim
-      zvs_dim(5) = time_dim
-
-      kykxz_dim(1) = naky_dim
-      kykxz_dim(2) = nakx_dim
-      kykxz_dim(3) = nttot_dim
-
-      kykxaz_dim(1) = naky_dim
-      kykxaz_dim(2) = nakx_dim
-      kykxaz_dim(3) = nalpha_dim
-      kykxaz_dim(4) = nttot_dim
 
       ! Write some useful general information such as the website,
       ! date and time into the NetCDF file
