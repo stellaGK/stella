@@ -20,6 +20,64 @@ module response_matrix
 
 contains
 
+   ! Create the response matrix and perform LU decomposition ready for
+   ! advance_parallel_streaming_implicit to calculate the new value of the
+   ! fields. In the fully electromagnetic case, this is done as follows:
+   !
+   ! We define the response matrix as
+   ! Rf^{n+1} = f_{inh}
+   ! where f=(phi, apar, bpar) i.e. the fields joined together to make a
+   ! vector which is 3*nzext in size for every ky & "eigen" of connected
+   ! kx vals. R is thus (3*nzext x 3*nzext) of each ky, eigen.
+   ! We find an expression for R as follows:
+   ! f^{n+1} = f_h                       + f_{inh}
+   !         = J l(dg_h/df^{n+1})f^{n+1} + f_{inh}
+   ! (I - J l(dg_h/df^{n+1})) f^{n+1} = f_{inh}
+   ! ==> R = (I - J l(dg_h/df^{n+1}))
+   ! where I is the identity matrix, and J, l relate to the field equations:
+   ! Kf = l(g)
+   !  f = K^{-1}l(g) = J l(g)
+   ! (where l is a vmu-integral operator)
+   ! and dg_h/df^{n+1} is the matrix describing response in g_h to f^{n+1}:
+   ! g_h(iz)     = sum_iiz dg_h(iz)/df(iiz) f(iiz) ! or, the exlicit matrix representation:
+   !
+   !(g_h(1)    ) = (dg_h(1)/dP(1) ... dg_h(1)/dP(nzext) dg_h(1)/dA(1) ... dg_h(1)/dA(nzext) dg_h(1)/dB(1) ... dg_h(1)/dB(nzext) ) (P(1)    )
+   !(g_h(2)    ) = (dg_h(2)/dP(1) ... dg_h(2)/dP(nzext) dg_h(1)/dA(1) ... dg_h(2)/dA(nzext) dg_h(1)/dB(1) ... dg_h(2)/dB(nzext) ) (P(2)    )
+   !(   .      ) = (                             ...                                                                            ) (  .     )
+   !(   .      ) = (                             ...                                                                            ) (  .     )
+   !(   .      ) = (                             ...                                                                            ) (  .     )
+   !(g_h(nzext)) = (dg_h(nzext)/dP(1)            ...                                                      dg_h(nzext)/dB(nzext) ) (P(nzext))
+   !                                                                                                                              (A(1)    )
+   !                                                                                                                              (  .     )
+   !                                                                                                                              (A(nzext))
+   !                                                                                                                              (  .     )
+   !                                                                                                                              (B(1)    )
+   !                                                                                                                              (  .     )
+   !                                                                                                                              (B(nzext))
+   !  (where P=phi^{n+1}, A=apar^{n+1}, B=bpar^{n+1})
+   !
+   ! Calculate R & decompose for each (ky, eigen) as follows:
+   !  (1) Initialise response_matrix with size (3*nzext,3*next)
+   !  (2) Apply a unit impulse in phi at iz=1. Calculate g_h at every (z, vmu)
+   !      arising from this impulse; this gives us a column of dg_h/df^{n+1}.
+   !      Store this in gext, which is size (nzext, nvmu).
+   !       - This is done by the subroutine get_dgdfield_maxtrix_column
+   !  (3) Calculate the fields arising from this, which is equal to
+   !      J l(dg_h/df^{n+1}). l integrates over vmu, so the result is
+   !      size (3*nzext): (phi, apar, bpar). Store this in fields_ext
+   !       - This is done by the subroutine get_fields_for_response_matrix
+   !  (4) Store I(:,1) - fields_ext (which is the first column of
+   !      (I - J l(dg_h/df^{n+1}))) in the first column of R
+   !  (5) Repeat 2-4 for phi at iz=idx=2, . . . nzext, storing
+   !      (I(:,idx) - fields_ext) in the idx'th column of R
+   !  (6) Repeat 2-4 for apar at iz=(idx-nzext)=1, . . ., nzext, storing
+   !      (I(:,idx) - fields_ext) in the idx'th column of R
+   !  (7) Repeat 2-4 for bpar at iz=(idx-2*nzext)=1, . . ., nzext, storing
+   !      (I(:,idx) - fields_ext) in the idx'th column of R. At this point we
+   !      have the response matrix R, stored in array response_matrix
+   !  (8) Call lu_decomposition on R, such that response_matrix no longer
+   !      stores R, but instead stores the entries of matrices L and U,
+   !      here R=LU.
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
