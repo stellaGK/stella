@@ -1010,7 +1010,7 @@ contains
             ! no connections for ky = 0
             iseg = 1
             tmp = sum(dl_over_b(ia, :) * fields_ext)
-            fields_ext = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
+            fields_ext = fields_ext + tmp * gamtot3(ikxmod(1, ie, iky), :)
          end if
       end if
 
