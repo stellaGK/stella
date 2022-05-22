@@ -1009,8 +1009,8 @@ contains
          if (zonal_mode(iky)) then
             ! no connections for ky = 0
             iseg = 1
-            tmp = sum(dl_over_b(ia, :) * phi)
-            phi = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
+            tmp = sum(dl_over_b(ia, :) * fields_ext)
+            fields_ext = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
          end if
       end if
 
