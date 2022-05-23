@@ -522,8 +522,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1378,7 +1378,6 @@ contains
 
    end subroutine get_fields_vmulo
 
-
    ! Subroutine to calculate fields for a single (kx, ky, z, tube)
    ! TODO: Turn get_fields_vmulo into an interface so the distinction between
    ! get_fields_vmulo (which is 4D) and get_fields_vmulo_0D is hidden from other
@@ -1424,7 +1423,7 @@ contains
       apar = 0.
       bpar = 0.
 
-      allocate(g_gyro(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_gyro(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       ! If fbpar=0, the calculation for phi using get_phi works fine. If fbpar!=0, then
       ! (1) we need to perform additional integrals over g (see below), and
@@ -1499,9 +1498,9 @@ contains
 
             ! Now get phi, bpar
             phi = (antot1 - gamtot13(iky, ikx, iz) / gamtot33(iky, ikx, iz) * antot3) &
-                  / (gamtot( iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz) / gamtot33(iky, ikx, iz)))
+                  / (gamtot(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz) / gamtot33(iky, ikx, iz)))
             bpar = (antot3 - (gamtot31(iky, ikx, iz) / gamtot(iky, ikx, iz)) * antot1) &
-                   / (gamtot33( iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
+                   / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
@@ -1557,7 +1556,7 @@ contains
 
       end if
 
-      deallocate(g_gyro)
+      deallocate (g_gyro)
 
    end subroutine get_fields_vmulo_0D
 
