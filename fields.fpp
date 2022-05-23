@@ -20,7 +20,6 @@ module fields
    public :: get_dchidy, get_dchidx
    public :: get_gyroaverage_chi
    public :: efac, efacp
-   public :: advance_fields_0D
 
    private
 
@@ -1975,9 +1974,8 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
+      complex, intent(in out) :: phi
       logical, optional, intent(in) :: skip_fsa
-      integer :: ia, it, ikx
       complex :: tmp
       logical :: skip_fsa_local
       logical :: has_elec, adia_elec
