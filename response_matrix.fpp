@@ -550,9 +550,9 @@ contains
       end if
 
       nfields = 0
-      if (fphi > epsilon(0.) ) nfields = nfields + 1
-      if (fapar > epsilon(0.) ) nfields = nfields + 1
-      if (fbpar > epsilon(0.) ) nfields = nfields + 1
+      if (fphi > epsilon(0.)) nfields = nfields + 1
+      if (fapar > epsilon(0.)) nfields = nfields + 1
+      if (fbpar > epsilon(0.)) nfields = nfields + 1
 
       if (nfields == 0) then
          call mp_abort("nfields=0 currently not supported for implicit parallel streaming. Aborting")
