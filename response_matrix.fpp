@@ -520,18 +520,23 @@ contains
       use extended_zgrid, only: periodic
       use mp, only: proc0, job, mp_abort
       use run_parameters, only: mat_gen
+      use run_parameters, only: fphi, fapar, fbpar
 #ifdef ISO_C_BINDING
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: sgproc0
       use mp, only: nbytes_real
 #endif
       implicit none
 
+      integer, intent(in) :: ie, iky
+      integer, intent(out) :: nz_ext, nresponse
+
+      integer :: nfields
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
       integer(c_intptr_t) :: cur_pos
 #endif
-      integer, intent(in) :: ie, iky
-      integer, intent(out) :: nz_ext, nresponse
+
 
       ! number of zeds x number of segments
       nz_ext = nsegments(ie, iky) * nzed_segment + 1
@@ -543,6 +548,11 @@ contains
       else
          nresponse = nz_ext
       end if
+
+      nfields = 0
+      if (fphi > epsilon(0.) ) nfields = nfields + 1
+      if (fapar > epsilon(0.) ) nfields = nfields + 1
+      if (fbar > epsilon(0.) ) nfields = nfields + 1
 
       if (proc0 .and. mat_gen) then
          write (unit=mat_unit) ie, nresponse
