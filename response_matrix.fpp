@@ -555,6 +555,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: periodic
+      use extended_zgrid, only: nsegments
       use fields_arrays, only: response_matrix
 
       implicit none
@@ -593,7 +594,7 @@ contains
       do iz = iz_low(iseg), izup
          idx = idx + 1
          matrix_idx = matrix_idx + 1
-         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext)
+         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext, field)
          ! Check - do we need do anything special fo the first seg?
          call get_fields_for_response_matrix(gext, field_ext, iky, ie)
 
@@ -613,7 +614,7 @@ contains
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
                matrix_idx = matrix_idx + 1
-               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext)
+               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext, field)
                call get_fields_for_response_matrix(gext, field_ext, iky, ie)
 
                ! next need to create column in response matrix from field_ext
@@ -630,7 +631,7 @@ contains
 
    end subroutine populate_matrix_columns
 
-   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext)
+   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext, field)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -657,6 +658,7 @@ contains
       integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
       complex, dimension(:), intent(in out) :: field_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
+      character(*), intent(in) :: field
 
       integer :: ivmu, iv, imu, is, ia
       integer :: izp, izm
