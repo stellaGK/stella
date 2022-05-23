@@ -899,59 +899,61 @@ contains
 
    end subroutine sweep_zed_zonal_response
 
-   subroutine integrate_over_velocity(g, phi, iky, ie)
-
-      use stella_layouts, only: vmu_lo
-      use species, only: nspec, spec
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
-      use vpamu_grids, only: integrate_species
-      use gyro_averages, only: gyro_average
-      use mp, only: sum_allreduce
-
-      implicit none
-
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:), intent(out) :: phi
-      integer, intent(in) :: iky, ie
-
-      integer :: idx, iseg, ikx, iz, ia
-      integer :: izl_offset
-      real, dimension(nspec) :: wgt
-      complex, dimension(:), allocatable :: g0
-
-      ia = 1
-
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-      wgt = spec%z * spec%dens_psi0
-      phi = 0.
-
-      idx = 0; izl_offset = 0
-      iseg = 1
-      ikx = ikxmod(iseg, ie, iky)
-      do iz = iz_low(iseg), iz_up(iseg)
-         idx = idx + 1
-         call gyro_average(g(idx, :), iky, ikx, iz, g0)
-         call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-      end do
-      izl_offset = 1
-      if (nsegments(ie, iky) > 1) then
-         do iseg = 2, nsegments(ie, iky)
-            ikx = ikxmod(iseg, ie, iky)
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               idx = idx + 1
-               call gyro_average(g(idx, :), iky, ikx, iz, g0)
-               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-            end do
-            if (izl_offset == 0) izl_offset = 1
-         end do
-      end if
-
-      call sum_allreduce(phi)
-
-   end subroutine integrate_over_velocity
+   ! No longer needed - idea is for fields module to handle all the field solve-
+   ! related parts of response matrix calculation
+   ! subroutine integrate_over_velocity(g, phi, iky, ie)
+   !
+   !    use stella_layouts, only: vmu_lo
+   !    use species, only: nspec, spec
+   !    use extended_zgrid, only: iz_low, iz_up
+   !    use extended_zgrid, only: ikxmod
+   !    use extended_zgrid, only: nsegments
+   !    use vpamu_grids, only: integrate_species
+   !    use gyro_averages, only: gyro_average
+   !    use mp, only: sum_allreduce
+   !
+   !    implicit none
+   !
+   !    complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
+   !    complex, dimension(:), intent(out) :: phi
+   !    integer, intent(in) :: iky, ie
+   !
+   !    integer :: idx, iseg, ikx, iz, ia
+   !    integer :: izl_offset
+   !    real, dimension(nspec) :: wgt
+   !    complex, dimension(:), allocatable :: g0
+   !
+   !    ia = 1
+   !
+   !    allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+   !
+   !    wgt = spec%z * spec%dens_psi0
+   !    phi = 0.
+   !
+   !    idx = 0; izl_offset = 0
+   !    iseg = 1
+   !    ikx = ikxmod(iseg, ie, iky)
+   !    do iz = iz_low(iseg), iz_up(iseg)
+   !       idx = idx + 1
+   !       call gyro_average(g(idx, :), iky, ikx, iz, g0)
+   !       call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+   !    end do
+   !    izl_offset = 1
+   !    if (nsegments(ie, iky) > 1) then
+   !       do iseg = 2, nsegments(ie, iky)
+   !          ikx = ikxmod(iseg, ie, iky)
+   !          do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+   !             idx = idx + 1
+   !             call gyro_average(g(idx, :), iky, ikx, iz, g0)
+   !             call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+   !          end do
+   !          if (izl_offset == 0) izl_offset = 1
+   !       end do
+   !    end if
+   !
+   !    call sum_allreduce(phi)
+   !
+   ! end subroutine integrate_over_velocity
 
    ! Given gext, calculate the fields (phi, apar, bpar) and store in fields_ext.
    subroutine get_fields_for_response_matrix(gext, fields_ext, iky, ie)
@@ -967,11 +969,12 @@ contains
       use fields_arrays, only: gamtot, gamtot3
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
+      use fields, only: get_fields_vmulo_0D
 
       implicit none
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: gext
-      complex, dimension(:), intent(inout) :: fields_ext
+      complex, dimension(:), intent(out) :: fields_ext
       integer, intent(in) :: iky, ie
 
       integer :: idx, iseg, ikx, iz, ia
@@ -990,7 +993,9 @@ contains
       end if
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
-         fields_ext(idx) = fields_ext(idx) / gamtot(iky, ikx, iz)
+         call get_fields_vmulo_0D(gext, iky, ikx, iz, phi, apar, bpar, "gbpar")
+         ! Put phi, apar, bpar into fields_ext
+         fields_ext(idx) = phi
       end do
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
@@ -998,21 +1003,24 @@ contains
             ikx = ikxmod(iseg, ie, iky)
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
-               fields_ext(idx) = fields_ext(idx) / gamtot(iky, ikx, iz)
+               call get_fields_vmulo_0D(gext, iky, ikx, iz, phi, apar, bpar, "gbpar")
+               ! Put phi, apar, bpar into fields_ext
+               fields_ext(idx) = phi
             end do
             if (izl_offset == 0) izl_offset = 1
          end do
       end if
 
-      if (.not. has_electron_species(spec) .and. &
-          adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-         if (zonal_mode(iky)) then
-            ! no connections for ky = 0
-            iseg = 1
-            tmp = sum(dl_over_b(ia, :) * fields_ext)
-            fields_ext = fields_ext + tmp * gamtot3(ikxmod(1, ie, iky), :)
-         end if
-      end if
+      ! No longer needed - handled by get_fields_vmulo_0D
+      ! if (.not. has_electron_species(spec) .and. &
+      !     adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+      !    if (zonal_mode(iky)) then
+      !       ! no connections for ky = 0
+      !       iseg = 1
+      !       tmp = sum(dl_over_b(ia, :) * fields_ext)
+      !       fields_ext = fields_ext + tmp * gamtot3(ikxmod(1, ie, iky), :)
+      !    end if
+      ! end if
 
    end subroutine get_fields_for_response_matrix
 
