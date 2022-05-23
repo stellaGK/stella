@@ -538,7 +538,6 @@ contains
       integer(c_intptr_t) :: cur_pos
 #endif
 
-
       ! number of zeds x number of segments
       nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
@@ -551,9 +550,9 @@ contains
       end if
 
       nfields = 0
-      if (fphi > epsilon(0.) ) nfields = nfields + 1
-      if (fapar > epsilon(0.) ) nfields = nfields + 1
-      if (fbar > epsilon(0.) ) nfields = nfields + 1
+      if (fphi > epsilon(0.)) nfields = nfields + 1
+      if (fapar > epsilon(0.)) nfields = nfields + 1
+      if (fbar > epsilon(0.)) nfields = nfields + 1
 
       if (proc0 .and. mat_gen) then
          write (unit=mat_unit) ie, nresponse
