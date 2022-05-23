@@ -979,7 +979,7 @@ contains
 
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
-      complex :: tmp
+      complex :: tmp, phi, apar, bpar
 
       ia = 1
       ! Need to replace this with field calculation involving gext.
