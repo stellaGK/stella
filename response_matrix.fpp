@@ -226,49 +226,7 @@ contains
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
 
-            ! number of zeds x number of segments
-            nz_ext = nsegments(ie, iky) * nzed_segment + 1
-
-            ! treat zonal mode specially to avoid double counting
-            ! as it is periodic
-            if (periodic(iky)) then
-               nresponse = nz_ext - 1
-            else
-               nresponse = nz_ext
-            end if
-
-            if (proc0 .and. mat_gen) then
-               write (unit=mat_unit) ie, nresponse
-            end if
-
-#ifdef ISO_C_BINDING
-            !exploit MPIs shared memory framework to reduce memory consumption of
-            !response matrices
-
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
-               cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
-            end if
-
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
-               cur_pos = cur_pos + nresponse * 4
-            end if
-#else
-            ! for each ky and set of connected kx values,
-            ! must have a response matrix that is N x N
-            ! with N = number of zeds per 2pi segment x number of 2pi segments
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
-
-            ! response_matrix%idx is needed to keep track of permutations
-            ! to the response matrix made during LU decomposition
-            ! it will be input to LU back substitution during linear solve
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-#endif
+            call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse)
 
             allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             allocate (phiext(nz_ext))
@@ -477,9 +435,9 @@ contains
       logical, parameter :: debug = .false.
       istatus = 0
 
-!   All matrices handled for the job i_job are read
-!   from a single file named: responst_mat.ijob by that
-!   jobs root process
+      !   All matrices handled for the job i_job are read
+      !   from a single file named: responst_mat.ijob by that
+      !   jobs root process
 
       if (proc0) then
          fmt = '(I5.5)'
@@ -555,6 +513,71 @@ contains
          print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
       end if
    end subroutine read_response_matrix
+
+   subroutine allocate_response_matrix_zloc(ie, iky, nz_ext, nresponse)
+      use fields_arrays, only: response_matrix
+      use extended_zgrid, only: nzed_segment
+      use extended_zgrid, only: periodic
+      use mp, only: proc0, job, mp_abort
+      use run_parameters, only: mat_gen
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0
+      use mp, only: nbytes_real
+#endif
+      implicit none
+
+#ifdef ISO_C_BINDING
+      type(c_ptr) :: cptr
+      integer(c_intptr_t) :: cur_pos
+#endif
+      integer, intent(in) :: ie, iky
+      integer, intent(out) :: nz_ext, nresponse
+
+      ! number of zeds x number of segments
+      nz_ext = nsegments(ie, iky) * nzed_segment + 1
+
+      ! treat zonal mode specially to avoid double counting
+      ! as it is periodic
+      if (periodic(iky)) then
+         nresponse = nz_ext - 1
+      else
+         nresponse = nz_ext
+      end if
+
+      if (proc0 .and. mat_gen) then
+         write (unit=mat_unit) ie, nresponse
+      end if
+
+#ifdef ISO_C_BINDING
+      !exploit MPIs shared memory framework to reduce memory consumption of
+      !response matrices
+
+      if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
+         cptr = transfer(cur_pos, cptr)
+         call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
+         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+      end if
+
+      if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
+         cptr = transfer(cur_pos, cptr)
+         call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
+         cur_pos = cur_pos + nresponse * 4
+      end if
+#else
+      ! for each ky and set of connected kx values,
+      ! must have a response matrix that is N x N
+      ! with N = number of zeds per 2pi segment x number of 2pi segments
+      if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
+         allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+
+      ! response_matrix%idx is needed to keep track of permutations
+      ! to the response matrix made during LU decomposition
+      ! it will be input to LU back substitution during linear solve
+      if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
+         allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+#endif
+
+   end subroutine allocate_response_matrix_zloc
 
    subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
 
