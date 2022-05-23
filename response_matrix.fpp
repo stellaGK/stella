@@ -538,7 +538,6 @@ contains
       integer(c_intptr_t) :: cur_pos
 #endif
 
-
       ! number of zeds x number of segments
       nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
