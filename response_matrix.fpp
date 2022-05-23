@@ -237,7 +237,7 @@ contains
             ! the corresponding g_h and the fields f_h arising from this g_h.
             ! Populate the matrix_idx'th column with I-f_h.
             ! Begin with phi.
-            call populate_matrix_columns(, "phi")
+            call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "phi")
 
          end do
          !DSO - This ends parallelization over velocity space.
