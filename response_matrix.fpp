@@ -117,8 +117,6 @@ contains
       type(c_ptr) :: bptr, cptr
 #endif
       real :: dum
-      complex, dimension(:), allocatable :: phiext
-      complex, dimension(:, :), allocatable :: gext
       logical :: debug = .false.
       character(100) :: message_dgdphi, message_QN, message_lu
       real, dimension(2) :: time_response_matrix_dgdphi
@@ -229,69 +227,18 @@ contains
             ! Work out nz_ext, nresponse and allocate response_matrix(iky)%eigen%zloc
             call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse)
 
-            allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-            allocate (phiext(nz_ext))
-            ! idx is the index in the extended zed domain
-            ! that we are giving a unit impulse
-            idx = 0
-
             ! matrix_idx is the index in the response matrix we are populating
             ! for nfield > 1, we loop over the extended zed domain more than
             ! once.
             matrix_idx = 0
 
-            ! loop over segments, starting with 1
-            ! first segment is special because it has
-            ! one more unique zed value than all others
-            ! since domain is [z0-pi:z0+pi], including both endpoints
-            ! i.e., one endpoint is shared with the previous segment
-            iseg = 1
-            ! ikxmod gives the kx corresponding to iseg,ie,iky
-            ikx = ikxmod(iseg, ie, iky)
-            izl_offset = 0
-            ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
-            if (periodic(iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-            ! no need to obtain response to impulses at negative kx values
-            do iz = iz_low(iseg), izup
-               idx = idx + 1
-               matrix_idx = matrix_idx + 1
-               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-               ! Check - do we need do anything special fo the first seg?
-               call get_fields_for_response_matrix(gext, phiext, iky, ie)
+            ! For each nonzero field, loop over the segments. Within each segment,
+            ! loop over z, applying a unit impluse in the field, calculating
+            ! the corresponding g_h and the fields f_h arising from this g_h.
+            ! Populate the matrix_idx'th column with I-f_h.
+            ! Begin with phi.
+            call populate_matrix_columns(, "phi")
 
-               ! next need to create column in response matrix from phiext
-               ! negative sign because matrix to be inverted in streaming equation
-               ! is identity matrix - response matrix
-               ! add in contribution from identity matrix
-               phiext(idx) = phiext(idx) - 1.0
-               response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -phiext(:nresponse)
-            end do
-            ! once we have used one segments, remaining segments
-            ! have one fewer unique zed point
-            izl_offset = 1
-            if (nsegments(ie, iky) > 1) then
-               do iseg = 2, nsegments(ie, iky)
-                  ikx = ikxmod(iseg, ie, iky)
-                  do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                     idx = idx + 1
-                     matrix_idx = matrix_idx + 1
-                     call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                     call get_fields_for_response_matrix(gext, phiext, iky, ie)
-
-                     ! next need to create column in response matrix from phiext
-                     ! negative sign because matrix to be inverted in streaming equation
-                     ! is identity matrix - response matrix
-                     ! add in contribution from identity matrix
-                     phiext(idx) = phiext(idx) - 1.0
-                     response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -phiext(:nresponse)
-                  end do
-               end do
-            end if
-            deallocate (gext, phiext)
          end do
          !DSO - This ends parallelization over velocity space.
          !      At this point every processor has int dv dgdphi for a given ky
@@ -602,7 +549,87 @@ contains
 
    end subroutine allocate_response_matrix_zloc
 
-   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+   subroutine populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, field)
+
+      use stella_layouts, only: vmu_lo
+      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: periodic
+
+      implicit none
+
+      integer, intent(in) :: iky, ie, nz_ext, nresponse,
+      character(*), intent(in) :: field
+      integer, intent(in out) :: matrix_idx
+
+      integer :: iseg, ikx, izl_offset, izup, iz, idx
+      complex, dimension(:), allocatable :: field_ext
+      complex, dimension(:, :), allocatable :: gext
+
+      allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (field_ext(nz_ext))
+
+      ! idx is the index in the extended zed domain
+      ! that we are giving a unit impulse
+      idx = 0
+
+      ! loop over segments, starting with 1
+      ! first segment is special because it has
+      ! one more unique zed value than all others
+      ! since domain is [z0-pi:z0+pi], including both endpoints
+      ! i.e., one endpoint is shared with the previous segment
+      iseg = 1
+      ! ikxmod gives the kx corresponding to iseg,ie,iky
+      ikx = ikxmod(iseg, ie, iky)
+      izl_offset = 0
+      ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
+      if (periodic(iky)) then
+         izup = iz_up(iseg) - 1
+      else
+         izup = iz_up(iseg)
+      end if
+      ! no need to obtain response to impulses at negative kx values
+      do iz = iz_low(iseg), izup
+         idx = idx + 1
+         matrix_idx = matrix_idx + 1
+         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext)
+         ! Check - do we need do anything special fo the first seg?
+         call get_fields_for_response_matrix(gext, field_ext, iky, ie)
+
+         ! next need to create column in response matrix from field_ext
+         ! negative sign because matrix to be inverted in streaming equation
+         ! is identity matrix - response matrix
+         ! add in contribution from identity matrix
+         field_ext(idx) = field_ext(idx) - 1.0
+         response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+      end do
+      ! once we have used one segments, remaining segments
+      ! have one fewer unique zed point
+      izl_offset = 1
+      if (nsegments(ie, iky) > 1) then
+         do iseg = 2, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
+            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+               idx = idx + 1
+               matrix_idx = matrix_idx + 1
+               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext)
+               call get_fields_for_response_matrix(gext, field_ext, iky, ie)
+
+               ! next need to create column in response matrix from field_ext
+               ! negative sign because matrix to be inverted in streaming equation
+               ! is identity matrix - response matrix
+               ! add in contribution from identity matrix
+               field_ext(idx) = field_ext(idx) - 1.0
+               response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+            end do
+         end do
+      end if
+
+      deallocate (gext, field_ext)
+
+   end subroutine populate_matrix_columns
+
+   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -627,7 +654,7 @@ contains
       implicit none
 
       integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
-      complex, dimension(:), intent(in out) :: phiext
+      complex, dimension(:), intent(in out) :: field_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
 
       integer :: ivmu, iv, imu, is, ia
@@ -890,13 +917,13 @@ contains
 !       ! corresponding to a unit impulse in phi at this location
 !       ! now integrate over velocities to get a square response matrix
 !       ! (this ends the parallelization over velocity space, so every core should have a
-!       !  copy of phiext)
-!       call integrate_over_velocity(gext, phiext, iky, ie)
+!       !  copy of field_ext)
+!       call integrate_over_velocity(gext, field_ext, iky, ie)
 !
 ! #ifdef ISO_C_BINDING
-!       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
+!       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = field_ext(:nresponse)
 ! #else
-!       response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
+!       response_matrix(iky)%eigen(ie)%zloc(:, idx) = field_ext(:nresponse)
 ! #endif
 
    end subroutine get_dgdfield_matrix_column
