@@ -517,6 +517,7 @@ contains
    subroutine allocate_response_matrix_zloc(ie, iky, nz_ext, nresponse)
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: nzed_segment
+      use extended_zgrid, only: nsegments
       use extended_zgrid, only: periodic
       use mp, only: proc0, job, mp_abort
       use run_parameters, only: mat_gen
