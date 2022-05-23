@@ -355,33 +355,33 @@ contains
 ! #ifdef ISO_C_BINDING
 !             if (sgproc0) then
 ! #endif
-               ! ! number of zeds x number of segments
-               ! nz_ext = nsegments(ie, iky) * nzed_segment + 1
-               !
-               ! ! treat zonal mode specially to avoid double counting
-               ! ! as it is periodic
-               ! if (periodic(iky)) then
-               !    nresponse = nz_ext - 1
-               ! else
-               !    nresponse = nz_ext
-               ! end if
-               !
-               ! allocate (phiext(nz_ext))
-               !
-               ! do idx = 1, nresponse
-               !    phiext(nz_ext) = 0.0
-               !    phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
-               !    call get_fields_for_response_matrix(phiext, iky, ie)
-               !
-               !    ! next need to create column in response matrix from phiext
-               !    ! negative sign because matrix to be inverted in streaming equation
-               !    ! is identity matrix - response matrix
-               !    ! add in contribution from identity matrix
-               !    phiext(idx) = phiext(idx) - 1.0
-               !    response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
-               !
-               ! end do
-               ! deallocate (phiext)
+         ! ! number of zeds x number of segments
+         ! nz_ext = nsegments(ie, iky) * nzed_segment + 1
+         !
+         ! ! treat zonal mode specially to avoid double counting
+         ! ! as it is periodic
+         ! if (periodic(iky)) then
+         !    nresponse = nz_ext - 1
+         ! else
+         !    nresponse = nz_ext
+         ! end if
+         !
+         ! allocate (phiext(nz_ext))
+         !
+         ! do idx = 1, nresponse
+         !    phiext(nz_ext) = 0.0
+         !    phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
+         !    call get_fields_for_response_matrix(phiext, iky, ie)
+         !
+         !    ! next need to create column in response matrix from phiext
+         !    ! negative sign because matrix to be inverted in streaming equation
+         !    ! is identity matrix - response matrix
+         !    ! add in contribution from identity matrix
+         !    phiext(idx) = phiext(idx) - 1.0
+         !    response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
+         !
+         ! end do
+         ! deallocate (phiext)
 ! #ifdef ISO_C_BINDING
 !             end if
 ! #endif
