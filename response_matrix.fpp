@@ -558,7 +558,7 @@ contains
 
       implicit none
 
-      integer, intent(in) :: iky, ie, nz_ext, nresponse,
+      integer, intent(in) :: iky, ie, nz_ext, nresponse
       character(*), intent(in) :: field
       integer, intent(in out) :: matrix_idx
 
