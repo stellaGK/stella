@@ -289,7 +289,6 @@ contains
                      phiext(idx) = phiext(idx) - 1.0
                      response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -phiext(:nresponse)
                   end do
-                  if (izl_offset == 0) izl_offset = 1
                end do
             end if
             deallocate (gext, phiext)
@@ -1055,7 +1054,6 @@ contains
                ! Put phi, apar, bpar into fields_ext
                fields_ext(idx) = phi
             end do
-            if (izl_offset == 0) izl_offset = 1
          end do
       end if
 
