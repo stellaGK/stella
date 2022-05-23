@@ -107,7 +107,7 @@ contains
       integer :: iky, ie, iseg, iz
       integer :: ikx
       integer :: nz_ext, nresponse
-      integer :: idx
+      integer :: idx, matrix_idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
       integer :: prior_focus, ierr
@@ -226,6 +226,7 @@ contains
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
 
+            ! Work out nz_ext, nresponse and allocate response_matrix(iky)%eigen%zloc
             call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse)
 
             allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -233,6 +234,11 @@ contains
             ! idx is the index in the extended zed domain
             ! that we are giving a unit impulse
             idx = 0
+
+            ! matrix_idx is the index in the response matrix we are populating
+            ! for nfield > 1, we loop over the extended zed domain more than
+            ! once.
+            matrix_idx = 0
 
             ! loop over segments, starting with 1
             ! first segment is special because it has
@@ -252,6 +258,7 @@ contains
             ! no need to obtain response to impulses at negative kx values
             do iz = iz_low(iseg), izup
                idx = idx + 1
+               matrix_idx = matrix_idx + 1
                call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                ! Check - do we need do anything special fo the first seg?
                call get_fields_for_response_matrix(gext, phiext, iky, ie)
@@ -261,7 +268,7 @@ contains
                ! is identity matrix - response matrix
                ! add in contribution from identity matrix
                phiext(idx) = phiext(idx) - 1.0
-               response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
+               response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -phiext(:nresponse)
             end do
             ! once we have used one segments, remaining segments
             ! have one fewer unique zed point
@@ -271,6 +278,7 @@ contains
                   ikx = ikxmod(iseg, ie, iky)
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
+                     matrix_idx = matrix_idx + 1
                      call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                      call get_fields_for_response_matrix(gext, phiext, iky, ie)
 
@@ -279,7 +287,7 @@ contains
                      ! is identity matrix - response matrix
                      ! add in contribution from identity matrix
                      phiext(idx) = phiext(idx) - 1.0
-                     response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
+                     response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -phiext(:nresponse)
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
