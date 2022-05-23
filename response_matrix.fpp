@@ -993,7 +993,7 @@ contains
       end if
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
-         call get_fields_vmulo_0D(gext(iz,:), iky, ikx, iz, phi, apar, bpar, "gbpar")
+         call get_fields_vmulo_0D(gext(iz,:), iky, ikx, iz, phi, apar, bpar, "gbar")
          ! Put phi, apar, bpar into fields_ext
          fields_ext(idx) = phi
       end do
@@ -1003,7 +1003,7 @@ contains
             ikx = ikxmod(iseg, ie, iky)
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
-               call get_fields_vmulo_0D(gext(iz,:), iky, ikx, iz, phi, apar, bpar, "gbpar")
+               call get_fields_vmulo_0D(gext(iz,:), iky, ikx, iz, phi, apar, bpar, "gbar")
                ! Put phi, apar, bpar into fields_ext
                fields_ext(idx) = phi
             end do
