@@ -350,10 +350,11 @@ contains
          ! may require something more sophisticated
 
          ! loop over the sets of connected kx values
-         do ie = 1, neigen(iky)
-#ifdef ISO_C_BINDING
-            if (sgproc0) then
-#endif
+         ! Old - can probably delete now
+         ! do ie = 1, neigen(iky)
+! #ifdef ISO_C_BINDING
+!             if (sgproc0) then
+! #endif
                ! ! number of zeds x number of segments
                ! nz_ext = nsegments(ie, iky) * nzed_segment + 1
                !
@@ -380,11 +381,11 @@ contains
                !    response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
                !
                ! end do
-               deallocate (phiext)
-#ifdef ISO_C_BINDING
-            end if
-#endif
-         end do
+               ! deallocate (phiext)
+! #ifdef ISO_C_BINDING
+!             end if
+! #endif
+         ! end do
 
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, window, ierr)
