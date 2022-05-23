@@ -555,6 +555,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: periodic
+      use fields_arrays, only: response_matrix
 
       implicit none
 
