@@ -597,11 +597,11 @@ contains
          ! is identity matrix - response matrix
          ! add in contribution from identity matrix
          field_ext(idx) = field_ext(idx) - 1.0
- #ifdef ISO_C_BINDING
-       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
- #else
-       response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
- #endif
+#ifdef ISO_C_BINDING
+         if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+#else
+         response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+#endif
       end do
       ! once we have used one segments, remaining segments
       ! have one fewer unique zed point
