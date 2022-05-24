@@ -238,24 +238,15 @@ contains
             ! Populate the matrix_idx'th column with I-f_h.
             ! Begin with phi.
             call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "phi")
-
          end do
-         !DSO - This ends parallelization over velocity space.
-         !      At this point every processor has int dv dgdphi for a given ky
-         !      and so the quasineutrality solve and LU decomposition can be
-         !      parallelized locally if need be.
-         !      This is preferable to parallelization over ky as the LU
-         !      decomposition (and perhaps QN) will be dominated by the
-         !      ky with the most connections
+#ifdef ISO_C_BINDING
+         call mpi_win_fence(0, window, ierr)
+#endif
 
          if (proc0 .and. debug) then
             call time_message(.true., time_response_matrix_dgdphi, message_dgdphi)
             !call time_message(.false., time_response_matrix_QN, message_QN)
          end if
-
-#ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
-#endif
 
          ! solve quasineutrality
          ! for local stella, this is a diagonal process, but global stella
@@ -557,6 +548,9 @@ contains
       use extended_zgrid, only: periodic
       use extended_zgrid, only: nsegments
       use fields_arrays, only: response_matrix
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0
+#endif
 
       implicit none
 
@@ -594,7 +588,7 @@ contains
       do iz = iz_low(iseg), izup
          idx = idx + 1
          matrix_idx = matrix_idx + 1
-         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext, field)
+         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
          ! Check - do we need do anything special fo the first seg?
          call get_fields_for_response_matrix(gext, field_ext, iky, ie)
 
@@ -603,7 +597,11 @@ contains
          ! is identity matrix - response matrix
          ! add in contribution from identity matrix
          field_ext(idx) = field_ext(idx) - 1.0
-         response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+ #ifdef ISO_C_BINDING
+       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+ #else
+       response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+ #endif
       end do
       ! once we have used one segments, remaining segments
       ! have one fewer unique zed point
@@ -614,7 +612,7 @@ contains
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
                matrix_idx = matrix_idx + 1
-               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext, field)
+               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
                call get_fields_for_response_matrix(gext, field_ext, iky, ie)
 
                ! next need to create column in response matrix from field_ext
@@ -622,7 +620,11 @@ contains
                ! is identity matrix - response matrix
                ! add in contribution from identity matrix
                field_ext(idx) = field_ext(idx) - 1.0
+#ifdef ISO_C_BINDING
+               if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+#else
                response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+#endif
             end do
          end do
       end if
@@ -631,7 +633,7 @@ contains
 
    end subroutine populate_matrix_columns
 
-   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, field_ext, gext, field)
+   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -649,14 +651,10 @@ contains
       use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0
-#endif
 
       implicit none
 
       integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
-      complex, dimension(:), intent(in out) :: field_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
       character(*), intent(in) :: field
 
