@@ -19,6 +19,7 @@ module fields
    public :: fields_updated
    public :: get_dchidy, get_dchidx
    public :: get_gyroaverage_chi
+   public :: get_chi
    public :: efac, efacp
 
    private
