@@ -527,8 +527,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1598,7 +1598,7 @@ contains
 
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, iv, imu
-      complex :: antot1, antot3
+      complex, dimension(:) :: antot1, antot3
       complex, dimension(:, :), allocatable :: g_gyro
 
       skip_fsa_local = .false.
@@ -1610,8 +1610,9 @@ contains
       apar = 0.
       bpar = 0.
 
-      allocate (g_gyro(-nzgrid:, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
+      allocate (g_gyro(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (antot1(-nzgrid:nzgrid))
+      allocate (antot3(-nzgrid:nzgrid))
       ! If fbpar=0, the calculation for phi using get_phi works fine. If fbpar!=0, then
       ! (1) we need to perform additional integrals over g (see below), and
       ! (2) need to check calculations regarding adiabatic/global quasineutrality
@@ -1744,7 +1745,9 @@ contains
       end if
 
       deallocate (g_gyro)
-
+      deallocate (antot1)
+      deallocate (antot3)
+      
    end subroutine get_fields_vmulo_1D
 
    !> get_fields_ffs accepts as input the guiding centre distribution function g
