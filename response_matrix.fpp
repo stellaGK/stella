@@ -107,7 +107,7 @@ contains
 
       integer :: iky, ie, iseg, iz
       integer :: ikx
-      integer :: nz_ext, nresponse
+      integer :: nz_ext, nresponse, nresponse_per_field
       integer :: idx, matrix_idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
@@ -226,7 +226,7 @@ contains
          do ie = 1, neigen(iky)
 
             ! Work out nz_ext, nresponse and allocate response_matrix(iky)%eigen%zloc
-            call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse)
+            call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field)
 
             ! matrix_idx is the index in the response matrix we are populating
             ! for nfield > 1, we loop over the extended zed domain more than
@@ -239,13 +239,13 @@ contains
             ! Populate the matrix_idx'th column with I-f_h.
             ! Begin with phi.
             if (fphi > epsilon(0.)) then
-               call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "phi")
+               call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "phi")
             end if
             if (fapar > epsilon(0.)) then
-               call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "apar")
+               call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "apar")
             end if
             if (fbpar > epsilon(0.)) then
-               call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "bpar")
+               call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "bpar")
             end if
          end do
 #ifdef ISO_C_BINDING
@@ -468,7 +468,7 @@ contains
       end if
    end subroutine read_response_matrix
 
-   subroutine allocate_response_matrix_zloc(ie, iky, nz_ext, nresponse)
+   subroutine allocate_response_matrix_zloc(ie, iky, nz_ext, nresponse, nresponse_per_field)
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: nsegments
@@ -484,7 +484,7 @@ contains
       implicit none
 
       integer, intent(in) :: ie, iky
-      integer, intent(out) :: nz_ext, nresponse
+      integer, intent(out) :: nz_ext, nresponse, nresponse_per_field
 
       integer :: nfields
 #ifdef ISO_C_BINDING
@@ -498,9 +498,9 @@ contains
       ! treat zonal mode specially to avoid double counting
       ! as it is periodic
       if (periodic(iky)) then
-         nresponse = nz_ext - 1
+         nresponse_per_field = nz_ext - 1
       else
-         nresponse = nz_ext
+         nresponse_per_field = nz_ext
       end if
 
       nfields = 0
@@ -512,7 +512,7 @@ contains
          call mp_abort("nfields=0 currently not supported for implicit parallel streaming. Aborting")
       end if
 
-      nresponse = nresponse * nfields
+      nresponse_per_field = nresponse * nfields
 
       if (proc0 .and. mat_gen) then
          write (unit=mat_unit) ie, nresponse
@@ -563,7 +563,7 @@ contains
 
       implicit none
 
-      integer, intent(in) :: iky, ie, nz_ext, nresponse
+      integer, intent(in) :: iky, ie, nz_ext, nresponse, nresponse_per_field
       character(*), intent(in) :: field
       integer, intent(in out) :: matrix_idx
 
@@ -599,7 +599,7 @@ contains
          matrix_idx = matrix_idx + 1
          call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
          ! Check - do we need do anything special fo the first seg?
-         call get_fields_for_response_matrix(gext, field_ext, iky, ie)
+         call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
          ! next need to create column in response matrix from field_ext
          ! negative sign because matrix to be inverted in streaming equation
@@ -1069,7 +1069,7 @@ contains
    ! end subroutine integrate_over_velocity
 
    ! Given gext, calculate the fields (phi, apar, bpar) and store in fields_ext.
-   subroutine get_fields_for_response_matrix(gext, fields_ext, iky, ie)
+   subroutine get_fields_for_response_matrix(gext, fields_ext, iky, ie, nresponse_per_field)
 
       use stella_layouts, only: vmu_lo
       use species, only: spec
@@ -1090,9 +1090,9 @@ contains
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: gext
       complex, dimension(:), intent(out) :: fields_ext
-      integer, intent(in) :: iky, ie
+      integer, intent(in) :: iky, ie, nresponse_per_field
 
-      integer :: idx, iseg, ikx, ia
+      integer :: idx, iseg, ikx, ia, ifield
       integer :: izl_offset
       complex :: tmp
       complex, dimension(:), allocatable :: phi, apar, bpar
@@ -1114,6 +1114,21 @@ contains
          ! idx = idx + 1
       call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
       ! Put phi, apar, bpar into fields_ext
+      ifield = 0
+      if (fphi > epsilon(0.)) then
+         fields_ext((ifield*nresponse_per_field + iz_low(iseg)): &
+                    (ifield*nresponse_per_field + iz_up(iseg))) = phi(:)
+         ifield = ifield + 1
+      end if
+      if (fapar > epsilon(0.)) then
+         fields_ext((ifield*nresponse_per_field + iz_low(iseg)): &
+                    (ifield*nresponse_per_field + iz_up(iseg))) = apar(:)
+         ifield = ifield + 1
+      end if
+      if (fbpar > epsilon(0.)) then
+         fields_ext((ifield*nresponse_per_field + iz_low(iseg)): &
+                    (ifield*nresponse_per_field + iz_up(iseg))) = bpar(:)
+      end if
       ! fields_ext(idx) = phi
       ! end do
       izl_offset = 1
@@ -1123,9 +1138,22 @@ contains
             ! do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                ! idx = idx + 1
             call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
-            ! Put phi, apar, bpar into fields_ext
-            ! fields_ext(idx) = phi
-            ! end do
+            ifield = 0
+            if (fphi > epsilon(0.)) then
+               fields_ext((ifield*nresponse_per_field + iz_low(iseg) + izl_offset): &
+                          (ifield*nresponse_per_field + iz_up(iseg))) = phi(izl_offset:)
+               ifield = ifield + 1
+            end if
+            if (fapar > epsilon(0.)) then
+               fields_ext((ifield*nresponse_per_field + iz_low(iseg) + izl_offset): &
+                          (ifield*nresponse_per_field + iz_up(iseg))) = apar(izl_offset:)
+               ifield = ifield + 1
+            end if
+            if (fbpar > epsilon(0.)) then
+               fields_ext((ifield*nresponse_per_field + iz_low(iseg) + izl_offset): &
+                          (ifield*nresponse_per_field + iz_up(iseg))) = bpar(izl_offset:)
+               ifield = ifield + 1
+            end if
          end do
       end if
 
