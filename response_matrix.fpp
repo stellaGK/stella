@@ -238,13 +238,13 @@ contains
             ! the corresponding g_h and the fields f_h arising from this g_h.
             ! Populate the matrix_idx'th column with I-f_h.
             ! Begin with phi.
-            if (fphi > epsilon(0.) ) then
+            if (fphi > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "phi")
             end if
-            if (fapar > epsilon(0.) ) then
+            if (fapar > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "apar")
             end if
-            if (fbpar > epsilon(0.) ) then
+            if (fbpar > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "bpar")
             end if
          end do
@@ -648,7 +648,7 @@ contains
    !> single iz location. Get the corresponding value g_h at every z value.
    subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
 
-      use mp, only : mp_abort
+      use mp, only: mp_abort
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
