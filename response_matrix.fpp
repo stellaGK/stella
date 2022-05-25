@@ -512,7 +512,7 @@ contains
          call mp_abort("nfields=0 currently not supported for implicit parallel streaming. Aborting")
       end if
 
-      nresponse_per_field = nresponse * nfields
+      nresponse = nresponse_per_field * nfields
 
       if (proc0 .and. mat_gen) then
          write (unit=mat_unit) ie, nresponse
@@ -549,7 +549,7 @@ contains
 
    end subroutine allocate_response_matrix_zloc
 
-   subroutine populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, field)
+   subroutine populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, field)
 
       use stella_layouts, only: vmu_lo
       use extended_zgrid, only: iz_low, iz_up
@@ -624,7 +624,7 @@ contains
                idx = idx + 1
                matrix_idx = matrix_idx + 1
                call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
-               call get_fields_for_response_matrix(gext, field_ext, iky, ie)
+               call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
                ! next need to create column in response matrix from field_ext
                ! negative sign because matrix to be inverted in streaming equation
