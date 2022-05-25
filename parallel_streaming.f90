@@ -687,7 +687,7 @@ contains
       real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
       complex, dimension(:, :, :, :), allocatable :: dgdz, dchidz
-      complex, dimension(:, :, :, :), allocatable :: field, gyro_chi, gyro_chiold
+      complex, dimension(:, :, :, :), allocatable :: chi, chiold
 
       allocate (vpadf0dE_fac(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
