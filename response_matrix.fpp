@@ -1148,19 +1148,19 @@ contains
             call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg), :), iky, ikx, phi, apar, bpar, "gbar")
             ifield = 0
             if (fphi > epsilon(0.)) then
-               do iz = iz_low(iseg)_izl_offset, iz_up(iseg)
+               do iz = iz_low(iseg) _izl_offset, iz_up(iseg)
                   fields_ext(phi_idx) = phi(iz)
                   phi_idx = phi_idx + 1
                end do
             end if
             if (fapar > epsilon(0.)) then
-               do iz = iz_low(iseg)_izl_offset, iz_up(iseg)
+               do iz = iz_low(iseg) _izl_offset, iz_up(iseg)
                   fields_ext(apar_idx) = apar(iz)
                   apar_idx = apar_idx + 1
                end do
             end if
             if (fbpar > epsilon(0.)) then
-               do iz = iz_low(iseg)_izl_offset, iz_up(iseg)
+               do iz = iz_low(iseg) _izl_offset, iz_up(iseg)
                   fields_ext(bpar_idx) = bpar(iz)
                   bpar_idx = bpar_idx + 1
                end do
