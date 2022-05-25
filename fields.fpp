@@ -2537,6 +2537,12 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: chi
       integer, intent(in) :: ivmu
 
+      integer :: is, imu, iv
+      
+      is = is_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      iv = iv_idx(vmu_lo, ivmu)
+
       chi = fphi * phi - fapar * 2 * vpa(iv) * spec(is)%stm * apar + fbpar * 4 * mu(imu) * (spec(is)%tz) * bpar
 
    end subroutine get_chi
