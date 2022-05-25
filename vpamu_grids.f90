@@ -510,7 +510,7 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          total = total + &
-                 wgts_mu(ia, :, imu) * wgts_vpa(iv) * g(:,ivmu) * weights(is)
+                 wgts_mu(ia, :, imu) * wgts_vpa(iv) * g(:, ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(total)
