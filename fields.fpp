@@ -57,6 +57,10 @@ module fields
       module procedure get_gyroaverage_chi_2d
    end interface
 
+   interface get_chi
+      module procedure get_chi_4d
+   end interface
+
 contains
 
    subroutine init_fields
@@ -522,8 +526,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2523,7 +2527,7 @@ contains
    end subroutine get_radial_correction
 
    !> (Placeholder) Takes the fields and returns chi
-   subroutine get_chi(phi, apar, bpar, ivmu, chi)
+   subroutine get_chi_4d(phi, apar, bpar, ivmu, chi)
 
       use species, only: spec
       use stella_layouts, only: vmu_lo
@@ -2547,7 +2551,7 @@ contains
 
       chi = fphi * phi - fapar * 2 * vpa(iv) * spec(is)%stm * apar + fbpar * 4 * mu(imu) * (spec(is)%tz) * bpar
 
-   end subroutine get_chi
+   end subroutine get_chi_4d
 
    ! The following subroutine takes the fields(ky,kx,z,tube) and returns
    ! gyroaverage(chi)(ky,kx,z,tube) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
