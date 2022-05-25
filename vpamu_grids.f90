@@ -49,6 +49,7 @@ module vpamu_grids
       module procedure integrate_species_vmu_single_real
       module procedure integrate_species_vmu_block_complex
       module procedure integrate_species_vmu_block_real
+      module procedure integrate_species_vmu_1d
    end interface
 
    interface integrate_vmu
@@ -472,6 +473,49 @@ contains
       if (reduce) call sum_allreduce(total)
 
    end subroutine integrate_species_vmu_single
+
+   ! integrave over v-space and sum over species for given (ky,kx,:) set of points
+   subroutine integrate_species_vmu_1d(g, weights, total, ia_in, reduce_in)
+
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use zgrid, only: nzgrid
+
+      implicit none
+
+      integer :: ivmu, iv, is, imu, ia
+      logical :: reduce
+
+      complex, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      complex, dimension(-nzgrid:), intent(out) :: total
+      integer, intent(in), optional :: ia_in
+      logical, intent(in), optional :: reduce_in
+
+      total = 0.
+
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         total(:) = total(:) + &
+                 wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:,ivmu) * weights(is)
+      end do
+
+      if (reduce) call sum_allreduce(total)
+
+   end subroutine integrate_species_vmu_single_1d
 
    ! integrave over v-space and sum over species for given (ky,kx,z) point
    subroutine integrate_species_vmu_single_real(g, iz, weights, total, ia_in, reduce_in)

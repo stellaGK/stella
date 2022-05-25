@@ -9,7 +9,7 @@ module fields
    implicit none
 
    public :: init_fields, finish_fields
-   public :: advance_fields, get_fields, get_fields_vmulo_0D
+   public :: advance_fields, get_fields, get_fields_vmulo_0D, get_fields_vmulo_1D
    public :: get_radial_correction
    public :: enforce_reality_field
    public :: rescale_fields
@@ -1565,6 +1565,188 @@ contains
 
    end subroutine get_fields_vmulo_0D
 
+   ! Subroutine to calculate fields for a single (kx, ky, z, tube)
+   ! TODO: Turn get_fields_vmulo into an interface so the distinction between
+   ! get_fields_vmulo (which is 4D) and get_fields_vmulo_1D is hidden from other
+   ! modules.
+   subroutine get_fields_vmulo_1D(g, iky, ikx, phi, apar, bpar, dist, skip_fsa)
+
+      use mp, only: mp_abort, proc0
+      use job_manage, only: time_message
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use run_parameters, only: fphi, fapar, fbpar
+      use run_parameters, only: ky_solve_radial
+      use physics_flags, only: radial_variation
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: beta
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, naky
+      use vpamu_grids, only: integrate_species, mu, vpa
+      use species, only: spec, has_electron_species
+      use fields_arrays, only: gamtot
+      use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+
+      implicit none
+
+      complex, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(-nzgrid:), intent(out) :: phi, apar, bpar
+      logical, optional, intent(in) :: skip_fsa
+      integer, intent(in) :: iky, ikx
+      character(*), intent(in) :: dist
+
+      logical :: skip_fsa_local, has_elec, adia_elec
+      integer :: ivmu, iv, imu
+      complex :: antot1, antot3
+      complex, dimension(:,:), allocatable :: g_gyro
+
+      skip_fsa_local = .false.
+      if (present(skip_fsa)) skip_fsa_local = skip_fsa
+
+      if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo_0D'
+
+      phi = 0.
+      apar = 0.
+      bpar = 0.
+
+      allocate (g_gyro(-nzgrid:,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+      ! If fbpar=0, the calculation for phi using get_phi works fine. If fbpar!=0, then
+      ! (1) we need to perform additional integrals over g (see below), and
+      ! (2) need to check calculations regarding adiabatic/global quasineutrality
+      ! options.
+      if (.not. fbpar > epsilon(0.0)) then
+         if (fphi > epsilon(0.0)) then
+            ! gyroaverage the distribution function g at each vmu location
+            ! gyro_average_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
+            call gyro_average(g, iky, ikx, g_gyro)
+
+            ! TO IMPLEMENT
+            ! <g> requires modification if radial profile variation is included
+            if (radial_variation) then
+               call mp_abort("Currently don't have add_radial_correction_int_species for 0D fields calculation. Aborting")
+               ! call add_radial_correction_int_species(g_gyro)
+            end if
+
+            ! integrate <g> over velocity space and sum over species
+            !> store result in phi, which will be further modified below to account for polarization term
+            if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
+            ! integrate_species_vmu_single(g, iz, weights, total, ia_in, reduce_in)
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
+            call get_phi_1D(phi, iky, ikx, dist, skip_fsa_local)
+
+         end if
+      else
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
+         end if
+
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
+         end if
+
+         if (fphi > epsilon(0.0)) then
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! Calculate phi, bpar. The formulae are
+            !   phi = (antot1 - (gamtot13/gamtot33)*antot3) / (gamtot - gamtot13*gamtot31/gamtot33 )
+            !   bpar = (antot3 - (gamtot31/gamtot11)*antot1) / (gamtot33 - gamtot13*gamtot31/gamtot )
+            ! where
+            ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
+            ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            antot1 = 0.
+            antot3 = 0.
+
+            ! gyroaverage the distribution function g at each phase space location
+            call gyro_average(g, iky, ikx, g_gyro)
+
+            ! Get antot1 by integrating <g> over velocity space and sum over
+            ! species, with weighting Z_s*n_s.
+            if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0, antot1)
+
+            ! Now get antot3; gyro_average_j1 and multiply by mu
+            call gyro_average_j1(g, iky, ikx, g_gyro)
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               imu = imu_idx(vmu_lo, ivmu)
+               g_gyro(:,ivmu) = g_gyro(:,ivmu) * mu(imu)
+            end do
+
+            ! Get antot3 by integrating gyro_g over velocity space and sum over
+            ! species, with weighting (-2*beta*n_s*T_s).
+            call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), antot3)
+
+            ! Now get phi, bpar
+            phi = (antot1 - gamtot13(iky, ikx, :) / gamtot33(iky, ikx, :) * antot3) &
+                  / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
+            bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
+                   / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
+         else
+            ! Calculate bpar only. The formulae is
+            !   bpar = (antot3 / gamtot33 )
+            ! where
+            !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            ! Save memory by storing antot3 as bpar
+            call gyro_average_j1(g, iky, ikx, g_gyro)
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               imu = imu_idx(vmu_lo, ivmu)
+               g_gyro(:, ivmu) = g_gyro(:, ivmu) * mu(imu)
+            end do
+
+            ! Sum species, integrate over velocity and store in bpar
+            call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
+            bpar = bpar / gamtot33(iky, ikx,:)
+         end if
+
+      end if
+
+      if (fapar > epsilon(0.0)) then
+         ! Check we don't have adiabatic species, or radial_variation, or
+         ! ky_solve_radial (unsure what ky_solve_radial means so playing safe.)
+         has_elec = has_electron_species(spec)
+         adia_elec = .not. has_elec &
+                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+         if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
+            call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
+         end if
+
+         ! Check if dist="gbar". If not, abort.
+         if (.not. dist == "gbar") then
+            call mp_abort("Only gbar supported for fapar!=0. Aborting")
+         end if
+
+         ! Get apar. The formula is
+         !    apar = antot2/apar_denom
+         ! where
+         !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
+
+         ! gyroaverage the distribution function g at each phase space location
+         call gyro_average(g, iky, ikx, g_gyro)
+
+         ! Multiply g_gyro by vpa
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv = iv_idx(vmu_lo, ivmu)
+            ! To save memory, save temporary variable in antot3
+            g_gyro(:, ivmu) = g_gyro(:, ivmu) * vpa(iv)
+         end do
+
+         ! Sum species, integrate over velocity and store in apar
+         call integrate_species(g_gyro, (beta * spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
+         apar = apar / apar_denom(iky, ikx, :)
+
+      end if
+
+      deallocate (g_gyro)
+
+   end subroutine get_fields_vmulo_1D
+
    !> get_fields_ffs accepts as input the guiding centre distribution function g
    !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    subroutine get_fields_ffs(g, phi, apar, bpar)
@@ -2015,7 +2197,7 @@ contains
             ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
             phi = phi / gamtot(iky, ikx, iz)
             ! (Taken & adapted from get_phi) What exactly is this for?
-            if (gamtot(iky, ikx, iz) < epsilon(0.)) phi = 0.0
+            if ((iky==1) .and. (ikx==1) .and. (gamtot(iky, ikx, iz) < epsilon(0.))) phi = 0.0
          end if
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
@@ -2024,7 +2206,7 @@ contains
       end if
 
       ! (Taken & adapted from get_phi) What exactly is this for?
-      if (gamtot(iky, ikx, iz) < epsilon(0.)) phi = 0.0
+      if ((iky==1) .and. (ikx==1) .and. (gamtot(iky, ikx, iz) < epsilon(0.))) phi = 0.0
 
       ! now handle adiabatic electrons if needed
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
@@ -2056,6 +2238,80 @@ contains
       end if
 
    end subroutine get_phi_0D
+
+   subroutine get_phi_1D(phi, iky, ikx, dist, skip_fsa)
+
+      use mp, only: proc0, mp_abort, job
+      use job_manage, only: time_message
+      use physics_flags, only: radial_variation
+      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use zgrid, only: nzgrid, ntubes
+      use stella_geometry, only: dl_over_b
+      use kt_grids, only: nakx, naky, zonal_mode
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
+      use species, only: spec, has_electron_species
+      use multibox, only: mb_get_phi
+      use fields_arrays, only: gamtot, gamtot3
+      use file_utils, only: runtype_option_switch, runtype_multibox
+
+      implicit none
+
+      complex, dimension(-nzgrid:), intent(in out) :: phi
+      logical, optional, intent(in) :: skip_fsa
+      complex :: tmp
+      logical :: skip_fsa_local
+      logical :: has_elec, adia_elec
+      logical :: global_quasineutrality, center_cell
+      logical :: multibox_mode
+
+      integer, intent(in) :: iky, ikx
+      character(*), intent(in) :: dist
+
+      if (debug) write (*, *) 'dist_fn::advance_stella::get_phi_1D'
+
+      skip_fsa_local = .false.
+      if (present(skip_fsa)) skip_fsa_local = skip_fsa
+
+      has_elec = has_electron_species(spec)
+      adia_elec = .not. has_elec &
+                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+
+      global_quasineutrality = radial_variation .and. ky_solve_radial > 0
+      multibox_mode = runtype_option_switch == runtype_multibox
+      center_cell = multibox_mode .and. job == 1 .and. .not. ky_solve_real
+
+      if (dist == 'h') then
+         phi = phi / gamtot_h
+      else if (dist == 'gbar') then
+         if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
+            call mp_abort("global_quasineutrality not currently supported for 0D field calculations. Aborting")
+            !call get_phi_radial(phi)
+         else if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
+            call mp_abort("global_quasineutrality not currently supported for 0D field calculations. Aborting")
+            !call mb_get_phi(phi, has_elec, adia_elec)
+         else
+            ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
+            phi = phi / gamtot(iky, ikx, :)
+            ! (Taken & adapted from get_phi) What exactly is this for?
+            if ((iky==1) .and. (ikx==1) .and. any(gamtot(iky, ikx, :) < epsilon(0.))) phi = 0.0
+         end if
+      else
+         if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
+         call mp_abort('unknown dist option in get_fields. aborting')
+         return
+      end if
+
+      ! (Taken & adapted from get_phi) What exactly is this for?
+      if ((iky==1) .and. (ikx==1) .and. any(gamtot(iky, ikx, :) < epsilon(0.))) phi = 0.0
+
+      ! now handle adiabatic electrons if needed
+      if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
+      if (adia_elec .and. zonal_mode(1) .and. .not. skip_fsa_local) then
+         call mp_abort("adia_elec not currently supported in 1D field solve. Aborting")
+      end if
+
+   end subroutine get_phi_1D
 
    !> Non-perturbative approach to solving quasineutrality for radially
    !> global simulations
