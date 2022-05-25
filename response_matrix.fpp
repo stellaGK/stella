@@ -1113,7 +1113,7 @@ contains
          ! idx = idx + 1
       call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
       ! Put phi, apar, bpar into fields_ext
-         ! fields_ext(idx) = phi
+      ! fields_ext(idx) = phi
       ! end do
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
@@ -1123,7 +1123,7 @@ contains
                ! idx = idx + 1
             call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
             ! Put phi, apar, bpar into fields_ext
-               ! fields_ext(idx) = phi
+            ! fields_ext(idx) = phi
             ! end do
          end do
       end if
