@@ -572,7 +572,7 @@ contains
       complex, dimension(:, :), allocatable :: gext
 
       allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      allocate (field_ext(nz_ext))
+      allocate (field_ext(nresponse))
 
       ! idx is the index in the extended zed domain
       ! that we are giving a unit impulse
@@ -605,13 +605,13 @@ contains
          ! negative sign because matrix to be inverted in streaming equation
          ! is identity matrix - response matrix
          ! add in contribution from identity matrix
-         field_ext(idx) = field_ext(idx) - 1.0
+         field_ext(matrix_idx) = field_ext(matrix_idx) - 1.0
          ! We have memory errors writing to response_matrix (seg fault
          ! heisenbugs), which disappear if we add the if (sgproc0) statement
 #ifdef ISO_C_BINDING
-         if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+         if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext
 #else
-         response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+         response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext
 #endif
       end do
       ! once we have used one segments, remaining segments
@@ -630,11 +630,11 @@ contains
                ! negative sign because matrix to be inverted in streaming equation
                ! is identity matrix - response matrix
                ! add in contribution from identity matrix
-               field_ext(idx) = field_ext(idx) - 1.0
+               field_ext(matrix_idx) = field_ext(matrix_idx) - 1.0
 #ifdef ISO_C_BINDING
-               if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+               if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext
 #else
-               response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext(:nresponse)
+               response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext
 #endif
             end do
          end do
@@ -1082,7 +1082,8 @@ contains
       use fields_arrays, only: gamtot, gamtot3
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
-      use fields, only: get_fields_vmulo_0D
+      use fields, only: get_fields_vmulo_1D
+      use run_parameters, only: fphi, fapar, fbpar
 
       implicit none
 
@@ -1090,13 +1091,12 @@ contains
       complex, dimension(:), intent(out) :: fields_ext
       integer, intent(in) :: iky, ie
 
-      integer :: idx, iseg, ikx, iz, ia
+      integer :: idx, iseg, ikx, ia
       integer :: izl_offset
       complex :: tmp, phi, apar, bpar
 
+      fields_ext = 0.
       ia = 1
-      ! Need to replace this with field calculation involving gext.
-      ! Can we just use advance_fields?
       idx = 0; izl_offset = 0
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
@@ -1104,22 +1104,22 @@ contains
          fields_ext(:) = 0.0
          return
       end if
-      do iz = iz_low(iseg), iz_up(iseg)
-         idx = idx + 1
-         call get_fields_vmulo_0D(gext(idx, :), iky, ikx, iz, phi, apar, bpar, "gbar")
-         ! Put phi, apar, bpar into fields_ext
-         fields_ext(idx) = phi
-      end do
+      ! do iz = iz_low(iseg), iz_up(iseg)
+         ! idx = idx + 1
+      call get_fields_vmulo_1D(gext(idx, iz_low(iseg):iz_up(iseg)), iky, ikx, phi, apar, bpar, "gbar")
+      ! Put phi, apar, bpar into fields_ext
+         ! fields_ext(idx) = phi
+      ! end do
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               idx = idx + 1
-               call get_fields_vmulo_0D(gext(idx, :), iky, ikx, iz, phi, apar, bpar, "gbar")
-               ! Put phi, apar, bpar into fields_ext
-               fields_ext(idx) = phi
-            end do
+            ! do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+               ! idx = idx + 1
+            call get_fields_vmulo_1D(gext(idx, iz_low(iseg):iz_up(iseg)), iky, ikx, phi, apar, bpar, "gbar")
+            ! Put phi, apar, bpar into fields_ext
+               ! fields_ext(idx) = phi
+            ! end do
          end do
       end if
 
