@@ -522,8 +522,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2528,6 +2528,8 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
+      use vpamu_grids, only: vpa, mu
+      use run_parameters, only: fphi, fapar, fbpar
 
       implicit none
 
@@ -2535,8 +2537,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: chi
       integer, intent(in) :: ivmu
 
-      write (*, *) "Not currently supported!"
-      stop "Stopping"
+      chi = fphi * phi - fapar * 2 * vpa(iv) * spec(is)%stm * apar + fbpar * 4 * mu(imu) * (spec(is)%tz) * bpar
 
    end subroutine get_chi
 

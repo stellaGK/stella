@@ -585,22 +585,27 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: ivmu
-      complex, dimension(:, :, :, :), allocatable :: phi1
+      complex, dimension(:, :, :, :), allocatable :: phi1, apar1, bpar1
 
       if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
 
       allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (apar1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (bpar1(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! save the incoming g and phi, as they will be needed later
       g1 = g
       phi1 = phi
+      apar1 = apar
+      bpar1 = bpar
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! obtain RHS of inhomogeneous GK eqn;
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='inhomogeneous')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, apar1, apar, &
+                          bpar1, bpar, g(:, :, :, :, ivmu), eqn='inhomogeneous')
 
          if (stream_matrix_inversion) then
             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
@@ -614,12 +619,14 @@ contains
       fields_updated = .false.
 
       ! we now have g_{inh}^{n+1}
-      ! calculate associated fields (phi_{inh}^{n+1})
+      ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1}, bpar_{inh}^{n+1})
       call advance_fields(g, phi, apar, bpar, dist='gbar')
 
-      ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-      ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
-      call invert_parstream_response(phi)
+      ! solve response_matrix*fields^{n+1} = fields_{inh}^{n+1}
+      ! where fields=(phi,apar,bpar)
+      ! phi,apar,bpar = phi,apar,bpar{inh}^{n+1} is input and overwritten by phi,apar,bpar = phi,apar,bpar^{n+1}
+      call invert_parstream_response(phi, apar, bpar)
+
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! now have phi^{n+1} for non-negative kx
@@ -627,7 +634,8 @@ contains
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='full')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, apar1, apar, &
+                          bpar1, bpar, g(:, :, :, :, ivmu), eqn='full')
 
          if (stream_matrix_inversion) then
             ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
@@ -639,12 +647,14 @@ contains
       end do
 
       deallocate (phi1)
+      deallocate (apar1)
+      deallocate (bpar1)
 
       if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
 
-   subroutine get_gke_rhs(ivmu, gold, phiold, phi, g, eqn)
+   subroutine get_gke_rhs(ivmu, gold, phiold, phi, aparold, apar, bparold, bpar, g, eqn)
 
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
@@ -653,6 +663,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use kt_grids, only: naky, nakx
       use gyro_averages, only: gyro_average
+      use fields, only: get_gyroaverage_chi, get_chi
       use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use stella_geometry, only: dbdzed
@@ -667,6 +678,8 @@ contains
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: aparold, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bparold, bpar
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
       character(*), intent(in) :: eqn
 
@@ -674,13 +687,13 @@ contains
       real :: tupwnd1, tupwnd2, fac
       real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
-      complex, dimension(:, :, :, :), allocatable :: dgdz, dphidz
-      complex, dimension(:, :, :, :), allocatable :: field
+      complex, dimension(:, :, :, :), allocatable :: dgdz, dchidz
+      complex, dimension(:, :, :, :), allocatable :: field, gyro_chi, gyro_chiold
 
       allocate (vpadf0dE_fac(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
       allocate (dgdz(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dphidz(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dchidz(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ia = 1
 
@@ -705,37 +718,44 @@ contains
       ! as this was calculated previously
       call get_dzed(iv, gold, dgdz)
 
-      allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
-      ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
-      field = tupwnd1 * phiold + tupwnd2 * phi
-      ! set g to be phi or <phi> depending on whether parallel streaming is
+      allocate (chiold(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (chi(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+      ! set g to be chi or <chi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
-         g = field
+        call get_chi(ivmu, phi, apar, bpar, chi)
+        call get_chi(ivmu, phiold, aparold, bpar, chiold)
       else
-         call gyro_average(field, ivmu, g)
+        call get_gyroaverage_chi(ivmu, phi, apar, bpar, chi)
+        call get_gyroaverage_chi(ivmu, phiold, aparold, bpar, chiold)
       end if
-      deallocate (field)
+
+       ! get <chi> = (1+alph)/2*<chi^{n+1}> + (1-alph)/2*<chi^{n}>
+      g = tupwnd1 * chiold + tupwnd2 * chi
+
+      deallocate (chi)
+      deallocate (chiold)
 
       if (maxwellian_inside_zed_derivative) then
-         ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
+         ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dchidz
          g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-         call get_dzed(iv, g, dphidz)
+         call get_dzed(iv, g, dchidz)
          ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
          g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
          call center_zed(iv, g)
          ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
          ! = d<phi>/dz * exp(-mu*B/T)
-         dphidz = dphidz + 2.0 * mu(imu) * g
+         dchidz = dchidz + 2.0 * mu(imu) * g
       else
-         ! obtain d<phi>/dz and store in dphidz
-         call get_dzed(iv, g, dphidz)
+         ! obtain d<phi>/dz and store in dchidz
+         call get_dzed(iv, g, dchidz)
          ! center Maxwellian factor in mu
          ! and store in dummy variable gp
          gp = maxwell_mu(ia, :, imu, is)
          call center_zed_midpoint(iv, gp)
          ! multiply by Maxwellian factor
-         dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
+         dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
 
       ! NB: could do this once at beginning of simulation to speed things up
@@ -764,11 +784,11 @@ contains
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) &
-                          * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dphidz(:, :, iz, :))
+                          * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dchidz(:, :, iz, :))
       end do
 
       deallocate (vpadf0dE_fac, gp)
-      deallocate (dgdz, dphidz)
+      deallocate (dgdz, dchidz)
 
    end subroutine get_gke_rhs
 
@@ -994,7 +1014,7 @@ contains
 
    end subroutine sweep_zed_zonal
 
-   subroutine invert_parstream_response(phi)
+   subroutine invert_parstream_response(phi, apar, bpar)
 
       use linear_solve, only: lu_back_substitution
       use zgrid, only: nzgrid, ntubes
@@ -1010,7 +1030,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: iky, ie, it, ulim
       integer :: ikx
@@ -1023,6 +1043,8 @@ contains
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   ikx = ikxmod(1, ie, iky)
+                  ! put all the fields into a single field: fields=(phi,apar,bpar)
+
                   call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
                                             response_matrix(iky)%eigen(ie)%idx, phi(iky, ikx, :nzgrid - 1, it))
                   phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
