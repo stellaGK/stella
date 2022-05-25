@@ -509,8 +509,13 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
+<<<<<<< HEAD
          total = total + &
                  wgts_mu(ia, :, imu) * wgts_vpa(iv) * g(:,ivmu) * weights(is)
+=======
+         total(:) = total(:) + &
+                    wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, ivmu) * weights(is)
+>>>>>>> 3fddbab31f3a4aa12dd1e5265674b9079247086a
       end do
 
       if (reduce) call sum_allreduce(total)
