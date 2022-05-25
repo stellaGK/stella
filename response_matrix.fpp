@@ -1079,6 +1079,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use kt_grids, only: zonal_mode, akx
+      use zgrid, only: nzgrid
       use fields_arrays, only: gamtot, gamtot3
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
