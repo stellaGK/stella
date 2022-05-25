@@ -627,7 +627,6 @@ contains
       ! phi,apar,bpar = phi,apar,bpar{inh}^{n+1} is input and overwritten by phi,apar,bpar = phi,apar,bpar^{n+1}
       call invert_parstream_response(phi, apar, bpar)
 
-
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! now have phi^{n+1} for non-negative kx
          ! obtain RHS of GK eqn;
@@ -724,14 +723,14 @@ contains
       ! set g to be chi or <chi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
-        call get_chi(ivmu, phi, apar, bpar, chi)
-        call get_chi(ivmu, phiold, aparold, bpar, chiold)
+         call get_chi(ivmu, phi, apar, bpar, chi)
+         call get_chi(ivmu, phiold, aparold, bpar, chiold)
       else
-        call get_gyroaverage_chi(ivmu, phi, apar, bpar, chi)
-        call get_gyroaverage_chi(ivmu, phiold, aparold, bpar, chiold)
+         call get_gyroaverage_chi(ivmu, phi, apar, bpar, chi)
+         call get_gyroaverage_chi(ivmu, phiold, aparold, bpar, chiold)
       end if
 
-       ! get <chi> = (1+alph)/2*<chi^{n+1}> + (1-alph)/2*<chi^{n}>
+      ! get <chi> = (1+alph)/2*<chi^{n+1}> + (1-alph)/2*<chi^{n}>
       g = tupwnd1 * chiold + tupwnd2 * chi
 
       deallocate (chi)
