@@ -1598,7 +1598,7 @@ contains
 
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, iv, imu
-      complex, dimension(:) :: antot1, antot3
+      complex, dimension(:), allocatable :: antot1, antot3
       complex, dimension(:, :), allocatable :: g_gyro
 
       skip_fsa_local = .false.
@@ -1747,7 +1747,7 @@ contains
       deallocate (g_gyro)
       deallocate (antot1)
       deallocate (antot3)
-      
+
    end subroutine get_fields_vmulo_1D
 
    !> get_fields_ffs accepts as input the guiding centre distribution function g
