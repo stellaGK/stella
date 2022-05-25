@@ -2528,7 +2528,7 @@ contains
    end subroutine get_radial_correction
 
    !> (Placeholder) Takes the fields and returns chi
-   subroutine get_chi_4d(phi, apar, bpar, ivmu, chi)
+   subroutine get_chi_4d(ivmu, phi, apar, bpar, chi)
 
       use species, only: spec
       use stella_layouts, only: vmu_lo
