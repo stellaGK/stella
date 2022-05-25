@@ -1093,7 +1093,7 @@ contains
 
       integer :: idx, iseg, ikx, ia
       integer :: izl_offset
-      complex :: tmp,
+      complex :: tmp
       complex, dimension(:), allocatable :: phi, apar, bpar
 
       allocate(phi(-nzgrid:nzgrid))
@@ -1142,7 +1142,7 @@ contains
       deallocate(phi)
       deallocate(apar)
       deallocate(bpar)
-      
+
    end subroutine get_fields_for_response_matrix
 
    subroutine finish_response_matrix
