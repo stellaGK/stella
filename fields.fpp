@@ -2527,7 +2527,8 @@ contains
 
       use species, only: spec
       use stella_layouts, only: vmu_lo
-      use zgrid, only: nzgrid, ntubes
+      use stella_layouts, only: imu_idx, is_idx, iv_idx
+      use zgrid, only: nzgrid
       use kt_grids, only: naky, nakx
       use vpamu_grids, only: vpa, mu
       use run_parameters, only: fphi, fapar, fbpar
