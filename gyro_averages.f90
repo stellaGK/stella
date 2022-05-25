@@ -8,7 +8,7 @@ module gyro_averages
    public :: gyro_average_j1
    public :: j0_B_maxwell_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
-
+   public :: gyro_average_vmus_nonlocal_1d, gyro_average_j1_vmus_nonlocal_1d
    private
 
    interface gyro_average
@@ -17,7 +17,9 @@ module gyro_averages
       module procedure gyro_average_kxkyzv_local
       module procedure gyro_average_vmu_local
       module procedure gyro_average_vmus_nonlocal
-      module procedure gyro_average_vmus_nonlocal_1d
+      ! This procedure is indistinguishable from gyro_average_kxky_local,
+      ! so we can't have it in here.
+      ! module procedure gyro_average_vmus_nonlocal_1d
       module procedure gyro_average_ffs_kxky_local
       module procedure gyro_average_ffs_kxkyz_local
       module procedure gyro_average_ffs
@@ -28,7 +30,9 @@ module gyro_averages
       module procedure gyro_average_j1_kxkyz_local
       module procedure gyro_average_j1_vmu_local
       module procedure gyro_average_j1_vmus_nonlocal
-      module procedure gyro_average_j1_vmus_nonlocal_1d
+      ! This procedure is indistinguishable from gyro_average_j1_kxky_local, 
+      ! so we can't have it in here.
+      ! module procedure gyro_average_j1_vmus_nonlocal_1d
    end interface
 
    real, dimension(:, :, :, :), allocatable :: aj0x, aj1x
@@ -840,7 +844,7 @@ contains
       integer, intent(in) :: iky, ikx
       complex, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out) :: gyro_field
 
-      gyro_field = aj1x(iky, ikx, iz, :) * field
+      gyro_field = aj1x(iky, ikx, :, :) * field
 
    end subroutine gyro_average_j1_vmus_nonlocal_1d
 
