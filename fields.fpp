@@ -522,8 +522,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2526,6 +2526,7 @@ contains
    subroutine get_chi(phi, apar, bpar, ivmu, chi)
 
       use species, only: spec
+      use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use vpamu_grids, only: vpa, mu
@@ -2538,7 +2539,7 @@ contains
       integer, intent(in) :: ivmu
 
       integer :: is, imu, iv
-      
+
       is = is_idx(vmu_lo, ivmu)
       imu = imu_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
