@@ -1092,7 +1092,7 @@ contains
       complex, dimension(:), intent(out) :: fields_ext
       integer, intent(in) :: iky, ie, nresponse_per_field
 
-      integer :: idx, iseg, ikx, ia, ifield
+      integer :: phi_idx, apar_idx, bpar_idx, iseg, ikx, ia, ifield, iz
       integer :: izl_offset
       complex :: tmp
       complex, dimension(:), allocatable :: phi, apar, bpar
@@ -1103,31 +1103,39 @@ contains
 
       fields_ext = 0.
       ia = 1
-      idx = 0; izl_offset = 0
+      izl_offset = 0
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
       if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
          fields_ext(:) = 0.0
          return
       end if
-      ! do iz = iz_low(iseg), iz_up(iseg)
-      ! idx = idx + 1
       call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg), :), iky, ikx, phi, apar, bpar, "gbar")
       ! Put phi, apar, bpar into fields_ext
       ifield = 0
       if (fphi > epsilon(0.)) then
-         fields_ext((ifield * nresponse_per_field + iz_low(iseg)): &
-                    (ifield * nresponse_per_field + iz_up(iseg))) = phi(:)
+         phi_idx = ifield * nresponse_per_field + 1
+         do iz = iz_low(iseg), iz_up(iseg)
+            fields_ext(phi_idx) = phi(iz)
+            phi_idx = phi_idx + 1
+         end do
          ifield = ifield + 1
       end if
       if (fapar > epsilon(0.)) then
-         fields_ext((ifield * nresponse_per_field + iz_low(iseg)): &
-                    (ifield * nresponse_per_field + iz_up(iseg))) = apar(:)
+         apar_idx = ifield * nresponse_per_field + 1
+         do iz = iz_low(iseg), iz_up(iseg)
+            fields_ext(apar_idx) = apar(iz)
+            apar_idx = apar_idx + 1
+         end do
          ifield = ifield + 1
       end if
       if (fbpar > epsilon(0.)) then
-         fields_ext((ifield * nresponse_per_field + iz_low(iseg)): &
-                    (ifield * nresponse_per_field + iz_up(iseg))) = bpar(:)
+         bpar_idx = ifield * nresponse_per_field + 1
+         do iz = iz_low(iseg), iz_up(iseg)
+            fields_ext(bpar_idx) = bpar(iz)
+            bpar_idx = bpar_idx + 1
+         end do
+
       end if
       ! fields_ext(idx) = phi
       ! end do
@@ -1140,19 +1148,22 @@ contains
             call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg), :), iky, ikx, phi, apar, bpar, "gbar")
             ifield = 0
             if (fphi > epsilon(0.)) then
-               fields_ext((ifield * nresponse_per_field + iz_low(iseg) + izl_offset): &
-                          (ifield * nresponse_per_field + iz_up(iseg))) = phi(izl_offset:)
-               ifield = ifield + 1
+               do iz = iz_low(iseg)_izl_offset, iz_up(iseg)
+                  fields_ext(phi_idx) = phi(iz)
+                  phi_idx = phi_idx + 1
+               end do
             end if
             if (fapar > epsilon(0.)) then
-               fields_ext((ifield * nresponse_per_field + iz_low(iseg) + izl_offset): &
-                          (ifield * nresponse_per_field + iz_up(iseg))) = apar(izl_offset:)
-               ifield = ifield + 1
+               do iz = iz_low(iseg)_izl_offset, iz_up(iseg)
+                  fields_ext(apar_idx) = apar(iz)
+                  apar_idx = apar_idx + 1
+               end do
             end if
             if (fbpar > epsilon(0.)) then
-               fields_ext((ifield * nresponse_per_field + iz_low(iseg) + izl_offset): &
-                          (ifield * nresponse_per_field + iz_up(iseg))) = bpar(izl_offset:)
-               ifield = ifield + 1
+               do iz = iz_low(iseg)_izl_offset, iz_up(iseg)
+                  fields_ext(bpar_idx) = bpar(iz)
+                  bpar_idx = bpar_idx + 1
+               end do
             end if
          end do
       end if
