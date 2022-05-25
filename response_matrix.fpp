@@ -237,7 +237,15 @@ contains
             ! the corresponding g_h and the fields f_h arising from this g_h.
             ! Populate the matrix_idx'th column with I-f_h.
             ! Begin with phi.
-            call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "phi")
+            if (fphi > epsilon(0.) ) then
+               call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "phi")
+            end if
+            if (fapar > epsilon(0.) ) then
+               call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "apar")
+            end if
+            if (fbpar > epsilon(0.) ) then
+               call populate_matrix_columns(iky, ie, nz_ext, nresponse, matrix_idx, "bpar")
+            end if
          end do
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, window, ierr)
@@ -635,8 +643,11 @@ contains
 
    end subroutine populate_matrix_columns
 
+   !> Apply a unit impulse in a field (phi, apar, or bpar) at time {n+1} at a
+   !> single iz location. Get the corresponding value g_h at every z value.
    subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
 
+      use mp, only : mp_abort
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
@@ -647,7 +658,7 @@ contains
       use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use fields_arrays, only: response_matrix
-      use gyro_averages, only: aj0x
+      use gyro_averages, only: aj0x, aj1x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
       use parallel_streaming, only: stream_tridiagonal_solve
@@ -663,7 +674,7 @@ contains
       integer :: ivmu, iv, imu, is, ia
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
-      real :: fac, fac0, fac1, gyro_fac
+      real :: fac, fac0, fac1, gyro_chi
 
       ia = 1
 
@@ -683,14 +694,26 @@ contains
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
             if (driftkinetic_implicit) then
-               gyro_fac = 1.0
+               if (field == "phi") then
+                  gyro_chi = 1.0
+               else
+                  call mp_abort("driftkinetic_implicit not currently supported for field!=phi. Aborting")
+               end if
             else
-               gyro_fac = aj0x(iky, ikx, iz, ivmu)
+               if (field == "phi") then
+                  gyro_chi = aj0x(iky, ikx, iz, ivmu)
+               else if (field == "apar") then
+                  gyro_chi = -2 * spec(is)%stm * vpa(iv) * aj0x(iky, ikx, iz, ivmu)
+               else if (field == "bpar") then
+                  gyro_chi = 4 * mu(imu) * (spec(is)%tz) * aj1x(iky, ikx, iz, ivmu)
+               else
+                  call mp_abort("field not recognised, aborting")
+               end if
             end if
 
             ! 0.125 to account for two linear interpolations
             fac = -0.125 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
+                  * gyro_chi * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
 
             ! In the following, gradpar and maxwell_mu are interpolated separately
             ! to ensure consistency to what is done in parallel_streaming.f90
@@ -811,13 +834,25 @@ contains
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
             if (driftkinetic_implicit) then
-               gyro_fac = 1.0
+               if (field == "phi") then
+                  gyro_chi = 1.0
+               else
+                  call mp_abort("driftkinetic_implicit not currently supported for field!=phi. Aborting")
+               end if
             else
-               gyro_fac = aj0x(iky, ikx, iz, ivmu)
+               if (field == "phi") then
+                  gyro_chi = aj0x(iky, ikx, iz, ivmu)
+               else if (field == "apar") then
+                  gyro_chi = -2 * spec(is)%stm * vpa(iv) * aj0x(iky, ikx, iz, ivmu)
+               else if (field == "bpar") then
+                  gyro_chi = 4 * mu(imu) * (spec(is)%tz) * aj1x(iky, ikx, iz, ivmu)
+               else
+                  call mp_abort("field not recognised, aborting")
+               end if
             end if
 
             fac = -0.25 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  * gyro_chi * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
             mu_dbdzed_p = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.+zed_upwind)
             mu_dbdzed_m = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.-zed_upwind)
