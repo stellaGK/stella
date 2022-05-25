@@ -94,6 +94,7 @@ contains
       use mp, only: proc0, job, mp_abort
       use run_parameters, only: mat_gen, lu_option_switch
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+      use run_parameters, only: fphi, fapar, fbpar
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
