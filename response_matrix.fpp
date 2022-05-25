@@ -1116,18 +1116,18 @@ contains
       ! Put phi, apar, bpar into fields_ext
       ifield = 0
       if (fphi > epsilon(0.)) then
-         fields_ext((ifield*nresponse_per_field + iz_low(iseg)): &
-                    (ifield*nresponse_per_field + iz_up(iseg))) = phi(:)
+         fields_ext((ifield * nresponse_per_field + iz_low(iseg)): &
+                    (ifield * nresponse_per_field + iz_up(iseg))) = phi(:)
          ifield = ifield + 1
       end if
       if (fapar > epsilon(0.)) then
-         fields_ext((ifield*nresponse_per_field + iz_low(iseg)): &
-                    (ifield*nresponse_per_field + iz_up(iseg))) = apar(:)
+         fields_ext((ifield * nresponse_per_field + iz_low(iseg)): &
+                    (ifield * nresponse_per_field + iz_up(iseg))) = apar(:)
          ifield = ifield + 1
       end if
       if (fbpar > epsilon(0.)) then
-         fields_ext((ifield*nresponse_per_field + iz_low(iseg)): &
-                    (ifield*nresponse_per_field + iz_up(iseg))) = bpar(:)
+         fields_ext((ifield * nresponse_per_field + iz_low(iseg)): &
+                    (ifield * nresponse_per_field + iz_up(iseg))) = bpar(:)
       end if
       ! fields_ext(idx) = phi
       ! end do
@@ -1136,22 +1136,22 @@ contains
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             ! do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               ! idx = idx + 1
-            call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
+            ! idx = idx + 1
+            call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg), :), iky, ikx, phi, apar, bpar, "gbar")
             ifield = 0
             if (fphi > epsilon(0.)) then
-               fields_ext((ifield*nresponse_per_field + iz_low(iseg) + izl_offset): &
-                          (ifield*nresponse_per_field + iz_up(iseg))) = phi(izl_offset:)
+               fields_ext((ifield * nresponse_per_field + iz_low(iseg) + izl_offset): &
+                          (ifield * nresponse_per_field + iz_up(iseg))) = phi(izl_offset:)
                ifield = ifield + 1
             end if
             if (fapar > epsilon(0.)) then
-               fields_ext((ifield*nresponse_per_field + iz_low(iseg) + izl_offset): &
-                          (ifield*nresponse_per_field + iz_up(iseg))) = apar(izl_offset:)
+               fields_ext((ifield * nresponse_per_field + iz_low(iseg) + izl_offset): &
+                          (ifield * nresponse_per_field + iz_up(iseg))) = apar(izl_offset:)
                ifield = ifield + 1
             end if
             if (fbpar > epsilon(0.)) then
-               fields_ext((ifield*nresponse_per_field + iz_low(iseg) + izl_offset): &
-                          (ifield*nresponse_per_field + iz_up(iseg))) = bpar(izl_offset:)
+               fields_ext((ifield * nresponse_per_field + iz_low(iseg) + izl_offset): &
+                          (ifield * nresponse_per_field + iz_up(iseg))) = bpar(izl_offset:)
                ifield = ifield + 1
             end if
          end do
