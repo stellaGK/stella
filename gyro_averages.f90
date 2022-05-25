@@ -833,7 +833,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
-      
+
       implicit none
 
       complex, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: field

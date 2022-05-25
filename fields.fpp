@@ -1599,7 +1599,7 @@ contains
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, iv, imu
       complex :: antot1, antot3
-      complex, dimension(:,:), allocatable :: g_gyro
+      complex, dimension(:, :), allocatable :: g_gyro
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1610,7 +1610,7 @@ contains
       apar = 0.
       bpar = 0.
 
-      allocate (g_gyro(-nzgrid:,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (g_gyro(-nzgrid:, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       ! If fbpar=0, the calculation for phi using get_phi works fine. If fbpar!=0, then
       ! (1) we need to perform additional integrals over g (see below), and
@@ -1676,7 +1676,7 @@ contains
             call gyro_average_j1(g, iky, ikx, g_gyro)
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                imu = imu_idx(vmu_lo, ivmu)
-               g_gyro(:,ivmu) = g_gyro(:,ivmu) * mu(imu)
+               g_gyro(:, ivmu) = g_gyro(:, ivmu) * mu(imu)
             end do
 
             ! Get antot3 by integrating gyro_g over velocity space and sum over
@@ -1702,7 +1702,7 @@ contains
 
             ! Sum species, integrate over velocity and store in bpar
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
-            bpar = bpar / gamtot33(iky, ikx,:)
+            bpar = bpar / gamtot33(iky, ikx, :)
          end if
 
       end if
@@ -2197,7 +2197,7 @@ contains
             ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
             phi = phi / gamtot(iky, ikx, iz)
             ! (Taken & adapted from get_phi) What exactly is this for?
-            if ((iky==1) .and. (ikx==1) .and. (gamtot(iky, ikx, iz) < epsilon(0.))) phi = 0.0
+            if ((iky == 1) .and. (ikx == 1) .and. (gamtot(iky, ikx, iz) < epsilon(0.))) phi = 0.0
          end if
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
@@ -2206,7 +2206,7 @@ contains
       end if
 
       ! (Taken & adapted from get_phi) What exactly is this for?
-      if ((iky==1) .and. (ikx==1) .and. (gamtot(iky, ikx, iz) < epsilon(0.))) phi = 0.0
+      if ((iky == 1) .and. (ikx == 1) .and. (gamtot(iky, ikx, iz) < epsilon(0.))) phi = 0.0
 
       ! now handle adiabatic electrons if needed
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
@@ -2294,7 +2294,7 @@ contains
             ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
             phi = phi / gamtot(iky, ikx, :)
             ! (Taken & adapted from get_phi) What exactly is this for?
-            if ((iky==1) .and. (ikx==1) .and. any(gamtot(iky, ikx, :) < epsilon(0.))) phi = 0.0
+            if ((iky == 1) .and. (ikx == 1) .and. any(gamtot(iky, ikx, :) < epsilon(0.))) phi = 0.0
          end if
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
@@ -2303,7 +2303,7 @@ contains
       end if
 
       ! (Taken & adapted from get_phi) What exactly is this for?
-      if ((iky==1) .and. (ikx==1) .and. any(gamtot(iky, ikx, :) < epsilon(0.))) phi = 0.0
+      if ((iky == 1) .and. (ikx == 1) .and. any(gamtot(iky, ikx, :) < epsilon(0.))) phi = 0.0
 
       ! now handle adiabatic electrons if needed
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
