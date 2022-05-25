@@ -1093,7 +1093,12 @@ contains
 
       integer :: idx, iseg, ikx, ia
       integer :: izl_offset
-      complex :: tmp, phi, apar, bpar
+      complex :: tmp,
+      complex, dimension(:), allocatable :: phi, apar, bpar
+
+      allocate(phi(-nzgrid:nzgrid))
+      allocate(apar(-nzgrid:nzgrid))
+      allocate(bpar(-nzgrid:nzgrid))
 
       fields_ext = 0.
       ia = 1
@@ -1106,7 +1111,7 @@ contains
       end if
       ! do iz = iz_low(iseg), iz_up(iseg)
          ! idx = idx + 1
-      call get_fields_vmulo_1D(gext(idx, iz_low(iseg):iz_up(iseg)), iky, ikx, phi, apar, bpar, "gbar")
+      call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
       ! Put phi, apar, bpar into fields_ext
          ! fields_ext(idx) = phi
       ! end do
@@ -1116,7 +1121,7 @@ contains
             ikx = ikxmod(iseg, ie, iky)
             ! do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                ! idx = idx + 1
-            call get_fields_vmulo_1D(gext(idx, iz_low(iseg):iz_up(iseg)), iky, ikx, phi, apar, bpar, "gbar")
+            call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg),:), iky, ikx, phi, apar, bpar, "gbar")
             ! Put phi, apar, bpar into fields_ext
                ! fields_ext(idx) = phi
             ! end do
@@ -1134,6 +1139,10 @@ contains
       !    end if
       ! end if
 
+      deallocate(phi)
+      deallocate(apar)
+      deallocate(bpar)
+      
    end subroutine get_fields_for_response_matrix
 
    subroutine finish_response_matrix
