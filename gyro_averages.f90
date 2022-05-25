@@ -30,7 +30,7 @@ module gyro_averages
       module procedure gyro_average_j1_kxkyz_local
       module procedure gyro_average_j1_vmu_local
       module procedure gyro_average_j1_vmus_nonlocal
-      ! This procedure is indistinguishable from gyro_average_j1_kxky_local, 
+      ! This procedure is indistinguishable from gyro_average_j1_kxky_local,
       ! so we can't have it in here.
       ! module procedure gyro_average_j1_vmus_nonlocal_1d
    end interface
