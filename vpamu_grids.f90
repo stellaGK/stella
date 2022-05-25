@@ -509,13 +509,13 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         total(:) = total(:) + &
-                 wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:,ivmu) * weights(is)
+         total = total + &
+                 wgts_mu(ia, :, imu) * wgts_vpa(iv) * g(:,ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(total)
 
-   end subroutine integrate_species_vmu_single_1d
+   end subroutine integrate_species_vmu_1d
 
    ! integrave over v-space and sum over species for given (ky,kx,z) point
    subroutine integrate_species_vmu_single_real(g, iz, weights, total, ia_in, reduce_in)
