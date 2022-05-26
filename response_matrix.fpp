@@ -1152,12 +1152,12 @@ contains
                   apar_idx = ifield * nresponse_per_field + g_idx
                   fields_ext(apar_idx) = apar
                   ifield = ifield + 1
-              end if
-              if (fbpar > epsilon(0.)) then
+               end if
+               if (fbpar > epsilon(0.)) then
                   bpar_idx = ifield * nresponse_per_field + g_idx
                   fields_ext(bpar_idx) = bpar
                   bpar_idx = bpar_idx + 1
-              end if
+               end if
             end do
          end do
       end if
