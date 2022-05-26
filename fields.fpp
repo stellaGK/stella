@@ -527,8 +527,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1575,6 +1575,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       use gyro_averages, only: gyro_average, gyro_average_j1
+      use gyro_averages, only: gyro_average_vmus_nonlocal_1d, gyro_average_j1_vmus_nonlocal_1d
       use run_parameters, only: fphi, fapar, fbpar
       use run_parameters, only: ky_solve_radial
       use physics_flags, only: radial_variation
@@ -1621,7 +1622,7 @@ contains
          if (fphi > epsilon(0.0)) then
             ! gyroaverage the distribution function g at each vmu location
             ! gyro_average_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
-            call gyro_average(g, iky, ikx, g_gyro)
+            call gyro_average_vmus_nonlocal_1d(g, iky, ikx, g_gyro)
 
             ! TO IMPLEMENT
             ! <g> requires modification if radial profile variation is included
@@ -1666,7 +1667,7 @@ contains
             antot3 = 0.
 
             ! gyroaverage the distribution function g at each phase space location
-            call gyro_average(g, iky, ikx, g_gyro)
+            call gyro_average_vmus_nonlocal_1d(g, iky, ikx, g_gyro)
 
             ! Get antot1 by integrating <g> over velocity space and sum over
             ! species, with weighting Z_s*n_s.
@@ -1674,7 +1675,7 @@ contains
             call integrate_species(g_gyro, spec%z * spec%dens_psi0, antot1)
 
             ! Now get antot3; gyro_average_j1 and multiply by mu
-            call gyro_average_j1(g, iky, ikx, g_gyro)
+            call gyro_average_j1_vmus_nonlocal_1d(g, iky, ikx, g_gyro)
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                imu = imu_idx(vmu_lo, ivmu)
                g_gyro(:, ivmu) = g_gyro(:, ivmu) * mu(imu)
@@ -1695,7 +1696,7 @@ contains
             ! where
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
             ! Save memory by storing antot3 as bpar
-            call gyro_average_j1(g, iky, ikx, g_gyro)
+            call gyro_average_j1_vmus_nonlocal_1d(g, iky, ikx, g_gyro)
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                imu = imu_idx(vmu_lo, ivmu)
                g_gyro(:, ivmu) = g_gyro(:, ivmu) * mu(imu)
@@ -1729,7 +1730,7 @@ contains
          !    beta*sum_s { (Z_s n_s v_{th,s} *integrate_vmu(vpa*g_gyro) }
 
          ! gyroaverage the distribution function g at each phase space location
-         call gyro_average(g, iky, ikx, g_gyro)
+         call gyro_average_vmus_nonlocal_1d(g, iky, ikx, g_gyro)
 
          ! Multiply g_gyro by vpa
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
