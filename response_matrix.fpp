@@ -599,6 +599,9 @@ contains
          matrix_idx = matrix_idx + 1
          call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
          ! Check - do we need do anything special fo the first seg?
+#ifdef ISO_C_BINDING
+         call mpi_win_fence(0, window, ierr)
+#endif
          call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
          ! next need to create column in response matrix from field_ext
@@ -624,6 +627,9 @@ contains
                idx = idx + 1
                matrix_idx = matrix_idx + 1
                call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
+#ifdef ISO_C_BINDING
+               call mpi_win_fence(0, window, ierr)
+#endif
                call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
                ! next need to create column in response matrix from field_ext
