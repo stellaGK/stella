@@ -1096,7 +1096,7 @@ contains
       integer :: g_idx, phi_idx, apar_idx, bpar_idx, iseg, ikx, ia, ifield, iz
       integer :: izl_offset
       complex :: tmp
-      complex, :: phi, apar, bpar
+      complex :: phi, apar, bpar
 
       ! allocate (phi(-nzgrid:nzgrid))
       ! allocate (apar(-nzgrid:nzgrid))
