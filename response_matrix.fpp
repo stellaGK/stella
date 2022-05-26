@@ -570,6 +570,10 @@ contains
       integer :: iseg, ikx, izl_offset, izup, iz, idx
       complex, dimension(:), allocatable :: field_ext
       complex, dimension(:, :), allocatable :: gext
+#ifdef ISO_C_BINDING
+      integer: ierr
+#endif
+
 
       allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (field_ext(nresponse))
