@@ -574,7 +574,6 @@ contains
       integer :: ierr
 #endif
 
-
       allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (field_ext(nresponse))
 
