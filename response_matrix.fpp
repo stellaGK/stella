@@ -571,7 +571,7 @@ contains
       complex, dimension(:), allocatable :: field_ext
       complex, dimension(:, :), allocatable :: gext
 #ifdef ISO_C_BINDING
-      integer: ierr
+      integer :: ierr
 #endif
 
 
