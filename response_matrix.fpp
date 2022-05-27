@@ -191,7 +191,7 @@ contains
                   else
                      nresponse_per_field = nsegments(ie, iky) * nzed_segment + 1
                   end if
-                  nresponse = nresponse_per_field*nfields
+                  nresponse = nresponse_per_field * nfields
                   win_size = win_size &
                              + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
                              + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
