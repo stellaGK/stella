@@ -105,7 +105,7 @@ contains
 
       implicit none
 
-      integer :: iky, ie, iseg, iz
+      integer :: iky, ie, iseg, iz, nfields
       integer :: ikx
       integer :: nz_ext, nresponse, nresponse_per_field
       integer :: idx, matrix_idx
@@ -169,6 +169,16 @@ contains
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
 !   degradation on some clusters
+
+      nfields = 0
+      if (fphi > epsilon(0.)) nfields = nfields + 1
+      if (fapar > epsilon(0.)) nfields = nfields + 1
+      if (fbpar > epsilon(0.)) nfields = nfields + 1
+
+      if (nfields == 0) then
+         call mp_abort("nfields=0 currently not supported for implicit parallel streaming. Aborting")
+      end if
+
       if (window == MPI_WIN_NULL) then
          prior_focus = curr_focus
          call scope(sharedsubprocs)
@@ -177,10 +187,11 @@ contains
             do iky = 1, naky
                do ie = 1, neigen(iky)
                   if (periodic(iky)) then
-                     nresponse = nsegments(ie, iky) * nzed_segment
+                     nresponse_per_field = nsegments(ie, iky) * nzed_segment
                   else
-                     nresponse = nsegments(ie, iky) * nzed_segment + 1
+                     nresponse_per_field = nsegments(ie, iky) * nzed_segment + 1
                   end if
+                  nresponse = nresponse_per_field*nfields
                   win_size = win_size &
                              + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
                              + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
