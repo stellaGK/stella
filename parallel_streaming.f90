@@ -1051,20 +1051,20 @@ contains
                   ! One fewer unique point for periodic modes.
                   ! nsegments = 1
                   nresponse_per_field = nzed_segment
-                  allocate (fields_ext(nresponse_per_field*nfields))
+                  allocate (fields_ext(nresponse_per_field * nfields))
                   ! put all the fields into a single field: fields_ext=(phi,apar,bpar)
                   ifield = 0
                   if (fphi > epsilon(0.)) then
                      ifield = ifield + 1
-                     fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field) = phi(iky, ikx, :nzgrid - 1, it)
+                     fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field) = phi(iky, ikx, :nzgrid - 1, it)
                   end if
                   if (fapar > epsilon(0.)) then
                      ifield = ifield + 1
-                     fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field) = apar(iky, ikx, :nzgrid - 1, it)
+                     fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field) = apar(iky, ikx, :nzgrid - 1, it)
                   end if
                   if (fbpar > epsilon(0.)) then
                      ifield = ifield + 1
-                     fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field) = bpar(iky, ikx, :nzgrid - 1, it)
+                     fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field) = bpar(iky, ikx, :nzgrid - 1, it)
                   end if
 
                   call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
@@ -1073,17 +1073,17 @@ contains
                   ifield = 0
                   if (fphi > epsilon(0.)) then
                      ifield = ifield + 1
-                     phi(iky, ikx, :nzgrid - 1, it) = fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field)
+                     phi(iky, ikx, :nzgrid - 1, it) = fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field)
                      phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
                   end if
                   if (fapar > epsilon(0.)) then
                      ifield = ifield + 1
-                     apar(iky, ikx, :nzgrid - 1, it) = fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field)
+                     apar(iky, ikx, :nzgrid - 1, it) = fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field)
                      apar(iky, ikx, nzgrid, it) = apar(iky, ikx, -nzgrid, it) / phase_shift(iky)
                   end if
                   if (fbpar > epsilon(0.)) then
                      ifield = ifield + 1
-                     bpar(iky, ikx, :nzgrid - 1, it) = fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field)
+                     bpar(iky, ikx, :nzgrid - 1, it) = fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field)
                      bpar(iky, ikx, nzgrid, it) = bpar(iky, ikx, -nzgrid, it) / phase_shift(iky)
                   end if
 
@@ -1100,17 +1100,17 @@ contains
                   if (fphi > epsilon(0.)) then
                      ifield = ifield + 1
                      call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), phi_ext, ulim)
-                     fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field) = phi_ext
+                     fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field) = phi_ext
                   end if
                   if (fapar > epsilon(0.)) then
                      ifield = ifield + 1
                      call map_to_extended_zgrid(it, ie, iky, apar(iky, :, :, :), phi_ext, ulim)
-                     fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field) = phi_ext
+                     fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field) = phi_ext
                   end if
                   if (fbpar > epsilon(0.)) then
                      ifield = ifield + 1
                      call map_to_extended_zgrid(it, ie, iky, bpar(iky, :, :, :), phi_ext, ulim)
-                     fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field) = phi_ext
+                     fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field) = phi_ext
                   end if
                   ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
                   call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
@@ -1119,17 +1119,17 @@ contains
                   ifield = 0
                   if (fphi > epsilon(0.)) then
                      ifield = ifield + 1
-                     phi_ext = fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field)
+                     phi_ext = fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field)
                      call map_from_extended_zgrid(it, ie, iky, phi_ext, phi(iky, :, :, :))
                   end if
                   if (fapar > epsilon(0.)) then
                      ifield = ifield + 1
-                     phi_ext = fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field)
+                     phi_ext = fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field)
                      call map_from_extended_zgrid(it, ie, iky, phi_ext, apar(iky, :, :, :))
                   end if
                   if (fbpar > epsilon(0.)) then
                      ifield = ifield + 1
-                     phi_ext = fields_ext((ifield-1)*nresponse_per_field+1:ifield*nresponse_per_field)
+                     phi_ext = fields_ext((ifield - 1) * nresponse_per_field + 1:ifield * nresponse_per_field)
                      call map_from_extended_zgrid(it, ie, iky, phi_ext, bpar(iky, :, :, :))
                   end if
 
