@@ -607,6 +607,10 @@ contains
 #endif
          call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
+#ifdef ISO_C_BINDING
+         call mpi_win_fence(0, window, ierr)
+#endif
+
          ! next need to create column in response matrix from field_ext
          ! negative sign because matrix to be inverted in streaming equation
          ! is identity matrix - response matrix
