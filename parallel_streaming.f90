@@ -1093,7 +1093,7 @@ contains
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
-                  nresponse_per_field = nsegments(ie, iky) * nzed_segment + 1)
+                  nresponse_per_field = nsegments(ie, iky) * nzed_segment + 1
                   allocate (fields_ext(nresponse_per_field * nfields))
                   allocate (phi_ext(nresponse_per_field))
                   ifield = 0
