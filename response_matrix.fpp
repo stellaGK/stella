@@ -229,6 +229,7 @@ contains
             call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field)
 
             ! matrix_idx is the index in the response matrix we are populating
+            ! (i.e. the column idx)
             ! for nfield > 1, we loop over the extended zed domain more than
             ! once.
             matrix_idx = 0
@@ -241,9 +242,15 @@ contains
             if (fphi > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "phi")
             end if
+#ifdef ISO_C_BINDING
+            call mpi_win_fence(0, window, ierr)
+#endif
             if (fapar > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "apar")
             end if
+#ifdef ISO_C_BINDING
+            call mpi_win_fence(0, window, ierr)
+#endif
             if (fbpar > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "bpar")
             end if
