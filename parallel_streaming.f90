@@ -1009,7 +1009,7 @@ contains
       end do
 
       ! enforce periodicity
-      g(iz2 - sgn) = g(iz1)
+      g(iz2 - sgn) = g(iz1) / pf
 
       deallocate (gpi, gcf)
 
