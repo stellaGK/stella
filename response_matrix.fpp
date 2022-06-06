@@ -1,5 +1,5 @@
 module response_matrix
-   use, intrinsic :: iso_c_binding, only: c_intptr_t 
+   use, intrinsic :: iso_c_binding, only: c_intptr_t
    use netcdf
    use mpi
 
