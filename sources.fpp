@@ -145,7 +145,7 @@ contains
          in_file = input_unit_exist("sources", dexist)
          if (dexist) read (unit=in_file, nml=sources)
 
-         if (tcorr_source_qn .lt. 0) tcorr_source_qn = tcorr_source
+         if (tcorr_source_qn < 0) tcorr_source_qn = tcorr_source
       end if
 
       ikxmax_source = min(ikxmax_source, ikx_max)
@@ -175,17 +175,17 @@ contains
 
       implicit none
 
-      if (tcorr_source .gt. 0.0) then
+      if (tcorr_source > 0.0) then
          exp_fac = exp(-code_dt / tcorr_source)
       else
          exp_fac = 0.0
-      endif
+      end if
 
-      if (tcorr_source_qn .gt. 0.0) then
+      if (tcorr_source_qn > 0.0) then
          exp_fac_qn = exp(-code_dt / tcorr_source_qn)
       else
          exp_fac_qn = 0.0
-      endif
+      end if
 
    end subroutine init_source_timeaverage
 
