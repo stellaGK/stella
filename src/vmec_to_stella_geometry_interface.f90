@@ -94,16 +94,16 @@ contains
       !*********************************************************************
 
       if (verbose) then
-          write (*,'(A)') "############################################################"
-          write (*,'(A)') "                       MAGNETIC FIELD"
-          write (*,'(A)') "############################################################"
-          write (*,*) "About to read VMEC wout file: '",trim(vmec_filename),"'."
+         write (*, '(A)') "############################################################"
+         write (*, '(A)') "                       MAGNETIC FIELD"
+         write (*, '(A)') "############################################################"
+         write (*, *) "About to read VMEC wout file: '", trim(vmec_filename), "'."
       end if
       call read_wout_file(vmec_filename, ierr, iopen)
       if (iopen /= 0) stop 'error opening wout file'
       if (ierr /= 0) stop 'error reading wout file'
       if (verbose) then
-          write (*,*) "Successfully read VMEC data from '",trim(vmec_filename),"'."
+         write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
       end if
 
       nfp = nfp_vmec
@@ -117,10 +117,10 @@ contains
       ntor = ntor_vmec
 
       if (verbose) then
-          write (*,*) " "
-          write (*,*) "  Characteristics of the magnetic field:"
-          write (*,'(A51, I1)') "      Number of field periods of the machine (nfp):"//REPEAT(' ',50),nfp
-          write (*,'(A51, L1)') "      Stellarator-asymmetric? (lasym):"//REPEAT(' ',50),lasym
+         write (*, *) " "
+         write (*, *) "  Characteristics of the magnetic field:"
+         write (*, '(A51, I1)') "      Number of field periods of the machine (nfp):"//REPEAT(' ', 50), nfp
+         write (*, '(A51, L1)') "      Stellarator-asymmetric? (lasym):"//REPEAT(' ', 50), lasym
       end if
 
       if (.not. allocated(rmnc)) then
@@ -162,15 +162,15 @@ contains
 
    end subroutine read_vmec_equilibrium
 
-   subroutine get_nominal_vmec_zeta_grid (new_zeta_min, stellarator_symmetric_BC, nzgrid, zeta_center, &
+   subroutine get_nominal_vmec_zeta_grid(new_zeta_min, stellarator_symmetric_BC, nzgrid, zeta_center, &
                                          number_of_field_periods_stella, number_of_field_periods_device, zeta)
 
       implicit none
 
       ! stellarator_symmetric_BC = true if twist_shift_option = stellarator
-      logical, intent (in) :: stellarator_symmetric_BC
+      logical, intent(in) :: stellarator_symmetric_BC
       ! new_zeta_min is the new minimum value of the parallel coordinate if dkx_over_dky != -1 selected
-      real, intent (in) :: new_zeta_min
+      real, intent(in) :: new_zeta_min
       ! 2*nzgrid+1 is the number of zeta grid points for the nominal zeta grid
       integer, intent(in) :: nzgrid
       ! The zeta domain is centered at zeta_center. Setting zeta_center = 2*pi*N/nfp for any integer N should
@@ -192,14 +192,14 @@ contains
       number_of_field_periods_device = nfp
 
       if (number_of_field_periods_stella < 0.0) &
-          number_of_field_periods_stella = number_of_field_periods_device
+         number_of_field_periods_stella = number_of_field_periods_device
 
-      if (stellarator_symmetric_BC) then 
-          number_of_field_periods_stella_new = (new_zeta_min - zeta_center)*nfp / (pi)
-          write(*,*) 'Number of field periods sampled by stella has changed from', number_of_field_periods_stella, &
-                          'to', number_of_field_periods_stella_new
-          write(*,*) 
-          number_of_field_periods_stella = number_of_field_periods_stella_new
+      if (stellarator_symmetric_BC) then
+         number_of_field_periods_stella_new = (new_zeta_min - zeta_center) * nfp / (pi)
+         write (*, *) 'Number of field periods sampled by stella has changed from', number_of_field_periods_stella, &
+            'to', number_of_field_periods_stella_new
+         write (*, *)
+         number_of_field_periods_stella = number_of_field_periods_stella_new
       end if
 
       zeta = [(zeta_center + (pi * j * number_of_field_periods_stella) / (nfp * nzgrid), j=-nzgrid, nzgrid)]
@@ -1738,31 +1738,30 @@ contains
    subroutine desired_zmin(nalpha, nzgrid, zeta, twist_shift_factor_full, dkx_over_dky, new_zeta_min)
 
       integer, intent(in) :: nzgrid, nalpha
-      integer :: location 
+      integer :: location
       real, intent(in) :: dkx_over_dky
-      real, intent(in), dimension(nalpha,-nzgrid:nzgrid) :: zeta
-      real, intent(in), dimension(nalpha,-nzgrid:nzgrid) :: twist_shift_factor_full
-        
+      real, intent(in), dimension(nalpha, -nzgrid:nzgrid) :: zeta
+      real, intent(in), dimension(nalpha, -nzgrid:nzgrid) :: twist_shift_factor_full
+
       real, intent(out) :: new_zeta_min
 
       real :: delt = 0.08
       integer :: iz
       ! Just defined for nalpha = 1. Just the positive values since the factor is antisymmetric
       do iz = -nzgrid, nzgrid
-          if ( (abs(twist_shift_factor_full(1,iz)) + delt > dkx_over_dky) .and. (abs(twist_shift_factor_full(1,iz)) - delt < dkx_over_dky) ) then
-              location = iz  
-          end if 
+         if ((abs(twist_shift_factor_full(1, iz)) + delt > dkx_over_dky) .and. (abs(twist_shift_factor_full(1, iz)) - delt < dkx_over_dky)) then
+            location = iz
+         end if
       end do
       if (location == nzgrid) then
-              write(*,*)
-              write(*,*) 'No point in the FT fullfils your requirements'
-              write(*,*) 'Simulating nfield_periods indicated in the iput file'
-              write(*,*)
+         write (*, *)
+         write (*, *) 'No point in the FT fullfils your requirements'
+         write (*, *) 'Simulating nfield_periods indicated in the iput file'
+         write (*, *)
       end if
       ! The last computed iz will be the closest value to the initial grid that fullfills the conditions required.
-      new_zeta_min =  zeta(1,location)  
+      new_zeta_min = zeta(1, location)
 
-   end subroutine 
-
+   end subroutine
 
 end module vmec_to_stella_geometry_interface_mod

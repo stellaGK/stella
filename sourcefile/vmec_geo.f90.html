@@ -262,8 +262,8 @@
 <a name="ln-104"></a>      <span class="k">implicit none</span>
 <a name="ln-105"></a>
 <a name="ln-106"></a><span class="k">      </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nalpha</span><span class="p">,</span> <span class="n">naky</span>
-<a name="ln-107"></a>      <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stellarator_symmetric_BC</span>
-<a name="ln-108"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">new_zeta_min</span>
+<a name="ln-107"></a>      <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stellarator_symmetric_BC</span>
+<a name="ln-108"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">new_zeta_min</span>
 <a name="ln-109"></a>      <span class="k">type</span><span class="p">(</span><span class="n">flux_surface_type</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">surf</span>
 <a name="ln-110"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">gradpar</span>
 <a name="ln-111"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">grho</span><span class="p">,</span> <span class="n">bmag</span><span class="p">,</span> <span class="n">b_dot_grad_z</span><span class="p">,</span> <span class="p">&amp;</span>
@@ -319,7 +319,7 @@
 <a name="ln-161"></a>      <span class="c">! !&gt; values are needed to avoid extrapolation</span>
 <a name="ln-162"></a>      <span class="c">! if (zed_equal_arc) then</span>
 <a name="ln-163"></a>      <span class="c">! if (debug) write (*,*) &#39;get_vmec_geo::get_modified_vmec_zeta_grid&#39;</span>
-<a name="ln-164"></a>      <span class="k">call </span><span class="n">get_modified_vmec_zeta_grid</span> <span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="n">nzgrid_vmec</span><span class="p">,</span> <span class="n">dzeta_vmec</span><span class="p">)</span>
+<a name="ln-164"></a>      <span class="k">call </span><span class="n">get_modified_vmec_zeta_grid</span><span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="n">nzgrid_vmec</span><span class="p">,</span> <span class="n">dzeta_vmec</span><span class="p">)</span>
 <a name="ln-165"></a>      <span class="c">! else</span>
 <a name="ln-166"></a>      <span class="c">!   nzgrid_vmec = nzgrid</span>
 <a name="ln-167"></a>      <span class="c">! end if</span>
@@ -614,7 +614,7 @@
 <a name="ln-456"></a>
 <a name="ln-457"></a>      <span class="k">implicit none</span>
 <a name="ln-458"></a>
-<a name="ln-459"></a><span class="k">      </span><span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stellarator_symmetric_BC</span>
+<a name="ln-459"></a><span class="k">      </span><span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stellarator_symmetric_BC</span>
 <a name="ln-460"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">new_zeta_min</span>
 <a name="ln-461"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nzgrid_modified</span>
 <a name="ln-462"></a>
@@ -640,8 +640,8 @@
 <a name="ln-482"></a>      <span class="c">!&gt; is the number of field periods in the device</span>
 <a name="ln-483"></a>      <span class="c">!&gt; nfield_periods may be reasonably bigger than nfield_periods_device</span>
 <a name="ln-484"></a>      <span class="c">!&gt; as the former is sampled while keeping alpha fixed (rather than theta)</span>
-<a name="ln-485"></a>      <span class="k">call </span><span class="n">get_nominal_vmec_zeta_grid</span> <span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta_center</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-486"></a>                <span class="n">nfield_periods</span><span class="p">,</span> <span class="n">nfield_periods_device</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
+<a name="ln-485"></a>      <span class="k">call </span><span class="n">get_nominal_vmec_zeta_grid</span><span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta_center</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-486"></a>                                      <span class="n">nfield_periods</span><span class="p">,</span> <span class="n">nfield_periods_device</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
 <a name="ln-487"></a>
 <a name="ln-488"></a>      <span class="c">!&gt; maximum zeta value for nominal zeta grid</span>
 <a name="ln-489"></a>      <span class="n">zeta_max</span> <span class="o">=</span> <span class="n">zeta</span><span class="p">(</span><span class="n">nzgrid</span><span class="p">)</span>
@@ -680,13 +680,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-11-g972b0b6b1</small></p>
+<br /><small>v0.5.1-16-g9e882e3f1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-05-19T13:18:45.720435           </p>
+ on 2022-06-07T13:00:10.041351           </p>
         </div>
       </div>
       <br>

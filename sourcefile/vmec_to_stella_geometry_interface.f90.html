@@ -252,16 +252,16 @@
 <a name="ln-94"></a>      <span class="c">!*********************************************************************</span>
 <a name="ln-95"></a>
 <a name="ln-96"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">verbose</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-97"></a><span class="k">          write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span> <span class="s2">&quot;############################################################&quot;</span>
-<a name="ln-98"></a>          <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span> <span class="s2">&quot;                       MAGNETIC FIELD&quot;</span>
-<a name="ln-99"></a>          <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span> <span class="s2">&quot;############################################################&quot;</span>
-<a name="ln-100"></a>          <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;About to read VMEC wout file: &#39;&quot;</span><span class="p">,</span><span class="nb">trim</span><span class="p">(</span><span class="n">vmec_filename</span><span class="p">),</span><span class="s2">&quot;&#39;.&quot;</span>
+<a name="ln-97"></a><span class="k">         write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="s1">&#39;(A)&#39;</span><span class="p">)</span> <span class="s2">&quot;############################################################&quot;</span>
+<a name="ln-98"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="s1">&#39;(A)&#39;</span><span class="p">)</span> <span class="s2">&quot;                       MAGNETIC FIELD&quot;</span>
+<a name="ln-99"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="s1">&#39;(A)&#39;</span><span class="p">)</span> <span class="s2">&quot;############################################################&quot;</span>
+<a name="ln-100"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;About to read VMEC wout file: &#39;&quot;</span><span class="p">,</span> <span class="nb">trim</span><span class="p">(</span><span class="n">vmec_filename</span><span class="p">),</span> <span class="s2">&quot;&#39;.&quot;</span>
 <a name="ln-101"></a>      <span class="k">end if</span>
 <a name="ln-102"></a><span class="k">      call </span><span class="n">read_wout_file</span><span class="p">(</span><span class="n">vmec_filename</span><span class="p">,</span> <span class="n">ierr</span><span class="p">,</span> <span class="n">iopen</span><span class="p">)</span>
 <a name="ln-103"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">iopen</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">stop</span> <span class="s1">&#39;error opening wout file&#39;</span>
 <a name="ln-104"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">ierr</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">stop</span> <span class="s1">&#39;error reading wout file&#39;</span>
 <a name="ln-105"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">verbose</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-106"></a><span class="k">          write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Successfully read VMEC data from &#39;&quot;</span><span class="p">,</span><span class="nb">trim</span><span class="p">(</span><span class="n">vmec_filename</span><span class="p">),</span><span class="s2">&quot;&#39;.&quot;</span>
+<a name="ln-106"></a><span class="k">         write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Successfully read VMEC data from &#39;&quot;</span><span class="p">,</span> <span class="nb">trim</span><span class="p">(</span><span class="n">vmec_filename</span><span class="p">),</span> <span class="s2">&quot;&#39;.&quot;</span>
 <a name="ln-107"></a>      <span class="k">end if</span>
 <a name="ln-108"></a>
 <a name="ln-109"></a><span class="k">      </span><span class="n">nfp</span> <span class="o">=</span> <span class="n">nfp_vmec</span>
@@ -275,10 +275,10 @@
 <a name="ln-117"></a>      <span class="n">ntor</span> <span class="o">=</span> <span class="n">ntor_vmec</span>
 <a name="ln-118"></a>
 <a name="ln-119"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">verbose</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-120"></a><span class="k">          write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot; &quot;</span>
-<a name="ln-121"></a>          <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;  Characteristics of the magnetic field:&quot;</span>
-<a name="ln-122"></a>          <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A51, I1)&#39;</span><span class="p">)</span> <span class="s2">&quot;      Number of field periods of the machine (nfp):&quot;</span><span class="o">//</span><span class="nb">REPEAT</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="mi">50</span><span class="p">),</span><span class="n">nfp</span>
-<a name="ln-123"></a>          <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A51, L1)&#39;</span><span class="p">)</span> <span class="s2">&quot;      Stellarator-asymmetric? (lasym):&quot;</span><span class="o">//</span><span class="nb">REPEAT</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="mi">50</span><span class="p">),</span><span class="n">lasym</span>
+<a name="ln-120"></a><span class="k">         write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot; &quot;</span>
+<a name="ln-121"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;  Characteristics of the magnetic field:&quot;</span>
+<a name="ln-122"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="s1">&#39;(A51, I1)&#39;</span><span class="p">)</span> <span class="s2">&quot;      Number of field periods of the machine (nfp):&quot;</span><span class="o">//</span><span class="nb">REPEAT</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span> <span class="n">nfp</span>
+<a name="ln-123"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="s1">&#39;(A51, L1)&#39;</span><span class="p">)</span> <span class="s2">&quot;      Stellarator-asymmetric? (lasym):&quot;</span><span class="o">//</span><span class="nb">REPEAT</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span> <span class="n">lasym</span>
 <a name="ln-124"></a>      <span class="k">end if</span>
 <a name="ln-125"></a>
 <a name="ln-126"></a><span class="k">      if</span> <span class="p">(.</span><span class="nb">not</span><span class="p">.</span> <span class="nb">allocated</span><span class="p">(</span><span class="n">rmnc</span><span class="p">))</span> <span class="k">then</span>
@@ -320,15 +320,15 @@
 <a name="ln-162"></a>
 <a name="ln-163"></a>   <span class="k">end subroutine </span><span class="n">read_vmec_equilibrium</span>
 <a name="ln-164"></a>
-<a name="ln-165"></a>   <span class="k">subroutine </span><span class="n">get_nominal_vmec_zeta_grid</span> <span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta_center</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-165"></a>   <span class="k">subroutine </span><span class="n">get_nominal_vmec_zeta_grid</span><span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta_center</span><span class="p">,</span> <span class="p">&amp;</span>
 <a name="ln-166"></a>                                         <span class="n">number_of_field_periods_stella</span><span class="p">,</span> <span class="n">number_of_field_periods_device</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
 <a name="ln-167"></a>
 <a name="ln-168"></a>      <span class="k">implicit none</span>
 <a name="ln-169"></a>
 <a name="ln-170"></a>      <span class="c">! stellarator_symmetric_BC = true if twist_shift_option = stellarator</span>
-<a name="ln-171"></a>      <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stellarator_symmetric_BC</span>
+<a name="ln-171"></a>      <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stellarator_symmetric_BC</span>
 <a name="ln-172"></a>      <span class="c">! new_zeta_min is the new minimum value of the parallel coordinate if dkx_over_dky != -1 selected</span>
-<a name="ln-173"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span> <span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">new_zeta_min</span>
+<a name="ln-173"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">new_zeta_min</span>
 <a name="ln-174"></a>      <span class="c">! 2*nzgrid+1 is the number of zeta grid points for the nominal zeta grid</span>
 <a name="ln-175"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nzgrid</span>
 <a name="ln-176"></a>      <span class="c">! The zeta domain is centered at zeta_center. Setting zeta_center = 2*pi*N/nfp for any integer N should</span>
@@ -350,14 +350,14 @@
 <a name="ln-192"></a>      <span class="n">number_of_field_periods_device</span> <span class="o">=</span> <span class="n">nfp</span>
 <a name="ln-193"></a>
 <a name="ln-194"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">number_of_field_periods_stella</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-195"></a>          <span class="n">number_of_field_periods_stella</span> <span class="o">=</span> <span class="n">number_of_field_periods_device</span>
+<a name="ln-195"></a>         <span class="n">number_of_field_periods_stella</span> <span class="o">=</span> <span class="n">number_of_field_periods_device</span>
 <a name="ln-196"></a>
-<a name="ln-197"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">stellarator_symmetric_BC</span><span class="p">)</span> <span class="k">then </span>
-<a name="ln-198"></a><span class="k">          </span><span class="n">number_of_field_periods_stella_new</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_zeta_min</span> <span class="o">-</span> <span class="n">zeta_center</span><span class="p">)</span><span class="o">*</span><span class="n">nfp</span> <span class="o">/</span> <span class="p">(</span><span class="n">pi</span><span class="p">)</span>
-<a name="ln-199"></a>          <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Number of field periods sampled by stella has changed from&#39;</span><span class="p">,</span> <span class="n">number_of_field_periods_stella</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-200"></a>                          <span class="s1">&#39;to&#39;</span><span class="p">,</span> <span class="n">number_of_field_periods_stella_new</span>
-<a name="ln-201"></a>          <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> 
-<a name="ln-202"></a>          <span class="n">number_of_field_periods_stella</span> <span class="o">=</span> <span class="n">number_of_field_periods_stella_new</span>
+<a name="ln-197"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">stellarator_symmetric_BC</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-198"></a><span class="k">         </span><span class="n">number_of_field_periods_stella_new</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_zeta_min</span> <span class="o">-</span> <span class="n">zeta_center</span><span class="p">)</span> <span class="o">*</span> <span class="n">nfp</span> <span class="o">/</span> <span class="p">(</span><span class="n">pi</span><span class="p">)</span>
+<a name="ln-199"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Number of field periods sampled by stella has changed from&#39;</span><span class="p">,</span> <span class="n">number_of_field_periods_stella</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-200"></a>            <span class="s1">&#39;to&#39;</span><span class="p">,</span> <span class="n">number_of_field_periods_stella_new</span>
+<a name="ln-201"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-202"></a>         <span class="n">number_of_field_periods_stella</span> <span class="o">=</span> <span class="n">number_of_field_periods_stella_new</span>
 <a name="ln-203"></a>      <span class="k">end if</span>
 <a name="ln-204"></a>
 <a name="ln-205"></a><span class="k">      </span><span class="n">zeta</span> <span class="o">=</span> <span class="p">[(</span><span class="n">zeta_center</span> <span class="o">+</span> <span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="n">j</span> <span class="o">*</span> <span class="n">number_of_field_periods_stella</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nfp</span> <span class="o">*</span> <span class="n">nzgrid</span><span class="p">),</span> <span class="n">j</span><span class="o">=-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">)]</span>
@@ -1896,34 +1896,33 @@
 <a name="ln-1738"></a>   <span class="k">subroutine </span><span class="n">desired_zmin</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta</span><span class="p">,</span> <span class="n">twist_shift_factor_full</span><span class="p">,</span> <span class="n">dkx_over_dky</span><span class="p">,</span> <span class="n">new_zeta_min</span><span class="p">)</span>
 <a name="ln-1739"></a>
 <a name="ln-1740"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nalpha</span>
-<a name="ln-1741"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">location</span> 
+<a name="ln-1741"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">location</span>
 <a name="ln-1742"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dkx_over_dky</span>
-<a name="ln-1743"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">zeta</span>
-<a name="ln-1744"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">twist_shift_factor_full</span>
-<a name="ln-1745"></a>        
+<a name="ln-1743"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">zeta</span>
+<a name="ln-1744"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">dimension</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">)</span> <span class="kd">::</span> <span class="n">twist_shift_factor_full</span>
+<a name="ln-1745"></a>
 <a name="ln-1746"></a>      <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">new_zeta_min</span>
 <a name="ln-1747"></a>
 <a name="ln-1748"></a>      <span class="kt">real</span> <span class="kd">::</span> <span class="n">delt</span> <span class="o">=</span> <span class="mf">0.08</span>
 <a name="ln-1749"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iz</span>
 <a name="ln-1750"></a>      <span class="c">! Just defined for nalpha = 1. Just the positive values since the factor is antisymmetric</span>
 <a name="ln-1751"></a>      <span class="k">do </span><span class="n">iz</span> <span class="o">=</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">nzgrid</span>
-<a name="ln-1752"></a>          <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">twist_shift_factor_full</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iz</span><span class="p">))</span> <span class="o">+</span> <span class="n">delt</span> <span class="o">&gt;</span> <span class="n">dkx_over_dky</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">twist_shift_factor_full</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iz</span><span class="p">))</span> <span class="o">-</span> <span class="n">delt</span> <span class="o">&lt;</span> <span class="n">dkx_over_dky</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-1753"></a><span class="k">              </span><span class="n">location</span> <span class="o">=</span> <span class="n">iz</span>  
-<a name="ln-1754"></a>          <span class="k">end if </span>
+<a name="ln-1752"></a>         <span class="k">if</span> <span class="p">((</span><span class="nb">abs</span><span class="p">(</span><span class="n">twist_shift_factor_full</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">iz</span><span class="p">))</span> <span class="o">+</span> <span class="n">delt</span> <span class="o">&gt;</span> <span class="n">dkx_over_dky</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">twist_shift_factor_full</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">iz</span><span class="p">))</span> <span class="o">-</span> <span class="n">delt</span> <span class="o">&lt;</span> <span class="n">dkx_over_dky</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-1753"></a><span class="k">            </span><span class="n">location</span> <span class="o">=</span> <span class="n">iz</span>
+<a name="ln-1754"></a>         <span class="k">end if</span>
 <a name="ln-1755"></a><span class="k">      end do</span>
 <a name="ln-1756"></a><span class="k">      if</span> <span class="p">(</span><span class="n">location</span> <span class="o">==</span> <span class="n">nzgrid</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-1757"></a><span class="k">              write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
-<a name="ln-1758"></a>              <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;No point in the FT fullfils your requirements&#39;</span>
-<a name="ln-1759"></a>              <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Simulating nfield_periods indicated in the iput file&#39;</span>
-<a name="ln-1760"></a>              <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-1757"></a><span class="k">         write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-1758"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;No point in the FT fullfils your requirements&#39;</span>
+<a name="ln-1759"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Simulating nfield_periods indicated in the iput file&#39;</span>
+<a name="ln-1760"></a>         <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
 <a name="ln-1761"></a>      <span class="k">end if</span>
 <a name="ln-1762"></a>      <span class="c">! The last computed iz will be the closest value to the initial grid that fullfills the conditions required.</span>
-<a name="ln-1763"></a>      <span class="n">new_zeta_min</span> <span class="o">=</span>  <span class="n">zeta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">location</span><span class="p">)</span>  
+<a name="ln-1763"></a>      <span class="n">new_zeta_min</span> <span class="o">=</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
 <a name="ln-1764"></a>
-<a name="ln-1765"></a>   <span class="k">end subroutine </span>
+<a name="ln-1765"></a>   <span class="k">end subroutine</span>
 <a name="ln-1766"></a>
-<a name="ln-1767"></a>
-<a name="ln-1768"></a><span class="k">end module </span><span class="n">vmec_to_stella_geometry_interface_mod</span>
+<a name="ln-1767"></a><span class="k">end module </span><span class="n">vmec_to_stella_geometry_interface_mod</span>
 </pre></div>
 
     </section>
@@ -1936,13 +1935,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-11-g972b0b6b1</small></p>
+<br /><small>v0.5.1-16-g9e882e3f1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-05-19T13:18:45.720435           </p>
+ on 2022-06-07T13:00:10.041351           </p>
         </div>
       </div>
       <br>

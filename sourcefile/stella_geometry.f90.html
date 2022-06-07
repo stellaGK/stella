@@ -467,7 +467,7 @@
 <a name="ln-309"></a>            <span class="c">!&gt; abs(twist_and_shift_geo_fac) is dkx/dky * jtwist</span>
 <a name="ln-310"></a>            <span class="c">!&gt; minus its sign gives the direction of the shift in kx</span>
 <a name="ln-311"></a>            <span class="c">!&gt; to be used for twist-and-shift BC</span>
-<a name="ln-312"></a>            <span class="k">allocate</span><span class="p">(</span><span class="n">twist_and_shift_geo_fac_full</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">))</span>
+<a name="ln-312"></a>            <span class="k">allocate</span> <span class="p">(</span><span class="n">twist_and_shift_geo_fac_full</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">))</span>
 <a name="ln-313"></a>            <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-314"></a>            <span class="c">!&gt; The code will start computing for the initial zgrid</span>
 <a name="ln-315"></a>            <span class="n">stellarator_symmetric_BC</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
@@ -480,31 +480,31 @@
 <a name="ln-322"></a>                              <span class="n">theta_vmec</span><span class="p">,</span> <span class="n">zed_scalefac</span><span class="p">,</span> <span class="n">aref</span><span class="p">,</span> <span class="n">bref</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">zeta</span><span class="p">,</span> <span class="p">&amp;</span>
 <a name="ln-323"></a>                              <span class="n">field_period_ratio</span><span class="p">,</span> <span class="n">x_displacement_fac</span><span class="p">)</span>
 <a name="ln-324"></a>
-<a name="ln-325"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s2">&quot;############################################################&quot;</span>
-<a name="ln-326"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s2">&quot;                     BOUNDARY CONDITIONS&quot;</span>
-<a name="ln-327"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s2">&quot;############################################################&quot;</span>
-<a name="ln-328"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-325"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;############################################################&quot;</span>
+<a name="ln-326"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;                     BOUNDARY CONDITIONS&quot;</span>
+<a name="ln-327"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s2">&quot;############################################################&quot;</span>
+<a name="ln-328"></a>            <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
 <a name="ln-329"></a>
-<a name="ln-330"></a>            <span class="k">if</span> <span class="p">((</span><span class="n">boundary_option_switch</span> <span class="o">==</span> <span class="n">boundary_option_linked_stellarator</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">dkx_over_dky</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="k">then</span> 
-<a name="ln-331"></a>            <span class="c">! If stellarator_symmetric_BC and dkx_over_dky&gt;0 the code will compute the new </span>
-<a name="ln-332"></a>            <span class="c">! zeta to work with</span>
+<a name="ln-330"></a>            <span class="k">if</span> <span class="p">((</span><span class="n">boundary_option_switch</span> <span class="o">==</span> <span class="n">boundary_option_linked_stellarator</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">dkx_over_dky</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-331"></a>               <span class="c">! If stellarator_symmetric_BC and dkx_over_dky&gt;0 the code will compute the new</span>
+<a name="ln-332"></a>               <span class="c">! zeta to work with</span>
 <a name="ln-333"></a>               <span class="n">stellarator_symmetric_BC</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
 <a name="ln-334"></a>               <span class="c">! twist_and_shift_geo_fac_full for the whole zgrid</span>
-<a name="ln-335"></a>               <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span><span class="o">*</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span><span class="p">)</span> <span class="p">&amp;</span>
-<a name="ln-336"></a>                       <span class="o">*</span> <span class="p">(</span><span class="n">grad_alpha_grad_psi</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">grad_psi_grad_psi</span><span class="p">)</span>
+<a name="ln-335"></a>               <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span> <span class="o">*</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span><span class="p">)</span> <span class="p">&amp;</span>
+<a name="ln-336"></a>                                              <span class="o">*</span> <span class="p">(</span><span class="n">grad_alpha_grad_psi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">grad_psi_grad_psi</span><span class="p">)</span>
 <a name="ln-337"></a>               <span class="c">! New min(zeta) to construct the new_number_of_periods_stella</span>
 <a name="ln-338"></a>               <span class="k">call </span><span class="n">desired_zmin</span><span class="p">(</span><span class="n">nalpha</span><span class="p">,</span> <span class="n">nzgrid</span><span class="p">,</span> <span class="n">zeta</span><span class="p">,</span> <span class="n">twist_and_shift_geo_fac_full</span><span class="p">,</span> <span class="n">dkx_over_dky</span><span class="p">,</span> <span class="n">new_zeta_min</span><span class="p">)</span>
 <a name="ln-339"></a>               <span class="c">! Final grid of zeta using new_zeta_min</span>
 <a name="ln-340"></a>               <span class="k">call </span><span class="n">get_vmec_geo</span><span class="p">(</span><span class="n">new_zeta_min</span><span class="p">,</span> <span class="n">stellarator_symmetric_BC</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-341"></a>                              <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nalpha</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">,</span> <span class="n">grho</span><span class="p">,</span> <span class="n">bmag</span><span class="p">,</span> <span class="n">gradpar</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-342"></a>                              <span class="n">b_dot_grad_z</span><span class="p">,</span> <span class="n">grad_alpha_grad_alpha</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-343"></a>                              <span class="n">grad_alpha_grad_psi</span><span class="p">,</span> <span class="n">grad_psi_grad_psi</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-344"></a>                              <span class="n">gds23</span><span class="p">,</span> <span class="n">gds24</span><span class="p">,</span> <span class="n">gds25</span><span class="p">,</span> <span class="n">gds26</span><span class="p">,</span> <span class="n">gbdrift_alpha</span><span class="p">,</span> <span class="n">gbdrift0_psi</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-345"></a>                              <span class="n">cvdrift_alpha</span><span class="p">,</span> <span class="n">cvdrift0_psi</span><span class="p">,</span> <span class="n">sign_torflux</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-346"></a>                              <span class="n">theta_vmec</span><span class="p">,</span> <span class="n">zed_scalefac</span><span class="p">,</span> <span class="n">aref</span><span class="p">,</span> <span class="n">bref</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">zeta</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-347"></a>                              <span class="n">field_period_ratio</span><span class="p">,</span> <span class="n">x_displacement_fac</span><span class="p">)</span>
-<a name="ln-348"></a>                <span class="c">! Restart the variable twist_and_shift_geo_fac_full</span>
-<a name="ln-349"></a>                <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">0</span> 
+<a name="ln-341"></a>                                 <span class="n">nzgrid</span><span class="p">,</span> <span class="n">nalpha</span><span class="p">,</span> <span class="n">naky</span><span class="p">,</span> <span class="n">geo_surf</span><span class="p">,</span> <span class="n">grho</span><span class="p">,</span> <span class="n">bmag</span><span class="p">,</span> <span class="n">gradpar</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-342"></a>                                 <span class="n">b_dot_grad_z</span><span class="p">,</span> <span class="n">grad_alpha_grad_alpha</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-343"></a>                                 <span class="n">grad_alpha_grad_psi</span><span class="p">,</span> <span class="n">grad_psi_grad_psi</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-344"></a>                                 <span class="n">gds23</span><span class="p">,</span> <span class="n">gds24</span><span class="p">,</span> <span class="n">gds25</span><span class="p">,</span> <span class="n">gds26</span><span class="p">,</span> <span class="n">gbdrift_alpha</span><span class="p">,</span> <span class="n">gbdrift0_psi</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-345"></a>                                 <span class="n">cvdrift_alpha</span><span class="p">,</span> <span class="n">cvdrift0_psi</span><span class="p">,</span> <span class="n">sign_torflux</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-346"></a>                                 <span class="n">theta_vmec</span><span class="p">,</span> <span class="n">zed_scalefac</span><span class="p">,</span> <span class="n">aref</span><span class="p">,</span> <span class="n">bref</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">zeta</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-347"></a>                                 <span class="n">field_period_ratio</span><span class="p">,</span> <span class="n">x_displacement_fac</span><span class="p">)</span>
+<a name="ln-348"></a>               <span class="c">! Restart the variable twist_and_shift_geo_fac_full</span>
+<a name="ln-349"></a>               <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-350"></a>            <span class="k">end if</span>
 <a name="ln-351"></a>            <span class="c">!&gt; Bref = 2*abs(psi_tor_LCFS)/a^2</span>
 <a name="ln-352"></a>            <span class="c">!&gt; a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor</span>
@@ -527,7 +527,7 @@
 <a name="ln-369"></a>               <span class="c">!to be used for stellarator symmetric twist-and-shift BC</span>
 <a name="ln-370"></a>               <span class="c">!twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2</span>
 <a name="ln-371"></a>               <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Stellarator symmetric twist and shift BC selected&#39;</span>
-<a name="ln-372"></a>               <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span><span class="o">*</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">grad_alpha_grad_psi</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">grad_psi_grad_psi</span><span class="p">)</span>
+<a name="ln-372"></a>               <span class="n">twist_and_shift_geo_fac_full</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span> <span class="o">*</span> <span class="n">geo_surf</span><span class="p">%</span><span class="n">rhotor</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">grad_alpha_grad_psi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">grad_psi_grad_psi</span><span class="p">)</span>
 <a name="ln-373"></a>               <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grad_x_grad_y_end</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">grad_x_grad_y_zero</span><span class="p">)</span> <span class="p">&amp;</span>
 <a name="ln-374"></a>                  <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Using periodic boundary conditions as grad_x_grad_y_end &lt; grad_x_grad_y_zero&#39;</span>
 <a name="ln-375"></a>               <span class="k">write</span> <span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
@@ -1266,13 +1266,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-11-g972b0b6b1</small></p>
+<br /><small>v0.5.1-16-g9e882e3f1</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-05-19T13:18:45.720435           </p>
+ on 2022-06-07T13:00:10.041351           </p>
         </div>
       </div>
       <br>
