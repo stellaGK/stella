@@ -32,7 +32,7 @@ module parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
    real, dimension(:, :), allocatable :: gradpar_c
 
-   real, dimension(2) :: time_parallel_streaming
+   real, dimension(2) :: time_parallel_streaming = 0.
 
 contains
 
