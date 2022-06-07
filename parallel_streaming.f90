@@ -1068,7 +1068,7 @@ contains
                   end if
 
                   call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, phi(iky, ikx, :nzgrid - 1, it))
+                                            response_matrix(iky)%eigen(ie)%idx, fields_ext)
                   ! Get fields on extended grid -> phi, apar, bpar on regular grids
                   ifield = 0
                   if (fphi > epsilon(0.)) then
