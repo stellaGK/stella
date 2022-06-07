@@ -1208,7 +1208,7 @@ contains
    subroutine finish_mb_transforms
 
       implicit none
-
+      if (.not. use_multibox) return
       call dfftw_destroy_plan(yf_fft%plan)
       call dfftw_destroy_plan(yb_fft%plan)
       call dfftw_destroy_plan(xf_fft%plan)
