@@ -1,5 +1,5 @@
 module response_matrix
-
+   use, intrinsic :: iso_c_binding, only: c_intptr_t
    use netcdf
    use mpi
 
@@ -16,6 +16,7 @@ module response_matrix
 
 #ifdef ISO_C_BINDING
    integer :: window = MPI_WIN_NULL
+   integer(c_intptr_t) :: cur_pos
 #endif
 
 contains
@@ -97,7 +98,7 @@ contains
       use run_parameters, only: fphi, fapar, fbpar
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
       use mp, only: real_size, nbytes_real
       use mpi
@@ -114,7 +115,6 @@ contains
       integer :: prior_focus, ierr
       integer :: disp_unit = 1
       integer(kind=MPI_ADDRESS_KIND) :: win_size
-      integer(c_intptr_t) :: cur_pos
       type(c_ptr) :: bptr, cptr
 #endif
       real :: dum
@@ -507,7 +507,6 @@ contains
       integer :: nfields
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
-      integer(c_intptr_t) :: cur_pos
 #endif
 
       ! number of zeds x number of segments
