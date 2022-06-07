@@ -486,7 +486,7 @@ contains
       end if
    end subroutine read_response_matrix
 
-   subroutine allocate_response_matrix_zloc(ie, iky, nz_ext, nresponse, nresponse_per_field)
+   subroutine allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field)
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: nsegments
