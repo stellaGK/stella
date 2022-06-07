@@ -1107,7 +1107,7 @@ contains
       use species, only: has_electron_species
       use stella_geometry, only: dl_over_b
       use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: ikxmod, periodic
       use extended_zgrid, only: nsegments
       use kt_grids, only: zonal_mode, akx
       use zgrid, only: nzgrid
@@ -1125,7 +1125,7 @@ contains
       integer, intent(in) :: iky, ie, nresponse_per_field
 
       integer :: g_idx, phi_idx, apar_idx, bpar_idx, iseg, ikx, ia, ifield, iz
-      integer :: izl_offset
+      integer :: izl_offset, izup
       complex :: tmp
       complex :: phi, apar, bpar
 
@@ -1142,8 +1142,14 @@ contains
          fields_ext(:) = 0.0
          return
       end if
+      ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
+      if (periodic(iky)) then
+         izup = iz_up(iseg) - 1
+      else
+         izup = iz_up(iseg)
+      end if
       g_idx = 0
-      do iz = iz_low(iseg), iz_up(iseg)
+      do iz = iz_low(iseg), izup
          g_idx = g_idx + 1
          call get_fields_vmulo_0D(gext(g_idx, :), iky, ikx, iz, phi, apar, bpar, "gbar")
          ! Put phi, apar, bpar into fields_ext
