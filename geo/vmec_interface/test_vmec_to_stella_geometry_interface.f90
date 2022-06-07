@@ -44,7 +44,7 @@ program test_vmec_to_stella_geometry_interface
    ! Beginning of executable statements
    !*********************************************************************
 
-   call read_vmec_equilibrium(vmec_filename)
+   call read_vmec_equilibrium(vmec_filename, verbose)
 
    call vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta_center, &
                                           number_of_field_periods_to_include, &

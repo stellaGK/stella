@@ -274,9 +274,22 @@ if (STELLA_ENABLE_TESTS)
     simple
     utils_convert
     )
-  add_custom_target(check
-    COMMAND ctest --output-on-failure
+  add_custom_target(check-unit-tests
+    COMMAND ctest --output-on-failure -R unit
     DEPENDS ${STELLA_CTEST_CASES}
+    )
+
+  add_subdirectory(tests/integrated)
+
+  add_custom_target(check-integrated-tests
+    COMMAND ctest --output-on-failure -R integrated
+    DEPENDS stella
+   )
+
+  add_custom_target(check
+    DEPENDS
+    check-unit-tests
+    check-integrated-tests
     )
 else()
   set(STELLA_PFUNIT_LOCATION "Not used")
