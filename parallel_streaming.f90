@@ -1050,7 +1050,7 @@ contains
                   ikx = ikxmod(1, ie, iky)
                   ! One fewer unique point for periodic modes.
                   ! nsegments = 1
-                  nresponse_per_field = nzed_segment
+                  nresponse_per_field = nsegments(ie, iky) * nzed_segment
                   allocate (fields_ext(nresponse_per_field * nfields))
                   ! put all the fields into a single field: fields_ext=(phi,apar,bpar)
                   ifield = 0
