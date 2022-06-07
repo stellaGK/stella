@@ -40,7 +40,7 @@ module fields
 
    integer :: zm
 
-   real, dimension(2, 5) :: time_field_solve
+   real, dimension(2, 5) :: time_field_solve = 0.
 
    interface get_dchidy
       module procedure get_dchidy_4d
