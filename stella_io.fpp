@@ -364,7 +364,7 @@ contains
 
 # ifdef NETCDF
       call netcdf_write_complex(ncid, "omega", omega, &
-                                dim_names=["ri", "kx", "ky", "t "], &
+                                dim_names=["ri", "ky", "kx", "t "], &
                                 start=[1, 1, 1, nout], &
                                 long_name="Complex frequency", units="aref/vtref")
 # endif
