@@ -6102,6 +6102,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
          !get k2max at outboard midplane
          k2max = akx(ikx_max)**2 + aky(naky)**2
+         if (k2max < epsilon(0.0)) k2max = 1.0
+
          tfac = geo_surf%shat**2
          if (q_as_x) tfac = 1.0
 
@@ -6124,6 +6126,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          end do
       else
          k2max = maxval(kperp2)
+         if (k2max < epsilon(0.0)) k2max = 1.0
          ia = 1
          ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
