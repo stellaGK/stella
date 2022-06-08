@@ -620,7 +620,7 @@ contains
    !> a time no larger than `tstart`
    subroutine get_nout(tstart, nout)
 
-      use netcdf, only: nf90_inquire_dimension, nf90_get_var
+      use netcdf, only: nf90_inquire_dimension, nf90_inq_varid, nf90_get_var
 
       implicit none
 
@@ -638,9 +638,12 @@ contains
 
       if (length > 0) then
          allocate (times(length))
+         status = nf90_inq_varid(ncid, 't', time_id)
+         if (status /= nf90_noerr) call netcdf_error(status, var='t')
 
          status = nf90_get_var(ncid, time_id, times)
          if (status /= nf90_noerr) call netcdf_error(status, ncid, dimid=time_dim)
+
          i = length
          do while (times(i) > tstart .and. i > 0)
             i = i - 1
