@@ -16,13 +16,8 @@ jobs:
       matrix:
         config:
           - name: "Makefiles"
-            make_options: ''
           - name: "Makefiles, debug"
-            make_options: "DEBUG=on
-            F90FLAGS+=-fcheck=all
-            F90FLAGS+=-ffpe-trap=invalid,zero
-            F90FLAGS+=-finit-real=snan
-            "
+            gk_system: gnu_ubuntu_debug
           - name: "CMake"
     steps:
       - name: Install dependencies
@@ -51,7 +46,7 @@ jobs:
 
       - name: Build stella (Makefile)
         if: ${{ contains(matrix.config.name, 'Makefile') }}
-        run: ./scripts/ci_build_and_run.sh ${{ matrix.config.make_options }}
+        run: ./scripts/ci_build_and_run.sh ${{ matrix.config.gk_system }}
 
       - name: Build stella (CMake)
         if: ${{ contains(matrix.config.name, 'CMake') }}
