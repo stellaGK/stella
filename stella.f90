@@ -554,6 +554,7 @@ contains
       use kt_grids, only: finish_kt_grids
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
+      use run_parameters, only: stream_implicit, driftkinetic_implicit
 
       implicit none
 
@@ -614,7 +615,11 @@ contains
          write (*, fmt=101) '(phi_adia_elec):', time_field_solve(1, 5) / 60., 'min'
          write (*, fmt=101) 'mirror:', time_mirror(1, 1) / 60., 'min'
          write (*, fmt=101) '(redistribute):', time_mirror(1, 2) / 60., 'min'
-         write (*, fmt=101) 'stream:', time_parallel_streaming(1) / 60., 'min'
+         write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min'
+         if (stream_implicit) then
+            write (*, fmt=101) '(bidiagonal)', time_parallel_streaming(1, 2) / 60., 'min'
+            write (*, fmt=101) '(backwards sub)', time_parallel_streaming(1, 3) / 60., 'min'
+         end if
          write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min'
          write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min'
          write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min'
