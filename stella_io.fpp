@@ -28,9 +28,8 @@ module stella_io
 
 # ifdef NETCDF
    integer(kind_nf) :: ncid
-   integer(kind_nf) :: time_dim, char10_dim
+   integer(kind_nf) :: char10_dim
 
-   integer :: time_id
    integer :: code_id
 
    !> Write a `complex` array to netcdf
@@ -120,7 +119,7 @@ contains
       call neasyf_dim(file_id, "vpa", values=vpa)
       call neasyf_dim(file_id, "mu", values=mu)
       call neasyf_dim(file_id, "species", dim_size=nspec)
-      call neasyf_dim(file_id, "t", unlimited=.true., dimid=time_dim, long_name="Time", units="L/vt")
+      call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="L/vt")
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
@@ -620,7 +619,8 @@ contains
    !> a time no larger than `tstart`
    subroutine get_nout(tstart, nout)
 
-      use netcdf, only: nf90_inquire_dimension, nf90_inq_varid, nf90_get_var
+      use netcdf, only: nf90_inquire_dimension, nf90_inq_dimid
+      use neasyf, only: neasyf_read, neasyf_error
 
       implicit none
 
@@ -629,20 +629,16 @@ contains
       !> Index of time dimension
       integer, intent(out) :: nout
       real, dimension(:), allocatable :: times
-      integer :: i, length, status
+      integer :: i, length, time_dim
 
       nout = 1
 
-      status = nf90_inquire_dimension(ncid, time_dim, len=length)
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, dimid=time_dim)
+      call neasyf_error(nf90_inq_dimid(ncid, "t", time_dim), ncid)
+      call neasyf_error(nf90_inquire_dimension(ncid, time_dim, len=length), ncid)
 
       if (length > 0) then
          allocate (times(length))
-         status = nf90_inq_varid(ncid, 't', time_id)
-         if (status /= nf90_noerr) call netcdf_error(status, var='t')
-
-         status = nf90_get_var(ncid, time_id, times)
-         if (status /= nf90_noerr) call netcdf_error(status, ncid, dimid=time_dim)
+         call neasyf_read(ncid, "t", times)
 
          i = length
          do while (times(i) > tstart .and. i > 0)
