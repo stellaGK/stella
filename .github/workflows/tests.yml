@@ -16,6 +16,9 @@ jobs:
       matrix:
         config:
           - name: "Makefiles"
+            make_options: ''
+          - name: "Makefiles, debug"
+            make_options: 'DEBUG=on F90FLAGS="-fcheck=all -ffpe-trap=invalid,zero"'
           - name: "CMake"
     steps:
       - name: Install dependencies
@@ -43,8 +46,8 @@ jobs:
         run: pip3 install --user -r tests/integrated/requirements.txt
 
       - name: Build stella (Makefile)
-        if: ${{ ! contains(matrix.config.name, 'CMake') }}
-        run: ./scripts/ci_build_and_run.sh
+        if: ${{ contains(matrix.config.name, 'Makefile') }}
+        run: ./scripts/ci_build_and_run.sh ${{ matrix.config.make_options }}
 
       - name: Build stella (CMake)
         if: ${{ contains(matrix.config.name, 'CMake') }}
