@@ -52,7 +52,7 @@ target_include_directories(mini_libstell PUBLIC
 # Hard dependency on netCDF
 find_package(netCDFFortran REQUIRED)
 target_compile_definitions(mini_libstell PRIVATE NETCDF)
-target_include_directories(mini_libstell PUBLIC "${netCDFFortran_INCLUDE_DIRS}")
+target_link_libraries(mini_libstell PUBLIC netCDF::netcdff)
 
 # Add compiler flags for:
 # - long lines
