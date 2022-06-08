@@ -18,7 +18,11 @@ jobs:
           - name: "Makefiles"
             make_options: ''
           - name: "Makefiles, debug"
-            make_options: "DEBUG=on F90FLAGS=-fcheck=all -ffpe-trap=invalid,zero"
+            make_options: "DEBUG=on
+            F90FLAGS+=-fcheck=all
+            F90FLAGS+=-ffpe-trap=invalid,zero
+            F90FLAGS+=-finit-real=snan
+            "
           - name: "CMake"
     steps:
       - name: Install dependencies
