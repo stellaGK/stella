@@ -170,6 +170,7 @@ export VMEC=$(GEO)/vmec_interface
 export LIBSTELL=$(VMEC)/mini_libstell
 LIBSTELL_LIB=$(LIBSTELL)/mini_libstell.a
 GIT_VERSION_DIR := $(GK_HEAD_DIR)/externals/git_version
+NEASYF := $(GK_HEAD_DIR)/externals/neasyf/src
 
 ifeq ($(MAKECMDGOALS),depend)
 # must invoke full functionality when make depend
@@ -276,7 +277,7 @@ ifneq ($(TOPDIR),$(CURDIR))
 	SUBDIR=true
 endif
 
-VPATH = $(UTILS):$(GEO):$(VMEC):$(GIT_VERSION_DIR)/src
+VPATH = $(UTILS):$(GEO):$(VMEC):$(GIT_VERSION_DIR)/src:$(NEASYF)
 # this just removes non-existing directory from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
 VPATH = .:$(shell echo $(VPATH_tmp) | sed "s/ /:/g")
@@ -288,7 +289,7 @@ DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
 # most common include and library directories
-DEFAULT_INC_LIST = . $(UTILS) $(LIBSTELL) $(VMEC) $(GEO)
+DEFAULT_INC_LIST = . $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) $(NEASYF)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -300,11 +301,12 @@ F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 # This is in case the directories exist but the submodules haven't
 # actually been initialised
 GIT_VERSION_SENTINEL := $(GIT_VERSION_DIR)/Makefile
+NEASYF_SENTINEL := $(NEASYF)/neasyf.f90
 
-.PRECIOUS: $(GIT_VERSION_SENTINEL)
+.PRECIOUS: $(GIT_VERSION_SENTINEL) $(NEASYF_SENTINEL)
 
 # Make sure the submodules exist; they all currently share the same recipe
-$(GIT_VERSION_SENTINEL) submodules:
+$(GIT_VERSION_SENTINEL) $(NEASYF_SENTINEL) submodules:
 	@echo "Downloading submodules"
 	git submodule update --init --recursive
 
@@ -388,7 +390,7 @@ check: check-unit check-integrated
 
 .PHONY: depend clean distclean tar test_make
 
-depend: $(GIT_VERSION_SENTINEL)
+depend: $(GIT_VERSION_SENTINEL) $(NEASYF)
 	@$(DEPEND_CMD) -m "$(MAKE)" -1 -o -v=0 $(VPATH)
 
 clean:

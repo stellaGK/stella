@@ -34,6 +34,7 @@ stella_mod = \
 	 mp_lu_decomposition.o \
 	 mt19937.o \
 	 multibox.o \
+	 neasyf.o \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
@@ -307,6 +308,7 @@ multibox.o: \
 	 stella_time.o \
 	 text_options.o \
 	 zgrid.o 
+neasyf.o: 
 neoclassical_terms.o: \
 	 file_utils.o \
 	 finite_differences.o \
@@ -495,16 +497,16 @@ stella_geometry.o: \
 	 vmec_geo.o \
 	 zgrid.o 
 stella_io.o: \
-	 constants.o \
 	 convert.o \
 	 dist_fn_arrays.o \
 	 file_utils.o \
+	 git_version.o \
 	 kt_grids.o \
 	 mp.o \
+	 neasyf.o \
 	 netcdf_utils.o \
 	 physics_flags.o \
 	 physics_parameters.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 vpamu_grids.o \
