@@ -1656,6 +1656,7 @@ contains
       complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
 
+      real :: zero
       integer :: ivmu, iz, it, imu, is
       logical :: yfirst
 
@@ -1663,6 +1664,9 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
 
       if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+
+      ! avoid divide by zero in cfl_dt terms below
+      zero = 100.*epsilon(0.)
 
       restart_time_step = .false.
       ! this statement seems to imply that flow shear is not compatible with FFS
@@ -1715,7 +1719,7 @@ contains
                bracket = g0xy * g1xy
 
                !> estimate the CFL dt due to the above contribution
-               cfl_dt = min(cfl_dt, 2.*pi / (maxval(abs(g1xy)) * aky(naky)))
+               cfl_dt = min(cfl_dt, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
 
                if (radial_variation) then
                   bracket = bracket + gfac * g0xy * g1xy * exb_nonlin_fac_p * spread(rho_clamped, 1, ny)
@@ -1727,7 +1731,7 @@ contains
                   bracket = bracket + g0xy * g1xy
                end if
                !> estimate the CFL dt due to the above contribution
-               cfl_dt = min(cfl_dt, 2.*pi / (maxval(abs(g1xy)) * aky(naky)))
+               cfl_dt = min(cfl_dt, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
 
                !> compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
@@ -1749,7 +1753,7 @@ contains
                bracket = bracket - g0xy * g1xy
 
                !> estimate the CFL dt due to the above contribution
-               cfl_dt = min(cfl_dt, 2.*pi / (maxval(abs(g1xy)) * akx(ikx_max)))
+               cfl_dt = min(cfl_dt, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
 
                if (radial_variation) then
                   bracket = bracket - gfac * g0xy * g1xy * exb_nonlin_fac_p * spread(rho_clamped, 1, ny)
@@ -1762,7 +1766,7 @@ contains
                end if
 
                !> estimate the CFL dt due to the above contribution
-               cfl_dt = min(cfl_dt, 2.*pi / (maxval(abs(g1xy)) * akx(ikx_max)))
+               cfl_dt = min(cfl_dt, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
 
                if (yfirst) then
                   call transform_x2kx(bracket, g0kxy)
