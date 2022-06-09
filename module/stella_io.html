@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for modules and submodules.">171 statements</a>
+    title=" 0.4% of total for modules and submodules.">167 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/stella_io.fpp"> Source File</a></li>
   </ul>
@@ -126,7 +126,7 @@
   <div class="list-group">
     <div id="subs-0" class="panel-collapse collapse">
       <a class="list-group-item" href="../module/stella_io.html#proc-init_stella_io">init_stella_io</a>
-      <a class="list-group-item" href="../module/stella_io.html#proc-define_dims">define_dims</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_grids">write_grids</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-finish_stella_io">finish_stella_io</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-save_input">save_input</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-define_vars">define_vars</a>
@@ -141,11 +141,13 @@
       <a class="list-group-item" href="../module/stella_io.html#proc-write_moments_nc">write_moments_nc</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-write_gvmus_nc">write_gvmus_nc</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-write_gzvs_nc">write_gzvs_nc</a>
-      <a class="list-group-item" href="../module/stella_io.html#proc-nc_grids">nc_grids</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-nc_species">nc_species</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-nc_geo">nc_geo</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-get_nout">get_nout</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-sync_nc">sync_nc</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_complex_rank2">write_complex_rank2</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_complex_rank4">write_complex_rank4</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_complex_rank5">write_complex_rank5</a>
     </div>
   </div>
 </div>
@@ -176,7 +178,7 @@
   <div class="list-group">
     <div id="subs-1" class="panel-collapse collapse">
       <a class="list-group-item" href="../module/stella_io.html#proc-init_stella_io">init_stella_io</a>
-      <a class="list-group-item" href="../module/stella_io.html#proc-define_dims">define_dims</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_grids">write_grids</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-finish_stella_io">finish_stella_io</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-save_input">save_input</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-define_vars">define_vars</a>
@@ -191,11 +193,13 @@
       <a class="list-group-item" href="../module/stella_io.html#proc-write_moments_nc">write_moments_nc</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-write_gvmus_nc">write_gvmus_nc</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-write_gzvs_nc">write_gzvs_nc</a>
-      <a class="list-group-item" href="../module/stella_io.html#proc-nc_grids">nc_grids</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-nc_species">nc_species</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-nc_geo">nc_geo</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-get_nout">get_nout</a>
       <a class="list-group-item" href="../module/stella_io.html#proc-sync_nc">sync_nc</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_complex_rank2">write_complex_rank2</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_complex_rank4">write_complex_rank4</a>
+      <a class="list-group-item" href="../module/stella_io.html#proc-write_complex_rank5">write_complex_rank5</a>
     </div>
   </div>
 </div>
@@ -211,8 +215,8 @@
 <tbody>
 <tr>
   <td><span class="anchor" id="variable-zero~5"></span>real,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>zero</strong></td><td></td><td></td><td></td>
+<td>private,</td>  <td>parameter</td><td>::</td>
+  <td><strong>zero</strong></td><td> =</td><td>epsilon(0.0)</td><td></td>
 </tr>
 </tbody>
 </table>
@@ -228,7 +232,7 @@
     <section>
     <h2>Subroutines</h2>
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_stella_io"></span><h3>public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(restart, write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-init_stella_io"></span><h3>public subroutine <a href='../proc/init_stella_io.html'>init_stella_io</a>(restart)</h3></div>
   <div class="panel-body">
            
 <h4>Arguments</h4>      <table class="table table-striped varlist">
@@ -238,61 +242,7 @@
   <td><span class="anchor" ></span>logical,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>restart</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_phi_vs_t</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_kspectra</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_gvmus</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_gzvs</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_moments</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_omega</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_radial_fluxes</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_radial_moments</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_fluxes_kxky</strong></td><td></td>
+  <td><strong>restart</strong></td><td><p>Is this run a restart?</p></td>
 </tr>
 </tbody>
 </table>
@@ -302,10 +252,24 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-define_dims"></span><h3>private subroutine <a href='../proc/define_dims.html'>define_dims</a>()</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_grids"></span><h3>private subroutine <a href='../proc/write_grids.html'>write_grids</a>(file_id)</h3></div>
   <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+       
+<p>Ensure the netCDF file contains all the dimensions and grids,
+creating them if necessary</p>
+    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>file_id</strong></td><td><p>NetCDF ID of the file</p></td>
+</tr>
+</tbody>
+</table>
+
 
   </div>
   </div>
@@ -320,76 +284,19 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-save_input"></span><h3>private subroutine <a href='../proc/save_input.html'>save_input</a>()</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-save_input"></span><h3>private subroutine <a href='../proc/save_input.html'>save_input</a>(file_id)</h3></div>
   <div class="panel-body">
        
-<p>doc&gt; Save the input file in the NetCDF file </doc></p>
+<p>Save the input file in the NetCDF file</p>
     
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
-  </div>
-
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-define_vars"></span><h3>private subroutine <a href='../proc/define_vars.html'>define_vars</a>(write_phi_vs_t, write_kspectra, write_gvmus, write_gzvs, write_moments, write_omega, write_radial_fluxes, write_radial_moments, write_fluxes_kxky)</h3></div>
-  <div class="panel-body">
-           
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
 <tr>
-  <td><span class="anchor" ></span>logical,</td>
+  <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>write_phi_vs_t</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_kspectra</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_gvmus</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_gzvs</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_moments</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_omega</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_radial_fluxes</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_radial_moments</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
-<td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>write_fluxes_kxky</strong></td><td></td>
+  <td><strong>file_id</strong></td><td><p>NetCDF ID of the file to write to</p></td>
 </tr>
 </tbody>
 </table>
@@ -399,9 +306,20 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-write_time_nc"></span><h3>public subroutine <a href='../proc/write_time_nc.html'>write_time_nc</a>(nout, time)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-define_vars"></span><h3>private subroutine <a href='../proc/define_vars.html'>define_vars</a>()</h3></div>
   <div class="panel-body">
            
+<h4>Arguments</h4>      <em>None</em>
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_time_nc"></span><h3>public subroutine <a href='../proc/write_time_nc.html'>write_time_nc</a>(nout, time)</h3></div>
+  <div class="panel-body">
+       
+<p>Write simulation time to netCDF output file</p><a href="../proc/write_time_nc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -409,13 +327,13 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>time</strong></td><td></td>
+  <td><strong>time</strong></td><td><p>Current simulation time</p></td>
 </tr>
 </tbody>
 </table>
@@ -427,7 +345,9 @@
       <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-write_phi2_nc"></span><h3>public subroutine <a href='../proc/write_phi2_nc.html'>write_phi2_nc</a>(nout, phi2)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write amplitude of electrostatic potential to netCDF</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -435,13 +355,13 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>phi2</strong></td><td></td>
+  <td><strong>phi2</strong></td><td><p>Amplitude of electrostatic potential</p></td>
 </tr>
 </tbody>
 </table>
@@ -453,7 +373,9 @@
       <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-write_phi_nc"></span><h3>public subroutine <a href='../proc/write_phi_nc.html'>write_phi_nc</a>(nout, phi)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write time trace of electrostatic potential to netCDF</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -461,13 +383,13 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>complex,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi</strong></td><td></td>
+  <td><strong>phi</strong></td><td><p>Electrostatic potential</p></td>
 </tr>
 </tbody>
 </table>
@@ -479,7 +401,9 @@
       <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-write_omega_nc"></span><h3>public subroutine <a href='../proc/write_omega_nc.html'>write_omega_nc</a>(nout, omega)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write the complex frequency to netCDF</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -505,7 +429,9 @@
       <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-write_radial_fluxes_nc"></span><h3>public subroutine <a href='../proc/write_radial_fluxes_nc.html'>write_radial_fluxes_nc</a>(nout, pflux, vflux, qflux)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write fluxes to netCDF</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -513,25 +439,25 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>pflux</strong></td><td></td>
+  <td><strong>pflux</strong></td><td><p>Particle, velocity, heat flux</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>vflux</strong></td><td></td>
+  <td><strong>vflux</strong></td><td><p>Particle, velocity, heat flux</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>qflux</strong></td><td></td>
+  <td><strong>qflux</strong></td><td><p>Particle, velocity, heat flux</p></td>
 </tr>
 </tbody>
 </table>
@@ -543,7 +469,9 @@
       <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-write_radial_moments_nc"></span><h3>public subroutine <a href='../proc/write_radial_moments_nc.html'>write_radial_moments_nc</a>(nout, dens_x, upar_x, temp_x)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write radial moments to netCDF</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -551,25 +479,25 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>dens_x</strong></td><td></td>
+  <td><strong>dens_x</strong></td><td><p>Radial moments for density, parallel velocity, temperature</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>upar_x</strong></td><td></td>
+  <td><strong>upar_x</strong></td><td><p>Radial moments for density, parallel velocity, temperature</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>temp_x</strong></td><td></td>
+  <td><strong>temp_x</strong></td><td><p>Radial moments for density, parallel velocity, temperature</p></td>
 </tr>
 </tbody>
 </table>
@@ -589,7 +517,7 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
@@ -615,7 +543,7 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
@@ -687,9 +615,11 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-write_gvmus_nc"></span><h3>public subroutine <a href='../proc/write_gvmus_nc.html'>write_gvmus_nc</a>(nout, g)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_gvmus_nc"></span><h3>public subroutine <a href='../proc/write_gvmus_nc.html'>write_gvmus_nc</a>(nout, gvmus)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write guiding center distribution function averaged over real space</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -697,13 +627,13 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
+  <td><strong>gvmus</strong></td><td><p>Guiding centre distribution function</p></td>
 </tr>
 </tbody>
 </table>
@@ -713,9 +643,11 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-write_gzvs_nc"></span><h3>public subroutine <a href='../proc/write_gzvs_nc.html'>write_gzvs_nc</a>(nout, g)</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_gzvs_nc"></span><h3>public subroutine <a href='../proc/write_gzvs_nc.html'>write_gzvs_nc</a>(nout, gzvs)</h3></div>
   <div class="panel-body">
-           
+       
+<p>Write guiding center distribution function averaged over (kx, ky, mu)</p>
+    
 <h4>Arguments</h4>      <table class="table table-striped varlist">
 <thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
 <tbody>
@@ -723,13 +655,13 @@
   <td><span class="anchor" ></span>integer,</td>
 <td>intent(in)</td>
   <td></td>  <td></td><td>::</td>
-  <td><strong>nout</strong></td><td></td>
+  <td><strong>nout</strong></td><td><p>Current timestep</p></td>
 </tr>
 <tr>
   <td><span class="anchor" ></span>real,</td>
 <td>intent(in),</td>
   <td></td>  <td>dimension(:, :, :, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
+  <td><strong>gzvs</strong></td><td><p>Guiding centre distribution function</p></td>
 </tr>
 </tbody>
 </table>
@@ -739,28 +671,45 @@
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-nc_grids"></span><h3>private subroutine <a href='../proc/nc_grids.html'>nc_grids</a>()</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-nc_species"></span><h3>private subroutine <a href='../proc/nc_species.html'>nc_species</a>(file_id)</h3></div>
   <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+       
+<p>Write <a href="../module/species.html#variable-spec">spec</a> to output netCDF file</p>
+    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>file_id</strong></td><td><p>NetCDF ID of the file to write to</p></td>
+</tr>
+</tbody>
+</table>
+
 
   </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-nc_species"></span><h3>private subroutine <a href='../proc/nc_species.html'>nc_species</a>()</h3></div>
+  <div class="panel-heading codesum"><span class="anchor" id="proc-nc_geo"></span><h3>private subroutine <a href='../proc/nc_geo.html'>nc_geo</a>(file_id)</h3></div>
   <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+       
+<p>Write various geometric quantities to output netCDF file</p>
+    
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>file_id</strong></td><td><p>NetCDF ID of the file to write to</p></td>
+</tr>
+</tbody>
+</table>
 
-  </div>
-  </div>
-
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-nc_geo"></span><h3>private subroutine <a href='../proc/nc_geo.html'>nc_geo</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
 
   </div>
   </div>
@@ -797,8 +746,178 @@ a time no larger than <code>tstart</code></p>
       <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-sync_nc"></span><h3>public subroutine <a href='../proc/sync_nc.html'>sync_nc</a>()</h3></div>
   <div class="panel-body">
-           
+       
+<p>Flush netCDF file to disk</p>
+    
 <h4>Arguments</h4>      <em>None</em>
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_complex_rank2"></span><h3>private subroutine <a href='../proc/write_complex_rank2.html'>write_complex_rank2</a>(parent_id, name, values, dim_names, units, long_name, start)</h3></div>
+  <div class="panel-body">
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>parent_id</strong></td><td><p>NetCDF ID of the parent group/file</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>name</strong></td><td><p>Name of the variable</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :)</td><td>::</td>
+  <td><strong>values</strong></td><td><p>Array to be written</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>dim_names</strong></td><td><p>Array of dimension names</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
+  <td><strong>units</strong></td><td><p>Units of coordinate</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
+  <td><strong>long_name</strong></td><td><p>Long descriptive name</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>start</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_complex_rank4"></span><h3>private subroutine <a href='../proc/write_complex_rank4.html'>write_complex_rank4</a>(parent_id, name, values, dim_names, units, long_name, start)</h3></div>
+  <div class="panel-body">
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>parent_id</strong></td><td><p>NetCDF ID of the parent group/file</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>name</strong></td><td><p>Name of the variable</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, :, :)</td><td>::</td>
+  <td><strong>values</strong></td><td><p>Array to be written</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>dim_names</strong></td><td><p>Array of dimension names</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
+  <td><strong>units</strong></td><td><p>Units of coordinate</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
+  <td><strong>long_name</strong></td><td><p>Long descriptive name</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>start</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
+
+  </div>
+  </div>
+
+      <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-write_complex_rank5"></span><h3>private subroutine <a href='../proc/write_complex_rank5.html'>write_complex_rank5</a>(parent_id, name, values, dim_names, units, long_name, start)</h3></div>
+  <div class="panel-body">
+           
+<h4>Arguments</h4>      <table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
+<tbody>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>parent_id</strong></td><td><p>NetCDF ID of the parent group/file</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in)</td>
+  <td></td>  <td></td><td>::</td>
+  <td><strong>name</strong></td><td><p>Name of the variable</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>complex,</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:, :, :, :, :)</td><td>::</td>
+  <td><strong>values</strong></td><td><p>Array to be written</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td></td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>dim_names</strong></td><td><p>Array of dimension names</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
+  <td><strong>units</strong></td><td><p>Units of coordinate</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>character(len=*),</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td></td><td>::</td>
+  <td><strong>long_name</strong></td><td><p>Long descriptive name</p></td>
+</tr>
+<tr>
+  <td><span class="anchor" ></span>integer,</td>
+<td>intent(in),</td>
+  <td>optional</td>  <td>dimension(:)</td><td>::</td>
+  <td><strong>start</strong></td><td></td>
+</tr>
+</tbody>
+</table>
+
 
   </div>
   </div>
@@ -815,13 +934,13 @@ a time no larger than <code>tstart</code></p>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-36-g007620edd</small></p>
+<br /><small>v0.5.1-67-g34b214f0d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T13:55:45.852064           </p>
+ on 2022-06-09T14:01:41.057835           </p>
         </div>
       </div>
       <br>

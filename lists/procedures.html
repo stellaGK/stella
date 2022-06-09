@@ -398,7 +398,6 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
 			   <tr><td><a href='../proc/deallocate_arrays_geo.html'>deallocate_arrays_geo</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays_spec.html'>deallocate_arrays_spec</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/dedge.html'>dedge</a></td><td><a href='../module/splines.html'>splines</a></td><td>Function</td><td></td></tr>
-			   <tr><td><a href='../proc/define_dims.html'>define_dims</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/define_vars.html'>define_vars</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/delete_fft.html'>delete_fft</a></td><td><a href='../module/fft_work.html'>fft_work</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/delete_list.html'>delete_list</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Subroutine</td><td></td></tr>
@@ -1115,9 +1114,8 @@ g/F is evolved for FFS</p></td></tr>
 			   <tr><td><a href='../proc/mu_differential_operator_fp_conservative.html'>mu_differential_operator_fp_conservative</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/multibox_communicate.html'>multibox_communicate</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/multiply_by_rho.html'>multiply_by_rho</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/nc_geo.html'>nc_geo</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/nc_grids.html'>nc_grids</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/nc_species.html'>nc_species</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/nc_geo.html'>nc_geo</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write various geometric quantities to output netCDF file</p></td></tr>
+			   <tr><td><a href='../proc/nc_species.html'>nc_species</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write <a href="../module/species.html#variable-spec">spec</a> to output netCDF file</p></td></tr>
 			   <tr><td><a href='../proc/netcdf_error.html'>netcdf_error</a></td><td><a href='../module/netcdf_utils.html'>netcdf_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/nonblocking_receive_complex_array.html'>nonblocking_receive_complex_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/nonblocking_send_complex_array.html'>nonblocking_send_complex_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
@@ -1219,7 +1217,7 @@ we are undoing that weighting here, so also need to use ia = 1</p></td></tr>
 			   <tr><td><a href='../proc/save_dt.html'>save_dt</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/save_dt_cfl.html'>save_dt_cfl</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/save_dt_min.html'>save_dt_min</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/save_input.html'>save_input</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>doc&gt; Save the input file in the NetCDF file </doc></p></td></tr>
+			   <tr><td><a href='../proc/save_input.html'>save_input</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Save the input file in the NetCDF file</p></td></tr>
 			   <tr><td><a href='../interface/scatter.html'>scatter</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/scope.html'>scope</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/second_order_centered.html'>second_order_centered</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Interface</td><td></td></tr>
@@ -1313,7 +1311,7 @@ indices for a given processor. Assumes indices start at 1</p></td></tr>
 			   <tr><td><a href='../proc/sweep_g_zed.html'>sweep_g_zed</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/sweep_zed_zonal.html'>sweep_zed_zonal</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/sweep_zed_zonal_response.html'>sweep_zed_zonal_response</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/sync_nc.html'>sync_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/sync_nc.html'>sync_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Flush netCDF file to disk</p></td></tr>
 			   <tr><td><a href='../interface/system.html'>system</a></td><td><a href='../module/system_mod.html'>system_mod</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/systemf.html'>systemf</a></td><td><a href='../module/system_fortran.html'>system_fortran</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/theta_integrate.html'>theta_integrate</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
@@ -1366,24 +1364,29 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
 			   <tr><td><a href='../proc/vpa_differential_operator_fp_conservative.html'>vpa_differential_operator_fp_conservative</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/vpa_interpolation.html'>vpa_interpolation</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/waitany.html'>waitany</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/write_complex_rank2.html'>write_complex_rank2</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/write_complex_rank4.html'>write_complex_rank4</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/write_complex_rank5.html'>write_complex_rank5</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_dt.html'>write_dt</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_final_ascii_files.html'>write_final_ascii_files</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_fluxes_kxkyz_nc.html'>write_fluxes_kxkyz_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_geometric_coefficients.html'>write_geometric_coefficients</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_gvmus_nc.html'>write_gvmus_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_gzvs_nc.html'>write_gzvs_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/write_grids.html'>write_grids</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Ensure the netCDF file contains all the dimensions and grids,
+creating them if necessary</p></td></tr>
+			   <tr><td><a href='../proc/write_gvmus_nc.html'>write_gvmus_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write guiding center distribution function averaged over real space</p></td></tr>
+			   <tr><td><a href='../proc/write_gzvs_nc.html'>write_gzvs_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write guiding center distribution function averaged over (kx, ky, mu)</p></td></tr>
 			   <tr><td><a href='../proc/write_indata_namelist.html'>write_indata_namelist</a></td><td><a href='../module/vmec_input.html'>vmec_input</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_kspectra_nc.html'>write_kspectra_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_loop_ascii_files.html'>write_loop_ascii_files</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_moments_nc.html'>write_moments_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_neoclassical.html'>write_neoclassical</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_omega_nc.html'>write_omega_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_phi2_nc.html'>write_phi2_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_phi_nc.html'>write_phi_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_radial_fluxes_nc.html'>write_radial_fluxes_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/write_radial_moments_nc.html'>write_radial_moments_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/write_omega_nc.html'>write_omega_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write the complex frequency to netCDF</p></td></tr>
+			   <tr><td><a href='../proc/write_phi2_nc.html'>write_phi2_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write amplitude of electrostatic potential to netCDF</p></td></tr>
+			   <tr><td><a href='../proc/write_phi_nc.html'>write_phi_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write time trace of electrostatic potential to netCDF</p></td></tr>
+			   <tr><td><a href='../proc/write_radial_fluxes_nc.html'>write_radial_fluxes_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write fluxes to netCDF</p></td></tr>
+			   <tr><td><a href='../proc/write_radial_moments_nc.html'>write_radial_moments_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write radial moments to netCDF</p></td></tr>
 			   <tr><td><a href='../proc/write_start_message.html'>write_start_message</a></td><td><a href='../program/stella.html'>stella</a></td><td>Subroutine</td><td><p>Write the start message to screen</p></td></tr>
-			   <tr><td><a href='../proc/write_time_nc.html'>write_time_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/write_time_nc.html'>write_time_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write simulation time to netCDF output file</p><a href="../proc/write_time_nc.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/write_wout_text.html'>write_wout_text</a></td><td><a href='../module/read_wout_mod.html'>read_wout_mod</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/x1c2r.html'>x1c2r</a></td><td><a href='../module/convert.html'>convert</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/x1r2c.html'>x1r2c</a></td><td><a href='../module/convert.html'>convert</a></td><td>Subroutine</td><td></td></tr>
@@ -1408,13 +1411,13 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-36-g007620edd</small></p>
+<br /><small>v0.5.1-67-g34b214f0d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T13:55:45.852064           </p>
+ on 2022-06-09T14:01:41.057835           </p>
         </div>
       </div>
       <br>
