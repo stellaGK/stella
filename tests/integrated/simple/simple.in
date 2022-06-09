@@ -111,10 +111,14 @@
  nwrite = 50
  nsave = 1000
  save_for_restart = .false.
- write_omega = .false.
+ write_omega = .true.
  write_phi_vs_time = .true.
- write_gvmus = .false.
- write_gzvs = .false.
+ write_gvmus = .true.
+ write_gzvs = .true.
+ write_kspectra = .true.
+ write_radial_fluxes = .true.
+ write_radial_moments = .true.
+ write_fluxes_kxkyz = .true.
 /
 
 &reinit_knobs
