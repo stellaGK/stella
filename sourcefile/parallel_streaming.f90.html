@@ -190,7 +190,7 @@
 <a name="ln-32"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">stream_tri_c1</span><span class="p">,</span> <span class="n">stream_tri_c2</span>
 <a name="ln-33"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">gradpar_c</span>
 <a name="ln-34"></a>
-<a name="ln-35"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span> <span class="kd">::</span> <span class="n">time_parallel_streaming</span> <span class="o">=</span> <span class="mf">0.</span>
+<a name="ln-35"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="kd">::</span> <span class="n">time_parallel_streaming</span> <span class="o">=</span> <span class="mf">0.</span>
 <a name="ln-36"></a>
 <a name="ln-37"></a><span class="k">contains</span>
 <a name="ln-38"></a>
@@ -366,7 +366,7 @@
 <a name="ln-208"></a>      <span class="c">!&gt; if full flux surface (flux annulus), will need to calculate in y space</span>
 <a name="ln-209"></a>
 <a name="ln-210"></a>      <span class="c">!&gt; start the timer for the parallel streaming part of the time advance</span>
-<a name="ln-211"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
+<a name="ln-211"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
 <a name="ln-212"></a>
 <a name="ln-213"></a>      <span class="c">!&gt; allocate arrays needed for intermmediate calculations</span>
 <a name="ln-214"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">g0</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">))</span>
@@ -464,7 +464,7 @@
 <a name="ln-306"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span><span class="n">g0y</span><span class="p">,</span> <span class="n">g1y</span><span class="p">,</span> <span class="n">g0_swap</span><span class="p">)</span>
 <a name="ln-307"></a>
 <a name="ln-308"></a>      <span class="c">!&gt; finish timing the subroutine</span>
-<a name="ln-309"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
+<a name="ln-309"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
 <a name="ln-310"></a>
 <a name="ln-311"></a>   <span class="k">end subroutine </span><span class="n">advance_parallel_streaming_explicit</span>
 <a name="ln-312"></a>
@@ -739,7 +739,7 @@
 <a name="ln-581"></a>      <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ivmu</span>
 <a name="ln-582"></a>      <span class="kt">complex</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">phi1</span>
 <a name="ln-583"></a>
-<a name="ln-584"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
+<a name="ln-584"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
 <a name="ln-585"></a>
 <a name="ln-586"></a>      <span class="k">allocate</span> <span class="p">(</span><span class="n">phi1</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span> <span class="n">nakx</span><span class="p">,</span> <span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span> <span class="n">ntubes</span><span class="p">))</span>
 <a name="ln-587"></a>
@@ -747,7 +747,7 @@
 <a name="ln-589"></a>      <span class="n">g1</span> <span class="o">=</span> <span class="n">g</span>
 <a name="ln-590"></a>      <span class="n">phi1</span> <span class="o">=</span> <span class="n">phi</span>
 <a name="ln-591"></a>
-<a name="ln-592"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
+<a name="ln-592"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
 <a name="ln-593"></a>      <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
 <a name="ln-594"></a>         <span class="c">! obtain RHS of inhomogeneous GK eqn;</span>
 <a name="ln-595"></a>         <span class="c">! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}</span>
@@ -763,7 +763,7 @@
 <a name="ln-605"></a><span class="k">            call </span><span class="n">sweep_g_zed</span><span class="p">(</span><span class="n">ivmu</span><span class="p">,</span> <span class="n">g</span><span class="p">(:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">ivmu</span><span class="p">))</span>
 <a name="ln-606"></a>         <span class="k">end if</span>
 <a name="ln-607"></a><span class="k">      end do</span>
-<a name="ln-608"></a><span class="k">      if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
+<a name="ln-608"></a><span class="k">      if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
 <a name="ln-609"></a>
 <a name="ln-610"></a>      <span class="n">fields_updated</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
 <a name="ln-611"></a>
@@ -773,11 +773,11 @@
 <a name="ln-615"></a>
 <a name="ln-616"></a>      <span class="c">! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}</span>
 <a name="ln-617"></a>      <span class="c">! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}</span>
-<a name="ln-618"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">3</span><span class="p">),</span> <span class="s1">&#39; (back substitution)&#39;</span><span class="p">)</span>
+<a name="ln-618"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39; (back substitution)&#39;</span><span class="p">)</span>
 <a name="ln-619"></a>      <span class="k">call </span><span class="n">invert_parstream_response</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
-<a name="ln-620"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">3</span><span class="p">),</span> <span class="s1">&#39; (back substitution)&#39;</span><span class="p">)</span>
+<a name="ln-620"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39; (back substitution)&#39;</span><span class="p">)</span>
 <a name="ln-621"></a>
-<a name="ln-622"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
+<a name="ln-622"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
 <a name="ln-623"></a>      <span class="k">do </span><span class="n">ivmu</span> <span class="o">=</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span> <span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
 <a name="ln-624"></a>         <span class="c">! now have phi^{n+1} for non-negative kx</span>
 <a name="ln-625"></a>         <span class="c">! obtain RHS of GK eqn;</span>
@@ -794,11 +794,11 @@
 <a name="ln-636"></a><span class="k">            call </span><span class="n">sweep_g_zed</span><span class="p">(</span><span class="n">ivmu</span><span class="p">,</span> <span class="n">g</span><span class="p">(:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">ivmu</span><span class="p">))</span>
 <a name="ln-637"></a>         <span class="k">end if</span>
 <a name="ln-638"></a><span class="k">      end do</span>
-<a name="ln-639"></a><span class="k">      if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
+<a name="ln-639"></a><span class="k">      if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">&#39; (bidiagonal solve)&#39;</span><span class="p">)</span>
 <a name="ln-640"></a>
 <a name="ln-641"></a>      <span class="k">deallocate</span> <span class="p">(</span><span class="n">phi1</span><span class="p">)</span>
 <a name="ln-642"></a>
-<a name="ln-643"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
+<a name="ln-643"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">proc0</span><span class="p">)</span> <span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span> <span class="n">time_parallel_streaming</span><span class="p">(:,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39; Stream advance&#39;</span><span class="p">)</span>
 <a name="ln-644"></a>
 <a name="ln-645"></a>   <span class="k">end subroutine </span><span class="n">advance_parallel_streaming_implicit</span>
 <a name="ln-646"></a>
@@ -1366,13 +1366,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-28-gc34ec719e</small></p>
+<br /><small>v0.5.1-36-g007620edd</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T13:43:25.471413           </p>
+ on 2022-06-09T13:55:45.852064           </p>
         </div>
       </div>
       <br>
