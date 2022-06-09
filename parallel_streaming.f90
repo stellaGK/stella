@@ -32,7 +32,7 @@ module parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
    real, dimension(:, :), allocatable :: gradpar_c
 
-   real, dimension(2) :: time_parallel_streaming = 0.
+   real, dimension(2, 3) :: time_parallel_streaming = 0.
 
 contains
 
@@ -208,7 +208,7 @@ contains
       !> if full flux surface (flux annulus), will need to calculate in y space
 
       !> start the timer for the parallel streaming part of the time advance
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       !> allocate arrays needed for intermmediate calculations
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -306,7 +306,7 @@ contains
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
 
       !> finish timing the subroutine
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_explicit
 
@@ -581,7 +581,7 @@ contains
       integer :: ivmu
       complex, dimension(:, :, :, :), allocatable :: phi1
 
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
 
@@ -589,6 +589,7 @@ contains
       g1 = g
       phi1 = phi
 
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! obtain RHS of inhomogeneous GK eqn;
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
@@ -604,6 +605,7 @@ contains
             call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
          end if
       end do
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
 
@@ -613,8 +615,11 @@ contains
 
       ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
       ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
       call invert_parstream_response(phi)
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
 
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! now have phi^{n+1} for non-negative kx
          ! obtain RHS of GK eqn;
@@ -631,10 +636,11 @@ contains
             call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
          end if
       end do
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       deallocate (phi1)
 
-      if (proc0) call time_message(.false., time_parallel_streaming, ' Stream advance')
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
 
