@@ -844,7 +844,7 @@ contains
                ! Add the electromagnetic piece of the mirror term
                call mp_abort("(mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == apar) Not currently supported")
             end if
-            
+
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
                call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
