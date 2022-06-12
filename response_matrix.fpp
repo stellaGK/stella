@@ -844,7 +844,7 @@ contains
             if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
                ! Add the electromagnetic piece of the mirror term
                ! call mp_abort("(mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == apar) Not currently supported")
-               gext(idx, ivmu) = gext(idx, ivmu) + mirror_apar_fac(ia, iz, ivmu))
+               gext(idx, ivmu) = gext(idx, ivmu) + mirror_apar_fac(ia, iz, ivmu)
             end if
 
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)

@@ -179,6 +179,8 @@ contains
       call broadcast(mat_read)
 
       if (.not. include_mirror) mirror_implicit = .false.
+      ! mirror_semi_lagrange is a subset of mirror_implicit
+      if (.not. mirror_implicit) mirror_semi_lagrange = .false.
 
       if (driftkinetic_implicit) then
          stream_implicit = .false.
