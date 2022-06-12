@@ -193,6 +193,31 @@ contains
          driftkinetic_implicit = .true.
       end if
 
+      if ((mirror_semi_lagrange) .and. (fapar>epsilon(0.0))) then
+         !> mirror_semi_lagrange not supported for apar. Throw a warning and
+         !> set mirror_semi_lagrange to .false.
+         write (*, *)
+         write (*, *) '!!!WARNING!!!'
+         write (*, *) 'The option mirror_semi_lagrange=T is not currently supported for fapar>0.'
+         write (*, *) 'Forcing mirror_semi_lagrange=F.'
+         write (*, *) '!!!WARNING!!!'
+         write (*, *)
+         mirror_semi_lagrange = .false.
+      end if
+
+      if ((mirror_implicit) .and. (fapar>epsilon(0.0)) .and. (.not. stream_implicit)) then
+         !> mirror_implicit with fapar>1 requires the response matrix to be
+         !> calculated, and this currently only happens if stream_implicit=T
+         !> Throw a warning and set mirror_implicit to .false.
+         write (*, *)
+         write (*, *) '!!!WARNING!!!'
+         write (*, *) 'The option mirror_implicit=T with fapar>0 is currently not supported for stream_implicit=F.'
+         write (*, *) 'Forcing mirror_implicit=F.'
+         write (*, *) '!!!WARNING!!!'
+         write (*, *)
+         mirror_implicit = .false.
+      end if
+
       if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit .or. drifts_implicit) then
          fully_explicit = .false.
       else

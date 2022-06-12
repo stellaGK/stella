@@ -101,6 +101,8 @@ contains
       !> calculate the term multiplying dg/dvpa in the mirror term
       !> and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
       !> if solving implicitly
+      !> If running stella with fapar>0 and mirror_implicit=T, init_mirror needs
+      !> be called before init_parallel_streaming
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
       call init_mirror
       !> calculate the term multiplying dg/dz in the parallel streaming term

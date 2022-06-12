@@ -78,7 +78,7 @@ contains
    !      have the response matrix R, stored in array response_matrix
    !  (8) Call lu_decomposition on R, such that response_matrix no longer
    !      stores R, but instead stores the entries of matrices L and U,
-   !      here R=LU.
+   !      where R=LU.
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
@@ -692,6 +692,7 @@ contains
       use gyro_averages, only: aj0x, aj1x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
+      use run_parameters, only: mirror_implicit, mirror_semi_lagrange
       use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
@@ -980,20 +981,10 @@ contains
          end do
       end if
 
-      ! No longer want to integrate gext; more complicated electromagnetically
-      ! to get the fields
-!       ! we now have g on the extended zed domain at this ky and set of connected kx values
-!       ! corresponding to a unit impulse in phi at this location
-!       ! now integrate over velocities to get a square response matrix
-!       ! (this ends the parallelization over velocity space, so every core should have a
-!       !  copy of field_ext)
-!       call integrate_over_velocity(gext, field_ext, iky, ie)
-!
-! #ifdef ISO_C_BINDING
-!       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = field_ext(:nresponse)
-! #else
-!       response_matrix(iky)%eigen(ie)%zloc(:, idx) = field_ext(:nresponse)
-! #endif
+      if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
+         ! Add the electromagnetic piece of the mirror term
+         call mp_abort("Not currently supported")
+      end if
 
    end subroutine get_dgdfield_matrix_column
 
