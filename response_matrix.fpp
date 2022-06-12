@@ -696,6 +696,7 @@ contains
       use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
+      use mirror_terms, only: mirror_apar_fac
 
       implicit none
 
@@ -842,9 +843,10 @@ contains
 
             if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
                ! Add the electromagnetic piece of the mirror term
-               call mp_abort("(mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == apar) Not currently supported")
+               ! call mp_abort("(mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == apar) Not currently supported")
+               gext(idx, ivmu) = gext(idx, ivmu) + mirror_apar_fac(ia, iz, ivmu))
             end if
-            
+
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
                call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))

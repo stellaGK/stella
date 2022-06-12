@@ -8,6 +8,7 @@ module mirror_terms
    public :: advance_mirror_explicit, advance_mirror_implicit
    public :: add_mirror_radial_variation
    public :: time_mirror
+   public :: mirror_apar_fac
 
    private
 
@@ -122,7 +123,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
