@@ -16,6 +16,8 @@ jobs:
       matrix:
         config:
           - name: "Makefiles"
+          - name: "Makefiles, debug"
+            gk_system: gnu_ubuntu_debug
           - name: "CMake"
     steps:
       - name: Install dependencies
@@ -43,8 +45,8 @@ jobs:
         run: pip3 install --user -r tests/integrated/requirements.txt
 
       - name: Build stella (Makefile)
-        if: ${{ ! contains(matrix.config.name, 'CMake') }}
-        run: ./scripts/ci_build_and_run.sh
+        if: ${{ contains(matrix.config.name, 'Makefile') }}
+        run: ./scripts/ci_build_and_run.sh ${{ matrix.config.gk_system }}
 
       - name: Build stella (CMake)
         if: ${{ contains(matrix.config.name, 'CMake') }}
