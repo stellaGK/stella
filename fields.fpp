@@ -40,7 +40,7 @@ module fields
 
    integer :: zm
 
-   real, dimension(2, 5) :: time_field_solve
+   real, dimension(2, 5) :: time_field_solve = 0.
 
    interface get_dchidy
       module procedure get_dchidy_4d
@@ -1226,6 +1226,7 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
       logical, optional, intent(in) :: skip_fsa
+      real, dimension(:, :, :, :), allocatable :: gamtot_t
       integer :: ia, it, ikx
       complex :: tmp
       logical :: skip_fsa_local
@@ -1259,8 +1260,14 @@ contains
             call mb_get_phi(phi, has_elec, adia_elec)
          else
             ! divide <g> by sum_s (\Gamma_0s-1) Zs^2*e*ns/Ts to get phi
-            phi = phi / spread(gamtot, 4, ntubes)
-            if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
+            allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+            gamtot_t = spread(gamtot, 4, ntubes)
+            where (gamtot_t < epsilon(0.0))
+               phi = 0.0
+            elsewhere
+               phi = phi / gamtot_t
+            end where
+            deallocate (gamtot_t)
          end if
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
@@ -1661,6 +1668,7 @@ contains
 
       integer :: ikx, iky, ivmu, iz, it, ia, is, imu
       complex :: tmp
+      real, dimension(:, :, :, :), allocatable :: gamtot_t
       complex, dimension(:, :, :, :), allocatable :: phi1
       complex, dimension(:, :, :), allocatable :: gyro_g
       complex, dimension(:, :), allocatable :: g0k, g1k, g1x
@@ -1702,9 +1710,14 @@ contains
          end do
 
          if (dist == 'gbar') then
-            !call get_phi (phi)
-            phi1 = phi1 / spread(gamtot, 4, ntubes)
-            phi1(1, 1, :, :) = 0.0
+            allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+            gamtot_t = spread(gamtot, 4, ntubes)
+            where (gamtot_t < epsilon(0.0))
+               phi1 = 0.0
+            elsewhere
+               phi1 = phi1 / gamtot_t
+            end where
+            deallocate (gamtot_t)
          else if (dist == 'h') then
             if (proc0) write (*, *) 'dist option "h" not implemented in radial_correction. aborting'
             call mp_abort('dist option "h" in radial_correction. aborting')
