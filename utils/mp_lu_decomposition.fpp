@@ -203,14 +203,14 @@ contains
       n = size(lu, 1)
 
       !perform pivoting on root node
-      if (iproc .eq. 0) then
+      if (iproc == 0) then
          do i = 1, n
             ll = idx(i)
             summ = b(ll)
             b(ll) = b(i)
             b(i) = summ
          end do
-      endif
+      end if
 
       call mpi_win_fence(0, win, ierr)
 
@@ -219,32 +219,32 @@ contains
          summ = b(i)
          if (ii /= 0) then
             call split_n_tasks(i - ii, iproc, nproc, lo, hi, ii)
-            if(lo.gt.hi) then
+            if (lo > hi) then
                dot_local = 0
             else
                dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
-            endif
+            end if
             call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
 
-            if (iproc .eq. 0) summ = summ - dot
+            if (iproc == 0) summ = summ - dot
          else if (summ /= 0.0) then
             ii = i
          end if
 
-         if (iproc .eq. 0) b(i) = summ
+         if (iproc == 0) b(i) = summ
          call mpi_win_fence(0, win, ierr)
       end do
 
       do i = n, 1, -1
          call split_n_tasks(n - i, iproc, nproc, lo, hi, i + 1)
-         if(lo.gt.hi) then
+         if (lo > hi) then
             dot_local = 0
          else
             dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
-         endif
+         end if
 
          call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
-         if(iproc.eq.0) b(i) = (b(i) - dot) / lu(i, i)
+         if (iproc == 0) b(i) = (b(i) - dot) / lu(i, i)
          call mpi_win_fence(0, win, ierr)
       end do
 
@@ -271,20 +271,20 @@ contains
       n_div = n / nproc
       n_mod = mod(n, nproc)
 
-      if (n_div .lt. blocksize_l) then
+      if (n_div < blocksize_l) then
          lo = min(iproc * blocksize_l + llim_l, n + llim_l)
          hi = min(lo + blocksize_l - 1, n + llim_l - 1)
          if (present(comm)) then ! do we require an MPI_WIN_FENCE?
-            comm = .not. (blocksize_l .ge. n)
-         endif
+            comm = .not. (blocksize_l >= n)
+         end if
       else
          lo = iproc * n_div + min(iproc, n_mod) + llim_l
          hi = lo + n_div - 1
          if (iproc < n_mod) hi = hi + 1
          if (present(comm)) then ! do we require an MPI_WIN_FENCE?
-            comm = .not. (n_div + min(n_mod, 1) .ge. n)
-         endif
-      endif
+            comm = .not. (n_div + min(n_mod, 1) >= n)
+         end if
+      end if
 
    end subroutine split_n_tasks
 

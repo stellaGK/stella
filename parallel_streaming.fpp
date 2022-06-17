@@ -1070,7 +1070,7 @@ contains
             end do
          else
 #ifdef ISO_C_BINDING
-            if (gext_shared_window .eq. MPI_WIN_NULL) then
+            if (gext_shared_window == MPI_WIN_NULL) then
                nresponse = maxval(nsegments) * nzed_segment + 1
 
                win_size = 0
@@ -1091,7 +1091,7 @@ contains
                   call c_f_pointer(cptr, gext_shared, (/nresponse/))
                end if
                call mpi_win_fence(0, gext_shared_window, ierr)
-            endif
+            end if
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   nresponse = nsegments(ie, iky) * nzed_segment + 1
