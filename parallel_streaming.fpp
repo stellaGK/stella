@@ -329,7 +329,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       !the next input/output is for quasineutrality and gyroaveraging corrections
-      !that go directly in the RHS (since they don't require further FFTs)
+      !that go directly in the RHS (since they don not require further FFTs)
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: rhs
 
       integer :: ivmu, iv, imu, is, it, ia, iz
@@ -1026,8 +1026,7 @@ contains
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mpi
-      use mp, only: sgproc0, comm_sgroup
-      use mp, only: real_size, nbytes_real
+      use mp, only: sgproc0, comm_sgroup, real_size
       use dist_fn_arrays, only: gext_shared, gext_shared_window
       use mp_lu_decomposition, only: lu_back_substitution_local
 #endif
@@ -1227,7 +1226,7 @@ contains
 
       use run_parameters, only: stream_implicit, driftkinetic_implicit
 #ifdef ISO_C_BINDING
-      use dist_fn_arrays, only: gext_shared, gext_shared_window
+      use dist_fn_arrays, only: gext_shared_window
       use mpi
 #endif
 

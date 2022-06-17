@@ -195,7 +195,7 @@ contains
 
       complex, dimension(:), allocatable :: local_sum
 
-      integer :: i, j, n, ii, ll, lo, hi
+      integer :: i, n, ii, ll, lo, hi
       integer :: iproc, nproc, ierr
       complex :: summ, dot_local, dot
 
@@ -264,7 +264,7 @@ contains
       integer, optional, intent(in) :: blocksize
       logical, optional, intent(out) :: comm
 
-      integer :: n_div, n_mod, llim_l, blocksize_l, ind
+      integer :: n_div, n_mod, llim_l, blocksize_l
 
       llim_l = 1
       if (present(llim)) llim_l = llim
@@ -275,11 +275,11 @@ contains
       n_div = n / nproc
       n_mod = mod(n, nproc)
 
-      if (n_div .lt. blocksize) then
-         lo = min(iproc * blocksize + llim_l, n + llim_l)
-         hi = min(lo + blocksize - 1, n + llim_l - 1)
+      if (n_div .lt. blocksize_l) then
+         lo = min(iproc * blocksize_l + llim_l, n + llim_l)
+         hi = min(lo + blocksize_l - 1, n + llim_l - 1)
          if (present(comm)) then ! do we require an MPI_WIN_FENCE?
-            comm = .not. (blocksize .ge. n)
+            comm = .not. (blocksize_l .ge. n)
          endif
       else
          lo = iproc * n_div + min(iproc, n_mod) + llim_l
