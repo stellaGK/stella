@@ -4,6 +4,8 @@
 
 module dist_fn_arrays
 
+   use mpi
+
    public :: gnew, gold, g_symm
    public :: g0, g1, g2, g3
    public :: g_krook, g_proj
@@ -50,5 +52,9 @@ module dist_fn_arrays
    real, dimension(:, :, :, :), allocatable :: kperp2, dkperp2dr
    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
    ! note: dkperp2dr is divided by kperp2
+
+   ! array on shared memory for parallelized back substitution
+   complex, dimension(:), pointer :: gext_shared
+   integer :: gext_shared_window = MPI_WIN_NULL
 
 end module dist_fn_arrays

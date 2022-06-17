@@ -289,7 +289,8 @@ mp.o: \
 	 constants.o \
 	 file_utils.o 
 mp_lu_decomposition.o: \
-	 linear_solve.o 
+	 linear_solve.o \
+	 mp.o 
 mt19937.o: 
 multibox.o: \
 	 constants.o \
@@ -335,6 +336,7 @@ parallel_streaming.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 mp_lu_decomposition.o \
 	 neoclassical_terms.o \
 	 physics_flags.o \
 	 run_parameters.o \
@@ -495,6 +497,7 @@ stella_geometry.o: \
 	 physics_parameters.o \
 	 text_options.o \
 	 vmec_geo.o \
+	 vmec_to_stella_geometry_interface.o \
 	 zgrid.o 
 stella_io.o: \
 	 convert.o \

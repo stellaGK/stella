@@ -7,6 +7,7 @@ module mp_lu_decomposition
    public :: lu_decomposition_local
    public :: lu_inverse_local
    public :: lu_matrix_multiply_local
+   public :: lu_back_substitution_local
 
    interface lu_decomposition_local
 !    module procedure lu_decomposition_local_real
@@ -21,6 +22,11 @@ module mp_lu_decomposition
    interface lu_matrix_multiply_local
 !    module procedure lu_decomposition_local_real
       module procedure lu_matrix_multiply_local_complex
+   end interface
+
+   interface lu_back_substitution_local
+!    module procedure lu_decomposition_local_real
+      module procedure lu_back_substitution_local_complex
    end interface
 
 contains
@@ -174,6 +180,79 @@ contains
       call mpi_win_fence(0, win, ierr)
 
    end subroutine lu_matrix_multiply_local_complex
+
+   subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b)
+
+      use mpi
+      use mp, only: mpicmplx
+
+      implicit none
+
+      integer, intent(in) :: win, mp_comm
+      complex, dimension(:, :), intent(in) :: lu
+      integer, dimension(:), intent(in) :: idx
+      complex, dimension(:), intent(in out) :: b
+
+      complex, dimension(:), allocatable :: local_sum
+
+      integer :: i, j, n, ii, ll, lo, hi
+      integer :: iproc, nproc, ierr
+      complex :: summ, dot_local, dot
+
+      call mpi_comm_size(mp_comm, nproc, ierr)
+      call mpi_comm_rank(mp_comm, iproc, ierr)
+
+      allocate (local_sum(nproc))
+
+      n = size(lu, 1)
+
+      !perform pivoting on root node
+      if (iproc .eq. 0) then
+         do i = 1, n
+            ll = idx(i)
+            summ = b(ll)
+            b(ll) = b(i)
+            b(i) = summ
+         end do
+      endif
+
+      call mpi_win_fence(0, win, ierr)
+
+      ii = 0
+      do i = 1, n
+         summ = b(i)
+         if (ii /= 0) then
+            call split_n_tasks(i - ii, iproc, nproc, lo, hi, ii)
+            if(lo.gt.hi) then
+               dot_local = 0
+            else
+               dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
+            endif
+            call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
+
+            summ = summ - dot
+         else if (summ /= 0.0) then
+            ii = i
+         end if
+
+         if (iproc .eq. 0) b(i) = summ
+         call mpi_win_fence(0, win, ierr)
+      end do
+
+      do i = n, 1, -1
+         call split_n_tasks(n - i, iproc, nproc, lo, hi, i + 1)
+         if(lo.gt.hi) then
+            dot_local = 0
+         else
+            dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
+         endif
+
+         call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
+         if(iproc.eq.0) b(i) = (b(i) - dot) / lu(i, i)
+         call mpi_win_fence(0, win, ierr)
+      end do
+
+   end subroutine lu_back_substitution_local_complex
 
    subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, comm)
 

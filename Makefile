@@ -384,7 +384,8 @@ check: check-unit check-integrated
 
 .INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
 		mp.f90 fft_work.f90 response_matrix.f90 sources.f90 \
-		fields.f90 mp_lu_decomposition.f90 git_version_impl.f90
+		fields.f90 mp_lu_decomposition.f90 git_version_impl.f90 \
+		parallel_streaming.f90
 
 ############################################################# MORE DIRECTIVES
 

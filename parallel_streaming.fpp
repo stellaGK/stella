@@ -1023,6 +1023,14 @@ contains
 
    subroutine invert_parstream_response(phi)
 
+#ifdef ISO_C_BINDING
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
+      use mpi
+      use mp, only: sgproc0, comm_sgroup
+      use mp, only: real_size, nbytes_real
+      use dist_fn_arrays, only: gext_shared, gext_shared_window
+      use mp_lu_decomposition, only: lu_back_substitution_local
+#endif
       use linear_solve, only: lu_back_substitution
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen
@@ -1039,9 +1047,15 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
 
-      integer :: iky, ie, it, ulim
-      integer :: ikx
+      integer :: ikx, iky, ie, it, ulim
+#ifdef ISO_C_BINDING
+      integer :: nresponse
+      integer :: disp_unit = 1, ierr
+      integer(kind=MPI_ADDRESS_KIND) :: win_size
+      type(c_ptr) :: cptr
+#else
       complex, dimension(:), allocatable :: gext
+#endif
 
       ! need to put the fields into extended zed grid
       do iky = 1, naky
@@ -1056,6 +1070,43 @@ contains
                end do
             end do
          else
+#ifdef ISO_C_BINDING
+            if (gext_shared_window .eq. MPI_WIN_NULL) then
+               nresponse = maxval(nsegments) * nzed_segment + 1
+
+               win_size = 0
+               if (sgproc0) then
+                  win_size = int(nresponse, MPI_ADDRESS_KIND) * 2 * real_size !complex size
+               end if
+
+               call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
+                                            comm_sgroup, cptr, gext_shared_window, ierr)
+
+               if (.not. sgproc0) then
+                  !make sure all the procs have the right memory address
+                  call mpi_win_shared_query(gext_shared_window, 0, win_size, disp_unit, cptr, ierr)
+               end if
+               call mpi_win_fence(0, gext_shared_window, ierr)
+
+               if (.not. associated(gext_shared)) then
+                  call c_f_pointer(cptr, gext_shared, (/nresponse/))
+               end if
+               call mpi_win_fence(0, gext_shared_window, ierr)
+               
+            endif
+            do it = 1, ntubes
+               do ie = 1, neigen(iky)
+                  nresponse = nsegments(ie, iky) * nzed_segment + 1
+                  ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+                  if (sgproc0) call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext_shared(:nresponse), ulim)
+                  call lu_back_substitution_local(comm_sgroup, gext_shared_window, &
+                                                  response_matrix(iky)%eigen(ie)%zloc, &
+                                                  response_matrix(iky)%eigen(ie)%idx, gext_shared)
+                  if (sgproc0) call map_from_extended_zgrid(it, ie, iky, gext_shared(:nresponse), phi(iky, :, :, :))
+                  call mpi_win_fence(0, gext_shared_window, ierr)
+               end do
+            end do
+#else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
@@ -1067,6 +1118,7 @@ contains
                   deallocate (gext)
                end do
             end do
+#endif
          end if
       end do
 
@@ -1174,8 +1226,16 @@ contains
    subroutine finish_parallel_streaming
 
       use run_parameters, only: stream_implicit, driftkinetic_implicit
+#ifdef ISO_C_BINDING
+      use dist_fn_arrays, only: gext_shared, gext_shared_window
+      use mpi
+#endif
 
       implicit none
+
+#ifdef ISO_C_BINDING
+      integer :: ierr
+#endif
 
       if (allocated(stream)) deallocate (stream)
       if (allocated(stream_c)) deallocate (stream_c)
@@ -1184,6 +1244,9 @@ contains
       if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
+#ifdef ISO_C_BINDING
+      if (gext_shared_window /= MPI_WIN_NULL) call mpi_win_free(gext_shared_window, ierr)
+#endif
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 
       parallel_streaming_initialized = .false.

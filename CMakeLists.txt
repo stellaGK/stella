@@ -52,7 +52,6 @@ set(STELLA_SOURCES_f90
   mirror_terms.f90
   multibox.f90
   neoclassical_terms.f90
-  parallel_streaming.f90
   physics_flags.f90
   physics_parameters.f90
   run_parameters.f90
@@ -76,6 +75,7 @@ set(STELLA_SOURCES_f90
 # Sources that _do_ need preprocessing
 set(STELLA_SOURCES_fpp
   fields.fpp
+  parallel_streaming.fpp
   response_matrix.fpp
   sfincs_interface.fpp
   sources.fpp

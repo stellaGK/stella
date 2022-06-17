@@ -197,7 +197,7 @@ contains
       character(line_length), dimension(:), allocatable ::  input_file_array
       integer :: n, unit
 
-      ! Don't attempt to write zero-sized arrays
+      ! Do not attempt to write zero-sized arrays
       if (num_input_lines <= 0) return
 
       allocate (input_file_array(num_input_lines))
