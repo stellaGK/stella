@@ -33,10 +33,6 @@ module sources
 
    logical :: debug = .false.
 
-#ifdef ISO_C_BINDING
-   logical :: qn_window_initialized = .false.
-#endif
-
    real, dimension(2, 2) :: time_sources = 0.
 
 contains
@@ -210,9 +206,8 @@ contains
       if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
 #ifdef ISO_C_BINDING
-      if (qn_window_initialized .and. qn_zf_window /= MPI_WIN_NULL) then
+      if (qn_zf_window /= MPI_WIN_NULL) then
          call mpi_win_free(qn_zf_window, ierr)
-         qn_window_initialized = .false.
       end if
 #else
       if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
@@ -699,7 +694,7 @@ contains
       if (include_qn_source) then
          nmat_zf = nakx * (nztot - 1)
 #ifdef ISO_C_BINDING
-         if ((.not. qn_window_initialized) .or. (qn_zf_window == MPI_WIN_NULL)) then
+         if (qn_zf_window == MPI_WIN_NULL) then
             prior_focus = curr_focus
             call scope(sharedsubprocs)
             win_size = 0
@@ -740,8 +735,6 @@ contains
             call mpi_win_fence(0, qn_zf_window, ierr)
 
             call scope(prior_focus)
-
-            qn_window_initialized = .true.
          end if
 #else
          if (debug) write (6, *) 'sources::init_quasineutrality_source::allocate_phizf'

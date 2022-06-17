@@ -33,7 +33,6 @@ module fields
    logical :: fields_updated = .false.
    logical :: fields_initialized = .false.
 #ifdef ISO_C_BINDING
-   logical :: qn_window_initialized = .false.
    integer :: phi_shared_window = MPI_WIN_NULL
 #endif
    logical :: debug = .false.
@@ -337,7 +336,7 @@ contains
          end if
 
          if (debug) write (*, *) 'fields::init_fields::qn_window_init'
-         if ((.not. qn_window_initialized) .or. (qn_window == MPI_WIN_NULL)) then
+         if (qn_window == MPI_WIN_NULL) then
             win_size = 0
             if (sgproc0) then
                win_size = int(nakx * nztot * naky_r, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
@@ -374,8 +373,6 @@ contains
             end do
 
             call mpi_win_fence(0, qn_window, ierr)
-
-            qn_window_initialized = .true.
          end if
 
          call split_n_tasks(nztot * naky_r, c_lo, c_hi)
@@ -1961,9 +1958,8 @@ contains
 
 #ifdef ISO_C_BINDING
       if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
-      if (qn_window_initialized .and. qn_window /= MPI_WIN_NULL) then
+      if (qn_window /= MPI_WIN_NULL) then
          call mpi_win_free(qn_window, ierr)
-         qn_window_initialized = .false.
       end if
 #else
       if (allocated(phi_solve)) deallocate (phi_solve)
