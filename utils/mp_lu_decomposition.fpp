@@ -193,16 +193,12 @@ contains
       integer, dimension(:), intent(in) :: idx
       complex, dimension(:), intent(in out) :: b
 
-      complex, dimension(:), allocatable :: local_sum
-
       integer :: i, n, ii, ll, lo, hi
       integer :: iproc, nproc, ierr
       complex :: summ, dot_local, dot
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
-
-      allocate (local_sum(nproc))
 
       n = size(lu, 1)
 
@@ -230,7 +226,7 @@ contains
             endif
             call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
 
-            summ = summ - dot
+            if (iproc .eq. 0) summ = summ - dot
          else if (summ /= 0.0) then
             ii = i
          end if
