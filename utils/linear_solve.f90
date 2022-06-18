@@ -5,6 +5,7 @@ module linear_solve
    public :: lu_decomposition
    public :: lu_back_substitution
    public :: lu_inverse
+   public :: transpose_matrix
    public :: imaxloc
 
    interface lu_decomposition
@@ -23,6 +24,11 @@ module linear_solve
    interface lu_inverse
       module procedure lu_inverse_real
       module procedure lu_inverse_complex
+   end interface
+
+   interface transpose_matrix
+      module procedure transpose_matrix_real
+      module procedure transpose_matrix_complex
    end interface
 
 contains
@@ -319,6 +325,59 @@ contains
       end do
 
    end subroutine lu_inverse_complex
+
+   subroutine transpose_matrix_real(mat)
+
+      implicit none
+
+      real, dimension(:, :), intent(inout) :: mat
+      real :: swap
+      integer :: i, j, ii, jj, ihi, jlo, jhi, n
+      integer, parameter :: blocksize = 32
+
+      n = size(mat, 1)
+      do ii = 1, n, blocksize
+         do jj = 1, n, blocksize
+            ihi = min(ii + blocksize - 1, n)
+            do i = ii, ihi
+               jlo = max(jj, i + 1)
+               jhi = min(jj + blocksize - 1, n)
+               do j = jlo, jhi
+                  swap = mat(i, j)
+                  mat(i, j) = mat(j, i)
+                  mat(j, i) = swap
+               enddo
+            enddo
+         enddo
+      enddo
+   end subroutine transpose_matrix_real
+
+   subroutine transpose_matrix_complex(mat)
+
+      implicit none
+
+      complex, dimension(:, :), intent(inout) :: mat
+      complex :: swap
+      integer :: i, j, ii, jj ,n, ihi, jlo, jhi
+      integer, parameter :: blocksize = 32
+
+      n = size(mat, 1)
+      do ii = 1, n, blocksize
+         do jj = 1, n, blocksize
+            ihi = min(ii + blocksize - 1, n)
+            do i = ii, ihi
+               jlo = max(jj, i + 1)
+               jhi = min(jj + blocksize - 1, n)
+               do j = jlo,  jhi
+                  swap = mat(i, j)
+                  mat(i, j) = mat(j, i)
+                  mat(j, i) = swap
+               enddo
+            enddo
+         enddo
+      enddo
+
+   end subroutine transpose_matrix_complex
 
    function imaxloc(array)
       real, dimension(:), intent(in) :: array
