@@ -84,7 +84,7 @@ contains
       use physics_flags, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
       use stella_geometry, only: dl_over_b, dBdrho, bmag
-      use zgrid, only: nzgrid, ntubes
+      use zgrid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -1646,7 +1646,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, vperp2
-      use kt_grids, only: nakx, nx, naky, rho_d_clamped
+      use kt_grids, only: nakx, naky, rho_d_clamped
       use kt_grids, only: zonal_mode, multiply_by_rho
       use species, only: spec, has_electron_species
       use fields_arrays, only: phi_corr_QN, phi_corr_GA

@@ -18,6 +18,7 @@ mp_lu_decomposition.f90
 fields.f90
 sources.f90
 netcdf_utils.f90
+parallel_streaming.f90
 ran.f90
 response_matrix.f90
 sfincs_interface.f90

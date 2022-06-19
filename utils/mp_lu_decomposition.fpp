@@ -134,7 +134,7 @@ contains
       call split_n_tasks(n, iproc, nproc, lo, hi)
 
       do i = lo, hi
-         inverse(i, :) = 0
+         inverse(:, i) = 0
          inverse(i, i) = 1.0
       end do
 
@@ -181,10 +181,12 @@ contains
 
    end subroutine lu_matrix_multiply_local_complex
 
-   subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b)
+   subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b, &
+                                                 time_parallel_streaming)
 
       use mpi
       use mp, only: mpicmplx
+      use job_manage, only: time_message
 
       implicit none
 
@@ -192,10 +194,13 @@ contains
       complex, dimension(:, :), intent(in) :: lu
       integer, dimension(:), intent(in) :: idx
       complex, dimension(:), intent(in out) :: b
+      real, dimension(:, :), intent(in out) :: time_parallel_streaming
 
-      integer :: i, n, ii, ll, lo, hi
-      integer :: iproc, nproc, ierr
-      complex :: summ, dot_local, dot
+      integer :: i, j, n, ii, ll, lo, hi
+      integer :: iproc, nproc, ierr, aproc
+      complex :: summ, dot, dot_local
+
+      integer, parameter :: blocksize = 1
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
@@ -203,62 +208,92 @@ contains
       n = size(lu, 1)
 
       !perform pivoting on root node
+      ii = 0
       if (iproc == 0) then
          do i = 1, n
             ll = idx(i)
             summ = b(ll)
             b(ll) = b(i)
             b(i) = summ
+            if (ii /= 0 .and. summ /= 0.0) then
+               ii = i
+            end if
          end do
       end if
 
       call mpi_win_fence(0, win, ierr)
 
-      ii = 0
-      do i = 1, n
-         summ = b(i)
-         if (ii /= 0) then
-            call split_n_tasks(i - ii, iproc, nproc, lo, hi, ii)
-            if (lo > hi) then
-               dot_local = 0
-            else
-               dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
-            end if
-            call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
+      aproc = nproc
 
-            if (iproc == 0) summ = summ - dot
-         else if (summ /= 0.0) then
-            ii = i
-         end if
-
-         if (iproc == 0) b(i) = summ
-         call mpi_win_fence(0, win, ierr)
+      do i = ii + 1, n
+         if (iproc==0) call time_message(.false., time_parallel_streaming(:, 4), ' dot')
+         call split_n_tasks(n - i + 1, iproc, nproc, lo, hi, llim = i, &
+                            blocksize = blocksize, aproc = aproc)
+         do j = lo, hi
+            b(j) = b(j) - lu(j, i - 1) * b(i - 1)
+         enddo
+         if (iproc==0) call time_message(.false., time_parallel_streaming(:, 4), ' dot')
+         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 6), ' fence')
+         call mpi_barrier(mp_comm, ierr)
+         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 6), ' fence')
       end do
+
+      call mpi_win_fence(0, win, ierr)
 
       do i = n, 1, -1
-         call split_n_tasks(n - i, iproc, nproc, lo, hi, i + 1)
-         if (lo > hi) then
-            dot_local = 0
-         else
-            dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
-         end if
+         summ = 1.0 / lu(i, i)
+         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
+         call split_n_tasks(i - 1, iproc, nproc, lo, hi, llim = 1, &
+                            blocksize = blocksize, aproc = aproc)
 
-         call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
-         if (iproc == 0) b(i) = (b(i) - dot) / lu(i, i)
-         call mpi_win_fence(0, win, ierr)
+         do j = lo, hi
+            b(j) = b(j) - lu(j, i) * b(i) * summ
+         enddo
+         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
+
+         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
+         if (iproc == 0) b(i) = b(i) * summ
+         call mpi_barrier(mp_comm, ierr)
+         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
+
+!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
+!        call split_n_tasks(n - i, iproc, nproc, lo, hi, llim = i + 1, &
+!                           blocksize = blocksize, aproc = aproc)
+!        if (lo > hi) then
+!           dot_local = 0
+!        else
+!           dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
+!        end if
+!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
+
+!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' reduce')
+!        if(aproc.gt.1) then
+!           call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
+!        else
+!           dot = dot_local
+!        endif
+!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' reduce')
+
+!        if (iproc == 0) b(i) = (b(i) - dot) / lu(i, i)
+!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
+!        if(aproc.gt.1) call mpi_win_fence(0, win, ierr)
+!        if(aproc.gt.1) call mpi_barrier(mp_comm, ierr)
+!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
       end do
+
+      call mpi_win_fence(0, win, ierr)
 
    end subroutine lu_back_substitution_local_complex
 
-   subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, comm)
+   subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, aproc)
 
       implicit none
 
       integer, intent(in) :: n, iproc, nproc
       integer, intent(out) :: lo, hi
       integer, optional, intent(in) :: llim
-      integer, optional, intent(in) :: blocksize
-      logical, optional, intent(out) :: comm
+      integer, optional, intent(in) :: blocksize ! minimum amount of cells per node
+      integer, optional, intent(out) :: aproc !how many processes have work
 
       integer :: n_div, n_mod, llim_l, blocksize_l
 
@@ -271,22 +306,30 @@ contains
       n_div = n / nproc
       n_mod = mod(n, nproc)
 
-      if (n_div < blocksize_l) then
+      if (n_div .lt. blocksize_l) then
          lo = min(iproc * blocksize_l + llim_l, n + llim_l)
          hi = min(lo + blocksize_l - 1, n + llim_l - 1)
-         if (present(comm)) then ! do we require an MPI_WIN_FENCE?
-            comm = .not. (blocksize_l >= n)
-         end if
+         if (present(aproc)) then
+            aproc = n / blocksize_l
+            if (aproc * blocksize_l .lt. n) aproc = aproc + 1
+         endif
       else
          lo = iproc * n_div + min(iproc, n_mod) + llim_l
          hi = lo + n_div - 1
          if (iproc < n_mod) hi = hi + 1
-         if (present(comm)) then ! do we require an MPI_WIN_FENCE?
-            comm = .not. (n_div + min(n_mod, 1) >= n)
-         end if
-      end if
+         if (present(aproc)) then
+            if(n_div .gt. 0) then
+               aproc = nproc
+            else
+               aproc = n_mod
+            endif
+         endif
+      endif
+      
+
 
    end subroutine split_n_tasks
+
 
 #endif
 
