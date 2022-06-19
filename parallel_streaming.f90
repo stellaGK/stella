@@ -803,33 +803,33 @@ contains
                           * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dchidz(:, :, iz, :))
       end do
       if (add_mirror_apar_to_source_term) then
-        ! Add a source term which looks like mirror_apar_fac*<apar>,
-        ! with mirror_apar_fac centered on z_i* and apar centered on
-        ! z_i* and t^n*
+         ! Add a source term which looks like mirror_apar_fac*<apar>,
+         ! with mirror_apar_fac centered on z_i* and apar centered on
+         ! z_i* and t^n*
 
-        allocate(gyro_aparold(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate(gyro_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (gyro_aparold(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (gyro_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-        ! center mirror_apar_fac in z
-        ! and store in dummy variable gp
-        gp = mirror_apar_fac(ia, :, ivmu)
-        call center_zed(iv, gp)
+         ! center mirror_apar_fac in z
+         ! and store in dummy variable gp
+         gp = mirror_apar_fac(ia, :, ivmu)
+         call center_zed(iv, gp)
 
-        ! gyroaverage apar and aparold
-        call gyro_average(aparold, ivmu, gyro_aparold)
-        call gyro_average(apar, ivmu, gyro_apar)
+         ! gyroaverage apar and aparold
+         call gyro_average(aparold, ivmu, gyro_aparold)
+         call gyro_average(apar, ivmu, gyro_apar)
 
-        ! center apar, aparold in z
-        call center_zed(iv, gyro_aparold)
-        call center_zed(iv, gyro_apar)
+         ! center apar, aparold in z
+         call center_zed(iv, gyro_aparold)
+         call center_zed(iv, gyro_apar)
 
-        do iz = -nzgrid, nzgrid
-           g(:, :, iz, :) = g(:, :, iz, :) + tupwnd1*gp(iz)*gyro_aparold(:, :, iz, :) &
-                            + tupwnd2*gp(iz)*gyro_apar(:, :, iz, :)
-        end do
+         do iz = -nzgrid, nzgrid
+            g(:, :, iz, :) = g(:, :, iz, :) + tupwnd1 * gp(iz) * gyro_aparold(:, :, iz, :) &
+                             + tupwnd2 * gp(iz) * gyro_apar(:, :, iz, :)
+         end do
 
-        deallocate(gyro_aparold)
-        deallocate(gyro_apar)
+         deallocate (gyro_aparold)
+         deallocate (gyro_apar)
       end if
 
       deallocate (vpadf0dE_fac, gp)
