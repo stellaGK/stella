@@ -677,6 +677,8 @@ contains
       use run_parameters, only: time_upwind
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
+      use run_parameters, only: mirror_implicit, mirror_semi_lagrange, fapar
+      use mirror_terms, only: mirror_apar_fac
 
       implicit none
 
@@ -694,6 +696,8 @@ contains
       real, dimension(:), allocatable :: gp
       complex, dimension(:, :, :, :), allocatable :: dgdz, dchidz
       complex, dimension(:, :, :, :), allocatable :: chi, chiold
+      complex, dimension(:, :, :, :), allocatable :: gyro_aparold, gyro_apar
+      logical :: add_mirror_apar_to_source_term
 
       allocate (vpadf0dE_fac(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
@@ -707,6 +711,13 @@ contains
          tupwnd2 = 0.5 * (1.0 + time_upwind)
       else
          tupwnd2 = 0.0
+      end if
+
+      if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (fapar > epsilon(0.))) then
+         ! Add the electromagnetic piece of the mirror term.
+         add_mirror_apar_to_source_term = .true.
+      else
+         add_mirror_apar_to_source_term = .false.
       end if
 
       ! now have phi^{n+1} for non-negative kx
@@ -791,6 +802,35 @@ contains
          g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) &
                           * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dchidz(:, :, iz, :))
       end do
+      if (add_mirror_apar_to_source_term) then
+        ! Add a source term which looks like mirror_apar_fac*<apar>,
+        ! with mirror_apar_fac centered on z_i* and apar centered on
+        ! z_i* and t^n*
+
+        allocate(gyro_aparold(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate(gyro_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+        ! center mirror_apar_fac in z
+        ! and store in dummy variable gp
+        gp = mirror_apar_fac(ia, :, ivmu)
+        call center_zed(iv, gp)
+
+        ! gyroaverage apar and aparold
+        call gyro_average(aparold, ivmu, gyro_aparold)
+        call gyro_average(apar, ivmu, gyro_apar)
+
+        ! center apar, aparold in z
+        call center_zed(iv, gyro_aparold)
+        call center_zed(iv, gyro_apar)
+
+        do iz = -nzgrid, nzgrid
+           g(:, :, iz, :) = g(:, :, iz, :) + tupwnd1*gp(iz)*gyro_aparold(:, :, iz, :) &
+                            + tupwnd2*gp(iz)*gyro_apar(:, :, iz, :)
+        end do
+
+        deallocate(gyro_aparold)
+        deallocate(gyro_apar)
+      end if
 
       deallocate (vpadf0dE_fac, gp)
       deallocate (dgdz, dchidz)

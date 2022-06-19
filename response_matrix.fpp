@@ -708,8 +708,16 @@ contains
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_chi
+      real :: mirror_apar_fac0, mirror_apar_fac1
+      logical :: add_mirror_apar_to_source_term
 
       ia = 1
+      if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
+         ! Add the electromagnetic piece of the mirror term.
+         add_mirror_apar_to_source_term = .true.
+      else
+        add_mirror_apar_to_source_term = .false.
+      end if
 
       if (.not. maxwellian_inside_zed_derivative) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
@@ -759,6 +767,16 @@ contains
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
                                 + (1.-zed_upwind) * gradpar(iz - 1)) &
                          * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz - 1, imu, is))
+                  if (add_mirror_apar_to_source_term) then
+                     ! mirror_apar_fac0 is the mirror apar term on the RHS
+                     ! of the homogeneous GKE at this zed idx i.e.
+                     ! (mirror_apar_fac)_{{i-1}*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
+                     mirror_apar_fac0 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, iz, ivmu) &
+                                       + (1. - zed_upwind)*mirror_apar_fac(ia, iz - 1, ivmu)) &
+                                       * (1+time_upwind)*(1+zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                  else
+                     mirror_apar_fac0 = 0.0
+                  end if
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
@@ -770,6 +788,23 @@ contains
                      fac1 = fac * ((1.+zed_upwind) * gradpar(-nzgrid + 1) &
                                    + (1.-zed_upwind) * gradpar(nzgrid)) &
                             * (maxwell_mu(ia, -nzgrid + 1, imu, is) + maxwell_mu(ia, nzgrid, imu, is))
+                  end if
+                  if (add_mirror_apar_to_source_term) then
+                     ! mirror_apar_fac1 is the mirror apar term on the RHS
+                     ! of the homogeneous GKE at the zed index to the right of
+                     ! this one i.e.
+                     ! (mirror_apar_fac)_{{i}*}*((1+time_upwind)/2)*((1-zed_upwind)/2)(<apar>)
+                     if (iz < nzgrid) then
+                        mirror_apar_fac1 = 0.125*((1.+zed_upwind)*mirror_apar_fac(ia, iz + 1, ivmu) &
+                                          + (1.-zed_upwind)*mirror_apar_fac(ia, iz, ivmu)) &
+                                          * (1+time_upwind)*(1-zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                     else
+                        mirror_apar_fac1 = 0.125*((1.+zed_upwind)*mirror_apar_fac(ia, (-nzgrid + 1), ivmu) &
+                                          + (1.-zed_upwind)*mirror_apar_fac(ia, iz, ivmu)) &
+                                          * (1+time_upwind)*(1-zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                     end if
+                  else
+                     mirror_apar_fac1 = 0.0
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
@@ -783,16 +818,34 @@ contains
                   fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
                                 + (1.-zed_upwind) * gradpar(iz)) &
                          * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                  if (add_mirror_apar_to_source_term) then
+                     ! mirror_apar_fac0 is the mirror apar term on the RHS
+                     ! of the homogeneous GKE at this zed idx i.e.
+                     ! (mirror_apar_fac)_{{i-1}*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
+                     mirror_apar_fac0 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, iz, ivmu) &
+                                       + (1. - zed_upwind)*mirror_apar_fac(ia, (nzgrid - 1), ivmu)) &
+                                       * (1+time_upwind)*(1+zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                     ! mirror_apar_fac1 is the mirror apar term on the RHS
+                     ! of the homogeneous GKE at the zed index to the right of
+                     ! this one i.e.
+                     ! (mirror_apar_fac)_{{i}*}*((1+time_upwind)/2)*((1-zed_upwind)/2)(<apar>)
+                     mirror_apar_fac1 = 0.125*((1.+zed_upwind)*mirror_apar_fac(ia, iz + 1, ivmu) &
+                                       + (1.-zed_upwind)*mirror_apar_fac(ia, iz, ivmu)) &
+                                       * (1+time_upwind)*(1-zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                  else
+                     mirror_apar_fac0 = 0.0
+                     mirror_apar_fac1 = 0.0
+                  end if
                end if
-               gext(idx, ivmu) = fac0
-               if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
+               gext(idx, ivmu) = fac0 + mirror_apar_fac0
+               if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1 + mirror_apar_fac1
                ! zonal mode BC is periodic instead of zero, so must
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
+                     gext(nz_ext, ivmu) = (fac0 + mirror_apar_fac0)/ phase_shift(iky)
                   else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = -fac1 * phase_shift(iky)
+                     gext(1, ivmu) = (-fac1 + mirror_apar_fac1)* phase_shift(iky)
                   end if
                end if
             else
@@ -802,6 +855,7 @@ contains
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
                                 + (1.-zed_upwind) * gradpar(iz + 1)) &
                          * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz + 1, imu, is))
+
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
@@ -813,6 +867,30 @@ contains
                      fac1 = fac * ((1.+zed_upwind) * gradpar(nzgrid - 1) &
                                    + (1.-zed_upwind) * gradpar(iz)) &
                             * (maxwell_mu(ia, nzgrid - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                  end if
+                  if (add_mirror_apar_to_source_term) then
+                     ! mirror_apar_fac0 is the mirror apar term on the RHS
+                     ! of the homogeneous GKE at this zed idx i.e.
+                     ! (mirror_apar_fac)_{i*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
+                     mirror_apar_fac0 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, iz, ivmu) &
+                                     + (1. - zed_upwind)*mirror_apar_fac(ia, iz + 1, ivmu)) &
+                                     * (1+time_upwind)*(1+zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                     ! mirror_apar_fac1 is the mirror apar term on the RHS
+                     ! of the homogeneous GKE at the zed index to the right of
+                     ! this one i.e.
+                     ! (mirror_apar_fac)_{{i-1}*}*((1+time_upwind)/2)*((1-zed_upwind)/2)(<apar>)
+                     if (iz > -nzgrid) then
+                        mirror_apar_fac1 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, iz - 1, ivmu) &
+                                       + (1. - zed_upwind)*mirror_apar_fac(ia, iz, ivmu)) &
+                                       * (1+time_upwind)*(1-zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                     else
+                        mirror_apar_fac1 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, (nzgrid - 1), ivmu) &
+                                       + (1. - zed_upwind)*mirror_apar_fac(ia, iz, ivmu)) &
+                                       * (1+time_upwind)*(1-zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                     end if
+                  else
+                     mirror_apar_fac0 = 0.0
+                     mirror_apar_fac1 = 0.0
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
@@ -826,25 +904,33 @@ contains
                   fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
                                 + (1.-zed_upwind) * gradpar(iz)) &
                          * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                  if (add_mirror_apar_to_source_term) then
+                    ! mirror_apar_fac0 is the mirror apar term on the RHS
+                    ! of the homogeneous GKE at this zed idx i.e.
+                    ! (mirror_apar_fac)_{i*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
+                    mirror_apar_fac0 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, iz, ivmu) &
+                                       + (1. - zed_upwind)*mirror_apar_fac(ia,(-nzgrid + 1), ivmu)) &
+                                       * (1+time_upwind)*(1+zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                    mirror_apar_fac1 = 0.125*((1. + zed_upwind)*mirror_apar_fac(ia, iz - 1, ivmu) &
+                                      + (1. - zed_upwind)*mirror_apar_fac(ia, iz, ivmu)) &
+                                      * (1+time_upwind)*(1-zed_upwind)*aj0x(iky, ikx, iz, ivmu)
+                  else
+                     mirror_apar_fac0 = 0.0
+                     mirror_apar_fac1 = 0.0
+                  end if
                end if
-               gext(idx, ivmu) = -fac0
-               if (idx > 1) gext(idx - 1, ivmu) = fac1
+               gext(idx, ivmu) = -fac0 + mirror_apar_fac0
+               if (idx > 1) gext(idx - 1, ivmu) = fac1 + mirror_apar_fac1
                ! zonal mode BC is periodic instead of zero, so must
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
+                     gext(nz_ext, ivmu) = (-fac0 + mirror_apar_fac0) / phase_shift(iky)
+                     gext(nz_ext - 1, ivmu) = (fac1 + mirror_apar_fac1) / phase_shift(iky)
                   else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
+                     gext(nz_ext, ivmu) = (fac1 + mirror_apar_fac1) / phase_shift(iky)
                   end if
                end if
-            end if
-
-            if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
-               ! Add the electromagnetic piece of the mirror term
-               ! call mp_abort("(mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == apar) Not currently supported")
-               gext(idx, ivmu) = gext(idx, ivmu) + mirror_apar_fac(ia, iz, ivmu)
             end if
 
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)
