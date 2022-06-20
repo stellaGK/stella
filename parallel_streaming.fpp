@@ -1094,14 +1094,13 @@ contains
             end if
             do it = 1, ntubes
                do ie = 1, neigen(iky)
-                  nresponse = nsegments(ie, iky) * nzed_segment + 1
                   ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-                  if (sgproc0) call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext_shared(:nresponse), ulim)
+                  if (sgproc0) call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext_shared, ulim)
                   call mpi_win_fence(0, gext_shared_window, ierr)
                   call lu_back_substitution_local(comm_sgroup, gext_shared_window, &
                                                   response_matrix(iky)%eigen(ie)%zloc, &
-                                                  response_matrix(iky)%eigen(ie)%idx, gext_shared(:nresponse))
-                  call map_from_extended_zgrid(it, ie, iky, gext_shared(:nresponse), phi(iky, :, :, :))
+                                                  response_matrix(iky)%eigen(ie)%idx, gext_shared)
+                  call map_from_extended_zgrid(it, ie, iky, gext_shared, phi(iky, :, :, :))
                   call mpi_win_fence(0, gext_shared_window, ierr)
                end do
             end do

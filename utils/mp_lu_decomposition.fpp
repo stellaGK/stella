@@ -225,8 +225,7 @@ contains
 
       !perform forward substituion (Ly = b)
       do j = ii, n
-         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim=j + 1)
-
+         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
          do i = lo, hi
             b(i) = b(i) - lu(i, j) * b(j)
          end do
@@ -237,13 +236,13 @@ contains
 
       !perform backward substituion (Ux = y)
       do j = n, 1, -1
-         temp = 1.0 / lu(j, j)
-         call split_n_tasks(j - 1, iproc, nproc, lo, hi)
+         if (iproc == 0) b(j) = b(j) / lu(j, j)
+         call mpi_barrier(mp_comm, ierr)
 
+         call split_n_tasks(j - 1, iproc, nproc, lo, hi)
          do i = lo, hi
-            b(i) = b(i) - lu(i, j) * b(j) * temp
+            b(i) = b(i) - lu(i, j) * b(j)
          end do
-         if (iproc == 0) b(j) = b(j) * temp !apply temp here to avoid extra barrier
          call mpi_barrier(mp_comm, ierr)
       end do
 
