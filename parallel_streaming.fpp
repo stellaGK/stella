@@ -33,7 +33,7 @@ module parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
    real, dimension(:, :), allocatable :: gradpar_c
 
-   real, dimension(2, 10) :: time_parallel_streaming = 0.
+   real, dimension(2, 3) :: time_parallel_streaming = 0.
 
 contains
 
@@ -1100,8 +1100,7 @@ contains
                   call mpi_win_fence(0, gext_shared_window, ierr)
                   call lu_back_substitution_local(comm_sgroup, gext_shared_window, &
                                                   response_matrix(iky)%eigen(ie)%zloc, &
-                                                  response_matrix(iky)%eigen(ie)%idx, gext_shared(:nresponse), &
-                                                  time_parallel_streaming)
+                                                  response_matrix(iky)%eigen(ie)%idx, gext_shared(:nresponse))
                   call map_from_extended_zgrid(it, ie, iky, gext_shared(:nresponse), phi(iky, :, :, :))
                end do
             end do

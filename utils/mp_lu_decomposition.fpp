@@ -181,11 +181,9 @@ contains
 
    end subroutine lu_matrix_multiply_local_complex
 
-   subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b, &
-                                                 time_parallel_streaming)
+   subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b)
 
       use mpi
-      use mp, only: mpicmplx
       use job_manage, only: time_message
 
       implicit none
@@ -197,10 +195,8 @@ contains
       real, dimension(:, :), intent(in out) :: time_parallel_streaming
 
       integer :: i, j, n, ii, ll, lo, hi
-      integer :: iproc, nproc, ierr, aproc
-      complex :: summ, dot, dot_local
-
-      integer, parameter :: blocksize = 1
+      integer :: iproc, nproc, ierr
+      complex :: summ
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
@@ -208,77 +204,46 @@ contains
       n = size(lu, 1)
 
       !perform pivoting on root node
-      ii = 0
       if (iproc == 0) then
          do i = 1, n
             ll = idx(i)
             summ = b(ll)
             b(ll) = b(i)
             b(i) = summ
-            if (ii /= 0 .and. summ /= 0.0) then
-               ii = i
-            end if
          end do
       end if
 
       call mpi_win_fence(0, win, ierr)
 
-      aproc = nproc
+      ii = 0
+      do i = 1, n
+         if (b(i) /= 0.0) then
+            ii = i
+            exit
+         end if
+      end do
+      if (ii == 0) return
 
-      do i = ii + 1, n
-         if (iproc==0) call time_message(.false., time_parallel_streaming(:, 4), ' dot')
-         call split_n_tasks(n - i + 1, iproc, nproc, lo, hi, llim = i, &
-                            blocksize = blocksize, aproc = aproc)
-         do j = lo, hi
-            b(j) = b(j) - lu(j, i - 1) * b(i - 1)
+      do j = ii, n
+         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
+
+         do i = lo, hi
+            b(i) = b(i) - lu(i, j) * b(j)
          enddo
-         if (iproc==0) call time_message(.false., time_parallel_streaming(:, 4), ' dot')
-         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 6), ' fence')
          call mpi_barrier(mp_comm, ierr)
-         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 6), ' fence')
       end do
 
       call mpi_win_fence(0, win, ierr)
 
-      do i = n, 1, -1
-         summ = 1.0 / lu(i, i)
-         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
-         call split_n_tasks(i - 1, iproc, nproc, lo, hi, llim = 1, &
-                            blocksize = blocksize, aproc = aproc)
+      do j = n, 1, -1
+         summ = 1.0 / lu(j, j)
+         call split_n_tasks(j - 1, iproc, nproc, lo, hi)
 
-         do j = lo, hi
-            b(j) = b(j) - lu(j, i) * b(i) * summ
+         do i = lo, hi
+            b(i) = b(i) - lu(i, j) * b(j) * summ
          enddo
-         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
-
-         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
-         if (iproc == 0) b(i) = b(i) * summ
+         if (iproc == 0) b(j) = b(j) * summ
          call mpi_barrier(mp_comm, ierr)
-         if (iproc == 0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
-
-!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
-!        call split_n_tasks(n - i, iproc, nproc, lo, hi, llim = i + 1, &
-!                           blocksize = blocksize, aproc = aproc)
-!        if (lo > hi) then
-!           dot_local = 0
-!        else
-!           dot_local = dot_product(conjg(lu(i, lo:hi)), b(lo:hi))
-!        end if
-!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' dot')
-
-!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' reduce')
-!        if(aproc.gt.1) then
-!           call mpi_reduce(dot_local, dot, 1, mpicmplx, MPI_SUM, 0, mp_comm, ierr)
-!        else
-!           dot = dot_local
-!        endif
-!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 5), ' reduce')
-
-!        if (iproc == 0) b(i) = (b(i) - dot) / lu(i, i)
-!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
-!        if(aproc.gt.1) call mpi_win_fence(0, win, ierr)
-!        if(aproc.gt.1) call mpi_barrier(mp_comm, ierr)
-!        if (iproc==0) call time_message(.false., time_parallel_streaming(:, 7), ' fence')
       end do
 
       call mpi_win_fence(0, win, ierr)
