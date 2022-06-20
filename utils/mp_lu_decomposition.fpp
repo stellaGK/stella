@@ -225,11 +225,11 @@ contains
 
       !perform forward substituion (Ly = b)
       do j = ii, n
-         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
+         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim=j + 1)
 
          do i = lo, hi
             b(i) = b(i) - lu(i, j) * b(j)
-         enddo
+         end do
          call mpi_barrier(mp_comm, ierr)
       end do
 
@@ -242,7 +242,7 @@ contains
 
          do i = lo, hi
             b(i) = b(i) - lu(i, j) * b(j) * temp
-         enddo
+         end do
          if (iproc == 0) b(j) = b(j) * temp !apply temp here to avoid extra barrier
          call mpi_barrier(mp_comm, ierr)
       end do
@@ -272,30 +272,27 @@ contains
       n_div = n / nproc
       n_mod = mod(n, nproc)
 
-      if (n_div .lt. blocksize_l) then
+      if (n_div < blocksize_l) then
          lo = min(iproc * blocksize_l + llim_l, n + llim_l)
          hi = min(lo + blocksize_l - 1, n + llim_l - 1)
          if (present(aproc)) then
             aproc = n / blocksize_l
-            if (aproc * blocksize_l .lt. n) aproc = aproc + 1
-         endif
+            if (aproc * blocksize_l < n) aproc = aproc + 1
+         end if
       else
          lo = iproc * n_div + min(iproc, n_mod) + llim_l
          hi = lo + n_div - 1
          if (iproc < n_mod) hi = hi + 1
          if (present(aproc)) then
-            if(n_div .gt. 0) then
+            if (n_div > 0) then
                aproc = nproc
             else
                aproc = n_mod
-            endif
-         endif
-      endif
-      
-
+            end if
+         end if
+      end if
 
    end subroutine split_n_tasks
-
 
 #endif
 
