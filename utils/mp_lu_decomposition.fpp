@@ -225,7 +225,7 @@ contains
 
       !perform forward substituion (Ly = b)
       do j = ii, n
-         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
+         call split_n_tasks(n - j, iproc, nproc, lo, hi, llim=j + 1)
          do i = lo, hi
             b(i) = b(i) - lu(i, j) * b(j)
          end do
