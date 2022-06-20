@@ -346,10 +346,10 @@ contains
                   swap = mat(i, j)
                   mat(i, j) = mat(j, i)
                   mat(j, i) = swap
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
    end subroutine transpose_matrix_real
 
    subroutine transpose_matrix_complex(mat)
@@ -358,7 +358,7 @@ contains
 
       complex, dimension(:, :), intent(inout) :: mat
       complex :: swap
-      integer :: i, j, ii, jj ,n, ihi, jlo, jhi
+      integer :: i, j, ii, jj, n, ihi, jlo, jhi
       integer, parameter :: blocksize = 32
 
       n = size(mat, 1)
@@ -368,14 +368,14 @@ contains
             do i = ii, ihi
                jlo = max(jj, i + 1)
                jhi = min(jj + blocksize - 1, n)
-               do j = jlo,  jhi
+               do j = jlo, jhi
                   swap = mat(i, j)
                   mat(i, j) = mat(j, i)
                   mat(j, i) = swap
-               enddo
-            enddo
-         enddo
-      enddo
+               end do
+            end do
+         end do
+      end do
 
    end subroutine transpose_matrix_complex
 
