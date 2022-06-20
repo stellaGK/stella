@@ -201,7 +201,7 @@ contains
 
       n = size(lu, 1)
 
-      !perform pivoting on root node
+      ! perform pivoting on root node
       if (iproc == 0) then
          do i = 1, n
             ll = idx(i)
@@ -213,7 +213,7 @@ contains
 
       call mpi_win_fence(0, win, ierr)
 
-      !grab first index with b(i) /= 0.0
+      ! grab first index with b(i) /= 0.0
       ii = 0
       do i = 1, n
          if (b(i) /= 0.0) then
@@ -223,7 +223,7 @@ contains
       end do
       if (ii == 0) return
 
-      !perform forward substituion (Ly = b)
+      ! perform forward substitution (Ly = b)
       do j = ii, n
          call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
          do i = lo, hi
@@ -234,18 +234,24 @@ contains
 
       call mpi_win_fence(0, win, ierr)
 
-      !perform backward substituion (Ux = y)
+      ! perform backward substitution (Ux = y)
       do j = n, 1, -1
-         if (iproc == 0) b(j) = b(j) / lu(j, j)
-         call mpi_barrier(mp_comm, ierr)
-
+         temp = b(j) / lu (j, j)
          call split_n_tasks(j - 1, iproc, nproc, lo, hi)
          do i = lo, hi
-            b(i) = b(i) - lu(i, j) * b(j)
+            b(i) = b(i) - lu(i, j) * temp
          end do
          call mpi_barrier(mp_comm, ierr)
       end do
+      call mpi_win_fence(0, win, ierr)
 
+      ! apply the diagonal division here to save a call to mpi_barrier
+      ! in the previous loop
+      if (iproc == 0)  then
+         do i = 1, n
+            b(i) = b(i) / lu(i , i)
+         end do
+      endif
       call mpi_win_fence(0, win, ierr)
 
    end subroutine lu_back_substitution_local_complex
