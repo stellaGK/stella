@@ -192,11 +192,10 @@ contains
       complex, dimension(:, :), intent(in) :: lu
       integer, dimension(:), intent(in) :: idx
       complex, dimension(:), intent(in out) :: b
-      real, dimension(:, :), intent(in out) :: time_parallel_streaming
 
       integer :: i, j, n, ii, ll, lo, hi
       integer :: iproc, nproc, ierr
-      complex :: summ
+      complex :: temp
 
       call mpi_comm_size(mp_comm, nproc, ierr)
       call mpi_comm_rank(mp_comm, iproc, ierr)
@@ -207,14 +206,15 @@ contains
       if (iproc == 0) then
          do i = 1, n
             ll = idx(i)
-            summ = b(ll)
+            temp = b(ll)
             b(ll) = b(i)
-            b(i) = summ
+            b(i) = temp
          end do
       end if
 
       call mpi_win_fence(0, win, ierr)
 
+      !grab first index with b(i) /= 0.0
       ii = 0
       do i = 1, n
          if (b(i) /= 0.0) then
@@ -224,6 +224,7 @@ contains
       end do
       if (ii == 0) return
 
+      !perform forward substituion (Ly = b)
       do j = ii, n
          call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
 
@@ -235,14 +236,15 @@ contains
 
       call mpi_win_fence(0, win, ierr)
 
+      !perform backward substituion (Ux = y)
       do j = n, 1, -1
-         summ = 1.0 / lu(j, j)
+         temp = 1.0 / lu(j, j)
          call split_n_tasks(j - 1, iproc, nproc, lo, hi)
 
          do i = lo, hi
-            b(i) = b(i) - lu(i, j) * b(j) * summ
+            b(i) = b(i) - lu(i, j) * b(j) * temp
          enddo
-         if (iproc == 0) b(j) = b(j) * summ
+         if (iproc == 0) b(j) = b(j) * temp !apply temp here to avoid extra barrier
          call mpi_barrier(mp_comm, ierr)
       end do
 
