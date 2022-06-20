@@ -1102,6 +1102,7 @@ contains
                                                   response_matrix(iky)%eigen(ie)%zloc, &
                                                   response_matrix(iky)%eigen(ie)%idx, gext_shared(:nresponse))
                   call map_from_extended_zgrid(it, ie, iky, gext_shared(:nresponse), phi(iky, :, :, :))
+                  call mpi_win_fence(0, gext_shared_window, ierr)
                end do
             end do
 #else

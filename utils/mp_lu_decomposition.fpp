@@ -184,7 +184,6 @@ contains
    subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b)
 
       use mpi
-      use job_manage, only: time_message
 
       implicit none
 
