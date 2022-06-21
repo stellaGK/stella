@@ -236,7 +236,7 @@ contains
 
       ! perform backward substitution (Ux = y)
       do j = n, 1, -1
-         temp = b(j) / lu (j, j)
+         temp = b(j) / lu(j, j)
          call split_n_tasks(j - 1, iproc, nproc, lo, hi)
          do i = lo, hi
             b(i) = b(i) - lu(i, j) * temp
@@ -247,11 +247,11 @@ contains
 
       ! apply the diagonal division here to save a call to mpi_barrier
       ! in the previous loop
-      if (iproc == 0)  then
+      if (iproc == 0) then
          do i = 1, n
-            b(i) = b(i) / lu(i , i)
+            b(i) = b(i) / lu(i, i)
          end do
-      endif
+      end if
       call mpi_win_fence(0, win, ierr)
 
    end subroutine lu_back_substitution_local_complex
