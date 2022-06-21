@@ -55,7 +55,7 @@ module dist_fn_arrays
    ! note: dkperp2dr is divided by kperp2
 
    ! array on shared memory for parallelized back substitution
-   type(gext_array_type), dimension (:, :), allocatable :: gext_arr
+   type(gext_array_type), dimension(:, :), allocatable :: gext_arr
    integer :: gext_shared_window = MPI_WIN_NULL
 
 end module dist_fn_arrays

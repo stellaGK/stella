@@ -313,7 +313,7 @@ contains
 
       n = size(lu, 1)
       do i = 1, n
-         b(i) = b(i) / lu (i, i)
+         b(i) = b(i) / lu(i, i)
       end do
 
    end subroutine lu_diagonal_division_complex

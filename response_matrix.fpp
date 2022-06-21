@@ -110,7 +110,6 @@ contains
 
 #ifdef ISO_C_BINDING
 
-
 !   Create a single shared memory window for all the response matrices and
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
@@ -152,7 +151,7 @@ contains
 ! Use a separate window for the shared portion of the extended zgrid
 ! this will be used to speed-up back substitutions in the parallel streaming for
 ! very large problems
-      if (gext_shared_window  == MPI_WIN_NULL) then
+      if (gext_shared_window == MPI_WIN_NULL) then
          prior_focus = curr_focus
          call scope(sharedsubprocs)
          win_size = 0
@@ -203,7 +202,7 @@ contains
          do it = 1, ntubes
             if (.not. associated(gext_arr(iky, it)%eigen)) then
                allocate (gext_arr(iky, it)%eigen(neigen(iky)))
-            endif
+            end if
          end do
 #endif
 
@@ -980,7 +979,7 @@ contains
       if (gext_shared_window /= MPI_WIN_NULL) &
          call mpi_win_free(gext_shared_window, ierr)
 
-      if (allocated(gext_arr)) deallocate(gext_arr)
+      if (allocated(gext_arr)) deallocate (gext_arr)
 #endif
 
       if (allocated(response_matrix)) deallocate (response_matrix)
