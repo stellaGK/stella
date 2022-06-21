@@ -1098,7 +1098,7 @@ contains
       call mpi_win_fence(0, gext_shared_window, ierr)
 
       ! perform the backward substitution
-      do j = n_max, 1
+      do j = n_max, 1, -1
          do it = 1, ntubes
             do iky = 1, naky
                do ie = 1, neigen(iky)
@@ -1138,29 +1138,21 @@ contains
       call scope (prior_focus)
 #else
       do iky = 1, naky
-         ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes
-         if (periodic(iky)) then
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  ikx = ikxmod(1, ie, iky)
-                  call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, phi(iky, ikx, :nzgrid - 1, it))
-                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
-               end do
-            end do
-         else
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+         do it = 1, ntubes
+             do ie = 1, neigen(iky)
+               ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+               if (periodic(iky)) then
+                  allocate (gext(nsegments(ie, iky) * nzed_segment))
+               else
                   allocate (gext(nsegments(ie, iky) * nzed_segment + 1))
-                  call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext, ulim)
-                  call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
+               endif
+               call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext, ulim)
+               call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
                                             response_matrix(iky)%eigen(ie)%idx, gext)
-                  call map_from_extended_zgrid(it, ie, iky, gext, phi(iky, :, :, :))
-                  deallocate (gext)
-               end do
+               call map_from_extended_zgrid(it, ie, iky, gext, phi(iky, :, :, :))
+               deallocate (gext)
             end do
-         end if
+         end do
       end do
 #endif
 
