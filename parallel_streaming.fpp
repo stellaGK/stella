@@ -1139,16 +1139,16 @@ contains
 #else
       do iky = 1, naky
          do it = 1, ntubes
-             do ie = 1, neigen(iky)
+            do ie = 1, neigen(iky)
                ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
                if (periodic(iky)) then
                   allocate (gext(nsegments(ie, iky) * nzed_segment))
                else
                   allocate (gext(nsegments(ie, iky) * nzed_segment + 1))
-               endif
+               end if
                call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext, ulim)
                call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, gext)
+                                         response_matrix(iky)%eigen(ie)%idx, gext)
                call map_from_extended_zgrid(it, ie, iky, gext, phi(iky, :, :, :))
                deallocate (gext)
             end do
