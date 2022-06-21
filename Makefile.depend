@@ -117,7 +117,8 @@ dist_fn.o: \
 	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-dist_fn_arrays.o: 
+dist_fn_arrays.o: \
+	 common_types.o 
 dist_redistribute.o: \
 	 mp.o \
 	 physics_flags.o \
@@ -289,8 +290,7 @@ mp.o: \
 	 constants.o \
 	 file_utils.o 
 mp_lu_decomposition.o: \
-	 linear_solve.o \
-	 mp.o 
+	 linear_solve.o 
 mt19937.o: 
 multibox.o: \
 	 constants.o \
@@ -361,6 +361,7 @@ redistribute.o: \
 	 mp.o 
 response_matrix.o: \
 	 common_types.o \
+	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields_arrays.o \
 	 gyro_averages.o \

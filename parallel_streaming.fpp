@@ -1026,19 +1026,23 @@ contains
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mpi
-      use mp, only: sgproc0, comm_sgroup, real_size
-      use dist_fn_arrays, only: gext_shared, gext_shared_window
-      use mp_lu_decomposition, only: lu_back_substitution_local
-#endif
+      use mp, only: curr_focus, scope, sharedsubprocs, mp_comm
+      use mp, only: iproc, nproc, proc0
+      use dist_fn_arrays, only: gext_arr, gext_shared_window
+      use linear_solve, only: lu_pivot, lu_diagonal_division
+      use mp_lu_decomposition, only: lu_triangular_forward_step
+      use mp_lu_decomposition, only: lu_triangular_backward_step
+#else
       use linear_solve, only: lu_back_substitution
+      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: periodic, phase_shift
+#endif
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: map_from_extended_zgrid
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use fields_arrays, only: response_matrix
 
@@ -1046,18 +1050,93 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
 
-      integer :: ikx, iky, ie, it, ulim
+      integer :: iky, ie, it, ulim
       integer, parameter :: NMIN = 2500
 #ifdef ISO_C_BINDING
-      integer :: nresponse
-      integer :: disp_unit = 1, ierr
-      integer(kind=MPI_ADDRESS_KIND) :: win_size
-      type(c_ptr) :: cptr
+      integer :: j, n_max
+      integer :: prior_focus, ierr
 #else
+      integer :: ikx
       complex, dimension(:), allocatable :: gext
 #endif
 
-      ! need to put the fields into extended zed grid
+#ifdef ISO_C_BINDING
+      prior_focus = curr_focus
+      call scope(sharedsubprocs)
+
+      n_max = maxval(nsegments) * nzed_segment + 1
+
+      ! put the fields into extended zed grid and perform pivoting
+      if(proc0) then
+         do it = 1, ntubes
+            do iky = 1, naky
+               do ie = 1, neigen(iky)
+                  call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), &
+                                             gext_arr(iky, it)%eigen(ie)%gext, ulim)
+                  call lu_pivot(response_matrix(iky)%eigen(ie)%idx, &
+                                gext_arr(iky, it)%eigen(ie)%gext)
+               end do
+            end do
+         end do
+      endif
+      call mpi_win_fence(0, gext_shared_window, ierr)
+
+      ! perform the forward substitution
+      do j = 1, n_max
+         do it = 1, ntubes
+            do iky = 1, naky
+               do ie = 1, neigen(iky)
+                  call lu_triangular_forward_step(iproc, nproc, j, &
+                                                  response_matrix(iky)%eigen(ie)%zloc, &
+                                                  gext_arr(iky, it)%eigen(ie)%gext)
+               end do
+            end do
+         end do
+         call mpi_barrier(mp_comm, ierr)
+      end do
+
+      call mpi_win_fence(0, gext_shared_window, ierr)
+
+      ! perform the backward substitution
+      do j = n_max, 1
+         do it = 1, ntubes
+            do iky = 1, naky
+               do ie = 1, neigen(iky)
+                  call lu_triangular_backward_step(iproc, nproc, j, &
+                                                   response_matrix(iky)%eigen(ie)%zloc, &
+                                                   gext_arr(iky, it)%eigen(ie)%gext)
+               end do
+            end do
+         end do
+         call mpi_barrier(mp_comm, ierr)
+      end do
+
+      ! divide by diagonal elements of LU matrix
+      if(proc0) then
+         do it = 1, ntubes
+            do iky = 1, naky
+               do ie = 1, neigen(iky)
+                  call lu_diagonal_division(response_matrix(iky)%eigen(ie)%zloc, &
+                                            gext_arr(iky, it)%eigen(ie)%gext)
+               end do
+            end do
+         end do
+      end if
+      call mpi_win_fence(0, gext_shared_window, ierr)
+
+      ! put back onto phi matrix
+      do it = 1, ntubes
+         do iky = 1, naky
+            do ie = 1, neigen(iky)
+               call map_from_extended_zgrid(it, ie, iky, &
+                                            gext_arr(iky, it)%eigen(ie)%gext, phi(iky, :, :, :))
+            end do
+         end do
+      end do
+      call mpi_win_fence(0, gext_shared_window, ierr)
+
+      call scope (prior_focus)
+#else
       do iky = 1, naky
          ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes
          if (periodic(iky)) then
@@ -1070,49 +1149,6 @@ contains
                end do
             end do
          else
-#ifdef ISO_C_BINDING
-            if (gext_shared_window == MPI_WIN_NULL) then
-               nresponse = maxval(nsegments) * nzed_segment + 1
-
-               win_size = 0
-               if (sgproc0) then
-                  win_size = int(nresponse, MPI_ADDRESS_KIND) * 2 * real_size !complex size
-               end if
-
-               call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                            comm_sgroup, cptr, gext_shared_window, ierr)
-
-               if (.not. sgproc0) then
-                  !make sure all the procs have the right memory address
-                  call mpi_win_shared_query(gext_shared_window, 0, win_size, disp_unit, cptr, ierr)
-               end if
-               call mpi_win_fence(0, gext_shared_window, ierr)
-
-               if (.not. associated(gext_shared)) then
-                  call c_f_pointer(cptr, gext_shared, (/nresponse/))
-               end if
-               call mpi_win_fence(0, gext_shared_window, ierr)
-            end if
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  nresponse = nsegments(ie, iky) * nzed_segment + 1
-                  ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-                  if (sgproc0) call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext_shared, ulim)
-                  call mpi_win_fence(0, gext_shared_window, ierr)
-                  if (nresponse > NMIN) then
-                     call lu_back_substitution_local(comm_sgroup, gext_shared_window, &
-                                                     response_matrix(iky)%eigen(ie)%zloc, &
-                                                     response_matrix(iky)%eigen(ie)%idx, gext_shared)
-                  else
-                     if (sgproc0) call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                                            response_matrix(iky)%eigen(ie)%idx, gext_shared)
-                     call mpi_win_fence(0, gext_shared_window, ierr)
-                  end if
-                  call map_from_extended_zgrid(it, ie, iky, gext_shared, phi(iky, :, :, :))
-                  call mpi_win_fence(0, gext_shared_window, ierr)
-               end do
-            end do
-#else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
@@ -1124,9 +1160,9 @@ contains
                   deallocate (gext)
                end do
             end do
-#endif
          end if
       end do
+#endif
 
    end subroutine invert_parstream_response
 
@@ -1232,16 +1268,8 @@ contains
    subroutine finish_parallel_streaming
 
       use run_parameters, only: stream_implicit, driftkinetic_implicit
-#ifdef ISO_C_BINDING
-      use dist_fn_arrays, only: gext_shared_window
-      use mpi
-#endif
 
       implicit none
-
-#ifdef ISO_C_BINDING
-      integer :: ierr
-#endif
 
       if (allocated(stream)) deallocate (stream)
       if (allocated(stream_c)) deallocate (stream_c)
@@ -1250,9 +1278,6 @@ contains
       if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
-#ifdef ISO_C_BINDING
-      if (gext_shared_window /= MPI_WIN_NULL) call mpi_win_free(gext_shared_window, ierr)
-#endif
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 
       parallel_streaming_initialized = .false.

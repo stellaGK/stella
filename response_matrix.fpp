@@ -24,6 +24,7 @@ contains
 
       use linear_solve, only: lu_decomposition
       use fields_arrays, only: response_matrix
+      use dist_fn_arrays, only: gext_arr, gext_shared_window
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use kt_grids, only: naky
@@ -38,6 +39,7 @@ contains
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
+      use zgrid, only: ntubes
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
       use mp, only: real_size, nbytes_real
@@ -52,10 +54,10 @@ contains
       integer :: idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
-      integer :: prior_focus, ierr
+      integer :: prior_focus, ierr, it
       integer :: disp_unit = 1
       integer(kind=MPI_ADDRESS_KIND) :: win_size
-      integer(c_intptr_t) :: cur_pos
+      integer(c_intptr_t) :: cur_pos, cur_pos_gext
       type(c_ptr) :: bptr, cptr
 #endif
       real :: dum
@@ -108,6 +110,7 @@ contains
 
 #ifdef ISO_C_BINDING
 
+
 !   Create a single shared memory window for all the response matrices and
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
@@ -144,6 +147,41 @@ contains
 
          call scope(prior_focus)
       end if
+
+      if (.not. allocated(gext_arr)) allocate (gext_arr(naky, ntubes))
+! Use a separate window for the shared portion of the extended zgrid
+! this will be used to speed-up back substitutions in the parallel streaming for
+! very large problems
+      if (gext_shared_window  == MPI_WIN_NULL) then
+         prior_focus = curr_focus
+         call scope(sharedsubprocs)
+         win_size = 0
+         if (sgproc0) then
+            do iky = 1, naky
+               do ie = 1, neigen(iky)
+                  if (periodic(iky)) then
+                     nresponse = nsegments(ie, iky) * nzed_segment
+                  else
+                     nresponse = nsegments(ie, iky) * nzed_segment + 1
+                  end if
+                  win_size = win_size + int(nresponse, MPI_ADDRESS_KIND) * 2 * real_size
+               end do
+            end do
+         end if
+         call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
+                                      bptr, gext_shared_window, ierr)
+
+         if (.not. sgproc0) then
+            !make sure all the procs have the right memory address
+            call mpi_win_shared_query(gext_shared_window, 0, win_size, disp_unit, bptr, ierr)
+         end if
+         call mpi_win_fence(0, gext_shared_window, ierr)
+
+         !the following is a hack that allows us to perform pointer arithmetic in Fortran
+         cur_pos_gext = transfer(bptr, cur_pos_gext)
+
+         call scope(prior_focus)
+      end if
 #endif
 
       ! for a given ky and set of connected kx values
@@ -160,6 +198,14 @@ contains
          ! independent sets of connected kx values
          if (.not. associated(response_matrix(iky)%eigen)) &
             allocate (response_matrix(iky)%eigen(neigen(iky)))
+
+#ifdef ISO_C_BINDING
+         do it = 1, ntubes
+            if (.not. associated(gext_arr(iky, it)%eigen)) then
+               allocate (gext_arr(iky, it)%eigen(neigen(iky)))
+            endif
+         end do
+#endif
 
          if (proc0 .and. debug) then
             call time_message(.false., time_response_matrix_dgdphi, message_dgdphi)
@@ -198,6 +244,14 @@ contains
                call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
                cur_pos = cur_pos + nresponse * 4
             end if
+
+            do it = 1, ntubes
+               if (.not. associated(gext_arr(iky, it)%eigen(ie)%gext)) then
+                  cptr = transfer(cur_pos_gext, cptr)
+                  call c_f_pointer(cptr, gext_arr(iky, it)%eigen(ie)%gext, (/nresponse/))
+                  cur_pos_gext = cur_pos_gext + nresponse * 2 * nbytes_real
+               end if
+            end do
 #else
             ! for each ky and set of connected kx values,
             ! must have a response matrix that is N x N
@@ -916,12 +970,17 @@ contains
 
 #else
       use mpi
+      use dist_fn_arrays, only: gext_arr, gext_shared_window
 
       implicit none
 
       integer :: ierr
 
       if (window /= MPI_WIN_NULL) call mpi_win_free(window, ierr)
+      if (gext_shared_window /= MPI_WIN_NULL) &
+         call mpi_win_free(gext_shared_window, ierr)
+
+      if (allocated(gext_arr)) deallocate(gext_arr)
 #endif
 
       if (allocated(response_matrix)) deallocate (response_matrix)

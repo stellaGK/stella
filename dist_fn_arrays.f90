@@ -5,6 +5,7 @@
 module dist_fn_arrays
 
    use mpi
+   use common_types, only: gext_array_type
 
    public :: gnew, gold, g_symm
    public :: g0, g1, g2, g3
@@ -54,7 +55,7 @@ module dist_fn_arrays
    ! note: dkperp2dr is divided by kperp2
 
    ! array on shared memory for parallelized back substitution
-   complex, dimension(:), pointer :: gext_shared
+   type(gext_array_type), dimension (:, :), allocatable :: gext_arr
    integer :: gext_shared_window = MPI_WIN_NULL
 
 end module dist_fn_arrays

@@ -46,6 +46,7 @@ module fields_arrays
    type(eigen_type), dimension(:, :), allocatable :: phi_solve
    type(eigen_type) :: phizf_solve
 
+
    !variables needed for the source
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn

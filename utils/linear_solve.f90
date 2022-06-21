@@ -26,6 +26,14 @@ module linear_solve
       module procedure lu_inverse_complex
    end interface
 
+   interface lu_pivot
+      module procedure lu_pivot_complex
+   end interface
+
+   interface lu_diagonal_division
+      module procedure lu_diagonal_division_complex
+   end interface
+
    interface transpose_matrix
       module procedure transpose_matrix_real
       module procedure transpose_matrix_complex
@@ -273,6 +281,42 @@ contains
       end do
 
    end subroutine lu_back_substitution_matrix_complex
+
+   subroutine lu_pivot_complex(idx, b)
+
+      implicit none
+
+      integer, dimension(:), intent(in) :: idx
+      complex, dimension(:), intent(in out) :: b
+
+      integer :: i, n, ll
+      complex :: temp
+
+      n = size(idx)
+      do i = 1, n
+         ll = idx(i)
+         temp = b(ll)
+         b(ll) = b(i)
+         b(i) = temp
+      end do
+
+   end subroutine lu_pivot_complex
+
+   subroutine lu_diagonal_division_complex(lu, b)
+
+      implicit none
+
+      complex, dimension(:, :), intent(in) :: lu
+      complex, dimension(:), intent(in out) :: b
+
+      integer :: i, n
+
+      n = size(lu, 1)
+      do i = 1, n
+         b(i) = b(i) / lu (i, i)
+      end do
+
+   end subroutine lu_diagonal_division_complex
 
   !!
   !! One shouldn't need to compute the inverse of a matrix if solving the linear equation A.x = y;

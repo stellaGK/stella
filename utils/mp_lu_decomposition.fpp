@@ -8,25 +8,37 @@ module mp_lu_decomposition
    public :: lu_inverse_local
    public :: lu_matrix_multiply_local
    public :: lu_back_substitution_local
+   public :: lu_triangular_forward_step
+   public :: lu_triangular_backward_step
 
    interface lu_decomposition_local
-!    module procedure lu_decomposition_local_real
+!     module procedure lu_decomposition_local_real
       module procedure lu_decomposition_local_complex
    end interface
 
    interface lu_inverse_local
-!    module procedure lu_inverse_local_real
+!     module procedure lu_inverse_local_real
       module procedure lu_inverse_local_complex
    end interface
 
    interface lu_matrix_multiply_local
-!    module procedure lu_decomposition_local_real
+!     module procedure lu_matrix_multiply_local_real
       module procedure lu_matrix_multiply_local_complex
    end interface
 
    interface lu_back_substitution_local
-!    module procedure lu_decomposition_local_real
+!     module procedure lu_back_substitution_local_real
       module procedure lu_back_substitution_local_complex
+   end interface
+
+   interface lu_triangular_forward_step
+!     module procedure lu_triangular_forward_step_real
+      module procedure lu_triangular_forward_step_complex
+   end interface
+
+   interface lu_triangular_backward_step
+!     module procedure lu_triangular_backward_step_real
+      module procedure lu_triangular_backward_step_complex
    end interface
 
 contains
@@ -255,6 +267,51 @@ contains
       call mpi_win_fence(0, win, ierr)
 
    end subroutine lu_back_substitution_local_complex
+
+   subroutine lu_triangular_forward_step_complex(iproc, nproc, j, lu, b)
+
+      implicit none
+
+      integer, intent(in) :: iproc, nproc, j
+      complex, dimension(:, :), intent(in) :: lu
+      complex, dimension(:), intent(in out) :: b
+
+      integer :: i, n, lo, hi
+
+      n = size(lu, 1)
+      if (j .gt. n) return
+
+      ! perform forward substitution (Ly = b)
+      call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
+      do i = lo, hi
+         b(i) = b(i) - lu(i, j) * b(j)
+      end do
+
+   end subroutine lu_triangular_forward_step_complex
+
+   subroutine lu_triangular_backward_step_complex(iproc, nproc, j, lu, b)
+
+      implicit none
+
+      integer, intent(in) :: iproc, nproc, j
+      complex, dimension(:, :), intent(in) :: lu
+      complex, dimension(:), intent(in out) :: b
+
+      integer :: i, n, lo, hi
+      complex :: temp
+
+      n = size(lu, 1)
+      if (j .gt. n) return
+
+      ! perform backward substitution (Ux = y)
+      temp = b(j) / lu(j, j)
+      call split_n_tasks(j - 1, iproc, nproc, lo, hi)
+      do i = lo, hi
+         b(i) = b(i) - lu(i, j) * temp
+      end do
+
+   end subroutine lu_triangular_backward_step_complex
+
 
    subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, aproc)
 

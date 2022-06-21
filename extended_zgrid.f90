@@ -350,10 +350,11 @@ contains
 
       ! avoid double-counting at boundaries between 2pi segments
       iseg = 1
+      itmod = it
       curr_shift = 1.
       ikx = ikxmod(iseg, ie, iky)
-      llim = 1; ulim = nzed_segment + 1
-      gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
+      llim = 1; ulim = nzed_segment
+      gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, itmod) * curr_shift
       if (nsegments(ie, iky) > 1) then
          itmod = it
          do iseg = 2, nsegments(ie, iky)
@@ -362,8 +363,13 @@ contains
             itmod = it_right(itmod)
             llim = ulim + 1
             ulim = llim + nzed_segment - 1
-            gext(llim:ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) * curr_shift
+            gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, itmod) * curr_shift
          end do
+      end if
+      if (.not.periodic(iky)) then
+         ulim = ulim + 1
+         iseg =  nsegments(ie, iky)
+         gext(ulim) = g(ikx, iz_up(iseg), itmod) * curr_shift
       end if
 
    end subroutine map_to_extended_zgrid
@@ -382,21 +388,27 @@ contains
       integer :: llim, ulim
       complex :: curr_shift
 
+      ! NB: this may do something weird for periodic modes when nperiod > 1
+
       iseg = 1
       curr_shift = 1.
       ikx = ikxmod(iseg, ie, iky)
       llim = 1; ulim = nzed_segment + 1
-      g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
+      if (periodic(iky)) then
+         g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
+         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) / phase_shift(iky)
+      else
+         g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
+      endif
       if (nsegments(ie, iky) > 1) then
          itmod = it
          do iseg = 2, nsegments(ie, iky)
             curr_shift = curr_shift * phase_shift(iky)
-            llim = ulim + 1
-            ulim = llim + nzed_segment - 1
+            llim = ulim
+            ulim = llim + nzed_segment
             ikx = ikxmod(iseg, ie, iky)
             itmod = it_right(itmod)
-            g(ikx, iz_low(iseg), itmod) = gext(llim - 1) * curr_shift
-            g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
+            g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
          end do
       end if
 
