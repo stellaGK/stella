@@ -1067,7 +1067,7 @@ contains
       n_max = maxval(nsegments) * nzed_segment + 1
 
       ! put the fields into extended zed grid and perform pivoting
-      if(proc0) then
+      if (proc0) then
          do it = 1, ntubes
             do iky = 1, naky
                do ie = 1, neigen(iky)
@@ -1078,7 +1078,7 @@ contains
                end do
             end do
          end do
-      endif
+      end if
       call mpi_win_fence(0, gext_shared_window, ierr)
 
       ! perform the forward substitution
@@ -1112,7 +1112,7 @@ contains
       end do
 
       ! divide by diagonal elements of LU matrix
-      if(proc0) then
+      if (proc0) then
          do it = 1, ntubes
             do iky = 1, naky
                do ie = 1, neigen(iky)
@@ -1135,7 +1135,7 @@ contains
       end do
       call mpi_win_fence(0, gext_shared_window, ierr)
 
-      call scope (prior_focus)
+      call scope(prior_focus)
 #else
       do iky = 1, naky
          ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes

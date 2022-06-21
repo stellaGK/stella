@@ -366,9 +366,9 @@ contains
             gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, itmod) * curr_shift
          end do
       end if
-      if (.not.periodic(iky)) then
+      if (.not. periodic(iky)) then
          ulim = ulim + 1
-         iseg =  nsegments(ie, iky)
+         iseg = nsegments(ie, iky)
          gext(ulim) = g(ikx, iz_up(iseg), itmod) * curr_shift
       end if
 
@@ -399,7 +399,7 @@ contains
          g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) / phase_shift(iky)
       else
          g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
-      endif
+      end if
       if (nsegments(ie, iky) > 1) then
          itmod = it
          do iseg = 2, nsegments(ie, iky)

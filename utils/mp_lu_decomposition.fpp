@@ -279,10 +279,10 @@ contains
       integer :: i, n, lo, hi
 
       n = size(lu, 1)
-      if (j .gt. n) return
+      if (j > n) return
 
       ! perform forward substitution (Ly = b)
-      call split_n_tasks(n - j, iproc, nproc, lo, hi, llim = j + 1)
+      call split_n_tasks(n - j, iproc, nproc, lo, hi, llim=j + 1)
       do i = lo, hi
          b(i) = b(i) - lu(i, j) * b(j)
       end do
@@ -301,7 +301,7 @@ contains
       complex :: temp
 
       n = size(lu, 1)
-      if (j .gt. n) return
+      if (j > n) return
 
       ! perform backward substitution (Ux = y)
       temp = b(j) / lu(j, j)
@@ -311,7 +311,6 @@ contains
       end do
 
    end subroutine lu_triangular_backward_step_complex
-
 
    subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, aproc)
 
