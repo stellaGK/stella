@@ -1145,7 +1145,7 @@ contains
                   allocate (phiext(nsegments(ie, iky) * nzed_segment))
                else
                   allocate (phiext(nsegments(ie, iky) * nzed_segment + 1))
-               endif
+               end if
                call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), phiext, ulim)
                call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
                                          response_matrix(iky)%eigen(ie)%idx, phiext)
