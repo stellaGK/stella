@@ -1139,7 +1139,7 @@ contains
 #else
       do iky = 1, naky
          do it = 1, ntubes
-             do ie = 1, neigen(iky)
+            do ie = 1, neigen(iky)
                ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
                if (periodic(iky)) then
                   allocate (phiext(nsegments(ie, iky) * nzed_segment))
