@@ -1,7 +1,7 @@
 module fields_arrays
 
    use mpi
-   use common_types, only: response_matrix_type, eigen_type
+   use common_types, only: response_matrix_type, eigen_type, phiext_array_type
 
    implicit none
 
@@ -27,6 +27,7 @@ module fields_arrays
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
    type(response_matrix_type), dimension(:), allocatable :: response_matrix
+   integer :: response_window = MPI_WIN_NULL
 
    real, dimension(:), allocatable :: shift_state
 
@@ -42,6 +43,10 @@ module fields_arrays
 
    complex, dimension(:), pointer :: phi_ext => null()
    ! (nakx*nztot)
+
+   ! array on shared memory for parallelized back substitution
+   type(phiext_array_type), dimension(:, :), allocatable :: phiext_arr
+
 
    type(eigen_type), dimension(:, :), allocatable :: phi_solve
    type(eigen_type) :: phizf_solve

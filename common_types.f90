@@ -90,13 +90,13 @@ module common_types
       type(eigen_type), dimension(:), pointer :: eigen => null()
    end type response_matrix_type
 
-   type :: gext_type
-      complex, dimension(:), pointer :: gext => null()
-   end type gext_type
+   type :: phiext_type
+      complex, dimension(:), pointer :: phiext => null()
+   end type phiext_type
 
-   type :: gext_array_type
-      type(gext_type), dimension(:), pointer :: eigen => null()
-   end type gext_array_type
+   type :: phiext_array_type
+      type(phiext_type), dimension(:), pointer :: eigen => null()
+   end type phiext_array_type
 
    type coupled_alpha_type
       integer :: max_idx
