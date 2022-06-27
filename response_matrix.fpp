@@ -123,7 +123,7 @@ contains
                   end if
                   win_size = win_size &
                              + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                             + int(nresponse*(nresponse + ntubes), MPI_ADDRESS_KIND) * 2 * real_size
+                             + int(nresponse * (nresponse + ntubes), MPI_ADDRESS_KIND) * 2 * real_size
                end do
             end do
          end if

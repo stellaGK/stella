@@ -285,14 +285,14 @@ contains
 
    end subroutine lu_triangular_backward_step_complex
 
-   subroutine matrix_inverse_local_complex (mp_comm, root, win, a)
+   subroutine matrix_inverse_local_complex(mp_comm, root, win, a)
 
       use mpi
       use linear_solve, only: transpose_matrix
 
-      implicit none 
-            
-      integer, intent(in) :: win, root,  mp_comm
+      implicit none
+
+      integer, intent(in) :: win, root, mp_comm
       complex, dimension(:, :), intent(inout) :: a
 
       complex :: tmp, fac
@@ -304,7 +304,7 @@ contains
 
       n = size(a, 1)
 
-      if (iproc == root) call transpose_matrix (a)
+      if (iproc == root) call transpose_matrix(a)
 
       call mpi_win_fence(0, win, ierr)
 
@@ -315,19 +315,19 @@ contains
             fac = 1.0 / a(i, i) !This would become inverse if done on blocks
             a(i, i) = 1.0
             a(:, i) = a(:, i) * fac
-         endif
+         end if
 
          call mpi_win_fence(0, win, ierr)
 
          do k = lo, hi
-            if (k .eq. i) cycle 
+            if (k == i) cycle
             tmp = a(i, k)
             a(i, k) = 0.0
             a(:, k) = a(:, k) - a(:, i) * tmp
          end do
 
          call mpi_win_fence(0, win, ierr)
-      enddo  
+      end do
 
       call mpi_win_fence(0, win, ierr)
 

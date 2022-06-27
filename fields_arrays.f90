@@ -47,7 +47,6 @@ module fields_arrays
    ! array on shared memory for parallelized back substitution
    type(phiext_array_type), dimension(:, :), allocatable :: phiext_arr
 
-
    type(eigen_type), dimension(:, :), allocatable :: phi_solve
    type(eigen_type) :: phizf_solve
 

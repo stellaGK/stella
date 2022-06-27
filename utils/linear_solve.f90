@@ -380,34 +380,33 @@ contains
 
    end subroutine lu_inverse_complex
 
+   subroutine matrix_inverse_complex(a)
 
-   subroutine matrix_inverse_complex (a)
+      implicit none
 
-      implicit none 
-            
       complex, dimension(:, :), intent(inout) :: a
 
-      complex :: tmp,fac
+      complex :: tmp, fac
       integer i, k, n
 
       n = size(a, 1)
 
-      call transpose_matrix (a)
+      call transpose_matrix(a)
       do i = 1, n
          fac = 1.0 / a(i, i) !This would become inverse if done on blocks
          a(i, i) = 1.0
          a(:, i) = a(:, i) * fac
          do k = 1, n
-            if (k .eq. i) cycle
-            tmp = a(i, k) 
+            if (k == i) cycle
+            tmp = a(i, k)
             a(i, k) = 0.0
             a(:, k) = a(:, k) - a(:, i) * tmp
-         enddo
-      enddo  
+         end do
+      end do
 
    end subroutine matrix_inverse_complex
 
-   subroutine matrix_multiply_complex (A, b)
+   subroutine matrix_multiply_complex(A, b)
 
       implicit none
 

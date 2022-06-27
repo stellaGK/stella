@@ -1064,7 +1064,7 @@ contains
                                                      phiext_arr(iky, it)%eigen(ie)%phiext, ulim)
                call mpi_win_fence(0, response_window, ierr)
                call matrix_multiply_local(mp_comm, response_window, response_matrix(iky)%eigen(ie)%zloc, &
-                                             phiext_arr(iky, it)%eigen(ie)%phiext)
+                                          phiext_arr(iky, it)%eigen(ie)%phiext)
                call map_from_extended_zgrid(it, ie, iky, phiext_arr(iky, it)%eigen(ie)%phiext, phi(iky, :, :, :))
                call mpi_win_fence(0, response_window, ierr)
             end do
@@ -1080,7 +1080,7 @@ contains
                   allocate (phiext(nsegments(ie, iky) * nzed_segment))
                else
                   allocate (phiext(nsegments(ie, iky) * nzed_segment + 1))
-               endif
+               end if
                call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), phiext, ulim)
                call matrix_multiply(response_matrix(iky)%eigen(ie)%zloc, phiext)
                call map_from_extended_zgrid(it, ie, iky, phiext, phi(iky, :, :, :))
