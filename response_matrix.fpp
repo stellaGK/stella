@@ -18,8 +18,8 @@ contains
 
    subroutine init_response_matrix
 
-      use linear_solve, only: lu_decomposition
-      use fields_arrays, only: response_matrix, phiext_arr
+      use linear_solve, only: matrix_inverse
+      use fields_arrays, only: response_matrix
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use kt_grids, only: naky
@@ -31,10 +31,10 @@ contains
       use job_manage, only: time_message
       use mp, only: proc0, job, mp_abort
       use run_parameters, only: mat_gen, lu_option_switch
-      use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+      use run_parameters, only: lu_option_none, lu_option_local
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: response_window
+      use fields_arrays, only: response_window, phiext_arr
       use zgrid, only: ntubes
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
@@ -56,7 +56,6 @@ contains
       integer(c_intptr_t) :: cur_pos
       type(c_ptr) :: bptr, cptr
 #endif
-      real :: dum
       complex, dimension(:), allocatable :: phiext
       complex, dimension(:, :), allocatable :: gext
       logical :: debug = .false.
@@ -337,13 +336,11 @@ contains
 
          !now we have the full response matrix. Finally, perform its LU decomposition
          select case (lu_option_switch)
-         case (lu_option_global)
-            call parallel_LU_decomposition_global(iky)
          case (lu_option_local)
 #ifdef ISO_C_BINDING
-            call parallel_LU_decomposition_local(iky)
+            call parallel_matrix_inverse_local(iky)
 #else
-            call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
+            call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel matrix inverse.')
 #endif
          case default
             do ie = 1, neigen(iky)
@@ -351,9 +348,8 @@ contains
                if (sgproc0) then
 #endif
                   ! now that we have the reponse matrix for this ky and set of connected kx values
-                  !get the LU decomposition so we are ready to solve the linear system
-                  call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
-                                        response_matrix(iky)%eigen(ie)%idx, dum)
+                  ! get the matrix inverse so we are ready to solve the linear system
+                  call matrix_inverse(response_matrix(iky)%eigen(ie)%zloc)
 
 #ifdef ISO_C_BINDING
                end if
@@ -959,7 +955,7 @@ contains
    !node using MPIs shared memory interface
    !It also splits up jtwist the independent matrices across nodes
    !Ideal speed up: cores_per_node*min(jtwist,ncores)
-   subroutine parallel_LU_decomposition_local(iky)
+   subroutine parallel_matrix_inverse_local(iky)
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use fields_arrays, only: response_matrix
@@ -967,7 +963,7 @@ contains
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: scrossdomprocs, sgproc0, mp_abort, real_size
       use mp, only: job, iproc, proc0, nproc, numnodes, inode
-      use mp_lu_decomposition, only: lu_decomposition_local
+      use mp_lu_decomposition, only: matrix_inverse_local
       use job_manage, only: njobs
       use extended_zgrid, only: neigen
       use mpi
@@ -991,7 +987,6 @@ contains
       integer :: jroot, neig, ierr, win, nroot
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer :: disp_unit = 1
-      real :: dmax
 
       prior_focus = curr_focus
 
@@ -1080,8 +1075,7 @@ contains
 
             ! All the processors have the matrix.
             ! Now perform LU decomposition
-            call lu_decomposition_local(mp_comm, jroot, win, lu, &
-                                        response_matrix(iky)%eigen(ie)%idx, dmax)
+            call matrix_inverse_local(mp_comm, jroot, win, lu)
 
             !copy the decomposed matrix over
             if (iproc == jroot) response_matrix(iky)%eigen(ie)%zloc = lu
@@ -1109,273 +1103,8 @@ contains
       call scope(prior_focus)
 
       deallocate (node_jobs, job_list, eig_limits)
-   end subroutine parallel_LU_decomposition_local
+   end subroutine parallel_matrix_inverse_local
 
 #endif /* ISO_C_BINDING */
-
-   !this subroutine parallelizes the LU decomposition across
-   !all cores. Ideal speed up: ncores
-   subroutine parallel_LU_decomposition_global(iky)
-
-      use fields_arrays, only: response_matrix
-      use mp, only: barrier, broadcast, sum_allreduce
-      use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
-      use mp, only: job, iproc, proc0, nproc, mpicmplx
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0, scrossdomprocs
-#endif
-      use job_manage, only: njobs
-      use extended_zgrid, only: neigen
-      use mpi
-      use linear_solve, only: imaxloc
-
-      implicit none
-
-      integer, intent(in) :: iky
-
-      integer, dimension(:), allocatable :: job_roots, eig_roots
-      integer, dimension(:), allocatable :: row_limits, eig_limits
-      integer, dimension(MPI_STATUS_SIZE) :: status
-
-      real, parameter :: zero = 1.0e-20
-      integer, dimension(:), allocatable :: idx
-      complex, dimension(:, :), allocatable :: lu
-      real, dimension(:), allocatable :: vv
-      complex, dimension(:), allocatable :: dum
-
-      integer :: sproc
-      logical :: sproc0
-
-      integer :: eig_comm, ceig_comm !c for 'cross'
-      integer :: ieig_core, ceig_core, eig_cores
-      integer :: ncomm
-      integer :: prior_focus
-      integer :: ie, ie_hi, r_lo, r_hi
-      integer :: ijob, i, j, k, n, n_send, rsize
-      integer :: imax, neig, ierr
-      integer :: istage, nstage
-      integer :: rdiv, rmod
-      integer :: ediv, emod
-
-      real :: dmax, tmp
-
-      prior_focus = curr_focus
-
-      sproc = iproc
-      sproc0 = proc0
-
-      call scope(allprocs)
-
-      allocate (job_roots(0:njobs - 1)); job_roots = 0
-
-      if (sproc0) job_roots(job) = iproc
-
-      call sum_allreduce(job_roots)
-
-      do ijob = 0, njobs - 1
-         if (job == ijob .and. sproc0) then
-            neig = neigen(iky)
-         end if
-
-         ! broadcast number of matrices for this job
-         call broadcast(neig, job_roots(ijob))
-
-         !set up communicator for cores working on a single matrix
-         call mpi_comm_split(mp_comm, mod(iproc, neig), iproc, eig_comm, ierr)
-         call mpi_comm_size(eig_comm, eig_cores, ierr)
-         call mpi_comm_rank(eig_comm, ieig_core, ierr)
-
-         !set up a communicator that crosses the previous one
-         call mpi_comm_split(mp_comm, ieig_core, iproc, ceig_comm, ierr)
-         call mpi_comm_rank(ceig_comm, ceig_core, ierr)
-
-         call mpi_bcast(ceig_core, 1, MPI_INT, 0, eig_comm, ierr)
-
-         ncomm = min(neig, nproc) !number of communicators
-
-         allocate (eig_roots(0:ncomm - 1)); eig_roots = 0
-         allocate (eig_limits(0:ncomm))
-         allocate (row_limits(0:eig_cores))
-
-         if (ieig_core == 0) eig_roots(ceig_core) = iproc
-
-         call sum_allreduce(eig_roots)
-
-         ! split up neigen across cores
-         ediv = neig / ncomm
-         emod = mod(neig, ncomm)
-
-         !how many stages will the LU decomposition take?
-         nstage = ediv
-         if (emod > 0) nstage = nstage + 1
-
-         !determine which parts of neigen this communicator processes
-         eig_limits(0) = 1
-         do j = 1, ncomm
-            eig_limits(j) = eig_limits(j - 1) + ediv
-            if (j <= emod) then
-               eig_limits(j) = eig_limits(j) + 1
-            end if
-         end do
-
-         do istage = 0, nstage - 1
-            !transfer the data from job root to root of subcommunicator
-            do j = 0, ncomm - 1
-               ie = eig_limits(j) + istage
-               ie_hi = eig_limits(j + 1) - 1
-               if (ie > ie_hi) cycle
-
-               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
-                  n = size(response_matrix(iky)%eigen(ie)%idx)
-                  allocate (lu(n, n))
-                  lu = response_matrix(iky)%eigen(ie)%zloc
-               else if (iproc == job_roots(ijob)) then !send data to subroots
-                  !send size of matrix
-                  n_send = size(response_matrix(iky)%eigen(ie)%idx)
-                  call mpi_send(n_send, 1, MPI_INT, eig_roots(j), j, mp_comm, ierr)
-                  !send matrix
-                  call mpi_send(response_matrix(iky)%eigen(ie)%zloc, &
-                                n_send * n_send, mpicmplx, eig_roots(j), nproc + j, mp_comm, ierr)
-               else if (iproc == eig_roots(j)) then !subroot gets the data
-                  !receive size of matrix
-                  call mpi_recv(n, 1, MPI_INT, job_roots(ijob), j, mp_comm, status, ierr)
-                  allocate (lu(n, n))
-                  !receive matrix
-                  call mpi_recv(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, status, ierr)
-               end if
-            end do
-
-            if (istage >= (eig_limits(ceig_core + 1) - eig_limits(ceig_core))) cycle !nothing for this communicator to do
-
-            !broadcast matrix and its size across the communicator
-            call mpi_bcast(n, 1, MPI_INT, 0, eig_comm, ierr)
-            if (.not. allocated(lu)) allocate (lu(n, n))
-            if (.not. allocated(vv)) allocate (vv(n))
-
-            call mpi_bcast(lu, n * n, mpicmplx, 0, eig_comm, ierr)
-
-            allocate (dum(n))
-            allocate (idx(n))
-
-            ! All the processors have the matrix.
-            ! Now perform LU decomposition
-            vv = maxval(cabs(lu), dim=2)
-            if (any(vv == 0.0)) &
-               write (*, *) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
-            vv = 1.0 / vv
-            do j = 1, n
-               !divide up the work using row_limits
-               rdiv = (n - j) / eig_cores
-               rmod = mod(n - j, eig_cores)
-               row_limits(0) = j + 1
-               if (rdiv == 0) then
-                  row_limits(rmod + 1:) = -1
-                  do k = 1, rmod
-                     row_limits(k) = row_limits(k - 1) + 1
-                  end do
-               else
-                  do k = 1, eig_cores
-                     row_limits(k) = row_limits(k - 1) + rdiv
-                     if (k <= rmod) row_limits(k) = row_limits(k) + 1
-                  end do
-               end if
-
-               !pivot if needed
-               dmax = -1.0
-               do k = j, n
-                  tmp = vv(k) * abs(lu(k, j))
-                  if (tmp > dmax) then
-                     dmax = tmp
-                     imax = k
-                  end if
-               end do
-!         imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
-               if (j /= imax) then
-                  dum = lu(imax, :)
-                  lu(imax, :) = lu(j, :)
-                  lu(j, :) = dum
-                  vv(imax) = vv(j)
-               end if
-               if (ieig_core == 0) idx(j) = imax
-
-               !get the lead multiplier
-               if (lu(j, j) == 0.0) lu(j, j) = zero
-               do i = j + 1, n
-                  lu(i, j) = lu(i, j) / lu(j, j)
-               end do
-
-               r_lo = row_limits(ieig_core)
-               r_hi = row_limits(ieig_core + 1) - 1
-
-               do k = r_lo, r_hi
-                  do i = j + 1, n
-                     lu(i, k) = lu(i, k) - lu(i, j) * lu(j, k)
-                  end do
-               end do
-
-               do i = 0, eig_cores - 1
-                  r_lo = row_limits(i)
-                  r_hi = row_limits(i + 1) - 1
-                  rsize = (r_hi - r_lo + 1) * (n - j)
-                  if (r_lo > r_hi) cycle
-                  !call mpi_bcast(lu(j+1:n,r_lo:r_hi),rsize,mpicmplx,i,eig_comm,ierr)
-                  do k = r_lo, r_hi
-                     call mpi_bcast(lu(j + 1:n, k), n - j, mpicmplx, i, eig_comm, ierr)
-                  end do
-               end do
-            end do
-            !LU decomposition ends here
-
-            !copy the decomposed matrix over
-            do j = 0, ncomm - 1
-
-               ie = eig_limits(j) + istage
-               ie_hi = eig_limits(j + 1) - 1
-               if (ie > ie_hi) cycle
-
-               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
-                  response_matrix(iky)%eigen(ie)%zloc = lu
-                  response_matrix(iky)%eigen(ie)%idx = idx
-               else if (iproc == eig_roots(j)) then !subroot sends the data
-                  !send indices
-                  call mpi_send(idx, n, MPI_INT, job_roots(ijob), j, mp_comm, ierr)
-                  !send matrix
-                  call mpi_send(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, ierr)
-               else if (iproc == job_roots(ijob)) then !receive data from subroot
-                  !receive indices
-                  call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
-                                n, MPI_INT, eig_roots(j), j, mp_comm, status, ierr)
-                  !receive matrix
-                  call mpi_recv(response_matrix(iky)%eigen(ie)%zloc, &
-                                n * n, mpicmplx, eig_roots(j), nproc + j, mp_comm, status, ierr)
-               end if
-            end do
-            deallocate (vv, lu, idx, dum)
-         end do
-         deallocate (eig_roots, eig_limits, row_limits)
-      end do
-
-#ifdef ISO_C_BINDING
-      if (sgproc0) then
-         call scope(scrossdomprocs)
-         !copy all the matrices across all nodes
-         do ie = 1, neigen(iky)
-            call broadcast(response_matrix(iky)%eigen(ie)%zloc)
-            call broadcast(response_matrix(iky)%eigen(ie)%idx)
-         end do
-      end if
-
-      call scope(prior_focus)
-#else
-      call scope(prior_focus)
-
-      !copy all the matrices across all nodes
-      do ie = 1, neigen(iky)
-         call broadcast(response_matrix(iky)%eigen(ie)%zloc)
-         call broadcast(response_matrix(iky)%eigen(ie)%idx)
-      end do
-#endif
-      deallocate (job_roots)
-   end subroutine parallel_LU_decomposition_global
 
 end module response_matrix

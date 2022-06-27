@@ -5,6 +5,8 @@ module linear_solve
    public :: lu_decomposition
    public :: lu_back_substitution
    public :: lu_inverse
+   public :: matrix_inverse
+   public :: matrix_multiply
    public :: transpose_matrix
    public :: imaxloc
 
@@ -24,6 +26,14 @@ module linear_solve
    interface lu_inverse
       module procedure lu_inverse_real
       module procedure lu_inverse_complex
+   end interface
+
+   interface matrix_inverse
+      module procedure matrix_inverse_complex
+   end interface
+
+   interface matrix_multiply
+      module procedure matrix_multiply_complex
    end interface
 
    interface lu_pivot
@@ -369,6 +379,52 @@ contains
       end do
 
    end subroutine lu_inverse_complex
+
+
+   subroutine matrix_inverse_complex (a)
+
+      implicit none 
+            
+      complex, dimension(:, :), intent(inout) :: a
+
+      complex :: tmp,fac
+      integer i, k, n
+
+      n = size(a, 1)
+
+      call transpose_matrix (a)
+      do i = 1, n
+         fac = 1.0 / a(i, i) !This would become inverse if done on blocks
+         a(i, i) = 1.0
+         a(:, i) = a(:, i) * fac
+         do k = 1, n
+            if (k .eq. i) cycle
+            tmp = a(i, k) 
+            a(i, k) = 0.0
+            a(:, k) = a(:, k) - a(:, i) * tmp
+         enddo
+      enddo  
+
+   end subroutine matrix_inverse_complex
+
+   subroutine matrix_multiply_complex (A, b)
+
+      implicit none
+
+      complex, dimension(:, :), intent(in) :: A
+      complex, dimension(:), intent(in out) :: b
+      complex, dimension(size(b)) :: temp
+
+      integer :: i, n
+
+      n = size(A, 1)
+      do i = 1, n
+         temp(i) = sum(A(:, i) * b(:))
+      end do
+
+      b = temp
+
+   end subroutine matrix_multiply_complex
 
    subroutine transpose_matrix_real(mat)
 

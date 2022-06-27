@@ -51,7 +51,6 @@ contains
    subroutine init_fields
 
       use mp, only: proc0
-      use linear_solve, only: lu_decomposition
       use physics_flags, only: full_flux_surface
 
       implicit none
@@ -268,7 +267,7 @@ contains
       use kt_grids, only: zonal_mode, rho_d_clamped
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
-      use linear_solve, only: lu_decomposition, lu_inverse
+      use linear_solve, only: lu_decomposition
       use multibox, only: init_mb_get_phi
       use fields_arrays, only: gamtot, dgamtotdr
       use fields_arrays, only: phi_solve, c_mat, theta
@@ -1320,7 +1319,7 @@ contains
       use mp, only: split_n_tasks, sgproc0
       use zgrid, only: nztot
       use fields_arrays, only: phi_shared
-      use mp_lu_decomposition, only: lu_matrix_multiply_local
+      use mp_lu_decomposition, only: matrix_multiply_local
 #endif
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use physics_flags, only: adiabatic_option_switch
@@ -1417,7 +1416,7 @@ contains
       use mpi
       use mp, only: sgproc0, comm_sgroup
       use fields_arrays, only: qn_zf_window
-      use mp_lu_decomposition, only: lu_matrix_multiply_local
+      use mp_lu_decomposition, only: matrix_multiply_local
 #else
       use linear_solve, only: lu_back_substitution
 #endif
@@ -1493,7 +1492,7 @@ contains
 #endif
 
 #ifdef ISO_C_BINDING
-         call lu_matrix_multiply_local(comm_sgroup, qn_zf_window, phizf_solve%zloc, phi_ext)
+         call matrix_multiply_local(comm_sgroup, qn_zf_window, phizf_solve%zloc, phi_ext)
          call mpi_win_fence(0, qn_zf_window, ierr)
 #else
          call lu_back_substitution(phizf_solve%zloc, phizf_solve%idx, phi_ext)

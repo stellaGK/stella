@@ -1027,20 +1027,15 @@ contains
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mpi
       use mp, only: curr_focus, scope, sharedsubprocs, mp_comm
-      use mp, only: iproc, nproc, proc0
+      use mp, only: proc0
       use fields_arrays, only: phiext_arr, response_window
-      use linear_solve, only: lu_pivot, lu_diagonal_division
-      use mp_lu_decomposition, only: lu_triangular_forward_step
-      use mp_lu_decomposition, only: lu_triangular_backward_step
+      use mp_lu_decomposition, only: matrix_multiply_local
 #else
-      use linear_solve, only: lu_back_substitution
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: periodic, phase_shift
+      use linear_solve, only: matrix_multiply
+      use extended_zgrid, only: periodic, nzed_segment, nsegments
 #endif
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: map_from_extended_zgrid
       use kt_grids, only: naky
@@ -1053,88 +1048,28 @@ contains
       integer :: iky, ie, it, ulim
       integer, parameter :: NMIN = 2500
 #ifdef ISO_C_BINDING
-      integer :: j, n_max
       integer :: prior_focus, ierr
 #else
-      integer :: ikx
       complex, dimension(:), allocatable :: phiext
 #endif
 
 #ifdef ISO_C_BINDING
       prior_focus = curr_focus
       call scope(sharedsubprocs)
-
-      n_max = maxval(nsegments) * nzed_segment + 1
-
-      ! put the fields into extended zed grid and perform pivoting
-      if (proc0) then
+      do iky = 1, naky
          do it = 1, ntubes
-            do iky = 1, naky
-               do ie = 1, neigen(iky)
-                  call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), &
-                                             phiext_arr(iky, it)%eigen(ie)%phiext, ulim)
-                  call lu_pivot(response_matrix(iky)%eigen(ie)%idx, &
-                                phiext_arr(iky, it)%eigen(ie)%phiext)
-               end do
-            end do
-         end do
-      end if
-      call mpi_win_fence(0, response_window, ierr)
-
-      ! perform the forward substitution
-      do j = 1, n_max
-         do it = 1, ntubes
-            do iky = 1, naky
-               do ie = 1, neigen(iky)
-                  call lu_triangular_forward_step(iproc, nproc, j, &
-                                                  response_matrix(iky)%eigen(ie)%zloc, &
-                                                  phiext_arr(iky, it)%eigen(ie)%phiext)
-               end do
-            end do
-         end do
-         call mpi_barrier(mp_comm, ierr)
-      end do
-
-      call mpi_win_fence(0, response_window, ierr)
-
-      ! perform the backward substitution
-      do j = n_max, 1, -1
-         do it = 1, ntubes
-            do iky = 1, naky
-               do ie = 1, neigen(iky)
-                  call lu_triangular_backward_step(iproc, nproc, j, &
-                                                   response_matrix(iky)%eigen(ie)%zloc, &
-                                                   phiext_arr(iky, it)%eigen(ie)%phiext)
-               end do
-            end do
-         end do
-         call mpi_barrier(mp_comm, ierr)
-      end do
-
-      ! divide by diagonal elements of LU matrix
-      if (proc0) then
-         do it = 1, ntubes
-            do iky = 1, naky
-               do ie = 1, neigen(iky)
-                  call lu_diagonal_division(response_matrix(iky)%eigen(ie)%zloc, &
-                                            phiext_arr(iky, it)%eigen(ie)%phiext)
-               end do
-            end do
-         end do
-      end if
-      call mpi_win_fence(0, response_window, ierr)
-
-      ! put back onto phi matrix
-      do it = 1, ntubes
-         do iky = 1, naky
             do ie = 1, neigen(iky)
-               call map_from_extended_zgrid(it, ie, iky, &
-                                            phiext_arr(iky, it)%eigen(ie)%phiext, phi(iky, :, :, :))
+               ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+               if (proc0) call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), &
+                                                     phiext_arr(iky, it)%eigen(ie)%phiext, ulim)
+               call mpi_win_fence(0, response_window, ierr)
+               call matrix_multiply_local(mp_comm, response_window, response_matrix(iky)%eigen(ie)%zloc, &
+                                             phiext_arr(iky, it)%eigen(ie)%phiext)
+               call map_from_extended_zgrid(it, ie, iky, phiext_arr(iky, it)%eigen(ie)%phiext, phi(iky, :, :, :))
+               call mpi_win_fence(0, response_window, ierr)
             end do
          end do
       end do
-      call mpi_win_fence(0, response_window, ierr)
-
       call scope(prior_focus)
 #else
       do iky = 1, naky
@@ -1147,8 +1082,7 @@ contains
                   allocate (phiext(nsegments(ie, iky) * nzed_segment + 1))
                endif
                call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), phiext, ulim)
-               call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                         response_matrix(iky)%eigen(ie)%idx, phiext)
+               call matrix_multiply(response_matrix(iky)%eigen(ie)%zloc, phiext)
                call map_from_extended_zgrid(it, ie, iky, phiext, phi(iky, :, :, :))
                deallocate (phiext)
             end do

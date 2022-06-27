@@ -6,10 +6,11 @@ module mp_lu_decomposition
 
    public :: lu_decomposition_local
    public :: lu_inverse_local
-   public :: lu_matrix_multiply_local
    public :: lu_back_substitution_local
    public :: lu_triangular_forward_step
    public :: lu_triangular_backward_step
+   public :: matrix_multiply_local
+   public :: matrix_inverse_local
 
    interface lu_decomposition_local
 !     module procedure lu_decomposition_local_real
@@ -19,11 +20,6 @@ module mp_lu_decomposition
    interface lu_inverse_local
 !     module procedure lu_inverse_local_real
       module procedure lu_inverse_local_complex
-   end interface
-
-   interface lu_matrix_multiply_local
-!     module procedure lu_matrix_multiply_local_real
-      module procedure lu_matrix_multiply_local_complex
    end interface
 
    interface lu_back_substitution_local
@@ -39,6 +35,16 @@ module mp_lu_decomposition
    interface lu_triangular_backward_step
 !     module procedure lu_triangular_backward_step_real
       module procedure lu_triangular_backward_step_complex
+   end interface
+
+   interface matrix_inverse_local
+!     module procedure lu_matrix_multiply_local_real
+      module procedure matrix_inverse_local_complex
+   end interface
+
+   interface matrix_multiply_local
+!     module procedure matrix_multiply_local_real
+      module procedure matrix_multiply_local_complex
    end interface
 
 contains
@@ -160,39 +166,6 @@ contains
 
    end subroutine lu_inverse_local_complex
 
-   subroutine lu_matrix_multiply_local_complex(mp_comm, win, mat, b)
-
-      implicit none
-
-      integer, intent(in) :: win, mp_comm
-      complex, dimension(:, :), intent(in) :: mat
-      complex, dimension(:), intent(out) :: b
-      complex, dimension(size(b)) :: a
-
-      integer :: i, n, nproc, iproc
-      integer :: lo, hi, ierr
-
-      n = size(mat, 1)
-
-      call mpi_comm_size(mp_comm, nproc, ierr)
-      call mpi_comm_rank(mp_comm, iproc, ierr)
-
-      call split_n_tasks(n, iproc, nproc, lo, hi)
-
-      do i = lo, hi
-         a(i) = sum(mat(i, :) * b(:))
-      end do
-
-      call mpi_win_fence(0, win, ierr)
-
-      do i = lo, hi
-         b(i) = a(i)
-      end do
-
-      call mpi_win_fence(0, win, ierr)
-
-   end subroutine lu_matrix_multiply_local_complex
-
    subroutine lu_back_substitution_local_complex(mp_comm, win, lu, idx, b)
 
       use mpi
@@ -311,6 +284,87 @@ contains
       end do
 
    end subroutine lu_triangular_backward_step_complex
+
+   subroutine matrix_inverse_local_complex (mp_comm, root, win, a)
+
+      use mpi
+      use linear_solve, only: transpose_matrix
+
+      implicit none 
+            
+      integer, intent(in) :: win, root,  mp_comm
+      complex, dimension(:, :), intent(inout) :: a
+
+      complex :: tmp, fac
+      integer :: iproc, nproc, ierr
+      integer :: i, k, n, lo, hi
+
+      call mpi_comm_size(mp_comm, nproc, ierr)
+      call mpi_comm_rank(mp_comm, iproc, ierr)
+
+      n = size(a, 1)
+
+      if (iproc == root) call transpose_matrix (a)
+
+      call mpi_win_fence(0, win, ierr)
+
+      call split_n_tasks(n, iproc, nproc, lo, hi)
+
+      do i = 1, n
+         if (iproc == root) then
+            fac = 1.0 / a(i, i) !This would become inverse if done on blocks
+            a(i, i) = 1.0
+            a(:, i) = a(:, i) * fac
+         endif
+
+         call mpi_win_fence(0, win, ierr)
+
+         do k = lo, hi
+            if (k .eq. i) cycle 
+            tmp = a(i, k)
+            a(i, k) = 0.0
+            a(:, k) = a(:, k) - a(:, i) * tmp
+         end do
+
+         call mpi_win_fence(0, win, ierr)
+      enddo  
+
+      call mpi_win_fence(0, win, ierr)
+
+   end subroutine matrix_inverse_local_complex
+
+   subroutine matrix_multiply_local_complex(mp_comm, win, mat, b)
+
+      implicit none
+
+      integer, intent(in) :: win, mp_comm
+      complex, dimension(:, :), intent(in) :: mat
+      complex, dimension(:), intent(out) :: b
+      complex, dimension(size(b)) :: a
+
+      integer :: i, n, nproc, iproc
+      integer :: lo, hi, ierr
+
+      n = size(mat, 1)
+
+      call mpi_comm_size(mp_comm, nproc, ierr)
+      call mpi_comm_rank(mp_comm, iproc, ierr)
+
+      call split_n_tasks(n, iproc, nproc, lo, hi)
+
+      do i = lo, hi
+         a(i) = sum(mat(:, i) * b(:))
+      end do
+
+      call mpi_win_fence(0, win, ierr)
+
+      do i = lo, hi
+         b(i) = a(i)
+      end do
+
+      call mpi_win_fence(0, win, ierr)
+
+   end subroutine matrix_multiply_local_complex
 
    subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, aproc)
 
