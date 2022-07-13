@@ -1395,7 +1395,7 @@ contains
                end do
             end do
          end do
-         dens_x = ny * dens_x / ntubes
+         dens_x = dens_x / ntubes
       end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1457,7 +1457,7 @@ contains
                end do
             end do
          end do
-         temp_x = ny * temp_x / ntubes
+         temp_x = temp_x / ntubes
       end if
 
       ! for Spitzer problem tests of the collision operator
@@ -1504,7 +1504,7 @@ contains
                end do
             end do
          end do
-         upar_x = ny * upar_x / ntubes
+         upar_x = upar_x / ntubes
       end if
 
       if (allocated(g0k)) deallocate (g0k)
