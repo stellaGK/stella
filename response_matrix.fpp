@@ -495,7 +495,7 @@ contains
       use gyro_averages, only: aj0x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use parallel_streaming, only: stream_tridiagonal_solve
+      use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
 #ifdef ISO_C_BINDING
@@ -633,9 +633,8 @@ contains
                end if
             end if
 
-            ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -750,9 +749,8 @@ contains
                end if
             end if
 
-            ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -779,48 +777,6 @@ contains
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
-
-   subroutine sweep_zed_zonal_response(iky, iv, is, sgn, g)
-
-      use zgrid, only: nzgrid, delzed, nztot
-      use extended_zgrid, only: phase_shift
-      use run_parameters, only: zed_upwind, time_upwind
-      use parallel_streaming, only: stream_c
-
-      implicit none
-
-      integer, intent(in) :: iky, iv, is, sgn
-      complex, dimension(:), intent(in out) :: g
-
-      integer :: iz, iz1, iz2
-      real :: fac1, fac2
-      complex :: pf
-      complex, dimension(:), allocatable :: gcf, gpi
-
-      allocate (gpi(-nzgrid:nzgrid))
-      allocate (gcf(-nzgrid:nzgrid))
-      ! ky=0 is 2pi periodic (no extended zgrid)
-      ! decompose into complementary function + particular integral
-      ! zero BC for particular integral
-      ! unit BC for complementary function (no source)
-      if (sgn < 0) then
-         iz1 = -nzgrid; iz2 = nzgrid
-      else
-         iz1 = nzgrid; iz2 = -nzgrid
-      end if
-      pf = phase_shift(iky)**(-sgn)
-      gpi(iz1) = 0.; gcf(iz1) = 1.
-      do iz = iz1 - sgn, iz2, -sgn
-         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz + nzgrid + 1)) / fac1
-         gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
-      end do
-      ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (pf * spread(gpi(iz2), 1, nztot) / (1.-pf * gcf(iz2))) * gcf
-      deallocate (gpi, gcf)
-
-   end subroutine sweep_zed_zonal_response
 
    subroutine integrate_over_velocity(g, phi, iky, ie)
 
