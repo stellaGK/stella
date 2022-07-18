@@ -41,7 +41,7 @@ contains
 
       implicit none
 
-      namelist /collisions_dougherty/ density_conservation,momentum_conservation, energy_conservation, &
+      namelist /collisions_dougherty/ density_conservation, momentum_conservation, energy_conservation, &
                                       vpa_operator, mu_operator
 
       integer :: in_file
