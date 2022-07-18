@@ -94,7 +94,7 @@ contains
          collision_model = "dougherty"        ! dougherty or fokker-planck
          hyper_dissipation = .false.
 
-         in_file = input_unit_exist("collisions_fp", dexist)
+         in_file = input_unit_exist("dissipation", dexist)
          if (dexist) read (unit=in_file, nml=dissipation)
       end if
 

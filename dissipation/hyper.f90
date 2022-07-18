@@ -8,7 +8,7 @@ module hyper
 
    private
 
-   logical :: use_physical_ksqr
+   logical :: use_physical_ksqr, scale_to_outboard
    real :: D_hyper
    real :: tfac
    real :: k2max
@@ -23,7 +23,7 @@ contains
 
       implicit none
 
-      namelist /hyper/ D_hyper, use_physical_ksqr
+      namelist /hyper/ D_hyper, use_physical_ksqr, scale_to_outboard
 
       integer :: in_file
       logical :: dexist
@@ -31,43 +31,61 @@ contains
       if (proc0) then
          use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)
          D_hyper = 0.05
+         scale_to_outboard = .false.
 
          in_file = input_unit_exist("hyper", dexist)
          if (dexist) read (unit=in_file, nml=hyper)
       end if
 
       call broadcast(use_physical_ksqr)
+      call broadcast(scale_to_outboard)
       call broadcast(D_hyper)
 
    end subroutine read_parameters_hyper
 
    subroutine init_hyper
 
-      use kt_grids, only: ikx_max, naky
-      use kt_grids, only: aky, akx
+      use kt_grids, only: ikx_max, nakx, naky
+      use kt_grids, only: aky, akx, theta0
+      use zgrid, only: nzgrid, zed
       use stella_geometry, only: geo_surf, q_as_x
       use dist_fn_arrays, only: kperp2
 
       implicit none
 
-      integer :: ia
+      integer :: iky, ikx, iz, ia
+      real :: temp
 
       ia = 1
 
       if (.not. use_physical_ksqr) then
          ! avoid spatially dependent kperp
-
-         !get k2max at outboard midplane
-         k2max = akx(ikx_max)**2 + aky(naky)**2
-         if (k2max < epsilon(0.0)) k2max = 1.0
-
          tfac = geo_surf%shat**2
          if (q_as_x) tfac = 1.0
+
+         if (scale_to_outboard) then
+            !get k2max at outboard midplane
+            k2max = akx(ikx_max)**2 + aky(naky)**2
+         else
+            k2max = -1.0
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  do iky = 1, naky
+                     temp = aky(iky)**2 * (1.0 + tfac * (zed(iz) - theta0(iky, ikx))**2)
+                     if (temp > k2max) k2max = temp
+                  enddo
+               enddo
+            enddo
+         endif
       else
          !get k2max at outboard midplane
-         k2max = maxval(kperp2(:,:,ia,0)) 
-         if (k2max < epsilon(0.0)) k2max = 1.0
+         if (scale_to_outboard) then
+            k2max = maxval(kperp2(:,:,ia,0))
+         else
+            k2max = maxval(kperp2)
+         endif
       end if
+      if (k2max < epsilon(0.0)) k2max = 1.0
 
    end subroutine init_hyper
 
