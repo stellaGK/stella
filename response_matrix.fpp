@@ -14,10 +14,6 @@ module response_matrix
    logical :: response_matrix_initialized = .false.
    integer, parameter :: mat_unit = 70
 
-#ifdef ISO_C_BINDING
-   integer :: window = MPI_WIN_NULL
-#endif
-
 contains
 
    subroutine init_response_matrix
@@ -39,8 +35,9 @@ contains
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
+      use mp, only: sgproc0, create_shared_memory_window
       use mp, only: real_size, nbytes_real
+      use fields_arrays, only: response_window
       use mpi
 #endif
 
@@ -52,11 +49,10 @@ contains
       integer :: idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
-      integer :: prior_focus, ierr
-      integer :: disp_unit = 1
+      integer :: ierr
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer(c_intptr_t) :: cur_pos
-      type(c_ptr) :: bptr, cptr
+      type(c_ptr) :: cptr
 #endif
       real :: dum
       complex, dimension(:), allocatable :: phiext
@@ -112,9 +108,7 @@ contains
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
 !   degradation on some clusters
-      if (window == MPI_WIN_NULL) then
-         prior_focus = curr_focus
-         call scope(sharedsubprocs)
+      if (response_window == MPI_WIN_NULL) then
          win_size = 0
          if (sgproc0) then
             do iky = 1, naky
@@ -130,19 +124,8 @@ contains
                end do
             end do
          end if
-         call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
-                                      bptr, window, ierr)
 
-         if (.not. sgproc0) then
-            !make sure all the procs have the right memory address
-            call mpi_win_shared_query(window, 0, win_size, disp_unit, bptr, ierr)
-         end if
-         call mpi_win_fence(0, window, ierr)
-
-         !the following is a hack that allows us to perform pointer arithmetic in Fortran
-         cur_pos = transfer(bptr, cur_pos)
-
-         call scope(prior_focus)
+         call create_shared_memory_window(win_size, response_window, cur_pos)
       end if
 #endif
 
@@ -267,7 +250,7 @@ contains
          end if
 
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
 
          ! solve quasineutrality
@@ -312,7 +295,7 @@ contains
          end do
 
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
 
          if (proc0 .and. debug) then
@@ -365,7 +348,7 @@ contains
       end do
 
 #ifdef ISO_C_BINDING
-      call mpi_win_fence(0, window, ierr)
+      call mpi_win_fence(0, response_window, ierr)
 #endif
 
       if (proc0 .and. mat_gen) then
@@ -905,13 +888,14 @@ contains
       implicit none
 
 #else
+      use fields_arrays, only: response_window
       use mpi
 
       implicit none
 
       integer :: ierr
 
-      if (window /= MPI_WIN_NULL) call mpi_win_free(window, ierr)
+      if (response_window /= MPI_WIN_NULL) call mpi_win_free(response_window, ierr)
 #endif
 
       if (allocated(response_matrix)) deallocate (response_matrix)

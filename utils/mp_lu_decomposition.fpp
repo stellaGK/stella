@@ -185,7 +185,7 @@ contains
       integer, optional, intent(in) :: blocksize
       logical, optional, intent(out) :: comm
 
-      integer :: n_div, n_mod, llim_l, blocksize_l, ind
+      integer :: n_div, n_mod, llim_l, blocksize_l
 
       llim_l = 1
       if (present(llim)) llim_l = llim
