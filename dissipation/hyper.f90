@@ -78,8 +78,8 @@ contains
             enddo
          endif
       else
-         !get k2max at outboard midplane
          if (scale_to_outboard) then
+            !get k2max at outboard midplane
             k2max = maxval(kperp2(:,:,ia,0))
          else
             k2max = maxval(kperp2)
