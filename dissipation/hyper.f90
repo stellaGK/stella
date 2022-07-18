@@ -65,7 +65,7 @@ contains
          if (q_as_x) tfac = 1.0
       else
          !get k2max at outboard midplane
-         k2max = maxval(kperp2(:,:,ia,0)) 
+         k2max = maxval(kperp2(:, :, ia, 0))
          if (k2max < epsilon(0.0)) k2max = 1.0
       end if
 
