@@ -22,10 +22,9 @@ module dissipation
    logical :: collisions_implicit
    logical :: hyper_dissipation
 
-
    character(30) :: collision_model
 
-   real :: cfl_dt_mudiff = huge(0.0) , cfl_dt_vpadiff = huge(0.0)
+   real :: cfl_dt_mudiff = huge(0.0), cfl_dt_vpadiff = huge(0.0)
    real, dimension(2, 2) :: time_collisions = 0.
 
 contains
@@ -66,9 +65,9 @@ contains
          end if
       end if
 
-      if (hyper_dissipation) then 
+      if (hyper_dissipation) then
          call init_hyper
-      endif
+      end if
 
    end subroutine init_dissipation
 
@@ -110,11 +109,11 @@ contains
             call read_parameters_dougherty
          else if (collision_model == "fokker-planck") then
             call read_parameters_fp
-         endif
-      else if (hyper_dissipation) then 
+         end if
+      else if (hyper_dissipation) then
          call read_parameters_hyper
          fully_explicit = .false.
-      endif
+      end if
 
    end subroutine read_parameters
 
@@ -185,7 +184,7 @@ contains
          call advance_collisions_dougherty_explicit(g, phi, gke_rhs, time_collisions)
       else if (collision_model == "fokker-planck") then
          call advance_collisions_fp_explicit(g, phi, gke_rhs, time_collisions)
-      endif
+      end if
 
    end subroutine advance_collisions_explicit
 

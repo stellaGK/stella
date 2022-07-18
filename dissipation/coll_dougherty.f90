@@ -41,8 +41,8 @@ contains
 
       implicit none
 
-      namelist /collisions_dougherty/ density_conservation,momentum_conservation, energy_conservation, &
-                                      vpa_operator, mu_operator
+      namelist /collisions_dougherty/ density_conservation, momentum_conservation, energy_conservation, &
+         vpa_operator, mu_operator
 
       integer :: in_file
       logical :: dexist
@@ -65,7 +65,6 @@ contains
       call broadcast(vpa_operator)
       call broadcast(mu_operator)
 
-
    end subroutine read_parameters_dougherty
 
    subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
@@ -76,8 +75,8 @@ contains
 
       implicit none
 
-      logical, intent (in) :: collisions_implicit
-      real, intent (out) :: cfl_dt_vpadiff, cfl_dt_mudiff
+      logical, intent(in) :: collisions_implicit
+      real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
 
       integer :: is
       real :: vnew_max

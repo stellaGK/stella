@@ -165,8 +165,8 @@ contains
 
       implicit none
 
-      logical, intent (in) :: collisions_implicit
-      real, intent (out) :: cfl_dt_vpadiff, cfl_dt_mudiff
+      logical, intent(in) :: collisions_implicit
+      real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
 
       integer :: is, is2
       integer, parameter :: ion_species = 1
@@ -3313,7 +3313,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
-      real, dimension(:, :), intent (in out) :: time_collisions
+      real, dimension(:, :), intent(in out) :: time_collisions
 
       integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia
       logical :: conservative_wgts
