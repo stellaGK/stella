@@ -31,7 +31,7 @@ contains
       if (proc0) then
          use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
          scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
-         D_hyper = 0.05                                                         
+         D_hyper = 0.05
 
          in_file = input_unit_exist("hyper", dexist)
          if (dexist) read (unit=in_file, nml=hyper)

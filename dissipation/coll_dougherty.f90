@@ -41,7 +41,7 @@ contains
       implicit none
 
       namelist /collisions_dougherty/ momentum_conservation, energy_conservation, &
-                                      vpa_operator, mu_operator
+         vpa_operator, mu_operator
 
       integer :: in_file
       logical :: dexist
@@ -1131,8 +1131,8 @@ contains
       iv = nvpa
       Dh(iv) = (-tfac * h(iv) / dvpa + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
       do iv = 2, nvpa - 1
-         Dh(iv) = (0.5 * h(iv + 1) * (tfac / dvpa + vpa(iv + 1)) - tfac * h(iv) / dvpa & 
-                               + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
+         Dh(iv) = (0.5 * h(iv + 1) * (tfac / dvpa + vpa(iv + 1)) - tfac * h(iv) / dvpa &
+                   + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
       end do
 
    end subroutine vpa_differential_operator
@@ -1168,8 +1168,8 @@ contains
 
       do imu = 2, nmu - 1
          mm = mu_cell(imu - 1) * (tfac / (bmag(ia, iz) * dmu(imu - 1)) - 1.0) / wgts_mu_bare(imu)
-         m0 = -(mu_cell(imu) / dmu(imu) + mu_cell(imu - 1) / dmu(imu - 1)) & 
-                        * tfac / (wgts_mu_bare(imu) * bmag(ia, iz)) + dmu_cell(imu) / wgts_mu_bare(imu)
+         m0 = -(mu_cell(imu) / dmu(imu) + mu_cell(imu - 1) / dmu(imu - 1)) &
+              * tfac / (wgts_mu_bare(imu) * bmag(ia, iz)) + dmu_cell(imu) / wgts_mu_bare(imu)
          mp = mu_cell(imu) * (tfac / (bmag(ia, iz) * dmu(imu)) + 1.0) / wgts_mu_bare(imu)
          Dh(imu) = mm * h(imu - 1) + m0 * h(imu) + mp * h(imu + 1)
       end do
