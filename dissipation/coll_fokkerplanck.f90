@@ -11,7 +11,9 @@ module coll_fokkerplanck
 
    logical :: vpa_operator, mu_operator
    logical :: momentum_conservation, energy_conservation
-   logical :: density_conservation, density_conservation_field, density_conservation_tp, exact_conservation_tp, exact_conservation, spitzer_problem, no_j1l1, no_j1l2, no_j0l2
+   logical :: density_conservation, density_conservation_field, density_conservation_tp
+   logical ::exact_conservation_tp, exact_conservation
+   logical :: spitzer_problem, no_j1l1, no_j1l2, no_j0l2
    logical :: fieldpart, testpart
    logical :: interspec, intraspec
    logical :: advfield_coll

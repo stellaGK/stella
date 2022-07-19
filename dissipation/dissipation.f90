@@ -130,7 +130,6 @@ contains
       if (collision_model == "dougherty") then
          call init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
       else if (collision_model == "fokker-planck") then
-         ! disable inter-species collisions if interspec==false
          call init_collisions_fp(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
       end if
 
@@ -211,6 +210,7 @@ contains
 
       if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')
 
+      !> switch the vpa integration weights to ensure correct integration by parts
       conservative_wgts = .true.
       call set_vpa_weights(conservative_wgts)
 

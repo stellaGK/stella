@@ -11,7 +11,6 @@ module coll_dougherty
    private
 
    logical :: vpa_operator, mu_operator
-   logical :: density_conservation
    logical :: momentum_conservation, energy_conservation
 
    integer :: nresponse_vpa = 1
@@ -41,15 +40,13 @@ contains
 
       implicit none
 
-      namelist /collisions_dougherty/ density_conservation, momentum_conservation, energy_conservation, &
+      namelist /collisions_dougherty/ momentum_conservation, energy_conservation, &
                                       vpa_operator, mu_operator
 
       integer :: in_file
       logical :: dexist
 
       if (proc0) then
-         density_conservation = .false.       ! if True and equally_spaced_mu_grid=True and conservative_wgts_vpa=True, then TPO conserves density to machine precision
-         ! to compute field particle terms; this is slower than exact_conservation
          momentum_conservation = .true.       ! momentum conservation for Dougherty operator
          energy_conservation = .true.         ! energy conservation for Dougherty operator
          vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
@@ -59,7 +56,6 @@ contains
          if (dexist) read (unit=in_file, nml=collisions_dougherty)
       end if
 
-      call broadcast(density_conservation)
       call broadcast(momentum_conservation)
       call broadcast(energy_conservation)
       call broadcast(vpa_operator)
@@ -818,7 +814,7 @@ contains
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-!       g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
+!        g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
          g0 = g(:, :, ikxkyz) * spread((vperp2(1, iz, :) - 0.5) * aj1v(:, ikxkyz), 1, nvpa)
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
@@ -1135,7 +1131,8 @@ contains
       iv = nvpa
       Dh(iv) = (-tfac * h(iv) / dvpa + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
       do iv = 2, nvpa - 1
-         Dh(iv) = (0.5 * h(iv + 1) * (tfac / dvpa + vpa(iv + 1)) - tfac * h(iv) / dvpa + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
+         Dh(iv) = (0.5 * h(iv + 1) * (tfac / dvpa + vpa(iv + 1)) - tfac * h(iv) / dvpa & 
+                               + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
       end do
 
    end subroutine vpa_differential_operator
@@ -1171,7 +1168,8 @@ contains
 
       do imu = 2, nmu - 1
          mm = mu_cell(imu - 1) * (tfac / (bmag(ia, iz) * dmu(imu - 1)) - 1.0) / wgts_mu_bare(imu)
-     m0 = -(mu_cell(imu) / dmu(imu) + mu_cell(imu - 1) / dmu(imu - 1)) * tfac / (wgts_mu_bare(imu) * bmag(ia, iz)) + dmu_cell(imu) / wgts_mu_bare(imu)
+         m0 = -(mu_cell(imu) / dmu(imu) + mu_cell(imu - 1) / dmu(imu - 1)) & 
+                        * tfac / (wgts_mu_bare(imu) * bmag(ia, iz)) + dmu_cell(imu) / wgts_mu_bare(imu)
          mp = mu_cell(imu) * (tfac / (bmag(ia, iz) * dmu(imu)) + 1.0) / wgts_mu_bare(imu)
          Dh(imu) = mm * h(imu - 1) + m0 * h(imu) + mp * h(imu + 1)
       end do
@@ -1185,7 +1183,7 @@ contains
       use vpamu_grids, only: integrate_vmu
       use vpamu_grids, only: vpa, nvpa, nmu, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
-!   use vpamu_grids, only: int_vpa2
+!     use vpamu_grids, only: int_vpa2
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: aj0v, aj1v
 
@@ -1254,7 +1252,7 @@ contains
       if (mu_operator) T_fac = T_fac + spread(vperp2(ia, iz, :), 1, nvpa) - 1.0
       call integrate_vmu(T_fac * h, iz, integral)
 
-!   norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
+!     norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
       norm = 2.0 / 3.0
 
       Ch = Ch + 2.0 * norm * T_fac * integral * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu)

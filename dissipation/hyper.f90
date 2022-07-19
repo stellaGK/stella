@@ -29,9 +29,9 @@ contains
       logical :: dexist
 
       if (proc0) then
-         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)
-         D_hyper = 0.05
-         scale_to_outboard = .false.
+         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
+         scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
+         D_hyper = 0.05                                                         
 
          in_file = input_unit_exist("hyper", dexist)
          if (dexist) read (unit=in_file, nml=hyper)
@@ -59,8 +59,12 @@ contains
       ia = 1
 
       if (.not. use_physical_ksqr) then
-         ! avoid spatially dependent kperp
+         !> avoid spatially dependent kperp (through the geometric coefficients)
+         !> still allowed to vary along zed with global magnetic shear
+         !> useful for full_flux_surface and radial_variation runs
          tfac = geo_surf%shat**2
+
+         !> q_as_x uses a different definition of theta0
          if (q_as_x) tfac = 1.0
 
          if (scale_to_outboard) then
@@ -79,7 +83,7 @@ contains
          endif
       else
          if (scale_to_outboard) then
-            !get k2max at outboard midplane
+            !> get k2max at outboard midplane
             k2max = maxval(kperp2(:,:,ia,0))
          else
             k2max = maxval(kperp2)
@@ -107,8 +111,8 @@ contains
       ia = 1
 
       if (.not. use_physical_ksqr) then
-         ! avoid spatially dependent kperp
-         ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
+         !> avoid spatially dependent kperp
+         !> add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -124,7 +128,7 @@ contains
             end do
          end do
       else
-         ! add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
+         !> add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) / (1.+code_dt * (spread(kperp2(:, :, ia, :), 4, ntubes) / k2max)**2 * D_hyper)
          end do
