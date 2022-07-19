@@ -77,17 +77,17 @@ contains
                   do iky = 1, naky
                      temp = aky(iky)**2 * (1.0 + tfac * (zed(iz) - theta0(iky, ikx))**2)
                      if (temp > k2max) k2max = temp
-                  enddo
-               enddo
-            enddo
-         endif
+                  end do
+               end do
+            end do
+         end if
       else
          if (scale_to_outboard) then
             !> get k2max at outboard midplane
-            k2max = maxval(kperp2(:,:,ia,0))
+            k2max = maxval(kperp2(:, :, ia, 0))
          else
             k2max = maxval(kperp2)
-         endif
+         end if
       end if
       if (k2max < epsilon(0.0)) k2max = 1.0
 
