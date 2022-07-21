@@ -37,29 +37,29 @@ contains
       implicit none
 
       call read_parameters
-      if (include_collisions) then
-         if (collision_model == "dougherty") then
+      if (proc0) then
+         write (*, '(A)') "############################################################"
+         write (*, '(A)') "                         COLLISIONS"
+         write (*, '(A)') "############################################################"
+         if (include_collisions) then
+            if (collision_model == "dougherty") then
+               write (*, *)
+               write (*, *) 'Coll. model:     Dougherty'
+               if (collisions_implicit) then
+               write (*, *) 'Coll. algorithm: implicit'
+               else
+                  write (*, *) 'Coll. algorithm: explicit'
+               end if
+            else if (collision_model == "fokker-planck") then
+               write (*, *) 'Coll. model:     Fokker-Planck'
+               if (collisions_implicit) then
+                  write (*, *) 'Coll. algorithm: implicit'
+               else
+                  write (*, *) 'Coll. algorithm: explicit'
+               end if
+            end if
             write (*, *)
-            write (*, *) 'Coll. model:     Dougherty'
-            if (collisions_implicit) then
-               write (*, *) 'Coll. algorithm: implicit'
-            else
-               write (*, *) 'Coll. algorithm: explicit'
-            end if
-         else if (collision_model == "fokker-planck") then
-            write (*, *) 'Coll. model:     Fokker-Planck'
-            if (collisions_implicit) then
-               write (*, *) 'Coll. algorithm: implicit'
-            else
-               write (*, *) 'Coll. algorithm: explicit'
-            end if
-         end if
-         write (*, *)
-      else
-         if (proc0) then
-            write (*, '(A)') "############################################################"
-            write (*, '(A)') "                         COLLISIONS"
-            write (*, '(A)') "############################################################"
+         else
             write (*, *) 'Coll. model:     None'
             write (*, *)
          end if
