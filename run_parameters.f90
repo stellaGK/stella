@@ -17,7 +17,7 @@ module run_parameters
    public :: maxwellian_inside_zed_derivative
    public :: stream_matrix_inversion
    public :: mirror_semi_lagrange, mirror_linear_interp
-   public :: zed_upwind, vpa_upwind, time_upwind
+   public :: zed_upwind, zed_upwind_ky, vpa_upwind, time_upwind
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
 
@@ -45,6 +45,8 @@ module run_parameters
                                  lu_option_global = 3
    logical :: initialized = .false.
    logical :: knexist
+
+   real, dimension (:), allocatable :: zed_upwind_ky
 
 contains
 

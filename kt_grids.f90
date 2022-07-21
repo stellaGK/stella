@@ -214,6 +214,7 @@ contains
 
    subroutine init_kt_grids
 
+      use run_parameters, only: zed_upwind_ky, zed_upwind
       use common_types, only: flux_surface_type
       use zgrid, only: init_zgrid
 
@@ -231,10 +232,18 @@ contains
          call init_kt_grids_box
       end select
 
+      if (.not.allocated(zed_upwind_ky)) allocate (zed_upwind_ky(naky)) 
+      zed_upwind_ky = zed_upwind
+
       !> determine if iky corresponds to zonal mode
       if (.not. allocated(zonal_mode)) allocate (zonal_mode(naky))
       zonal_mode = .false.
-      if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
+      if (abs(aky(1)) < epsilon(0.)) then
+         zonal_mode(1) = .true.
+         zed_upwind_ky(1) = 0.0
+      endif
+
+
 
    end subroutine init_kt_grids
 
@@ -852,6 +861,8 @@ contains
 
    subroutine finish_kt_grids
 
+      use run_parameters, only: zed_upwind_ky
+
       implicit none
 
       if (allocated(aky)) deallocate (aky)
@@ -870,6 +881,8 @@ contains
       if (allocated(rho_clamped)) deallocate (rho_clamped)
       if (allocated(rho_d_clamped)) deallocate (rho_d_clamped)
 
+
+      if (allocated(zed_upwind_ky)) deallocate(zed_upwind_ky)
       if (allocated(g0x)) deallocate (g0x)
 
       reality = .false.

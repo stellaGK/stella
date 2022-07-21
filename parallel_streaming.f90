@@ -486,7 +486,7 @@ contains
 !    use extended_zgrid, only: ikxmod
 !    use extended_zgrid, only: fill_zed_ghost_zones
 !    use extended_zgrid, only: periodic
-!    use run_parameters, only: zed_upwind
+!    use run_parameters, only: zed_upwind_ky(iky)
 !    use kt_grids, only: naky
 
 !    implicit none
@@ -508,7 +508,7 @@ contains
    ! now get dg/dz
 !              call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
 !                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-!                   delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &
+!                   delzed(0), stream_sign(iv), zed_upwind_ky(iky),gleft, gright, periodic(iky), &
 !                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
 !           end do
 !         end do
@@ -899,7 +899,7 @@ contains
       use kt_grids, only: naky
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zed_upwind_ky, time_upwind
 
       implicit none
 
@@ -937,7 +937,7 @@ contains
                      iz1 = ulim; iz2 = 1
                   end if
                   izext = iz1; iz = sgn * nzgrid
-                  fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+                  fac1 = 1.0 + zed_upwind_ky(iky) + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
                   gext(izext) = gext(izext) * 2.0 / fac1
                   do izext = iz1 - sgn, iz2, -sgn
                      if (iz == -sgn * nzgrid) then
@@ -945,8 +945,8 @@ contains
                      else
                         iz = iz - sgn
                      end if
-                     fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                     fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+                     fac1 = 1.0 + zed_upwind_ky(iky) + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+                     fac2 = 1.0 - zed_upwind_ky(iky) - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
                      gext(izext) = (-gext(izext + sgn) * fac2 + 2.0 * gext(izext)) / fac1
                   end do
                   ! extract g from extended domain in zed
@@ -963,7 +963,7 @@ contains
 
       use zgrid, only: nzgrid, delzed
       use extended_zgrid, only: phase_shift
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zed_upwind_ky, time_upwind
 
       implicit none
 
@@ -989,8 +989,8 @@ contains
       pf = phase_shift(iky)**(-sgn)
       gpi(iz1) = 0.; gcf(iz1) = 1.
       do iz = iz1 - sgn, iz2, -sgn
-         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+         fac1 = 1.0 + zed_upwind_ky(iky) + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+         fac2 = 1.0 - zed_upwind_ky(iky) - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
          gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz)) / fac1
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
@@ -1098,7 +1098,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
-      use run_parameters, only: zed_upwind
+      use run_parameters, only: zed_upwind_ky
 
       implicit none
 
@@ -1120,7 +1120,7 @@ contains
                   ! get cell centres values
                   call cell_centres_zed(iz_low(iseg), &
                                         g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                                        zed_upwind, stream_sign(iv), gleft(2), gright(1), &
+                                        zed_upwind_ky(iky), stream_sign(iv), gleft(2), gright(1), &
                                         gc(ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
                end do
             end do
