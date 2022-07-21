@@ -46,7 +46,7 @@ contains
                write (*, *)
                write (*, *) 'Coll. model:     Dougherty'
                if (collisions_implicit) then
-               write (*, *) 'Coll. algorithm: implicit'
+                  write (*, *) 'Coll. algorithm: implicit'
                else
                   write (*, *) 'Coll. algorithm: explicit'
                end if
