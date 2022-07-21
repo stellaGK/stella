@@ -46,7 +46,7 @@ module run_parameters
    logical :: initialized = .false.
    logical :: knexist
 
-   real, dimension (:), allocatable :: zed_upwind_ky
+   real, dimension(:), allocatable :: zed_upwind_ky
 
 contains
 

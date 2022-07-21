@@ -232,7 +232,7 @@ contains
          call init_kt_grids_box
       end select
 
-      if (.not.allocated(zed_upwind_ky)) allocate (zed_upwind_ky(naky)) 
+      if (.not. allocated(zed_upwind_ky)) allocate (zed_upwind_ky(naky))
       zed_upwind_ky = zed_upwind
 
       !> determine if iky corresponds to zonal mode
@@ -241,9 +241,7 @@ contains
       if (abs(aky(1)) < epsilon(0.)) then
          zonal_mode(1) = .true.
          zed_upwind_ky(1) = 0.0
-      endif
-
-
+      end if
 
    end subroutine init_kt_grids
 
@@ -881,8 +879,7 @@ contains
       if (allocated(rho_clamped)) deallocate (rho_clamped)
       if (allocated(rho_d_clamped)) deallocate (rho_d_clamped)
 
-
-      if (allocated(zed_upwind_ky)) deallocate(zed_upwind_ky)
+      if (allocated(zed_upwind_ky)) deallocate (zed_upwind_ky)
       if (allocated(g0x)) deallocate (g0x)
 
       reality = .false.
