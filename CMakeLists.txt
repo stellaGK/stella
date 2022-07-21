@@ -36,7 +36,6 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 set(STELLA_SOURCES_f90
   common_types.f90
   define.inc
-  dissipation.f90
   dist_fn.f90
   dist_fn_arrays.f90
   dist_redistribute.f90
@@ -65,6 +64,10 @@ set(STELLA_SOURCES_f90
   volume_averages.f90
   vpamu_grids.f90
   zgrid.f90
+  dissipation/coll_dougherty.f90
+  dissipation/coll_fokkerplanck.f90
+  dissipation/dissipation.f90
+  dissipation/hyper.f90
   geo/inputprofiles_interface.f90
   geo/millerlocal.f90
   geo/stella_geometry.f90
