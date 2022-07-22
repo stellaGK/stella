@@ -2,6 +2,8 @@
 # Auto-generated file by fortdep. Do not edit!
 #
 stella_mod = \
+	 coll_dougherty.o \
+	 coll_fokkerplanck.o \
 	 command_line.o \
 	 common_types.o \
 	 constants.o \
@@ -23,6 +25,7 @@ stella_mod = \
 	 gauss_quad.o \
 	 git_version.o \
 	 gyro_averages.o \
+	 hyper.o \
 	 init_g.o \
 	 inputprofiles_interface.o \
 	 job_manage.o \
@@ -71,17 +74,35 @@ test_vmec_to_stella_geometry_interface_mod = \
 	 test_vmec_to_stella_geometry_interface.o \
 	 vmec_to_stella_geometry_interface.o 
 
-command_line.o: 
-common_types.o: 
-constants.o: 
-convert.o: 
-dissipation.o: \
+coll_dougherty.o: \
+	 dist_fn_arrays.o \
+	 dist_redistribute.o \
+	 fields.o \
+	 fields_arrays.o \
+	 file_utils.o \
+	 finite_differences.o \
+	 g_tofrom_h.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 linear_solve.o \
+	 mp.o \
+	 physics_flags.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 stella_transforms.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+coll_fokkerplanck.o: \
 	 common_types.o \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
@@ -99,7 +120,25 @@ dissipation.o: \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
-	 stella_transforms.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+command_line.o: 
+common_types.o: 
+constants.o: 
+convert.o: 
+dissipation.o: \
+	 coll_dougherty.o \
+	 coll_fokkerplanck.o \
+	 dist_fn_arrays.o \
+	 dist_redistribute.o \
+	 file_utils.o \
+	 hyper.o \
+	 job_manage.o \
+	 mp.o \
+	 physics_flags.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 dist_fn.o: \
@@ -218,6 +257,16 @@ gyro_averages.o: \
 	 stella_layouts.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
+	 zgrid.o 
+hyper.o: \
+	 dist_fn_arrays.o \
+	 file_utils.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_flags.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
 	 zgrid.o 
 init_g.o: \
 	 constants.o \
@@ -553,6 +602,7 @@ time_advance.o: \
 	 finite_differences.o \
 	 flow_shear.o \
 	 gyro_averages.o \
+	 hyper.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mirror_terms.o \

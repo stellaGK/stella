@@ -37,8 +37,9 @@ contains
       use fields_arrays, only: response_window, phiext_arr
       use zgrid, only: ntubes
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
+      use mp, only: sgproc0, create_shared_memory_window
       use mp, only: real_size, nbytes_real
+      use fields_arrays, only: response_window
       use mpi
 #endif
 
@@ -50,11 +51,10 @@ contains
       integer :: idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
-      integer :: prior_focus, ierr, it
-      integer :: disp_unit = 1
+      integer :: ierr
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer(c_intptr_t) :: cur_pos
-      type(c_ptr) :: bptr, cptr
+      type(c_ptr) :: cptr
 #endif
       complex, dimension(:), allocatable :: phiext
       complex, dimension(:, :), allocatable :: gext
@@ -110,8 +110,6 @@ contains
 !   Creating a window for each matrix/array would lead to performance
 !   degradation on some clusters
       if (response_window == MPI_WIN_NULL) then
-         prior_focus = curr_focus
-         call scope(sharedsubprocs)
          win_size = 0
          if (sgproc0) then
             do iky = 1, naky
@@ -127,19 +125,7 @@ contains
                end do
             end do
          end if
-         call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
-                                      bptr, response_window, ierr)
-
-         if (.not. sgproc0) then
-            !make sure all the procs have the right memory address
-            call mpi_win_shared_query(response_window, 0, win_size, disp_unit, bptr, ierr)
-         end if
-         call mpi_win_fence(0, response_window, ierr)
-
-         !the following is a hack that allows us to perform pointer arithmetic in Fortran
-         cur_pos = transfer(bptr, cur_pos)
-
-         call scope(prior_focus)
+         call create_shared_memory_window(win_size, response_window, cur_pos)
       end if
 
 #endif
@@ -926,6 +912,7 @@ contains
       implicit none
 
 #else
+      use fields_arrays, only: response_window
       use mpi
       use fields_arrays, only: phiext_arr, response_window
 
@@ -937,7 +924,6 @@ contains
 
       if (allocated(phiext_arr)) deallocate (phiext_arr)
 #endif
-
       if (allocated(response_matrix)) deallocate (response_matrix)
       response_matrix_initialized = .false.
 

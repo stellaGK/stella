@@ -660,7 +660,8 @@ contains
       use fields_arrays, only: qn_zf_window
       use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
       use mp, only: scope, real_size, nbytes_real
-      use mp_lu_decomposition, only: matrix_inverse_local
+      use mp, only: sgproc0, sharedsubprocs, comm_sgroup
+      use mp, only: real_size, nbytes_real, create_shared_memory_window
       use mpi
 #endif
       use stella_geometry, only: dl_over_b, d_dl_over_b_drho
@@ -677,8 +678,7 @@ contains
       integer :: inmat, jnmat, nmat_zf
       real :: dum
 #ifdef ISO_C_BINDING
-      integer :: prior_focus, ierr
-      integer :: disp_unit = 1
+      integer :: ierr, temp_window
       integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       type(c_ptr) :: cptr
@@ -694,8 +694,6 @@ contains
          nmat_zf = nakx * (nztot - 1)
 #ifdef ISO_C_BINDING
          if (qn_zf_window == MPI_WIN_NULL) then
-            prior_focus = curr_focus
-            call scope(sharedsubprocs)
             win_size = 0
             if (sgproc0) then
                win_size = int(nmat_zf, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
@@ -703,15 +701,8 @@ contains
             end if
 
             if (debug) write (6, *) 'sources::init_quasineutrality_source::win_allocate'
-            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                         mp_comm, cptr, qn_zf_window, ierr)
 
-            if (.not. sgproc0) then
-               !make sure all the procs have the right memory address
-               call mpi_win_shared_query(qn_zf_window, 0, win_size, disp_unit, cptr, ierr)
-            end if
-            call mpi_win_fence(0, qn_zf_window, ierr)
-            cur_pos = transfer(cptr, cur_pos)
+            call create_shared_memory_window(win_size, qn_zf_window, cur_pos)
 
             !allocate the memory
             if (.not. associated(phizf_solve%zloc)) then
@@ -732,8 +723,6 @@ contains
             end if
 
             call mpi_win_fence(0, qn_zf_window, ierr)
-
-            call scope(prior_focus)
          end if
 #else
          if (debug) write (6, *) 'sources::init_quasineutrality_source::allocate_phizf'
@@ -827,8 +816,6 @@ contains
          call matrix_inverse_local(comm_sgroup, 0, qn_zf_window, phizf_solve%zloc)
 
          call mpi_win_fence(0, qn_zf_window, ierr)
-
-         call scope(prior_focus)
 #else
          if (debug) write (6, *) 'sources::init_quasineutrality_source::lu_decomposition'
          call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)

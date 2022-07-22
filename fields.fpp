@@ -253,9 +253,9 @@ contains
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_window, phi_shared
-      use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
+      use mp, only: sgproc0, curr_focus, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real
-      use mp, only: split_n_tasks
+      use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
       use run_parameters, only: ky_solve_radial, ky_solve_real
@@ -281,7 +281,6 @@ contains
 #ifdef ISO_C_BINDING
       integer :: prior_focus, ierr
       integer :: counter, c_lo, c_hi
-      integer :: disp_unit = 1
       integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       complex, dimension(:), pointer :: phi_shared_temp
@@ -316,14 +315,9 @@ contains
                win_size = int(naky * nakx * nztot * ntubes, MPI_ADDRESS_KIND) * 2 * real_size !complex size
             end if
 
-            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                         mp_comm, cptr, phi_shared_window, ierr)
+            call create_shared_memory_window(win_size, phi_shared_window, cur_pos)
 
-            if (.not. sgproc0) then
-               !make sure all the procs have the right memory address
-               call mpi_win_shared_query(phi_shared_window, 0, win_size, disp_unit, cptr, ierr)
-            end if
-            call mpi_win_fence(0, phi_shared_window, ierr)
+            cptr = transfer(cur_pos, cptr)
 
             if (.not. associated(phi_shared)) then
                ! associate array with lower bounds of 1
@@ -342,15 +336,7 @@ contains
                           + int(nakx**2 * nztot * naky_r, MPI_ADDRESS_KIND) * 2 * real_size !complex size
             end if
 
-            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                         mp_comm, cptr, qn_window, ierr)
-
-            if (.not. sgproc0) then
-               !make sure all the procs have the right memory address
-               call mpi_win_shared_query(qn_window, 0, win_size, disp_unit, cptr, ierr)
-            end if
-            call mpi_win_fence(0, qn_window, ierr)
-            cur_pos = transfer(cptr, cur_pos)
+            call create_shared_memory_window(win_size, qn_window, cur_pos)
 
             !allocate the memory
             do iky = 1, naky_r
@@ -1319,7 +1305,6 @@ contains
       use mp, only: split_n_tasks, sgproc0
       use zgrid, only: nztot
       use fields_arrays, only: phi_shared
-      use mp_lu_decomposition, only: matrix_multiply_local
 #endif
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use physics_flags, only: adiabatic_option_switch
