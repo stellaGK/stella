@@ -48,6 +48,9 @@ module mp
    public :: mp_comm, curr_focus
    public :: mp_info
    public :: mp_gather
+#ifdef ISO_C_BINDING
+   public :: create_shared_memory_window
+#endif
 
 # ifdef MPIINC
 ! CMR: defined MPIINC for machines where need to include mpif.h
@@ -520,6 +523,55 @@ contains
       call min_allreduce(min_proc)
 
    end subroutine init_job_topology
+
+#ifdef ISO_C_BINDING
+!> creates a shared memory window of the specific size
+!> Returns the MPI window, as well as the pointer to the specific
+!> address in memory to be used with c_f_pointer
+   subroutine create_shared_memory_window(win_size, window, cur_pos)
+
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
+      use mpi
+
+      implicit none
+
+      integer(kind=MPI_ADDRESS_KIND), intent(inout) :: win_size
+      integer, intent(out) :: window
+      integer(c_intptr_t), optional, intent(out) :: cur_pos
+      integer :: disp_unit = 1
+      integer :: prior_focus, ierr
+      integer(kind=MPI_ADDRESS_KIND) :: memory_model
+      logical :: flag
+      type(c_ptr) :: cptr
+
+      prior_focus = curr_focus
+      call scope(sharedsubprocs)
+      call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
+                                   cptr, window, ierr)
+
+      if (.not. sgproc0) then
+         !make sure all the procs have the right memory address
+         call mpi_win_shared_query(window, 0, win_size, disp_unit, cptr, ierr)
+      end if
+      call mpi_win_fence(0, window, ierr)
+
+      call mpi_win_get_attr(window, MPI_WIN_MODEL, memory_model, flag, ierr)
+
+      if (flag) then
+         if (memory_model /= MPI_WIN_UNIFIED) then
+            call mp_abort('MPI_WIN_MODEL is not MPI_WIN_UNIFIED. Compile withou HAS_ISO_C_BINDING')
+         end if
+      else
+         call mp_abort('MPI_WIN_MODEL not found. Compile withou HAS_ISO_C_BINDING')
+      end if
+
+      !the following is a hack that allows us to perform pointer arithmetic in Fortran
+      if (present(cur_pos)) cur_pos = transfer(cptr, cur_pos)
+
+      call scope(prior_focus)
+
+   end subroutine create_shared_memory_window
+#endif
 
 !> split n tasks over current communicator. Returns the low and high
 !> indices for a given processor. Assumes indices start at 1

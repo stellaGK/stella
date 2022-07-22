@@ -100,8 +100,12 @@ This actually entails solving for the whole ky = 0 slice of phi at once (not rea
 <g>, needed for radially global simulations</p></td></tr>
 			   <tr><td><a href='../proc/add_stream_term.html'>add_stream_term</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/add_stream_term_ffs.html'>add_stream_term_ffs</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_collisions_dougherty_explicit.html'>advance_collisions_dougherty_explicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_collisions_dougherty_implicit.html'>advance_collisions_dougherty_implicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_collisions_explicit.html'>advance_collisions_explicit</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/advance_collisions_implicit.html'>advance_collisions_implicit</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_collisions_fp_explicit.html'>advance_collisions_fp_explicit</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_collisions_fp_implicit.html'>advance_collisions_fp_implicit</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_collisions_implicit.html'>advance_collisions_implicit</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td><p>switch the vpa integration weights to ensure correct integration by parts</p></td></tr>
 			   <tr><td><a href='../proc/advance_drifts_implicit.html'>advance_drifts_implicit</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_exb_nonlinearity.html'>advance_ExB_nonlinearity</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td><p>compute phase factor needed when running with equilibrium flow shear
 compute i<em>ky</em>g
@@ -127,13 +131,15 @@ given gvmu with vpa and mu local, calculate the corresponding fields
 set a flag to indicate that the fields have been updated
 this helps avoid unnecessary field solves
 time the communications + field solve</p></td></tr>
-			   <tr><td><a href='../proc/advance_hyper_dissipation.html'>advance_hyper_dissipation</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_hyper_dissipation.html'>advance_hyper_dissipation</a></td><td><a href='../module/hyper.html'>hyper</a></td><td>Subroutine</td><td><p>avoid spatially dependent kperp
+add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g
+add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g</p></td></tr>
 			   <tr><td><a href='../proc/advance_implicit.html'>advance_implicit</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/advance_implicit_fp.html'>advance_implicit_fp</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_implicit_fp.html'>advance_implicit_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_mirror_explicit.html'>advance_mirror_explicit</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td><p>advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
 due to the mirror force term; it treats all terms explicitly in time</p><a href="../proc/advance_mirror_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/advance_mirror_implicit.html'>advance_mirror_implicit</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/advance_mudiff_implicit.html'>advance_mudiff_implicit</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_mudiff_implicit.html'>advance_mudiff_implicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_parallel_flow_shear.html'>advance_parallel_flow_shear</a></td><td><a href='../module/flow_shear.html'>flow_shear</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_parallel_streaming_explicit.html'>advance_parallel_streaming_explicit</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td><p>if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
@@ -147,7 +153,7 @@ mb_communicate calls as the subroutine is immediately exited
 if not in multibox mode.
 save value of phi
 for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			   <tr><td><a href='../proc/advance_vpadiff_implicit.html'>advance_vpadiff_implicit</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_vpadiff_implicit.html'>advance_vpadiff_implicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td><p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
 magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdriftx_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td><p>advance_wdrifty_explicit subroutine calculates and adds the y-component of the
@@ -157,12 +163,12 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../proc/all_to_group_real.html'>all_to_group_real</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/all_to_group_real_array.html'>all_to_group_real_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td><td><a href='../module/fields.html'>fields</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Allocate the module-level arrays</p></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays~6.html'>allocate_arrays</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Allocate the module-level arrays</p></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays~6.html'>allocate_arrays</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays_geo.html'>allocate_arrays_geo</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays_spec.html'>allocate_arrays_spec</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/alpha_numeric.html'>alpha_numeric</a></td><td><a href='../module/ezcdf_inqvar.html'>ezcdf_inqvar</a></td><td>Subroutine</td><td></td></tr>
@@ -179,8 +185,8 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../proc/assert_eqn.html'>assert_eqn</a></td><td><a href='../module/v3_utilities.html'>v3_utilities</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/assert_v.html'>assert_v</a></td><td><a href='../module/v3_utilities.html'>v3_utilities</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/assign_bptrs.html'>assign_bptrs</a></td><td><a href='../module/mgrid_mod.html'>mgrid_mod</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/associated_laguerre.html'>associated_laguerre</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Function</td><td></td></tr>
-			   <tr><td><a href='../proc/associated_legendre.html'>associated_legendre</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Function</td><td></td></tr>
+			   <tr><td><a href='../proc/associated_laguerre.html'>associated_laguerre</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Function</td><td></td></tr>
+			   <tr><td><a href='../proc/associated_legendre.html'>associated_legendre</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Function</td><td></td></tr>
 			   <tr><td><a href='../proc/band_lu_factorisation_ffs.html'>band_lu_factorisation_ffs</a></td><td><a href='../module/gyro_averages.html'>gyro_averages</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/band_lu_factorisation_single.html'>band_lu_factorisation_single</a></td><td><a href='../module/gyro_averages.html'>gyro_averages</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/band_lu_solve_ffs.html'>band_lu_solve_ffs</a></td><td><a href='../module/gyro_averages.html'>gyro_averages</a></td><td>Subroutine</td><td></td></tr>
@@ -209,8 +215,8 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../proc/broadcast_integer_array.html'>broadcast_integer_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/broadcast_logical.html'>broadcast_logical</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/broadcast_logical_array.html'>broadcast_logical_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/broadcast_parameters.html'>broadcast_parameters</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/broadcast_parameters~2.html'>broadcast_parameters</a></td><td><a href='../module/species.html'>species</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/broadcast_parameters.html'>broadcast_parameters</a></td><td><a href='../module/species.html'>species</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/broadcast_parameters~2.html'>broadcast_parameters</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/broadcast_real.html'>broadcast_real</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/broadcast_real_2array.html'>broadcast_real_2array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/broadcast_real_3array.html'>broadcast_real_3array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
@@ -245,9 +251,9 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../proc/c_redist_35_inv.html'>c_redist_35_inv</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/c_redist_42.html'>c_redist_42</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/c_redist_42_inv.html'>c_redist_42_inv</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/calc_delta0.html'>calc_delta0</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/calc_deltaj_vmu.html'>calc_deltaj_vmu</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/calc_psi_vmu.html'>calc_psi_vmu</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/calc_delta0.html'>calc_delta0</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/calc_deltaj_vmu.html'>calc_deltaj_vmu</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/calc_psi_vmu.html'>calc_psi_vmu</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/calculate_velocity_integrals.html'>calculate_velocity_integrals</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/cdf_close.html'>cdf_close</a></td><td><a href='../module/ezcdf_opncls.html'>ezcdf_opncls</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../interface/cdf_define.html'>cdf_define</a></td><td><a href='../module/ezcdf_genput.html'>ezcdf_GenPut</a></td><td>Interface</td><td></td></tr>
@@ -384,16 +390,16 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
 			   <tr><td><a href='../proc/communicate_parameters_multibox.html'>communicate_parameters_multibox</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/communicate_species_multibox.html'>communicate_species_multibox</a></td><td><a href='../module/species.html'>species</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/compute_currents.html'>Compute_Currents</a></td><td><a href='../module/read_wout_mod.html'>read_wout_mod</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/conserve_energy.html'>conserve_energy</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/conserve_energy_vmulo.html'>conserve_energy_vmulo</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/conserve_momentum.html'>conserve_momentum</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/conserve_momentum_vmulo.html'>conserve_momentum_vmulo</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/conserve_energy.html'>conserve_energy</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/conserve_energy_vmulo.html'>conserve_energy_vmulo</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/conserve_momentum.html'>conserve_momentum</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/conserve_momentum_vmulo.html'>conserve_momentum_vmulo</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/d2_3pt.html'>d2_3pt</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/d2_3pt_complex.html'>d2_3pt_complex</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/d2_3pt_real.html'>d2_3pt_real</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays~4.html'>deallocate_arrays</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays_geo.html'>deallocate_arrays_geo</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays_spec.html'>deallocate_arrays_spec</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
@@ -443,7 +449,9 @@ below a specified tolerance (tol_floor)</p></td></tr>
 			   <tr><td><a href='../proc/find_zero_bisect_newton.html'>find_zero_bisect_newton</a></td><td><a href='../module/gauss_quad.html'>gauss_quad</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_bessel.html'>finish_bessel</a></td><td><a href='../module/gyro_averages.html'>gyro_averages</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_collisions.html'>finish_collisions</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_deltaj.html'>finish_deltaj</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_collisions_dougherty.html'>finish_collisions_dougherty</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_collisions_fp.html'>finish_collisions_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_deltaj.html'>finish_deltaj</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_dissipation.html'>finish_dissipation</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_dist_fn.html'>finish_dist_fn</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_drifts_implicit.html'>finish_drifts_implicit</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
@@ -451,8 +459,8 @@ below a specified tolerance (tol_floor)</p></td></tr>
 			   <tr><td><a href='../proc/finish_fields.html'>finish_fields</a></td><td><a href='../module/fields.html'>fields</a></td><td>Subroutine</td><td><p>arrays only allocated/used if simulating a full flux surface</p></td></tr>
 			   <tr><td><a href='../proc/finish_file_utils.html'>finish_file_utils</a></td><td><a href='../module/file_utils.html'>file_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_flow_shear.html'>finish_flow_shear</a></td><td><a href='../module/flow_shear.html'>flow_shear</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_fp_diffmatrix.html'>finish_fp_diffmatrix</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_fp_response.html'>finish_fp_response</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_fp_diffmatrix.html'>finish_fp_diffmatrix</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_fp_response.html'>finish_fp_response</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_geometry.html'>finish_geometry</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_init_g.html'>finish_init_g</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_init_geometry.html'>finish_init_geometry</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
@@ -467,11 +475,11 @@ below a specified tolerance (tol_floor)</p></td></tr>
 			   <tr><td><a href='../proc/finish_mirror_semi_lagrange.html'>finish_mirror_semi_lagrange</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_mp.html'>finish_mp</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_mu_grid.html'>finish_mu_grid</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_mudiff_matrix.html'>finish_mudiff_matrix</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_mudiff_response.html'>finish_mudiff_response</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_mudiff_matrix.html'>finish_mudiff_matrix</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_mudiff_response.html'>finish_mudiff_response</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_multibox.html'>finish_multibox</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_neoclassical_terms.html'>finish_neoclassical_terms</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_nusdpa.html'>finish_nusDpa</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_nusdpa.html'>finish_nusDpa</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_parallel_nonlinearity.html'>finish_parallel_nonlinearity</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_parallel_streaming.html'>finish_parallel_streaming</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_physics_flags.html'>finish_physics_flags</a></td><td><a href='../module/physics_flags.html'>physics_flags</a></td><td>Subroutine</td><td></td></tr>
@@ -489,8 +497,8 @@ below a specified tolerance (tol_floor)</p></td></tr>
 			   <tr><td><a href='../proc/finish_transforms.html'>finish_transforms</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_volume_averages.html'>finish_volume_averages</a></td><td><a href='../module/volume_averages.html'>volume_averages</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_vpa_grid.html'>finish_vpa_grid</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_vpadiff_matrix.html'>finish_vpadiff_matrix</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/finish_vpadiff_response.html'>finish_vpadiff_response</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_vpadiff_matrix.html'>finish_vpadiff_matrix</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/finish_vpadiff_response.html'>finish_vpadiff_response</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_vpamu_grids.html'>finish_vpamu_grids</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_vperp2.html'>finish_vperp2</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/finish_wdrift.html'>finish_wdrift</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
@@ -555,8 +563,8 @@ f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-righ
 			   <tr><td><a href='../interface/g_to_h.html'>g_to_h</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/gamlow.html'>gamlow</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/gamup.html'>gamup</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/gamlow.html'>gamlow</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/gamup.html'>gamup</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/gather.html'>gather</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../interface/geo_spline.html'>geo_spline</a></td><td><a href='../module/splines.html'>splines</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/geo_spline_array.html'>geo_spline_array</a></td><td><a href='../module/splines.html'>splines</a></td><td>Subroutine</td><td></td></tr>
@@ -682,19 +690,19 @@ where sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
 and then rhs_swap is over-written with the solution to the linear system</p><a href="../proc/get_phi_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/get_phi_radial.html'>get_phi_radial</a></td><td><a href='../module/fields.html'>fields</a></td><td>Subroutine</td><td><p>Non-perturbative approach to solving quasineutrality for radially
 global simulations</p></td></tr>
-			   <tr><td><a href='../proc/get_psi.html'>get_psi</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_psi_response.html'>get_psi_response</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_psi.html'>get_psi</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_psi_response.html'>get_psi_response</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_radial_correction.html'>get_radial_correction</a></td><td><a href='../module/fields.html'>fields</a></td><td>Subroutine</td><td><p>the following routine gets the correction in phi both from gyroaveraging and quasineutrality</p><a href="../proc/get_radial_correction.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/get_rnd_seed.html'>get_rnd_seed</a></td><td><a href='../module/ran.html'>ran</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_rnd_seed_length.html'>get_rnd_seed_length</a></td><td><a href='../module/ran.html'>ran</a></td><td>Function</td><td></td></tr>
 			   <tr><td><a href='../proc/get_root.html'>get_root</a></td><td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_temp.html'>get_temp</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_temp_mu.html'>get_temp_mu</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_testpart_density.html'>get_testpart_density</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_temp.html'>get_temp</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_temp_mu.html'>get_temp_mu</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_testpart_density.html'>get_testpart_density</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_total_arc_length.html'>get_total_arc_length</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_unused_unit.html'>get_unused_unit</a></td><td><a href='../module/file_utils.html'>file_utils</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_upar.html'>get_upar</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_uperp.html'>get_uperp</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_upar.html'>get_upar</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/get_uperp.html'>get_uperp</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_varthet.html'>get_varthet</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_vmec_geo.html'>get_vmec_geo</a></td><td><a href='../module/vmec_geo.html'>vmec_geo</a></td><td>Subroutine</td><td><p>To avoid writting twice in the output file when recomputing zeta.
 first read in equilibrium information from vmec file
@@ -782,13 +790,15 @@ for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max
 and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
 this makes later convolutions involving sums over all ky more straightforward
 calculate the argument of the Bessel function, which depends on both alpha and k_alpha</p><a href="../proc/init_bessel_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			   <tr><td><a href='../proc/init_bessel_fn.html'>init_bessel_fn</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_bessel_fn.html'>init_bessel_fn</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_ccfftw.html'>init_ccfftw</a></td><td><a href='../module/fft_work.html'>fft_work</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_cfl.html'>init_cfl</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_collisions.html'>init_collisions</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_collisions_dougherty.html'>init_collisions_dougherty</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_collisions_fp.html'>init_collisions_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_crfftw.html'>init_crfftw</a></td><td><a href='../module/fft_work.html'>fft_work</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_delt.html'>init_delt</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_deltaj_vmu.html'>init_deltaj_vmu</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_deltaj_vmu.html'>init_deltaj_vmu</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_dissipation.html'>init_dissipation</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_dist_fn.html'>init_dist_fn</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td><p>allocate and initialise kperp2 and dkperp2dr
 allocate and initialise vperp2
@@ -814,14 +824,17 @@ loop for the field solve for full_flux_surface simulations</p><a href="../proc/i
 			   <tr><td><a href='../proc/init_flow_shear.html'>init_flow_shear</a></td><td><a href='../module/flow_shear.html'>flow_shear</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_flux_surface_average_ffs.html'>init_flux_surface_average_ffs</a></td><td><a href='../module/volume_averages.html'>volume_averages</a></td><td>Subroutine</td><td><p>calculate the Fourier coefficients in y of the Jacobian
 this is needed in the computation of the flux surface average of phi</p></td></tr>
-			   <tr><td><a href='../proc/init_fp_conserve.html'>init_fp_conserve</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_fp_diffmatrix.html'>init_fp_diffmatrix</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_fp_conserve.html'>init_fp_conserve</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_fp_diffmatrix.html'>init_fp_diffmatrix</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_gamma0_factor_ffs.html'>init_gamma0_factor_ffs</a></td><td><a href='../module/fields.html'>fields</a></td><td>Subroutine</td><td><p>calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
 this involves the factor 1-Gamma_0(kperp(alpha))</p><a href="../proc/init_gamma0_factor_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/init_geometry.html'>init_geometry</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td><p>b_dot_grad_z is the alpha-dependent b . grad z,
 and gradpar is the constant-in-alpha part of it.
 for axisymmetric systems, b_dot_grad_z is independent of alpha.</p><a href="../proc/init_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/init_gxyz.html'>init_gxyz</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_hyper.html'>init_hyper</a></td><td><a href='../module/hyper.html'>hyper</a></td><td>Subroutine</td><td><p>avoid spatially dependent kperp (through the geometric coefficients)
+still allowed to vary along zed with global magnetic shear
+useful for full_flux_surface and radial_variation runs</p><a href="../proc/init_hyper.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/init_init_g.html'>init_init_g</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_input_unit.html'>init_input_unit</a></td><td><a href='../module/file_utils.html'>file_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_invert_mirror_operator.html'>init_invert_mirror_operator</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td><p>mirror_int_fac = exp(vpa^2 * (mu<em>dB/dz)/(mu</em>dB/dz + Z<em>e</em>dpihnc/dz))
@@ -857,7 +870,7 @@ signed version of jtwist, with sign determined by, e.g., magnetic shear</p><a hr
 			   <tr><td><a href='../proc/init_kxkyz_to_vmu_redistribute.html'>init_kxkyz_to_vmu_redistribute</a></td><td><a href='../module/dist_redistribute.html'>dist_redistribute</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_kxyz_layout.html'>init_kxyz_layout</a></td><td><a href='../module/stella_layouts.html'>stella_layouts</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_kxyz_to_vmu_redistribute.html'>init_kxyz_to_vmu_redistribute</a></td><td><a href='../module/dist_redistribute.html'>dist_redistribute</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_legendre.html'>init_legendre</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_legendre.html'>init_legendre</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_local_defaults.html'>init_local_defaults</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_mb_get_phi.html'>init_mb_get_phi</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_mb_transforms.html'>init_mb_transforms</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
@@ -879,13 +892,13 @@ so dmu = mu_max/(nmu-1/2)
 do simplest thing to start
 leave dmu(nmu) uninitialized. should never be used, so want
 valgrind or similar to return error if it is</p><a href="../proc/init_mu_grid.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			   <tr><td><a href='../proc/init_mudiff_conserve.html'>init_mudiff_conserve</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_mudiff_matrix.html'>init_mudiff_matrix</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_mudiff_conserve.html'>init_mudiff_conserve</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_mudiff_matrix.html'>init_mudiff_matrix</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_multibox.html'>init_multibox</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_multibox_subcalls.html'>init_multibox_subcalls</a></td><td><a href='../program/stella.html'>stella</a></td><td>Subroutine</td><td><p>call all the multibox communication subroutines to make sure all the jobs have
 the appropriate information</p></td></tr>
 			   <tr><td><a href='../proc/init_neoclassical_terms.html'>init_neoclassical_terms</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_nusdpa.html'>init_nusDpa</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_nusdpa.html'>init_nusDpa</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_parallel_nonlinearity.html'>init_parallel_nonlinearity</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_parallel_streaming.html'>init_parallel_streaming</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td><p>stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
 NB: stream_sign = -1 corresponds to positive advection velocity
@@ -932,7 +945,7 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
 			   <tr><td><a href='../proc/init_tstart~2.html'>init_tstart</a></td><td><a href='../module/stella_save.html'>stella_save</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_unpadded_x_fft.html'>init_unpadded_x_fft</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_unpadded_y_fft.html'>init_unpadded_y_fft</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_vgrid.html'>init_vgrid</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_vgrid.html'>init_vgrid</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_vmec_defaults.html'>init_vmec_defaults</a></td><td><a href='../module/vmec_geo.html'>vmec_geo</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_vmu_layout.html'>init_vmu_layout</a></td><td><a href='../module/stella_layouts.html'>stella_layouts</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_volume_averages.html'>init_volume_averages</a></td><td><a href='../module/volume_averages.html'>volume_averages</a></td><td>Subroutine</td><td></td></tr>
@@ -947,8 +960,8 @@ the vpa=z=0 phase space location, which
 is isolated from all other phase space points
 in the absence of collisions
 equal grid spacing in vpa</p><a href="../proc/init_vpa_grid.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			   <tr><td><a href='../proc/init_vpadiff_conserve.html'>init_vpadiff_conserve</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_vpadiff_matrix.html'>init_vpadiff_matrix</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_vpadiff_conserve.html'>init_vpadiff_conserve</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_vpadiff_matrix.html'>init_vpadiff_matrix</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_vpamu_grids.html'>init_vpamu_grids</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td><p>set up the vpa grid points and integration weights
 set up the mu grid points and integration weights</p><a href="../proc/init_vpamu_grids.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/init_vperp2.html'>init_vperp2</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
@@ -1109,9 +1122,9 @@ g/F is evolved for FFS</p></td></tr>
 			   <tr><td><a href='../proc/most_redundant.html'>most_redundant</a></td><td><a href='../module/v3_utilities.html'>v3_utilities</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/mp_abort.html'>mp_abort</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/mp_gather.html'>mp_gather</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/mu_differential_operator.html'>mu_differential_operator</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/mu_differential_operator_fp.html'>mu_differential_operator_fp</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/mu_differential_operator_fp_conservative.html'>mu_differential_operator_fp_conservative</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/mu_differential_operator.html'>mu_differential_operator</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/mu_differential_operator_fp.html'>mu_differential_operator_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/mu_differential_operator_fp_conservative.html'>mu_differential_operator_fp_conservative</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/multibox_communicate.html'>multibox_communicate</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/multiply_by_rho.html'>multiply_by_rho</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/nc_geo.html'>nc_geo</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Write various geometric quantities to output netCDF file</p></td></tr>
@@ -1168,18 +1181,21 @@ we are undoing that weighting here, so also need to use ia = 1</p></td></tr>
 			   <tr><td><a href='../proc/read_mgrid_nc.html'>read_mgrid_nc</a></td><td><a href='../module/mgrid_mod.html'>mgrid_mod</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_mse_namelist.html'>read_mse_namelist</a></td><td><a href='../module/vmec_input.html'>vmec_input</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_multibox_parameters.html'>read_multibox_parameters</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~3.html'>read_parameters</a></td><td><a href='../module/sources.html'>sources</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~3.html'>read_parameters</a></td><td><a href='../module/physics_parameters.html'>physics_parameters</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~4.html'>read_parameters</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~5.html'>read_parameters</a></td><td><a href='../module/stella_layouts.html'>stella_layouts</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~6.html'>read_parameters</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters.html'>read_parameters</a></td><td><a href='../module/run_parameters.html'>run_parameters</a></td><td>Subroutine</td><td><p>print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p></td></tr>
-			   <tr><td><a href='../proc/read_parameters~4.html'>read_parameters</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~2.html'>read_parameters</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Read the diagnostic input parameters from the input file</p><a href="../proc/read_parameters~2.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			   <tr><td><a href='../proc/read_parameters~5.html'>read_parameters</a></td><td><a href='../module/physics_parameters.html'>physics_parameters</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~6.html'>read_parameters</a></td><td><a href='../module/stella_layouts.html'>stella_layouts</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~7.html'>read_parameters</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~8.html'>read_parameters</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~9.html'>read_parameters</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~7.html'>read_parameters</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~8.html'>read_parameters</a></td><td><a href='../module/sources.html'>sources</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~9.html'>read_parameters</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~10.html'>read_parameters</a></td><td><a href='../module/physics_flags.html'>physics_flags</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~11.html'>read_parameters</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~11.html'>read_parameters</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~12.html'>read_parameters</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters_dougherty.html'>read_parameters_dougherty</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters_fp.html'>read_parameters_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters_hyper.html'>read_parameters_hyper</a></td><td><a href='../module/hyper.html'>hyper</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_response_matrix.html'>read_response_matrix</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_species_euterpe.html'>read_species_euterpe</a></td><td><a href='../module/euterpe_interface.html'>euterpe_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_species_knobs.html'>read_species_knobs</a></td><td><a href='../module/species.html'>species</a></td><td>Subroutine</td><td></td></tr>
@@ -1310,7 +1326,6 @@ indices for a given processor. Assumes indices start at 1</p></td></tr>
 			   <tr><td><a href='../proc/swap_kxky_real.html'>swap_kxky_real</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/sweep_g_zed.html'>sweep_g_zed</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/sweep_zed_zonal.html'>sweep_zed_zonal</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/sweep_zed_zonal_response.html'>sweep_zed_zonal_response</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/sync_nc.html'>sync_nc</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Flush netCDF file to disk</p></td></tr>
 			   <tr><td><a href='../interface/system.html'>system</a></td><td><a href='../module/system_mod.html'>system_mod</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/systemf.html'>systemf</a></td><td><a href='../module/system_fortran.html'>system_fortran</a></td><td>Subroutine</td><td></td></tr>
@@ -1355,13 +1370,13 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
 			   <tr><td><a href='../proc/update_quasineutrality_source.html'>update_quasineutrality_source</a></td><td><a href='../module/sources.html'>sources</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/update_tcorr_krook.html'>update_tcorr_krook</a></td><td><a href='../module/sources.html'>sources</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/update_time.html'>update_time</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/vlj_vmu.html'>vLj_vmu</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/vlj_vmu.html'>vLj_vmu</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/vmec_getenv.html'>vmec_getenv</a></td><td><a href='../sourcefile/vmec_getenv.f.html'>vmec_getenv.f</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/vmec_to_stella_geometry_interface.html'>vmec_to_stella_geometry_interface</a></td><td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td><td>Subroutine</td><td><p>Input parameters</p><a href="../proc/vmec_to_stella_geometry_interface.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/volume_average.html'>volume_average</a></td><td><a href='../module/volume_averages.html'>volume_averages</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/vpa_differential_operator.html'>vpa_differential_operator</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/vpa_differential_operator_fp.html'>vpa_differential_operator_fp</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/vpa_differential_operator_fp_conservative.html'>vpa_differential_operator_fp_conservative</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/vpa_differential_operator.html'>vpa_differential_operator</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/vpa_differential_operator_fp.html'>vpa_differential_operator_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/vpa_differential_operator_fp_conservative.html'>vpa_differential_operator_fp_conservative</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/vpa_interpolation.html'>vpa_interpolation</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/waitany.html'>waitany</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/write_complex_rank2.html'>write_complex_rank2</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td></td></tr>
@@ -1411,13 +1426,13 @@ creating them if necessary</p></td></tr>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-67-g34b214f0d</small></p>
+<br /><small>v0.5.1-87-g92c5f54ee</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T14:01:41.057835           </p>
+ on 2022-07-22T14:20:48.154454           </p>
         </div>
       </div>
       <br>

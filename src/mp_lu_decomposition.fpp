@@ -175,25 +175,41 @@ contains
 
    end subroutine lu_matrix_multiply_local_complex
 
-   subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim)
+   subroutine split_n_tasks(n, iproc, nproc, lo, hi, llim, blocksize, comm)
 
       implicit none
 
       integer, intent(in) :: n, iproc, nproc
       integer, intent(out) :: lo, hi
       integer, optional, intent(in) :: llim
+      integer, optional, intent(in) :: blocksize
+      logical, optional, intent(out) :: comm
 
-      integer :: n_div, n_mod, llim_local
+      integer :: n_div, n_mod, llim_l, blocksize_l
 
-      llim_local = 1
-      if (present(llim)) llim_local = llim
+      llim_l = 1
+      if (present(llim)) llim_l = llim
+
+      blocksize_l = 1
+      if (present(blocksize)) blocksize_l = blocksize
 
       n_div = n / nproc
       n_mod = mod(n, nproc)
 
-      lo = iproc * n_div + min(iproc, n_mod) + llim_local
-      hi = lo + n_div - 1
-      if (iproc < n_mod) hi = hi + 1
+      if (n_div < blocksize_l) then
+         lo = min(iproc * blocksize_l + llim_l, n + llim_l)
+         hi = min(lo + blocksize_l - 1, n + llim_l - 1)
+         if (present(comm)) then ! do we require an MPI_WIN_FENCE?
+            comm = .not. (blocksize_l >= n)
+         end if
+      else
+         lo = iproc * n_div + min(iproc, n_mod) + llim_l
+         hi = lo + n_div - 1
+         if (iproc < n_mod) hi = hi + 1
+         if (present(comm)) then ! do we require an MPI_WIN_FENCE?
+            comm = .not. (n_div + min(n_mod, 1) >= n)
+         end if
+      end if
 
    end subroutine split_n_tasks
 

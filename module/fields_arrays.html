@@ -89,7 +89,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.1% of total for modules and submodules.">21 statements</a>
+    title=" 0.1% of total for modules and submodules.">23 statements</a>
      </li> 
     <li><i class="fa fa-code"></i><a href="../src/fields_arrays.f90"> Source File</a></li>
   </ul>
@@ -117,8 +117,8 @@
   <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
-      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi~34">phi</a>
-      <a class="list-group-item" href="../module/fields_arrays.html#variable-apar~15">apar</a>
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi~38">phi</a>
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-apar~17">apar</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_old">phi_old</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_shared">phi_shared</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_qn">phi_corr_QN</a>
@@ -128,6 +128,7 @@
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_ga">phi_corr_GA</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_ga">apar_corr_GA</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-response_matrix">response_matrix</a>
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-response_window">response_window</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-shift_state">shift_state</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot">gamtot</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
@@ -159,6 +160,7 @@
       <ul class="list-group">
       <li class="list-group-item">
   <ul class="list-inline">
+    <li><a href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm">mpi</a></li>
     <li><a href='../module/common_types.html'>common_types</a></li>
   </ul>
       </li>
@@ -175,8 +177,8 @@
   <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
-      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi~34">phi</a>
-      <a class="list-group-item" href="../module/fields_arrays.html#variable-apar~15">apar</a>
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-phi~38">phi</a>
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-apar~17">apar</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_old">phi_old</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_shared">phi_shared</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_qn">phi_corr_QN</a>
@@ -186,6 +188,7 @@
       <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_ga">phi_corr_GA</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_ga">apar_corr_GA</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-response_matrix">response_matrix</a>
+      <a class="list-group-item" href="../module/fields_arrays.html#variable-response_window">response_window</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-shift_state">shift_state</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot">gamtot</a>
       <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
@@ -214,12 +217,12 @@
 <thead><tr><th>Type</th><th>Visibility</th><th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
 <tbody>
 <tr>
-  <td><span class="anchor" id="variable-phi~34"></span>complex,</td>
+  <td><span class="anchor" id="variable-phi~38"></span>complex,</td>
 <td>public,</td>  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>phi</strong></td><td></td><td></td><td></td>
 </tr>
 <tr>
-  <td><span class="anchor" id="variable-apar~15"></span>complex,</td>
+  <td><span class="anchor" id="variable-apar~17"></span>complex,</td>
 <td>public,</td>  <td>dimension(:, :, :, :), allocatable</td><td>::</td>
   <td><strong>apar</strong></td><td></td><td></td><td></td>
 </tr>
@@ -267,6 +270,11 @@
   <td><span class="anchor" id="variable-response_matrix"></span>type(<a href='../type/response_matrix_type.html'>response_matrix_type</a>),</td>
 <td>public,</td>  <td>dimension(:), allocatable</td><td>::</td>
   <td><strong>response_matrix</strong></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td><span class="anchor" id="variable-response_window"></span>integer,</td>
+<td>public</td>  <td></td><td>::</td>
+  <td><strong>response_window</strong></td><td> =</td><td>MPI_WIN_NULL</td><td></td>
 </tr>
 <tr>
   <td><span class="anchor" id="variable-shift_state"></span>real,</td>
@@ -331,12 +339,12 @@
 <tr>
   <td><span class="anchor" id="variable-qn_window"></span>integer,</td>
 <td>public</td>  <td></td><td>::</td>
-  <td><strong>qn_window</strong></td><td></td><td></td><td></td>
+  <td><strong>qn_window</strong></td><td> =</td><td>MPI_WIN_NULL</td><td></td>
 </tr>
 <tr>
   <td><span class="anchor" id="variable-qn_zf_window"></span>integer,</td>
 <td>public</td>  <td></td><td>::</td>
-  <td><strong>qn_zf_window</strong></td><td></td><td></td><td></td>
+  <td><strong>qn_zf_window</strong></td><td> =</td><td>MPI_WIN_NULL</td><td></td>
 </tr>
 </tbody>
 </table>
@@ -359,13 +367,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-67-g34b214f0d</small></p>
+<br /><small>v0.5.1-87-g92c5f54ee</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T14:01:41.057835           </p>
+ on 2022-07-22T14:20:48.154454           </p>
         </div>
       </div>
       <br>

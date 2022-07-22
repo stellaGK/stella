@@ -1,5 +1,6 @@
 module fields_arrays
 
+   use mpi
    use common_types, only: response_matrix_type, eigen_type
 
    implicit none
@@ -26,6 +27,7 @@ module fields_arrays
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
    type(response_matrix_type), dimension(:), allocatable :: response_matrix
+   integer :: response_window = MPI_WIN_NULL
 
    real, dimension(:), allocatable :: shift_state
 
@@ -48,6 +50,6 @@ module fields_arrays
    !variables needed for the source
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
-   integer :: qn_window, qn_zf_window
+   integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
 
 end module fields_arrays

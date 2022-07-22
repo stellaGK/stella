@@ -121,34 +121,34 @@ merged into <code>master</code>.</p>
 programs using <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>. These comments are sometimes called "docstrings". FORD can
 understand these comments before, after or in-line with the thing to be documented, but
 the preferred style in stella is to put the comment before the entity, like in this example:</p>
-<div class="codehilite"><pre><span></span><span class="c">!&gt; This is module-level documentation, describing the overall purpose of this module.</span>
+<div class="codehilite"><pre><span></span><code><span class="c">!&gt; This is module-level documentation, describing the overall purpose of this module.</span>
 <span class="c">!&gt; Documentation comments can be over several lines.</span>
-<span class="k">module </span><span class="n">my_module</span>
-    <span class="k">implicit none</span>
+<span class="k">module </span><span class="n">my_module</span><span class="w"></span>
+<span class="w">    </span><span class="k">implicit none</span><span class="w"></span>
 
-    <span class="c">!&gt; Docstrings can go on derived types</span>
-    <span class="k">type</span> <span class="kd">::</span> <span class="n">my_type</span>
-        <span class="c">!&gt; Docstrings can include in-line LaTeX like this: \(R\)</span>
-        <span class="kt">real</span> <span class="kd">::</span> <span class="n">R_major</span>
-        <span class="c">!&gt; Or as a displayed equation:</span>
-        <span class="c">!&gt;   $$\frac{\partial R}{\partial \psi}$$</span>
-        <span class="kt">real</span> <span class="kd">::</span> <span class="n">R_major_prime</span>
-        <span class="c">!&gt; Code-formatting uses `backticks`</span>
-        <span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_R</span>
-    <span class="k">end type </span><span class="n">my_type</span>
+<span class="w">    </span><span class="c">!&gt; Docstrings can go on derived types</span>
+<span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">my_type</span><span class="w"></span>
+<span class="w">        </span><span class="c">!&gt; Docstrings can include in-line LaTeX like this: \(R\)</span>
+<span class="w">        </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">R_major</span><span class="w"></span>
+<span class="w">        </span><span class="c">!&gt; Or as a displayed equation:</span>
+<span class="w">        </span><span class="c">!&gt;   $$\frac{\partial R}{\partial \psi}$$</span>
+<span class="w">        </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">R_major_prime</span><span class="w"></span>
+<span class="w">        </span><span class="c">!&gt; Code-formatting uses `backticks`</span>
+<span class="w">        </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">n_R</span><span class="w"></span>
+<span class="w">    </span><span class="k">end type </span><span class="n">my_type</span><span class="w"></span>
 
-<span class="k">contains</span>
+<span class="k">contains</span><span class="w"></span>
 
-    <span class="c">!&gt; We can document functions/subroutines</span>
-    <span class="kt">real </span><span class="k">function </span><span class="n">gradient</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span>
-        <span class="c">!&gt; In order to separate the docstring for each argument...</span>
-        <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">R</span>
-        <span class="c">!&gt; ...it&#39;s best to have each argument on its own line</span>
-        <span class="kt">real</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">psi</span>
-    <span class="k">end function </span><span class="n">gradient</span>
+<span class="w">    </span><span class="c">!&gt; We can document functions/subroutines</span>
+<span class="w">    </span><span class="kt">real </span><span class="k">function </span><span class="n">gradient</span><span class="p">(</span><span class="n">R</span><span class="p">,</span><span class="w"> </span><span class="n">psi</span><span class="p">)</span><span class="w"></span>
+<span class="w">        </span><span class="c">!&gt; In order to separate the docstring for each argument...</span>
+<span class="w">        </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">R</span><span class="w"></span>
+<span class="w">        </span><span class="c">!&gt; ...it&#39;s best to have each argument on its own line</span>
+<span class="w">        </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">psi</span><span class="w"></span>
+<span class="w">    </span><span class="k">end function </span><span class="n">gradient</span><span class="w"></span>
 
-<span class="k">end module </span><span class="n">my_module</span>
-</pre></div>
+<span class="k">end module </span><span class="n">my_module</span><span class="w"></span>
+</code></pre></div>
 
 <p>The <a href="https://github.com/Fortran-FOSS-Programmers/ford/wiki">FORD wiki</a> has more documentation on how to write these docstrings. Please
 note that while FORD accepts <code>!&lt;</code> comments <em>after</em> or in-line with the thing to be
@@ -164,10 +164,10 @@ extensions (see <a href="https://python-markdown.github.io/">the Python markdown
 hierarchy in to a hierarchy of HTML pages. To add a new page, simply create a new file
 under <code>docs/pages</code>, and use the file extension <code>.md</code>. <strong>Your file must contain the
 following at the very top</strong>:</p>
-<div class="codehilite"><pre><span></span>---
-title: Page title
----
-</pre></div>
+<div class="codehilite"><pre><span></span><code>---
+<span class="gu">title: Page title</span>
+<span class="gu">---</span>
+</code></pre></div>
 
 <p>Without this metadata section, FORD will not parse the file as part of the documentation.</p>
 <p>In this metadata section, you can also have <code>author</code> and <code>date</code> items.</p>
@@ -181,25 +181,25 @@ vast majority of the heavy lifting done for you. Due to the complexities of LaTe
 simplicity of Markdown, it may require some manual tidying up after the initial
 conversion.</p>
 <p>To get started, run Pandoc:</p>
-<div class="codehilite"><pre><span></span>$ pandoc --standalone --from<span class="o">=</span>latex --to<span class="o">=</span>gfm my_docs.tex --output docs/pages/my_docs.md
-</pre></div>
+<div class="codehilite"><pre><span></span><code>$ pandoc --standalone --from<span class="o">=</span>latex --to<span class="o">=</span>gfm my_docs.tex --output docs/pages/my_docs.md
+</code></pre></div>
 
 <p>FORD is a bit fussier about the metadata section at the top, compared to what Pandoc
 produces, so you may need to manually adjust it.</p>
 <p>Acceptable:</p>
-<div class="codehilite"><pre><span></span>---
+<div class="codehilite"><pre><span></span><code>---
 title: On the Electrodynamics of Moving Bodies
-author: A. Einstein
----
-</pre></div>
+<span class="gu">author: A. Einstein</span>
+<span class="gu">---</span>
+</code></pre></div>
 
 <p>Unacceptable:</p>
-<div class="codehilite"><pre><span></span>---
+<div class="codehilite"><pre><span></span><code>---
 title: Does the Inertia of a Body Depend upon its Energy Content?
 author: 
-- &#39;A. Einstein&#39;
----
-</pre></div>
+<span class="gu">- &#39;A. Einstein&#39;</span>
+<span class="gu">---</span>
+</code></pre></div>
 
 <p>which is a possible output from Pandoc.</p>
 <p>FORD can render LaTeX included in the markdown, with just a couple of gotchas. The most
@@ -209,11 +209,11 @@ resulting equation.</p>
 <p>Normal <code>\begin{equation} ... \end{equation}</code> environments can be used to get numbered
 equations, along with <code>\label{eq:something}</code> and <code>\eqref{eq:something}</code> to refer to them.</p>
 <p>This example:</p>
-<div class="codehilite"><pre><span></span>To obtain the distribution function at the next time step, \(g^{n+1}\), we could combine
-these equations
+<div class="codehilite"><pre><span></span><code><span class="nv">To</span><span class="w"> </span><span class="nv">obtain</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">distribution</span><span class="w"> </span><span class="nv">function</span><span class="w"> </span><span class="nv">at</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">next</span><span class="w"> </span><span class="nv">time</span><span class="w"> </span><span class="k">step</span><span class="p">,</span><span class="w"> </span>\<span class="p">(</span><span class="nv">g</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span>\<span class="p">),</span><span class="w"> </span><span class="nv">we</span><span class="w"> </span><span class="nv">could</span><span class="w"> </span><span class="nv">combine</span><span class="w"></span>
+<span class="nv">these</span><span class="w"> </span><span class="nv">equations</span><span class="w"></span>
 
-$$A g^{n+1} + B g^{n} = DF^{-1}Gg^{n+1} + E\phi^{n},$$
-</pre></div>
+<span class="p">$$</span><span class="nv">A</span><span class="w"> </span><span class="nv">g</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">B</span><span class="w"> </span><span class="nv">g</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DF</span><span class="o">^</span><span class="p">{</span><span class="o">-</span><span class="mi">1</span><span class="p">}</span><span class="nv">Gg</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">E</span>\<span class="nv">phi</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="p">},$$</span><span class="w"></span>
+</code></pre></div>
 
 <p>is rendered as:</p>
 <blockquote>
@@ -224,13 +224,13 @@ these equations</p>
 </p>
 </blockquote>
 <p>while</p>
-<div class="codehilite"><pre><span></span>\begin{equation}
-F \phi^{n+1} = G g^{n+1}
-\label{eq:QN}
-\end{equation}
+<div class="codehilite"><pre><span></span><code>\<span class="nv">begin</span>{<span class="nv">equation</span>}
+<span class="nv">F</span> \<span class="nv">phi</span><span class="o">^</span>{<span class="nv">n</span><span class="o">+</span><span class="mi">1</span>} <span class="o">=</span> <span class="nv">G</span> <span class="nv">g</span><span class="o">^</span>{<span class="nv">n</span><span class="o">+</span><span class="mi">1</span>}
+\<span class="nv">label</span>{<span class="nv">eq</span>:<span class="nv">QN</span>}
+\<span class="k">end</span>{<span class="nv">equation</span>}
 
-\eqref{eq:QN} is the quasi-neutrality equation
-</pre></div>
+\<span class="nv">eqref</span>{<span class="nv">eq</span>:<span class="nv">QN</span>} <span class="nv">is</span> <span class="nv">the</span> <span class="nv">quasi</span><span class="o">-</span><span class="nv">neutrality</span> <span class="nv">equation</span>
+</code></pre></div>
 
 <p>is rendered as</p>
 <blockquote>
@@ -248,8 +248,8 @@ section names are first converted to lowercase and spaces replaced with hyphens.
 to a section, use the usual link syntax and add <code>#</code> in front of the converted section
 name.</p>
 <p>This:</p>
-<div class="codehilite"><pre><span></span><span class="n">Link</span> <span class="n">to</span> <span class="p">[</span><span class="n">this</span> <span class="n">section</span><span class="p">](</span><span class="err">#</span><span class="n">linking</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">sections</span><span class="p">)</span>
-</pre></div>
+<div class="codehilite"><pre><span></span><code>Link to [<span class="nt">this section</span>](<span class="na">#linking-to-sections</span>)
+</code></pre></div>
 
 <p>becomes:</p>
 <blockquote>
@@ -260,8 +260,8 @@ name.</p>
 described
 <a href="https://github.com/Fortran-FOSS-Programmers/ford/wiki/Writing-Documentation#links">here</a>:</p>
 <p>This:</p>
-<div class="codehilite"><pre><span></span>The two linear steps \(L\) are performed by the function <a href="../module/dist_fn.html">dist_fn</a> in <a>dist_fn.fpp</a>
-</pre></div>
+<div class="codehilite"><pre><span></span><code>The two linear steps \(L\) are performed by the function <a href="../module/dist_fn.html">dist_fn</a> in <a>dist_fn.fpp</a>
+</code></pre></div>
 
 <p>is rendered as:</p>
 <blockquote>
@@ -269,13 +269,13 @@ described
 </blockquote>
 <h2 id="building-the-documentation-locally">Building the documentation locally</h2>
 <p><a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a> can be easily installed with <code>pip</code>:</p>
-<div class="codehilite"><pre><span></span>$ pip3 install --user ford
-</pre></div>
+<div class="codehilite"><pre><span></span><code>$ pip3 install --user ford
+</code></pre></div>
 
 <p>After installing FORD, simply run <code>make doc</code>. This will build the documentation under
 <code>docs/html</code>:</p>
-<div class="codehilite"><pre><span></span>$ make doc
-</pre></div>
+<div class="codehilite"><pre><span></span><code>$ make doc
+</code></pre></div>
 
 <p>Then open <code>docs/html/index.html</code> in your favourite browser.</p>
 <h2 id="cheat-sheet">Cheat sheet</h2>
@@ -380,13 +380,13 @@ described
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-67-g34b214f0d</small></p>
+<br /><small>v0.5.1-87-g92c5f54ee</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T14:01:41.057835           </p>
+ on 2022-07-22T14:20:48.154454           </p>
         </div>
       </div>
       <br>

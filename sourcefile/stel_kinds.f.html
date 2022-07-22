@@ -156,19 +156,19 @@
 
     <section>
       <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="nl">     </span> <span class="k">MODULE </span><span class="n">stel_kinds</span>
-<a name="ln-2"></a>
-<a name="ln-3"></a><span class="c">!----------------------------------------------------------------------</span>
-<a name="ln-4"></a><span class="c">!  Kind specifications</span>
-<a name="ln-5"></a><span class="c">!----------------------------------------------------------------------</span>
-<a name="ln-6"></a>
-<a name="ln-7"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">rprec</span> <span class="o">=</span> <span class="nb">SELECTED_REAL_KIND</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span>
-<a name="ln-8"></a><span class="c">!      INTEGER, PARAMETER :: rprec = SELECTED_REAL_KIND(15,307)</span>
-<a name="ln-9"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">iprec</span> <span class="o">=</span> <span class="nb">SELECTED_INT_KIND</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
-<a name="ln-10"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">cprec</span> <span class="o">=</span> <span class="nb">KIND</span><span class="p">((</span><span class="mf">1.0_rprec</span><span class="p">,</span><span class="mf">1.0_rprec</span><span class="p">))</span>
-<a name="ln-11"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">dp</span> <span class="o">=</span> <span class="n">rprec</span>
-<a name="ln-12"></a>
-<a name="ln-13"></a><span class="nl">     </span> <span class="k">END MODULE </span><span class="n">stel_kinds</span>
+    <div class="hl"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="nl">     </span> <span class="k">MODULE </span><span class="n">stel_kinds</span><span class="w"></span>
+<a id="ln-2" name="ln-2" href="#ln-2"></a>
+<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="c">!----------------------------------------------------------------------</span>
+<a id="ln-4" name="ln-4" href="#ln-4"></a><span class="c">!  Kind specifications</span>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="c">!----------------------------------------------------------------------</span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">rprec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SELECTED_REAL_KIND</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span><span class="w"></span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="c">!      INTEGER, PARAMETER :: rprec = SELECTED_REAL_KIND(15,307)</span>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iprec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SELECTED_INT_KIND</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span><span class="w"></span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">cprec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">KIND</span><span class="p">((</span><span class="mf">1.0_rprec</span><span class="p">,</span><span class="mf">1.0_rprec</span><span class="p">))</span><span class="w"></span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="nl">     </span> <span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rprec</span><span class="w"></span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="nl">     </span> <span class="k">END MODULE </span><span class="n">stel_kinds</span><span class="w"></span>
 </pre></div>
 
     </section>
@@ -181,13 +181,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-67-g34b214f0d</small></p>
+<br /><small>v0.5.1-87-g92c5f54ee</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T14:01:41.057835           </p>
+ on 2022-07-22T14:20:48.154454           </p>
         </div>
       </div>
       <br>

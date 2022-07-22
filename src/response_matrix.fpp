@@ -14,10 +14,6 @@ module response_matrix
    logical :: response_matrix_initialized = .false.
    integer, parameter :: mat_unit = 70
 
-#ifdef ISO_C_BINDING
-   integer :: window = MPI_WIN_NULL
-#endif
-
 contains
 
    subroutine init_response_matrix
@@ -39,8 +35,9 @@ contains
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
+      use mp, only: sgproc0, create_shared_memory_window
       use mp, only: real_size, nbytes_real
+      use fields_arrays, only: response_window
       use mpi
 #endif
 
@@ -52,11 +49,10 @@ contains
       integer :: idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
-      integer :: prior_focus, ierr
-      integer :: disp_unit = 1
+      integer :: ierr
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer(c_intptr_t) :: cur_pos
-      type(c_ptr) :: bptr, cptr
+      type(c_ptr) :: cptr
 #endif
       real :: dum
       complex, dimension(:), allocatable :: phiext
@@ -112,9 +108,7 @@ contains
 !   permutation arrays.
 !   Creating a window for each matrix/array would lead to performance
 !   degradation on some clusters
-      if (window == MPI_WIN_NULL) then
-         prior_focus = curr_focus
-         call scope(sharedsubprocs)
+      if (response_window == MPI_WIN_NULL) then
          win_size = 0
          if (sgproc0) then
             do iky = 1, naky
@@ -130,19 +124,8 @@ contains
                end do
             end do
          end if
-         call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
-                                      bptr, window, ierr)
 
-         if (.not. sgproc0) then
-            !make sure all the procs have the right memory address
-            call mpi_win_shared_query(window, 0, win_size, disp_unit, bptr, ierr)
-         end if
-         call mpi_win_fence(0, window, ierr)
-
-         !the following is a hack that allows us to perform pointer arithmetic in Fortran
-         cur_pos = transfer(bptr, cur_pos)
-
-         call scope(prior_focus)
+         call create_shared_memory_window(win_size, response_window, cur_pos)
       end if
 #endif
 
@@ -267,7 +250,7 @@ contains
          end if
 
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
 
          ! solve quasineutrality
@@ -312,7 +295,7 @@ contains
          end do
 
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
 
          if (proc0 .and. debug) then
@@ -365,7 +348,7 @@ contains
       end do
 
 #ifdef ISO_C_BINDING
-      call mpi_win_fence(0, window, ierr)
+      call mpi_win_fence(0, response_window, ierr)
 #endif
 
       if (proc0 .and. mat_gen) then
@@ -495,7 +478,7 @@ contains
       use gyro_averages, only: aj0x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use parallel_streaming, only: stream_tridiagonal_solve
+      use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
 #ifdef ISO_C_BINDING
@@ -633,9 +616,8 @@ contains
                end if
             end if
 
-            ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -750,9 +732,8 @@ contains
                end if
             end if
 
-            ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal_response(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -779,48 +760,6 @@ contains
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
-
-   subroutine sweep_zed_zonal_response(iky, iv, is, sgn, g)
-
-      use zgrid, only: nzgrid, delzed, nztot
-      use extended_zgrid, only: phase_shift
-      use run_parameters, only: zed_upwind, time_upwind
-      use parallel_streaming, only: stream_c
-
-      implicit none
-
-      integer, intent(in) :: iky, iv, is, sgn
-      complex, dimension(:), intent(in out) :: g
-
-      integer :: iz, iz1, iz2
-      real :: fac1, fac2
-      complex :: pf
-      complex, dimension(:), allocatable :: gcf, gpi
-
-      allocate (gpi(-nzgrid:nzgrid))
-      allocate (gcf(-nzgrid:nzgrid))
-      ! ky=0 is 2pi periodic (no extended zgrid)
-      ! decompose into complementary function + particular integral
-      ! zero BC for particular integral
-      ! unit BC for complementary function (no source)
-      if (sgn < 0) then
-         iz1 = -nzgrid; iz2 = nzgrid
-      else
-         iz1 = nzgrid; iz2 = -nzgrid
-      end if
-      pf = phase_shift(iky)**(-sgn)
-      gpi(iz1) = 0.; gcf(iz1) = 1.
-      do iz = iz1 - sgn, iz2, -sgn
-         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz + nzgrid + 1)) / fac1
-         gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
-      end do
-      ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (pf * spread(gpi(iz2), 1, nztot) / (1.-pf * gcf(iz2))) * gcf
-      deallocate (gpi, gcf)
-
-   end subroutine sweep_zed_zonal_response
 
    subroutine integrate_over_velocity(g, phi, iky, ie)
 
@@ -949,13 +888,14 @@ contains
       implicit none
 
 #else
+      use fields_arrays, only: response_window
       use mpi
 
       implicit none
 
       integer :: ierr
 
-      if (window /= MPI_WIN_NULL) call mpi_win_free(window, ierr)
+      if (response_window /= MPI_WIN_NULL) call mpi_win_free(response_window, ierr)
 #endif
 
       if (allocated(response_matrix)) deallocate (response_matrix)

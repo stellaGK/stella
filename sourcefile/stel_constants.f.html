@@ -156,29 +156,29 @@
 
     <section>
       <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="nl">     </span> <span class="k">MODULE </span><span class="n">stel_constants</span>
-<a name="ln-2"></a>
-<a name="ln-3"></a><span class="nl">     </span> <span class="k">USE </span><span class="n">stel_kinds</span><span class="p">,</span> <span class="n">ONLY</span><span class="p">:</span> <span class="n">rprec</span><span class="p">,</span> <span class="n">dp</span>
-<a name="ln-4"></a>
-<a name="ln-5"></a><span class="c">!----------------------------------------------------------------------</span>
-<a name="ln-6"></a><span class="c">!  Mathematical constants</span>
-<a name="ln-7"></a><span class="c">!----------------------------------------------------------------------</span>
-<a name="ln-8"></a>
-<a name="ln-9"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">pi</span><span class="o">=</span><span class="mf">3.14159265358979323846264338328_dp</span>
-<a name="ln-10"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">pio2</span><span class="o">=</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span>
-<a name="ln-11"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">twopi</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">pi</span>
-<a name="ln-12"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">sqrt2</span><span class="o">=</span><span class="mf">1.41421356237309504880168872_dp</span>
-<a name="ln-13"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">degree</span><span class="o">=</span><span class="n">twopi</span> <span class="o">/</span> <span class="mi">360</span>
-<a name="ln-14"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">one</span><span class="o">=</span><span class="mi">1</span>
-<a name="ln-15"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">zero</span><span class="o">=</span><span class="mi">0</span>
-<a name="ln-16"></a> 
-<a name="ln-17"></a><span class="c">!----------------------------------------------------------------------</span>
-<a name="ln-18"></a><span class="c">!  Physical constants</span>
-<a name="ln-19"></a><span class="c">!------------------------------------------------------------------</span>
-<a name="ln-20"></a>
-<a name="ln-21"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">mu0</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">twopi</span> <span class="o">*</span> <span class="mf">1.0e-7_dp</span>
-<a name="ln-22"></a>
-<a name="ln-23"></a><span class="nl">     </span> <span class="k">END MODULE </span><span class="n">stel_constants</span>
+    <div class="hl"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="nl">     </span> <span class="k">MODULE </span><span class="n">stel_constants</span><span class="w"></span>
+<a id="ln-2" name="ln-2" href="#ln-2"></a>
+<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="nl">     </span> <span class="k">USE </span><span class="n">stel_kinds</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="p">:</span><span class="w"> </span><span class="n">rprec</span><span class="p">,</span><span class="w"> </span><span class="n">dp</span><span class="w"></span>
+<a id="ln-4" name="ln-4" href="#ln-4"></a>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="c">!----------------------------------------------------------------------</span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="c">!  Mathematical constants</span>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="c">!----------------------------------------------------------------------</span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pi</span><span class="o">=</span><span class="mf">3.14159265358979323846264338328_dp</span><span class="w"></span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pio2</span><span class="o">=</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="w"></span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">twopi</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">pi</span><span class="w"></span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">sqrt2</span><span class="o">=</span><span class="mf">1.41421356237309504880168872_dp</span><span class="w"></span>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">degree</span><span class="o">=</span><span class="n">twopi</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">360</span><span class="w"></span>
+<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">one</span><span class="o">=</span><span class="mi">1</span><span class="w"></span>
+<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">zero</span><span class="o">=</span><span class="mi">0</span><span class="w"></span>
+<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="w"> </span>
+<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="c">!----------------------------------------------------------------------</span>
+<a id="ln-18" name="ln-18" href="#ln-18"></a><span class="c">!  Physical constants</span>
+<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="c">!------------------------------------------------------------------</span>
+<a id="ln-20" name="ln-20" href="#ln-20"></a>
+<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="nl">     </span> <span class="kt">REAL</span><span class="p">(</span><span class="n">dp</span><span class="p">),</span><span class="w"> </span><span class="k">PARAMETER</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">mu0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">twopi</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.0e-7_dp</span><span class="w"></span>
+<a id="ln-22" name="ln-22" href="#ln-22"></a>
+<a id="ln-23" name="ln-23" href="#ln-23"></a><span class="nl">     </span> <span class="k">END MODULE </span><span class="n">stel_constants</span><span class="w"></span>
 </pre></div>
 
     </section>
@@ -191,13 +191,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-67-g34b214f0d</small></p>
+<br /><small>v0.5.1-87-g92c5f54ee</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-06-09T14:01:41.057835           </p>
+ on 2022-07-22T14:20:48.154454           </p>
         </div>
       </div>
       <br>
