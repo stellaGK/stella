@@ -51,7 +51,7 @@ contains
       integer :: idx
       integer :: izl_offset, izup
 #ifdef ISO_C_BINDING
-      integer :: ierr
+      integer :: ierr, it
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer(c_intptr_t) :: cur_pos
       type(c_ptr) :: cptr

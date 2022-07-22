@@ -658,10 +658,9 @@ contains
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_zf_window
-      use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs, comm_sgroup
-      use mp, only: scope, real_size, nbytes_real
       use mp, only: sgproc0, sharedsubprocs, comm_sgroup
       use mp, only: real_size, nbytes_real, create_shared_memory_window
+      use mp_lu_decomposition, only: matrix_inverse_local
       use mpi
 #endif
       use stella_geometry, only: dl_over_b, d_dl_over_b_drho
@@ -676,12 +675,13 @@ contains
 
       integer :: iz, ikx, ia, jkx, jz
       integer :: inmat, jnmat, nmat_zf
-      real :: dum
 #ifdef ISO_C_BINDING
-      integer :: ierr, temp_window
+      integer :: ierr
       integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       type(c_ptr) :: cptr
+#else
+      real :: dum
 #endif
       complex, dimension(:, :), allocatable :: g0k, g0x, g1k
 
