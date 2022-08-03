@@ -489,6 +489,7 @@ contains
       integer :: nfields
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
+      integer(c_intptr_t) :: cur_pos
 #endif
 
       ! number of zeds x number of segments
@@ -557,6 +558,7 @@ contains
       use extended_zgrid, only: nsegments
       use fields_arrays, only: response_matrix
 #ifdef ISO_C_BINDING
+      use fields_arrays, only: response_window
       use mp, only: sgproc0
 #endif
 
@@ -602,12 +604,12 @@ contains
          call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
          ! Check - do we need do anything special fo the first seg?
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
          call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
 
          ! next need to create column in response matrix from field_ext
@@ -634,7 +636,7 @@ contains
                matrix_idx = matrix_idx + 1
                call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
 #ifdef ISO_C_BINDING
-               call mpi_win_fence(0, window, ierr)
+               call mpi_win_fence(0, response_window, ierr)
 #endif
                call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
 
