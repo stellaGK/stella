@@ -187,7 +187,7 @@ contains
 
    end subroutine advance_collisions_explicit
 
-   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, g)
+   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
@@ -203,7 +203,7 @@ contains
       implicit none
 
       logical, intent(in) :: mirror_implicit
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       logical :: conservative_wgts
@@ -219,9 +219,9 @@ contains
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
       if (collision_model == "dougherty") then
-         call advance_collisions_dougherty_implicit(phi, apar)
+         call advance_collisions_dougherty_implicit(phi, apar, bpar)
       else if (collision_model == "fokker-planck") then
-         call advance_collisions_fp_implicit(phi, apar)
+         call advance_collisions_fp_implicit(phi, apar, bpar)
       end if
 
       if (.not. mirror_implicit) then

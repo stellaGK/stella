@@ -228,7 +228,7 @@ contains
       integer :: idx
       logical :: conservative_wgts
       real :: dum2
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum1, dum2 ! Dummy apar, bpar to put into field solve
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: temp_mat
 
@@ -253,6 +253,7 @@ contains
       end if
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum2(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       ! set wgts to be equally spaced to ensure exact conservation properties
@@ -274,7 +275,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum2, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -480,7 +481,7 @@ contains
       integer :: idx
       real :: dum2
       complex, dimension(:, :), allocatable :: temp_mat
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum1, dum2 ! Dummy apar, bpar to put into field solve
       complex, dimension(:, :, :, :, :), allocatable :: field
 
       nresponse_mu = 1
@@ -502,6 +503,7 @@ contains
       end if
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum2(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -519,7 +521,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum2, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1500,21 +1502,21 @@ contains
 
    end subroutine conserve_energy_vmulo
 
-   subroutine advance_collisions_dougherty_implicit(phi, apar)
+   subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
       use zgrid, only: nzgrid
       use dist_fn_arrays, only: gvmu
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
-      if (vpa_operator) call advance_vpadiff_implicit(phi, apar, gvmu)
-      if (mu_operator) call advance_mudiff_implicit(phi, apar, gvmu)
+      if (vpa_operator) call advance_vpadiff_implicit(phi, apar, bpar, gvmu)
+      if (mu_operator) call advance_mudiff_implicit(phi, apar, bpar, gvmu)
 
    end subroutine advance_collisions_dougherty_implicit
 
-   subroutine advance_vpadiff_implicit(phi, apar, g)
+   subroutine advance_vpadiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -1538,7 +1540,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -1569,7 +1571,7 @@ contains
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1678,7 +1680,7 @@ contains
 
    end subroutine advance_vpadiff_implicit
 
-   subroutine advance_mudiff_implicit(phi, apar, g)
+   subroutine advance_mudiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -1706,7 +1708,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -1751,7 +1753,7 @@ contains
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2

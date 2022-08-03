@@ -3994,7 +3994,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine mu_differential_operator_fp_conservative
 
-   subroutine advance_collisions_fp_implicit(phi, apar)
+   subroutine advance_collisions_fp_implicit(phi, apar, bpar)
 
       use zgrid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
@@ -4002,7 +4002,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       logical :: conservative_wgts
 
@@ -4015,7 +4015,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          call set_vpa_weights(conservative_wgts)
       end if
 
-      call advance_implicit_fp(phi, apar, gvmu)
+      call advance_implicit_fp(phi, apar, bpar, gvmu)
 
    end subroutine advance_collisions_fp_implicit
 
