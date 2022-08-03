@@ -1,5 +1,5 @@
 module response_matrix
-   use, intrinsic :: iso_c_binding, only: c_intptr_t
+
    use netcdf
    use mpi
 
@@ -13,11 +13,6 @@ module response_matrix
 
    logical :: response_matrix_initialized = .false.
    integer, parameter :: mat_unit = 70
-
-#ifdef ISO_C_BINDING
-   integer :: window = MPI_WIN_NULL
-   integer(c_intptr_t) :: cur_pos
-#endif
 
 contains
 
@@ -241,30 +236,26 @@ contains
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "phi")
             end if
 #ifdef ISO_C_BINDING
-            call mpi_win_fence(0, window, ierr)
+            call mpi_win_fence(0, response_window, ierr)
 #endif
             if (fapar > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "apar")
             end if
 #ifdef ISO_C_BINDING
-            call mpi_win_fence(0, window, ierr)
+            call mpi_win_fence(0, response_window, ierr)
 #endif
             if (fbpar > epsilon(0.)) then
                call populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, "bpar")
             end if
          end do
 #ifdef ISO_C_BINDING
-         call mpi_win_fence(0, window, ierr)
+         call mpi_win_fence(0, response_window, ierr)
 #endif
 
          if (proc0 .and. debug) then
             call time_message(.true., time_response_matrix_dgdphi, message_dgdphi)
             !call time_message(.false., time_response_matrix_QN, message_QN)
          end if
-
-#ifdef ISO_C_BINDING
-         call mpi_win_fence(0, response_window, ierr)
-#endif
 
          ! solve quasineutrality
          ! for local stella, this is a diagonal process, but global stella
