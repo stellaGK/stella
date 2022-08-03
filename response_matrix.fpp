@@ -170,7 +170,7 @@ contains
       if (fbpar > epsilon(0.)) nfields = nfields + 1
 
       if (nfields == 0) then
-        call mp_abort("nfields=0 currently not supported for implicit parallel streaming. Aborting")
+         call mp_abort("nfields=0 currently not supported for implicit parallel streaming. Aborting")
       end if
 
 #ifdef ISO_C_BINDING
