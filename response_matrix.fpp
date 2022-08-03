@@ -98,13 +98,8 @@ contains
       use run_parameters, only: fphi, fapar, fbpar
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
-<<<<<<< HEAD
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use mp, only: curr_focus, sgproc0, mp_comm, sharedsubprocs, scope, barrier
-=======
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: sgproc0, create_shared_memory_window
->>>>>>> master
       use mp, only: real_size, nbytes_real
       use fields_arrays, only: response_window
       use mpi
