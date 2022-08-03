@@ -228,7 +228,7 @@ contains
       integer :: idx
       logical :: conservative_wgts
       real :: dum2
-      complex, dimension(:, :, :, :), allocatable :: dum1, dum2 ! Dummy apar, bpar to put into field solve
+      complex, dimension(:, :, :, :), allocatable :: dum_apar, dum_bpar ! Dummy apar, bpar to put into field solve
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: temp_mat
 
@@ -252,8 +252,8 @@ contains
          end if
       end if
 
-      allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dum2(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       ! set wgts to be equally spaced to ensure exact conservation properties
@@ -275,7 +275,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum2, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum_apar, dum_bpar, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -450,7 +450,7 @@ contains
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
-      deallocate (dum1, field)
+      deallocate (dum_apar, dum_bpar, field)
 
    end subroutine init_vpadiff_conserve
 
@@ -481,7 +481,7 @@ contains
       integer :: idx
       real :: dum2
       complex, dimension(:, :), allocatable :: temp_mat
-      complex, dimension(:, :, :, :), allocatable :: dum1, dum2 ! Dummy apar, bpar to put into field solve
+      complex, dimension(:, :, :, :), allocatable :: dum_apar, dum_bpar ! Dummy apar, bpar to put into field solve
       complex, dimension(:, :, :, :, :), allocatable :: field
 
       nresponse_mu = 1
@@ -502,8 +502,8 @@ contains
          end if
       end if
 
-      allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dum2(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum_bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -521,7 +521,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum2, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum_apar, dum_bpar, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -696,7 +696,7 @@ contains
          deallocate (temp_mat)
       end if
 
-      deallocate (dum1, field)
+      deallocate (dum_apar, dum_bpar, field)
 
    end subroutine init_mudiff_conserve
 
