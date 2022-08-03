@@ -219,7 +219,7 @@ contains
          do ie = 1, neigen(iky)
 
             ! Work out nz_ext, nresponse and allocate response_matrix(iky)%eigen%zloc
-            call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field)
+            call allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field, cur_pos)
 
             ! matrix_idx is the index in the response matrix we are populating
             ! (i.e. the column idx)
@@ -468,7 +468,7 @@ contains
       end if
    end subroutine read_response_matrix
 
-   subroutine allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field)
+   subroutine allocate_response_matrix_zloc(iky, ie, nz_ext, nresponse, nresponse_per_field, cur_pos)
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: nsegments
@@ -489,7 +489,7 @@ contains
       integer :: nfields
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
-      integer(c_intptr_t) :: cur_pos
+      integer(c_intptr_t), intent(in out) :: cur_pos
 #endif
 
       ! number of zeds x number of segments
