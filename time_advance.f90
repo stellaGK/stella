@@ -776,7 +776,6 @@ contains
       use flow_shear, only: prl_shear, shift_times
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
-      use dissipation, only: vpa_operator, mu_operator
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
 
       implicit none
@@ -839,8 +838,8 @@ contains
       end if
 
       if (include_collisions .and. .not. collisions_implicit) then
-         if (vpa_operator) cfl_dt = min(cfl_dt, cfl_dt_vpadiff)
-         if (mu_operator) cfl_dt = min(cfl_dt, cfl_dt_mudiff)
+         cfl_dt = min(cfl_dt, cfl_dt_vpadiff)
+         cfl_dt = min(cfl_dt, cfl_dt_mudiff)
       end if
 
       if (.not. drifts_implicit) then
@@ -2567,7 +2566,8 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
-      use dissipation, only: hyper_dissipation, advance_hyper_dissipation
+      use dissipation, only: hyper_dissipation
+      use hyper, only: advance_hyper_dissipation
       use physics_flags, only: include_parallel_streaming
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: include_mirror, prp_shear_enabled

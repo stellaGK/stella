@@ -7,6 +7,7 @@ module parallel_streaming
    public :: advance_parallel_streaming_implicit
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
+   public :: sweep_zed_zonal
    public :: parallel_streaming_initialized
    public :: stream, stream_c, stream_sign
    public :: time_parallel_streaming
@@ -868,7 +869,11 @@ contains
 
       do iky = 1, naky
          if (periodic(iky)) then
-            call sweep_zed_zonal(iky, iv, is, sgn, g(iky, :, :, :))
+            do it = 1, ntubes
+               do ie = 1, neigen(iky)
+                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
+               end do
+            end do
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -980,7 +985,11 @@ contains
       ! and solve for g on the extended z-grid
       do iky = 1, naky
          if (periodic(iky)) then
-            call sweep_zed_zonal(iky, iv, is, sgn, g(iky, :, :, :))
+            do it = 1, ntubes
+               do ie = 1, neigen(iky)
+                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
+               end do
+            end do
          else
             do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -1017,23 +1026,21 @@ contains
 
    subroutine sweep_zed_zonal(iky, iv, is, sgn, g)
 
-      use zgrid, only: nzgrid, delzed, nztot, ntubes
-      use kt_grids, only: nakx
+      use zgrid, only: nzgrid, delzed
       use extended_zgrid, only: phase_shift
       use run_parameters, only: zed_upwind, time_upwind
 
       implicit none
 
       integer, intent(in) :: iky, iv, is, sgn
-      complex, dimension(:, -nzgrid:, :), intent(in out) :: g
+      complex, dimension(-nzgrid:), intent(in out) :: g
 
       integer :: iz, iz1, iz2
       real :: fac1, fac2
       complex :: pf
-      complex, dimension(:), allocatable :: gcf
-      complex, dimension(:, :, :), allocatable :: gpi
+      complex, dimension(:), allocatable :: gcf, gpi
 
-      allocate (gpi(nakx, -nzgrid:nzgrid, ntubes))
+      allocate (gpi(-nzgrid:nzgrid))
       allocate (gcf(-nzgrid:nzgrid))
       ! ky=0 is 2pi periodic (no extended zgrid)
       ! decompose into complementary function + particular integral
@@ -1045,16 +1052,15 @@ contains
          iz1 = nzgrid; iz2 = -nzgrid
       end if
       pf = phase_shift(iky)**(-sgn)
-      gpi(:, iz1, :) = 0.; gcf(iz1) = 1.
+      gpi(iz1) = 0.; gcf(iz1) = 1.
       do iz = iz1 - sgn, iz2, -sgn
          fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
          fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         gpi(:, iz, :) = (-gpi(:, iz + sgn, :) * fac2 + 2.0 * g(:, iz, :)) / fac1
+         gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz)) / fac1
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (pf * spread(gpi(:, iz2, :), 2, nztot) &
-                 / (1.-pf * gcf(iz2))) * spread(spread(gcf, 1, nakx), 3, ntubes)
+      g = gpi + (pf * gpi(iz2) / (1.0 - pf * gcf(iz2))) * gcf
       deallocate (gpi, gcf)
 
    end subroutine sweep_zed_zonal

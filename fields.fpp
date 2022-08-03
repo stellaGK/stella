@@ -34,7 +34,6 @@ module fields
    logical :: fields_updated = .false.
    logical :: fields_initialized = .false.
 #ifdef ISO_C_BINDING
-   logical :: qn_window_initialized = .false.
    integer :: phi_shared_window = MPI_WIN_NULL
 #endif
    logical :: debug = .false.
@@ -100,7 +99,7 @@ contains
       use physics_flags, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
       use stella_geometry, only: dl_over_b, dBdrho, bmag
-      use zgrid, only: nzgrid, ntubes
+      use zgrid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -355,9 +354,9 @@ contains
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use fields_arrays, only: qn_window, phi_shared
-      use mp, only: sgproc0, curr_focus, mp_comm, sharedsubprocs
+      use mp, only: sgproc0, curr_focus, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real
-      use mp, only: split_n_tasks
+      use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
       use run_parameters, only: ky_solve_radial, ky_solve_real
@@ -383,7 +382,6 @@ contains
 #ifdef ISO_C_BINDING
       integer :: prior_focus, ierr
       integer :: counter, c_lo, c_hi
-      integer :: disp_unit = 1
       integer(c_intptr_t):: cur_pos
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       complex, dimension(:), pointer :: phi_shared_temp
@@ -418,14 +416,9 @@ contains
                win_size = int(naky * nakx * nztot * ntubes, MPI_ADDRESS_KIND) * 2 * real_size !complex size
             end if
 
-            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                         mp_comm, cptr, phi_shared_window, ierr)
+            call create_shared_memory_window(win_size, phi_shared_window, cur_pos)
 
-            if (.not. sgproc0) then
-               !make sure all the procs have the right memory address
-               call mpi_win_shared_query(phi_shared_window, 0, win_size, disp_unit, cptr, ierr)
-            end if
-            call mpi_win_fence(0, phi_shared_window, ierr)
+            cptr = transfer(cur_pos, cptr)
 
             if (.not. associated(phi_shared)) then
                ! associate array with lower bounds of 1
@@ -437,22 +430,14 @@ contains
          end if
 
          if (debug) write (*, *) 'fields::init_fields::qn_window_init'
-         if ((.not. qn_window_initialized) .or. (qn_window == MPI_WIN_NULL)) then
+         if (qn_window == MPI_WIN_NULL) then
             win_size = 0
             if (sgproc0) then
                win_size = int(nakx * nztot * naky_r, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
                           + int(nakx**2 * nztot * naky_r, MPI_ADDRESS_KIND) * 2 * real_size !complex size
             end if
 
-            call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, &
-                                         mp_comm, cptr, qn_window, ierr)
-
-            if (.not. sgproc0) then
-               !make sure all the procs have the right memory address
-               call mpi_win_shared_query(qn_window, 0, win_size, disp_unit, cptr, ierr)
-            end if
-            call mpi_win_fence(0, qn_window, ierr)
-            cur_pos = transfer(cptr, cur_pos)
+            call create_shared_memory_window(win_size, qn_window, cur_pos)
 
             !allocate the memory
             do iky = 1, naky_r
@@ -474,8 +459,6 @@ contains
             end do
 
             call mpi_win_fence(0, qn_window, ierr)
-
-            qn_window_initialized = .true.
          end if
 
          call split_n_tasks(nztot * naky_r, c_lo, c_hi)
@@ -3088,9 +3071,8 @@ contains
 
 #ifdef ISO_C_BINDING
       if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
-      if (qn_window_initialized .and. qn_window /= MPI_WIN_NULL) then
+      if (qn_window /= MPI_WIN_NULL) then
          call mpi_win_free(qn_window, ierr)
-         qn_window_initialized = .false.
       end if
 #else
       if (allocated(phi_solve)) deallocate (phi_solve)
