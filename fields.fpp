@@ -511,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2337,11 +2337,11 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
          call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_field)
-         h(:,:,:,:,ivmu) = g(:,:,:,:,ivmu) + gyro_field(:,:,:,:) * spec(is)%zt * maxwell_fac(is) &
-                          * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+         h(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + gyro_field(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+                               * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
       end do
 
-      deallocate(gyro_field)
+      deallocate (gyro_field)
    end subroutine get_h
    !> Non-perturbative approach to solving quasineutrality for radially
    !> global simulations

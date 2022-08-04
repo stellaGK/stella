@@ -424,7 +424,7 @@ contains
       call get_dgdz(g, ivmu, dgdz_tmp)        ! Third order upwind derivative
       call get_dgdz_centered(g, ivmu, dgdz)   ! Second order centered derivative
 
-      dgdz = (1-zed_upwind_explicit)*dgdz + zed_upwind_explicit*dgdz_tmp
+      dgdz = (1 - zed_upwind_explicit) * dgdz + zed_upwind_explicit * dgdz_tmp
 
       deallocate (dgdz_tmp)
    end subroutine get_dgdz_variable

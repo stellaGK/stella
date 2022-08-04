@@ -1496,7 +1496,6 @@ contains
       ! ! call get_dgdy(phi, dphidy)
       ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
          it = 1
