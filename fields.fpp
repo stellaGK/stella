@@ -21,6 +21,7 @@ module fields
    public :: get_gyroaverage_chi
    public :: get_chi
    public :: efac, efacp
+   public :: get_h
 
    private
 
@@ -510,8 +511,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2307,6 +2308,41 @@ contains
 
    end subroutine get_phi_1D
 
+   !> Convert between gbar and h
+   !> g = h - Ze/T F0 <chi> where <chi> is the gyroaveraged gyrokinetic potential
+   !> h = g + Ze/T F0 <chi>
+   subroutine get_h(g, phi, apar, bpar, h)
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: imu_idx, is_idx, iv_idx
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use species, only: spec
+      use kt_grids, only: naky, nakx
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: h
+
+      complex, dimension(:, :, :, :), allocatable :: gyro_field
+      integer :: ia, iv, imu, is, ivmu
+
+      allocate (gyro_field(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+      ia = 1
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_field)
+         h(:,:,:,:,ivmu) = g(:,:,:,:,ivmu) + gyro_field(:,:,:,:) * spec(is)%zt * maxwell_fac(is) &
+                          * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+      end do
+
+      deallocate(gyro_field)
+   end subroutine get_h
    !> Non-perturbative approach to solving quasineutrality for radially
    !> global simulations
    subroutine get_phi_radial(phi)

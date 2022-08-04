@@ -1264,9 +1264,11 @@ contains
       use sources, only: include_krook_operator, add_krook_operator
       use parallel_streaming, only: advance_parallel_streaming_explicit
       use fields, only: advance_fields, fields_updated, get_radial_correction
+      use fields, only: get_h
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
+      use dist_fn_arrays, only: h
 
       implicit none
 
@@ -1281,7 +1283,6 @@ contains
       integer :: iz, it, ivmu
 
       rhs_ky = 0.
-
       !> if full_flux_surface = .true., then initially obtain the RHS of the GKE in alpha-space;
       !> will later inverse Fourier transform to get RHS in k_alpha-space
       if (full_flux_surface) then
@@ -1303,6 +1304,8 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
       call advance_fields(gin, phi, apar, bpar, dist='gbar')
 
+      !! New version of code wants the source term in h_s. Convert gbar -> h here
+      call get_h(gin, phi, apar, bpar, h)
       if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
 
       !> default is to continue with same time step size.
@@ -1327,17 +1330,17 @@ contains
          !> calculate and add mirror term to RHS of GK eqn
          if (include_mirror .and. .not. mirror_implicit) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_mirror_explicit'
-            call advance_mirror_explicit(gin, rhs)
+            call advance_mirror_explicit(h, rhs)
          end if
 
          if (.not. drifts_implicit) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
-            call advance_wdrifty_explicit(gin, rhs)
+            call advance_wdrifty_explicit(h, rhs)
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
-            call advance_wdriftx_explicit(gin, rhs)
+            call advance_wdriftx_explicit(h, rhs)
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
@@ -1350,7 +1353,7 @@ contains
          !> calculate and add parallel streaming term to RHS of GK eqn
          if (include_parallel_streaming .and. (.not. stream_implicit)) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-            call advance_parallel_streaming_explicit(gin, rhs)
+            call advance_parallel_streaming_explicit(h, rhs)
          end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
@@ -1481,13 +1484,18 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
       !> calculate dg/dy in (ky,kx) space
       call get_dgdy(g, g0k)
-      ! Bob: Modified to include EM effects. We should test this doesn't break
-      ! ffs electrostatically.
-      !> calculate d<chi>/dy in (ky,kx) space
-      call get_dchidy(phi, apar, bpar, dchidy)
-      ! Old
-      ! !> calculate dphi/dy in (ky,kx) space
-      ! call get_dgdy(phi, dphidy)
+
+      ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! !!! Bob: commented out for h source term
+      ! ! Bob: Modified to include EM effects. We should test this doesn't break
+      ! ! ffs electrostatically.
+      ! !> calculate d<chi>/dy in (ky,kx) space
+      ! call get_dchidy(phi, apar, bpar, dchidy)
+      ! ! Old
+      ! ! !> calculate dphi/dy in (ky,kx) space
+      ! ! call get_dgdy(phi, dphidy)
+      ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
@@ -1529,7 +1537,7 @@ contains
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
 
          ! add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term(dchidy, wdrifty_phi(1, :, :), gout)
+         ! call add_explicit_term(dchidy, wdrifty_phi(1, :, :), gout)
       end if
       deallocate (g0k, dchidy)
 
@@ -1579,13 +1587,16 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
-      ! Bob: Modified to include EM effects. We should test this doesn't break
-      ! ffs electrostatically.
-      !> calculate d<chi>/dx in (ky,kx) space
-      call get_dchidx(phi, apar, bpar, dchidx)
-      ! Old:
-      ! !> calculate dphi/dx in (ky,kx) space
-      ! call get_dgdx(phi, dphidx)
+      ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! !!! Bob: commented out for h source term
+      ! ! Bob: Modified to include EM effects. We should test this doesn't break
+      ! ! ffs electrostatically.
+      ! !> calculate d<chi>/dx in (ky,kx) space
+      ! call get_dchidx(phi, apar, bpar, dchidx)
+      ! ! Old:
+      ! ! !> calculate dphi/dx in (ky,kx) space
+      ! ! call get_dgdx(phi, dphidx)
+      ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       if (full_flux_surface) then
          !> assume a single flux surface is simulated
@@ -1623,8 +1634,11 @@ contains
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
 
-         !> add vM . grad x d<chi>/dx term to equation
-         call add_explicit_term(dchidx, wdriftx_phi(1, :, :), gout)
+         ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         ! !!! Bob: commented out for h source term
+         ! !> add vM . grad x d<chi>/dx term to equation
+         ! call add_explicit_term(dchidx, wdriftx_phi(1, :, :), gout)
+         ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       end if
       deallocate (g0k, dchidx)
 

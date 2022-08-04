@@ -123,7 +123,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -576,8 +576,11 @@ contains
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) &
-                                              + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu) &
-                                              + mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
+                                              + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu) !  &
+                  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                  ! !!! Bob: commented out for h source term
+                  !                            + mirror_apar_fac(1, iz, ivmu) * gyro_apar(:, ikx, iz, it)
+                  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                end do
             end do

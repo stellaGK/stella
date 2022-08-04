@@ -138,7 +138,6 @@ contains
 
       !> allocate the kperp2 array to contain |k_perp|^2
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
-
       do iky = 1, naky
          if (zonal_mode(iky)) then
             do ikx = 1, nakx
@@ -254,7 +253,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
-      use dist_fn_arrays, only: gnew, gold, g_gyro
+      use dist_fn_arrays, only: gnew, gold, g_gyro, h
       use dist_fn_arrays, only: gvmu
 
       implicit none
@@ -265,6 +264,9 @@ contains
       if (.not. allocated(gold)) &
          allocate (gold(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       gold = 0.
+      if (.not. allocated(h)) &
+         allocate (h(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      h = 0.
       if (.not. allocated(g_gyro)) &
          allocate (g_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g_gyro = 0.
@@ -315,12 +317,13 @@ contains
 
    subroutine deallocate_arrays
 
-      use dist_fn_arrays, only: gnew, gold, g_gyro, gvmu
+      use dist_fn_arrays, only: gnew, gold, g_gyro, gvmu, h
 
       implicit none
 
       if (allocated(gnew)) deallocate (gnew)
       if (allocated(gold)) deallocate (gold)
+      if (allocated(h)) deallocate (h)
       if (allocated(g_gyro)) deallocate (g_gyro)
       if (allocated(gvmu)) deallocate (gvmu)
 

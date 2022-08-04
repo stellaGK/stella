@@ -18,6 +18,7 @@ module run_parameters
    public :: stream_matrix_inversion
    public :: mirror_semi_lagrange, mirror_linear_interp
    public :: zed_upwind, vpa_upwind, time_upwind
+   public :: zed_upwind_explicit
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
 
@@ -27,6 +28,7 @@ module run_parameters
    real :: fphi, fapar, fbpar
    real :: delt, tend, delt_max
    real :: zed_upwind, vpa_upwind, time_upwind
+   real :: zed_upwind_explicit
    logical :: stream_implicit, mirror_implicit
    logical :: driftkinetic_implicit
    logical :: fully_explicit, drifts_implicit
@@ -89,7 +91,7 @@ contains
          drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
-         zed_upwind, vpa_upwind, time_upwind, &
+         zed_upwind, zed_upwind_explicit, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
          ky_solve_radial, ky_solve_real
 
@@ -109,6 +111,7 @@ contains
          delt_option = 'default'
          lu_option = 'default'
          zed_upwind = 0.02
+         zed_upwind_explicit = 1.0
          vpa_upwind = 0.02
          time_upwind = 0.02
          avail_cpu_time = 1.e10
@@ -167,6 +170,7 @@ contains
       call broadcast(mirror_linear_interp)
       call broadcast(stream_matrix_inversion)
       call broadcast(zed_upwind)
+      call broadcast(zed_upwind_explicit)
       call broadcast(vpa_upwind)
       call broadcast(time_upwind)
       call broadcast(nstep)

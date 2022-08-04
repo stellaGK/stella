@@ -234,15 +234,18 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
-         !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-         call get_gyroaverage_chi(ivmu, phi, apar, bpar, g0(:, :, :, :))
-         if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
+         ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         ! !!! Bob: commented out for h source term
+         ! !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
+         ! call get_gyroaverage_chi(ivmu, phi, apar, bpar, g0(:, :, :, :))
+         ! if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
 
-         !> get d<chi>/dz, with z the parallel coordinate and store in dgchi_dz
-         !> note that this should be a centered difference to avoid numerical
-         !> unpleasantness to do with inexact cancellations in later velocity integration
-         !> see appendix of the stella JCP 2019 for details
-         call get_dgdz_centered(g0, ivmu, dgchi_dz)
+         ! !> get d<chi>/dz, with z the parallel coordinate and store in dgchi_dz
+         ! !> note that this should be a centered difference to avoid numerical
+         ! !> unpleasantness to do with inexact cancellations in later velocity integration
+         ! !> see appendix of the stella JCP 2019 for details
+         ! call get_dgdz_centered(g0, ivmu, dgchi_dz)
+         ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
          !> if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
          !> in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
@@ -250,7 +253,7 @@ contains
             g0 = 0.
          else
             !> compute dg/dz in k-space and store in g0
-            call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
+            call get_dgdz_variable(g(:, :, :, :, ivmu), ivmu, g0)
             !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
             !> in y-space, so FFT d(g/F)/dz from ky to y
             if (full_flux_surface) then
@@ -298,10 +301,12 @@ contains
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
-            ia = 1
-            g0(:, :, :, :) = g0(:, :, :, :) + dgchi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-
+            ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! !!! Bob: commented out for h source term
+            ! ia = 1
+            ! g0(:, :, :, :) = g0(:, :, :, :) + dgchi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+            !                  * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
          end if
@@ -398,6 +403,31 @@ contains
       deallocate (g0, g1, g2, g3, g0k)
 
    end subroutine add_parallel_streaming_radial_variation
+
+   subroutine get_dgdz_variable(g, ivmu, dgdz)
+
+      use run_parameters, only: zed_upwind_explicit
+      use kt_grids, only: nakx, naky
+      use zgrid, only: nzgrid, ntubes
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, intent(in) :: ivmu
+
+      integer :: iseg, ie, it, iky, iv
+      complex, dimension(2) :: gleft, gright
+      complex, dimension(:, :, :, :), allocatable :: dgdz_tmp
+
+      allocate (dgdz_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+      call get_dgdz(g, ivmu, dgdz_tmp)        ! Third order upwind derivative
+      call get_dgdz_centered(g, ivmu, dgdz)   ! Second order centered derivative
+
+      dgdz = (1-zed_upwind_explicit)*dgdz + zed_upwind_explicit*dgdz_tmp
+
+      deallocate (dgdz_tmp)
+   end subroutine get_dgdz_variable
 
    subroutine get_dgdz(g, ivmu, dgdz)
 
