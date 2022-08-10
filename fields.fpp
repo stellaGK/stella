@@ -15,6 +15,7 @@ module fields
    public :: rescale_fields
    public :: get_fields_by_spec, get_fields_by_spec_idx
    public :: gamtot_h, gamtot3_h
+   public :: bpar_denom_h
    public :: time_field_solve
    public :: fields_updated
    public :: get_dchidy, get_dchidx
@@ -25,7 +26,7 @@ module fields
 
    private
 
-   real :: gamtot_h, gamtot3_h, efac, efacp
+   real :: gamtot_h, gamtot3_h, efac, efacp, bpar_denom_h
 
    !> arrays allocated/used if simulating a full flux surface
    type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs
@@ -112,6 +113,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+      use fields_arrays, only: apar_denom_h
 
       implicit none
 
@@ -141,19 +143,22 @@ contains
             allocate (gamtot3(1, 1)); gamtot3 = 0.
          end if
       end if
+
+      !!! Arrays which are calculated once, and relate to electromagnetic features
       if (.not. allocated(apar_denom)) then
          if (fapar > epsilon(0.0)) then
             allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
-         else
-            allocate (apar_denom(1, 1, 1)); apar_denom = 0.
+         end if
+      end if
+      if (.not. allocated(apar_denom_h)) then
+         if (fapar > epsilon(0.0)) then
+            allocate (apar_denom_h(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
          end if
       end if
 
       if (.not. allocated(gamtot33)) then
          if (fbpar > epsilon(0.0)) then
             allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
-         else
-            allocate (gamtot33(1, 1, 1)); gamtot33 = 0.
          end if
       end if
 
@@ -161,16 +166,12 @@ contains
       if (.not. allocated(gamtot13)) then
          if ((fbpar > epsilon(0.0)) .and. (fphi > epsilon(0.0))) then
             allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0.
-         else
-            allocate (gamtot13(1, 1, 1)); gamtot13 = 0.
          end if
       end if
 
       if (.not. allocated(gamtot31)) then
          if ((fbpar > epsilon(0.0)) .and. (fphi > epsilon(0.0))) then
             allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0.
-         else
-            allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
          end if
       end if
 
@@ -291,6 +292,7 @@ contains
 
          gamtot33 = 1.0 + beta * gamtot33
          deallocate (g0)
+         bpar_denom_h = 1
 
          if (fphi > epsilon(0.0)) then
 
@@ -344,7 +346,7 @@ contains
          end do
          call sum_allreduce(apar_denom)
          apar_denom = apar_denom + kperp2(:, :, ia, :)
-
+         apar_denom_h = kperp2(:, :, ia, :)
          deallocate (g0)
       end if
 
@@ -511,8 +513,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -909,6 +911,7 @@ contains
       use kt_grids, only: nakx, naky
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+      use fields_arrays, only: apar_denom_h
 
       implicit none
 
@@ -928,7 +931,7 @@ contains
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_kxkyzlo'
-
+      write(*,*) "in get_fields. antot = "
       ia = 1
 
       phi = 0.
@@ -971,19 +974,18 @@ contains
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
          end if
 
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
-         end if
-
          if (fphi > epsilon(0.0)) then
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Calculate phi, bpar. The formulae are
+            ! dist="gbar":
             !   phi = (antot1 - (gamtot13/gamtot33)*antot3) / (gamtot - gamtot13*gamtot31/gamtot33 )
             !   bpar = (antot3 - (gamtot31/gamtot11)*antot1) / (gamtot33 - gamtot13*gamtot31/gamtot )
             ! where
             ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
             ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            ! dist="h":
+            !   phi = antot1/gamtot_h
+            !   bpar = antot3/bpar_denom
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
             allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
@@ -1025,10 +1027,18 @@ contains
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! Now get phi, bpar
-            phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-                  / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
-            bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
+            if (dist == "gbar") then
+               phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
+              / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+               bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
                    / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+            else if (dist == "h") then
+               write(*,*) "in get_fields. antot1 = ", antot1
+               phi = antot1 / gamtot_h
+               bpar = antot3 / bpar_denom_h
+            else
+              call mp_abort("dist not recgonised. Aborting")
+            end if
 
             deallocate (antot1)
             deallocate (antot3)
@@ -1036,7 +1046,8 @@ contains
 
          else
             ! Calculate bpar only. The formulae is
-            !   bpar = (antot3 / gamtot33 )
+            !   bpar = (antot3 / gamtot33 ) (dist="gbar")
+            !   bpar = antot3/bpar_denom    (dist="h")
             ! where
             !   antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
 
@@ -1062,7 +1073,13 @@ contains
             call sum_allreduce(bpar)
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
-            bpar = bpar / (spread(gamtot33, 4, ntubes))
+            if (dist == "gbar") then
+               bpar = bpar / (spread(gamtot33, 4, ntubes))
+            else if (dist == "h") then
+              bpar = bpar / bpar_denom_h
+            else
+              call mp_abort("dist not recgonised. Aborting")
+            end if
             deallocate (g0)
          end if
 
@@ -1076,11 +1093,6 @@ contains
                      .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
          if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
-         end if
-
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fapar!=0. Aborting")
          end if
 
          ! Get apar. The formula is
@@ -1110,7 +1122,14 @@ contains
          call sum_allreduce(apar)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
-         apar = apar / spread(apar_denom, 4, ntubes)
+         if (dist == "gbar") then
+            apar = apar / spread(apar_denom, 4, ntubes)
+         else if (dist == "h") then
+            apar = apar / (spread(apar_denom_h, 4, ntubes))
+         else
+           call mp_abort("dist not recgonised. Aborting")
+         end if
+
          deallocate (g0)
       end if
 
@@ -1171,6 +1190,7 @@ contains
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+      use fields_arrays, only: apar_denom_h
 
       implicit none
 
@@ -1187,7 +1207,7 @@ contains
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo'
-
+      write(*,*) "in get_fields_vmulo "
       phi = 0.
       apar = 0.
       bpar = 0.
@@ -1225,19 +1245,18 @@ contains
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
          end if
 
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
-         end if
-
          if (fphi > epsilon(0.0)) then
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Calculate phi, bpar. The formulae are
+            ! dist="gbar":
             !   phi = (antot1 - (gamtot13/gamtot33)*antot3) / (gamtot - gamtot13*gamtot31/gamtot33 )
             !   bpar = (antot3 - (gamtot31/gamtot11)*antot1) / (gamtot33 - gamtot13*gamtot31/gamtot )
             ! where
             ! antot1 = sum_s { Z_s n_s * integrate_vmu( gyro_average(g) ) }
             ! antot3 = -2*beta*sum_s { n_s T_s * integrate_vmu( mu * gyro_average_j1(g) ) }
+            ! dist="h":
+            !   phi = antot1/gamtot_h
+            !   bpar = antot3/bpar_denom
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Allocate & initialise arrays. Could avoid allocating every
             ! timestep at the expense of memory?
@@ -1269,10 +1288,19 @@ contains
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
             ! Now get phi, bpar
-            phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-                  / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
-            bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
+            if (dist == "gbar") then
+               phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
+                   / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+               bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
                    / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+            else if (dist == "h") then
+               write(*,*) "in get_fields_vmulo. antot1 = ", antot1
+               phi = antot1 / gamtot_h
+               bpar = antot3 / bpar_denom_h
+            else
+               call mp_abort("dist not recgonised. Aborting")
+            end if
+
             deallocate (antot1)
             deallocate (antot3)
          else
@@ -1291,7 +1319,13 @@ contains
 
             ! Sum species, integrate over velocity and store in bpar
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
-            bpar = bpar / (spread(gamtot33, 4, ntubes))
+            if (dist == "gbar") then
+               bpar = bpar / (spread(gamtot33, 4, ntubes))
+            else if (dist == "h") then
+              bpar = bpar / bpar_denom_h
+            else
+              call mp_abort("dist not recgonised. Aborting")
+            end if
          end if
 
       end if
@@ -1304,11 +1338,6 @@ contains
                      .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
          if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
-         end if
-
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fapar!=0. Aborting")
          end if
 
          ! Get apar. The formula is
@@ -1329,7 +1358,13 @@ contains
 
          ! Sum species, integrate over velocity and store in apar
          call integrate_species(g_gyro, (beta * spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
-         apar = apar / spread(apar_denom, 4, ntubes)
+         if (dist == "gbar") then
+            apar = apar / spread(apar_denom, 4, ntubes)
+         else if (dist == "h") then
+            apar = apar / (spread(apar_denom_h, 4, ntubes))
+         else
+           call mp_abort("dist not recgonised. Aborting")
+         end if
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -1389,6 +1424,7 @@ contains
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+      use fields_arrays, only: apar_denom_h
 
       implicit none
 
@@ -1449,11 +1485,6 @@ contains
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
          end if
 
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
-         end if
-
          if (fphi > epsilon(0.0)) then
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Calculate phi, bpar. The formulae are
@@ -1486,10 +1517,17 @@ contains
             call integrate_species(g_gyro, iz, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), antot3)
 
             ! Now get phi, bpar
-            phi = (antot1 - gamtot13(iky, ikx, iz) / gamtot33(iky, ikx, iz) * antot3) &
-                  / (gamtot(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz) / gamtot33(iky, ikx, iz)))
-            bpar = (antot3 - (gamtot31(iky, ikx, iz) / gamtot(iky, ikx, iz)) * antot1) &
-                   / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
+            if (dist == "gbar") then
+               phi = (antot1 - gamtot13(iky, ikx, iz) / gamtot33(iky, ikx, iz) * antot3) &
+                     / (gamtot(iky, ikx, iz) - (gamtot13(iky, ikx, iz) *gamtot31(iky, ikx, iz) / gamtot33(iky, ikx, iz)))
+               bpar = (antot3 - (gamtot31(iky, ikx, iz) / gamtot(iky, ikx, iz)) * antot1) &
+                      / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
+            else if (dist == "h") then
+               phi = antot1 / gamtot_h
+               bpar = antot3 / bpar_denom_h
+            else
+              call mp_abort("dist not recgonised. Aborting")
+            end if
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
@@ -1504,7 +1542,13 @@ contains
 
             ! Sum species, integrate over velocity and store in bpar
             call integrate_species(g_gyro, iz, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
-            bpar = bpar / gamtot33(iky, ikx, iz)
+            if (dist == "gbar") then
+               bpar = bpar / gamtot33(iky, ikx, iz)
+            else if (dist == "h") then
+              bpar = bpar / bpar_denom_h
+            else
+              call mp_abort("dist not recgonised. Aborting")
+            end if
          end if
 
       end if
@@ -1517,11 +1561,6 @@ contains
                      .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
          if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
-         end if
-
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fapar!=0. Aborting")
          end if
 
          ! Get apar. The formula is
@@ -1541,8 +1580,13 @@ contains
 
          ! Sum species, integrate over velocity and store in apar
          call integrate_species(g_gyro, iz, (beta * spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
-         apar = apar / apar_denom(iky, ikx, iz)
-
+         if (dist == "gbar") then
+            apar = apar / apar_denom(iky, ikx, iz)
+         else if (dist == "h") then
+            apar = apar / apar_denom_h(iky, ikx, iz)
+         else
+           call mp_abort("dist not recgonised. Aborting")
+         end if
       end if
 
       deallocate (g_gyro)
@@ -1572,6 +1616,7 @@ contains
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
+      use fields_arrays, only: apar_denom_h
 
       implicit none
 
@@ -1633,11 +1678,6 @@ contains
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fbpar!=0. Aborting")
          end if
 
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fbpar!=0. Aborting")
-         end if
-
          if (fphi > epsilon(0.0)) then
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Calculate phi, bpar. The formulae are
@@ -1674,6 +1714,17 @@ contains
                   / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
             bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
                    / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
+            if (dist == "gbar") then
+               phi = (antot1 - gamtot13(iky, ikx, :) / gamtot33(iky, ikx, :) * antot3) &
+                    / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
+               bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
+                     / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
+            else if (dist == "h") then
+               phi = antot1 / gamtot_h
+               bpar = antot3 / bpar_denom_h
+            else
+               call mp_abort("dist not recgonised. Aborting")
+            end if
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
@@ -1689,6 +1740,13 @@ contains
             ! Sum species, integrate over velocity and store in bpar
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
             bpar = bpar / gamtot33(iky, ikx, :)
+            if (dist == "gbar") then
+               bpar = bpar / gamtot33(iky, ikx, :)
+            else if (dist == "h") then
+              bpar = bpar / bpar_denom_h
+            else
+              call mp_abort("dist not recgonised. Aborting")
+            end if
          end if
 
       end if
@@ -1701,11 +1759,6 @@ contains
                      .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
          if (adia_elec .or. radial_variation .or. ky_solve_radial > 0) then
             call mp_abort("adia_elec/radial_variation/ky_solve_radial>0 not supported for fapar!=0. Aborting")
-         end if
-
-         ! Check if dist="gbar". If not, abort.
-         if (.not. dist == "gbar") then
-            call mp_abort("Only gbar supported for fapar!=0. Aborting")
          end if
 
          ! Get apar. The formula is
@@ -1725,7 +1778,13 @@ contains
 
          ! Sum species, integrate over velocity and store in apar
          call integrate_species(g_gyro, (beta * spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
-         apar = apar / apar_denom(iky, ikx, :)
+         if (dist == "gbar") then
+            apar = apar / apar_denom(iky, ikx, :)
+         else if (dist == "h") then
+            apar = apar / apar_denom_h(iky, ikx, :)
+         else
+           call mp_abort("dist not recgonised. Aborting")
+         end if
 
       end if
 

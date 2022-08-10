@@ -34,6 +34,7 @@ module fields_arrays
    real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr
    real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot33
    real, dimension(:, :, :), allocatable ::  apar_denom
+   real, dimension(:, :, :), allocatable ::  apar_denom_h
    real, dimension(:, :), allocatable :: gamtot3
    !real :: gamtot_h, gamtot3_h, efac, efacp
 
