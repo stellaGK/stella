@@ -577,6 +577,10 @@ contains
          end do
          gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) &
                               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+        !!! An alernative - changed sign and multiplied by species charge
+        !!! to be consistent with gs2
+         ! gvmu(:, :, ikxkyz) = -gvmu(:, :, ikxkyz) &
+         !                      * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)*spec(is)%z
       end do
 
 ! FLAG -- should be uncommented, which means I need to fix flae
