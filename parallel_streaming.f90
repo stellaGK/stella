@@ -606,9 +606,10 @@ contains
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use dist_fn_arrays, only: g1
+      use dist_fn_arrays, only: g1, h
       use run_parameters, only: stream_matrix_inversion
       use fields, only: advance_fields, fields_updated
+      use fields, only: get_h, get_gbar
 
       implicit none
 
@@ -616,19 +617,14 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: ivmu
-      complex, dimension(:, :, :, :), allocatable :: phi1, apar1, bpar1
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
-      allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (apar1(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (bpar1(naky, nakx, -nzgrid:nzgrid, ntubes))
-
-      ! save the incoming g and phi, as they will be needed later
-      g1 = g
-      phi1 = phi
-      apar1 = apar
-      bpar1 = bpar
+      ! Get h^{n}
+      call get_h(g, phi, apar, bpar, h)
+      ! save the incoming h, as they will be needed later
+      ! Store in the variable g1, for histroical reasons
+      g1 = h
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -636,24 +632,28 @@ contains
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, apar1, apar, &
-                          bpar1, bpar, g(:, :, :, :, ivmu), eqn='inhomogeneous')
+         !
+         ! New inhomogeneous equation looks like:
+         ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h_{inh}^{n+1}
+         ! = g^{n} - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+         call get_gke_rhs(ivmu, g(:, :, :, :, ivmu), g1(:, :, :, :, ivmu), phi, apar, &
+                          bpar, h(:, :, :, :, ivmu), eqn='inhomogeneous')
 
          if (stream_matrix_inversion) then
-            ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-            ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
-            call invert_parstream(ivmu, g(:, :, :, :, ivmu))
+            ! solve (I + (1+alph)/2*dt*vpa . grad)h_{inh}^{n+1} = RHS
+            ! h = RHS is input and overwritten by h = h_{inh}^{n+1}
+            call invert_parstream(ivmu, h(:, :, :, :, ivmu))
          else
-            call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
+            call sweep_g_zed(ivmu, h(:, :, :, :, ivmu))
          end if
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
 
-      ! we now have g_{inh}^{n+1}
+      ! we now have h_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1}, bpar_{inh}^{n+1})
-      call advance_fields(g, phi, apar, bpar, dist='gbar')
+      call advance_fields(h, phi, apar, bpar, dist='h')
 
       ! solve response_matrix*fields^{n+1} = fields_{inh}^{n+1}
       ! where fields=(phi,apar,bpar)
@@ -669,29 +669,37 @@ contains
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, apar1, apar, &
-                          bpar1, bpar, g(:, :, :, :, ivmu), eqn='full')
+         !
+         ! New equation looks like:
+         ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
+         ! = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+         call get_gke_rhs(ivmu, g(:, :, :, :, ivmu), g1(:, :, :, :, ivmu), phi, apar, &
+                          bpar, h(:, :, :, :, ivmu), eqn='full')
 
          if (stream_matrix_inversion) then
-            ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
-            ! g = RHS is input and overwritten by g = g^{n+1}
-            call invert_parstream(ivmu, g(:, :, :, :, ivmu))
+            ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1} = RHS
+            ! h = RHS is input and overwritten by h = h^{n+1}
+            call invert_parstream(ivmu, h(:, :, :, :, ivmu))
          else
-            call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
+            call sweep_g_zed(ivmu, h(:, :, :, :, ivmu))
          end if
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
-      deallocate (phi1)
-      deallocate (apar1)
-      deallocate (bpar1)
+      ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
+      call get_gbar(h, phi, apar, bpar, g)
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
 
-   subroutine get_gke_rhs(ivmu, gold, phiold, phi, aparold, apar, bparold, bpar, g, eqn)
+   !> Get the RHS of the parallel streaming piece of the GKE,
+   !> when using implicit scheme
+   !> h is output, corresponding to RHS
+   !> RHS = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+   subroutine get_gke_rhs(ivmu, gold, hold, phi, apar, bpar, h, eqn)
 
+      use mp, only: mp_abort
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
       use species, only: spec
@@ -708,47 +716,36 @@ contains
       use run_parameters, only: time_upwind
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use run_parameters, only: mirror_implicit, mirror_semi_lagrange, fapar
       use mirror_terms, only: mirror_apar_fac
 
       implicit none
 
       integer, intent(in) :: ivmu
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, phi
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: aparold, apar
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bparold, bpar
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold, hold
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: h
       character(*), intent(in) :: eqn
 
       integer :: iv, imu, is, iz, ia
-      real :: tupwnd1, tupwnd2, fac
-      real, dimension(:), allocatable :: vpadf0dE_fac
+      real :: tupwnd1, chi_factor, fac
+      ! real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
-      complex, dimension(:, :, :, :), allocatable :: dgdz, dchidz
-      complex, dimension(:, :, :, :), allocatable :: chi, chiold
-      complex, dimension(:, :, :, :), allocatable :: gyro_aparold, gyro_apar
-      logical :: add_mirror_apar_to_source_term
+      complex, dimension(:, :, :, :), allocatable :: dhdz
+      complex, dimension(:, :, :, :), allocatable :: chi
 
-      allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+      ! allocate (vpadf0dE_fac(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
-      allocate (dgdz(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dchidz(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dhdz(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ia = 1
 
       tupwnd1 = 0.5 * (1.0 - time_upwind)
       if (eqn == 'full') then
-         tupwnd2 = 0.5 * (1.0 + time_upwind)
+         chi_factor = 1.0
       else
-         tupwnd2 = 0.0
-      end if
-
-      if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (fapar > epsilon(0.))) then
-         ! Add the electromagnetic piece of the mirror term.
-         add_mirror_apar_to_source_term = .true.
-      else
-         add_mirror_apar_to_source_term = .false.
+         chi_factor = 0.0
       end if
 
       ! now have phi^{n+1} for non-negative kx
@@ -756,70 +753,79 @@ contains
       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
       ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
       ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
+      !
+      !!!!!!! TO IMPLEMENT !!!!!!!!!!!!!11
+      ! New equation looks like:
+      ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
+      ! = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
       iv = iv_idx(vmu_lo, ivmu)
       imu = imu_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
 
-      ! obtain dg^{n}/dz and store in dgdz
+      ! obtain dh^{n}/dz and store in dhdz
       ! NB: could eliminate this calculation at the expense of memory
       ! as this was calculated previously
-      call get_dzed(iv, gold, dgdz)
+      call get_dzed(iv, hold, dhdz)
 
-      allocate (chiold(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (chi(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! set g to be chi or <chi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
          call get_chi(ivmu, phi, apar, bpar, chi)
-         call get_chi(ivmu, phiold, aparold, bpar, chiold)
+         ! call get_chi(ivmu, phiold, aparold, bpar, chiold)
       else
          call get_gyroaverage_chi(ivmu, phi, apar, bpar, chi)
-         call get_gyroaverage_chi(ivmu, phiold, aparold, bpar, chiold)
       end if
 
-      ! get <chi> = (1+alph)/2*<chi^{n+1}> + (1-alph)/2*<chi^{n}>
-      g = tupwnd1 * chiold + tupwnd2 * chi
+      ! From the gbar implementation
+      ! ! get <chi> = (1+alph)/2*<chi^{n+1}> + (1-alph)/2*<chi^{n}>
+      ! ! get - Z/T exp(-v^2) <chi^{n+1}>
+      ! g = tupwnd1 * chiold + tupwnd2 * chi
 
-      deallocate (chi)
-      deallocate (chiold)
-
+      ! From gbar source
       if (maxwellian_inside_zed_derivative) then
-         ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dchidz
-         g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-         call get_dzed(iv, g, dchidz)
-         ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
-         g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
-         call center_zed(iv, g)
-         ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
-         ! = d<phi>/dz * exp(-mu*B/T)
-         dchidz = dchidz + 2.0 * mu(imu) * g
-      else
-         ! obtain d<phi>/dz and store in dchidz
-         call get_dzed(iv, g, dchidz)
-         ! center Maxwellian factor in mu
-         ! and store in dummy variable gp
-         gp = maxwell_mu(ia, :, imu, is)
-         call center_zed_midpoint(iv, gp)
-         ! multiply by Maxwellian factor
-         dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
+         call mp_abort("Maxwellian inside zed derivative currently not supported")
+        !    ! From gbar source
+        !    ! ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dchidz
+        !    ! g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+        !    ! call get_dzed(iv, g, dchidz)
+        !    ! ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
+        !    ! g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
+        !    ! call center_zed(iv, g)
+        !    ! ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
+        !    ! ! = d<phi>/dz * exp(-mu*B/T)
+        !    ! dchidz = dchidz + 2.0 * mu(imu) * g
+        ! else
+        !    ! ! obtain d<phi>/dz and store in dchidz
+        !    ! call get_dzed(iv, g, dchidz)
+        !    ! ! center Maxwellian factor in mu
+        !    ! ! and store in dummy variable gp
+        !    ! gp = maxwell_mu(ia, :, imu, is)
+        !    ! call center_zed_midpoint(iv, gp)
+        !    ! ! multiply by Maxwellian factor
+        !    ! dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
 
-      ! NB: could do this once at beginning of simulation to speed things up
-      ! this is vpa*Z/T*exp(-vpa^2)
-      vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
-      ! if including neoclassical correction to equilibrium distribution function
-      ! then must also account for -vpa*dF_neo/dvpa*Z/T
-      ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
+      ! From the gbar source term implementation
+      ! ! NB: could do this once at beginning of simulation to speed things up
+      ! ! this is vpa*Z/T*exp(-vpa^2)
+      ! vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
+      ! ! if including neoclassical correction to equilibrium distribution function
+      ! ! then must also account for -vpa*dF_neo/dvpa*Z/T
+      ! ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
       if (include_neoclassical_terms) then
-         do iz = -nzgrid, nzgrid
-            vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5 * dfneo_dvpa(1, iz, ivmu) * spec(is)%zt
-         end do
-         call center_zed(iv, vpadf0dE_fac)
+         call mp_abort("include_neoclassical_terms currently not supported")
+         ! do iz = -nzgrid, nzgrid
+         !    vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5 * dfneo_dvpa(1, iz, ivmu) * spec(is)%zt
+         ! end do
+         ! call center_zed(iv, vpadf0dE_fac)
       end if
 
-      g = gold
-      call center_zed(iv, g)
+      ! Center h and chi in zed.
+      h = gold
+      call center_zed(iv, h)
+      call center_zed(iv, chi)
 
       if (stream_sign(iv) > 0) then
          gp = gradpar_c(:, -1)
@@ -828,43 +834,17 @@ contains
       end if
 
       ! construct RHS of GK eqn
+      ! RHS = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+      ! where g^{n} and <chi^{n+1}> are centered in zed
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
-         g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) &
-                          * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dchidz(:, :, iz, :))
+         h(:, :, iz, :) = h(:, :, iz, :) &
+                          - spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is) * chi_factor * chi(:,:,iz,:) &
+                          - fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
       end do
-      if (add_mirror_apar_to_source_term) then
-         ! Add a source term which looks like mirror_apar_fac*<apar>,
-         ! with mirror_apar_fac centered on z_i* and apar centered on
-         ! z_i* and t^n*
 
-         allocate (gyro_aparold(naky, nakx, -nzgrid:nzgrid, ntubes))
-         allocate (gyro_apar(naky, nakx, -nzgrid:nzgrid, ntubes))
-
-         ! center mirror_apar_fac in z
-         ! and store in dummy variable gp
-         gp = mirror_apar_fac(ia, :, ivmu)
-         call center_zed(iv, gp)
-
-         ! gyroaverage apar and aparold
-         call gyro_average(aparold, ivmu, gyro_aparold)
-         call gyro_average(apar, ivmu, gyro_apar)
-
-         ! center apar, aparold in z
-         call center_zed(iv, gyro_aparold)
-         call center_zed(iv, gyro_apar)
-
-         do iz = -nzgrid, nzgrid
-            g(:, :, iz, :) = g(:, :, iz, :) + tupwnd1 * gp(iz) * gyro_aparold(:, :, iz, :) &
-                             + tupwnd2 * gp(iz) * gyro_apar(:, :, iz, :)
-         end do
-
-         deallocate (gyro_aparold)
-         deallocate (gyro_apar)
-      end if
-
-      deallocate (vpadf0dE_fac, gp)
-      deallocate (dgdz, dchidz)
+      deallocate (gp)
+      deallocate (dhdz)
 
    end subroutine get_gke_rhs
 
