@@ -250,7 +250,7 @@ contains
             g0 = 0.
          else
             !> compute dg/dz in k-space and store in g0
-            call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
+            call get_dgdz_variable(g(:, :, :, :, ivmu), ivmu, g0)
             !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
             !> in y-space, so FFT d(g/F)/dz from ky to y
             if (full_flux_surface) then
@@ -398,6 +398,31 @@ contains
       deallocate (g0, g1, g2, g3, g0k)
 
    end subroutine add_parallel_streaming_radial_variation
+
+   subroutine get_dgdz_variable(g, ivmu, dgdz)
+
+      use run_parameters, only: zed_upwind_explicit
+      use kt_grids, only: nakx, naky
+      use zgrid, only: nzgrid, ntubes
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, intent(in) :: ivmu
+
+      integer :: iseg, ie, it, iky, iv
+      complex, dimension(2) :: gleft, gright
+      complex, dimension(:, :, :, :), allocatable :: dgdz_tmp
+
+      allocate (dgdz_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+      call get_dgdz(g, ivmu, dgdz_tmp)        ! Third order upwind derivative
+      call get_dgdz_centered(g, ivmu, dgdz)   ! Second order centered derivative
+
+      dgdz = (1-zed_upwind_explicit)*dgdz + zed_upwind_explicit*dgdz_tmp
+
+      deallocate (dgdz_tmp)
+   end subroutine get_dgdz_variable
 
    subroutine get_dgdz(g, ivmu, dgdz)
 
