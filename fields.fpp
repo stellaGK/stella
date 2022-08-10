@@ -14,7 +14,7 @@ module fields
    public :: enforce_reality_field
    public :: rescale_fields
    public :: get_fields_by_spec, get_fields_by_spec_idx
-   public :: gamtot_h, gamtot3_h
+   public :: gamtot3_h
    public :: bpar_denom_h
    public :: time_field_solve
    public :: fields_updated
@@ -23,10 +23,11 @@ module fields
    public :: get_chi
    public :: efac, efacp
    public :: get_h
+   public :: gamtot_h_dummy ! To replace gamtot_h elsewhere while we examine if it should be a 3D array
 
    private
 
-   real :: gamtot_h, gamtot3_h, efac, efacp, bpar_denom_h
+   real :: gamtot3_h, efac, efacp, bpar_denom_h, gamtot_h_dummy
 
    !> arrays allocated/used if simulating a full flux surface
    type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs
@@ -113,7 +114,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: apar_denom_h
+      use fields_arrays, only: apar_denom_h, gamtot_h
 
       implicit none
 
@@ -135,6 +136,7 @@ contains
       ! could we only allocate these if the fphi,fapar,fbpar=1? Rather than always
       ! allocating?
       if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
+      if (.not. allocated(gamtot_h)) allocate (gamtot_h(naky, nakx, -nzgrid:nzgrid)); gamtot_h = 0.
       if (.not. allocated(gamtot3)) then
          if (.not. has_electron_species(spec) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -197,11 +199,17 @@ contains
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
             call integrate_vmu(g0, iz, tmp)
             gamtot(iky, ikx, iz) = gamtot(iky, ikx, iz) + tmp * wgt
+
+            ! Calculate gamtot_h while we're here.
+            g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            call integrate_vmu(g0, iz, tmp)
+            gamtot_h(iky, ikx, iz) = gamtot_h(iky, ikx, iz) + tmp * wgt
          end do
          call sum_allreduce(gamtot)
+         call sum_allreduce(gamtot_h)
 
-         gamtot_h = sum(spec%z * spec%z * spec%dens / spec%temp)
-
+         ! gamtot_h = sum(spec%z * spec%z * spec%dens / spec%temp)
+         ! write(*,*) "gamtot_h = ", gamtot_h ! DELETE THIS
          if (radial_variation) then
             allocate (g1(nmu))
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -911,7 +919,7 @@ contains
       use kt_grids, only: nakx, naky
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: apar_denom_h
+      use fields_arrays, only: apar_denom_h, gamtot_h
 
       implicit none
 
@@ -931,7 +939,6 @@ contains
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_kxkyzlo'
-      write(*,*) "in get_fields. antot = "
       ia = 1
 
       phi = 0.
@@ -1033,8 +1040,7 @@ contains
                bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
                    / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
             else if (dist == "h") then
-               write(*,*) "in get_fields. antot1 = ", antot1
-               phi = antot1 / gamtot_h
+               phi = antot1 / spread(gamtot_h, 4, ntubes)
                bpar = antot3 / bpar_denom_h
             else
               call mp_abort("dist not recgonised. Aborting")
@@ -1190,7 +1196,7 @@ contains
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: apar_denom_h
+      use fields_arrays, only: apar_denom_h, gamtot_h
 
       implicit none
 
@@ -1207,7 +1213,6 @@ contains
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo'
-      write(*,*) "in get_fields_vmulo "
       phi = 0.
       apar = 0.
       bpar = 0.
@@ -1294,8 +1299,7 @@ contains
                bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
                    / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
             else if (dist == "h") then
-               write(*,*) "in get_fields_vmulo. antot1 = ", antot1
-               phi = antot1 / gamtot_h
+               phi = antot1 / spread(gamtot_h, 4, ntubes)
                bpar = antot3 / bpar_denom_h
             else
                call mp_abort("dist not recgonised. Aborting")
@@ -1424,7 +1428,7 @@ contains
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: apar_denom_h
+      use fields_arrays, only: apar_denom_h, gamtot_h
 
       implicit none
 
@@ -1523,7 +1527,7 @@ contains
                bpar = (antot3 - (gamtot31(iky, ikx, iz) / gamtot(iky, ikx, iz)) * antot1) &
                       / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
             else if (dist == "h") then
-               phi = antot1 / gamtot_h
+               phi = antot1 / gamtot(iky, ikx, iz)
                bpar = antot3 / bpar_denom_h
             else
               call mp_abort("dist not recgonised. Aborting")
@@ -1616,7 +1620,7 @@ contains
       use species, only: spec, has_electron_species
       use fields_arrays, only: gamtot
       use fields_arrays, only: apar_denom, gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: apar_denom_h
+      use fields_arrays, only: apar_denom_h, gamtot_h
 
       implicit none
 
@@ -1720,7 +1724,7 @@ contains
                bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
                      / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
             else if (dist == "h") then
-               phi = antot1 / gamtot_h
+               phi = antot1 / gamtot(iky, ikx, :)
                bpar = antot3 / bpar_denom_h
             else
                call mp_abort("dist not recgonised. Aborting")
@@ -1935,6 +1939,7 @@ contains
       use species, only: spec, nspec, has_electron_species
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
+      use fields_arrays, only: gamtot_h
 
       implicit none
 
@@ -1968,10 +1973,12 @@ contains
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
             g0 = g0 * wgt
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
+            ! Bob: added as gamtot_h is no longer a single number, but an array
+            fld(iky, ikx, iz, it, is) = fld(iky, ikx, iz, it, is) / gamtot_h(iky, ikx, iz)
          end do
          call sum_allreduce(fld)
 
-         fld = fld / gamtot_h
+         ! fld = fld / gamtot_h
 
          if (.not. has_electron_species(spec) .and. (.not. skip_fsa_local) .and. &
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -2023,6 +2030,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use dist_fn_arrays, only: kperp2
       use spfunc, only: j0
+      use fields_arrays, only: gamtot_h
 
       implicit none
 
@@ -2055,10 +2063,12 @@ contains
             end do
             g0 = g0 * wgt
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
+            ! Bob: Modified as gamtot_h no longer single number
+            fld(iky, ikx, iz, it, is) = fld(iky, ikx, iz, it, is) / gamtot_h(iky, ikx, iz)
          end do
          call sum_allreduce(fld)
 
-         fld = fld / gamtot_h
+         ! fld = fld / gamtot_h
 
          if (.not. has_electron_species(spec) .and. &
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -2102,7 +2112,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use fields_arrays, only: gamtot, gamtot3
+      use fields_arrays, only: gamtot, gamtot3, gamtot_h
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -2135,7 +2145,7 @@ contains
 
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
       if (dist == 'h') then
-         phi = phi / gamtot_h
+         phi = phi / spread(gamtot_h, 4, ntubes)
       else if (dist == 'gbar') then
          if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
             call get_phi_radial(phi)
@@ -2209,7 +2219,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use fields_arrays, only: gamtot, gamtot3
+      use fields_arrays, only: gamtot, gamtot3, gamtot_h
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -2239,7 +2249,7 @@ contains
       center_cell = multibox_mode .and. job == 1 .and. .not. ky_solve_real
 
       if (dist == 'h') then
-         phi = phi / gamtot_h
+         phi = phi / gamtot_h(iky, ikx, iz)
       else if (dist == 'gbar') then
          if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
             call mp_abort("global_quasineutrality not currently supported for 0D field calculations. Aborting")
@@ -2306,7 +2316,7 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use fields_arrays, only: gamtot, gamtot3
+      use fields_arrays, only: gamtot, gamtot3, gamtot_h
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -2336,7 +2346,7 @@ contains
       center_cell = multibox_mode .and. job == 1 .and. .not. ky_solve_real
 
       if (dist == 'h') then
-         phi = phi / gamtot_h
+         phi = phi / gamtot_h(iky, ikx, :)
       else if (dist == 'gbar') then
          if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
             call mp_abort("global_quasineutrality not currently supported for 0D field calculations. Aborting")

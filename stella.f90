@@ -66,7 +66,7 @@ contains
    !> diagnostic modules
    subroutine init_stella(istep0, VERNUM, VERDATE)
 
-      use mp, only: init_mp, broadcast, sum_allreduce
+      use mp, only: init_mp, broadcast, sum_allreduce ! , mp_abort !!!!!!!!!!!!! ! DELETE THIS !!!!!!!!!!!!!!!!!!!!!
       use mp, only: proc0, job
       use file_utils, only: init_file_utils
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -113,6 +113,8 @@ contains
       use dissipation, only: init_dissipation
       use sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
+      ! use fields, only: get_h !!!!!!!!!!!!! ! DELETE THIS !!!!!!!!!!!!!!!!!!!!!
+      ! use dist_fn_arrays, only: h !!!!!!!!!!!!! ! DELETE THIS !!!!!!!!!!!!!!!!!!!!!
 
       implicit none
 
@@ -128,7 +130,8 @@ contains
       integer, dimension(:), allocatable  :: seed
       integer :: i, n, ierr
       real :: delt_saved
-
+      !!!!!!!!!!!!! ! DELETE THIS !!!!!!!!!!!!!!!!!!!!!
+      ! complex, dimension(:, :, :, :), allocatable :: phi_test, apar_test, bpar_test
       !> initialize mpi message passing
       if (.not. mpi_initialized) call init_mp
       mpi_initialized = .true.
@@ -308,7 +311,34 @@ contains
       !> get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       call advance_fields(gnew, phi, apar, bpar, dist='gbar')
+      !!!!!!!!!!!!! ! DELETE THIS !!!!!!!!!!!!!!!!!!!!!
+      ! write(*,*) "phi = ", phi
+      !
+      ! ! Check field calculation is good by comparing fields calculated using g
+      ! ! to fields calculated using h.
+      ! call get_h(gnew, phi, apar, bpar, h)
+      !
+      ! allocate(phi_test(naky, nakx, -nzgrid:nzgrid, ntubes))
+      ! phi_test = 0.
+      ! allocate(apar_test(naky, nakx, -nzgrid:nzgrid, ntubes))
+      ! apar_test = 0.
+      ! allocate(bpar_test(naky, nakx, -nzgrid:nzgrid, ntubes))
+      ! bpar_test = 0.
+      ! fields_updated = .false.
+      ! call advance_fields(h, phi_test, apar_test, bpar_test, dist='h')
 
+      !!!!!!!!!!!!! ! DELETE THIS !!!!!!!!!!!!!!!!!!!!!
+      ! write(*,*) "phi_test = ", phi_test
+      ! write(*,*) "phi = ", phi
+      ! write(*,*) "apar_test = ", apar_test
+      ! write(*,*) "apar = ", apar
+      ! write(*,*) "bpar_test = ", bpar_test
+      ! write(*,*) "bpar = ", bpar
+      ! write(*,*) "max(abs(phi_test - phi)) = ", maxval(abs(phi_test - phi))
+      ! write(*,*) "max(abs(apar_test - apar)) = ", maxval(abs(apar_test - apar))
+      ! write(*,*) "max(abs(bpar_test - bpar)) = ", maxval(abs(bpar_test - bpar))
+      !
+      !call mp_abort ("stopping now")
       if (radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
          call get_radial_correction(gnew, phi, dist='gbar')

@@ -31,7 +31,7 @@ module fields_arrays
 
    real, dimension(:), allocatable :: shift_state
 
-   real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr
+   real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr, gamtot_h
    real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot33
    real, dimension(:, :, :), allocatable ::  apar_denom
    real, dimension(:, :, :), allocatable ::  apar_denom_h
