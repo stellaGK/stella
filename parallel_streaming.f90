@@ -617,6 +617,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: ivmu
+      complex, dimension(:, :, :, :), allocatable :: dphi, dapar, dbpar
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
       ! write(*,*) "Fields: start"
@@ -624,6 +625,10 @@ contains
       ! write(*,*) "apar = ", apar
       ! write(*,*) "bpar = ", bpar
       fields_updated = .false.
+
+      allocate (dphi(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
@@ -647,7 +652,7 @@ contains
          ! New inhomogeneous equation looks like:
          ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h_{inh}^{n+1}
          ! = g^{n} - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-         call get_gke_rhs(ivmu, g(:, :, :, :, ivmu), g1(:, :, :, :, ivmu), phi, apar, &
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi, apar, &
                           bpar, h(:, :, :, :, ivmu), eqn='inhomogeneous')
 
          if (stream_matrix_inversion) then
@@ -664,8 +669,12 @@ contains
 
       ! we now have h_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1}, bpar_{inh}^{n+1})
-      call advance_fields(h, phi, apar, bpar, dist='h')
+      call advance_fields(h, dphi, dapar, dbpar, dist='h')
 
+      ! Now calculate the inhomogeneous change in the fields
+      dphi = dphi - phi
+      dapar = dapar - apar
+      dbpar = dbpar - bpar
       ! write(*,*) "Fields: after inhomogeneous"
       ! write(*,*) "phi = ", phi
       ! write(*,*) "apar = ", apar
@@ -674,7 +683,7 @@ contains
       ! where fields=(phi,apar,bpar)
       ! phi,apar,bpar = phi,apar,bpar{inh}^{n+1} is input and overwritten by phi,apar,bpar = phi,apar,bpar^{n+1}
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-      call invert_parstream_response(phi, apar, bpar)
+      call invert_parstream_response(dphi, dapar, dbpar)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
 
       ! write(*,*) "Fields: after invert_parstream_response"
@@ -693,8 +702,8 @@ contains
          ! New equation looks like:
          ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
          ! = g^{n} + Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-         call get_gke_rhs(ivmu, g(:, :, :, :, ivmu), g1(:, :, :, :, ivmu), phi, apar, &
-                          bpar, h(:, :, :, :, ivmu), eqn='full')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), dphi, dapar, &
+                          dbpar, h(:, :, :, :, ivmu), eqn='full')
 
          if (stream_matrix_inversion) then
             ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1} = RHS
@@ -706,9 +715,15 @@ contains
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
+      fields_updated = .false.
+      call advance_fields(h, phi, apar, bpar, dist="h")
       ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
       call get_gbar(h, phi, apar, bpar, g)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
+
+      deallocate(dphi)
+      deallocate(dapar)
+      deallocate(dbpar)
 
    end subroutine advance_parallel_streaming_implicit
 
@@ -716,7 +731,7 @@ contains
    !> when using implicit scheme
    !> h is output, corresponding to RHS
    !> RHS = g^{n} + Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-   subroutine get_gke_rhs(ivmu, gold, hold, phi, apar, bpar, h, eqn)
+   subroutine get_gke_rhs(ivmu, hold, phi, apar, bpar, h, eqn)
 
       use mp, only: mp_abort
       use stella_time, only: code_dt
@@ -740,7 +755,7 @@ contains
       implicit none
 
       integer, intent(in) :: ivmu
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold, hold
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: hold
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: bpar
@@ -847,7 +862,7 @@ contains
       end if
 
       ! Center g and chi in zed.
-      h = gold
+      h = hold
       call center_zed(iv, h)
       call center_zed(iv, chi)
 
