@@ -619,9 +619,20 @@ contains
       integer :: ivmu
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
+      ! write(*,*) "Fields: start"
+      ! write(*,*) "phi = ", phi
+      ! write(*,*) "apar = ", apar
+      ! write(*,*) "bpar = ", bpar
+      fields_updated = .false.
 
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
+
+      call advance_fields(h, phi, apar, bpar, dist='h')
+      ! write(*,*) "Fields: start, in h"
+      ! write(*,*) "phi = ", phi
+      ! write(*,*) "apar = ", apar
+      ! write(*,*) "bpar = ", bpar
       ! save the incoming h, as they will be needed later
       ! Store in the variable g1, for historical reasons
       g1 = h
@@ -655,12 +666,21 @@ contains
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1}, bpar_{inh}^{n+1})
       call advance_fields(h, phi, apar, bpar, dist='h')
 
+      ! write(*,*) "Fields: after inhomogeneous"
+      ! write(*,*) "phi = ", phi
+      ! write(*,*) "apar = ", apar
+      ! write(*,*) "bpar = ", bpar
       ! solve response_matrix*fields^{n+1} = fields_{inh}^{n+1}
       ! where fields=(phi,apar,bpar)
       ! phi,apar,bpar = phi,apar,bpar{inh}^{n+1} is input and overwritten by phi,apar,bpar = phi,apar,bpar^{n+1}
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
       call invert_parstream_response(phi, apar, bpar)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
+
+      ! write(*,*) "Fields: after invert_parstream_response"
+      ! write(*,*) "phi = ", phi
+      ! write(*,*) "apar = ", apar
+      ! write(*,*) "bpar = ", bpar
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -672,7 +692,7 @@ contains
          !
          ! New equation looks like:
          ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
-         ! = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+         ! = g^{n} + Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
          call get_gke_rhs(ivmu, g(:, :, :, :, ivmu), g1(:, :, :, :, ivmu), phi, apar, &
                           bpar, h(:, :, :, :, ivmu), eqn='full')
 
@@ -688,7 +708,6 @@ contains
 
       ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
       call get_gbar(h, phi, apar, bpar, g)
-
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
@@ -696,7 +715,7 @@ contains
    !> Get the RHS of the parallel streaming piece of the GKE,
    !> when using implicit scheme
    !> h is output, corresponding to RHS
-   !> RHS = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+   !> RHS = g^{n} + Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
    subroutine get_gke_rhs(ivmu, gold, hold, phi, apar, bpar, h, eqn)
 
       use mp, only: mp_abort
@@ -827,7 +846,7 @@ contains
          ! call center_zed(iv, vpadf0dE_fac)
       end if
 
-      ! Center h and chi in zed.
+      ! Center g and chi in zed.
       h = gold
       call center_zed(iv, h)
       call center_zed(iv, chi)
@@ -844,13 +863,14 @@ contains
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          h(:, :, iz, :) = h(:, :, iz, :) &
-                          - spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi_factor * chi(:,:,iz,:) &
+                          + spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi_factor * chi(:,:,iz,:) &
                           - fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
       end do
 
       deallocate (maxwell_mu_centered)
       deallocate (gp)
       deallocate (dhdz)
+      deallocate (chi)
 
    end subroutine get_gke_rhs
 

@@ -654,6 +654,7 @@ contains
                if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext
 #else
                response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = -field_ext
+               write(*,*) "response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx) = ", response_matrix(iky)%eigen(ie)%zloc(:, matrix_idx)
 #endif
             end do
          end do
@@ -699,7 +700,7 @@ contains
       ia = 1
 
       if (.not. maxwellian_inside_zed_derivative) then
-         ! get - Z/T exp(-v^2) <chi^{n+1}> corresponding to unit impulse in phi
+         ! get  Z/T exp(-v^2) <chi^{n+1}> corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
             hext(:, ivmu) = 0.0
@@ -737,10 +738,11 @@ contains
             ! 0.125 to account for two linear interpolations
             ! fac = -0.125 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
             !       * gyro_chi * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
-            ! RHS = - Z/T exp(-v^2) <chi^{n+1}>
-            !     = - Z/T * (1 {-/+ , +/-} zupw)/2 exp(-v^2)_{i,i+1} * (1 {-/+ , +/-} zupw)/2 <chi^{n+1}_{i,i+1}>
+            ! RHS = Z/T exp(-v^2) <chi^{n+1}>
+            !     = Z/T * (1 {-/+ , +/-} zupw)/2 exp(-v^2)_{i,i+1} * (1 {-/+ , +/-} zupw)/2 <chi^{n+1}_{i,i+1}>
             ! 0.25 to account for 2 interpolations in z
-            fac = -0.25 * spec(is)%zt * gyro_chi * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
+            ! (one in maxwell_mu, one in chi)
+            fac = 0.25 * spec(is)%zt * gyro_chi * maxwell_vpa(iv, is) * maxwell_fac(is)
 
             ! Now multiply fac by (1 {-/+ , +/-} zupw) for z centering of <chi>,
             ! and by interpolated maxwell_mu
