@@ -27,22 +27,26 @@ contains
    ! kx vals. R is thus (3*nzext x 3*nzext) of each ky, eigen.
    ! We find an expression for R as follows:
    ! f^{n+1} = f_h                       + f_{inh}
-   !         = J l(dg_h/df^{n+1})f^{n+1} + f_{inh}
-   ! (I - J l(dg_h/df^{n+1})) f^{n+1} = f_{inh}
-   ! ==> R = (I - J l(dg_h/df^{n+1}))
+   !         = J l(dh_h/df^{n+1})f^{n+1} + f_{inh}
+   ! (I - J l(dh_h/df^{n+1})) f^{n+1} = f_{inh}
+   ! ==> R = (I - J l(dh_h/df^{n+1}))
    ! where I is the identity matrix, and J, l relate to the field equations:
-   ! Kf = l(g)
+   ! Kf = l(h)
+   ! With the distribution function in h, this is just
+   ! phi = antot1/gamtot_h
+   ! apar = antot2/apar_denom_h
+   ! bpar = antot3/bpar_denom_h
    !  f = K^{-1}l(g) = J l(g)
    ! (where l is a vmu-integral operator)
-   ! and dg_h/df^{n+1} is the matrix describing response in g_h to f^{n+1}:
-   ! g_h(iz)     = sum_iiz dg_h(iz)/df(iiz) f(iiz) ! or, the exlicit matrix representation:
+   ! and dh_h/df^{n+1} is the matrix describing response in h_h to f^{n+1}:
+   ! h_h(iz)     = sum_iiz dh_h(iz)/df(iiz) f(iiz) ! or, the exlicit matrix representation:
    !
-   !(g_h(1)    ) = (dg_h(1)/dP(1) ... dg_h(1)/dP(nzext) dg_h(1)/dA(1) ... dg_h(1)/dA(nzext) dg_h(1)/dB(1) ... dg_h(1)/dB(nzext) ) (P(1)    )
-   !(g_h(2)    ) = (dg_h(2)/dP(1) ... dg_h(2)/dP(nzext) dg_h(1)/dA(1) ... dg_h(2)/dA(nzext) dg_h(1)/dB(1) ... dg_h(2)/dB(nzext) ) (P(2)    )
+   !(h_h(1)    ) = (dh_h(1)/dP(1) ... dh_h(1)/dP(nzext) dh_h(1)/dA(1) ... dh_h(1)/dA(nzext) dh_h(1)/dB(1) ... dh_h(1)/dB(nzext) ) (P(1)    )
+   !(h_h(2)    ) = (dh_h(2)/dP(1) ... dh_h(2)/dP(nzext) dh_h(1)/dA(1) ... dh_h(2)/dA(nzext) dh_h(1)/dB(1) ... dh_h(2)/dB(nzext) ) (P(2)    )
    !(   .      ) = (                             ...                                                                            ) (  .     )
    !(   .      ) = (                             ...                                                                            ) (  .     )
    !(   .      ) = (                             ...                                                                            ) (  .     )
-   !(g_h(nzext)) = (dg_h(nzext)/dP(1)            ...                                                      dg_h(nzext)/dB(nzext) ) (P(nzext))
+   !(h_h(nzext)) = (dh_h(nzext)/dP(1)            ...                                                      dh_h(nzext)/dB(nzext) ) (P(nzext))
    !                                                                                                                              (A(1)    )
    !                                                                                                                              (  .     )
    !                                                                                                                              (A(nzext))
@@ -51,19 +55,20 @@ contains
    !                                                                                                                              (  .     )
    !                                                                                                                              (B(nzext))
    !  (where P=phi^{n+1}, A=apar^{n+1}, B=bpar^{n+1})
+   !  (and h_h is the homogeneous piece of the non-adiabatic part of the distribution function h)
    !
    ! Calculate R & decompose for each (ky, eigen) as follows:
    !  (1) Initialise response_matrix with size (3*nzext,3*next)
-   !  (2) Apply a unit impulse in phi at iz=1. Calculate g_h at every (z, vmu)
-   !      arising from this impulse; this gives us a column of dg_h/df^{n+1}.
-   !      Store this in gext, which is size (nzext, nvmu).
+   !  (2) Apply a unit impulse in phi at iz=1. Calculate h_h at every (z, vmu)
+   !      arising from this impulse; this gives us a column of dh_h/df^{n+1}.
+   !      Store this in hext, which is size (nzext, nvmu).
    !       - This is done by the subroutine get_dgdfield_matrix_column
    !  (3) Calculate the fields arising from this, which is equal to
-   !      J l(dg_h/df^{n+1}). l integrates over vmu, so the result is
+   !      J l(dh_h/df^{n+1}). l integrates over vmu, so the result is
    !      size (3*nzext): (phi, apar, bpar). Store this in fields_ext
    !       - This is done by the subroutine get_fields_for_response_matrix
    !  (4) Store I(:,1) - fields_ext (which is the first column of
-   !      (I - J l(dg_h/df^{n+1}))) in the first column of R
+   !      (I - J l(dh_h/df^{n+1}))) in the first column of R
    !  (5) Repeat 2-4 for phi at iz=idx=2, . . . nzext, storing
    !      (I(:,idx) - fields_ext) in the idx'th column of R
    !  (6) Repeat 2-4 for apar at iz=(idx-nzext)=1, . . ., nzext, storing
@@ -549,7 +554,7 @@ contains
 
    end subroutine allocate_response_matrix_zloc
 
-   subroutine populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, field)
+   subroutine populate_matrix_columns(iky, ie, nz_ext, nresponse, nresponse_per_field, matrix_idx, field_name)
 
       use stella_layouts, only: vmu_lo
       use extended_zgrid, only: iz_low, iz_up
@@ -565,17 +570,17 @@ contains
       implicit none
 
       integer, intent(in) :: iky, ie, nz_ext, nresponse, nresponse_per_field
-      character(*), intent(in) :: field
+      character(*), intent(in) :: field_name
       integer, intent(in out) :: matrix_idx
 
       integer :: iseg, ikx, izl_offset, izup, iz, idx
       complex, dimension(:), allocatable :: field_ext
-      complex, dimension(:, :), allocatable :: gext
+      complex, dimension(:, :), allocatable :: hext
 #ifdef ISO_C_BINDING
       integer :: ierr
 #endif
 
-      allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (hext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (field_ext(nresponse))
 
       ! idx is the index in the extended zed domain
@@ -601,12 +606,12 @@ contains
       do iz = iz_low(iseg), izup
          idx = idx + 1
          matrix_idx = matrix_idx + 1
-         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
+         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, hext, field_name)
          ! Check - do we need do anything special fo the first seg?
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
 #endif
-         call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
+         call get_fields_for_response_matrix(hext, field_ext, iky, ie, nresponse_per_field)
 
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
@@ -634,11 +639,11 @@ contains
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
                matrix_idx = matrix_idx + 1
-               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
+               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, hext, field_name)
 #ifdef ISO_C_BINDING
                call mpi_win_fence(0, response_window, ierr)
 #endif
-               call get_fields_for_response_matrix(gext, field_ext, iky, ie, nresponse_per_field)
+               call get_fields_for_response_matrix(hext, field_ext, iky, ie, nresponse_per_field)
 
                ! next need to create column in response matrix from field_ext
                ! negative sign because matrix to be inverted in streaming equation
@@ -654,13 +659,13 @@ contains
          end do
       end if
 
-      deallocate (gext, field_ext)
+      deallocate (hext, field_ext)
 
    end subroutine populate_matrix_columns
 
    !> Apply a unit impulse in a field (phi, apar, or bpar) at time {n+1} at a
    !> single iz location. Get the corresponding value g_h at every z value.
-   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, gext, field)
+   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, hext, field_name)
 
       use mp, only: mp_abort
       use stella_layouts, only: vmu_lo
@@ -676,71 +681,71 @@ contains
       use gyro_averages, only: aj0x, aj1x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use run_parameters, only: mirror_implicit, mirror_semi_lagrange
       use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
-      use parallel_streaming, only: stream_sign
+      use parallel_streaming, only: stream_sign!, center_zed
       use run_parameters, only: zed_upwind, time_upwind
-      use mirror_terms, only: mirror_apar_fac
 
       implicit none
 
       integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
-      character(*), intent(in) :: field
+      complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: hext
+      character(*), intent(in) :: field_name
 
       integer :: ivmu, iv, imu, is, ia
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_chi
-      real :: mirror_apar_fac0, mirror_apar_fac1
-      logical :: add_mirror_apar_to_source_term
 
       ia = 1
-      if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
-         ! Add the electromagnetic piece of the mirror term.
-         add_mirror_apar_to_source_term = .true.
-      else
-         add_mirror_apar_to_source_term = .false.
-      end if
 
       if (.not. maxwellian_inside_zed_derivative) then
-         ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
+         ! get - Z/T exp(-v^2) <chi^{n+1}> corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
-            gext(:, ivmu) = 0.0
+            hext(:, ivmu) = 0.0
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
 
-            ! give unit impulse to phi at this zed location
-            ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
+            ! give unit impulse to the field at this zed location
+            ! and compute - Z/T exp(-v^2) <chi^{n+1}> (RHS of streaming part of GKE)
 
             ! NB:  assuming equal spacing in zed below
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
             if (driftkinetic_implicit) then
-               if (field == "phi") then
+               if (field_name == "phi") then
                   gyro_chi = 1.0
                else
                   call mp_abort("driftkinetic_implicit not currently supported for field!=phi. Aborting")
                end if
             else
-               if (field == "phi") then
+               if (field_name == "phi") then
                   gyro_chi = aj0x(iky, ikx, iz, ivmu)
-               else if (field == "apar") then
+               else if (field_name == "apar") then
                   gyro_chi = -2 * spec(is)%stm * vpa(iv) * aj0x(iky, ikx, iz, ivmu)
-               else if (field == "bpar") then
+               else if (field_name == "bpar") then
                   gyro_chi = 4 * mu(imu) * (spec(is)%tz) * aj1x(iky, ikx, iz, ivmu)
                else
-                  call mp_abort("field not recognised, aborting")
+                  call mp_abort("field_name not recognised, aborting")
                end if
             end if
 
+            !!! Just do all the centering by calling center_zed?
+            ! rhs(idx) = gyro_chi
+            ! call center_zed(iky, iv, gyro_chi)
             ! 0.125 to account for two linear interpolations
-            fac = -0.125 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_chi * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
+            ! fac = -0.125 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
+            !       * gyro_chi * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
+            ! RHS = - Z/T exp(-v^2) <chi^{n+1}>
+            !     = - Z/T * (1 {-/+ , +/-} zupw)/2 exp(-v^2)_{i,i+1} * (1 {-/+ , +/-} zupw)/2 <chi^{n+1}_{i,i+1}>
+            ! 0.25 to account for 2 interpolations in z
+            fac = -0.25 * spec(is)%zt * gyro_chi * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
 
-            ! In the following, gradpar and maxwell_mu are interpolated separately
+            ! Now multiply fac by (1 {-/+ , +/-} zupw) for z centering of <chi>,
+            ! and by interpolated maxwell_mu
+
+            ! In the following, chi and maxwell_mu are interpolated separately
             ! to ensure consistency to what is done in parallel_streaming.f90
 
             ! stream_sign < 0 corresponds to positive advection speed
@@ -748,189 +753,97 @@ contains
                if (iz > -nzgrid) then
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz - 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz - 1, imu, is))
-                  if (add_mirror_apar_to_source_term) then
-                     ! mirror_apar_fac0 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at this zed idx i.e.
-                     ! (mirror_apar_fac)_{{i-1}*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
-                     mirror_apar_fac0 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz, ivmu) &
-                                                 + (1.-zed_upwind) * mirror_apar_fac(ia, iz - 1, ivmu)) &
-                                        * (1 + time_upwind) * (1 + zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                  else
-                     mirror_apar_fac0 = 0.0
-                  end if
+                  fac0 = fac *(1.-zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz, imu, is) &
+                                + (1.-zed_upwind) * maxwell_mu(ia, iz - 1, imu, is))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
                   if (iz < nzgrid) then
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
-                                   + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                     fac1 = fac * (1.+zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz + 1, imu, is) &
+                                   + (1.-zed_upwind) * maxwell_mu(ia, iz, imu, is))
                   else
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(-nzgrid + 1) &
-                                   + (1.-zed_upwind) * gradpar(nzgrid)) &
-                            * (maxwell_mu(ia, -nzgrid + 1, imu, is) + maxwell_mu(ia, nzgrid, imu, is))
-                  end if
-                  if (add_mirror_apar_to_source_term) then
-                     ! mirror_apar_fac1 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at the zed index to the right of
-                     ! this one i.e.
-                     ! (mirror_apar_fac)_{{i}*}*((1+time_upwind)/2)*((1-zed_upwind)/2)(<apar>)
-                     if (iz < nzgrid) then
-                        mirror_apar_fac1 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz + 1, ivmu) &
-                                                    + (1.-zed_upwind) * mirror_apar_fac(ia, iz, ivmu)) &
-                                           * (1 + time_upwind) * (1 - zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     else
-                        mirror_apar_fac1 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, (-nzgrid + 1), ivmu) &
-                                                    + (1.-zed_upwind) * mirror_apar_fac(ia, iz, ivmu)) &
-                                           * (1 + time_upwind) * (1 - zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     end if
-                  else
-                     mirror_apar_fac1 = 0.0
+                     fac1 = fac * (1.+zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, -nzgrid + 1, imu, is) &
+                                   + (1.-zed_upwind) * maxwell_mu(ia, nzgrid, imu, is))
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(nzgrid - 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, nzgrid - 1, imu, is))
+                  fac0 = fac * (1.-zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz, imu, is) &
+                                + (1.-zed_upwind) * maxwell_mu(ia, nzgrid - 1, imu, is))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
-                                + (1.-zed_upwind) * gradpar(iz)) &
-                         * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-                  if (add_mirror_apar_to_source_term) then
-                     ! mirror_apar_fac0 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at this zed idx i.e.
-                     ! (mirror_apar_fac)_{{i-1}*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
-                     mirror_apar_fac0 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz, ivmu) &
-                                                 + (1.-zed_upwind) * mirror_apar_fac(ia, (nzgrid - 1), ivmu)) &
-                                        * (1 + time_upwind) * (1 + zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     ! mirror_apar_fac1 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at the zed index to the right of
-                     ! this one i.e.
-                     ! (mirror_apar_fac)_{{i}*}*((1+time_upwind)/2)*((1-zed_upwind)/2)(<apar>)
-                     mirror_apar_fac1 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz + 1, ivmu) &
-                                                 + (1.-zed_upwind) * mirror_apar_fac(ia, iz, ivmu)) &
-                                        * (1 + time_upwind) * (1 - zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                  else
-                     mirror_apar_fac0 = 0.0
-                     mirror_apar_fac1 = 0.0
-                  end if
+                  fac1 = fac * (1.+zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz + 1, imu, is) &
+                                + (1.-zed_upwind) * maxwell_mu(ia, iz, imu, is))
                end if
-               gext(idx, ivmu) = fac0 + mirror_apar_fac0
-               if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1 + mirror_apar_fac1
+               hext(idx, ivmu) = fac0
+               if (idx < nz_ext) hext(idx + 1, ivmu) = fac1
                ! zonal mode BC is periodic instead of zero, so must
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = (fac0 + mirror_apar_fac0) / phase_shift(iky)
+                     hext(nz_ext, ivmu) = fac0 / phase_shift(iky)
                   else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = (-fac1 + mirror_apar_fac1) * phase_shift(iky)
+                     hext(1, ivmu) = fac1 * phase_shift(iky)
                   end if
                end if
             else
                if (iz < nzgrid) then
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz + 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz + 1, imu, is))
+                  fac0 = fac * (1.+zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz, imu, is) &
+                                + (1.-zed_upwind) * maxwell_mu(ia, iz + 1, imu, is))
 
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
                   if (iz > -nzgrid) then
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
-                                   + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                     fac1 = fac * (1.-zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz - 1, imu, is) &
+                                   + (1.-zed_upwind) * maxwell_mu(ia, iz, imu, is))
                   else
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(nzgrid - 1) &
-                                   + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, nzgrid - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-                  end if
-                  if (add_mirror_apar_to_source_term) then
-                     ! mirror_apar_fac0 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at this zed idx i.e.
-                     ! (mirror_apar_fac)_{i*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
-                     mirror_apar_fac0 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz, ivmu) &
-                                                 + (1.-zed_upwind) * mirror_apar_fac(ia, iz + 1, ivmu)) &
-                                        * (1 + time_upwind) * (1 + zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     ! mirror_apar_fac1 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at the zed index to the right of
-                     ! this one i.e.
-                     ! (mirror_apar_fac)_{{i-1}*}*((1+time_upwind)/2)*((1-zed_upwind)/2)(<apar>)
-                     if (iz > -nzgrid) then
-                        mirror_apar_fac1 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz - 1, ivmu) &
-                                                    + (1.-zed_upwind) * mirror_apar_fac(ia, iz, ivmu)) &
-                                           * (1 + time_upwind) * (1 - zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     else
-                        mirror_apar_fac1 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, (nzgrid - 1), ivmu) &
-                                                    + (1.-zed_upwind) * mirror_apar_fac(ia, iz, ivmu)) &
-                                           * (1 + time_upwind) * (1 - zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     end if
-                  else
-                     mirror_apar_fac0 = 0.0
-                     mirror_apar_fac1 = 0.0
+                     fac1 = fac * (1.-zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, nzgrid - 1, imu, is) &
+                                   + (1.-zed_upwind) * maxwell_mu(ia, iz, imu, is))
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(-nzgrid + 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, -nzgrid + 1, imu, is))
+                  fac0 = fac * (1.+zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz, imu, is) &
+                                + (1.-zed_upwind) * maxwell_mu(ia, -nzgrid + 1, imu, is))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
-                                + (1.-zed_upwind) * gradpar(iz)) &
-                         * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-                  if (add_mirror_apar_to_source_term) then
-                     ! mirror_apar_fac0 is the mirror apar term on the RHS
-                     ! of the homogeneous GKE at this zed idx i.e.
-                     ! (mirror_apar_fac)_{i*}*((1+time_upwind)/2)*((1+zed_upwind)/2)(<apar>)
-                     mirror_apar_fac0 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz, ivmu) &
-                                                 + (1.-zed_upwind) * mirror_apar_fac(ia, (-nzgrid + 1), ivmu)) &
-                                        * (1 + time_upwind) * (1 + zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                     mirror_apar_fac1 = 0.125 * ((1.+zed_upwind) * mirror_apar_fac(ia, iz - 1, ivmu) &
-                                                 + (1.-zed_upwind) * mirror_apar_fac(ia, iz, ivmu)) &
-                                        * (1 + time_upwind) * (1 - zed_upwind) * aj0x(iky, ikx, iz, ivmu)
-                  else
-                     mirror_apar_fac0 = 0.0
-                     mirror_apar_fac1 = 0.0
-                  end if
+                  fac1 = fac * (1.-zed_upwind) * ((1.+zed_upwind) * maxwell_mu(ia, iz - 1, imu, is) &
+                                + (1.-zed_upwind) * maxwell_mu(ia, iz, imu, is))
                end if
-               gext(idx, ivmu) = -fac0 + mirror_apar_fac0
-               if (idx > 1) gext(idx - 1, ivmu) = fac1 + mirror_apar_fac1
+               hext(idx, ivmu) = fac0
+               if (idx > 1) hext(idx - 1, ivmu) = fac1
                ! zonal mode BC is periodic instead of zero, so must
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = (-fac0 + mirror_apar_fac0) / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = (fac1 + mirror_apar_fac1) / phase_shift(iky)
+                     hext(nz_ext, ivmu) = fac0 / phase_shift(iky)
+                     hext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
                   else if (idx == 2) then
-                     gext(nz_ext, ivmu) = (fac1 + mirror_apar_fac1) / phase_shift(iky)
+                     hext(nz_ext, ivmu) = fac1 / phase_shift(iky)
                   end if
                end if
             end if
 
             if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-               ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-               call stream_tridiagonal_solve(iky, ie, iv, is, gext(:, ivmu))
+               ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext
+               call stream_tridiagonal_solve(iky, ie, iv, is, hext(:, ivmu))
             end if
 
          end do
       else
+         call mp_abort("Not currently supported for source term in h!")
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
-            gext(:, ivmu) = 0.0
+            hext(:, ivmu) = 0.0
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
@@ -942,20 +855,20 @@ contains
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
             if (driftkinetic_implicit) then
-               if (field == "phi") then
+               if (field_name == "phi") then
                   gyro_chi = 1.0
                else
                   call mp_abort("driftkinetic_implicit not currently supported for field!=phi. Aborting")
                end if
             else
-               if (field == "phi") then
+               if (field_name == "phi") then
                   gyro_chi = aj0x(iky, ikx, iz, ivmu)
-               else if (field == "apar") then
+               else if (field_name == "apar") then
                   gyro_chi = -2 * spec(is)%stm * vpa(iv) * aj0x(iky, ikx, iz, ivmu)
-               else if (field == "bpar") then
+               else if (field_name == "bpar") then
                   gyro_chi = 4 * mu(imu) * (spec(is)%tz) * aj1x(iky, ikx, iz, ivmu)
                else
-                  call mp_abort("field not recognised, aborting")
+                  call mp_abort("field_name not recognised, aborting")
                end if
             end if
 
@@ -993,15 +906,15 @@ contains
                   fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
                                 + (1.-zed_upwind) * gradpar(iz)) * mu_dbdzed_m
                end if
-               gext(idx, ivmu) = fac0
-               if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
+               hext(idx, ivmu) = fac0
+               if (idx < nz_ext) hext(idx + 1, ivmu) = -fac1
                ! zonal mode BC is periodic instead of zero, so must
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
+                     hext(nz_ext, ivmu) = fac0 / phase_shift(iky)
                   else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = -fac1 * phase_shift(iky)
+                     hext(1, ivmu) = -fac1 * phase_shift(iky)
                   end if
                end if
             else
@@ -1031,32 +944,27 @@ contains
                   fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
                                 + (1.-zed_upwind) * gradpar(iz)) * mu_dbdzed_m
                end if
-               gext(idx, ivmu) = -fac0
-               if (idx > 1) gext(idx - 1, ivmu) = fac1
+               hext(idx, ivmu) = -fac0
+               if (idx > 1) hext(idx - 1, ivmu) = fac1
                ! zonal mode BC is periodic instead of zero, so must
                ! treat specially
                if (periodic(iky)) then
                   if (idx == 1) then
-                     gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
+                     hext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
+                     hext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
                   else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
+                     hext(nz_ext, ivmu) = fac1 / phase_shift(iky)
                   end if
                end if
             end if
 
-            if ((mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == "apar")) then
-               ! Add the electromagnetic piece of the mirror term
-               call mp_abort("(mirror_implicit) .and. (.not. mirror_semi_lagrange) .and. (field == apar) Not currently supported")
-            end if
-
             ! hack for now (duplicates much of the effort from sweep_zed_zonal)
             if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-               ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-               call stream_tridiagonal_solve(iky, ie, iv, is, gext(:, ivmu))
+               ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext
+               call stream_tridiagonal_solve(iky, ie, iv, is, hext(:, ivmu))
             end if
 
          end do
@@ -1166,8 +1074,8 @@ contains
    !
    ! end subroutine integrate_over_velocity
 
-   ! Given gext, calculate the fields (phi, apar, bpar) and store in fields_ext.
-   subroutine get_fields_for_response_matrix(gext, fields_ext, iky, ie, nresponse_per_field)
+   ! Given hext, calculate the fields (phi, apar, bpar) and store in fields_ext.
+   subroutine get_fields_for_response_matrix(hext, fields_ext, iky, ie, nresponse_per_field)
 
       use stella_layouts, only: vmu_lo
       use species, only: spec
@@ -1187,7 +1095,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: gext
+      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: hext
       complex, dimension(:), intent(out) :: fields_ext
       integer, intent(in) :: iky, ie, nresponse_per_field
 
@@ -1218,7 +1126,7 @@ contains
       g_idx = 0
       do iz = iz_low(iseg), izup
          g_idx = g_idx + 1
-         call get_fields_vmulo_0D(gext(g_idx, :), iky, ikx, iz, phi, apar, bpar, "gbar")
+         call get_fields_vmulo_0D(hext(g_idx, :), iky, ikx, iz, phi, apar, bpar, "h")
          ! Put phi, apar, bpar into fields_ext
          ifield = 0
          if (fphi > epsilon(0.)) then
@@ -1244,7 +1152,7 @@ contains
             ikx = ikxmod(iseg, ie, iky)
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                g_idx = g_idx + 1
-               call get_fields_vmulo_0D(gext(g_idx, :), iky, ikx, iz, phi, apar, bpar, "gbar")
+               call get_fields_vmulo_0D(hext(g_idx, :), iky, ikx, iz, phi, apar, bpar, "h")
                ! call get_fields_vmulo_1D(gext(iz_low(iseg):iz_up(iseg), :), iky, ikx, phi, apar, bpar, "gbar")
                ifield = 0
                if (fphi > epsilon(0.)) then
