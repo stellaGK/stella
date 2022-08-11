@@ -623,7 +623,7 @@ contains
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
       ! save the incoming h, as they will be needed later
-      ! Store in the variable g1, for histroical reasons
+      ! Store in the variable g1, for historical reasons
       g1 = h
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
@@ -732,16 +732,21 @@ contains
       real :: tupwnd1, chi_factor, fac
       ! real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
+      real, dimension(:), allocatable :: maxwell_mu_centered
       complex, dimension(:, :, :, :), allocatable :: dhdz
       complex, dimension(:, :, :, :), allocatable :: chi
 
       ! allocate (vpadf0dE_fac(-nzgrid:nzgrid))
+      allocate (maxwell_mu_centered(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
       allocate (dhdz(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ia = 1
 
       tupwnd1 = 0.5 * (1.0 - time_upwind)
+      ! Only <chi^{n+1}> appears in the RHS. If we're getting the RHS for the
+      ! inhomogeneous equation, set this to zero.
+      ! Could refactor to avoid calculating <chi> unnecessarily
       if (eqn == 'full') then
          chi_factor = 1.0
       else
@@ -796,13 +801,13 @@ contains
         !    ! ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
         !    ! ! = d<phi>/dz * exp(-mu*B/T)
         !    ! dchidz = dchidz + 2.0 * mu(imu) * g
-        ! else
+      else
         !    ! ! obtain d<phi>/dz and store in dchidz
         !    ! call get_dzed(iv, g, dchidz)
         !    ! ! center Maxwellian factor in mu
         !    ! ! and store in dummy variable gp
-        !    ! gp = maxwell_mu(ia, :, imu, is)
-        !    ! call center_zed_midpoint(iv, gp)
+         maxwell_mu_centered = maxwell_mu(ia, :, imu, is)
+         call center_zed_midpoint(iv, maxwell_mu_centered)
         !    ! ! multiply by Maxwellian factor
         !    ! dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
@@ -839,10 +844,11 @@ contains
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          h(:, :, iz, :) = h(:, :, iz, :) &
-                          - spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is) * chi_factor * chi(:,:,iz,:) &
+                          - spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi_factor * chi(:,:,iz,:) &
                           - fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
       end do
 
+      deallocate (maxwell_mu_centered)
       deallocate (gp)
       deallocate (dhdz)
 

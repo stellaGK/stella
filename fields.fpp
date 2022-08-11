@@ -1527,7 +1527,7 @@ contains
                bpar = (antot3 - (gamtot31(iky, ikx, iz) / gamtot(iky, ikx, iz)) * antot1) &
                       / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
             else if (dist == "h") then
-               phi = antot1 / gamtot(iky, ikx, iz)
+               phi = antot1 / gamtot_h(iky, ikx, iz)
                bpar = antot3 / bpar_denom_h
             else
               call mp_abort("dist not recgonised. Aborting")
@@ -1714,17 +1714,13 @@ contains
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), antot3)
 
             ! Now get phi, bpar
-            phi = (antot1 - gamtot13(iky, ikx, :) / gamtot33(iky, ikx, :) * antot3) &
-                  / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
-            bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
-                   / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
             if (dist == "gbar") then
                phi = (antot1 - gamtot13(iky, ikx, :) / gamtot33(iky, ikx, :) * antot3) &
                     / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
                bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
                      / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
             else if (dist == "h") then
-               phi = antot1 / gamtot(iky, ikx, :)
+               phi = antot1 / gamtot_h(iky, ikx, :)
                bpar = antot3 / bpar_denom_h
             else
                call mp_abort("dist not recgonised. Aborting")
