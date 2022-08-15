@@ -3,28 +3,31 @@
 ## Description: import variables from stella netcdf file
 
 from scipy.io import netcdf
+from netCDF4 import Dataset
+
 import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/barnesm/Documents/stella_data/bistability/'
-file_prefix = 'jet68448_nogexb'
+input_directory = '/your/run/dir/'
+file_prefix = 'your-simulation-name'
 infile = input_directory + file_prefix + '.out.nc'
 #infile = '../stella.out.nc'
 #print()
 #outdir = input("Path for output: ")
 outdir = input_directory
-ncfile = netcdf.netcdf_file(infile,'r')
 
+#ncfile = netcdf.netcdf_file(infile,'r')
+ncfile = Dataset(infile, 'r',format='NETCDF4')
 #print()
 print('reading data from netcdf file...')
 print()
 
 # get kx and ky grids
 kx_stella = np.copy(ncfile.variables['kx'][:])
-nakx = ncfile.dimensions['kx']
+nakx = ncfile.dimensions['kx'].size
 ky = np.copy(ncfile.variables['ky'][:])
-naky = ncfile.dimensions['ky']
+naky = ncfile.dimensions['ky'].size
 
 # this is the index of the first negative value of kx
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
