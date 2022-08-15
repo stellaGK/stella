@@ -1,8 +1,9 @@
 program stella
 
    use redistribute, only: scatter
-   use job_manage, only: time_message, checkstop, job_fork
-   use run_parameters, only: nstep, tend
+   use job_manage, only: time_message, checkstop, job_fork, checktime
+   use run_parameters, only: nstep, tend, fphi, fapar
+   use run_parameters, only: avail_cpu_time
    use stella_time, only: update_time, code_time, code_dt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
@@ -39,6 +40,7 @@ program stella
    do while ((code_time <= tend .AND. tend > 0) .OR. (istep <= nstep .AND. nstep > 0))
       if (debug) write (*, *) 'istep = ', istep
       if (mod(istep, 10) == 0) call checkstop(stop_stella)
+      if (mod(istep, 10) == 0) call checktime(avail_cpu_time, stop_stella)
       if (stop_stella) exit
       call advance_stella(istep)
       call update_time
