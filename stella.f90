@@ -40,8 +40,10 @@ program stella
    istep = istep0 + 1
    do while ((code_time <= tend .AND. tend > 0) .OR. (istep <= nstep .AND. nstep > 0))
       if (debug) write (*, *) 'istep = ', istep
-      if (mod(istep, 10) == 0) call checkstop(stop_stella)
-      if (mod(istep, 10) == 0) call checktime(avail_cpu_time, stop_stella)
+      if (mod(istep, 10) == 0) then
+         call checkstop(stop_stella)
+         call checktime(avail_cpu_time, stop_stella)
+      end if
       if (stop_stella) exit
       call advance_stella(istep)
       call update_time
