@@ -31,6 +31,11 @@ module fields_arrays
 
    real, dimension(:), allocatable :: shift_state
 
+   ! response matrix used for the mirror calculations (when response matrix
+   ! formulated in h)
+   complex, dimension(:, :, :, :, :, :), allocatable :: mirror_response_matrix
+   integer, dimension(:, :, :, :, :), allocatable :: mirror_response_matrix_idx
+
    real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr, gamtot_h
    real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot33
    real, dimension(:, :, :), allocatable ::  apar_denom

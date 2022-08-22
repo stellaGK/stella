@@ -2584,10 +2584,10 @@ contains
       use physics_flags, only: include_parallel_streaming
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: include_mirror, prp_shear_enabled
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, src_h
       use parallel_streaming, only: advance_parallel_streaming_implicit
       use fields, only: advance_fields, fields_updated
-      use mirror_terms, only: advance_mirror_implicit
+      use mirror_terms, only: advance_mirror_implicit, advance_mirror_implicit_src_h
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
       use run_parameters, only: driftkinetic_implicit
@@ -2659,8 +2659,12 @@ contains
 !          else
 !             g_mirror => g
 !          end if
-            call advance_mirror_implicit(collisions_implicit, g)
-            fields_updated = .false.
+            if (.not. src_h) then
+               call advance_mirror_implicit(collisions_implicit, g)
+               fields_updated = .false.
+            else
+               call advance_mirror_implicit_src_h(collisions_implicit, g)
+            end if
          end if
 
          ! get updated fields corresponding to advanced g
@@ -2694,8 +2698,12 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g)
-            fields_updated = .false.
+           if (.not. src_h) then
+              call advance_mirror_implicit(collisions_implicit, g)
+              fields_updated = .false.
+           else
+              call advance_mirror_implicit_src_h(collisions_implicit, g)
+           end if 
          end if
 
          if (collisions_implicit .and. include_collisions) then

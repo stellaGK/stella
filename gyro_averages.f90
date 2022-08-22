@@ -20,6 +20,7 @@ module gyro_averages
       ! This procedure is indistinguishable from gyro_average_kxky_local,
       ! so we can't have it in here.
       ! module procedure gyro_average_vmus_nonlocal_1d
+      module procedure  gyro_average_field_vmu_local
       module procedure gyro_average_ffs_kxky_local
       module procedure gyro_average_ffs_kxkyz_local
       module procedure gyro_average_ffs
@@ -30,6 +31,7 @@ module gyro_averages
       module procedure gyro_average_j1_kxkyz_local
       module procedure gyro_average_j1_vmu_local
       module procedure gyro_average_j1_vmus_nonlocal
+      module procedure gyro_average_j1_field_vmu_local
       ! This procedure is indistinguishable from gyro_average_j1_kxky_local,
       ! so we can't have it in here.
       ! module procedure gyro_average_j1_vmus_nonlocal_1d
@@ -744,6 +746,20 @@ contains
 
    end subroutine gyro_average_vmu_local
 
+   subroutine gyro_average_field_vmu_local(field, ikxkyz, gyro_field)
+
+      use vpamu_grids, only: nvpa
+
+      implicit none
+
+      complex, intent(in) :: field
+      integer, intent(in) :: ikxkyz
+      complex, dimension(:, :), intent(out) :: gyro_field
+
+      gyro_field = spread(aj0v(:, ikxkyz), 1, nvpa) * field
+
+   end subroutine gyro_average_field_vmu_local
+
    subroutine gyro_average_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
       use stella_layouts, only: vmu_lo
@@ -818,6 +834,20 @@ contains
       gyro_distfn = spread(aj1v(:, ikxkyz), 1, nvpa) * distfn
 
    end subroutine gyro_average_j1_vmu_local
+
+   subroutine gyro_average_j1_field_vmu_local(field, ikxkyz, gyro_field)
+
+      use vpamu_grids, only: nvpa
+
+      implicit none
+
+      complex, intent(in) :: field
+      integer, intent(in) :: ikxkyz
+      complex, dimension(:, :), intent(out) :: gyro_field
+
+      gyro_field = spread(aj1v(:, ikxkyz), 1, nvpa) * field
+
+   end subroutine gyro_average_j1_field_vmu_local
 
    subroutine gyro_average_j1_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 

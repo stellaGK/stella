@@ -58,6 +58,7 @@ module fields
    interface get_gyroaverage_chi
       module procedure get_gyroaverage_chi_4d
       module procedure get_gyroaverage_chi_2d
+      module procedure get_gyroaverage_chi_kxkyzlo
    end interface
 
    interface get_chi
@@ -889,7 +890,7 @@ contains
    end subroutine advance_fields
 
    !> Calculate the fields (phi, apar, bpar) when the layout option is vmu local
-   !> (kykxz-parallelised)
+   !> (so g is kykxz-parallelised)
    !> If fbpar=0, we calculate phi using get_phi, then (if necessary) calculate
    !> apar. If fbpar!=0, calculate phi & bpar simultaneously (both require the
    !> same integrals of <g>), then apar if necessary. NB fbpar!=0, fapar!=0
@@ -2948,9 +2949,51 @@ contains
 
    end subroutine get_chi_4d
 
+   ! The following subroutine takes the fields at all (ky, kx, z)
+   ! and returns gyroaverage(chi)(vpa, mu) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
+   ! in kxkyzlo
+   subroutine get_gyroaverage_chi_kxkyzlo(ikxkyz, phi, apar, bpar, gyro_chi)
+
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use stella_layouts, only: kxkyz_lo
+      use vpamu_grids, only: nvpa, nmu, vpa, mu
+      use stella_layouts, only: imu_idx, is_idx, iv_idx
+      use species, only: spec
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, nakx
+      use run_parameters, only: fphi, fapar, fbpar
+
+      implicit none
+
+      complex, intent(in) :: phi, apar, bpar
+      integer, intent(in) :: ikxkyz
+      complex, dimension(:, :), intent(out) :: gyro_chi
+
+      integer :: is
+      complex, dimension(:, :), allocatable :: gyro_field
+
+      gyro_chi = 0.
+
+      ! Get vpa, mu and species from ivmu
+      is = is_idx(kxkyz_lo, ikxkyz)
+
+      allocate (gyro_field(nvpa, nmu))
+
+      call gyro_average(phi, ikxkyz, gyro_field)
+      gyro_chi = gyro_chi + fphi * gyro_field
+
+      call gyro_average(apar, ikxkyz, gyro_field)
+      gyro_chi = gyro_chi - fapar * 2 * spread(vpa(:), 2, nmu) * spec(is)%stm * gyro_field
+
+      call gyro_average_j1(bpar, ikxkyz, gyro_field)
+      gyro_chi = gyro_chi + fbpar * 4 * spread(mu(:), 1, nvpa) * (spec(is)%tz) * gyro_field
+
+      deallocate (gyro_field)
+
+   end subroutine get_gyroaverage_chi_kxkyzlo
+
    ! The following subroutine takes the fields(ky,kx,z,tube) and returns
    ! gyroaverage(chi)(ky,kx,z,tube) = (J0*phi - 2*vpa*vths*J0*apar + 4*mu*(T/Z)*(J1/gamma) * bpar)
-   !
    subroutine get_gyroaverage_chi_4d(ivmu, phi, apar, bpar, gyro_chi)
 
       use gyro_averages, only: gyro_average, gyro_average_j1
