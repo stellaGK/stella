@@ -2983,6 +2983,7 @@ contains
       gyro_chi = gyro_chi + fphi * gyro_field
 
       call gyro_average(apar, ikxkyz, gyro_field)
+      ! gyro_chi = gyro_chi - fapar * 2 * spread(vpa(:), 1, nmu) * spec(is)%stm * gyro_field
       gyro_chi = gyro_chi - fapar * 2 * spread(vpa(:), 2, nmu) * spec(is)%stm * gyro_field
 
       call gyro_average_j1(bpar, ikxkyz, gyro_field)

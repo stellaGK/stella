@@ -509,11 +509,12 @@ contains
    subroutine get_h_hom(ikxkyz, h_hom, field_name)
 
       use mp, only: mp_abort
-      use stella_layouts, only: is_idx, imu_idx, iv_idx, iy_idx
+      use stella_layouts, only: is_idx, imu_idx, iv_idx, iy_idx, iz_idx
       use stella_layouts, only: kxkyz_lo
       use species, only: spec
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, mu
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use gyro_averages, only: aj0v, aj1v
 
       implicit none
@@ -522,9 +523,11 @@ contains
       complex, dimension(:,:), intent(in out) :: h_hom
       character(*), intent(in) :: field_name
 
-      integer :: ivmu, is, imu
+      integer :: is, imu, iz, ia
 
       is = is_idx(kxkyz_lo, ikxkyz)
+      iz = iz_idx(kxkyz_lo, ikxkyz)
+      ia = 1
 
       ! Apply a unit impulse in the field at a particular (iky, ikx, iz, itube)
       ! Then get the source term for all (vpa, mu, s)
@@ -532,18 +535,20 @@ contains
 
       !> Loop over mu
       do imu = 1, nmu
+         h_hom(:, imu) = spec(is)%zt * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
          if (field_name == "phi") then
             ! dgyro_chi = aj0x(iky, ikx, iz, :)
-            h_hom(:,imu) = aj0v(ikxkyz, imu)
+            h_hom(:, imu) = aj0v(ikxkyz, imu) * h_hom(:, imu)
          else if (field_name == "apar") then
             ! dgyro_chi = -2 * spec(is)%stm * vpa(iv) * aj0x(iky, ikx, iz, :)
-            h_hom(:,imu) = -2 * spec(is)%stm * vpa(:) * aj0v(ikxkyz, imu)
+            h_hom(:, imu) = -2 * spec(is)%stm * vpa(:) * aj0v(ikxkyz, imu) * h_hom(:, imu)
          else if (field_name == "bpar") then
             ! dgyro_chi = 4 * mu(imu) * (spec(is)%tz) * aj1x(iky, ikx, iz, :)
-            h_hom(:,imu) = 4 * mu(imu) * (spec(is)%tz) * aj1v(ikxkyz, imu)
+            h_hom(:, imu) = 4 * mu(imu) * (spec(is)%tz) * aj1v(ikxkyz, imu) * h_hom(:, imu)
          else
             call mp_abort("field_name not recognised, aborting")
          end if
+
          ! invert_mirror_operator takes rhs of equation and
          ! returns g^{n+1}
          call invert_mirror_operator(imu, ikxkyz, h_hom(:,imu))
@@ -1029,7 +1034,7 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
-      use dist_fn_arrays, only: g1, h
+      use dist_fn_arrays, only: h
       use physics_flags, only: full_flux_surface
       use kt_grids, only: ny, nakx, naky
       use vpamu_grids, only: nvpa, nmu
@@ -1063,13 +1068,13 @@ contains
       allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      call advance_fields(h, phi, apar, bpar, dist='h')
+      call advance_fields(g, phi, apar, bpar, dist='gbar')
 
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
       ! save the incoming h, as they will be needed later
-      ! Store in the variable g1, for historical reasons
-      g1 = h
+      ! Store in the variable g to save memory
+      ! g1 = h
 
       ! now that we have g^{*}, need to solve
       ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
@@ -1163,7 +1168,7 @@ contains
             call scatter(kxkyz2vmu, h, hvmu)
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          end if
-         ! write(*,*) "Ready to start solving. maxval(hvmu) = ", maxval(abs(hvmu))
+         !  write(*,*) "Ready to start solving. maxval(hvmu) = ", maxval(abs(hvmu))
          allocate (h0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); h0v=0.
          allocate (dchi(nvpa, nmu)); dchi=0.
          ! allocate (g0x(1, 1, 1, 1, 1))
@@ -1228,12 +1233,10 @@ contains
                call fd_variable_upwinding_vpa(1, hvmu(:, imu, ikxkyz), dvpa, &
                                            mirror_sign(1, iz), vpa_upwind, h0v(:, imu, ikxkyz))
 
-               ! ! Need to check we've implemented a get_gyroaverage_chi which works
-               ! ! like this.
                ! call get_gyroaverage_chi(imu, dphi, dapar, dbpar, dchi)
                ! construct RHS of GK equation for mirror advance;
                ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*d/dv)*g^{n+1}
-               ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*d/dv)*g^{n} * Z/T * (e^(-v^2)) * <chi^{n+1} - chi^{n}>
+               ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*d/dv)*g^{n} + Z/T * (e^(-v^2)) * <chi^{n+1} - chi^{n}>
                h0v(:, imu, ikxkyz) = hvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * h0v(:, imu, ikxkyz) &
                                      + spec(is)%zt * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * dchi(:, imu)
                !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
