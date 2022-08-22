@@ -630,14 +630,13 @@ contains
       allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
+      call advance_fields(g, phi, apar, bpar, dist='gbar')
 
-      call advance_fields(h, phi, apar, bpar, dist='h')
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
       ! write(*,*) "Fields: start, in h"
-      ! write(*,*) "phi = ", phi
-      ! write(*,*) "apar = ", apar
-      ! write(*,*) "bpar = ", bpar
+      ! write(*,*) "h^{n} : maxval = ", maxval(abs(h))
+      ! write(*,*) "maxval(abs(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       ! save the incoming h, as they will be needed later
       ! Store in the variable g1, for historical reasons
       g1 = h
@@ -663,6 +662,7 @@ contains
             call sweep_g_zed(ivmu, h(:, :, :, :, ivmu))
          end if
       end do
+      ! write(*,*) "hinh : maxval = ", maxval(abs(h))
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
@@ -670,6 +670,7 @@ contains
       ! we now have h_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1}, bpar_{inh}^{n+1})
       call advance_fields(h, dphi, dapar, dbpar, dist='h')
+      ! write(*,*) "inh. fields maxval(abs(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
 
       ! Now calculate the inhomogeneous change in the fields
       dphi = dphi - phi
@@ -713,11 +714,13 @@ contains
             call sweep_g_zed(ivmu, h(:, :, :, :, ivmu))
          end if
       end do
+      ! write(*,*) "h^{n+1} : maxval = ", maxval(abs(h))
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
       call advance_fields(h, phi, apar, bpar, dist="h")
       ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
+      ! write(*,*) "new fields maxval(abs(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       call get_gbar(h, phi, apar, bpar, g)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
