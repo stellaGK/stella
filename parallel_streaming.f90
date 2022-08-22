@@ -630,10 +630,10 @@ contains
       allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      ! Get h^{n}
-      call get_h(g, phi, apar, bpar, h)
 
       call advance_fields(h, phi, apar, bpar, dist='h')
+      ! Get h^{n}
+      call get_h(g, phi, apar, bpar, h)
       ! write(*,*) "Fields: start, in h"
       ! write(*,*) "phi = ", phi
       ! write(*,*) "apar = ", apar
