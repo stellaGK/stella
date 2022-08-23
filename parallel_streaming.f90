@@ -733,7 +733,7 @@ contains
    !> Get the RHS of the parallel streaming piece of the GKE,
    !> when using implicit scheme
    !> h is output, corresponding to RHS
-   !> RHS = g^{n} + Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+   !> RHS = h^{n} + Z/T exp(-v^2) <chi^{n+1}-chi^{n}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
    subroutine get_gke_rhs(ivmu, hold, phi, apar, bpar, h, eqn)
 
       use mp, only: mp_abort
