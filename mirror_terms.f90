@@ -410,7 +410,7 @@ contains
 
          !> Get the homogeneous fields at all (ky, kx, z)
          call get_fields(h0v, dphi, dapar, dbpar, "h")
-
+         ! write(*,*) "dphi = ", dphi
          !> Store I-df in the response matrix
          !> Populate phi row
          jfield = 1
@@ -493,13 +493,14 @@ contains
          do ikx = 1, nakx
             do iz = -nzgrid, nzgrid
                do it = 1, ntubes
+                  write(*,*) "mirror_response_matrix(iky, ikx, iz, it, :, :) = ", mirror_response_matrix(iky, ikx, iz, it, :, :)
                   call lu_decomposition(mirror_response_matrix(iky, ikx, iz, it, :, :), &
                                         mirror_response_matrix_idx(iky, ikx, iz, it, :), dum)
                end do
             end do
          end do
       end do
-
+      ! stop "stopping"
       deallocate(h0v, h0x, dphi, dapar, dbpar)
 
    end subroutine init_mirror_response_matrix_src_h
@@ -520,7 +521,7 @@ contains
       implicit none
 
       integer, intent(in) :: ikxkyz
-      complex, dimension(:,:), intent(in out) :: h_hom
+      complex, dimension(:,:), intent(out) :: h_hom
       character(*), intent(in) :: field_name
 
       integer :: is, imu, iz, ia
@@ -538,13 +539,13 @@ contains
          h_hom(:, imu) = spec(is)%zt * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
          if (field_name == "phi") then
             ! dgyro_chi = aj0x(iky, ikx, iz, :)
-            h_hom(:, imu) = aj0v(ikxkyz, imu) * h_hom(:, imu)
+            h_hom(:, imu) = aj0v(imu, ikxkyz) * h_hom(:, imu)
          else if (field_name == "apar") then
             ! dgyro_chi = -2 * spec(is)%stm * vpa(iv) * aj0x(iky, ikx, iz, :)
-            h_hom(:, imu) = -2 * spec(is)%stm * vpa(:) * aj0v(ikxkyz, imu) * h_hom(:, imu)
+            h_hom(:, imu) = -2 * spec(is)%stm * vpa(:) * aj0v(imu, ikxkyz) * h_hom(:, imu)
          else if (field_name == "bpar") then
             ! dgyro_chi = 4 * mu(imu) * (spec(is)%tz) * aj1x(iky, ikx, iz, :)
-            h_hom(:, imu) = 4 * mu(imu) * (spec(is)%tz) * aj1v(ikxkyz, imu) * h_hom(:, imu)
+            h_hom(:, imu) = 4 * mu(imu) * (spec(is)%tz) * aj1v(imu, ikxkyz) * h_hom(:, imu)
          else
             call mp_abort("field_name not recognised, aborting")
          end if
@@ -1069,7 +1070,7 @@ contains
       allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       call advance_fields(g, phi, apar, bpar, dist='gbar')
-
+      ! write(*,*) "Old fields. maxval(abs(phi, apar, bpar)) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
       ! save the incoming h, as they will be needed later
@@ -1201,7 +1202,7 @@ contains
          fields_updated = .false.
          call get_fields(h0v, dphi, dapar, dbpar, "h")
          ! write(*,*) "old fields: maxval(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
-         ! write(*,*) "got fields. maxval(abs(dphi, dapar, dbpar)) = ", maxval(abs(dphi)), maxval(abs(dapar)), maxval(abs(dbpar))
+         ! write(*,*) "Inh fields. maxval(abs(phi, apar, bpar)) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
 
          ! Calculate df = f_inh = f^n and store in phi, apar, bpar
          dphi = dphi - phi
@@ -1256,6 +1257,7 @@ contains
 
       fields_updated = .false.
       call advance_fields(h, phi, apar, bpar, dist="h")
+      ! write(*,*) "New fields. maxval(abs(phi, apar, bpar)) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
       call get_gbar(h, phi, apar, bpar, g)
 
