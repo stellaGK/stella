@@ -217,7 +217,7 @@ contains
       use stella_geometry, only: dl_over_b
       use dist_fn_arrays, only: gvmu
       use gyro_averages, only: aj0v
-      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h_dummy
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -427,7 +427,7 @@ contains
             !calculate -inv(vpadiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_vpa
                vpadiff_zf_response(idx, 1, ikx) = vpadiff_zf_response(idx, 1, ikx) &
-                                                  - temp_mat(idx, 1) * (efac / gamtot_h) * dl_over_b(ia, iz)
+                                                  - temp_mat(idx, 1) * (efac / gamtot_h_dummy) * dl_over_b(ia, iz)
             end do
          end do
 
@@ -470,7 +470,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use dist_fn_arrays, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
-      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h_dummy
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -677,7 +677,7 @@ contains
             !calculate -inv(mudiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_mu
                mudiff_zf_response(idx, 1, ikx) = mudiff_zf_response(idx, 1, ikx) &
-                                                 - temp_mat(idx, 1) * (efac / gamtot_h) * dl_over_b(ia, iz)
+                                                 - temp_mat(idx, 1) * (efac / gamtot_h_dummy) * dl_over_b(ia, iz)
             end do
          end do
 
@@ -1534,7 +1534,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use g_tofrom_h, only: g_to_h
       use gyro_averages, only: aj0v
-      use fields, only: get_fields, efac, gamtot_h
+      use fields, only: get_fields, efac, gamtot_h_dummy
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -1611,7 +1611,7 @@ contains
                call lu_back_substitution(vpadiff_zf_response(:, :, ikx), vpadiff_zf_idx(:, ikx), &
                                          flds_zf(ikx, it, :))
                !multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / gamtot_h) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / gamtot_h_dummy) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do
@@ -1698,7 +1698,7 @@ contains
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: aj0v, aj1v
       use g_tofrom_h, only: g_to_h
-      use fields, only: get_fields, efac, gamtot_h
+      use fields, only: get_fields, efac, gamtot_h_dummy
       use stella_geometry, only: bmag, dl_over_b
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
@@ -1793,7 +1793,7 @@ contains
                call lu_back_substitution(mudiff_zf_response(:, :, ikx), mudiff_zf_idx(:, ikx), &
                                          flds_zf(ikx, it, :))
                !multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / gamtot_h) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / ) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do
