@@ -1793,7 +1793,7 @@ contains
                call lu_back_substitution(mudiff_zf_response(:, :, ikx), mudiff_zf_idx(:, ikx), &
                                          flds_zf(ikx, it, :))
                !multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / gamtot_h_dummy ) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / gamtot_h_dummy) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do
