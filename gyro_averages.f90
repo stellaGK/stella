@@ -20,7 +20,7 @@ module gyro_averages
       ! This procedure is indistinguishable from gyro_average_kxky_local,
       ! so we can't have it in here.
       ! module procedure gyro_average_vmus_nonlocal_1d
-      module procedure  gyro_average_field_vmu_local
+      module procedure gyro_average_field_vmu_local
       module procedure gyro_average_ffs_kxky_local
       module procedure gyro_average_ffs_kxkyz_local
       module procedure gyro_average_ffs

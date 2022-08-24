@@ -2698,12 +2698,12 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-           if (.not. src_h) then
-              call advance_mirror_implicit(collisions_implicit, g)
-              fields_updated = .false.
-           else
-              call advance_mirror_implicit_src_h(collisions_implicit, g)
-           end if 
+            if (.not. src_h) then
+               call advance_mirror_implicit(collisions_implicit, g)
+               fields_updated = .false.
+            else
+               call advance_mirror_implicit_src_h(collisions_implicit, g)
+            end if
          end if
 
          if (collisions_implicit .and. include_collisions) then
