@@ -522,8 +522,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1037,14 +1037,14 @@ contains
             ! Now get phi, bpar
             if (dist == "gbar") then
                phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-              / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+                     / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
                bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
-                   / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+                      / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
             else if (dist == "h") then
                phi = antot1 / spread(gamtot_h, 4, ntubes)
                bpar = antot3 / bpar_denom_h
             else
-              call mp_abort("dist not recgonised. Aborting")
+               call mp_abort("dist not recgonised. Aborting")
             end if
 
             deallocate (antot1)
@@ -1083,9 +1083,9 @@ contains
             if (dist == "gbar") then
                bpar = bpar / (spread(gamtot33, 4, ntubes))
             else if (dist == "h") then
-              bpar = bpar / bpar_denom_h
+               bpar = bpar / bpar_denom_h
             else
-              call mp_abort("dist not recgonised. Aborting")
+               call mp_abort("dist not recgonised. Aborting")
             end if
             deallocate (g0)
          end if
@@ -1134,7 +1134,7 @@ contains
          else if (dist == "h") then
             apar = apar / (spread(apar_denom_h, 4, ntubes))
          else
-           call mp_abort("dist not recgonised. Aborting")
+            call mp_abort("dist not recgonised. Aborting")
          end if
 
          deallocate (g0)
@@ -1296,9 +1296,9 @@ contains
             ! Now get phi, bpar
             if (dist == "gbar") then
                phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-                   / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+                     / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
                bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
-                   / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+                      / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
             else if (dist == "h") then
                phi = antot1 / spread(gamtot_h, 4, ntubes)
                bpar = antot3 / bpar_denom_h
@@ -1327,9 +1327,9 @@ contains
             if (dist == "gbar") then
                bpar = bpar / (spread(gamtot33, 4, ntubes))
             else if (dist == "h") then
-              bpar = bpar / bpar_denom_h
+               bpar = bpar / bpar_denom_h
             else
-              call mp_abort("dist not recgonised. Aborting")
+               call mp_abort("dist not recgonised. Aborting")
             end if
          end if
 
@@ -1368,7 +1368,7 @@ contains
          else if (dist == "h") then
             apar = apar / (spread(apar_denom_h, 4, ntubes))
          else
-           call mp_abort("dist not recgonised. Aborting")
+            call mp_abort("dist not recgonised. Aborting")
          end if
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -1524,14 +1524,14 @@ contains
             ! Now get phi, bpar
             if (dist == "gbar") then
                phi = (antot1 - gamtot13(iky, ikx, iz) / gamtot33(iky, ikx, iz) * antot3) &
-                     / (gamtot(iky, ikx, iz) - (gamtot13(iky, ikx, iz) *gamtot31(iky, ikx, iz) / gamtot33(iky, ikx, iz)))
+                     / (gamtot(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz) / gamtot33(iky, ikx, iz)))
                bpar = (antot3 - (gamtot31(iky, ikx, iz) / gamtot(iky, ikx, iz)) * antot1) &
                       / (gamtot33(iky, ikx, iz) - (gamtot13(iky, ikx, iz) * gamtot31(iky, ikx, iz)) / gamtot(iky, ikx, iz))
             else if (dist == "h") then
                phi = antot1 / gamtot_h(iky, ikx, iz)
                bpar = antot3 / bpar_denom_h
             else
-              call mp_abort("dist not recgonised. Aborting")
+               call mp_abort("dist not recgonised. Aborting")
             end if
          else
             ! Calculate bpar only. The formulae is
@@ -1550,9 +1550,9 @@ contains
             if (dist == "gbar") then
                bpar = bpar / gamtot33(iky, ikx, iz)
             else if (dist == "h") then
-              bpar = bpar / bpar_denom_h
+               bpar = bpar / bpar_denom_h
             else
-              call mp_abort("dist not recgonised. Aborting")
+               call mp_abort("dist not recgonised. Aborting")
             end if
          end if
 
@@ -1590,7 +1590,7 @@ contains
          else if (dist == "h") then
             apar = apar / apar_denom_h(iky, ikx, iz)
          else
-           call mp_abort("dist not recgonised. Aborting")
+            call mp_abort("dist not recgonised. Aborting")
          end if
       end if
 
@@ -1717,9 +1717,9 @@ contains
             ! Now get phi, bpar
             if (dist == "gbar") then
                phi = (antot1 - gamtot13(iky, ikx, :) / gamtot33(iky, ikx, :) * antot3) &
-                    / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
+                     / (gamtot(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :) / gamtot33(iky, ikx, :)))
                bpar = (antot3 - (gamtot31(iky, ikx, :) / gamtot(iky, ikx, :)) * antot1) &
-                     / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
+                      / (gamtot33(iky, ikx, :) - (gamtot13(iky, ikx, :) * gamtot31(iky, ikx, :)) / gamtot(iky, ikx, :))
             else if (dist == "h") then
                phi = antot1 / gamtot_h(iky, ikx, :)
                bpar = antot3 / bpar_denom_h
@@ -1744,9 +1744,9 @@ contains
             if (dist == "gbar") then
                bpar = bpar / gamtot33(iky, ikx, :)
             else if (dist == "h") then
-              bpar = bpar / bpar_denom_h
+               bpar = bpar / bpar_denom_h
             else
-              call mp_abort("dist not recgonised. Aborting")
+               call mp_abort("dist not recgonised. Aborting")
             end if
          end if
 
@@ -1784,7 +1784,7 @@ contains
          else if (dist == "h") then
             apar = apar / apar_denom_h(iky, ikx, :)
          else
-           call mp_abort("dist not recgonised. Aborting")
+            call mp_abort("dist not recgonised. Aborting")
          end if
 
       end if

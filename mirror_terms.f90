@@ -123,7 +123,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -391,11 +391,11 @@ contains
          mirror_response_matrix_idx = 0
       end if
 
-      allocate (h0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); h0v=0.
-      allocate (h0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); h0x=0.
-      allocate (dphi(naky, nakx, -nzgrid:nzgrid, ntubes)); dphi=0.
-      allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes)); dapar=0.
-      allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes)); dbpar=0.
+      allocate (h0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); h0v = 0.
+      allocate (h0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); h0x = 0.
+      allocate (dphi(naky, nakx, -nzgrid:nzgrid, ntubes)); dphi = 0.
+      allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes)); dapar = 0.
+      allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes)); dbpar = 0.
 
       ifield = 0
       !> Calculate response matrix for each field
@@ -405,7 +405,7 @@ contains
 
          !> Loop over ky, kx, z, s to get h_hom
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            call get_h_hom(ikxkyz, h0v(:,:,ikxkyz), "phi")
+            call get_h_hom(ikxkyz, h0v(:, :, ikxkyz), "phi")
          end do
 
          !> Get the homogeneous fields at all (ky, kx, z)
@@ -418,12 +418,12 @@ contains
 
          if (fapar > epsilon(0.)) then
             jfield = jfield + 1
-            mirror_response_matrix(:, :, :, :, jfield, ifield) = - dapar
+            mirror_response_matrix(:, :, :, :, jfield, ifield) = -dapar
          end if
 
          if (fbpar > epsilon(0.)) then
             jfield = jfield + 1
-            mirror_response_matrix(:, :, :, :, jfield, ifield) = - dbpar
+            mirror_response_matrix(:, :, :, :, jfield, ifield) = -dbpar
          end if
 
       end if
@@ -434,7 +434,7 @@ contains
 
          !> Loop over ky, kx, z, s to get h_hom
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            call get_h_hom(ikxkyz, h0v(:,:,ikxkyz), "apar")
+            call get_h_hom(ikxkyz, h0v(:, :, ikxkyz), "apar")
          end do
 
          !> Get the homogeneous fields at all (ky, kx, z)
@@ -445,7 +445,7 @@ contains
          jfield = 0
          if (fphi > epsilon(0.)) then
             jfield = jfield + 1
-            mirror_response_matrix(:, :, :, :, jfield, ifield) = - dphi
+            mirror_response_matrix(:, :, :, :, jfield, ifield) = -dphi
          end if
 
          jfield = jfield + 1
@@ -453,7 +453,7 @@ contains
 
          if (fbpar > epsilon(0.)) then
             jfield = jfield + 1
-            mirror_response_matrix(:, :, :, :, jfield, ifield) = - dbpar
+            mirror_response_matrix(:, :, :, :, jfield, ifield) = -dbpar
          end if
 
       end if
@@ -464,7 +464,7 @@ contains
 
          !> Loop over ky, kx, z, s to get h_hom
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            call get_h_hom(ikxkyz, h0v(:,:,ikxkyz), "bpar")
+            call get_h_hom(ikxkyz, h0v(:, :, ikxkyz), "bpar")
          end do
 
          !> Get the homogeneous fields at all (ky, kx, z)
@@ -475,12 +475,12 @@ contains
          jfield = 0
          if (fphi > epsilon(0.)) then
             jfield = jfield + 1
-            mirror_response_matrix(:, :, :, :, jfield, ifield) = - dphi
+            mirror_response_matrix(:, :, :, :, jfield, ifield) = -dphi
          end if
 
          if (fapar > epsilon(0.)) then
             jfield = jfield + 1
-            mirror_response_matrix(:, :, :, :, jfield, ifield) = - dapar
+            mirror_response_matrix(:, :, :, :, jfield, ifield) = -dapar
          end if
 
          jfield = jfield + 1
@@ -493,7 +493,7 @@ contains
          do ikx = 1, nakx
             do iz = -nzgrid, nzgrid
                do it = 1, ntubes
-                  write(*,*) "mirror_response_matrix(iky, ikx, iz, it, :, :) = ", mirror_response_matrix(iky, ikx, iz, it, :, :)
+                  write (*, *) "mirror_response_matrix(iky, ikx, iz, it, :, :) = ", mirror_response_matrix(iky, ikx, iz, it, :, :)
                   call lu_decomposition(mirror_response_matrix(iky, ikx, iz, it, :, :), &
                                         mirror_response_matrix_idx(iky, ikx, iz, it, :), dum)
                end do
@@ -501,7 +501,7 @@ contains
          end do
       end do
       ! stop "stopping"
-      deallocate(h0v, h0x, dphi, dapar, dbpar)
+      deallocate (h0v, h0x, dphi, dapar, dbpar)
 
    end subroutine init_mirror_response_matrix_src_h
 
@@ -521,7 +521,7 @@ contains
       implicit none
 
       integer, intent(in) :: ikxkyz
-      complex, dimension(:,:), intent(out) :: h_hom
+      complex, dimension(:, :), intent(out) :: h_hom
       character(*), intent(in) :: field_name
 
       integer :: is, imu, iz, ia
@@ -552,7 +552,7 @@ contains
 
          ! invert_mirror_operator takes rhs of equation and
          ! returns g^{n+1}
-         call invert_mirror_operator(imu, ikxkyz, h_hom(:,imu))
+         call invert_mirror_operator(imu, ikxkyz, h_hom(:, imu))
       end do
 
    end subroutine get_h_hom
@@ -1170,8 +1170,8 @@ contains
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          end if
          !  write(*,*) "Ready to start solving. maxval(hvmu) = ", maxval(abs(hvmu))
-         allocate (h0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); h0v=0.
-         allocate (dchi(nvpa, nmu)); dchi=0.
+         allocate (h0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); h0v = 0.
+         allocate (dchi(nvpa, nmu)); dchi = 0.
          ! allocate (g0x(1, 1, 1, 1, 1))
 
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1182,7 +1182,7 @@ contains
                !!! Get inh. RHS
                ! calculate dg/dvpa
                call fd_variable_upwinding_vpa(1, hvmu(:, imu, ikxkyz), dvpa, &
-                                           mirror_sign(1, iz), vpa_upwind, h0v(:, imu, ikxkyz))
+                                              mirror_sign(1, iz), vpa_upwind, h0v(:, imu, ikxkyz))
                ! construct RHS of GK equation for mirror advance;
                ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
                ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
@@ -1232,7 +1232,7 @@ contains
                !!! Get inh. RHS
                ! calculate dg/dvpa
                call fd_variable_upwinding_vpa(1, hvmu(:, imu, ikxkyz), dvpa, &
-                                           mirror_sign(1, iz), vpa_upwind, h0v(:, imu, ikxkyz))
+                                              mirror_sign(1, iz), vpa_upwind, h0v(:, imu, ikxkyz))
 
                ! call get_gyroaverage_chi(imu, dphi, dapar, dbpar, dchi)
                ! construct RHS of GK equation for mirror advance;
@@ -1294,42 +1294,42 @@ contains
          do ikx = 1, nakx
             do iz = -nzgrid, nzgrid
                do it = 1, ntubes
-                 ! put all the fields into a single field: fields_ext=(phi,apar,bpar)
-                 ifield = 0
-                 if (fphi > epsilon(0.)) then
-                    ifield = ifield + 1
-                    dfield(ifield) = dphi(iky, ikx, iz, it)
-                 end if
-                 if (fapar > epsilon(0.)) then
-                    ifield = ifield + 1
-                    dfield(ifield) = dapar(iky, ikx, iz, it)
-                 end if
-                 if (fbpar > epsilon(0.)) then
-                    ifield = ifield + 1
-                    dfield(ifield) = dbpar(iky, ikx, iz, it)
-                 end if
+                  ! put all the fields into a single field: fields_ext=(phi,apar,bpar)
+                  ifield = 0
+                  if (fphi > epsilon(0.)) then
+                     ifield = ifield + 1
+                     dfield(ifield) = dphi(iky, ikx, iz, it)
+                  end if
+                  if (fapar > epsilon(0.)) then
+                     ifield = ifield + 1
+                     dfield(ifield) = dapar(iky, ikx, iz, it)
+                  end if
+                  if (fbpar > epsilon(0.)) then
+                     ifield = ifield + 1
+                     dfield(ifield) = dbpar(iky, ikx, iz, it)
+                  end if
 
-                 call lu_back_substitution(mirror_response_matrix(iky, ikx, iz, it, :, :), &
-                                        mirror_response_matrix_idx(iky, ikx, iz, it, :), dfield)
-                 ifield = 0
-                 if (fphi > epsilon(0.)) then
-                    ifield = ifield + 1
-                    dphi(iky, ikx, iz, it) = dfield(ifield)
-                 end if
-                 if (fapar > epsilon(0.)) then
-                    ifield = ifield + 1
-                    dapar(iky, ikx, iz, it) = dfield(ifield)
-                 end if
-                 if (fbpar > epsilon(0.)) then
-                    ifield = ifield + 1
-                    dbpar(iky, ikx, iz, it) = dfield(ifield)
-                 end if
+                  call lu_back_substitution(mirror_response_matrix(iky, ikx, iz, it, :, :), &
+                                            mirror_response_matrix_idx(iky, ikx, iz, it, :), dfield)
+                  ifield = 0
+                  if (fphi > epsilon(0.)) then
+                     ifield = ifield + 1
+                     dphi(iky, ikx, iz, it) = dfield(ifield)
+                  end if
+                  if (fapar > epsilon(0.)) then
+                     ifield = ifield + 1
+                     dapar(iky, ikx, iz, it) = dfield(ifield)
+                  end if
+                  if (fbpar > epsilon(0.)) then
+                     ifield = ifield + 1
+                     dbpar(iky, ikx, iz, it) = dfield(ifield)
+                  end if
                end do
             end do
          end do
       end do
 
-      deallocate(dfield)
+      deallocate (dfield)
 
    end subroutine invert_mirror_response
 

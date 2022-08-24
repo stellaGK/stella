@@ -724,9 +724,9 @@ contains
       call get_gbar(h, phi, apar, bpar, g)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
-      deallocate(dphi)
-      deallocate(dapar)
-      deallocate(dbpar)
+      deallocate (dphi)
+      deallocate (dapar)
+      deallocate (dbpar)
 
    end subroutine advance_parallel_streaming_implicit
 
@@ -828,25 +828,25 @@ contains
       ! From gbar source
       if (maxwellian_inside_zed_derivative) then
          call mp_abort("Maxwellian inside zed derivative currently not supported")
-        !    ! From gbar source
-        !    ! ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dchidz
-        !    ! g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-        !    ! call get_dzed(iv, g, dchidz)
-        !    ! ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
-        !    ! g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
-        !    ! call center_zed(iv, g)
-        !    ! ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
-        !    ! ! = d<phi>/dz * exp(-mu*B/T)
-        !    ! dchidz = dchidz + 2.0 * mu(imu) * g
+         !    ! From gbar source
+         !    ! ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dchidz
+         !    ! g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+         !    ! call get_dzed(iv, g, dchidz)
+         !    ! ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
+         !    ! g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
+         !    ! call center_zed(iv, g)
+         !    ! ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
+         !    ! ! = d<phi>/dz * exp(-mu*B/T)
+         !    ! dchidz = dchidz + 2.0 * mu(imu) * g
       else
-        !    ! ! obtain d<phi>/dz and store in dchidz
-        !    ! call get_dzed(iv, g, dchidz)
-        !    ! ! center Maxwellian factor in mu
-        !    ! ! and store in dummy variable gp
+         !    ! ! obtain d<phi>/dz and store in dchidz
+         !    ! call get_dzed(iv, g, dchidz)
+         !    ! ! center Maxwellian factor in mu
+         !    ! ! and store in dummy variable gp
          maxwell_mu_centered = maxwell_mu(ia, :, imu, is)
          call center_zed_midpoint(iv, maxwell_mu_centered)
-        !    ! ! multiply by Maxwellian factor
-        !    ! dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
+         !    ! ! multiply by Maxwellian factor
+         !    ! dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
 
       ! From the gbar source term implementation
@@ -881,7 +881,7 @@ contains
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          h(:, :, iz, :) = h(:, :, iz, :) &
-                          + spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi_factor * chi(:,:,iz,:) &
+                          + spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi_factor * chi(:, :, iz, :) &
                           - fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
       end do
 
