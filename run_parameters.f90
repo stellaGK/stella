@@ -186,6 +186,7 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      call broadcast(src_h)
 
       if (.not. include_mirror) mirror_implicit = .false.
       ! mirror_semi_lagrange is a subset of mirror_implicit

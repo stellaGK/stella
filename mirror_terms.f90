@@ -33,6 +33,7 @@ contains
 
    subroutine init_mirror
 
+      use mp, only: iproc, nproc
       use stella_time, only: code_dt
       use species, only: spec, nspec
       use vpamu_grids, only: nmu
@@ -123,7 +124,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -148,6 +149,7 @@ contains
 
       if (mirror_implicit) then
          if (mirror_semi_lagrange) then
+            write(*,*) "XXX init mirror iproc, nproc, mirror_implicit, mirror_semi_lagrange  = ", iproc, nproc, mirror_implicit, mirror_semi_lagrange
             call init_mirror_semi_lagrange
          else
             !> set up the tridiagonal matrix that must be inverted
@@ -407,10 +409,9 @@ contains
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             call get_h_hom(ikxkyz, h0v(:, :, ikxkyz), "phi")
          end do
-
          !> Get the homogeneous fields at all (ky, kx, z)
-         call get_fields(h0v, dphi, dapar, dbpar, "h")
-         ! write(*,*) "dphi = ", dphi
+         call get_fields(h0v, dphi, dapar, dbpar, "gbar")
+
          !> Store I-df in the response matrix
          !> Populate phi row
          jfield = 1
@@ -500,7 +501,6 @@ contains
             end do
          end do
       end do
-      ! stop "stopping"
       deallocate (h0v, h0x, dphi, dapar, dbpar)
 
    end subroutine init_mirror_response_matrix_src_h
