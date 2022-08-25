@@ -124,7 +124,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -149,7 +149,7 @@ contains
 
       if (mirror_implicit) then
          if (mirror_semi_lagrange) then
-            write(*,*) "XXX init mirror iproc, nproc, mirror_implicit, mirror_semi_lagrange  = ", iproc, nproc, mirror_implicit, mirror_semi_lagrange
+           write (*, *) "XXX init mirror iproc, nproc, mirror_implicit, mirror_semi_lagrange  = ", iproc, nproc, mirror_implicit, mirror_semi_lagrange
             call init_mirror_semi_lagrange
          else
             !> set up the tridiagonal matrix that must be inverted
