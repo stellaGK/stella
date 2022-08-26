@@ -322,9 +322,9 @@ contains
                               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
                               field_period_ratio, x_displacement_fac)
 
-            write (*, *) "############################################################"
-            write (*, *) "                     BOUNDARY CONDITIONS"
-            write (*, *) "############################################################"
+            write (*, '(A)') "############################################################"
+            write (*, '(A)') "                     BOUNDARY CONDITIONS"
+            write (*, '(A)') "############################################################"
             write (*, *)
 
             if ((boundary_option_switch == boundary_option_linked_stellarator) .and. (dkx_over_dky > 0)) then
