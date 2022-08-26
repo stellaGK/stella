@@ -149,7 +149,6 @@ contains
 
       if (mirror_implicit) then
          if (mirror_semi_lagrange) then
-            write(*,*) "XXX init mirror iproc, nproc, mirror_implicit, mirror_semi_lagrange  = ", iproc, nproc, mirror_implicit, mirror_semi_lagrange
             call init_mirror_semi_lagrange
          else
             !> set up the tridiagonal matrix that must be inverted
@@ -1070,7 +1069,6 @@ contains
       allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       call advance_fields(g, phi, apar, bpar, dist='gbar')
-      ! write(*,*) "Old fields. maxval(abs(phi, apar, bpar)) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
       ! save the incoming h, as they will be needed later
@@ -1169,7 +1167,6 @@ contains
             call scatter(kxkyz2vmu, h, hvmu)
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          end if
-         !  write(*,*) "Ready to start solving. maxval(hvmu) = ", maxval(abs(hvmu))
          allocate (h0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); h0v = 0.
          allocate (dchi(nvpa, nmu)); dchi = 0.
          ! allocate (g0x(1, 1, 1, 1, 1))
@@ -1195,25 +1192,14 @@ contains
                call invert_mirror_operator(imu, ikxkyz, h0v(:, imu, ikxkyz))
             end do
          end do
-         ! write(*,*) "inverted mirror operator. maxval(h0v) = ",  maxval(abs(h0v))
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         ! Now get the inhomogeneous df and df using response matrix
-         ! Update fields (to get f_inh)
          fields_updated = .false.
          call get_fields(h0v, dphi, dapar, dbpar, "h")
-         ! write(*,*) "old fields: maxval(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
-         ! write(*,*) "Inh fields. maxval(abs(phi, apar, bpar)) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
 
          ! Calculate df = f_inh = f^n and store in phi, apar, bpar
          dphi = dphi - phi
          dapar = dapar - apar
          dbpar = dbpar - bpar
-         ! write(*,*) "subtracted phi. maxval(abs(dphi, dapar, dbpar)) = ", maxval(abs(dphi)), maxval(abs(dapar)), maxval(abs(dbpar))
-         ! df = R^{-1} df_inh where R calculated in intialisation
          call invert_mirror_response(dphi, dapar, dbpar)
-         ! write(*,*) "inverted mirror response. maxval(abs(dphi, dapar, dbpar)) = ", maxval(abs(dphi)), maxval(abs(dapar)), maxval(abs(dbpar))
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         ! Loop over mu to get & solve the full equation
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
@@ -1248,7 +1234,6 @@ contains
                call invert_mirror_operator(imu, ikxkyz, h0v(:, imu, ikxkyz))
             end do
          end do
-         ! write(*,*) "inverted mirror operator. maxval(abs(h0v)) = ", maxval(abs(h0v))
          ! then take the results and remap again so ky,kx,z local.
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, h0v, h)
@@ -1257,7 +1242,6 @@ contains
 
       fields_updated = .false.
       call advance_fields(h, phi, apar, bpar, dist="h")
-      ! write(*,*) "New fields. maxval(abs(phi, apar, bpar)) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
       call get_gbar(h, phi, apar, bpar, g)
 
