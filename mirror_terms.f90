@@ -149,6 +149,7 @@ contains
 
       if (mirror_implicit) then
          if (mirror_semi_lagrange) then
+           write (*, *) "XXX init mirror iproc, nproc, mirror_implicit, mirror_semi_lagrange  = ", iproc, nproc, mirror_implicit, mirror_semi_lagrange
             call init_mirror_semi_lagrange
          else
             !> set up the tridiagonal matrix that must be inverted
