@@ -392,6 +392,7 @@ contains
       use mp, only: proc0, broadcast, max_allreduce
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use physics_flags, only: nonlinear
       use ran
 
       implicit none
@@ -401,10 +402,11 @@ contains
       integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
       integer :: itmod
 
-      if (naky == 1 .and. nakx == 1) then
+      if ((naky == 1 .and. nakx == 1) .or. (.not. nonlinear)) then
          if (proc0) then
-            write (*, *) 'noise initialization option is not suited for single mode simulations.'
-            write (*, *) 'using default initialization option'
+            write (*, *) 'Noise initialization option is not suited for single mode simulations,'
+            write (*, *) 'or linear simulations, using default initialization option instead.'
+            write (*, *)
          end if
          call ginit_default
          return
