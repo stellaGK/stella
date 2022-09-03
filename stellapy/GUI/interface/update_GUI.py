@@ -23,30 +23,30 @@ def update_GUI(root):
     lengthDivision = int(100/numberOfStatusses)
 
     # Start the progress bar
-    root.tab_Simulations.class_progress.start("Updating GUI");  status=1 
+    root.TabSelectedFiles.class_progress.start("Updating GUI");  status=1 
 
     # First time files are selected: change text on "Select folders" button
     if len(root.input_files)==0:
-        root.tab_Simulations.class_simulations.button_selectFiles['text']   = "Select simulations" 
-        root.tab_Simulations.class_simulations.button_selectFolders['text'] = "Select folders" 
+        root.TabSelectedFiles.class_simulations.button_selectFiles['text']   = "Select simulations" 
+        root.TabSelectedFiles.class_simulations.button_selectFolders['text'] = "Select folders" 
     if len(root.input_files)>0:
-        root.tab_Simulations.class_simulations.button_selectFiles['text']   = "Add more simulations" 
-        root.tab_Simulations.class_simulations.button_selectFolders['text'] = "Add more folders" 
+        root.TabSelectedFiles.class_simulations.button_selectFiles['text']   = "Add more simulations" 
+        root.TabSelectedFiles.class_simulations.button_selectFolders['text'] = "Add more folders" 
     
     # Update the scrollable canvas for the research
-    root.tab_Simulations.class_progress.move(lengthDivision*status,"Updating research list");             status=2
-    root.tab_Simulations.class_research.update_treeView() 
+    root.TabSelectedFiles.class_progress.move(lengthDivision*status,"Updating research list");             status=2
+    root.TabSelectedFiles.class_research.update_treeView() 
         
     # Update the scrollable canvas for the simulations
-    root.tab_Simulations.class_progress.move(lengthDivision*status,"Updating simulation list");             status=2
-    root.tab_Simulations.class_simulations.update_treeView()     
+    root.TabSelectedFiles.class_progress.move(lengthDivision*status,"Updating simulation list");             status=2
+    root.TabSelectedFiles.class_simulations.update_treeView()     
 
     # Update the input and resolution parameters shown in the frames
-    root.tab_Simulations.class_progress.move(lengthDivision*status,"Updating input parameters");            status=4
-    root.tab_Simulations.class_inputParameters.update_frame()
+    root.TabSelectedFiles.class_progress.move(lengthDivision*status,"Updating input parameters");            status=4
+    root.TabSelectedFiles.class_inputParameters.update_frame()
     
     # Finish Progress bar
-    root.tab_Simulations.class_progress.finish()
+    root.TabSelectedFiles.class_progress.finish()
 
     # Update the cursor
     root.config(cursor="")

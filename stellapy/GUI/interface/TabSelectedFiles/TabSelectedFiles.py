@@ -11,7 +11,7 @@ Initiate the frames on the first tab "Simulations".
 
 Absolute path of class TabSelectedFiles:
 ----------------------------------------
-root.tab_Simulations
+root.TabSelectedFiles
     
     
 Attributes: widgets
@@ -30,7 +30,7 @@ class_progress:        Progress
 # Load modules
 import tkinter as tk
 from tkinter import ttk 
-from stellapy.GUI.graph_tools import Progress
+from stellapy.GUI.widgets import Progress
 from .TabSelectedFiles_Research import Research 
 from .TabSelectedFiles_Simulations import Simulations 
 from .TabSelectedFiles_InputParameters import InputParameters
@@ -87,7 +87,14 @@ class TabSelectedFiles:
         #==================================
            
         self.root = tab1.root                   # Needed to center windows based on the root screen
-        dict_awthemes = tab1.root.awthemes      # To make the tk widgets look like the ttk widgets        
+        dict_awthemes = tab1.root.awthemes      # To make the tk widgets look like the ttk widgets       
+        
+        #===========
+        # Variables 
+        #===========
+        
+        # Keep track of the input files that are selected from the file browser
+        self.input_files = []
 
         #======================
         # Create the subframes
@@ -133,7 +140,7 @@ class TabSelectedFiles:
 
         # Show the progress that is being made by the GUI when it runs update_GUI()
         self.frame_progress = ttk.Frame(frame_left)
-        self.class_progress = Progress(self, anchor="fill", length=300)
+        self.class_progress = Progress(self.root, self.frame_progress, anchor="fill", length=300)
         self.class_progress.move(0,"Please select simulations.")  
 
         # Show the input parameters of the selected files  
@@ -171,10 +178,9 @@ class TabSelectedFiles:
         self.frame_species.grid(     in_=frame_right,  row=0, column=0, padx=(5,20), pady=(5,5), sticky='NSEW')
         self.frame_allParam.grid(    in_=frame_right,  row=1, column=0, padx=(5,20), pady=(5,20),sticky='NSEW')
 
-
         # When the tab is visible,  Connect the Progress class to the research object
         def load_progressBar(*args):
-            self.root.Research.Progress = self.class_progress
+            self.root.Progress = self.class_progress
             for experiment in self.root.Research.experiments:
                 experiment.Progress = self.class_progress
                 for simulation in experiment.simulations:
