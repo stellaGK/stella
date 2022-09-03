@@ -1,5 +1,5 @@
 
-from stellapy.config import CONFIG 
+from stellapy.utils.config import CONFIG 
 
 def toggle_verboseOption():
     

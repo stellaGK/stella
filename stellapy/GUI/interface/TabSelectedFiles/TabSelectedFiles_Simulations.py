@@ -10,7 +10,7 @@ the selection in the simulations_frame.
 
 Absolute path of class Simulations
 ----------------------------------
-root.tab_Simulations.class_simulations
+root.TabSelectedFiles.class_simulations
      
 '''
 
@@ -18,11 +18,11 @@ import os, pathlib
 import tkinter as tk
 from bisect import bisect
 from tkinter import ttk
-from stellapy.utils import get_filesInFolder
-from stellapy.config import CONFIG, display_information #@unresolvedimports
-from stellapy.GUI.utils import get_initialDirectory
+from stellapy.utils.files.get_filesInFolder import get_filesInFolder
+from stellapy.utils.config import CONFIG 
 from stellapy.GUI.interface import update_GUI
-from stellapy.GUI.graph_tools.tkfilebrowser.functions import askopendirnames, askopenfilenames 
+from stellapy.GUI.utils import display_information
+from stellapy.GUI.widgets.tkfilebrowser.functions import askopendirnames, askopenfilenames 
 
 ####################################################################
 # INITIALIZE THE FRAME WITH INFORMATION ON THE SELECTED SIMULATIONS
@@ -47,8 +47,8 @@ class Simulations():
     --------------
     root:               Tk()
     tabheader:          ttk.Notebook(root)
-    tab1:               ttk.Frame(tabheader)          
-    frame_left:         ttk.Frame(tab1)
+    tab:               ttk.Frame(tabheader)          
+    frame_left:         ttk.Frame(tab)
     frame_simulation:   ttk.LabelFrame(frame_left)    --> frame
     
       
@@ -71,7 +71,7 @@ class Simulations():
 #                          WIDGETS
 #################################################################
 
-    def __init__(self,tab1):
+    def __init__(self,tab):
         '''
         Initialize the widgets in the "Simulations" LabelFrame of the tab "Simulations".
             - A scrollable canvas which will display the selected simulations
@@ -89,9 +89,9 @@ class Simulations():
         # Safe info from the root so that it can be passed on or used locally
         #====================================================================
         
-        self.tab1 = tab1            
-        self.root = tab1.root 
-        self.frame = tab1.frame_simulation
+        self.tab = tab            
+        self.root = tab.root 
+        self.frame = tab.frame_simulation
                     
         #===========
         # VARIABLES
@@ -100,7 +100,7 @@ class Simulations():
         # Some local variables
         self.tree_folders = []
         self.selected_files = []                      
-        self.initialdir = get_initialDirectory()   
+        self.initialdir = CONFIG['PATHS']['Runs']
         
         #============================
         # WIDGETS CREATION FOR FRAME
@@ -203,7 +203,7 @@ class Simulations():
                 except: pass
                 
                 # Delete the corresponding input file
-                try: self.root.input_files.remove(pathlib.Path(values[1]))
+                try: self.tab.input_files.remove(pathlib.Path(values[1]))
                 except: pass
                 
             # Now delete the parent node
@@ -211,8 +211,8 @@ class Simulations():
             
             # Delete the input file or the folder
             try: # Delete the corresponding input file
-                self.root.input_files.remove(pathlib.Path(values[1]))
-            except: # Detele the folder
+                self.tab.input_files.remove(pathlib.Path(values[1]))
+            except: # Delete the folder
                 index = None
                 for tree_folder in self.tree_folders: 
                     self.tree.selection_set(tree_folder)  
@@ -305,14 +305,15 @@ class Simulations():
         # Choose files and start selection in the standard run folder.
         title           = "Select input file"
         filetypes       = (("in files","*.in"),("all files","*.*")) 
-        selected_files  = askopenfilenames(initialdir=self.initialdir["Files"],title=title,filetypes=filetypes)
+        selected_files  = askopenfilenames(initialdir=self.initialdir,title=title,filetypes=filetypes)
 
         # Update the GUI
         if selected_files is not None:
             if len(selected_files) != 0:
                 selected_files  = [ pathlib.Path(i) for i in selected_files ]
-                self.root.input_files = list(set(self.root.input_files + selected_files))
+                self.tab.input_files = list(set(self.tab.input_files + selected_files))
                 update_GUI(self.root)
+                self.initialdir = "/".join(str(selected_files[0]).split("/")[:-1]) 
         return 
     
     #------------------------
@@ -330,8 +331,7 @@ class Simulations():
 
         # Choose files and start selection in the standard run folder.
         title             = "Select folder"
-        selected_folders  = []
-        selected_folders  = askopendirnames(title=title, initialdir=self.initialdir["Folders"])
+        selected_folders  = askopendirnames(title=title, initialdir=self.initialdir)
 
         # Extract the files in the folder
         if selected_folders is not None:
@@ -341,8 +341,9 @@ class Simulations():
             # Update the GUI
             if selected_files is not None:
                 if len(selected_files) != 0:
-                    self.root.input_files = list(set(self.root.input_files + selected_files))
-                    update_GUI(self.root)   
+                    self.tab.input_files = list(set(self.tab.input_files + selected_files))
+                    update_GUI(self.root) 
+                    self.initialdir = "/".join(str(selected_folders[0]).split("/")[:-1]) 
         return 
     
     #--------------------
@@ -383,10 +384,10 @@ class Simulations():
         self.tree_folders = []
         
         # Remove the labels from the research frame
-        self.root.tab_Simulations.class_research.clear_simulations()
+        self.root.TabSelectedFiles.class_research.clear_simulations()
         
         # Remove the input files
-        self.root.input_files = []
+        self.tab.input_files = []
         
         # Update the GUI
         update_GUI(self.root)
@@ -417,7 +418,7 @@ class Simulations():
         '''
 
         # Only update when there are input files
-        if len(self.root.input_files) != 0:
+        if len(self.tab.input_files) != 0:
     
             # Sort simulations by folder
             unique_folders = self.root.Research.unique_folders

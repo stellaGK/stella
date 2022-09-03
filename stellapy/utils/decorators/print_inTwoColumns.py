@@ -2,7 +2,7 @@
 def print_inTwoColumns(name1, value1, unit1=None, name2=None, value2=None, unit2=None):
     ''' Print two columns of <name> <value> <unit> '''
 
-    from stellapy.utils.decorators.verbose_wrapper import indent
+    from stellapy.utils.decorators.verbose import indent
     
     # Space between {name value} and between the two columns; format for the floats
     spacing1 = '{0:13}  {1:8}  {2:10}'
@@ -34,7 +34,7 @@ def print_inTwoColumns(name1, value1, unit1=None, name2=None, value2=None, unit2
 def print_inTwoColumns2(name1, value1, name2=None, value2=None):
     ''' Print two columns of <name> <dim> ; <name> <vector>'''
 
-    from stellapy.utils.decorators.verbose_wrapper import indent
+    from stellapy.utils.decorators.verbose import indent
     
     # Space between {name value} and between the two columns; format for the floats
     spacing1 = '{0:20}  {1:12}'
@@ -73,7 +73,7 @@ def print_inTwoColumns2(name1, value1, name2=None, value2=None):
 def print_inTwoColumns3(name1, value1, name2=None, value2=None):
     ''' Print two columns of <name> <value> ; <name> <value>'''
 
-    from stellapy.utils.decorators.verbose_wrapper import indent
+    from stellapy.utils.decorators.verbose import indent
     
     # Space between {name value} and between the two columns; format for the floats
     spacing1 = '{0:15}  {1:<8}'
