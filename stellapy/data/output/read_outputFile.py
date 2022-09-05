@@ -1,8 +1,13 @@
 
+#!/usr/bin/python3 
 import copy
+import os, sys
 import numpy as np
 from scipy.io import netcdf as scnetcdf     
-from stellapy.data.stella.load_stellaVariables import stella_variables 
+
+# Stellapy package
+sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])  
+from stellapy.data.stella.load_stellaVariables import stella_variables  
  
 #===============================================================================
 #                               READ THE OUT.NC FILE
