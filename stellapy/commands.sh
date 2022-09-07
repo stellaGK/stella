@@ -59,5 +59,17 @@ alias plot_qflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --qfl
 alias plot_pflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --pflux"  
 alias plot_vflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --vflux"   
 
-
+# Plot flux spectra  
+alias plot_qflux_vs_wavenumber="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --qflux"  
+alias plot_pflux_vs_wavenumber="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --pflux"  
+alias plot_vflux_vs_wavenumber="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --vflux"  
+alias plot_qflux_spectra="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --qflux"  
+alias plot_pflux_spectra="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --pflux"  
+alias plot_vflux_spectra="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --vflux"  
+alias plot_qflux_vs_kx="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --qflux --kx"  
+alias plot_pflux_vs_kx="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --pflux --kx"  
+alias plot_vflux_vs_kx="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --vflux --kx"
+alias plot_qflux_vs_ky="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --qflux --ky"  
+alias plot_pflux_vs_ky="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --pflux --ky"  
+alias plot_vflux_vs_ky="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --vflux --ky"   
  
