@@ -42,13 +42,13 @@ def write_txtFileForOmegaVsTime(folder, dt=1):
                 
         # Check whether we have a linear or nonlinear simulation   
         nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-        
-        # Check how many modes are written 
-        dim_kx, dim_ky = read_numberOfModesFromInputFile(input_file)
-        multiple_modes_per_file = True if (dim_kx*dim_ky>1) else False
 
         # Only write it if we have to
         if already_written==False and nonlinear==False:
+            
+            # Check how many modes are written 
+            dim_kx, dim_ky = read_numberOfModesFromInputFile(input_file)
+            multiple_modes_per_file = True if (dim_kx*dim_ky>1) else False
 
             # Read the omega file and return omega_data[kx,ky,time,{0:kx,1:ky,2:time,3:omega,4:gamma}]
             omega_data = read_omega(input_file) 
