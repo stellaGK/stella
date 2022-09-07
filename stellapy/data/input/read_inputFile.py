@@ -288,6 +288,8 @@ def read_modeFromInputFile(input_file):
         input_text_knob = input_text.split("&kt_grids_range_parameters")[1].split("/")[0] 
         kx = read_floatInput(input_text_knob, 'akx_min')  
         ky = read_floatInput(input_text_knob, 'aky_min')  
+        if kx=="USE DEFAULT": kx = 0  
+        if ky=="USE DEFAULT": ky = 0  
     return kx, ky
 
 def read_numberOfModesFromInputFile(input_file):
@@ -295,7 +297,9 @@ def read_numberOfModesFromInputFile(input_file):
         input_text = input_data.read().replace(' ', '') 
         input_text_knob = input_text.split("&kt_grids_range_parameters")[1].split("/")[0] 
         naky = read_integerInput(input_text_knob, 'naky')  
-        nakx = read_integerInput(input_text_knob, 'nakx')  
+        nakx = read_integerInput(input_text_knob, 'nakx')
+        if nakx=="USE DEFAULT": nakx = 1  
+        if naky=="USE DEFAULT": naky = 1  
     return nakx, naky
 
 def read_vecKxKyFromInputFile(input_file):
@@ -307,6 +311,11 @@ def read_vecKxKyFromInputFile(input_file):
         kx_min = read_floatInput(input_text_knob, 'akx_min')  
         ky_min = read_floatInput(input_text_knob, 'aky_min')
         ky_max = read_floatInput(input_text_knob, 'aky_max')
+        if kx_min=="USE DEFAULT": kx_min = 0  
+        if ky_min=="USE DEFAULT": ky_min = 0  
+        if ky_max=="USE DEFAULT": ky_max = 0  
+        if nakx=="USE DEFAULT": nakx = 1  
+        if naky=="USE DEFAULT": naky = 1  
         if nakx>1: exit_program("Not implemented nakx>1 yet.", read_vecKxKyFromInputFile, sys._getframe().f_lineno) 
         dky = (ky_max - ky_min)/(naky - 1) if naky>1 else 0 
         vec_ky = [ ky_min + dky*i for i in range(naky) ]
@@ -318,6 +327,7 @@ def read_linearNonlinearFromInputFile(input_file):
         input_text = input_data.read().replace(' ', '')
         input_text_knob = input_text.split("&physics_flags")[1].split("/")[0] 
         nonlinear = read_booleanInput(input_text_knob, 'nonlinear')  
+        if nonlinear=="USE DEFAULT": nonlinear = False
     return not nonlinear, nonlinear
 
 def read_vmecFileNameFromInputFile(input_file):
