@@ -7,8 +7,8 @@
 Based on <folder> create a <research> and create a figure with 4 subplots:
     - ax1: gamma(parameter) based on <subplot_gamma_vs_parameter>
     - ax2: omega(parameter) based on <subplot_gamma_vs_parameter --omega>
-    - ax3: gamma(ky) based on <subplot_gamma_vs_ky>
-    - ax4: omega(ky) based on <subplot_gamma_vs_ky --omega>
+    - ax3: gamma(ky) based on <subplot_gamma_vs_wavenumber>
+    - ax4: omega(ky) based on <subplot_gamma_vs_wavenumber --omega>
 
 Hanne Thienpondt
 01/09/2022
@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0]
 from stellapy.plot.linear.gamma_vs_parameter import subplot_gamma_vs_parameter  
 from stellapy.plot.utils.style.create_figure import update_figure_style 
 from stellapy.plot.utils.data.get_rangesKxKy import get_rangesKxKy
-from stellapy.plot.linear.gamma_vs_ky import subplot_gamma_vs_ky
+from stellapy.plot.linear.gamma_vs_wavenumber import subplot_gamma_vs_wavenumber
 from stellapy.simulations.Research import create_research 
 from stellapy.plot.utils.labels import standardParameters 
 from stellapy.utils.commandprompt.bash import Bash
@@ -35,8 +35,8 @@ from stellapy.utils.commandprompt.bash import Bash
 #                            PLOT GAMMA(PARAMETER)                             #
 #===============================================================================
 
-def gamma_overview_specta(folder, parameter="tiprim", 
-        experiment_parameter1="rho", experiment_parameter2="-",
+def plot_gamma_overview_specta(folder, parameter="tiprim", 
+        experiment_parameter1="-", experiment_parameter2="-",
         kx_range=[-999,999], ky_range=[-999,999], modes_id="unstable"): 
      
     # Find the stella knob and key of the given parameter
@@ -45,8 +45,8 @@ def gamma_overview_specta(folder, parameter="tiprim",
     knob2 = standardParameters[experiment_parameter2]["knob"]
     key2 = standardParameters[experiment_parameter2]["key"] 
     
-    # Create a <research> based on the given <folder>
-    research = create_research(folders=folder, knob1=knob1, key1=key1, knob2=knob2, key2=key2) 
+    # Create a <research> based on the given <folder> 
+    research = create_research(folders=folder, knob1=knob1, key1=key1, knob2=knob2, key2=key2)  
     
     # Create a figure
     fig = plt.figure(figsize=(18, 9))
@@ -63,8 +63,8 @@ def gamma_overview_specta(folder, parameter="tiprim",
     subplot_gamma_vs_parameter(ax2, research, parameter, "omega", kx_range, ky_range)  
      
     # Plot gamma(ky) and omega(ky)
-    subplot_gamma_vs_ky(ax3, research, "ky", "gamma", modes_id, kx_range, ky_range) 
-    subplot_gamma_vs_ky(ax4, research, "ky", "omega", modes_id, kx_range, ky_range)  
+    subplot_gamma_vs_wavenumber(ax3, research, "ky", "gamma", modes_id, kx_range, ky_range) 
+    subplot_gamma_vs_wavenumber(ax4, research, "ky", "omega", modes_id, kx_range, ky_range)  
     
     # Show the figure  
     mpl.rcParams["savefig.directory"] = folder   
@@ -79,7 +79,7 @@ def gamma_overview_specta(folder, parameter="tiprim",
 if __name__ == "__main__":    
     
     # Create a bash-like interface
-    bash = Bash(gamma_overview_specta, __doc__)   
+    bash = Bash(plot_gamma_overview_specta, __doc__)   
     
     # Toggle the quantities to be plotted through --kx --omega  
     bash.add_toggle('y_quantity', 'ky', 'Plot ky(parameter).') 
@@ -104,7 +104,7 @@ dkx, dky, Lx, Ly, nfield, pol.turns, nperiod, D_hyper}')
     # Get the bash arguments and execute the script
     args = bash.get_arguments()
     args = get_rangesKxKy(args)
-    gamma_overview_specta(**args)   
+    plot_gamma_overview_specta(**args)   
 
     
     

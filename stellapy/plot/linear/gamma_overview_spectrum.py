@@ -27,7 +27,7 @@ from stellapy.plot.utils.style.create_figure import update_figure_style
 from stellapy.plot.linear.gamma_vs_time import subplot_gamma_vs_time
 from stellapy.plot.linear.dphiz_vs_time import subplot_dphiz_vs_time
 from stellapy.plot.utils.data.get_rangesKxKy import get_rangesKxKy
-from stellapy.plot.linear.gamma_vs_ky import subplot_gamma_vs_ky
+from stellapy.plot.linear.gamma_vs_wavenumber import subplot_gamma_vs_wavenumber
 from stellapy.simulations.Research import create_research 
 from stellapy.plot.utils.labels import standardLabels
 from stellapy.utils.commandprompt.bash import Bash
@@ -36,7 +36,7 @@ from stellapy.utils.commandprompt.bash import Bash
 #               Plot Gamma(ky); Omega(ky); Gamma(t) and dphiz(t)               #
 #===============================================================================
 
-def gamma_overview_spectrum(folder, kx_range=[-999,999], ky_range=[-999,999], 
+def plot_gamma_overview_spectrum(folder, kx_range=[-999,999], ky_range=[-999,999], 
         modes_id="unstable", ignoreResolution=True, folderIsExperiment=False):  
   
     # Create a <research> based on the given <folder>
@@ -53,8 +53,8 @@ def gamma_overview_spectrum(folder, kx_range=[-999,999], ky_range=[-999,999],
     update_figure_style(fig, [ax1, ax2, ax3, ax4])
     
     # Plot gamma(ky) and omega(ky)
-    subplot_gamma_vs_ky(ax1, research, "ky", "gamma", modes_id, kx_range, ky_range) 
-    subplot_gamma_vs_ky(ax2, research, "ky", "omega", modes_id, kx_range, ky_range) 
+    subplot_gamma_vs_wavenumber(ax1, research, "ky", "gamma", modes_id, kx_range, ky_range) 
+    subplot_gamma_vs_wavenumber(ax2, research, "ky", "omega", modes_id, kx_range, ky_range) 
     
     # Plot gamma(t) for the first simulation for each ky 
     subplot_gamma_vs_time(ax3, research, "gamma", modes_id, fontsize=12, kx_range=kx_range, ky_range=ky_range)
@@ -78,7 +78,7 @@ def gamma_overview_spectrum(folder, kx_range=[-999,999], ky_range=[-999,999],
 if __name__ == "__main__":
     
     # Create a bash-like interface
-    bash = Bash(gamma_overview_spectrum, __doc__)  
+    bash = Bash(plot_gamma_overview_spectrum, __doc__)  
     
     # Choose whether we plot the stable, unstable or all modes
     bash.add_option('modes_id', 'str', 'm', 'Choose {unstable, stable, all}.')  
@@ -99,6 +99,6 @@ if __name__ == "__main__":
     # Get the bash arguments and execute the script
     args = bash.get_arguments()
     args = get_rangesKxKy(args)
-    gamma_overview_spectrum(**args)   
+    plot_gamma_overview_spectrum(**args)   
 
      
