@@ -35,10 +35,10 @@ alias plot_spectrum="python3 $STELLAPY/plot/linear/gamma_overview_spectrum.py"
 alias plot_spectra="python3 $STELLAPY/plot/linear/gamma_overview_spectra.py"
 
 # Plot spectra
-alias plot_gamma_vs_kx="python3 $STELLAPY/plot/linear/gamma_vs_ky.py --kx"
-alias plot_gamma_vs_ky="python3 $STELLAPY/plot/linear/gamma_vs_ky.py"
-alias plot_omega_vs_kx="python3 $STELLAPY/plot/linear/gamma_vs_ky.py --kx --omega"
-alias plot_omega_vs_ky="python3 $STELLAPY/plot/linear/gamma_vs_ky.py --omega"
+alias plot_gamma_vs_kx="python3 $STELLAPY/plot/linear/gamma_vs_wavenumber.py --kx"
+alias plot_gamma_vs_ky="python3 $STELLAPY/plot/linear/gamma_vs_wavenumber.py --ky"
+alias plot_omega_vs_kx="python3 $STELLAPY/plot/linear/gamma_vs_wavenumber.py --kx --omega"
+alias plot_omega_vs_ky="python3 $STELLAPY/plot/linear/gamma_vs_wavenumber.py --ky --omega"
 
 # Plot the influence of a parameter on {gamma, omega, ky}
 alias plot_gamma_vs_parameter="python3 $STELLAPY/plot/linear/gamma_vs_parameter.py"
@@ -46,7 +46,7 @@ alias plot_gamma_vs_parameter="python3 $STELLAPY/plot/linear/gamma_vs_parameter.
 # Plot time evolution 
 alias plot_gamma_vs_time="python3 $STELLAPY/plot/linear/gamma_vs_time.py"  
 alias plot_omega_vs_time="python3 $STELLAPY/plot/linear/gamma_vs_time.py --omega"  
-alias plot_dphiz_vs_time="python3 $STELLAPY/plot/linear/gamma_vs_time.py --omega"
+alias plot_dphiz_vs_time="python3 $STELLAPY/plot/linear/dphiz_vs_time.py"
 
 
 #===============================================================================
