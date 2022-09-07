@@ -129,7 +129,7 @@ def get_plottingOption(experiments):
 
 
 #----------------------------------
-def load_labelsLinesMarkers(experiments, varied_values):
+def load_labelsLinesMarkers(experiments, varied_values, return_dictionaries=True):
     """ Load labels, lines, color and markers for the (simulation, groups) combinations.     
 
     Returns
@@ -196,7 +196,7 @@ def load_labelsLinesMarkers(experiments, varied_values):
         line_color = replaceWithCustomLineColors(experiments, line_label, line_color) 
 
     # Return a single choice
-    if experiments==varied_values and len(experiments)==1:
+    if return_dictionaries==False:
         return line_label[varied_values[0]], marker_label[varied_values[0]], line_style[varied_values[0]], line_color[varied_values[0]], marker_style[varied_values[0]], marker_color[varied_values[0]]
     
     # Return the lines/markers labels/styles/colors 
