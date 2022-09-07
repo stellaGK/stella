@@ -10,25 +10,6 @@ help of Jose Manuel Garcia Regaña.
 
 For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 
-#===============================================================================
-#                                  Citations                                   #
-#===============================================================================
-
-If you use stella in your work please cite it according to 
-https://github.com/stellaGK/stella/blob/master/CITATION.cff
-
-If you use stellapy to launch and diagnose your simulations please cite:
-
-  - family-names: Thienpondt
-    given-names: Hanne
-    affiliation: CIEMAT
-    orcid: https://orcid.org/0000-0002-0327-0853
-
-  - family-names: García Regaña
-    given-names: José Manuel
-    affiliation: CIEMAT
-    orcid: https://orcid.org/0000-0001-7632-3357
-
 
 #===============================================================================
 #                             System requirements                              #
