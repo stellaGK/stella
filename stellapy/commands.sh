@@ -47,6 +47,7 @@ alias plot_gamma_vs_parameter="python3 $STELLAPY/plot/linear/gamma_vs_parameter.
 alias plot_gamma_vs_time="python3 $STELLAPY/plot/linear/gamma_vs_time.py"  
 alias plot_omega_vs_time="python3 $STELLAPY/plot/linear/gamma_vs_time.py --omega"  
 alias plot_dphiz_vs_time="python3 $STELLAPY/plot/linear/dphiz_vs_time.py"
+alias plot_potential_vs_time="python3 $STELLAPY/plot/nonlinear/potential_vs_time.py"   
 
 
 #===============================================================================
@@ -57,7 +58,8 @@ alias plot_dphiz_vs_time="python3 $STELLAPY/plot/linear/dphiz_vs_time.py"
 alias plot_flux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py"  
 alias plot_qflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --qflux"  
 alias plot_pflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --pflux"  
-alias plot_vflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --vflux"   
+alias plot_vflux_vs_time="python3 $STELLAPY/plot/nonlinear/flux_vs_time.py --vflux"  
+alias plot_potential_vs_time="python3 $STELLAPY/plot/nonlinear/potential_vs_time.py"    
 
 # Plot flux spectra  
 alias plot_qflux_vs_wavenumber="python3 $STELLAPY/plot/nonlinear/flux_vs_wavenumber.py --qflux"  
