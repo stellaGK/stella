@@ -43,7 +43,7 @@ def plot_potential_vs_time(folder, trange=None, folderIsExperiment=False, zonal=
     research = create_research(folders=folder, resolutionScan=False, ignoreResolution=False, folderIsExperiment=folderIsExperiment) 
     
     # If we have linear simulations, call the linear <potential_vs_time>
-    if research.experiments[0].simulations[0].linear: linear_plot_potential_vs_time(folder, trange, folderIsExperiment, research); return 
+    if research.experiments[0].simulations[0].linear: linear_plot_potential_vs_time(folder, folderIsExperiment, research); return 
         
     # Collect the simulations
     for experiment in research.experiments:
