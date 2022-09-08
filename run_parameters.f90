@@ -20,6 +20,12 @@ module run_parameters
    public :: zed_upwind, vpa_upwind, time_upwind
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
+   public :: use_leapfrog_splitting, leapfrog_nonlinear, leapfrog_drifts
+   public :: nisl_nonlinear
+   public :: add_nl_source_in_real_space
+   public :: no_extra_padding
+   public :: exact_exb_nonlinear_solution
+   public :: exact_exb_nonlinear_solution_first_step
 
    private
 
@@ -35,6 +41,13 @@ module run_parameters
    logical :: mirror_semi_lagrange, mirror_linear_interp
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
+   logical :: use_leapfrog_splitting
+   logical :: add_nl_source_in_real_space
+   logical :: no_extra_padding
+   logical :: leapfrog_nonlinear, leapfrog_drifts
+   logical :: nisl_nonlinear
+   logical :: exact_exb_nonlinear_solution
+   logical :: exact_exb_nonlinear_solution_first_step
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -64,7 +77,7 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface
+      use physics_flags, only: include_mirror, full_flux_surface, nonlinear
 
       implicit none
 
@@ -91,7 +104,11 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real
+         ky_solve_radial, ky_solve_real, &
+         leapfrog_nonlinear, leapfrog_drifts, nisl_nonlinear, &
+         add_nl_source_in_real_space, &
+         no_extra_padding, exact_exb_nonlinear_solution, &
+         exact_exb_nonlinear_solution_first_step
 
       if (proc0) then
          fphi = 1.0
@@ -122,6 +139,24 @@ contains
          mat_read = .false.
          tend = -1.0
          nstep = -1
+         leapfrog_nonlinear = .false.
+         leapfrog_drifts = .false.
+         nisl_nonlinear = .false.
+         add_nl_source_in_real_space = .true.
+         no_extra_padding = .false.
+         exact_exb_nonlinear_solution = .false.
+         exact_exb_nonlinear_solution_first_step = .false.
+
+         if (.not. nonlinear) then
+           nisl_nonlinear = .false.
+           leapfrog_nonlinear = .false.
+         end if
+
+         if (leapfrog_drifts .or. nisl_nonlinear .or. leapfrog_nonlinear) then
+           use_leapfrog_splitting = .true.
+         else
+           use_leapfrog_splitting = .false.
+         end if
 
          in_file = input_unit_exist("knobs", knexist)
          if (knexist) read (unit=in_file, nml=knobs)
@@ -177,6 +212,15 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      call broadcast (use_leapfrog_splitting)
+      call broadcast (leapfrog_nonlinear)
+      call broadcast (leapfrog_drifts)
+      call broadcast (nisl_nonlinear)
+      call broadcast (add_nl_source_in_real_space)
+      call broadcast (no_extra_padding)
+      call broadcast (exact_exb_nonlinear_solution)
+      call broadcast (exact_exb_nonlinear_solution_first_step)
+
 
       if (.not. include_mirror) mirror_implicit = .false.
 

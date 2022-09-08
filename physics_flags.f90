@@ -17,6 +17,9 @@ module physics_flags
    public :: adiabatic_option_switch
    public :: adiabatic_option_fieldlineavg
    public :: const_alpha_geo
+   public :: override_vexb
+   public :: vexb_x
+   public :: vexb_y
 
    private
 
@@ -31,6 +34,9 @@ module physics_flags
    logical :: prp_shear_enabled
    logical :: hammett_flow_shear
    logical :: const_alpha_geo
+   logical :: override_vexb
+   real :: vexb_x
+   real :: vexb_y
 
    integer :: adiabatic_option_switch
    integer, parameter :: adiabatic_option_default = 1, &
@@ -76,7 +82,8 @@ contains
          include_parallel_nonlinearity, include_parallel_streaming, &
          include_mirror, nonlinear, &
          include_pressure_variation, include_geometric_variation, &
-         adiabatic_option, const_alpha_geo
+         adiabatic_option, const_alpha_geo, &
+         override_vexb, vexb_x, vexb_y
 
       if (proc0) then
          full_flux_surface = .false.
@@ -89,7 +96,9 @@ contains
          nonlinear = .false.
          adiabatic_option = 'default'
          const_alpha_geo = .false.
-
+         override_vexb = .false.
+         vexb_x = 0
+         vexb_y = 0
          in_file = input_unit_exist("physics_flags", rpexist)
          if (rpexist) read (unit=in_file, nml=physics_flags)
 
@@ -112,7 +121,10 @@ contains
       call broadcast(nonlinear)
       call broadcast(adiabatic_option_switch)
       call broadcast(const_alpha_geo)
-
+      call broadcast (override_vexb)
+      call broadcast (vexb_x)
+      call broadcast (vexb_y)
+      
    end subroutine read_parameters
 
    subroutine finish_physics_flags

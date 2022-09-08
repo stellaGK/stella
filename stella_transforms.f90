@@ -12,10 +12,16 @@ module stella_transforms
    public :: transform_kx2x_xfirst, transform_x2kx_xfirst
    public :: transform_ky2y_xfirst, transform_y2ky_xfirst
    public :: transform_kalpha2alpha, transform_alpha2kalpha
+   public :: transform_ky2y_extra_padding, transform_kx2x_extra_padding
 
    interface transform_ky2y
       module procedure transform_ky2y_5d
       module procedure transform_ky2y_2d
+   end interface
+
+   interface transform_ky2y_extra_padding
+      module procedure transform_ky2y_5d_extra_padding
+      module procedure transform_ky2y_2d_extra_padding
    end interface
 
    interface transform_y2ky
@@ -27,6 +33,9 @@ module stella_transforms
 
    type(fft_type) :: yf_fft, yb_fft
    type(fft_type) :: xf_fft, xb_fft
+
+   type (fft_type) :: yf_fft_extra_padding, yb_fft_extra_padding
+   type (fft_type) :: xf_fft_extra_padding, xb_fft_extra_padding
 
    type(fft_type) :: yfnp_fft, ybnp_fft
    type(fft_type) :: xfnp_fft, xbnp_fft
@@ -40,6 +49,9 @@ module stella_transforms
 
    complex, dimension(:), allocatable :: fft_y_in, fft_y_out, fft_x_k
    real, dimension(:), allocatable :: fft_x_x
+
+   complex, dimension (:), allocatable :: fft_y_in_extra_padding, fft_y_out_extra_padding, fft_x_k_extra_padding
+   real, dimension (:), allocatable :: fft_x_x_extra_padding
 
    complex, dimension(:), allocatable :: fft_xs_k, fft_xs_x, fft_ys_k
    real, dimension(:), allocatable :: fft_ys_y
@@ -57,6 +69,7 @@ contains
 
       use physics_flags, only: full_flux_surface
       use stella_layouts, only: init_stella_layouts
+      use run_parameters, only: nisl_nonlinear
 
       implicit none
 
@@ -71,7 +84,10 @@ contains
       call init_unpadded_x_fft
       call init_unpadded_y_fft
       if (full_flux_surface) call init_alpha_fft
-
+      if (nisl_nonlinear) then
+        call init_y_fft_extra_padding
+        call init_x_fft_extra_padding
+      end if
    end subroutine init_transforms
 
    subroutine init_y_fft
@@ -113,6 +129,46 @@ contains
       call init_rcfftw(xb_fft, -1, vmu_lo%nx, fft_x_x, fft_x_k)
 
    end subroutine init_x_fft
+
+   subroutine init_y_fft_extra_padding
+
+     use stella_layouts, only: vmu_lo
+     use fft_work, only: init_ccfftw
+
+     implicit none
+
+     logical :: initialized = .false.
+
+     if (initialized) return
+     initialized = .true.
+
+     if (.not.allocated(fft_y_in_extra_padding)) allocate (fft_y_in_extra_padding(2*vmu_lo%ny))
+     if (.not.allocated(fft_y_out_extra_padding)) allocate (fft_y_out_extra_padding(2*vmu_lo%ny))
+
+     call init_ccfftw (yf_fft_extra_padding,  1, 2*vmu_lo%ny, fft_y_in_extra_padding, fft_y_out_extra_padding)
+     call init_ccfftw (yb_fft_extra_padding, -1, 2*vmu_lo%ny, fft_y_in_extra_padding, fft_y_out_extra_padding)
+
+   end subroutine init_y_fft_extra_padding
+
+   subroutine init_x_fft_extra_padding
+
+     use stella_layouts, only: vmu_lo
+     use fft_work, only: init_crfftw, init_rcfftw
+
+     implicit none
+
+     logical :: initialized = .false.
+
+     if (initialized) return
+     initialized = .true.
+
+     if (.not.allocated(fft_x_k_extra_padding)) allocate (fft_x_k_extra_padding(2*(vmu_lo%nx/2+1)))
+     if (.not.allocated(fft_x_x_extra_padding)) allocate (fft_x_x_extra_padding(2*(vmu_lo%nx)))
+
+     call init_crfftw (xf_fft_extra_padding,  1, 2*vmu_lo%nx, fft_x_k_extra_padding, fft_x_x_extra_padding)
+     call init_rcfftw (xb_fft_extra_padding, -1, 2*vmu_lo%nx, fft_x_x_extra_padding, fft_x_k_extra_padding)
+
+   end subroutine init_x_fft_extra_padding
 
    subroutine init_x_xfirst_fft
 
@@ -267,6 +323,74 @@ contains
 
    end subroutine transform_ky2y_2d
 
+   subroutine transform_ky2y_5d_extra_padding (gky_unpad, gy)
+
+     use stella_layouts, only: vmu_lo
+
+     implicit none
+
+     complex, dimension (:,:,-vmu_lo%nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: gky_unpad
+     complex, dimension (:,:,-vmu_lo%nzgrid:,:,vmu_lo%llim_proc:), intent (out) :: gy
+
+     integer :: iky_max, ipad_up
+     integer :: ikx, iz, it, ivmu
+
+     ! first need to pad input array with zeros
+     !
+     iky_max = vmu_lo%naky
+     ! Want an array twice as long as in the ordinary case, with the extra entries
+     ! zeroes in the middle of the array.
+     ipad_up = iky_max+2*vmu_lo%ny-(2*vmu_lo%naky-1)
+
+     ! now fill in non-zero elements of array
+     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        do it = 1, vmu_lo%ntubes
+           do iz = -vmu_lo%nzgrid, vmu_lo%nzgrid
+              do ikx = 1, vmu_lo%nakx/2+1
+                 fft_y_in_extra_padding(iky_max+1:ipad_up) = 0.
+                 fft_y_in_extra_padding(:iky_max) = gky_unpad(:iky_max,ikx,iz,it,ivmu)
+                 fft_y_in_extra_padding(ipad_up+1:) = gky_unpad(iky_max+1:,ikx,iz,it,ivmu)
+                 call dfftw_execute_dft(yf_fft_extra_padding%plan, fft_y_in_extra_padding, fft_y_out_extra_padding)
+                 fft_y_out_extra_padding = fft_y_out_extra_padding*yf_fft_extra_padding%scale
+                 gy(:,ikx,iz,it,ivmu) = fft_y_out_extra_padding
+              end do
+           end do
+        end do
+     end do
+
+   end subroutine transform_ky2y_5d_extra_padding
+
+   subroutine transform_ky2y_2d_extra_padding (gky_unpad, gy)
+
+     use stella_layouts, only: vmu_lo
+
+     implicit none
+
+     complex, dimension (:,:), intent (in) :: gky_unpad
+     complex, dimension (:,:), intent (out) :: gy
+
+     integer :: iky_max, ipad_up
+     integer :: ikx
+
+     ! first need to pad input array with zeros
+     iky_max = vmu_lo%naky
+     ! Want an array twice as long as in the ordinary case, with the extra entries
+     ! zeroes in the middle of the array.
+     ipad_up = iky_max+2*vmu_lo%ny-(2*vmu_lo%naky-1)
+ !    fft_y_in(iky_max+1:ipad_up) = 0.
+
+     ! now fill in non-zero elements of array
+     do ikx = 1, vmu_lo%nakx/2+1
+        fft_y_in_extra_padding(iky_max+1:ipad_up) = 0.
+        fft_y_in_extra_padding(:iky_max) = gky_unpad(:iky_max,ikx)
+        fft_y_in_extra_padding(ipad_up+1:) = gky_unpad(iky_max+1:,ikx)
+        call dfftw_execute_dft(yf_fft_extra_padding%plan, fft_y_in_extra_padding, fft_y_out_extra_padding)
+        fft_y_out_extra_padding = fft_y_out_extra_padding*yf_fft_extra_padding%scale
+        gy(:,ikx) = fft_y_out_extra_padding
+     end do
+
+   end subroutine transform_ky2y_2d_extra_padding
+
    subroutine transform_y2ky_5d(gy, gky)
 
       use stella_layouts, only: vmu_lo
@@ -345,6 +469,32 @@ contains
       end do
 
    end subroutine transform_kx2x
+
+   subroutine transform_kx2x_extra_padding (gkx, gx)
+
+     use stella_layouts, only: vmu_lo
+
+     implicit none
+
+     complex, dimension (:,:), intent (in) :: gkx
+     real, dimension (:,:), intent (out) :: gx
+
+     integer :: iy
+
+     ! now fill in non-zero elements of array
+     ! There are 2*ny rows in the extra padded version
+     do iy = 1, 2*vmu_lo%ny
+        ! first need to pad input array with zeros
+        ! Add zeroes onto the end of the array so looks like we don't need to make
+        ! changes compared to the normal version
+        fft_x_k_extra_padding(vmu_lo%nakx/2+2:) = 0.
+        fft_x_k_extra_padding(:vmu_lo%nakx/2+1) = gkx(iy,:)
+        call dfftw_execute_dft_c2r(xf_fft_extra_padding%plan, fft_x_k_extra_padding, fft_x_x_extra_padding)
+        fft_x_x_extra_padding = fft_x_x_extra_padding*xf_fft_extra_padding%scale
+        gx(iy,:) = fft_x_x_extra_padding
+     end do
+
+   end subroutine transform_kx2x_extra_padding
 
    subroutine transform_x2kx(gx, gkx)
 
@@ -571,7 +721,7 @@ contains
    subroutine finish_transforms
 
       use physics_flags, only: full_flux_surface
-
+      use run_parameters, only: nisl_nonlinear
       implicit none
 
       call dfftw_destroy_plan(yf_fft%plan)
@@ -590,6 +740,12 @@ contains
          call dfftw_destroy_plan(alpha_f_fft%plan)
          call dfftw_destroy_plan(alpha_b_fft%plan)
       end if
+      if (nisl_nonlinear) then
+        call dfftw_destroy_plan (yf_fft_extra_padding%plan)
+        call dfftw_destroy_plan (yb_fft_extra_padding%plan)
+        call dfftw_destroy_plan (xf_fft_extra_padding%plan)
+        call dfftw_destroy_plan (xb_fft_extra_padding%plan)
+      end if
       if (allocated(fft_y_in)) deallocate (fft_y_in)
       if (allocated(fft_y_out)) deallocate (fft_y_out)
       if (allocated(fft_x_k)) deallocate (fft_x_k)
@@ -604,6 +760,10 @@ contains
       if (allocated(fftnp_y_y)) deallocate (fftnp_y_y)
       if (allocated(fftnp_x_k)) deallocate (fftnp_x_k)
       if (allocated(fftnp_x_x)) deallocate (fftnp_x_x)
+      if (allocated(fft_y_in_extra_padding)) deallocate (fft_y_in_extra_padding)
+      if (allocated(fft_y_out_extra_padding)) deallocate (fft_y_out_extra_padding)
+      if (allocated(fft_x_k_extra_padding)) deallocate (fft_x_k_extra_padding)
+      if (allocated(fft_x_x_extra_padding)) deallocate (fft_x_x_extra_padding)
       transforms_initialized = .false.
 
    end subroutine finish_transforms
