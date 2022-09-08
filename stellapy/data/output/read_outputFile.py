@@ -3,26 +3,22 @@
 import copy
 import os, sys
 import numpy as np
+import netCDF4 as nc4  
 from scipy.io import netcdf as scnetcdf     
 
 # Stellapy package
 sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])  
-from stellapy.data.stella.load_stellaVariables import stella_variables  
+from stellapy.data.stella.load_stellaVariables import stella_variables 
  
 #===============================================================================
 #                               READ THE OUT.NC FILE
 #===============================================================================
 
 def read_outputFile(netcdf_path):
-    ''' Normally we read with the 'scnetcdf' package, however when the netcdf file
-    is bugged/corrupted this will fail and we need to use the 'nc4' package instead. '''
-    try: 
-        netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
-    except: 
-        import netCDF4 as nc4 
-        print("WARNING: THE NETCDF FILE IS CORRUPTED")
-        print("    ", netcdf_path)
-        netcdf_file = nc4.Dataset(netcdf_path)  
+    ''' Since a stella update around summer 2022, there are two unlimited variables  
+    in the netcdf file and <scnetcdf> will no longer work.'''
+    try: netcdf_file = nc4.Dataset(netcdf_path)  
+    except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
     return netcdf_file
 
 
