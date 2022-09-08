@@ -73,7 +73,6 @@ contains
 
       if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
 
-
          !> all periodic modes (e.g., the zonal mode) have no connections
          do iky = 1, naky
             if (periodic(iky)) then
