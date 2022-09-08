@@ -99,6 +99,10 @@ class Bash():
                         a = arg.split("[")[-1].split(",")[0]
                         b = arg.split("]")[0].split(",")[-1]
                         self.arguments[option.name] = [a,b]
+                    elif "(" in arg:  
+                        a = arg.split("(")[-1].split(",")[0]
+                        b = arg.split(")")[0].split(",")[-1]
+                        self.arguments[option.name] = [a,b]
                     elif "[" not in arg:
                         a = arg.split(" ")[0]
                         b = arg.split(" ")[-1]
