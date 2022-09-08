@@ -148,14 +148,14 @@ contains
          exact_exb_nonlinear_solution_first_step = .false.
 
          if (.not. nonlinear) then
-           nisl_nonlinear = .false.
-           leapfrog_nonlinear = .false.
+            nisl_nonlinear = .false.
+            leapfrog_nonlinear = .false.
          end if
 
          if (leapfrog_drifts .or. nisl_nonlinear .or. leapfrog_nonlinear) then
-           use_leapfrog_splitting = .true.
+            use_leapfrog_splitting = .true.
          else
-           use_leapfrog_splitting = .false.
+            use_leapfrog_splitting = .false.
          end if
 
          in_file = input_unit_exist("knobs", knexist)
@@ -212,15 +212,14 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
-      call broadcast (use_leapfrog_splitting)
-      call broadcast (leapfrog_nonlinear)
-      call broadcast (leapfrog_drifts)
-      call broadcast (nisl_nonlinear)
-      call broadcast (add_nl_source_in_real_space)
-      call broadcast (no_extra_padding)
-      call broadcast (exact_exb_nonlinear_solution)
-      call broadcast (exact_exb_nonlinear_solution_first_step)
-
+      call broadcast(use_leapfrog_splitting)
+      call broadcast(leapfrog_nonlinear)
+      call broadcast(leapfrog_drifts)
+      call broadcast(nisl_nonlinear)
+      call broadcast(add_nl_source_in_real_space)
+      call broadcast(no_extra_padding)
+      call broadcast(exact_exb_nonlinear_solution)
+      call broadcast(exact_exb_nonlinear_solution_first_step)
 
       if (.not. include_mirror) mirror_implicit = .false.
 
