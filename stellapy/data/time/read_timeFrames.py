@@ -1,7 +1,13 @@
-  
+
+#!/usr/bin/python3  
+import sys, os
 import numpy as np
-import os, configparser
+import configparser
 from datetime import datetime   
+
+# Stellapy package
+sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])   
+from stellapy.utils.decorators.exit_program import exit_program
 
 #===============================================================================
 #                              READ THE TIME FRAMES                            #
@@ -23,7 +29,12 @@ def read_timeFrames(self):
     self.section = self.file[self.timeframe]
     
     # Get tstart and tend
-    self.tstart, self.tend = get_tstartAndTend(self.timeframe, self.fluxes.qflux_vs_ts.t)
+    try: self.tstart, self.tend = get_tstartAndTend(self.timeframe, self.fluxes.qflux_vs_ts.t)
+    except: 
+        exit_reason = "The time frame in the timeFrames.ini file doesn't work, \n"
+        exit_reason += "correct it or remove the timeFrames.ini file inside: \n"
+        exit_reason += str(self.path.folder)
+        exit_program(exit_reason, read_timeFrames, sys._getframe().f_lineno)
     
 #===============================================================================
 #                             GET TSTART AND TEND                              #
@@ -31,7 +42,7 @@ def read_timeFrames(self):
 
 def get_tstartAndTend(timeframe, vec_time):
     
-    # Get [tstart, tend] from the "timeframe" file 
+    # Get [tstart, tend] from the "timeframe" file  
     tstart, tend = timeframe.replace(" ","").replace("%%","%").split("(")[-1].split(")")[0].split(",")
     
     # Make sure the times represent an actual time in vec_time
