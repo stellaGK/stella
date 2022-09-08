@@ -20,6 +20,15 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 * TCL 8.6 (check with >>> python3 >>> import tkinter >>> tkinter.TclVersion)
 * matplotlib, h5py, scipy, netCDF4, screeninfo, babel
 
+     
+#===============================================================================
+#                                     Notes                                    #
+#===============================================================================
+- EXPORT commands are used, hence it is important to work in bash.
+- It is crucial that the folder is named "stellapy".
+- Before plotting, use "write_dataFiles" to make sure all files are present.
+- The linear part of stellapy assumes naky = nakx = 1 for most scripts.
+
 
 #===============================================================================
 #                             Python installation                              #
@@ -118,6 +127,4 @@ Alternatively, the GUI can be executed from the command prompt through:
     >>> stellaplotter
     >>> stellaplotter_linear           
     >>> stellaplotter_nonlinear     
-
-     
 
