@@ -5,14 +5,22 @@
 #===============================================================================      
 
 Hanne Thienpondt
-19/08/2022
+08/09/2022
 
 """
 
+#!/usr/bin/python3 
 import h5py
 import sys, os
 import numpy as np
 from scipy.io import netcdf as scnetcdf   
+
+# Stellapy package
+sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])  
+from stellapy.data.output.read_outputFile import read_outputFile 
+from stellapy.data.output.read_outputFile import read_netcdfVariables
+from stellapy.data.input.read_inputFile import read_vecKxKyFromInputFile
+from stellapy.data.input.read_inputFile import read_numberOfModesFromInputFile
 from stellapy.data.potential import load_potentialObject
 from stellapy.data.paths.load_pathObject import load_pathObject
 from stellapy.data.input.load_inputObject import load_inputObject
@@ -27,9 +35,6 @@ from stellapy.data.lineardata.load_lineardataObject import load_linearDataObject
 from stellapy.data.referenceunits.load_referenceObject import load_referenceObject
 from stellapy.data.distribution.load_distributionObject import load_distributionObject
 from stellapy.simulations.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime
-from stellapy.data.input.read_inputFile import read_vecKxKyFromInputFile
-from stellapy.data.input.read_inputFile import read_numberOfModesFromInputFile
-from stellapy.data.output.read_outputFile import read_netcdfVariables 
  
 ################################################################################
 #                                CREATE MODES                                  #
@@ -81,10 +86,11 @@ def create_modes(input_files, simulation, write_uniqueFiles):
                     vec_ky = f["vec_ky"][()] 
                     vectors_per_input_file[input_file] = [vec_kx, vec_ky]
             elif os.path.isfile(mode.input_file.with_suffix(".out.nc")):
-                with scnetcdf.netcdf_file(mode.input_file.with_suffix(".out.nc"),'r') as f:
-                    vec_kx = read_netcdfVariables('vec_kx', f)
-                    vec_ky = read_netcdfVariables('vec_ky', f) 
-                    vectors_per_input_file[input_file] = [vec_kx, vec_ky]
+                netcdf_file = read_outputFile(mode.input_file.with_suffix(".out.nc"))   
+                vec_kx = read_netcdfVariables('vec_kx', netcdf_file)
+                vec_ky = read_netcdfVariables('vec_ky', netcdf_file) 
+                vectors_per_input_file[input_file] = [vec_kx, vec_ky]
+                netcdf_file.close()
             mode.kx = vec_kx[mode.ikx]
             mode.ky = vec_ky[mode.iky]   
             
