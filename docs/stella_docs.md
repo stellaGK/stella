@@ -9,7 +9,8 @@ author_description:
     file](https://github.com/stellaGK/stella/blob/master/CITATION.cff)
     for a complete list
 src_dir: ..
-page_dir: pages
+page_dir: user
+          developer
 exclude_dir: ../externals
              ../tests
              ./html
