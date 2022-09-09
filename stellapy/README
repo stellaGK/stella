@@ -104,6 +104,11 @@ load the python virtual environment and the stellapy package:
 5. Perform ">>> source ~/.alias" in the command prompt. The stellapy package should 
 now be working, the GUI does not work on marconi since the TCL version is outdated.
 
+6. If you see the error "ImportError: Cannot load backend 'TkAgg' which requires the 
+'tk' interactive framework, as 'headless' is currently running" then add the flag "-Y"
+to your ssh command e.g. "ssh -Y user@login.marconi.cineca.it" which seems to be 
+a macOS problem. Also make sure matplotlib is version 3.3.4. 
+
 
 #===============================================================================
 #                                 Stellapy GUI                                 #
