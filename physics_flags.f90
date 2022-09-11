@@ -121,10 +121,10 @@ contains
       call broadcast(nonlinear)
       call broadcast(adiabatic_option_switch)
       call broadcast(const_alpha_geo)
-      call broadcast (override_vexb)
-      call broadcast (vexb_x)
-      call broadcast (vexb_y)
-      
+      call broadcast(override_vexb)
+      call broadcast(vexb_x)
+      call broadcast(vexb_y)
+
    end subroutine read_parameters
 
    subroutine finish_physics_flags
