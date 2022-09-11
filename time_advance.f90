@@ -1000,7 +1000,6 @@ contains
          ! Might need to expand this logic
          leapfrog_this_timestep = .true.
       end if
-
       if (leapfrog_this_timestep) then
          call advance_leapfrog_step(time_advance_successful, restart_time_step)
       end if
@@ -1135,10 +1134,8 @@ contains
      reverse_implicit_order = .false.
      ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
      call advance_explicit (golder, restart_time_step)
-
      if (.not. restart_time_step) then
        ! NB reverse_implicit_order is .false. at this point
-       call advance_implicit (phi, apar, reverse_implicit_order, golder)
        call advance_implicit (phi, apar, reverse_implicit_order, golder)
        ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
        ! operators) and gnew = g^{n}. It returns gnew = golder + 2*rhs(gnew)
@@ -2360,7 +2357,6 @@ contains
      if (proc0) call time_message(.false.,time_gke(:,7),' ExB nonlinear advance, nisl')
 
      if (debug) write (*,*) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
-
      ! Assume no perp shear; yfirst = true
 
      single_step_local = .false.
@@ -2386,7 +2382,6 @@ contains
      allocate (g0kxy_extra_padding(2*ny,ikx_max))
 
      ia=1
-
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
        imu = imu_idx(vmu_lo,ivmu)
        is = is_idx(vmu_lo,ivmu)
@@ -2430,7 +2425,6 @@ contains
 
            ! Step 2) Get golder(x,y)
            call forward_transform(golder(:,:,iz,it,ivmu),golderxy)
-
            if (single_step_local) then
              max_velocity_x = dx/(2*code_dt)
              max_velocity_y = dy/(2*code_dt)
@@ -2595,7 +2589,6 @@ contains
        golder(1,:,-nzgrid,:,ivmu) = 0.5*(golder(1,:,nzgrid,:,ivmu)+golder(1,:,-nzgrid,:,ivmu))
        golder(1,:,nzgrid,:,ivmu) = golder(1,:,-nzgrid,:,ivmu)
      end do
-
      deallocate (g0k, dgold_dx, dgold_dy, vchiold_x, vchiold_y, golderxy)
      if (allocated(g0k_swap)) deallocate(g0k_swap)
      if (allocated(g0kxy)) deallocate(g0kxy)
