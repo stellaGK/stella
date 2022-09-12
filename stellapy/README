@@ -47,6 +47,7 @@ it is required to install a virtual python environment through:
     >>> ~/my_pyth/bin/python3 -m pip install --upgrade pip
 
 On both the local computer and Marconi, the python packages can now be installed:
+    >>> pip3 install numpy
     >>> pip3 install matplotlib
     >>> pip3 install h5py
     >>> pip3 install scipy
