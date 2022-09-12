@@ -54,6 +54,10 @@ On both the local computer and Marconi, the python packages can now be installed
     >>> pip3 install netCDF4
     >>> pip3 install screeninfo
     >>> pip3 install babel 
+    
+If you get the error "no module named '_tkinter'" then try
+    >>> sudo apt-get install python3-tk
+    >>> brew install python-tk
 
 
 #===============================================================================
