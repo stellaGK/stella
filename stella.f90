@@ -192,6 +192,10 @@ contains
       call read_multibox_parameters
       if (debug) write (6, *) "stella::init_stella::read_stella_diagnostics_knobs"
       call read_stella_diagnostics_knobs
+      !> read knobs namelist from the input file
+      !> and the info to determine the mixture of implicit and explicit time advance
+      if (debug) write (6, *) "stella::init_stella::init_run_parameters"
+      call init_run_parameters      
       !> setup the various data layouts for the distribution function;
       !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       !> amongst processors, depending on the number of phase space points and processors
@@ -217,10 +221,6 @@ contains
       !> and prepare for reading in from restart file if requested
       if (debug) write (6, *) "stella::init_stella::init_init_g"
       call init_init_g
-      !> read knobs namelist from the input file
-      !> and the info to determine the mixture of implicit and explicit time advance
-      if (debug) write (6, *) "stella::init_stella::init_run_parameters"
-      call init_run_parameters
 
       if (debug) write (6, *) "stella::init_stella::init_ranf"
       n = get_rnd_seed_length()
