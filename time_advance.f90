@@ -1120,58 +1120,58 @@ contains
       !    runge_kutta_terms_this_timestep = .false.
       ! end if
 
-     ! Try taking a leapfrog step, but if dt is reset, we can't take a Leapfrog
-     ! step (need to do an "ordinary" single-step approach).
-     ! Need to check if dt is reset after the explicit step, and after the
-     ! Leapfrog step - either could contain the nonlinearity, so either could
-     ! cause dt to be reset.
+      ! Try taking a leapfrog step, but if dt is reset, we can't take a Leapfrog
+      ! step (need to do an "ordinary" single-step approach).
+      ! Need to check if dt is reset after the explicit step, and after the
+      ! Leapfrog step - either could contain the nonlinearity, so either could
+      ! cause dt to be reset.
 
-     ! We advance golder by a step; we need to get the fields at golder, so
-     ! set the flag to ensure fields get re-calculated. NB we could skip the
-     ! field solve because these fields have been calculated previously, but at the
-     ! expense of memory (storing another set of fields) and code refactoring
-     fields_updated = .false.
-     reverse_implicit_order = .false.
-     ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
-     call advance_explicit (golder, restart_time_step)
-     if (.not. restart_time_step) then
-       ! NB reverse_implicit_order is .false. at this point
-       call advance_implicit (phi, apar, reverse_implicit_order, golder)
-       ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
-       ! operators) and gnew = g^{n}. It returns gnew = golder + 2*rhs(gnew)
-       ! To get rhs(gnew), we need the fields at gnew; set the flag to ensure
-       ! fields get re-calculated.
-       ! NB we could skip the
-       ! field solve because these fields have been calculated previously, but at the
-       ! expense of memory (storing another set of fields) and code refactoring
-       fields_updated = .false.
-       call advance_leapfrog(gold, golder, restart_time_step)
+      ! We advance golder by a step; we need to get the fields at golder, so
+      ! set the flag to ensure fields get re-calculated. NB we could skip the
+      ! field solve because these fields have been calculated previously, but at the
+      ! expense of memory (storing another set of fields) and code refactoring
+      fields_updated = .false.
+      reverse_implicit_order = .false.
+      ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
+      call advance_explicit(golder, restart_time_step)
+      if (.not. restart_time_step) then
+         ! NB reverse_implicit_order is .false. at this point
+         call advance_implicit(phi, apar, reverse_implicit_order, golder)
+         ! advance_leapfrog uses the updated golder (g^{n-1} advanced by single step
+         ! operators) and gnew = g^{n}. It returns gnew = golder + 2*rhs(gnew)
+         ! To get rhs(gnew), we need the fields at gnew; set the flag to ensure
+         ! fields get re-calculated.
+         ! NB we could skip the
+         ! field solve because these fields have been calculated previously, but at the
+         ! expense of memory (storing another set of fields) and code refactoring
+         fields_updated = .false.
+         call advance_leapfrog(gold, golder, restart_time_step)
 
-       if (.not. restart_time_step) then
-         reverse_implicit_order = .true.  ! Swap the order in which we apply the implicit operators
-         ! if (.not.none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, golder)
-         ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
-         call advance_implicit (phi, apar, reverse_implicit_order, golder)
-         call advance_explicit (golder, restart_time_step)
-       end if
-     end if
+         if (.not. restart_time_step) then
+            reverse_implicit_order = .true.  ! Swap the order in which we apply the implicit operators
+            ! if (.not.none_implicit) call advance_implicit (phi, apar, reverse_implicit_order, golder)
+            ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
+            call advance_implicit(phi, apar, reverse_implicit_order, golder)
+            call advance_explicit(golder, restart_time_step)
+         end if
+      end if
 
-     if (restart_time_step) then
-       ! Need to re-do the step with Lie splitting
-       ! This flag tells us we need to treat whatever terms we were going to
-       ! treat with the leapfrog approach with a non-leapfrog scheme.
-       ! leapfrog_this_timestep = .false.
-       ! runge_kutta_terms_this_timestep = .true.
-       leapfrog_this_timestep = .false.
-     else
-       time_advance_successful = .true.
-       ! Update gnew
-       gnew = golder
-     end if
+      if (restart_time_step) then
+         ! Need to re-do the step with Lie splitting
+         ! This flag tells us we need to treat whatever terms we were going to
+         ! treat with the leapfrog approach with a non-leapfrog scheme.
+         ! leapfrog_this_timestep = .false.
+         ! runge_kutta_terms_this_timestep = .true.
+         leapfrog_this_timestep = .false.
+      else
+         time_advance_successful = .true.
+         ! Update gnew
+         gnew = golder
+      end if
 
-     ! We're either discarding changes to gnew and starting or we're got a new
-     ! distribution function, so fields will need to be updated.
-     fields_updated = .false.
+      ! We're either discarding changes to gnew and starting or we're got a new
+      ! distribution function, so fields will need to be updated.
+      fields_updated = .false.
 
    end subroutine advance_leapfrog_step
 
