@@ -195,7 +195,7 @@ contains
       !> read knobs namelist from the input file
       !> and the info to determine the mixture of implicit and explicit time advance
       if (debug) write (6, *) "stella::init_stella::init_run_parameters"
-      call init_run_parameters      
+      call init_run_parameters
       !> setup the various data layouts for the distribution function;
       !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       !> amongst processors, depending on the number of phase space points and processors
