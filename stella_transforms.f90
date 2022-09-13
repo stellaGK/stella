@@ -381,11 +381,9 @@ contains
 
       ! now fill in non-zero elements of array
       do ikx = 1, vmu_lo%nakx / 2 + 1
-         ! Problem between this point and next comment
          fft_y_in_extra_padding(iky_max + 1:ipad_up) = 0.
          fft_y_in_extra_padding(:iky_max) = gky_unpad(:iky_max, ikx)
          fft_y_in_extra_padding(ipad_up + 1:) = gky_unpad(iky_max + 1:, ikx)
-         ! Problem between this point and previous comment
          call dfftw_execute_dft(yf_fft_extra_padding%plan, fft_y_in_extra_padding, fft_y_out_extra_padding)
          fft_y_out_extra_padding = fft_y_out_extra_padding * yf_fft_extra_padding%scale
          gy(:, ikx) = fft_y_out_extra_padding

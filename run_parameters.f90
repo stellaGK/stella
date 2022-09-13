@@ -22,6 +22,7 @@ module run_parameters
    public :: rng_seed
    public :: use_leapfrog_splitting, leapfrog_nonlinear, leapfrog_drifts
    public :: nisl_nonlinear
+   public :: isl_nonlinear
    public :: add_nl_source_in_real_space
    public :: no_extra_padding
    public :: exact_exb_nonlinear_solution
@@ -45,7 +46,7 @@ module run_parameters
    logical :: add_nl_source_in_real_space
    logical :: no_extra_padding
    logical :: leapfrog_nonlinear, leapfrog_drifts
-   logical :: nisl_nonlinear
+   logical :: nisl_nonlinear, isl_nonlinear
    logical :: exact_exb_nonlinear_solution
    logical :: exact_exb_nonlinear_solution_first_step
    real :: avail_cpu_time
@@ -106,6 +107,7 @@ contains
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
          ky_solve_radial, ky_solve_real, &
          leapfrog_nonlinear, leapfrog_drifts, nisl_nonlinear, &
+         isl_nonlinear, &
          add_nl_source_in_real_space, &
          no_extra_padding, exact_exb_nonlinear_solution, &
          exact_exb_nonlinear_solution_first_step
@@ -142,6 +144,7 @@ contains
          leapfrog_nonlinear = .false.
          leapfrog_drifts = .false.
          nisl_nonlinear = .false.
+         isl_nonlinear = .false.
          add_nl_source_in_real_space = .true.
          no_extra_padding = .false.
          exact_exb_nonlinear_solution = .false.
@@ -205,6 +208,7 @@ contains
       call broadcast(leapfrog_nonlinear)
       call broadcast(leapfrog_drifts)
       call broadcast(nisl_nonlinear)
+      call broadcast(isl_nonlinear)
       call broadcast(add_nl_source_in_real_space)
       call broadcast(no_extra_padding)
       call broadcast(exact_exb_nonlinear_solution)
@@ -212,9 +216,10 @@ contains
 
       if (.not. nonlinear) then
          nisl_nonlinear = .false.
+         isl_nonlinear = .false.
          leapfrog_nonlinear = .false.
       end if
-      if (leapfrog_drifts .or. nisl_nonlinear .or. leapfrog_nonlinear) then
+      if (leapfrog_drifts .or. nisl_nonlinear .or. leapfrog_nonlinear .or. isl_nonlinear) then
          use_leapfrog_splitting = .true.
       else
          use_leapfrog_splitting = .false.
