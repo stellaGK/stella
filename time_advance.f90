@@ -3052,6 +3052,13 @@ contains
                call transform_y2ky(g0kxy, g0k_swap)
                call swap_kxky_back(g0k_swap, golder(:, :, iz, it, ivmu))
 
+               ! !! Invert rhs_array to get rhs_array in Fourier space
+               !     if (.not. add_nl_source_in_real_space) then
+               !        call transform_x2kx(rhs_array, g0kxy)
+               !        call transform_y2ky(g0kxy, g0k_swap)
+               !        call swap_kxky_back(g0k_swap, rhs_array_fourier)
+               !        golder(:, :, iz, it, ivmu) = golder(:, :, iz, it, ivmu) + rhs_array_fourier
+               !     end if
             end do
          end do
          ! ! enforce periodicity for zonal mode
@@ -3139,71 +3146,69 @@ contains
          implicit none
 
          real, dimension(:, :), intent(in) :: f_xy
-         real, intent (in) :: y_in, x_in
+         real, intent(in) :: y_in, x_in
          real, intent(out) :: f_interp
 
-         real :: f_lb, f_lt, f_rb, f_rt, w_lb,  w_lt, w_rb, w_rt
+         real :: f_lb, f_lt, f_rb, f_rt, w_lb, w_lt, w_rb, w_rt
          real :: w_bottom, w_top, w_left, w_right
          real :: x_left, x_right, y_bottom, y_top
          integer :: xidx_left, xidx_right, xidx_left_on_grid, xidx_right_on_grid
          integer :: yidx_bottom, yidx_top, yidx_bottom_on_grid, yidx_top_on_grid
 
          ! write(*,*) "x_in"
-         xidx_left = int(floor(x_in/dx))+1
-         xidx_right = int(ceiling(x_in/dx))+1
+         xidx_left = int(floor(x_in / dx)) + 1
+         xidx_right = int(ceiling(x_in / dx)) + 1
          ! write(*,*) "int(floor(x_in/dx)) = ", (x_in/dx)
          ! write(*,*) "int(ceiling(x_in/dx)) = ", (x_in/dx)
          ! write(*,*) "int(floor(x_in/dx)) + 1= ", int(floor(x_in/dx))+1
          ! write(*,*) "int(ceiling(x_in/dx)) + 1= ", int(ceiling(x_in/dx))+1
-         xidx_left_on_grid = modulo(xidx_left-1,nx)+1
-         xidx_right_on_grid = modulo(xidx_right-1,nx)+1
-         yidx_bottom = int(floor(y_in/dy))+1
-         yidx_top = int(ceiling(y_in/dy))+1
-         x_left = (xidx_left-1)*dx
-         x_right = (xidx_right-1)*dx
-         y_top = (yidx_top-1)*dy
-         y_bottom = (yidx_bottom-1)*dy
-         yidx_bottom_on_grid = modulo(yidx_bottom-1,ny)+1
-         yidx_top_on_grid = modulo(yidx_top-1,ny)+1
+         xidx_left_on_grid = modulo(xidx_left - 1, nx) + 1
+         xidx_right_on_grid = modulo(xidx_right - 1, nx) + 1
+         yidx_bottom = int(floor(y_in / dy)) + 1
+         yidx_top = int(ceiling(y_in / dy)) + 1
+         x_left = (xidx_left - 1) * dx
+         x_right = (xidx_right - 1) * dx
+         y_top = (yidx_top - 1) * dy
+         y_bottom = (yidx_bottom - 1) * dy
+         yidx_bottom_on_grid = modulo(yidx_bottom - 1, ny) + 1
+         yidx_top_on_grid = modulo(yidx_top - 1, ny) + 1
          !  ### There's 2 situations which can occur, in both x and y:
          !# (1) The 2 idxs (left/right or top/bottom) are different, because the value
          !  #     of x or y is non-integer
          !  # (2) The 2 idxs are the same, because the value of x or y is integer
          !  ## Find the value of the quantities at the 4 nearby corners  . . .
          !  ## Need to think about BCs . . . .
-          f_lb = f_xy(yidx_bottom_on_grid, xidx_left_on_grid)
-          f_lt = f_xy(yidx_top_on_grid, xidx_left_on_grid)
-          f_rb = f_xy(yidx_bottom_on_grid, xidx_right_on_grid)
-          f_rt = f_xy(yidx_top_on_grid, xidx_right_on_grid)
+         f_lb = f_xy(yidx_bottom_on_grid, xidx_left_on_grid)
+         f_lt = f_xy(yidx_top_on_grid, xidx_left_on_grid)
+         f_rb = f_xy(yidx_bottom_on_grid, xidx_right_on_grid)
+         f_rt = f_xy(yidx_top_on_grid, xidx_right_on_grid)
 
-          ! ## And the weightings of these points . . .
-          ! # if the 2 idxs are the same, set the weighting of one of them to zero
-          if (yidx_bottom == yidx_top) then
-             w_bottom = 0
-             w_top = 1
-          else
-             w_bottom = 1-abs((y_bottom - y_in)/dy)
-             w_top = 1-abs((y_top - y_in)/dy)
-          end if
+         ! ## And the weightings of these points . . .
+         ! # if the 2 idxs are the same, set the weighting of one of them to zero
+         if (yidx_bottom == yidx_top) then
+            w_bottom = 0
+            w_top = 1
+         else
+            w_bottom = 1 - abs((y_bottom - y_in) / dy)
+            w_top = 1 - abs((y_top - y_in) / dy)
+         end if
 
+         if (xidx_left == xidx_right) then
+            w_left = 0
+            w_right = 1
+         else
+            w_left = 1 - abs((x_left - x_in) / dx)
+            w_right = 1 - abs((x_right - x_in) / dx)
+         end if
 
-          if (xidx_left == xidx_right) then
-             w_left = 0
-             w_right = 1
-          else
-              w_left = 1-abs((x_left - x_in)/dx)
-              w_right = 1-abs((x_right - x_in)/dx)
-          end if
-
-
-          !write(*,*) "w_bottom, w_top, w_left, w_right = ", w_bottom, w_top, w_left, w_right
-          w_lb = w_left * w_bottom
-          w_lt = w_left * w_top
-          w_rb = w_right * w_bottom
-          w_rt = w_right * w_top
-          !write(*,*) "f = ", f_lb, f_lt, f_rb, f_rt
-          !write(*,*) "weights = ", w_lb, w_lt, w_rb, w_rt
-          f_interp = f_lb*w_lb + f_lt*w_lt + f_rb*w_rb + f_rt*w_rt
+         !write(*,*) "w_bottom, w_top, w_left, w_right = ", w_bottom, w_top, w_left, w_right
+         w_lb = w_left * w_bottom
+         w_lt = w_left * w_top
+         w_rb = w_right * w_bottom
+         w_rt = w_right * w_top
+         !write(*,*) "f = ", f_lb, f_lt, f_rb, f_rt
+         !write(*,*) "weights = ", w_lb, w_lt, w_rb, w_rt
+         f_interp = f_lb * w_lb + f_lt * w_lt + f_rb * w_rb + f_rt * w_rt
 
       end subroutine get_interpolated_quantity
 
@@ -3255,13 +3260,13 @@ contains
             ! Now get the velocity at told at (y_at_told, x_at_told)
             call get_interpolated_quantity(y_at_told, x_at_told, vy, vy_at_told)
             call get_interpolated_quantity(y_at_told, x_at_told, vx, vx_at_told)
-            y_at_told = y_in - code_dt*vy_at_told
-            x_at_told = x_in - code_dt*vx_at_told
+            y_at_told = y_in - code_dt * vy_at_told
+            x_at_told = x_in - code_dt * vx_at_told
             y_at_told = modulo(y_at_told, ymax)
             x_at_told = modulo(x_at_told, xmax)
          end do
-         x_departure = x_in - 2*code_dt*vx_at_told
-         y_departure = y_in - 2*code_dt*vy_at_told
+         x_departure = x_in - 2 * code_dt * vx_at_told
+         y_departure = y_in - 2 * code_dt * vy_at_told
          y_departure = modulo(y_departure, ymax)
          x_departure = modulo(x_departure, xmax)
 
