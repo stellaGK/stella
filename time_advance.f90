@@ -977,26 +977,26 @@ contains
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
 
-      if ((isl_no_splitting) .and. (istep .ne. 1)) then
+      if ((isl_no_splitting) .and. (istep /= 1)) then
          call advance_isl_no_splitting
       else
          ! We can use the leapfrog step provided:
-        ! 1) istep > 1 (need gold and golder)
-        ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
-        ! aren't equally spaced in time)
-        ! 3) The simulation hasn't just been restarted - currently, save_for_restart
-        ! only saves gold, so we don't have golder.
+         ! 1) istep > 1 (need gold and golder)
+         ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
+         ! aren't equally spaced in time)
+         ! 3) The simulation hasn't just been restarted - currently, save_for_restart
+         ! only saves gold, so we don't have golder.
          leapfrog_this_timestep = .false.
 
          ! Flag which is set to true once we've taken a step without needing to
-        ! reset dt.
+         ! reset dt.
          time_advance_successful = .false.
          ! if CFL condition is violated by nonlinear term
-        ! then must modify time step size and restart time step
-        ! assume false and test.
-        ! We don't want to do any operations after dt is reset (we discard any
-        ! updates to g and the timestep again), so we'll be frequently checking
-        ! this flag.
+         ! then must modify time step size and restart time step
+         ! assume false and test.
+         ! We don't want to do any operations after dt is reset (we discard any
+         ! updates to g and the timestep again), so we'll be frequently checking
+         ! this flag.
          restart_time_step = .false.
 
          if (use_leapfrog_splitting .and. istep > 1) then
@@ -1008,20 +1008,20 @@ contains
          end if
 
          ! These lines should be hit either if (1) leapfrog_this_timestep = .false.,
-        ! or (2) we've tried using the leapfrog step but it's failed (reset dt)
+         ! or (2) we've tried using the leapfrog step but it's failed (reset dt)
          if (((nisl_nonlinear) .or. (isl_nonlinear) .or. (isl_no_splitting)) .and. (istep == 1)) then
             ! Store the value of g(t=0) in golder
-            write(*,*) "initial stp"
+            write (*, *) "initial stp"
             golder = gold
             call advance_initial_nisl_step()
 
          !!! Bob: Should be in a separate branch?
          else
             ! Perform the Lie or flip-flopping step until we've done it without the
-           ! timestep changing.
+            ! timestep changing.
             do while (.not. time_advance_successful)
                ! If we've already attempted a time advance then we've updated gnew,
-              ! so reset it now.
+               ! so reset it now.
                gnew = gold
                ! Ensure fields are consistent with gnew.
                call advance_fields(gnew, phi, apar, dist='gbar')
@@ -1030,18 +1030,18 @@ contains
                restart_time_step = .false. ! Becomes true if we reset dt
 
                ! reverse the order of operations every time step
-              ! as part of alternating direction operator splitting
-              ! this is needed to ensure 2nd order accuracy in time
+               ! as part of alternating direction operator splitting
+               ! this is needed to ensure 2nd order accuracy in time
                if (mod(istep, 2) == 1 .or. .not. flip_flop) then
                   reverse_implicit_order = .false.
                   ! advance the explicit parts of the GKE
                   call advance_explicit(gnew, restart_time_step)
 
                   ! enforce periodicity for zonal mode
-                 !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
+                  !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
 
                   ! use operator splitting to separately evolve
-                 ! all terms treated implicitly
+                  ! all terms treated implicitly
                   if (.not. restart_time_step) call advance_implicit(phi, apar, reverse_implicit_order, gnew)
 
                else
@@ -1054,7 +1054,7 @@ contains
                   time_advance_successful = .true.
                else
                   ! We're discarding changes to gnew and starting over, so fields will
-                 ! need to be re-calculated
+                  ! need to be re-calculated
                   fields_updated = .false.
                end if
             end do
@@ -1202,13 +1202,13 @@ contains
       ! expense of memory (storing another set of fields) and code refactoring
       fields_updated = .false.
       ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
-      write(*,*) "Here"
+      write (*, *) "Here"
       call advance_fields(gold, phi, apar, "gbar")
       leapfrog_this_timestep = .true.
       call solve_gke(gold, g0, restart_time_step)
       call advance_ExB_nonlinearity_isl(gold, golder)
 
-      gnew = golder + 2*g0
+      gnew = golder + 2 * g0
       fields_updated = .false.
 
    end subroutine advance_isl_no_splitting
@@ -2115,14 +2115,14 @@ contains
                !> FFT to get d<chi>/dx in (y,x) space
                call forward_transform(g0k, g1xy)
                if (override_vexb) then
-                 g1xy = vexb_y
-                 bracket = - g0xy*g1xy ! -ve sign because we're on the RHS
+                  g1xy = vexb_y
+                  bracket = -g0xy * g1xy ! -ve sign because we're on the RHS
                else
-                 !> multiply by the geometric factor appearing in the Poisson bracket;
-                 !> i.e., (dx/dpsi*dy/dalpha)*0.5
-                 g1xy = g1xy*exb_nonlin_fac
-                 !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
-                 bracket = g0xy*g1xy
+                  !> multiply by the geometric factor appearing in the Poisson bracket;
+                  !> i.e., (dx/dpsi*dy/dalpha)*0.5
+                  g1xy = g1xy * exb_nonlin_fac
+                  !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
+                  bracket = g0xy * g1xy
                end if
 
                !> estimate the CFL dt due to the above contribution
@@ -2154,14 +2154,14 @@ contains
                !> FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
                if (override_vexb) then
-                 g1xy = vexb_x
-                 bracket = bracket - g0xy*g1xy ! -ve sign because we're on the RHS
+                  g1xy = vexb_x
+                  bracket = bracket - g0xy * g1xy ! -ve sign because we're on the RHS
                else
-                 !> multiply by the geometric factor appearing in the Poisson bracket;
-                 !> i.e., (dx/dpsi*dy/dalpha)*0.5
-                 g1xy = g1xy*exb_nonlin_fac
-                 !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
-                 bracket = bracket - g0xy*g1xy
+                  !> multiply by the geometric factor appearing in the Poisson bracket;
+                  !> i.e., (dx/dpsi*dy/dalpha)*0.5
+                  g1xy = g1xy * exb_nonlin_fac
+                  !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
+                  bracket = bracket - g0xy * g1xy
                end if
 
                !> estimate the CFL dt due to the above contribution
