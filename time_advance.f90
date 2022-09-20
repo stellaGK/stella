@@ -958,7 +958,7 @@ contains
       use sources, only: include_krook_operator, update_tcorr_krook
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: remove_zero_projection, project_out_zero
-      use run_parameters, only: use_leapfrog_splitting, nisl_nonlinear, isl_nonlinear
+      use run_parameters, only: use_leapfrog_splitting, nisl_nonlinear, isl_nonlinear, isl_no_splitting
 
       implicit none
 
@@ -977,83 +977,88 @@ contains
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
 
-      ! We can use the leapfrog step provided:
-      ! 1) istep > 1 (need gold and golder)
-      ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
-      ! aren't equally spaced in time)
-      ! 3) The simulation hasn't just been restarted - currently, save_for_restart
-      ! only saves gold, so we don't have golder.
-      leapfrog_this_timestep = .false.
-
-      ! Flag which is set to true once we've taken a step without needing to
-      ! reset dt.
-      time_advance_successful = .false.
-      ! if CFL condition is violated by nonlinear term
-      ! then must modify time step size and restart time step
-      ! assume false and test.
-      ! We don't want to do any operations after dt is reset (we discard any
-      ! updates to g and the timestep again), so we'll be frequently checking
-      ! this flag.
-      restart_time_step = .false.
-
-      if (use_leapfrog_splitting .and. istep > 1) then
-         ! Might need to expand this logic
-         leapfrog_this_timestep = .true.
-      end if
-      if (leapfrog_this_timestep) then
-         call advance_leapfrog_step(time_advance_successful, restart_time_step)
-      end if
-
-      ! These lines should be hit either if (1) leapfrog_this_timestep = .false.,
-      ! or (2) we've tried using the leapfrog step but it's failed (reset dt)
-      if (((nisl_nonlinear) .or. (isl_nonlinear)) .and. (istep == 1)) then
-         ! Store the value of g(t=0) in golder
-         golder = gold
-         call advance_initial_nisl_step()
-
-      !!! Bob: Should be in a separate branch?
+      if ((isl_no_splitting) .and. (istep .ne. 1)) then
+         call advance_isl_no_splitting
       else
-         ! Perform the Lie or flip-flopping step until we've done it without the
-         ! timestep changing.
-         do while (.not. time_advance_successful)
-            ! If we've already attempted a time advance then we've updated gnew,
-            ! so reset it now.
-            gnew = gold
-            ! Ensure fields are consistent with gnew.
-            call advance_fields(gnew, phi, apar, dist='gbar')
+         ! We can use the leapfrog step provided:
+        ! 1) istep > 1 (need gold and golder)
+        ! 2) The timestep hasn't just been reset (because then golder, gold, gnew
+        ! aren't equally spaced in time)
+        ! 3) The simulation hasn't just been restarted - currently, save_for_restart
+        ! only saves gold, so we don't have golder.
+         leapfrog_this_timestep = .false.
 
-            ! Reset the flag that checks if we've reset dt
-            restart_time_step = .false. ! Becomes true if we reset dt
+         ! Flag which is set to true once we've taken a step without needing to
+        ! reset dt.
+         time_advance_successful = .false.
+         ! if CFL condition is violated by nonlinear term
+        ! then must modify time step size and restart time step
+        ! assume false and test.
+        ! We don't want to do any operations after dt is reset (we discard any
+        ! updates to g and the timestep again), so we'll be frequently checking
+        ! this flag.
+         restart_time_step = .false.
 
-            ! reverse the order of operations every time step
-            ! as part of alternating direction operator splitting
-            ! this is needed to ensure 2nd order accuracy in time
-            if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-               reverse_implicit_order = .false.
-               ! advance the explicit parts of the GKE
-               call advance_explicit(gnew, restart_time_step)
+         if (use_leapfrog_splitting .and. istep > 1) then
+            ! Might need to expand this logic
+            leapfrog_this_timestep = .true.
+         end if
+         if (leapfrog_this_timestep) then
+            call advance_leapfrog_step(time_advance_successful, restart_time_step)
+         end if
 
-               ! enforce periodicity for zonal mode
-               !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
+         ! These lines should be hit either if (1) leapfrog_this_timestep = .false.,
+        ! or (2) we've tried using the leapfrog step but it's failed (reset dt)
+         if (((nisl_nonlinear) .or. (isl_nonlinear) .or. (isl_no_splitting)) .and. (istep == 1)) then
+            ! Store the value of g(t=0) in golder
+            write(*,*) "initial stp"
+            golder = gold
+            call advance_initial_nisl_step()
 
-               ! use operator splitting to separately evolve
-               ! all terms treated implicitly
-               if (.not. restart_time_step) call advance_implicit(phi, apar, reverse_implicit_order, gnew)
+         !!! Bob: Should be in a separate branch?
+         else
+            ! Perform the Lie or flip-flopping step until we've done it without the
+           ! timestep changing.
+            do while (.not. time_advance_successful)
+               ! If we've already attempted a time advance then we've updated gnew,
+              ! so reset it now.
+               gnew = gold
+               ! Ensure fields are consistent with gnew.
+               call advance_fields(gnew, phi, apar, dist='gbar')
 
-            else
-               reverse_implicit_order = .true.
-               call advance_implicit(phi, apar, reverse_implicit_order, gnew)
-               call advance_explicit(gnew, restart_time_step)
-            end if
+               ! Reset the flag that checks if we've reset dt
+               restart_time_step = .false. ! Becomes true if we reset dt
 
-            if (.not. restart_time_step) then
-               time_advance_successful = .true.
-            else
-               ! We're discarding changes to gnew and starting over, so fields will
-               ! need to be re-calculated
-               fields_updated = .false.
-            end if
-         end do
+               ! reverse the order of operations every time step
+              ! as part of alternating direction operator splitting
+              ! this is needed to ensure 2nd order accuracy in time
+               if (mod(istep, 2) == 1 .or. .not. flip_flop) then
+                  reverse_implicit_order = .false.
+                  ! advance the explicit parts of the GKE
+                  call advance_explicit(gnew, restart_time_step)
+
+                  ! enforce periodicity for zonal mode
+                 !    if (zonal_mode(1)) gnew(1,:,-nzgrid,:) = gnew(1,:,nzgrid,:)
+
+                  ! use operator splitting to separately evolve
+                 ! all terms treated implicitly
+                  if (.not. restart_time_step) call advance_implicit(phi, apar, reverse_implicit_order, gnew)
+
+               else
+                  reverse_implicit_order = .true.
+                  call advance_implicit(phi, apar, reverse_implicit_order, gnew)
+                  call advance_explicit(gnew, restart_time_step)
+               end if
+
+               if (.not. restart_time_step) then
+                  time_advance_successful = .true.
+               else
+                  ! We're discarding changes to gnew and starting over, so fields will
+                 ! need to be re-calculated
+                  fields_updated = .false.
+               end if
+            end do
+         end if
       end if
 
       ! presumably this is to do with the radially global version of the code?
@@ -1174,6 +1179,39 @@ contains
       fields_updated = .false.
 
    end subroutine advance_leapfrog_step
+
+   subroutine advance_isl_no_splitting
+
+      use dist_fn_arrays, only: g0
+      use dist_fn_arrays, only: golder, gold, gnew
+      use run_parameters, only: leapfrog_drifts, leapfrog_nonlinear
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use physics_flags, only: include_mirror, nonlinear
+      ! use physics_flags, only: include_drifts
+      use physics_flags, only: include_parallel_streaming
+      use fields_arrays, only: phi, apar
+      use fields, only: fields_updated, advance_fields
+
+      implicit none
+
+      logical :: restart_time_step
+
+      ! We advance golder by a step; we need to get the fields at golder, so
+      ! set the flag to ensure fields get re-calculated. NB we could skip the
+      ! field solve because these fields have been calculated previously, but at the
+      ! expense of memory (storing another set of fields) and code refactoring
+      fields_updated = .false.
+      ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
+      write(*,*) "Here"
+      call advance_fields(gold, phi, apar, "gbar")
+      leapfrog_this_timestep = .true.
+      call solve_gke(gold, g0, restart_time_step)
+      call advance_ExB_nonlinearity_isl(gold, golder)
+
+      gnew = golder + 2*g0
+      fields_updated = .false.
+
+   end subroutine advance_isl_no_splitting
 
    !> Advance g by the Leapfrog technique:
    !> g(i+1) = g(i-1) + (dg/dt)_leapfrog(i) * 2dt
@@ -1621,7 +1659,7 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
-      use run_parameters, only: leapfrog_nonlinear, nisl_nonlinear, isl_nonlinear
+      use run_parameters, only: leapfrog_nonlinear, nisl_nonlinear, isl_nonlinear, isl_no_splitting
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1668,7 +1706,7 @@ contains
       !> and thus recomputation of mirror, wdrift, wstar, and parstream
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
       if (nonlinear) then
-         if (((.not. leapfrog_nonlinear) .and. (.not. nisl_nonlinear) .and. (.not. isl_nonlinear)) &
+         if (((.not. leapfrog_nonlinear) .and. (.not. nisl_nonlinear) .and. (.not. isl_no_splitting) .and. (.not. isl_nonlinear)) &
              .or. (.not. leapfrog_this_timestep)) call advance_ExB_nonlinearity(gin, rhs, restart_time_step)
       end if
 
@@ -2006,6 +2044,7 @@ contains
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use physics_flags, only: override_vexb, vexb_x, vexb_y
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -2023,7 +2062,6 @@ contains
       real :: zero
       integer :: ivmu, iz, it, imu, is
       logical :: yfirst
-
       ! alpha-component of magnetic drift (requires ky -> y)
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
 
@@ -2076,11 +2114,16 @@ contains
                end if
                !> FFT to get d<chi>/dx in (y,x) space
                call forward_transform(g0k, g1xy)
-               !> multiply by the geometric factor appearing in the Poisson bracket;
-               !> i.e., (dx/dpsi*dy/dalpha)*0.5
-               g1xy = g1xy * exb_nonlin_fac
-               !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
-               bracket = g0xy * g1xy
+               if (override_vexb) then
+                 g1xy = vexb_y
+                 bracket = - g0xy*g1xy ! -ve sign because we're on the RHS
+               else
+                 !> multiply by the geometric factor appearing in the Poisson bracket;
+                 !> i.e., (dx/dpsi*dy/dalpha)*0.5
+                 g1xy = g1xy*exb_nonlin_fac
+                 !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
+                 bracket = g0xy*g1xy
+               end if
 
                !> estimate the CFL dt due to the above contribution
                cfl_dt = min(cfl_dt, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
@@ -2110,11 +2153,16 @@ contains
                call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
                !> FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
-               !> multiply by the geometric factor appearing in the Poisson bracket;
-               !> i.e., (dx/dpsi*dy/dalpha)*0.5
-               g1xy = g1xy * exb_nonlin_fac
-               !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
-               bracket = bracket - g0xy * g1xy
+               if (override_vexb) then
+                 g1xy = vexb_x
+                 bracket = bracket - g0xy*g1xy ! -ve sign because we're on the RHS
+               else
+                 !> multiply by the geometric factor appearing in the Poisson bracket;
+                 !> i.e., (dx/dpsi*dy/dalpha)*0.5
+                 g1xy = g1xy*exb_nonlin_fac
+                 !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
+                 bracket = bracket - g0xy*g1xy
+               end if
 
                !> estimate the CFL dt due to the above contribution
                cfl_dt = min(cfl_dt, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
@@ -2885,15 +2933,15 @@ contains
       logical, optional, intent(in) :: single_step  ! First timestep or from restart needs the single-step version
 
       !complex, dimension (:,:,:,:,:), allocatable :: gout, g
-      complex, dimension(:, :), allocatable :: g0k, g0k_swap, rhs_array_fourier !, g0k_swap_extra_padding
+      complex, dimension(:, :), allocatable :: g0k, g0k_swap
       complex, dimension(:, :), allocatable :: g0kxy, g0kxy_extra_padding
-      real, dimension(:, :), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy, dgold_dx_normal, dgold_dy_normal, rhs_array!, bracket
+      real, dimension(:, :), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy
 
       integer :: ivmu, iz, it, ia, imu, is, ix, iy
       integer :: upsampled_xidx, upsampled_yidx
       logical :: yfirst
       logical :: single_step_local
-      real :: y_departure, x_departure, yval, xval, rhs, velocity_x, velocity_y
+      real :: y_departure, x_departure, yval, xval, velocity_x, velocity_y
       real :: max_velocity_x, max_velocity_y
       real :: gnew
       ! alpha-component of magnetic drift (requires ky -> y)
@@ -2907,7 +2955,6 @@ contains
       if (present(single_step)) single_step_local = single_step
 
       allocate (g0k(naky, nakx))
-      allocate (rhs_array_fourier(naky, nakx))
       ! allocate (dgold_dx(2 * ny, 2 * nx))
       ! if (no_extra_padding) then
       !    allocate (dgold_dx_normal(ny, nx))
@@ -2918,7 +2965,6 @@ contains
       allocate (vchiold_y(ny, nx))
       allocate (golderxy(ny, nx))
       allocate (gnewxy(ny, nx))
-      allocate (rhs_array(ny, nx))
       !allocate (bracket(ny,nx))
 
       allocate (g0k_swap(2 * naky - 1, ikx_max))
@@ -3006,13 +3052,6 @@ contains
                call transform_y2ky(g0kxy, g0k_swap)
                call swap_kxky_back(g0k_swap, golder(:, :, iz, it, ivmu))
 
-           ! !! Invert rhs_array to get rhs_array in Fourier space
-           !     if (.not. add_nl_source_in_real_space) then
-           !        call transform_x2kx(rhs_array, g0kxy)
-           !        call transform_y2ky(g0kxy, g0k_swap)
-           !        call swap_kxky_back(g0k_swap, rhs_array_fourier)
-           !        golder(:, :, iz, it, ivmu) = golder(:, :, iz, it, ivmu) + rhs_array_fourier
-           !     end if
             end do
          end do
          ! ! enforce periodicity for zonal mode
@@ -3025,10 +3064,6 @@ contains
       deallocate (g0k, vchiold_x, vchiold_y, golderxy)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
       if (allocated(g0kxy)) deallocate (g0kxy)
-      ! if (allocated(rhs_array_fourier)) deallocate (rhs_array_fourier)
-      ! if (allocated(rhs_array)) deallocate (rhs_array)
-      ! if (allocated(dgold_dx_normal)) deallocate (dgold_dx_normal)
-      ! if (allocated(dgold_dy_normal)) deallocate (dgold_dy_normal)
 
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
 
