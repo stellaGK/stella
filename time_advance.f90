@@ -1659,7 +1659,7 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
-      use run_parameters, only: leapfrog_nonlinear, nisl_nonlinear, isl_nonlinear, isl_no_splitting
+      use run_parameters, only: leapfrog_nonlinear, nisl_nonlinear, isl_nonlinear, isl_no_splitting, leapfrog_drifts
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1725,7 +1725,7 @@ contains
             call advance_mirror_explicit(gin, rhs)
          end if
 
-         if (.not. drifts_implicit) then
+         if ((.not. drifts_implicit) .and. (.not. leapfrog_drifts .or. .not. leapfrog_this_timestep)) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
             call advance_wdrifty_explicit(gin, phi, rhs)
