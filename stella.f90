@@ -192,6 +192,10 @@ contains
       call read_multibox_parameters
       if (debug) write (6, *) "stella::init_stella::read_stella_diagnostics_knobs"
       call read_stella_diagnostics_knobs
+      !> read layouts_knobs namelist from the input file,
+      !> which determines the order of parallelisation within the different layouts
+      if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
+      call init_stella_layouts
       !> setup the various data layouts for the distribution function;
       !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       !> amongst processors, depending on the number of phase space points and processors
@@ -233,10 +237,6 @@ contains
       end if
       deallocate (seed)
 
-      !> read layouts_knobs namelist from the input file,
-      !> which determines the order of parallelisation within the different layouts
-      if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
-      call init_stella_layouts
       !> setup the (kx,ky) grids and (x,y) grids, if applicable
       if (debug) write (6, *) 'stella::init_stella::init_kt_grids'
       call init_kt_grids

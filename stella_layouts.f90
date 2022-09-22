@@ -1,6 +1,6 @@
 module stella_layouts
 
-   use common_types, only: vmu_layout_type
+   use common_types, only: vmu_layout_type, mu_layout_type
    use common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
 
    implicit none
@@ -27,6 +27,7 @@ module stella_layouts
    type(kxyz_layout_type) :: kxyz_lo
    type(xyz_layout_type) :: xyz_lo
    type(vmu_layout_type) :: vmu_lo
+   type(mu_layout_type) :: mu_lo
 
    interface it_idx
       module procedure it_idx_kxkyz
@@ -163,6 +164,7 @@ contains
       call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
       call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
       call init_vmu_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
+      call init_mu_layout(nzgrid, ntubes, naky, nakx, nmu, nspec, ny, nx, nalpha)
 
    end subroutine init_dist_fn_layouts
 
@@ -789,7 +791,7 @@ contains
 
       ! the order of the division does not matter, so no need for branching
       is_idx_vmu = 1 + mod((i - lo%llim_world) / lo%nvpa / lo%nmu, lo%nspec)
-
+      
    end function is_idx_vmu
 
    elemental function imu_idx_vmu(lo, i)
@@ -871,6 +873,100 @@ contains
       iz_local_vmu = lo%iproc == proc_id(lo, iz)
    end function iz_local_vmu
 
+   subroutine init_mu_layout &
+      (nzgrid, ntubes, naky, nakx, nmu, nspec, ny, nx, nalpha)
+
+      use mp, only: proc0
+      use mp, only: iproc, nproc
+      use mp, only: send, receive
+      
+      implicit none
+
+      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nmu, nspec, ny, nx, nalpha
+      logical, save :: initialized = .false.
+
+      integer :: imu_last, is_last
+      integer :: imus_count, ulim_prev
+      integer :: ivmu, imu, is, iv
+      
+      if (initialized) return
+      initialized = .true.
+
+      mu_lo%xyz = .true.
+      mu_lo%iproc = iproc
+      mu_lo%nzed = 2 * nzgrid + 1
+      mu_lo%nzgrid = nzgrid
+      mu_lo%ntubes = ntubes
+      mu_lo%ny = ny
+      mu_lo%nalpha = nalpha
+      mu_lo%naky = naky
+      mu_lo%nx = nx
+      mu_lo%nakx = nakx
+      mu_lo%nmu = nmu
+      mu_lo%nspec = nspec
+      mu_lo%llim_world = 0
+      mu_lo%ulim_world = nmu * nspec - 1
+
+      allocate (mu_lo%imus(vmu_lo%llim_proc:vmu_lo%ulim_proc))
+
+      ! imu_last here is the first imu index on this processor in the vmu_lo
+      imu_last = imu_idx(vmu_lo,vmu_lo%llim_proc)
+      ! is_last here is the first is index on this processor in the vmu_lo
+      is_last = is_idx(vmu_lo,vmu_lo%llim_proc)
+      ! initialize imus_count to 1
+      imus_count = 1
+      ! loop over vpa, mu, s indices and find the number of unique mu, s pairs
+      ! on each processor
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         imu = imu_idx(vmu_lo,ivmu)
+         is = is_idx(vmu_lo,ivmu)
+         if (is == is_last .and. imu == imu_last) then
+            mu_lo%imus(ivmu) = imus_count
+         else
+            mu_lo%imus(ivmu) = imus_count + 1
+         end if
+         imus_count = mu_lo%imus(ivmu)
+         imu_last = imu
+         is_last = is
+      end do
+
+      ! at this point imus_count contains the number of unique imus indices on a given processor
+      ! must collect this info for each processor and give shift each processor's imus appropriately
+      ! so that there is no overlap in the imus values of different processors
+      if (proc0) then
+         ! shift imus to start at zero
+         mu_lo%imus = mu_lo%imus - 1
+         ! define values for the min and max imus indices on proc0
+         mu_lo%llim_proc = minval(mu_lo%imus)
+         mu_lo%ulim_proc = maxval(mu_lo%imus)
+         ! send max imus value to next processor (if there is more than one processor)
+         if (nproc > 1) call send (mu_lo%ulim_proc, 1)
+      else
+         ! receive max imus value from previous processor
+         call receive (ulim_prev, iproc-1)
+         ! shift imus to follow from max value of previous processor
+         mu_lo%imus = mu_lo%imus + ulim_prev
+         ! define values for the min and max imus indices on this proc
+         mu_lo%llim_proc = minval(mu_lo%imus)
+         mu_lo%ulim_proc = maxval(mu_lo%imus)
+         ! send max imus value to next processor
+         if (iproc /= nproc-1) then
+            call send (mu_lo%ulim_proc,iproc+1)
+         end if
+      end if
+      
+      mu_lo%ulim_alloc = max(mu_lo%llim_proc, mu_lo%ulim_proc)
+
+      write (*,*) 'llim_proc: ', mu_lo%llim_proc, 'ulim_proc: ', mu_lo%ulim_proc, 'ulim_world: ', mu_lo%ulim_world
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo,ivmu)
+         imu = imu_idx(vmu_lo,ivmu)
+         is = is_idx(vmu_lo,ivmu)
+         write (*,*) 'iproc: ', iproc, 'imus: ', mu_lo%imus(ivmu), 'imu: ', imu, 'is: ', is, 'iv: ', iv, 'nproc: ', nproc
+      end do
+      
+    end subroutine init_mu_layout
+
    elemental subroutine kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
       implicit none
       integer, intent(in) :: iv, imu, ikxkyz
@@ -917,6 +1013,8 @@ contains
 
       implicit none
 
+      if (allocated(mu_lo%imus)) deallocate (mu_lo%imus)
+      
    end subroutine finish_layouts
 
 end module stella_layouts
