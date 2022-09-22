@@ -791,7 +791,7 @@ contains
 
       ! the order of the division does not matter, so no need for branching
       is_idx_vmu = 1 + mod((i - lo%llim_world) / lo%nvpa / lo%nmu, lo%nspec)
-      
+
    end function is_idx_vmu
 
    elemental function imu_idx_vmu(lo, i)
@@ -879,7 +879,7 @@ contains
       use mp, only: proc0
       use mp, only: iproc, nproc
       use mp, only: send, receive
-      
+
       implicit none
 
       integer, intent(in) :: nzgrid, ntubes, naky, nakx, nmu, nspec, ny, nx, nalpha
@@ -888,7 +888,7 @@ contains
       integer :: imu_last, is_last
       integer :: imus_count, ulim_prev
       integer :: ivmu, imu, is, iv
-      
+
       if (initialized) return
       initialized = .true.
 
@@ -910,16 +910,16 @@ contains
       allocate (mu_lo%imus(vmu_lo%llim_proc:vmu_lo%ulim_proc))
 
       ! imu_last here is the first imu index on this processor in the vmu_lo
-      imu_last = imu_idx(vmu_lo,vmu_lo%llim_proc)
+      imu_last = imu_idx(vmu_lo, vmu_lo%llim_proc)
       ! is_last here is the first is index on this processor in the vmu_lo
-      is_last = is_idx(vmu_lo,vmu_lo%llim_proc)
+      is_last = is_idx(vmu_lo, vmu_lo%llim_proc)
       ! initialize imus_count to 1
       imus_count = 1
       ! loop over vpa, mu, s indices and find the number of unique mu, s pairs
       ! on each processor
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         imu = imu_idx(vmu_lo,ivmu)
-         is = is_idx(vmu_lo,ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
          if (is == is_last .and. imu == imu_last) then
             mu_lo%imus(ivmu) = imus_count
          else
@@ -940,32 +940,32 @@ contains
          mu_lo%llim_proc = minval(mu_lo%imus)
          mu_lo%ulim_proc = maxval(mu_lo%imus)
          ! send max imus value to next processor (if there is more than one processor)
-         if (nproc > 1) call send (mu_lo%ulim_proc, 1)
+         if (nproc > 1) call send(mu_lo%ulim_proc, 1)
       else
          ! receive max imus value from previous processor
-         call receive (ulim_prev, iproc-1)
+         call receive(ulim_prev, iproc - 1)
          ! shift imus to follow from max value of previous processor
          mu_lo%imus = mu_lo%imus + ulim_prev
          ! define values for the min and max imus indices on this proc
          mu_lo%llim_proc = minval(mu_lo%imus)
          mu_lo%ulim_proc = maxval(mu_lo%imus)
          ! send max imus value to next processor
-         if (iproc /= nproc-1) then
-            call send (mu_lo%ulim_proc,iproc+1)
+         if (iproc /= nproc - 1) then
+            call send(mu_lo%ulim_proc, iproc + 1)
          end if
       end if
-      
+
       mu_lo%ulim_alloc = max(mu_lo%llim_proc, mu_lo%ulim_proc)
 
-      write (*,*) 'llim_proc: ', mu_lo%llim_proc, 'ulim_proc: ', mu_lo%ulim_proc, 'ulim_world: ', mu_lo%ulim_world
+      write (*, *) 'llim_proc: ', mu_lo%llim_proc, 'ulim_proc: ', mu_lo%ulim_proc, 'ulim_world: ', mu_lo%ulim_world
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo,ivmu)
-         imu = imu_idx(vmu_lo,ivmu)
-         is = is_idx(vmu_lo,ivmu)
-         write (*,*) 'iproc: ', iproc, 'imus: ', mu_lo%imus(ivmu), 'imu: ', imu, 'is: ', is, 'iv: ', iv, 'nproc: ', nproc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         write (*, *) 'iproc: ', iproc, 'imus: ', mu_lo%imus(ivmu), 'imu: ', imu, 'is: ', is, 'iv: ', iv, 'nproc: ', nproc
       end do
-      
-    end subroutine init_mu_layout
+
+   end subroutine init_mu_layout
 
    elemental subroutine kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
       implicit none
@@ -1014,7 +1014,7 @@ contains
       implicit none
 
       if (allocated(mu_lo%imus)) deallocate (mu_lo%imus)
-      
+
    end subroutine finish_layouts
 
 end module stella_layouts
