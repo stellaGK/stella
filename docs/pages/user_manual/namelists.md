@@ -1,15 +1,20 @@
 ---
-title: Namelists in stella
-subtitle: Input namelists for stella
+title: Input parameters
+subtitle: Input parameter namelists for stella
 ---
 
-# namelist list1
+# namelist `zgrid_parameters`
+
+Used to control the resolution and boundary condition of the $z$-grid.
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-*variable* | integer | 1 | description
+*nzed* | integer | 24 | description
+*nperiod* | integer | 1 | description
+*ntubes* | integer | 1 | description
+`boundary_option` | string | `'default'` | description
 
-# namelist list2
+# namelist `geo_knobs`
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
