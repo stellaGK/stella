@@ -23,6 +23,7 @@ display: public
          private
 print_creation_date: true
 md_extensions: markdown.extensions.toc
+               ford.md_striped_table
 ---
 
 stella solves the gyrokinetic-Poisson system of equations in the local limit
