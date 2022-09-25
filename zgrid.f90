@@ -90,7 +90,7 @@ contains
 
       namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
          shat_zero, boundary_option, zed_equal_arc, &
-         boundary_option, zed_equal_arc, grad_x_grad_y_zero, dkx_over_dky
+         grad_x_grad_y_zero, dkx_over_dky
 
       nzed = 24
       nperiod = 1
