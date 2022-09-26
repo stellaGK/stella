@@ -1014,7 +1014,11 @@ contains
             write(*,*) "initial stp"
             golder = gold
             call advance_initial_nisl_step()
-
+            ! After calling advance_initial_nisl_step, we've got gnew, but
+            ! advance_initial_nisl_step has changed the value of gold. We want
+            ! the original value of gold, since the gold in advance_initial_nisl_step
+            ! are intermediate steps which are no longer of any consequency.
+            gold = golder
          !!! Bob: Should be in a separate branch?
          else
             ! Perform the Lie or flip-flopping step until we've done it without the
@@ -1072,7 +1076,6 @@ contains
 
       golder = gold
       gold = gnew
-
       !> Ensure fields are updated so that omega calculation is correct.
       call advance_fields(gnew, phi, apar, dist='gbar')
 
@@ -1202,7 +1205,7 @@ contains
       ! expense of memory (storing another set of fields) and code refactoring
       fields_updated = .false.
       ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
-      write(*,*) "Here"
+      write(*,*) "In advance_isl_no_splitting"
       call advance_fields(gold, phi, apar, "gbar")
       leapfrog_this_timestep = .true.
       call solve_gke(gold, g0, restart_time_step)
@@ -2066,7 +2069,6 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
 
       if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
-
       ! avoid divide by zero in cfl_dt terms below
       zero = 100.*epsilon(0.)
 
@@ -2517,7 +2519,6 @@ contains
                      q = nint((y(iy) - y_departure) / dy)
                      ! if ((p /= 0) .or. (q /=0)) then
                      !   stop "Not equal to zero!"
-                     !
                      ! end if
                      if (override_vexb) then
                         if (p == 0) then
@@ -2609,16 +2610,15 @@ contains
                                                  + velocity_y * dgold_dy_normal(iy, ix))
                         end if
                      end if
+
                      if (add_nl_source_in_real_space) then
                         gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs
                      else
                         rhs_array(iy, ix) = rhs
                         gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure)
                      end if
-
                   end do
                end do
-
            !! Invert to get golder(kx,ky)
                call transform_x2kx(gnewxy, g0kxy)
                call transform_y2ky(g0kxy, g0k_swap)
@@ -2639,7 +2639,6 @@ contains
          golder(1, :, -nzgrid, :, ivmu) = 0.5 * (golder(1, :, nzgrid, :, ivmu) + golder(1, :, -nzgrid, :, ivmu))
          golder(1, :, nzgrid, :, ivmu) = golder(1, :, -nzgrid, :, ivmu)
       end do
-
       deallocate (g0k, dgold_dx, dgold_dy, vchiold_x, vchiold_y, golderxy)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
       if (allocated(g0kxy)) deallocate (g0kxy)
@@ -2889,6 +2888,547 @@ contains
 
    end subroutine advance_ExB_nonlinearity_nisl
 
+   ! !> A time-advanced golder is passed in, along with gold (which hasn't been
+   ! !> evolved at all). We apply a NISL-Leapfrog step to replace golder with
+   ! !> nonlinearly-advanced golder, that is we update golder as follows:
+   ! !>
+   ! !>  golder(x,y) = iFFt(golder(kx,ky))
+   ! !>  golder(x,y) = golder(x-p*dx,y-q*dy) + 2*rhs{gold(x-p*dx/2,y-q*dy/2)}
+   ! !>  golder(kx,ky) = FFT(golder(x,y))
+   ! !>
+   ! !> NB it's likely that sequentially advecting in x,y leads to O(dt) errors,
+   ! !> so advect in both directions at the same time.
+   ! subroutine advance_ExB_nonlinearity_nisl_ritchie(gold, golder, single_step)
+   !
+   !    use mp, only: proc0, min_allreduce
+   !    use mp, only: scope, allprocs, subprocs
+   !    use stella_layouts, only: vmu_lo, imu_idx, is_idx
+   !    use job_manage, only: time_message
+   !    use gyro_averages, only: gyro_average
+   !    use fields, only: get_dchidx, get_dchidy
+   !    use fields_arrays, only: phi, apar, shift_state
+   !    use stella_transforms, only: transform_y2ky, transform_x2kx
+   !    use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
+   !    use stella_time, only: code_dt
+   !    use run_parameters, only: fphi
+   !    use physics_flags, only: override_vexb, vexb_x, vexb_y
+   !    use physics_parameters, only: g_exb, g_exbfac
+   !    use run_parameters, only: add_nl_source_in_real_space, no_extra_padding
+   !    use zgrid, only: nzgrid, ntubes
+   !    use stella_geometry, only: exb_nonlin_fac, gfac, dxdXcoord, dydalpha
+   !    use kt_grids, only: nakx, naky, nx, ny, ikx_max
+   !    use kt_grids, only: akx, aky, rho_clamped
+   !    use kt_grids, only: x, y, swap_kxky, swap_kxky_back
+   !    use kt_grids, only: dx, dy, x0, y0
+   !    use constants, only: pi, zi
+   !    use file_utils, only: runtype_option_switch, runtype_multibox
+   !
+   !    implicit none
+   !
+   !    complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
+   !    complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: golder
+   !    logical, optional, intent(in) :: single_step  ! First timestep or from restart needs the single-step version
+   !
+   !    !complex, dimension (:,:,:,:,:), allocatable :: gout, g
+   !    complex, dimension(:, :), allocatable :: g0k, g0k_swap, rhs_array_fourier !, g0k_swap_extra_padding
+   !    complex, dimension(:, :), allocatable :: g0kxy, g0kxy_extra_padding
+   !    real, dimension(:, :), allocatable :: vchiold_x, vchiold_y, dgold_dy, dgold_dx, golderxy, gnewxy, dgold_dx_normal, dgold_dy_normal, rhs_array!, bracket
+   !
+   !    integer :: ivmu, iz, it, ia, imu, is, ix, iy, p, q, xidx_departure, yidx_departure, yidx_for_upsampled_array, xidx_for_upsampled_array
+   !    integer :: upsampled_xidx, upsampled_yidx
+   !    logical :: yfirst
+   !    logical :: single_step_local
+   !    real :: y_departure, x_departure, yval, xval, rhs, velocity_x, velocity_y
+   !    real :: max_velocity_x, max_velocity_y
+   !    ! alpha-component of magnetic drift (requires ky -> y)
+   !    if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance, nisl')
+   !
+   !    if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
+   !
+   !    ! Assume no perp shear; yfirst = true
+   !
+   !    single_step_local = .false.
+   !    if (present(single_step)) single_step_local = single_step
+   !
+   !    allocate (g0k(naky, nakx))
+   !    allocate (rhs_array_fourier(naky, nakx))
+   !    allocate (dgold_dx(2 * ny, 2 * nx))
+   !    if (no_extra_padding) then
+   !       allocate (dgold_dx_normal(ny, nx))
+   !       allocate (dgold_dy_normal(ny, nx))
+   !    end if
+   !    allocate (dgold_dy(2 * ny, 2 * nx))
+   !    allocate (vchiold_x(ny, nx))
+   !    allocate (vchiold_y(ny, nx))
+   !    allocate (golderxy(ny, nx))
+   !    allocate (gnewxy(ny, nx))
+   !    allocate (rhs_array(ny, nx))
+   !    !allocate (bracket(ny,nx))
+   !
+   !    allocate (g0k_swap(2 * naky - 1, ikx_max))
+   !    allocate (g0kxy(ny, ikx_max))
+   !    allocate (g0kxy_extra_padding(2 * ny, ikx_max))
+   !
+   !    ia = 1
+   !
+   !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+   !       imu = imu_idx(vmu_lo, ivmu)
+   !       is = is_idx(vmu_lo, ivmu)
+   !       do it = 1, ntubes
+   !          do iz = -nzgrid, nzgrid
+   !
+   !             ! Need to do the following:
+   !             ! 1) Get dgold/dx(x,y), dgold/dy(x,y), vchiold_x(x,y), vchiold_y(x,y)
+   !             ! 2) Get golder(x,y)
+   !             ! 3) Calculate departure points, and hence velocities and p, q
+   !             ! 4) golder(x,y) = golder(x-p*dx,y-q*dy) + 2*rhs{gold(x-p*dx/2,y-q*dy/2)}
+   !             ! 5) F.T. golder to get golder(kx,ky)
+   !
+   !             ! Step 1) Get dgold/dx(x,y), dgold/dy(x,y), vchiold_x(x,y), vchiold_y(x,y)
+   !             call get_dgdy(gold(:, :, iz, it, ivmu), g0k)
+   !             if (no_extra_padding) then
+   !                call forward_transform(g0k, dgold_dy_normal)
+   !             else
+   !                call forward_transform_extra_padding(g0k, dgold_dy)
+   !             end if
+   !             ! For testing - get dg/dy in the non-upsampled and upsampled forms and print
+   !             ! call forward_transform(g0k,golderxy)
+   !
+   !             call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+   !             call forward_transform(g0k, vchiold_y)
+   !
+   !             ! NB we haven't flipped the signs (in contrast to advance_exb_nonlinearity)
+   !             ! because this is the actual velocity - we haven't moved to the RHS yet.
+   !             vchiold_y = -vchiold_y * exb_nonlin_fac
+   !
+   !             call get_dgdx(gold(:, :, iz, it, ivmu), g0k)
+   !             if (no_extra_padding) then
+   !                call forward_transform(g0k, dgold_dx_normal)
+   !             else
+   !                call forward_transform_extra_padding(g0k, dgold_dx)
+   !             end if
+   !             call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+   !             call forward_transform(g0k, vchiold_x)
+   !
+   !             vchiold_x = vchiold_x * exb_nonlin_fac
+   !
+   !             ! Step 2) Get golder(x,y)
+   !             call forward_transform(golder(:, :, iz, it, ivmu), golderxy)
+   !
+   !             if (single_step_local) then
+   !                max_velocity_x = dx / (2 * code_dt)
+   !                max_velocity_y = dy / (2 * code_dt)
+   !             else
+   !                max_velocity_x = dx / (4 * code_dt)
+   !                max_velocity_y = dy / (4 * code_dt)
+   !             end if
+   !
+   !             if (override_vexb) then
+   !                vchiold_y = vexb_y
+   !                vchiold_x = vexb_x
+   !             end if
+   !             ! Step 3) Calculate departure points, and hence velocities and p, q
+   !             do iy = 1, ny
+   !                do ix = 1, nx
+   !                   if (override_vexb) then
+   !                      velocity_x = vexb_x
+   !                      velocity_y = vexb_y
+   !                      x_departure = x(ix) - 2 * velocity_x * code_dt
+   !                      y_departure = y(iy) - 2 * velocity_y * code_dt
+   !                   else
+   !                      call get_p_and_q(vchiold_y, vchiold_x, iy, ix, p, q)
+   !                      velocity_x = (x(ix) - x_departure) / (2 * code_dt)
+   !                      velocity_y = (y(iy) - y_departure) / (2 * code_dt)
+   !                   end if
+   !
+   !                   ! Check velocities are sensible
+   !                   ! Is this tolerance too high?
+   !                   if (override_vexb) then
+   !                      if (abs(velocity_x - vexb_x) > 1E-10) then
+   !                         write (*, *) "velocity_x, vexb_x = ", velocity_x, vexb_x
+   !                         stop "Aborting"
+   !                      end if
+   !                      if (abs(velocity_y - vexb_y) > 1E-10) then
+   !                         write (*, *) "velocity_y, vexb_y = ", velocity_y, vexb_y
+   !                         stop "Aborting"
+   !                      end if
+   !                   end if
+   !                   p = nint((x(ix) - x_departure) / dx)
+   !                   q = nint((y(iy) - y_departure) / dy)
+   !                   ! if ((p /= 0) .or. (q /=0)) then
+   !                   !   stop "Not equal to zero!"
+   !                   !
+   !                   ! end if
+   !                   if (override_vexb) then
+   !                      if (p == 0) then
+   !                         velocity_x = vexb_x
+   !                      end if
+   !
+   !                      if (q == 0) then
+   !                         velocity_y = vexb_y
+   !                      end if
+   !                   end if
+   !
+   !                   ! Find idxs of gridpoint closest to departure point.
+   !                   ! Normal idxs must be in the range(1,2,3,...,nx(or ny))
+   !                   ! Upsampled idxs must be in the range(1,2,3,...,2*nx(or 2*ny))
+   !                   xidx_departure = modulo((ix - p - 1), nx) + 1
+   !                   yidx_departure = modulo((iy - q - 1), ny) + 1
+   !                   if (single_step_local) then
+   !                      ! These idxs are at the time location told, which is the same
+   !                      ! as the time location of the g which we're evolving (although it's
+   !                      ! called golder). So e.g. for ix=10, p=1, we'd want xidx_departure=9 and
+   !                      ! xidx_for_upsampled_array = 18.
+   !                      ! So the formula is xidx_for_upsampled_array=(2*ix - 2*p), but correctly moduloed such that
+   !                      ! it lies in the range (1,2,3,...,2*nx)
+   !                      xidx_for_upsampled_array = modulo((2 * ix - 2 * p - 2), (2 * nx)) + 1
+   !                      yidx_for_upsampled_array = modulo((2 * iy - 2 * q - 2), (2 * ny)) + 1
+   !                   else
+   !                      ! These idxs are halfway between the 2 time locations (tolder, tnew)
+   !                      ! So e.g. for ix=10, p=1, we'd want xidx_departure=9 and
+   !                      ! xidx_for_upsampled_array = 19, because the upsampled idxs
+   !                      ! for ix=10 and 9 are 20 and 18 respectively.
+   !                      ! So the formula is xidx_for_upsampled_array=(2*ix - p), but correctly moduloed such that
+   !                      ! it lies in the range (1,2,3,...,2*nx)
+   !                      xidx_for_upsampled_array = modulo((2 * ix - p - 2), (2 * nx)) + 1
+   !                      yidx_for_upsampled_array = modulo((2 * iy - q - 2), (2 * ny)) + 1
+   !                   end if
+   !
+   !                   ! Residual velocities
+   !                   if (single_step_local) then
+   !                      velocity_x = velocity_x - p * dx / (code_dt)
+   !                      velocity_y = velocity_y - q * dy / (code_dt)
+   !                   else
+   !                      velocity_x = velocity_x - p * dx / (2 * code_dt)
+   !                      velocity_y = velocity_y - q * dy / (2 * code_dt)
+   !                   end if
+   !
+   !                   ! Can we check velocity_x, velocity_y to see if they're breaking a CFL condition?
+   !                   ! Are the residual velocities larger than expected?
+   !                   if (abs(velocity_x) > max_velocity_x) then
+   !                      write (*, *) "velocity_x, max_velocity_x =  ", velocity_x, max_velocity_x
+   !                      write (*, *) "velocity_y, max_velocity_y =  ", velocity_y, max_velocity_y
+   !                      stop "Stopping early"
+   !                   end if
+   !                   if (abs(velocity_y) > max_velocity_y) then
+   !                      write (*, *) "velocity_x, max_velocity_x =  ", velocity_x, max_velocity_x
+   !                      write (*, *) "velocity_y, max_velocity_y =  ", velocity_y, max_velocity_y
+   !                      stop "Stopping early"
+   !                   end if
+   !             !! Update golder(x,y)
+   !                   if (single_step_local) then
+   !                      if (no_extra_padding) then
+   !                         write (*, *) "Options no_extra_padding,  not yet implemented for the single-step version"
+   !                         stop "Stopping early"
+   !                      end if
+   !                      !  The single-step version: We only have one timestep to work with.
+   !                      rhs = -code_dt * (velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
+   !                                        + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array))
+   !                   else
+   !                      ! The 3-step version
+   !
+   !                      !!! Original implemenation  - calculate RHS, then update g on an idx-by-idx basis
+   !
+   !                      if (.not. no_extra_padding) then
+   !                         !! "Correct" RHS implementation; use upsampled dg/dx, dg/dy
+   !                         ! -ve sign because it's on the RHS
+   !                         rhs = -2 * code_dt * (velocity_x * dgold_dx(yidx_for_upsampled_array, xidx_for_upsampled_array) &
+   !                                               + velocity_y * dgold_dy(yidx_for_upsampled_array, xidx_for_upsampled_array))
+   !                      else
+   !                         !! Implementation which should be equivalent to the "Leapfrog" implementation
+   !                 !! Only valid if no SL
+   !                         if ((p /= 0) .or. (q /= 0)) then
+   !                            write (*, *) "p, q = ", p, q
+   !                            stop "stopping"
+   !                         end if
+   !                         if ((yidx_departure /= iy) .or. (xidx_departure /= ix)) then
+   !                            write (*, *) "yidx_departure, iy, xidx_departure, ix = ", yidx_departure, iy, xidx_departure, ix
+   !                            stop "stopping"
+   !                         end if
+   !                         rhs = -2 * code_dt * (velocity_x * dgold_dx_normal(iy, ix) &
+   !                                               + velocity_y * dgold_dy_normal(iy, ix))
+   !                      end if
+   !                   end if
+   !                   if (add_nl_source_in_real_space) then
+   !                      gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure) + rhs
+   !                   else
+   !                      rhs_array(iy, ix) = rhs
+   !                      gnewxy(iy, ix) = golderxy(yidx_departure, xidx_departure)
+   !                   end if
+   !
+   !                end do
+   !             end do
+   !
+   !         !! Invert to get golder(kx,ky)
+   !             call transform_x2kx(gnewxy, g0kxy)
+   !             call transform_y2ky(g0kxy, g0k_swap)
+   !             call swap_kxky_back(g0k_swap, golder(:, :, iz, it, ivmu))
+   !
+   !         !! Invert rhs_array to get rhs_array in Fourier space
+   !             if (.not. add_nl_source_in_real_space) then
+   !                call transform_x2kx(rhs_array, g0kxy)
+   !                call transform_y2ky(g0kxy, g0k_swap)
+   !                call swap_kxky_back(g0k_swap, rhs_array_fourier)
+   !                golder(:, :, iz, it, ivmu) = golder(:, :, iz, it, ivmu) + rhs_array_fourier
+   !             end if
+   !          end do
+   !       end do
+   !       ! ! enforce periodicity for zonal mode
+   !       ! ! FLAG -- THIS IS PROBABLY NOT NECESSARY (DONE AT THE END OF EXPLICIT ADVANCE)
+   !       ! ! AND MAY INDEED BE THE WRONG THING TO DO
+   !       golder(1, :, -nzgrid, :, ivmu) = 0.5 * (golder(1, :, nzgrid, :, ivmu) + golder(1, :, -nzgrid, :, ivmu))
+   !       golder(1, :, nzgrid, :, ivmu) = golder(1, :, -nzgrid, :, ivmu)
+   !    end do
+   !
+   !    deallocate (g0k, dgold_dx, dgold_dy, vchiold_x, vchiold_y, golderxy)
+   !    if (allocated(g0k_swap)) deallocate (g0k_swap)
+   !    if (allocated(g0kxy)) deallocate (g0kxy)
+   !    if (allocated(rhs_array_fourier)) deallocate (rhs_array_fourier)
+   !    if (allocated(rhs_array)) deallocate (rhs_array)
+   !    if (allocated(dgold_dx_normal)) deallocate (dgold_dx_normal)
+   !    if (allocated(dgold_dy_normal)) deallocate (dgold_dy_normal)
+   !
+   !    if (runtype_option_switch == runtype_multibox) call scope(allprocs)
+   !
+   !    if (runtype_option_switch == runtype_multibox) call scope(subprocs)
+   !
+   !    if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance, nisl')
+   !
+   ! contains
+   !
+   !    subroutine forward_transform(gk, gx)
+   !
+   !       use stella_transforms, only: transform_ky2y, transform_kx2x
+   !       use stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
+   !
+   !       implicit none
+   !
+   !       complex, dimension(:, :), intent(in) :: gk
+   !       real, dimension(:, :), intent(out) :: gx
+   !
+   !       ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
+   !       ! want to do 1D complex to complex transform in y
+   !       ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
+   !       ! use g(kx,-ky) = conjg(g(-kx,ky))
+   !       ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
+   !       ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
+   !       ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
+   !       ! and i*kx*J0(kx,-ky)*phi(kx,-ky) = conjg(i*(-kx)*J0(-kx,ky)*phi(-kx,ky))
+   !       ! i.e., can calculate dg/dx, dg/dy, d<phi>/dx and d<phi>/dy
+   !       ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
+   !       ! NB: J0(kx,ky) = J0(-kx,-ky)
+   !       ! TODO DSO: coordinate change for shearing
+   !       call swap_kxky(gk, g0k_swap)
+   !       call transform_ky2y(g0k_swap, g0kxy)
+   !       call transform_kx2x(g0kxy, gx)
+   !
+   !    end subroutine forward_transform
+   !
+   !    !> Perform the Fourier transform, but with extra padding with zeroes so that
+   !    !> the size of the untransformed and transformed arrays are twice as large.
+   !    !> This gets us the values in real space on a grid which is twice as fine,
+   !    !> with spectral accuracy.
+   !    subroutine forward_transform_extra_padding(gk, gx_extra_padding)
+   !
+   !       use stella_transforms, only: transform_ky2y_extra_padding, transform_kx2x_extra_padding
+   !       !use stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
+   !
+   !       implicit none
+   !
+   !       complex, dimension(:, :), intent(in) :: gk
+   !       real, dimension(:, :), intent(out) :: gx_extra_padding
+   !
+   !       ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
+   !       ! want to do 1D complex to complex transform in y
+   !       ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
+   !       ! use g(kx,-ky) = conjg(g(-kx,ky))
+   !       ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
+   !       ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
+   !       ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
+   !       ! and i*kx*J0(kx,-ky)*phi(kx,-ky) = conjg(i*(-kx)*J0(-kx,ky)*phi(-kx,ky))
+   !       ! i.e., can calculate dg/dx, dg/dy, d<phi>/dx and d<phi>/dy
+   !       ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
+   !       ! NB: J0(kx,ky) = J0(-kx,-ky)
+   !       ! TODO DSO: coordinate change for shearing
+   !       call swap_kxky(gk, g0k_swap)
+   !       call transform_ky2y_extra_padding(g0k_swap, g0kxy_extra_padding)
+   !       call transform_kx2x_extra_padding(g0kxy_extra_padding, gx_extra_padding)
+   !
+   !    end subroutine forward_transform_extra_padding
+   !
+   !    subroutine get_approx_departure_point(vy, vx, yidx_in, xidx_in, y_departure, x_departure, single_step)
+   !
+   !       use kt_grids, only: x, y
+   !       use kt_grids, only: dx, dy
+   !       use stella_time, only: code_dt
+   !
+   !       implicit none
+   !
+   !       real, dimension(:, :), intent(in) :: vy, vx
+   !       integer, intent(in) :: yidx_in, xidx_in
+   !       logical, intent(in) :: single_step
+   !       !real, intent (in) :: y_in, x_in
+   !       real, intent(out) :: y_departure, x_departure
+   !
+   !       integer :: max_iterations, counter, xidx, yidx
+   !       real :: u_x, u_y, u_y_new, u_x_new, time_remaining, xboundary, yboundary, xnorm, ynorm
+   !       real :: min_vy_magnitude, ydist_dt, min_vx_magnitude, xdist_dt, very_small_dt
+   !
+   !       y_departure = y(yidx_in)
+   !       x_departure = x(xidx_in)
+   !
+   !       max_iterations = 100
+   !       very_small_dt = 1E-12
+   !
+   !       xidx = xidx_in
+   !       yidx = yidx_in
+   !       u_x = vx(yidx, xidx)
+   !       u_y = vy(yidx, xidx)
+   !       if (single_step) then
+   !          time_remaining = code_dt
+   !       else
+   !          time_remaining = 2 * code_dt
+   !       end if
+   !
+   !       counter = 0
+   !       do while ((time_remaining > 0) .and. (counter < max_iterations))
+   !          counter = counter + 1
+   !       !!! Take a step in (x,y) based on the velocity at [x, y, t^n].
+   !
+   !       !!! Find the boundaries in x and y (at which the cell velocity changes)
+   !       !! Old - velocities upsampled, which means the cells are dx/2 * dy/2.
+   !       !! Cell boundaries at -dx/4, dx/4, 3dx/4, . . .
+   !          ! xnorm = (2*x_departure/dx - 0.5); ynorm = (2*y_departure/dy - 0.5)
+   !
+   !       !! New - velocities not upsampled, so cells are dx*dy. Cell boundaries
+   !       !! at -dx/2, dx/2, 3dx/2, . . .
+   !          ! "Normalised" x value & y value. This is an integer when we're
+   !          ! sitting on a cell boundary.
+   !          xnorm = (x_departure / dx - 0.5); ynorm = (y_departure / dy - 0.5)
+   !
+   !          ! Our boundaries are nonperiodic.
+   !          if (u_x > 0) then
+   !             ! floor/ceiling gets us the normalised x value of the nearest
+   !             ! cell boundary. We then convert back to "ordinary" x value.
+   !             xboundary = ((floor(xnorm) + 0.5) * dx)
+   !          else
+   !             xboundary = ((ceiling(xnorm) + 0.5) * dx)
+   !          end if
+   !
+   !          if (u_y > 0) then
+   !             yboundary = ((floor(ynorm) + 0.5) * dy)
+   !          else
+   !             yboundary = ((ceiling(ynorm) + 0.5) * dy)
+   !          end if
+   !
+   !          ! Calculate the time required to reach the nearest boundaries in y and x
+   !          ! Careful though - if our velocities are too small we'll get <>dist_dt=inf
+   !          min_vx_magnitude = (dx / code_dt) * 1e-10   ! We know it's very unlikely that the trajectory with this velocity will make it into the next cell
+   !          min_vy_magnitude = (dy / code_dt) * 1e-10   ! We know it's very unlikely that the trajectory with this velocity will make it into the next cell
+   !
+   !          if (abs(u_y) < min_vy_magnitude) then
+   !             ydist_dt = 10 * code_dt    ! This ensures ydist_dt > time_remaining
+   !          else
+   !             ydist_dt = -(yboundary - y_departure) / u_y
+   !          end if
+   !
+   !          if (abs(u_x) < min_vx_magnitude) then
+   !             xdist_dt = 10 * code_dt ! This ensures xdist_dt > time_remaining
+   !          else
+   !             xdist_dt = -(xboundary - x_departure) / u_x
+   !          end if
+   !
+   !          if ((ydist_dt > time_remaining) .and. (xdist_dt > time_remaining)) then
+   !             ! Stop before we hit the next boundary
+   !             ! Update location
+   !             y_departure = (y_departure - u_y * time_remaining)
+   !             x_departure = (x_departure - u_x * time_remaining)
+   !             time_remaining = 0
+   !          else
+   !             ! Hit the next boundary before we run out of time.
+   !             if (ydist_dt < xdist_dt) then
+   !                ! We've hit the boundary in y - update the non-periodic
+   !                ! position of the particle and the periodic position of the
+   !                ! particle.
+   !                y_departure = (yboundary - u_y * very_small_dt)   ! slightly overstep, so we're definitely in the next cell
+   !                x_departure = (x_departure - u_x * (ydist_dt + very_small_dt))
+   !
+   !                ! Update the values of u_x, u_y
+   !                if (u_y > 0) then
+   !                   ! +ve u_y, so going back in time we're going in the -ve y direction; our new cell is
+   !                   ! below the old cell
+   !                   yidx = yidx - 1
+   !                else
+   !                   ! -ve u_y, so going back in time we're going in the +ve y direction; our new cell is
+   !                   ! below the old cell
+   !                   yidx = yidx + 1
+   !                end if
+   !
+   !                ! The yidx range is (1, 2, 3, . . . ny), so anything
+   !                ! beyond this range must be mapped into this range using periodicity
+   !                ! modulo operation maps into range(0, ny-1), so need to correct for this
+   !                yidx = modulo((yidx - 1), (ny)) + 1
+   !
+   !                ! Update the velocities
+   !                u_x = vx(yidx, xidx)
+   !                ! Update u_y, but if the sign is different, we're going to
+   !                ! bounce back and forth (this indicates the velocity falling
+   !                ! to zero somewhere between the 2 cell centres). To avoid the "bouncing",
+   !                ! set velocity to zero.
+   !                u_y_new = vy(yidx, xidx)
+   !                if ((u_y * u_y_new) < 0) then
+   !                   ! Opposite signs, so set u_y=0
+   !                   u_y = 0
+   !                else
+   !                   u_y = u_y_new
+   !                end if
+   !
+   !                ! Update time_remaining. Include the "very small dt" contribution
+   !                time_remaining = time_remaining - (ydist_dt + very_small_dt)
+   !             else
+   !                ! Hit the boundary in x
+   !                x_departure = (xboundary - u_x * very_small_dt)    ! slightly overstep, so we're definitely in the next cell
+   !                y_departure = (y_departure - u_y * (xdist_dt + very_small_dt))
+   !
+   !                ! Update the values of u_x, u_y
+   !                if (u_x > 0) then
+   !                   ! +ve u_x, so going back in time we're going in the -ve x direction; our new cell is
+   !                   ! to the left of the old cell
+   !                   xidx = xidx - 1
+   !                else
+   !                   ! -ve u_y, so going back in time we're going in the +ve y direction; our new cell is
+   !                   ! below the old cell
+   !                   xidx = xidx + 1
+   !                end if
+   !
+   !                ! The xidx range is (1, 2, 3, . . . nx), so anything
+   !                ! beyond this range must be mapped into this range using periodicity
+   !                ! modulo operation maps into range(0, nx-1), so need to correct for this
+   !                xidx = modulo((xidx - 1), (nx)) + 1
+   !
+   !                ! Update velocities
+   !                u_y = vy(yidx, xidx)
+   !                ! Update u_x, but if the sign is different, we're going to
+   !                ! bounce back and forth (this indicates the velocity falling
+   !                ! to zero somewhere between the 2 cell centres). To avoid the "bouncing",
+   !                ! set velocity to zero.
+   !                u_x_new = vx(yidx, xidx)
+   !                if ((u_x * u_x_new) < 0) then
+   !                   ! Opposite signs, so set u_x=0 (ux passes through zero)
+   !                   u_x = 0
+   !                else
+   !                   u_x = u_x_new
+   !                end if
+   !                ! Update time_remaining. Include the "very small dt" contribution
+   !                time_remaining = time_remaining - (xdist_dt + very_small_dt)
+   !             end if
+   !          end if
+   !       end do
+   !
+   !    end subroutine get_approx_departure_point
+   !
+   ! end subroutine advance_ExB_nonlinearity_nisl_ritchie
+
    !> A time-advanced golder is passed in, along with gold (which hasn't been
    !> evolved at all). We apply a ISL-Leapfrog step using bilinear interpolarion
    !> to replace golder with
@@ -3051,14 +3591,6 @@ contains
                call transform_x2kx(gnewxy, g0kxy)
                call transform_y2ky(g0kxy, g0k_swap)
                call swap_kxky_back(g0k_swap, golder(:, :, iz, it, ivmu))
-
-               ! !! Invert rhs_array to get rhs_array in Fourier space
-               !     if (.not. add_nl_source_in_real_space) then
-               !        call transform_x2kx(rhs_array, g0kxy)
-               !        call transform_y2ky(g0kxy, g0k_swap)
-               !        call swap_kxky_back(g0k_swap, rhs_array_fourier)
-               !        golder(:, :, iz, it, ivmu) = golder(:, :, iz, it, ivmu) + rhs_array_fourier
-               !     end if
             end do
          end do
          ! ! enforce periodicity for zonal mode
@@ -3155,13 +3687,8 @@ contains
          integer :: xidx_left, xidx_right, xidx_left_on_grid, xidx_right_on_grid
          integer :: yidx_bottom, yidx_top, yidx_bottom_on_grid, yidx_top_on_grid
 
-         ! write(*,*) "x_in"
          xidx_left = int(floor(x_in / dx)) + 1
          xidx_right = int(ceiling(x_in / dx)) + 1
-         ! write(*,*) "int(floor(x_in/dx)) = ", (x_in/dx)
-         ! write(*,*) "int(ceiling(x_in/dx)) = ", (x_in/dx)
-         ! write(*,*) "int(floor(x_in/dx)) + 1= ", int(floor(x_in/dx))+1
-         ! write(*,*) "int(ceiling(x_in/dx)) + 1= ", int(ceiling(x_in/dx))+1
          xidx_left_on_grid = modulo(xidx_left - 1, nx) + 1
          xidx_right_on_grid = modulo(xidx_right - 1, nx) + 1
          yidx_bottom = int(floor(y_in / dy)) + 1
