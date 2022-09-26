@@ -1205,7 +1205,7 @@ contains
       ! expense of memory (storing another set of fields) and code refactoring
       fields_updated = .false.
       ! if (runge_kutta_terms_this_timestep) call advance_explicit (golder, restart_time_step)
-      write(*,*) "In advance_isl_no_splitting"
+      write (*, *) "In advance_isl_no_splitting"
       call advance_fields(gold, phi, apar, "gbar")
       leapfrog_this_timestep = .true.
       call solve_gke(gold, g0, restart_time_step)
