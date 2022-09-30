@@ -37,7 +37,7 @@ module common_types
       integer :: iproc
       integer :: nzgrid, nzed, ntubes, nalpha, ny, naky, nx, nakx, nmu, nspec
       integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc
-      integer, dimension (:), allocatable :: imus
+      integer, dimension(:), allocatable :: imus
    end type mu_layout_type
 
    type :: flux_surface_type
