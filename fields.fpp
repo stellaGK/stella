@@ -999,7 +999,7 @@ contains
       subroutine get_g_integral_contribution(g, source)
 
          use mp, only: sum_allreduce
-         use stella_layouts, only: vmu_lo
+         use stella_layouts, only: vmu_lo, mu_lo
          use species, only: spec
          use zgrid, only: nzgrid
          use kt_grids, only: naky, nakx
@@ -1011,7 +1011,7 @@ contains
          complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
          complex, dimension(:, :, -nzgrid:), intent(in out) :: source
 
-         integer :: it, iz, ivmu
+         integer :: it, iz, ivmu, imus
          complex, dimension(:, :, :), allocatable :: gyro_g
 
          !> assume there is only a single flux surface being simulated
@@ -1021,8 +1021,9 @@ contains
          do iz = -nzgrid, nzgrid
             !> loop over super-index ivmu, which include vpa, mu and spec
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               imus = mu_lo%imus(ivmu)
                !> gyroaverage the distribution function g at each phase space location
-               call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_maxwell_ffs(:, :, iz, ivmu))
+               call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_maxwell_ffs(:, :, iz, imus))
             end do
             !> integrate <g> over velocity space and sum over species within each processor
             !> as v-space and species possibly spread over processors, wlil need to

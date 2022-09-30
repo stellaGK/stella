@@ -1604,7 +1604,7 @@ contains
    !> f = g + (Ze/T)*(<phi>_R - phi)
    subroutine g_to_f(g, phi, f)
 
-      use stella_layouts, only: vmu_lo, is_idx
+      use stella_layouts, only: vmu_lo, is_idx, mu_lo
       use species, only: spec
       use zgrid, only: nzgrid
       use gyro_averages, only: gyro_average, j0_ffs
@@ -1615,12 +1615,13 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: f
 
-      integer :: ivmu, is
+      integer :: ivmu, is, imus
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         imus = mu_lo%imus(ivmu)
          !> compute <phi>_R and store in f
          !> j0_ffs are the fourier coefficients of J0(k_perp(y))
-         call gyro_average(phi, f(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         call gyro_average(phi, f(:, :, :, :, ivmu), j0_ffs(:, :, :, imus))
          !> calculate the normalized f, given phi and <phi>_R (temporarily stored in f)
          is = is_idx(vmu_lo, ivmu)
          f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * (f(:, :, :, :, ivmu) - phi)

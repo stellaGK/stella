@@ -243,7 +243,7 @@ contains
 
       use mp, only: sum_allreduce, proc0
       use spfunc, only: j0
-      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: vmu_lo, mu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_alpha2kalpha
       use species, only: nspec, spec
@@ -259,7 +259,7 @@ contains
 
       !    integer :: j0_ffs_unit, j0_B_maxwell_ffs_unit
       integer :: iky, ikx, ia, iz
-      integer :: ivmu, iv, imu, is
+      integer :: ivmu, iv, imu, is, imus
       integer :: ia_max_j0_count, ia_max_j0_B_maxwell_count
       real :: arg, rtmp
       real :: ia_max_j0_reduction_factor, ia_max_j0_B_maxwell_reduction_factor
@@ -284,10 +284,12 @@ contains
       allocate (j0_B_maxwell_kalpha(naky))
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
       if (.not. allocated(j0_ffs)) then
-         allocate (j0_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         !         allocate (j0_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (j0_ffs(naky_all, ikx_max, -nzgrid:nzgrid, mu_lo%llim_proc:mu_lo%ulim_alloc))
       end if
       if (.not. allocated(j0_B_maxwell_ffs)) then
-         allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         !         allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, mu_lo%llim_proc:mu_lo%ulim_alloc))
       end if
 
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
@@ -305,6 +307,7 @@ contains
             is = is_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
+            imus = mu_lo%imus(ivmu)
             do ikx = 1, ikx_max
                do iky = 1, naky_all
                   do ia = 1, nalpha
@@ -326,24 +329,24 @@ contains
                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
                   !                ! TMP FOR TESTING
                   !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
-                  call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
+                  call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, imus)%max_idx, imu, iz, is)
                   !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
+                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, imus)%max_idx, imu, iz, is)
                   !> keep track of the total number of coefficients that must be retained across different phase space points
-                  ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, ivmu)%max_idx
+                  ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, imus)%max_idx
                   !> keep track of the total number of coefficients that must be retained across different phase space points
-                  ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx
+                  ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky, ikx, iz, imus)%max_idx
                   !> allocate array to hold the reduced number of Fourier coefficients
-                  if (.not. associated(j0_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                     allocate (j0_ffs(iky, ikx, iz, ivmu)%fourier(j0_ffs(iky, ikx, iz, ivmu)%max_idx))
+                  if (.not. associated(j0_ffs(iky, ikx, iz, imus)%fourier)) &
+                     allocate (j0_ffs(iky, ikx, iz, imus)%fourier(j0_ffs(iky, ikx, iz, imus)%max_idx))
                   !> fill the array with the requisite coefficients
-                  j0_ffs(iky, ikx, iz, ivmu)%fourier = aj0_kalpha(:j0_ffs(iky, ikx, iz, ivmu)%max_idx)
+                  j0_ffs(iky, ikx, iz, imus)%fourier = aj0_kalpha(:j0_ffs(iky, ikx, iz, imus)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
-                  if (.not. associated(j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                     allocate (j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx))
+                  if (.not. associated(j0_B_maxwell_ffs(iky, ikx, iz, imus)%fourier)) &
+                     allocate (j0_B_maxwell_ffs(iky, ikx, iz, imus)%fourier(j0_B_maxwell_ffs(iky, ikx, iz, imus)%max_idx))
                   !> fill the array with the requisite coefficients
-                  j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
+                  j0_B_maxwell_ffs(iky, ikx, iz, imus)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky, ikx, iz, imus)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
                end do
             end do
@@ -553,17 +556,21 @@ contains
    subroutine gyro_average_kxky_local(field, iz, ivmu, gyro_field)
 
       use physics_flags, only: full_flux_surface
-
+      use stella_layouts, only: mu_lo
+      
       implicit none
 
       complex, dimension(:, :), intent(in) :: field
       integer, intent(in) :: iz, ivmu
       complex, dimension(:, :), intent(out) :: gyro_field
 
+      integer :: imus
+      
       if (full_flux_surface) then
          !> if simulating a full flux surface, the alpha dependence present
          !> in kperp makes gyro-averaging non-local in k-space
-         call gyro_average(field, gyro_field, j0_ffs(:, :, iz, ivmu))
+         imus = mu_lo%imus(ivmu)
+         call gyro_average(field, gyro_field, j0_ffs(:, :, iz, imus))
       else
          !> if simulating a flux tube, a gyro-average is local in k-space
          gyro_field = aj0x(:, :, iz, ivmu) * field
@@ -575,17 +582,21 @@ contains
 
       use physics_flags, only: full_flux_surface
       use zgrid, only: nzgrid, ntubes
-
+      use stella_layouts, only: mu_lo
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: field
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: gyro_field
 
+      integer :: imus
+      
       if (full_flux_surface) then
          !> if simulating a full flux surface, the alpha dependence present
          !> in kperp makes gyro-averaging non-local in k-space
-         call gyro_average(field, gyro_field, j0_ffs(:, :, :, ivmu))
+         imus = mu_lo%imus(ivmu)
+         call gyro_average(field, gyro_field, j0_ffs(:, :, :, imus))
       else
          !> if simulating a flux tube, a gyro-average is local in k-space
          gyro_field = spread(aj0x(:, :, :, ivmu), 4, ntubes) * field
@@ -706,19 +717,21 @@ contains
    subroutine gyro_average_ffs(dist, gyro_dist, coefs)
 
       use common_types, only: coupled_alpha_type
-      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: vmu_lo, mu_lo
       use zgrid, only: nzgrid
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: dist
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_dist
-      type(coupled_alpha_type), dimension(:, :, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: coefs
+      !      type(coupled_alpha_type), dimension(:, :, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: coefs
+      type(coupled_alpha_type), dimension(:, :, -nzgrid:, mu_lo%llim_proc:), intent(in) :: coefs
 
-      integer :: ivmu
+      integer :: ivmu, imus
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call gyro_average(dist(:, :, :, :, ivmu), gyro_dist(:, :, :, :, ivmu), coefs(:, :, :, ivmu))
+         imus = mu_lo%imus(ivmu)
+         call gyro_average(dist(:, :, :, :, ivmu), gyro_dist(:, :, :, :, ivmu), coefs(:, :, :, imus))
       end do
 
    end subroutine gyro_average_ffs
