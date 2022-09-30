@@ -557,7 +557,7 @@ contains
 
       use physics_flags, only: full_flux_surface
       use stella_layouts, only: mu_lo
-      
+
       implicit none
 
       complex, dimension(:, :), intent(in) :: field
@@ -565,7 +565,7 @@ contains
       complex, dimension(:, :), intent(out) :: gyro_field
 
       integer :: imus
-      
+
       if (full_flux_surface) then
          !> if simulating a full flux surface, the alpha dependence present
          !> in kperp makes gyro-averaging non-local in k-space
@@ -583,7 +583,7 @@ contains
       use physics_flags, only: full_flux_surface
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: mu_lo
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: field
@@ -591,7 +591,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: gyro_field
 
       integer :: imus
-      
+
       if (full_flux_surface) then
          !> if simulating a full flux surface, the alpha dependence present
          !> in kperp makes gyro-averaging non-local in k-space
