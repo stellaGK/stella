@@ -11,7 +11,7 @@ module stella_layouts
    public :: finish_layouts
 
    public :: init_stella_layouts, init_dist_fn_layouts
-   public :: kxkyz_lo, kxyz_lo, xyz_lo, vmu_lo
+   public :: kxkyz_lo, kxyz_lo, xyz_lo, vmu_lo, mu_lo
 
    public :: kxkyzidx2vmuidx, kxyzidx2vmuidx, xyzidx2vmuidx
 
