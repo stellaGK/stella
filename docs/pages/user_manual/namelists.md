@@ -154,23 +154,296 @@ Variable | Type | Default | Description
 `include_geometric_variation` | boolean | `true` | Include magnetic geomety profile variation when running radially global simulations. **Setting this to `false` does *not* currently turn everything off.**
 
 # namelist `parameters`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`beta`  | | |
+`zeff`  | | |
+`tite`  | | |
+`nine`  | | |
+`rhostar`  | | |
+`irhostar`  | | |
+`vnew_ref`  | | |
+`g_exb`  | | |
+`g_exbfac`  | | |
+`omprimfac`  | | |
+
+
+
 # namelist `knobs`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`fphi`  | | |
+`fapar`  | | |
+`fbpar`  | | |
+`delt`  | | |
+`nstep`  | | |
+`tend`  | | |
+`delt_option`  | | |
+`lu_option`  | | |
+`avail_cpu_time`  | | |
+`cfl_cushion`  | | |
+`delt_adjust`  | | |
+`delt_max`  | | |
+`stream_implicit`  | | |
+`mirror_implicit`  | | |
+`driftkinetic_implicit`  | | |
+`drifts_implicit`  | | |
+`stream_matrix_inversion`  | | |
+`maxwellian_inside_zed_derivative`  | | |
+`mirror_semi_lagrange`  | | |
+`mirror_linear_interp`  | | |
+`zed_upwind`  | | |
+`vpa_upwind`  | | |
+`time_upwind`  | | |
+`fields_kxkyz`  | | |
+`mat_gen`  | | |
+`rng_seed`  | | |
+`ky_solve_radial`  | | |
+`ky_solve_real`  | | |
+
+
 # namelist `init_g_knobs`
+
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`ginit_option` |||
+`width0` |||
+`phiinit` |||
+`scale_to_phiinit` |||
+`chop_side` |||
+`restart_file` |||
+`restart_dir` |||
+`read_many` |||
+`left` |||
+`scale` |||
+`tstart` |||
+`zf_init` |||
+`den0` |||
+`upar0` |||
+`tpar0` |||
+`tperp0` |||
+`den1` |||
+`upar1` |||
+`tpar1` |||
+`tperp1` |||
+`den2` |||
+`upar2` |||
+`tpar2` |||
+`tperp2` |||
+`imfac` |||
+`refac` |||
+`even` |||
+`kxmax` |||
+`kxmin` |||
+
+
+
 # namelist `species_knobs`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`nspec` | | |
+`species_option` | | |
+`read_profile_variation` | | |
+`write_profile_variation` | | |
+`ecoll_zeff` | | |
+
+
 # namelist `species_parameters`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`z` | | |
+`mass` | | |
+`dens` | | |
+`temp` | | |
+`tprim` | | |
+`fprim` | | |
+`d2ndr2` | | |
+`d2Tdr2` | | |
+`bess_fac` | | |
+`type` | | |
+
+
 # namelist `time_advance_knobs`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`xdriftknob` | | |
+`ydriftknob` | | |
+`wstarknob` | | |
+`explicit_option` | | |
+`flip_flop` | | |
+
+
 # namelist `stella_diagnostics_knobs`
 
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`nwrite` | | |
+`navg` | | |
+`nsave` | | |
+`save_for_restart` | | |
+`write_phi_vs_time` | | |
+`write_gvmus` | | |
+`write_gzvs` | | |
+`write_omega` | | |
+`write_kspectra` | | |
+`write_moments` | | |
+`write_radial_fluxes` | | |
+`write_radial_moments` | | |
+`write_fluxes_kxkyz` | | |
+`flux_norm` | | |
+`nc_mult` | | |
+
+
 # namelist `multibox_parameters`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`boundary_size` ||| 
+`krook_size` ||| 
+`zf_option` ||| 
+`krook_option` ||| 
+`RK_step` ||| 
+`nu_krook_mb` ||| 
+`mb_debug_step` |||
+`krook_exponent` |||  
+`comm_at_init` ||| 
+`phi_bound` ||| 
+`phi_pow` ||| 
+`krook_efold` ||| 
+`use_dirichlet_BC` ||| 
+`LR_debug_option` ||| 
+`smooth_ZFs` ||| 
+
+
 # namelist `sources`
 
 
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`include_krook_operator` ||| 
+`remove_zero_projection` ||| 
+`conserve_momentum` ||| 
+`conserve_density` ||| 
+`tcorr_source` ||| 
+`nu_krook` ||| 
+`ikxmax_source` ||| 
+`krook_odd` ||| 
+`exclude_boundary_regions` ||| 
+`tcorr_source_qn` ||| 
+`exclude_boundary_regions_qn` ||| 
+`from_zero` ||| 
+
+
 # namelist `dissipation`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`include_collisions` | boolean | `true` | Include particle collisions.
+`collisions_implicit` | boolean | `true` | Evaluate the collision operator implicitly.
+`collision_model` | string | `'dougherty'` | Which collision operator to use. Options are `'dougherty'` (simplified operator) or `'fokker-planck'` (physical operator).
+`hyper_dissipation` | boolean | `false` | Include hyper-dissipation. *Strongly* recommended for nonlinear simulations.
+
 # namelist `collisions_dougherty`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`momentum_conservation` | boolean | `true` | Enforce momentum conservation.
+`energy_conservation` | boolean | `true` | Enforce energy conservation.
+`vpa_operator` | boolean | `true` | Include \\( \partial_{v_\parallel} \\) components of collision operator.
+`mu_operator` | boolean | `true` | Include \\( \partial_\mu \\) components of collision operator.
+
 # namelist `collisions_fp`
+
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`testpart` | ||
+`fieldpart` | ||
+`lmax` | ||
+`jmax` | ||
+`nvel_local` | ||
+`interspec` | ||
+`intraspec` | ||
+`iiknob` | ||
+`ieknob` | ||
+`eiediffknob` | ||
+`eideflknob ` | ||
+`deflknob ` | ||
+`eimassr_approx ` | ||
+`advfield_coll ` | ||
+`spitzer_problem ` | ||
+`density_conservation ` | ||
+`density_conservation_field ` | ||
+`density_conservation_tp` | ||
+`exact_conservation` | ||
+`exact_conservation_tp` | ||
+`momentum_conservation` | ||
+`energy_conservation` | ||
+`vpa_operator ` | ||
+`mu_operator` | ||
+`cfac` | ||
+`cfac2` | ||
+`nuxfac` | ||
+`i2fac` | ||
+`no_j1l2` | ||
+`no_j0l2` | ||
+
+
 # namelist `hyper`
 
-# namelist `sfincs_input`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`D_hyper` | real | 0.05 | Maximal hyperdissipation damping rate.
+`use_physical_ksqr` | boolean  | not `full_flux_surface` or `radial_variation`| If true, use actual \\(k^2_\perp = k_x^2 |\nabla x|^2 + 2 k_xk_y (\grad x \cdot \grad y) + k_y^2 |\nabla y|^2\\). Otherwise, use \\( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\\).
+`scale_to_outboard` | boolean | `false` | If true, scale maximal damping rate to maximum \\( k_\perp^2 \\) at outboard midplane. Otherwise, scale maximal damping to maximum \\( k_\perp^2 \\) over the entire domain.
+
 # namelist `neoclassical_input`
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`include_neoclassical_terms` | boolean | `false`| Include neoclassical terms. Need to use sfincs for input.
+`neo_option` | string | `'sfincs'`| Option for obtaining neoclassical distribution function and potential. Currently, only `'sfincs'` is supported.
+`nradii` | integer  | 5 | Number of radial points used for radial derivatives of neoclassical quantities.
+`drho` | real | 0.01 | spacing in `rhoc` between points used for radial derivatives.
+
+# namelist `sfincs_input`
+
+Variable | Type | Default | Description
+-------- | ---- | ------- | -----------
+`read_sfincs_output_from_file` | boolean | `false` | if true, will try to read in `Phi1Hat` and `delta_f` from pre-saved file named `sfincs.output`. Otherwise, run sfincs to compute these quantities on the fly.
+`nproc_sfincs` | integer | 1 | Number of processors to use for sfincs calculations.
+`calculate_radial_electric_field` | boolean | `true` | If true, then scan in radial electric field to find value for which ambipolarity is satisfied, and then use this value to obtain neoclassical fluxes, distribution function, and potential.
+`includeXDotTerm` | boolean | `true` | include radial electric field term
+`includeElectricFieldTermInXiDot` | boolean | `true` | 
+`irad_min` | integer | `-nardii / 2` | minimum radial index (`irad=0` corresponds to central radius).
+`irad_max` | integer | `nradii / 2` | maximum radial index.
+`magneticDriftScheme` | integer | 0 | ???
+`includePhi1` | boolean | `true` | If `true`, then `Phi1` will be calculated using quasineutrality.
+`includePhi1InKineticEquation` | boolean | `false` |
+`geometryScheme` | integer  | 1 | will be overridden by direct input of geometric quantities unless `geometryScheme = 5` (VMEC equilibrium)
+`VMECRadialOption` | integer | 0 | **only relevant if `geometryScheme = 5`.** Radial option to use for VMEC equilibrium. Must be one of 
+`equilibriumFile` | string | `'wout_161s1.nc'`| path of VMEC equilibrium file.
+`coordinateSystem` | integer | 3 | ???
+`inputRadialCoordinate` | integer | 3 | option 3 corresponds to using square root of toroidal flux normalized by toroidal flux enclose by the LCFS.
+`inputRadialCoordinateForGradients` | integer | 3 | option 3 corresponds to same choise when calculating gradients of density, temperature, and potential
+`ahat` | real | 1.0 | corresponds to \\( r_\mathrm{LCFS} \\) as reference length in sfincs. Only used in sfincs when `geometryScheme = 1`.
+`psiAHat` | real | `geo_surf%psitor_lcfs` | \\( \psi_\mathrm{LCFS} / B_\mathrm{ref}a^2_\mathrm{ref} \\).
+`Delta` | real | -1.0| \\( \Delta = \rho_\ast m_\mathrm{ref}v_\mathrm{th,ref}/(eB_\mathrm{ref}a_\mathrm{ref}) \\), with reference quantities given in SI units unless `geometryScheme` = 5, in which case \\(B_\mathrm{ref} = 1 \\) Tesla and \\(a_\mathrm{ref}  = 1 \\) meter (these are hardwired in sfincs). Set negative to allow check later to see if any value given in input file.
+`dPhiHatdrN` | real | -9999.9| radial derivative of normalized \\( \phi \\).
+`nu_N` | real | -1.0 | \\(\nu_n = \nu_\mathrm{ref} a_\mathrm{ref}/ v_\mathrm{th,ref}\\). Note that \\( \nu_\mathrm{ref} = 4 \sqrt{2 \pi} n_\mathrm{ref}e^4 \ln \Lambda / (3m^{1/2}_\mathrm{ref}T_\mathrm{ref}^{3/2})\\). Set negative to allow check later to see if any value given in input file.
+`nxi` | integer | 48 | number of spectral coefficients in pitch angle
+`nx` | integer  | 12 | number of speeds
+`ntheta` | integer | 65 | number of poloidal angles. 
+`nzeta` | integer | 1 | number of toroidal angles. 1 is approriate for tokamaks.
+`Er_window` | real | 0.3 | ???
+
+
 
 
