@@ -121,7 +121,7 @@ contains
 
       namelist /layouts_knobs/ xyzs_layout, vms_layout
 
-      xyzs_layout = 'xyzs'
+      xyzs_layout = 'yxzs'
       vms_layout = 'vms'
 
       in_file = input_unit_exist("layouts_knobs", exist)
