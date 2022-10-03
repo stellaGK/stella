@@ -100,8 +100,290 @@
   <div class="row">
     <div class="col-md-9 col-md-push-3" id='text'>
       <h1 id="namelist-geo_knobs">namelist <code>geo_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>geo_option</code></td>
+<td>string</td>
+<td><code>'local'</code></td>
+<td>Selects the geometry module. Should be one of <ul><li><code>local</code> Miller equilibrium.</li><li>  <code>vmec</code> VMEC stellarator equilibrium. Requires VMEC netcdf input file. </li><li> <code>input.profiles</code> Reads in General Atomics <code>input.gacode</code> file. <strong>This may need to be updated for newer <code>gacode</code> files.</strong></li><li><code>miller</code>same as <code>local</code></li><li><code>default</code> same as <code>miller</code></li></ul></td>
+</tr>
+<tr>
+<td><code>geo_file</code></td>
+<td>string</td>
+<td><code>'input.geometry'</code></td>
+<td>input file used to overwrite selected geometric coefficients below. File uses the same formatting as <code>.geometry</code> output.</td>
+</tr>
+<tr>
+<td><code>q_as_x</code></td>
+<td>boolean</td>
+<td><code>radial_variation</code></td>
+<td>Uses the safety factor \( q \) as the radial coordinate, rather than \( \psi \). Used for radially global simulations.</td>
+</tr>
+<tr>
+<td><code>set_bmag_const</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Sets \( B \) uniformly to its value at the outboard midplane</td>
+</tr>
+<tr>
+<td><code>overwrite_bmag</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( B \)</td>
+</tr>
+<tr>
+<td><code>overwrite_gradpar</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( \boldsymbol{b \cdot \nabla b} \)</td>
+</tr>
+<tr>
+<td><code>overwrite_gds2</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_gds21</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_gds22</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_gds23</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_gds24</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_gbdrift</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_gbdrift0</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>overwrite_cvdrift</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-millergeo_parameters">namelist <code>millergeo_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rhoc</code></td>
+<td>real</td>
+<td>0.5</td>
+<td>radial position of fluxtube \( r \)</td>
+</tr>
+<tr>
+<td><code>rmaj</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>device major radius \( R_0 \)</td>
+</tr>
+<tr>
+<td><code>shift</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Shafranov shift</td>
+</tr>
+<tr>
+<td><code>qinp</code></td>
+<td>real</td>
+<td>1.4</td>
+<td>magnetic safety factor \( q \)</td>
+</tr>
+<tr>
+<td><code>shat</code></td>
+<td>real</td>
+<td>0.8</td>
+<td>magnetic shear \( \hat{s} = (r/q) \operatorname{d}q/\operatorname{d}r \)</td>
+</tr>
+<tr>
+<td><code>kappa</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>elongation</td>
+</tr>
+<tr>
+<td><code>tri</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>triangularity</td>
+</tr>
+<tr>
+<td><code>rgeo</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>geometric center-point of the flux-tube</td>
+</tr>
+<tr>
+<td><code>betaprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Normalized pressure gradient \( \beta' \)</td>
+</tr>
+<tr>
+<td><code>kapprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>radial derivative of elongation (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>triprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>radial derivative of triangularity (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>betadbprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>radial derivative of \( \beta' \) (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>d2qdr2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>second derivative of \( q' \) (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>d2psidr2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>second derivative of \( \psi \) (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>nzed_local</code></td>
+<td>integer</td>
+<td>128</td>
+<td>resolution of \( z \) on which to calculate geometric coefficients. Splines are then used to interpolate onto the grid used during simulation.</td>
+</tr>
+<tr>
+<td><code>read_profile_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Save information necessary for recalculating Miller equilibrium away from \( r \). Used for performing local simulations at different radial locations in order to compare to global simulation.</td>
+</tr>
+<tr>
+<td><code>write_profile_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Recomputes the Miller equilibrium using geometry stored in a file, originally calculated at some \( r_\mathrm{file} \), at new \( r \).</td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-vmec_parameters">namelist <code>vmec_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alpha0</code></td>
+<td>real</td>
+<td>0.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>zeta_center</code></td>
+<td>real</td>
+<td>0.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>nfields_periods</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>torflux</code></td>
+<td>real</td>
+<td>0.6354167</td>
+<td></td>
+</tr>
+<tr>
+<td><code>zgrid_scalefac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>zgrid_refinement_factor</code></td>
+<td>real</td>
+<td>4 if <code>zed_equal_arc</code>, 1 otherwise</td>
+<td></td>
+</tr>
+<tr>
+<td><code>surface_option</code></td>
+<td>integer</td>
+<td>0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>verbose</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>vmec_filename</code></td>
+<td>string</td>
+<td><code>'equilibria/wout_w7x_standardConfig.nc'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>gradpar_zeta_prefac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-zgrid_parameters">namelist <code>zgrid_parameters</code></h1>
 <p>Used to control the resolution and boundary condition of the parallel coordinate.</p>
 <table class="table table-striped">
@@ -160,7 +442,7 @@
 <td><code>dkx_over_dky</code></td>
 <td>real</td>
 <td>-1</td>
-<td>Set the desired ratio of \(dkx/dky\) for \(j_\mathrm{twist}\) when using the stellarator boundary condition.</td>
+<td>Set the desired ratio of \(\Delta k_x/\Delta k_y\) for \(j_\mathrm{twist}\) when using the stellarator boundary condition.</td>
 </tr>
 </tbody>
 </table>
@@ -176,18 +458,301 @@
 </thead>
 <tbody>
 <tr>
-<td><em>variable</em></td>
+<td><code>nvgrid</code></td>
 <td>integer</td>
-<td>1</td>
-<td>description</td>
+<td>24</td>
+<td>Number of positive points in \( v_\parallel \). Actual grid will be twice as large. Note that \( v_\parallel = 0\) is not included.</td>
+</tr>
+<tr>
+<td><code>nmu</code></td>
+<td>integer</td>
+<td>12</td>
+<td>Number of points in the magnetic moment \( \mu \).</td>
+</tr>
+<tr>
+<td><code>vpa_max</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>Maximum \( v_\parallel \) on the grid in terms of thermal velocity.</td>
+</tr>
+<tr>
+<td><code>vperp_max</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>Maximum \( v_\perp \) on the grid in terms of thermal velocity.</td>
+</tr>
+<tr>
+<td><code>equally_spaced_mu_grid</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>If false, use Gaussian quadrature points for \( \mu \) grid (recommended). Otherwise, use equally spaced grid. Both options exclude \( \mu = 0 \).</td>
+</tr>
+<tr>
+<td><code>conservative_wgts_vpa</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use density-conserving weights for \( v_\parallel \). Used primarily by Fokker-Planck collision operator.</td>
 </tr>
 </tbody>
 </table>
 <h1 id="namelist-kt_grids_knobs">namelist <code>kt_grids_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>grid_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Sets the layout of the perpendicular grid. Should be one of <ul><li><code>range</code> use a set range of wavenumbers. Suitable for linear simulation.</li> <li><code>box</code> use a physical box in coordinate space, i.e., a wavenumber grid that satisfies \(A_\boldsymbol{k} = A^\ast_{-\boldsymbol{k}} \). <em>Required</em> for nonlinear simulation.</li><li><code>default</code> same as <code>range</code></li><li><code>annulus</code> same as <code>box</code></li><li><code>nonlinear</code> same as <code>box</code></li></ul></td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-kt_grids_range_parameters">namelist <code>kt_grids_range_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>naky</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Number of points along the binormal mode grid direction.</td>
+</tr>
+<tr>
+<td><code>nakx</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Number of points along the radial mode grid direction.</td>
+</tr>
+<tr>
+<td><code>aky_min</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Minimum binormal wavenumber, or binormal wavenumber if <code>naky</code> is 1.</td>
+</tr>
+<tr>
+<td><code>aky_max</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Maximum binormal wavenumber if <code>naky</code> larger than 1.</td>
+</tr>
+<tr>
+<td><code>akx_min</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Minimum radial wavenumber. Unused if \( \theta_0 \) is properly specified.</td>
+</tr>
+<tr>
+<td><code>akx_max</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Maximum radial waveumner.</td>
+</tr>
+<tr>
+<td><code>theta0_min</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Minimum \( \theta_0 = k_x / \hat{s} k_y \). Unused if \( \theta_{0,\textrm{ min}} &gt; \theta_{0,\textrm{ max}} \).</td>
+</tr>
+<tr>
+<td><code>theta0_max</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Maximum \( \theta_0 \).</td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-kt_grids_box_parameters">namelist <code>kt_grids_box_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nx</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Real space radial resolution.  Resolved number of modes is 2/3 after dealiasing. <strong>Note: checkerboard mode is always excluded.</strong></td>
+</tr>
+<tr>
+<td><code>ny</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Real space binormal resolution.  Resolved number of modes is 2/3 after dealiasing. <strong>Note: checkerboard mode is always excluded.</strong></td>
+</tr>
+<tr>
+<td><code>jtwist</code></td>
+<td>integer</td>
+<td>\( \mathrm{round}(2 \pi \hat{s}) \)</td>
+<td>Number of independent ballooning modes at \( k_{y0} \).</td>
+</tr>
+<tr>
+<td><code>jtwist_fac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Sets <code>jtwist</code> to <code>jtwist_fac</code> times the default value if <code>jtwist</code> is not specified.</td>
+</tr>
+<tr>
+<td><code>phase_shift_angle</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Binormal phase shift when crossing the parallel boundary. For use with purely periodic boundary conditions, and should have no <em>statistical</em> effect for local simulations employing twist-and-shift boundaries. Overwritten for radially global simulations.</td>
+</tr>
+<tr>
+<td><code>randomize_phase_shift</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Randomize the binormal phase shift. Unused for radially global simulation.</td>
+</tr>
+<tr>
+<td><code>x0</code></td>
+<td>real</td>
+<td><code>y0</code></td>
+<td>Radial extent of the simulation domain. Ignored when using twist-and-shift (linked) boundary conditions.</td>
+</tr>
+<tr>
+<td><code>y0</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Binormal extent of the simulation domain. Overwritten if full-flux-surface is used; <strong>otherwise, must be set.</strong></td>
+</tr>
+<tr>
+<td><code>nalpha</code></td>
+<td>real</td>
+<td>1</td>
+<td>Number of global \( \alpha \) grid points. For full-flux-surface simulations.</td>
+</tr>
+<tr>
+<td><code>centered_in_rho</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Ensure domain radially centered around \( r_0 \). For use with radially global simulations.</td>
+</tr>
+<tr>
+<td><code>periodic_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Utilize periodic triangle wave radial variation. For use with radially global simulation.</td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-layouts_knobs">namelist <code>layouts_knobs</code></h1>
+<p>These options control the ordering of the coordinate and velocity variables when the domain is decomposed. <strong>At the moment, there is no reason to use anything other than the default options.</strong></p>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xyzs_layout</code></td>
+<td>string</td>
+<td><code>"yxzs"</code></td>
+<td>Order of the coordinate variables when decomposed for multicore simulations.</td>
+</tr>
+<tr>
+<td><code>vms_layout</code></td>
+<td>string</td>
+<td><code>"vms"</code></td>
+<td>Order of the velocity variables when decomposed for multicore simulations.</td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-physics_flags">namelist <code>physics_flags</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full_flux_surface</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enables full-flux-surface simulation. Should use finite \( \rho_\ast \).</td>
+</tr>
+<tr>
+<td><code>radial_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enables radially global simulation. Should use finite \( \rho_\ast \).</td>
+</tr>
+<tr>
+<td><code>include_parallel_nonlinearity</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Include the parallel nonlinearity. Should use finite \( \rho_\ast \).</td>
+</tr>
+<tr>
+<td><code>include_parallel_streaming</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include parallel streaming.</td>
+</tr>
+<tr>
+<td><code>include_mirror</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include the mirror term.</td>
+</tr>
+<tr>
+<td><code>nonlinear</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Include the \( \boldsymbol{E \times B} \) nonlinear term. <strong>Requires <code>box</code> grid.</strong></td>
+</tr>
+<tr>
+<td><code>adiabatic_option</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Controls how the adiabatic species is treated in quasineutrality. Should be one of <ul><li><code>no-field-line-average-term</code> ion adiabatic species, i.e., \( \delta n_\mathrm{i}/ n = (Z e/T_\mathrm{i}) \varphi \). </li> <li> <code>field-line-average-term</code> electron adiabatic species, i.e., \( \delta n_\mathrm{e}/ n = (e/T_\mathrm{e}) (\varphi - \langle \varphi \rangle_\psi) \).</li><li><code>default</code> same as <code>no-field-line-average-term</code></li><li><code>iphi00=0</code> same as <code>no-field-line-average-term</code></li><li><code>iphi00=1</code> same as <code>no-field-line-average-term</code></li><li><code>iphi00=2</code> same as <code>field-line-average-term</code></li></ul></td>
+</tr>
+<tr>
+<td><code>const_alpha_geo</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>include_pressure_variation</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include kinetic profile variation when running radially global simulations. <strong>Setting this to <code>false</code> does <em>not</em> currently turn everything off.</strong></td>
+</tr>
+<tr>
+<td><code>include_geometric_variation</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include magnetic geomety profile variation when running radially global simulations. <strong>Setting this to <code>false</code> does <em>not</em> currently turn everything off.</strong></td>
+</tr>
+</tbody>
+</table>
 <h1 id="namelist-parameters">namelist <code>parameters</code></h1>
 <h1 id="namelist-knobs">namelist <code>knobs</code></h1>
 <h1 id="namelist-init_g_knobs">namelist <code>init_g_knobs</code></h1>
@@ -246,13 +811,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-140-gb65b5474d</small></p>
+<br /><small>v0.5.1-141-gd1d723b79</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-09-25T01:47:35.738108           </p>
+ on 2022-10-03T14:45:28.586270           </p>
         </div>
       </div>
       <br>
