@@ -10,7 +10,6 @@ module coll_fokkerplanck
    private
 
    logical :: vpa_operator, mu_operator
-   logical :: momentum_conservation, energy_conservation
    logical :: density_conservation, density_conservation_field, density_conservation_tp
    logical ::exact_conservation_tp, exact_conservation
    logical :: spitzer_problem, no_j1l1, no_j1l2, no_j0l2
@@ -70,7 +69,7 @@ contains
       namelist /collisions_fp/ testpart, fieldpart, lmax, jmax, nvel_local, &
          interspec, intraspec, iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob, eimassr_approx, advfield_coll, spitzer_problem, &
          density_conservation, density_conservation_field, density_conservation_tp, exact_conservation, exact_conservation_tp, &
-         momentum_conservation, energy_conservation, vpa_operator, mu_operator, &
+         vpa_operator, mu_operator, &
          cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2
 
       integer :: in_file
@@ -87,6 +86,7 @@ contains
          eeknob = 1.                          ! ...eon-eon coll freq
          eiknob = 1.                          ! ...eon-ion coll freq
          eiediffknob = 1.                     ! control the eon-ion energy diffusion in Fokker-Planck operator
+         eideflknob = 1.                      !
          deflknob = 1.                        ! control pitch angle scattering in Fokker-Planck operator, must be 1 or 0
          eimassr_approx = .false.             ! use mass ratio approximation for test particle operator, beta
          advfield_coll = .true.               ! disable electrostatic potential terms in the field particle operator, beta
@@ -97,8 +97,6 @@ contains
          ! & works only if nux = 0, need to correct the discretisation of nux terms in TPO
          exact_conservation_tp = .false.      ! if True and lmax=jmax=1 then momentum and energy conserved to machine precision, by using the test particle operator &
          ! to compute field particle terms; this is slower than exact_conservation
-         momentum_conservation = .true.       ! momentum conservation for Dougherty operator
-         energy_conservation = .true.         ! energy conservation for Dougherty operator
          spitzer_problem = .false.            ! to solve the Spitzer problem for tests of the collision operator
          cfac = 1                             ! scale gyrodiffusive term in test particle component of Fokker-Planck operator
          cfac2 = 1                            ! scale gyrodiffusive terms in field particle component of Fokker-Planck operator - in beta
@@ -137,8 +135,6 @@ contains
       call broadcast(density_conservation_tp)
       call broadcast(exact_conservation)
       call broadcast(exact_conservation_tp)
-      call broadcast(momentum_conservation)
-      call broadcast(energy_conservation)
       call broadcast(spitzer_problem)
       call broadcast(vpa_operator)
       call broadcast(mu_operator)

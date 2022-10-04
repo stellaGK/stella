@@ -235,7 +235,7 @@
 <td><code>shat</code></td>
 <td>real</td>
 <td>0.8</td>
-<td>magnetic shear \( \hat{s} = (r/q) \operatorname{d}q/\operatorname{d}r \)</td>
+<td>magnetic shear \( \hat{s} = (r/q) \operatorname{d}!q/\operatorname{d}!r \)</td>
 </tr>
 <tr>
 <td><code>kappa</code></td>
@@ -766,63 +766,63 @@
 <tbody>
 <tr>
 <td><code>beta</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>float</td>
+<td>0.0</td>
+<td>Plasma \( \beta \). Currently has no effect.</td>
 </tr>
 <tr>
 <td><code>zeff</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>float</td>
+<td>1.0</td>
+<td>Effective charge number for use with <em>effective</em> electron-ion and electron-impurity collisions in the Fokker-Planck collision operator (see <code>ecoll_zeff</code>).</td>
 </tr>
 <tr>
 <td><code>tite</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>float</td>
+<td>1.0</td>
+<td>Ratio of ion to electron temperature, \( T_\mathrm{i}/T_\mathrm{e} \). Used in quasineutrality when adiabatic species is used.</td>
 </tr>
 <tr>
 <td><code>nine</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>float</td>
+<td>1.0</td>
+<td>Ratio of ion to electron density, \( n_\mathrm{i}/n_\mathrm{e} \). Used in quasineutrality when adiabatic species is used.</td>
 </tr>
 <tr>
 <td><code>rhostar</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-1.0</td>
+<td>The gyrokinetic expansion parameter \( \rho_\mathrm{th,ref}/a_\mathrm{ref} \). For effects beyond the flux-tube limit (full-flux-surface, radially global, neoclassical terms, etc...). Overwritten if <code>irhostar</code> is positive.</td>
 </tr>
 <tr>
 <td><code>irhostar</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Sets <code>rhostar = 1.0 / irhostar</code> if positive.</td>
 </tr>
 <tr>
 <td><code>vnew_ref</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Reference collision frequency. Various input options will overwrite this if it is negative.</td>
 </tr>
 <tr>
 <td><code>g_exb</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Equilibrium \( \boldsymbol{E \times B} \) shear rate. More specifically, \( \gamma_\boldsymbol{ E \times B} = (r/q) (\operatorname{d}!\omega / \operatorname{d}!r) R_0/\sqrt{2}v_\mathrm{th,ref}\). Uses the Hammett wavenumber shift method, with nonlinear corrections proposed by McMillan.</td>
 </tr>
 <tr>
 <td><code>g_exbfac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for perpendicular component of equilibrium \( \boldsymbol{E \times B} \) flow shear. Setting to 0.0 turns this component off.</td>
 </tr>
 <tr>
 <td><code>omprimfac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for parallel component of equilibrium \( \boldsymbol{E \times B} \) flow shear. Setting to 0.0 turns this component off.</td>
 </tr>
 </tbody>
 </table>
@@ -1207,33 +1207,33 @@
 <tbody>
 <tr>
 <td><code>nspec</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>2</td>
+<td>Number of species.</td>
 </tr>
 <tr>
 <td><code>species_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>'stella'</code></td>
+<td>How to read in species data. Should be one of <ul><li><code>stella</code> Read from stella input file.</li><li>  <code>euterpe</code> Read form euterpe file. </li><li> <code>input.profiles</code> Reads in General Atomics <code>input.gacode</code> file. <strong>This may need to be updated for newer <code>gacode</code> files.</strong></li><li><code>default</code> same as <code>stella</code></li></ul></td>
 </tr>
 <tr>
 <td><code>read_profile_variation</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td>false</td>
+<td>Save information necessary for recalculating kinetic profile quantities away from \( r \). Used for performing local simulations at different radial locations in order to compare to global simulation.</td>
 </tr>
 <tr>
 <td><code>write_profile_variation</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td>false</td>
+<td>Recomputes the kinetic profile information using kinetic profile quantities stored in a file, originally calculated at some \( r_\mathrm{file} \), at new \( r \).</td>
 </tr>
 <tr>
 <td><code>ecoll_zeff</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td>false</td>
+<td>If true, use an effective intra-species electron-ion collision rate using <code>zeff</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -1250,63 +1250,63 @@
 <tbody>
 <tr>
 <td><code>z</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>1</td>
+<td>charge number.</td>
 </tr>
 <tr>
 <td><code>mass</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>particle mass, normalized to \( m_\mathrm{ref} \).</td>
 </tr>
 <tr>
 <td><code>dens</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>species density, normalized to \( n_\mathrm{ref} \).</td>
 </tr>
 <tr>
 <td><code>temp</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>tprim</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>species temperature, normalized to \( T_\mathrm{ref} \).</td>
 </tr>
 <tr>
 <td><code>fprim</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-999.9</td>
+<td>Density gradient scale length \(a_\mathrm{ref}L_{n_s}^{-1} = - a_\mathrm{ref} \operatorname{d} \ln n_s/ \operatorname{d}!r \)). Note the negative sign.</td>
+</tr>
+<tr>
+<td><code>tprim</code></td>
+<td>real</td>
+<td>-999.9</td>
+<td>Temperature gradient scale length \(a_\mathrm{ref}L_{T_s}^{-1} = - a_\mathrm{ref} \operatorname{d} \ln T_s/ \operatorname{d}!r \)). Note the negative sign.</td>
 </tr>
 <tr>
 <td><code>d2ndr2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Second derivative of density, normalized to \( a_\mathrm{ref}^2/n_\mathrm{ref}\). For use with radially global simulation.</td>
 </tr>
 <tr>
 <td><code>d2Tdr2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Second derivative of temperature, normalized to \( a_\mathrm{ref}^2/T_\mathrm{ref}\). For use with radially global simulation.</td>
 </tr>
 <tr>
 <td><code>bess_fac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Perfactor for Bessel function argument. Setting to 0.0 renders particle drift-kinetic.</td>
 </tr>
 <tr>
 <td><code>type</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Particle type. Should be one of <ul><li><code>ion</code> ion species.</li><li><code>default</code> same as <code>ion</code>. </li><li>  <code>electron</code> electron species. </li><li> <code>e</code> same as <code>electron</code> </li><li><code>beam</code> slowing down species. </li><li><code>fast</code> same as <code>beam</code>. </li><li><code>alpha</code> same as <code>beam</code>. </li><li><code>slowing-down</code> same as <code>beam</code>. </li><li><code>trace</code> tracer species. </li></ul></td>
 </tr>
 </tbody>
 </table>
@@ -1323,33 +1323,33 @@
 <tbody>
 <tr>
 <td><code>xdriftknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for radial magnetic drift. Setting to 0.0 turns the term off.</td>
 </tr>
 <tr>
 <td><code>ydriftknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for the binormal magnetic drift. Setting to 0.0 turns the term off.</td>
 </tr>
 <tr>
 <td><code>wstarknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for the \( \omega_\ast \) term. Setting to 0.0 turns the term off.</td>
 </tr>
 <tr>
 <td><code>explicit_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Chooses the Runge-Kutta scheme for the explicit integration. Should be one of <ul><li><code>rk2</code> second-order Runge-Kutta. </li> <li><code>rk3</code> third-order strong-stability-preserving Runge-Kutta (recommended). </li><li><code>rk4</code> fourth-order Runge-Kutta. </li><li><code>default</code> same as <code>rk3</code>. </li></ul> Note that higher-order Runge-Kutta schemes can increase memory usage.</td>
 </tr>
 <tr>
 <td><code>flip_flop</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Utilize the flip-flopping approach that flips the integration order every time-step. Should increase time accuracy, at least linearly. Does sometimes lead to spurious oscillations.</td>
 </tr>
 </tbody>
 </table>
@@ -1731,183 +1731,195 @@
 <tbody>
 <tr>
 <td><code>testpart</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>test particle component of Fokker-Planck operator. <strong>Must be true.</strong></td>
 </tr>
 <tr>
 <td><code>fieldpart</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>lmax</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>jmax</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>nvel_local</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>enable the field particle component (FPO) of the Fokker-Planck operator.</td>
 </tr>
 <tr>
 <td><code>interspec</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>inter-species collisions in the Fokker-Planck operator.</td>
 </tr>
 <tr>
 <td><code>intraspec</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>intra-species collisions in the Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>lmax</code></td>
+<td>integer</td>
+<td>1</td>
+<td>maximum l in spherical harmonic expansion of the field particle operator</td>
+</tr>
+<tr>
+<td><code>jmax</code></td>
+<td>integer</td>
+<td>1</td>
+<td>maximum j in Hirshman-Sigmar expansion of the field particle operator</td>
 </tr>
 <tr>
 <td><code>iiknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the ion-ion collision frequency in Fokker-Planck operator</td>
 </tr>
 <tr>
 <td><code>ieknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the ion-electron collision frequency in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>eiknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-ion collision frequency in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>eeknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-electron collision frequency in Fokker-Planck operator.</td>
 </tr>
 <tr>
 <td><code>eiediffknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-ion energy diffusion in Fokker-Planck operator.</td>
 </tr>
 <tr>
 <td><code>eideflknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-ion pitch angle scattering in Fokker-Planck operator.</td>
 </tr>
 <tr>
 <td><code>deflknob</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>control pitch angle scattering in Fokker-Planck operator, must be 1 or 0.</td>
 </tr>
 <tr>
 <td><code>eimassr_approx</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>use mass ratio approximation for test particle operator, <em>beta</em>.</td>
 </tr>
 <tr>
 <td><code>advfield_coll</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>disable electrostatic potential terms in the field particle operator, <em>beta</em>.</td>
 </tr>
 <tr>
 <td><code>spitzer_problem</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Solve the Spitzer problem for tests of the collision operator</td>
 </tr>
 <tr>
 <td><code>density_conservation</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if <code>True</code> and <code>equally_spaced_mu_grid=True</code> and <code>conservative_wgts_vpa=True</code>, then test-particle operator conserves density to machine precision.</td>
 </tr>
 <tr>
 <td><code>density_conservation_field</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if <code>True</code> and <code>jmax</code>, <code>lmax &lt; 2</code>, then field-particle operator conserves density to machine precision.</td>
 </tr>
 <tr>
 <td><code>density_conservation_tp</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if True add term to field particle operator to ensure density conservation, also on non-uniform grids.</td>
 </tr>
 <tr>
 <td><code>exact_conservation</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if True and <code>fieldpart=True</code> and <code>lmax=jmax=1</code> then momentum and energy conserved to machine precision - <em>in beta</em>. Works only if <code>nux = 0</code>, need to correct the discretisation of nux terms in test-particle operator.</td>
 </tr>
 <tr>
 <td><code>exact_conservation_tp</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>momentum_conservation</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>energy_conservation</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if True and <code>lmax=jmax=1</code> then momentum and energy conserved to machine precision, by using the test particle operator  to compute field particle terms; this is slower than exact_conservation.</td>
 </tr>
 <tr>
 <td><code>vpa_operator</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include \( \partial_{v_\parallel} \) components of collision operator.</td>
 </tr>
 <tr>
 <td><code>mu_operator</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include \( \partial_\mu \) components of collision operator.</td>
 </tr>
 <tr>
 <td><code>cfac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>scale gyrodiffusive term in test particle component of Fokker-Planck operator.</td>
 </tr>
 <tr>
 <td><code>cfac2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>scale gyrodiffusive terms in field particle component of Fokker-Planck operator - <em>in beta</em>.</td>
 </tr>
 <tr>
 <td><code>nuxfac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>scale nux (mixed derivative) terms in test particle component of Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>i1fac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>for Spitzer problem</td>
 </tr>
 <tr>
 <td><code>i2fac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>for Spitzer problem</td>
+</tr>
+<tr>
+<td><code>no_j1l1</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>disable j1l1 term in the field particle component of Fokker-Planck operator</td>
 </tr>
 <tr>
 <td><code>no_j1l2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>disable j1l2 term</td>
 </tr>
 <tr>
 <td><code>no_j0l2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>disable j0l2 term</td>
+</tr>
+<tr>
+<td><code>nvel_local</code></td>
+<td>integer</td>
+<td>512</td>
+<td>Size of velocity grid used for debugging. Currently, this option has no effect.</td>
 </tr>
 </tbody>
 </table>
@@ -1932,7 +1944,7 @@
 <td><code>use_physical_ksqr</code></td>
 <td>boolean</td>
 <td>not <code>full_flux_surface</code> or <code>radial_variation</code></td>
-<td>If true, use actual \(k^2_\perp = k_x^2</td>
+<td>If true, use actual \( k^2_\perp = k_x^2</td>
 </tr>
 <tr>
 <td><code>scale_to_outboard</code></td>
@@ -2191,13 +2203,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-142-gf62666c13</small></p>
+<br /><small>v0.5.1-143-gf044483d8</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-03T18:45:06.934471           </p>
+ on 2022-10-04T12:51:50.302434           </p>
         </div>
       </div>
       <br>
