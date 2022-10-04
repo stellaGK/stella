@@ -124,7 +124,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -493,7 +493,6 @@ contains
          do ikx = 1, nakx
             do iz = -nzgrid, nzgrid
                do it = 1, ntubes
-                  write (*, *) "mirror_response_matrix(iky, ikx, iz, it, :, :) = ", mirror_response_matrix(iky, ikx, iz, it, :, :)
                   call lu_decomposition(mirror_response_matrix(iky, ikx, iz, it, :, :), &
                                         mirror_response_matrix_idx(iky, ikx, iz, it, :), dum)
                end do
