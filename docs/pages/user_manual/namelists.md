@@ -33,7 +33,7 @@ Variable | Type | Default | Description
 `rmaj` | real | 3.0 |  device major radius \\( R_0 \\)
 `shift` | real | 0.0 | Shafranov shift
 `qinp` | real | 1.4 | magnetic safety factor \\( q \\)
-`shat` | real | 0.8 | magnetic shear \\( \hat{s} = (r/q) \operatorname{d}q/\operatorname{d}r \\)
+`shat` | real | 0.8 | magnetic shear \\( \hat{s} = (r/q) \operatorname{d}\!q/\operatorname{d}\!r \\)
 `kappa` | real | 0.0 | elongation
 `tri` | real | 0.0 | triangularity
 `rgeo` | real | 3.0 | geometric center-point of the flux-tube
@@ -157,16 +157,16 @@ Variable | Type | Default | Description
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`beta`  | | |
-`zeff`  | | |
-`tite`  | | |
-`nine`  | | |
-`rhostar`  | | |
-`irhostar`  | | |
-`vnew_ref`  | | |
-`g_exb`  | | |
-`g_exbfac`  | | |
-`omprimfac`  | | |
+`beta`  | float | 0.0 | Plasma \\( \beta \\). Currently has no effect.
+`zeff`  | float | 1.0 | Effective charge number for use with *effective* electron-ion and electron-impurity collisions in the Fokker-Planck collision operator (see `ecoll_zeff`).
+`tite`  | float | 1.0 | Ratio of ion to electron temperature, \\( T_\mathrm{i}/T_\mathrm{e} \\). Used in quasineutrality when adiabatic species is used.
+`nine`  | float |1.0 | Ratio of ion to electron density, \\( n_\mathrm{i}/n_\mathrm{e} \\). Used in quasineutrality when adiabatic species is used.
+`rhostar`  | real | -1.0 | The gyrokinetic expansion parameter \\( \rho_\mathrm{th,ref}/a_\mathrm{ref} \\). For effects beyond the flux-tube limit (full-flux-surface, radially global, neoclassical terms, etc...). Overwritten if `irhostar` is positive.
+`irhostar`  | real | -1.0 | Sets `rhostar = 1.0 / irhostar` if positive.
+`vnew_ref`  | real | -1.0 | Reference collision frequency. Various input options will overwrite this if it is negative.
+`g_exb`  | real | 1.0 | Equilibrium \\( \boldsymbol{E \times B} \\) shear rate. More specifically, \\( \gamma_\boldsymbol{ E \times B} = (r/q) (\operatorname{d}\!\omega / \operatorname{d}\!r) R_0/\sqrt{2}v_\mathrm{th,ref}\\). Uses the Hammett wavenumber shift method, with nonlinear corrections proposed by McMillan.
+`g_exbfac`  | real | 1.0 | Prefactor for perpendicular component of equilibrium \\( \boldsymbol{E \times B} \\) flow shear. Setting to 0.0 turns this component off.
+`omprimfac`  | real | 1.0 | Prefactor for parallel component of equilibrium \\( \boldsymbol{E \times B} \\) flow shear. Setting to 0.0 turns this component off.
 
 
 
@@ -245,38 +245,38 @@ Variable | Type | Default | Description
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`nspec` | | |
-`species_option` | | |
-`read_profile_variation` | | |
-`write_profile_variation` | | |
-`ecoll_zeff` | | |
+`nspec` | integer | 2  | Number of species.
+`species_option` | string | `'stella'` | How to read in species data. Should be one of <ul><li>`stella` Read from stella input file.</li><li>  `euterpe` Read form euterpe file. </li><li> `input.profiles` Reads in General Atomics `input.gacode` file. **This may need to be updated for newer `gacode` files.**</li><li>`default` same as `stella`</li></ul> 
+`read_profile_variation` | boolean | false | Save information necessary for recalculating kinetic profile quantities away from \\( r \\). Used for performing local simulations at different radial locations in order to compare to global simulation.
+`write_profile_variation` | boolean | false | Recomputes the kinetic profile information using kinetic profile quantities stored in a file, originally calculated at some \\( r_\mathrm{file} \\), at new \\( r \\).
+`ecoll_zeff` | boolean | false | If true, use an effective intra-species electron-ion collision rate using `zeff`.
 
 
 # namelist `species_parameters`
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`z` | | |
-`mass` | | |
-`dens` | | |
-`temp` | | |
-`tprim` | | |
-`fprim` | | |
-`d2ndr2` | | |
-`d2Tdr2` | | |
-`bess_fac` | | |
-`type` | | |
+`z` | integer  | 1 | charge number.
+`mass` | real | 1.0 | particle mass, normalized to \\( m_\mathrm{ref} \\). 
+`dens` | real | 1.0 | species density, normalized to \\( n_\mathrm{ref} \\). 
+`temp` | real | 1.0 | species temperature, normalized to \\( T_\mathrm{ref} \\). 
+`fprim` | real | -999.9 | Density gradient scale length \\(a_\mathrm{ref}L_{n_s}^{-1} = - a_\mathrm{ref} \operatorname{d} \ln n_s/ \operatorname{d}\!r \\)). Note the negative sign.
+`tprim` | real | -999.9 | Temperature gradient scale length \\(a_\mathrm{ref}L_{T_s}^{-1} = - a_\mathrm{ref} \operatorname{d} \ln T_s/ \operatorname{d}\!r \\)). Note the negative sign.
+`d2ndr2` | real | 0.0 | Second derivative of density, normalized to \\( a_\mathrm{ref}^2/n_\mathrm{ref}\\). For use with radially global simulation.
+`d2Tdr2` | real | 0.0 | Second derivative of temperature, normalized to \\( a_\mathrm{ref}^2/T_\mathrm{ref}\\). For use with radially global simulation.
+`bess_fac` | real | 1.0 | Perfactor for Bessel function argument. Setting to 0.0 renders particle drift-kinetic.
+`type` | string | `'default'` | Particle type. Should be one of <ul><li>`ion` ion species.</li><li>`default` same as `ion`. </li><li>  `electron` electron species. </li><li> `e` same as `electron` </li><li>`beam` slowing down species. </li><li>`fast` same as `beam`. </li><li>`alpha` same as `beam`. </li><li>`slowing-down` same as `beam`. </li><li>`trace` tracer species. </li></ul> 
 
 
 # namelist `time_advance_knobs`
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`xdriftknob` | | |
-`ydriftknob` | | |
-`wstarknob` | | |
-`explicit_option` | | |
-`flip_flop` | | |
+`xdriftknob` | real | 1.0 | Prefactor for radial magnetic drift. Setting to 0.0 turns the term off.
+`ydriftknob` | real | 1.0 | Prefactor for the binormal magnetic drift. Setting to 0.0 turns the term off.
+`wstarknob` | real | 1.0 | Prefactor for the \\( \omega_\ast \\) term. Setting to 0.0 turns the term off.
+`explicit_option` | string | `'default'` | Chooses the Runge-Kutta scheme for the explicit integration. Should be one of <ul><li>`rk2` second-order Runge-Kutta. </li> <li>`rk3` third-order strong-stability-preserving Runge-Kutta (recommended). </li><li>`rk4` fourth-order Runge-Kutta. </li><li>`default` same as `rk3`. </li></ul> Note that higher-order Runge-Kutta schemes can increase memory usage.
+`flip_flop` | boolean | `false` | Utilize the flip-flopping approach that flips the integration order every time-step. Should increase time accuracy, at least linearly. Does sometimes lead to spurious oscillations.
 
 
 # namelist `stella_diagnostics_knobs`
@@ -364,36 +364,38 @@ Variable | Type | Default | Description
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`testpart` | ||
-`fieldpart` | ||
-`lmax` | ||
-`jmax` | ||
-`nvel_local` | ||
-`interspec` | ||
-`intraspec` | ||
-`iiknob` | ||
-`ieknob` | ||
-`eiediffknob` | ||
-`eideflknob ` | ||
-`deflknob ` | ||
-`eimassr_approx ` | ||
-`advfield_coll ` | ||
-`spitzer_problem ` | ||
-`density_conservation ` | ||
-`density_conservation_field ` | ||
-`density_conservation_tp` | ||
-`exact_conservation` | ||
-`exact_conservation_tp` | ||
-`momentum_conservation` | ||
-`energy_conservation` | ||
-`vpa_operator ` | ||
-`mu_operator` | ||
-`cfac` | ||
-`cfac2` | ||
-`nuxfac` | ||
-`i2fac` | ||
-`no_j1l2` | ||
-`no_j0l2` | ||
+`testpart` | boolean | `true` | test particle component of Fokker-Planck operator. **Must be true.**
+`fieldpart` | boolean | `false` | enable the field particle component (FPO) of the Fokker-Planck operator.
+`interspec` | boolean | `true` | inter-species collisions in the Fokker-Planck operator.
+`intraspec` | boolean | `true` | intra-species collisions in the Fokker-Planck operator.
+`lmax` | integer | 1 | maximum l in spherical harmonic expansion of the field particle operator
+`jmax` | integer | 1 | maximum j in Hirshman-Sigmar expansion of the field particle operator
+`iiknob` | real | 1.0 | control the ion-ion collision frequency in Fokker-Planck operator
+`ieknob` | real | 1.0 | control the ion-electron collision frequency in Fokker-Planck operator.
+`eiknob` | real | 1.0 | control the electron-ion collision frequency in Fokker-Planck operator.
+`eeknob` | real | 1.0 | control the electron-electron collision frequency in Fokker-Planck operator.
+`eiediffknob` | real | 1.0 | control the electron-ion energy diffusion in Fokker-Planck operator.
+`eideflknob ` | real | 1.0 | control the electron-ion pitch angle scattering in Fokker-Planck operator. 
+`deflknob ` | real | 1.0 | control pitch angle scattering in Fokker-Planck operator, must be 1 or 0.
+`eimassr_approx ` | boolean  | `false` | use mass ratio approximation for test particle operator, *beta*.
+`advfield_coll ` | boolean | `true` | disable electrostatic potential terms in the field particle operator, *beta*.
+`spitzer_problem ` | boolean | `false`| Solve the Spitzer problem for tests of the collision operator
+`density_conservation` | boolean | `false` | if `True` and `equally_spaced_mu_grid=True` and `conservative_wgts_vpa=True`, then test-particle operator conserves density to machine precision.
+`density_conservation_field` | boolean | `false` |  if `True` and `jmax`, `lmax < 2`, then field-particle operator conserves density to machine precision.
+`density_conservation_tp` | boolean | `false` | if True add term to field particle operator to ensure density conservation, also on non-uniform grids.
+`exact_conservation` | boolean | `false` | if True and `fieldpart=True` and `lmax=jmax=1` then momentum and energy conserved to machine precision - *in beta*. Works only if `nux = 0`, need to correct the discretisation of nux terms in test-particle operator.
+`exact_conservation_tp` | boolean | `false` |  if True and `lmax=jmax=1` then momentum and energy conserved to machine precision, by using the test particle operator  to compute field particle terms; this is slower than exact_conservation.
+`vpa_operator ` | boolean | `true`|  Include \\( \partial_{v_\parallel} \\) components of collision operator.
+`mu_operator` | boolean | `true` | Include \\( \partial_\mu \\) components of collision operator.
+`cfac` | real | 1.0 | scale gyrodiffusive term in test particle component of Fokker-Planck operator.
+`cfac2` | real | 1.0 |  scale gyrodiffusive terms in field particle component of Fokker-Planck operator - *in beta*.
+`nuxfac` | real | 1.0 | scale nux (mixed derivative) terms in test particle component of Fokker-Planck operator.
+`i1fac` | real | 1.0 | for Spitzer problem
+`i2fac` | real | 0.0 | for Spitzer problem
+`no_j1l1` | boolean | `true` | disable j1l1 term in the field particle component of Fokker-Planck operator
+`no_j1l2` | boolean | `false` | disable j1l2 term
+`no_j0l2` | boolean | `false` | disable j0l2 term
+`nvel_local` | integer | 512 | Size of velocity grid used for debugging. Currently, this option has no effect.
 
 
 # namelist `hyper`
@@ -402,7 +404,7 @@ Variable | Type | Default | Description
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
 `D_hyper` | real | 0.05 | Maximal hyperdissipation damping rate.
-`use_physical_ksqr` | boolean  | not `full_flux_surface` or `radial_variation`| If true, use actual \\(k^2_\perp = k_x^2 |\nabla x|^2 + 2 k_xk_y (\grad x \cdot \grad y) + k_y^2 |\nabla y|^2\\). Otherwise, use \\( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\\).
+`use_physical_ksqr` | boolean  | not `full_flux_surface` or `radial_variation`| If true, use actual \\( k^2_\perp = k_x^2 | \nabla x |^2 + 2 k_xk_y (\nabla x \cdot \nabla y) + k_y^2 |\nabla y |^2 \\). Otherwise, use \\( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\\).
 `scale_to_outboard` | boolean | `false` | If true, scale maximal damping rate to maximum \\( k_\perp^2 \\) at outboard midplane. Otherwise, scale maximal damping to maximum \\( k_\perp^2 \\) over the entire domain.
 
 # namelist `neoclassical_input`
