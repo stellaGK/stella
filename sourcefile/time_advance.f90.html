@@ -1152,7 +1152,7 @@
 <a id="ln-994" name="ln-994" href="#ln-994"></a><span class="w">      </span><span class="c">! perhaps it could be packaged together with thee update_delay_krook code</span>
 <a id="ln-995" name="ln-995" href="#ln-995"></a><span class="w">      </span><span class="c">! below and made into a single call where all of this happens so that</span>
 <a id="ln-996" name="ln-996" href="#ln-996"></a><span class="w">      </span><span class="c">! users of the flux tube version of the code need not worry about it.</span>
-<a id="ln-997" name="ln-997" href="#ln-997"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">source_option_switch</span><span class="w"> </span><span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="w"> </span><span class="n">source_option_projection</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-997" name="ln-997" href="#ln-997"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">source_option_switch</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">source_option_projection</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
 <a id="ln-998" name="ln-998" href="#ln-998"></a><span class="k">         call </span><span class="n">project_out_zero</span><span class="p">(</span><span class="n">gold</span><span class="p">,</span><span class="w"> </span><span class="n">gnew</span><span class="p">)</span><span class="w"></span>
 <a id="ln-999" name="ln-999" href="#ln-999"></a><span class="w">         </span><span class="n">fields_updated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span><span class="w"></span>
 <a id="ln-1000" name="ln-1000" href="#ln-1000"></a><span class="w">      </span><span class="k">end if</span>
@@ -1163,7 +1163,7 @@
 <a id="ln-1005" name="ln-1005" href="#ln-1005"></a><span class="w">      </span><span class="k">call </span><span class="n">advance_fields</span><span class="p">(</span><span class="n">gnew</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">apar</span><span class="p">,</span><span class="w"> </span><span class="n">dist</span><span class="o">=</span><span class="s1">&#39;gbar&#39;</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1006" name="ln-1006" href="#ln-1006"></a>
 <a id="ln-1007" name="ln-1007" href="#ln-1007"></a><span class="w">      </span><span class="c">!update the delay parameters for the Krook operator</span>
-<a id="ln-1008" name="ln-1008" href="#ln-1008"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">source_option_switch</span><span class="w"> </span><span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="w"> </span><span class="n">source_option_krook</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">update_tcorr_krook</span><span class="p">(</span><span class="n">gnew</span><span class="p">)</span><span class="w"></span>
+<a id="ln-1008" name="ln-1008" href="#ln-1008"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">source_option_switch</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">source_option_krook</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">update_tcorr_krook</span><span class="p">(</span><span class="n">gnew</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1009" name="ln-1009" href="#ln-1009"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">include_qn_source</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">update_quasineutrality_source</span><span class="w"></span>
 <a id="ln-1010" name="ln-1010" href="#ln-1010"></a>
 <a id="ln-1011" name="ln-1011" href="#ln-1011"></a><span class="w">   </span><span class="k">end subroutine </span><span class="n">advance_stella</span><span class="w"></span>
@@ -1522,7 +1522,7 @@
 <a id="ln-1364" name="ln-1364" href="#ln-1364"></a>
 <a id="ln-1365" name="ln-1365" href="#ln-1365"></a><span class="k">         if</span><span class="w"> </span><span class="p">(</span><span class="n">radial_variation</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">advance_radial_variation</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1366" name="ln-1366" href="#ln-1366"></a>
-<a id="ln-1367" name="ln-1367" href="#ln-1367"></a><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">source_option_switch</span><span class="w"> </span><span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="w"> </span><span class="n">source_option_krook</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">add_krook_operator</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">)</span><span class="w"></span>
+<a id="ln-1367" name="ln-1367" href="#ln-1367"></a><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">source_option_switch</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">source_option_krook</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">add_krook_operator</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1368" name="ln-1368" href="#ln-1368"></a>
 <a id="ln-1369" name="ln-1369" href="#ln-1369"></a><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">include_multibox_krook</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">add_multibox_krook</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1370" name="ln-1370" href="#ln-1370"></a>
@@ -3201,13 +3201,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-144-g7e1ff2474</small></p>
+<br /><small>v0.5.1-147-g35c9f424d</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-06T02:43:30.875474           </p>
+ on 2022-10-06T12:36:02.552926           </p>
         </div>
       </div>
       <br>

@@ -995,7 +995,7 @@ contains
       ! perhaps it could be packaged together with thee update_delay_krook code
       ! below and made into a single call where all of this happens so that
       ! users of the flux tube version of the code need not worry about it.
-      if (source_option_switch .eq. source_option_projection) then
+      if (source_option_switch == source_option_projection) then
          call project_out_zero(gold, gnew)
          fields_updated = .false.
       end if
@@ -1006,7 +1006,7 @@ contains
       call advance_fields(gnew, phi, apar, dist='gbar')
 
       !update the delay parameters for the Krook operator
-      if (source_option_switch .eq. source_option_krook) call update_tcorr_krook(gnew)
+      if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
       if (include_qn_source) call update_quasineutrality_source
 
    end subroutine advance_stella
@@ -1365,7 +1365,7 @@ contains
 
          if (radial_variation) call advance_radial_variation(gin, rhs)
 
-         if (source_option_switch .eq. source_option_krook) call add_krook_operator(gin, rhs)
+         if (source_option_switch == source_option_krook) call add_krook_operator(gin, rhs)
 
          if (include_multibox_krook) call add_multibox_krook(gin, rhs)
 
