@@ -150,49 +150,49 @@
 <td><code>overwrite_gds2</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \(  \lvert \nabla \alpha \rvert^2 (\operatorname{d}!\psi / \operatorname{d}!r)^2 \).</td>
+<td>overwrite \(  \lvert \nabla \alpha \rvert^2 (\textrm{d}\psi / \textrm{d}r)^2 \).</td>
 </tr>
 <tr>
 <td><code>overwrite_gds21</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \( \lvert \nabla q \cdot \nabla \alpha \rvert (\operatorname{d}!\psi / \operatorname{d}!r)^2 \).</td>
+<td>overwrite \( \lvert \nabla q \cdot \nabla \alpha \rvert (\textrm{d}\psi / \textrm{d}r)^2 \).</td>
 </tr>
 <tr>
 <td><code>overwrite_gds22</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \( \lvert \nabla q \rvert^2 (\operatorname{d}!\psi / \operatorname{d}!r)^2 \).</td>
+<td>overwrite \( \lvert \nabla q \rvert^2 (\textrm{d}\psi / \textrm{d}r)^2 \).</td>
 </tr>
 <tr>
 <td><code>overwrite_gds23</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \(  \nabla \theta \cdot [\nabla \alpha \times (\nabla r \times \nabla \alpha)] (\operatorname{d}!\psi / \operatorname{d}!r)^2 / B^2 \).</td>
+<td>overwrite \(  \nabla \theta \cdot [\nabla \alpha \times (\nabla r \times \nabla \alpha)] (\textrm{d}\psi / \textrm{d}r)^2 / B^2 \).</td>
 </tr>
 <tr>
 <td><code>overwrite_gds24</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \( \nabla \theta \cdot [\nabla r \times (\nabla r \times \nabla \alpha)] (\operatorname{d}!\psi / \operatorname{d}!r)^2 (q/r) / B^2\).</td>
+<td>overwrite \( \nabla \theta \cdot [\nabla r \times (\nabla r \times \nabla \alpha)] (\textrm{d}\psi / \textrm{d}r)^2 (q/r) / B^2\).</td>
 </tr>
 <tr>
 <td><code>overwrite_gbdrift</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \( 2 (\boldsymbol{b} \times \nabla B \cdot \nabla \alpha) (\operatorname{d}!\psi / \operatorname{d}!r) /B^2 \).</td>
+<td>overwrite \( 2 (\boldsymbol{b} \times \nabla B \cdot \nabla \alpha) (\textrm{d}\psi / \textrm{d}r) /B^2 \).</td>
 </tr>
 <tr>
 <td><code>overwrite_gbdrift0</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \( 2 (\boldsymbol{b} \times \nabla B \cdot \nabla q) (\operatorname{d}!\psi / \operatorname{d}!r) /B^2  \).</td>
+<td>overwrite \( 2 (\boldsymbol{b} \times \nabla B \cdot \nabla q) (\textrm{d}\psi / \textrm{d}r) /B^2  \).</td>
 </tr>
 <tr>
 <td><code>overwrite_cvdrift</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>overwrite \( 2(\operatorname{d}!\psi / \operatorname{d}!r)[\boldsymbol{b} \times (\boldsymbol{b \cdot \nabla b})]\cdot \nabla \alpha / B \)</td>
+<td>overwrite \( 2(\textrm{d}\psi / \textrm{d}r)[\boldsymbol{b} \times (\boldsymbol{b \cdot \nabla b})]\cdot \nabla \alpha / B \)</td>
 </tr>
 </tbody>
 </table>
@@ -235,7 +235,7 @@
 <td><code>shat</code></td>
 <td>real</td>
 <td>0.8</td>
-<td>magnetic shear \( \hat{s} = (r/q) \operatorname{d}!q/\operatorname{d}!r \)</td>
+<td>magnetic shear \( \hat{s} = (r/q) \textrm{d}q/\textrm{d}r \)</td>
 </tr>
 <tr>
 <td><code>kappa</code></td>
@@ -810,7 +810,7 @@
 <td><code>g_exb</code></td>
 <td>real</td>
 <td>1.0</td>
-<td>Equilibrium \( \boldsymbol{E \times B} \) shear rate. More specifically, \( \gamma_\boldsymbol{ E \times B} = (r/q) (\operatorname{d}!\omega / \operatorname{d}!r) R_0/\sqrt{2}v_\mathrm{th,ref}\). Uses the Hammett wavenumber shift method, with nonlinear corrections proposed by McMillan.</td>
+<td>Equilibrium \( \boldsymbol{E \times B} \) shear rate. More specifically, \( \gamma_\boldsymbol{ E \times B} = (r/q) (\textrm{d}\omega / \textrm{d}r) R_0/\sqrt{2}v_\mathrm{th,ref}\). Uses the Hammett wavenumber shift method, with nonlinear corrections proposed by McMillan.</td>
 </tr>
 <tr>
 <td><code>g_exbfac</code></td>
@@ -1282,13 +1282,13 @@
 <td><code>fprim</code></td>
 <td>real</td>
 <td>-999.9</td>
-<td>Density gradient scale length \(a_\mathrm{ref}L_{n_s}^{-1} = - a_\mathrm{ref} \operatorname{d} \ln n_s/ \operatorname{d}!r \)). Note the negative sign.</td>
+<td>Density gradient scale length \(a_\mathrm{ref}L_{n_s}^{-1} = - a_\mathrm{ref} \textrm{d} \ln n_s/ \textrm{d}r \)). Note the negative sign.</td>
 </tr>
 <tr>
 <td><code>tprim</code></td>
 <td>real</td>
 <td>-999.9</td>
-<td>Temperature gradient scale length \(a_\mathrm{ref}L_{T_s}^{-1} = - a_\mathrm{ref} \operatorname{d} \ln T_s/ \operatorname{d}!r \)). Note the negative sign.</td>
+<td>Temperature gradient scale length \(a_\mathrm{ref}L_{T_s}^{-1} = - a_\mathrm{ref} \textrm{d} \ln T_s/ \textrm{d}r \)). Note the negative sign.</td>
 </tr>
 <tr>
 <td><code>d2ndr2</code></td>
@@ -2203,13 +2203,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-147-g35c9f424d</small></p>
+<br /><small>v0.5.1-149-gfc7166ab7</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-06T12:36:02.552926           </p>
+ on 2022-10-06T15:04:22.897581           </p>
         </div>
       </div>
       <br>
