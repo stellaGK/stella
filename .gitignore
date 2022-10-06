@@ -33,6 +33,7 @@ externals/pFUnit_build
 unit_tests
 tests/unit/*.F90
 docs/html/
+docs/pages/user_manual/namelists.md
 .compiler_flags
 .fortran_git_version
 
