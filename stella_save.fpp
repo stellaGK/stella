@@ -90,8 +90,8 @@ contains
       use common_types, only: kxkyz_layout_type
       use file_utils, only: error_unit
       use vpamu_grids, only: nvpa, nmu
-      use sources, only: include_krook_operator, int_krook
-      use sources, only: remove_zero_projection, int_proj
+      use sources, only: source_option_krook, source_option_projection
+      use sources, only: source_option_switch, int_krook, int_proj
       use sources, only: include_qn_source
 
       implicit none
@@ -328,7 +328,7 @@ contains
                goto 1
             end if
 
-            if (include_krook_operator .and. has_vmulo) then
+            if (source_option_switch .eq. source_option_krook .and. has_vmulo) then
                istatus = nf90_def_var(ncid, "intkrook", netcdf_real, intkrook_id)
                if (istatus /= NF90_NOERR) then
                   ierr = error_unit()
@@ -372,7 +372,7 @@ contains
                end if
             end if
 
-            if (remove_zero_projection .and. has_vmulo) then
+            if (source_option_switch .eq. source_option_projection .and. has_vmulo) then
                istatus = nf90_def_var(ncid, "intproj", netcdf_real, intproj_id)
                if (istatus /= NF90_NOERR) then
                   ierr = error_unit()
@@ -520,7 +520,7 @@ contains
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gi_id)
 
-         if (include_krook_operator .and. has_vmulo) then
+         if (source_option_switch .eq. source_option_krook .and. has_vmulo) then
             if (.not. allocated(ktmpr)) &
                allocate (ktmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             if (.not. allocated(ktmpi)) &
@@ -574,7 +574,7 @@ contains
 
          end if
 
-         if (remove_zero_projection .and. has_vmulo) then
+         if (source_option_switch .eq. source_option_projection .and. has_vmulo) then
             if (.not. allocated(ptmpr)) &
                allocate (ptmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             if (.not. allocated(ptmpi)) &
@@ -719,8 +719,8 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use file_utils, only: error_unit
-      use sources, only: include_krook_operator, int_krook
-      use sources, only: remove_zero_projection, int_proj
+      use sources, only: source_option_krook, source_option_projection
+      use sources, only: source_option_switch, int_krook, int_proj
       use sources, only: include_qn_source
 
       implicit none
@@ -831,7 +831,7 @@ contains
 #endif
          end if
 
-         if (include_krook_operator .and. has_vmulo) then
+         if (source_option_switch .eq. source_option_krook .and. has_vmulo) then
             istatus = nf90_inq_varid(ncid, "intkrook", intkrook_id)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='intkrook')
 
@@ -843,7 +843,7 @@ contains
 
          end if
 
-         if (remove_zero_projection .and. has_vmulo) then
+         if (source_option_switch .eq. source_option_projection .and. has_vmulo) then
             istatus = nf90_inq_varid(ncid, "intproj", intproj_id)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='intproj')
 
@@ -919,7 +919,7 @@ contains
 
       g = cmplx(tmpr, tmpi)
 
-      if (include_krook_operator .and. has_vmulo) then
+      if (source_option_switch .eq. source_option_krook .and. has_vmulo) then
          if (.not. allocated(ktmpr)) &
             allocate (ktmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ktmpi)) &
@@ -959,7 +959,7 @@ contains
 
       end if
 
-      if (remove_zero_projection .and. has_vmulo) then
+      if (source_option_switch .eq. source_option_projection .and. has_vmulo) then
          if (.not. allocated(ptmpr)) &
             allocate (ptmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          if (.not. allocated(ptmpi)) &
@@ -1040,8 +1040,8 @@ contains
 
       if (scale > 0.) then
          g = g * scale
-         if (include_krook_operator) g_krook = g_krook * scale
-         if (remove_zero_projection) g_proj = g_proj * scale
+         if (source_option_switch .eq. source_option_krook) g_krook = g_krook * scale
+         if (source_option_switch .eq. source_option_projection) g_proj = g_proj * scale
       end if
 
       ! RN 2008/05/23: this was commented out. why? HJL 2013/05/15 Because it stops future writing to the file

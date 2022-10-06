@@ -174,34 +174,35 @@ Variable | Type | Default | Description
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`fphi`  | | |
-`fapar`  | | |
-`fbpar`  | | |
-`delt`  | | |
-`nstep`  | | |
-`tend`  | | |
-`delt_option`  | | |
-`lu_option`  | | |
-`avail_cpu_time`  | | |
-`cfl_cushion`  | | |
-`delt_adjust`  | | |
-`delt_max`  | | |
-`stream_implicit`  | | |
-`mirror_implicit`  | | |
-`driftkinetic_implicit`  | | |
-`drifts_implicit`  | | |
-`stream_matrix_inversion`  | | |
-`maxwellian_inside_zed_derivative`  | | |
-`mirror_semi_lagrange`  | | |
-`mirror_linear_interp`  | | |
-`zed_upwind`  | | |
-`vpa_upwind`  | | |
-`time_upwind`  | | |
-`fields_kxkyz`  | | |
-`mat_gen`  | | |
-`rng_seed`  | | |
-`ky_solve_radial`  | | |
-`ky_solve_real`  | | |
+`fphi`  | real | 1.0 | Prefactor for electrostatic potential \\( \varphi \\) wherever it appears. 
+`fapar`  | real | 1.0 | Prefactor for fluctuating vector potential \\( A_\parallel \\) wherever it appears. *Currently has no effect*.
+`fbpar`  | real | -1.0 | Prefactor for fluctuating parallel magnetic field \\( B_\parallel \\) wherever it appears. *Currently has no effect*.
+`delt`  | real | 0.0 | Initial simulation timestep. CFL constraints may change this throughout the simulation.
+`nstep`  | integer | -1 | Number of simulation timesteps.
+`tend`  | real | -1.0 | End-time of the simulation. If not set, then not used.
+`delt_option`  | string | '`check_restart `' | How to handle setting the timestep on restart. Should be one of <ul><li>`check_restart` automatically checks the restart file for last saved time step.</li><li>`set_by_hand` use `delt` from input file.</li><li>`default` same as `check_restart`.</li></ul>
+`lu_option`  | string | `default` | Parallelization of the LU decomposition. Should be one of <ul><li>`none` no parallelization.</li><li>`none` same as `default`</li><li>`local` Parallelized locally on a core using shared memory. Best case speed-up is \\(j_\mathrm{twist}\times (\textrm{cores per node}). \\).</li><li>`global` parallelized over all cores. Currently only works on experimental branch `development/pLU_scalapack` which uses ScaLAPACK. </li></ul>If compiled with `HAS_ISO_C_BINDING`, then it is ***strongly*** recommended to run with `lu_option='local'`.
+`avail_cpu_time`  |real |  \\( 10^{10} \\) | Available CPU time **in seconds**. Useful for cleanly ending a run before allocated time runs out.
+`cfl_cushion`  | real | 0.5 | Safety factor for the CFL condition. 
+`delt_adjust`  | real | 2.0 | Additional one-way safety factor used for setting a new *smaller* timestep based off CFL condition. 
+`delt_max`  | real | -1 | If positive, then set the maximum timestep to `delt_max`; otherwise, the maximum time step will be the initial one.
+`stream_implicit`  | boolean | `true` | Calculate parallel streaming implicitly using the response matrix approach.
+`mirror_implicit`  | boolean | `true` | Calculate the mirror term implicitly.
+`driftkinetic_implicit`  | boolean | `false` | When calculating parallel streaming, only include the non-gyroaveraged electrostatic potential \\( \varphi \\) in the implicit calculation, and calculate the portion resulting from \\( \varphi - \langle \varphi \rangle_\boldsymbol{R} \\) explicitly.
+`drifts_implicit`  | boolean | `false` | Calculate the magnetic and \\( \omega_\ast \\) drifts implicitly as an extra term to the operator splitting.
+`stream_matrix_inversion`  | boolean | `false` | Use a different tri-diagional solver for parallel streaming. 
+`maxwellian_inside_zed_derivative`  | boolean | `false` | *Experimental* - Evaluate the parallel streaming term with the Maxwellian background inside the parallel derivative, and also include the extra term proportional to \\( \partial_z B\\) that results from the product rule.
+`mirror_semi_lagrange`  | boolean | `true` | Use semi-Lagrange solve for mirror term. Otherwise, use tri-diagonal matrix solve.
+`mirror_linear_interp`  | boolean | `false` | Use linear, rather than fourth-order, interpolation when using semi-Lagrange approach for mirror term.
+`zed_upwind`  | real |  0.02 | Amount of spatial upwinding in \\( z \\) when implicit solve is used. Recommended values: 0.02–0.05.
+`vpa_upwind`  |  real | 0.02 | Amount of upwinding in \\( v_\parallel \\) when implicit mirror term is used with the matrix solve. Recommended values: 0.02–0.05. *No effect when semi-Lagrange is used.*
+`time_upwind`  | real  | 0.02 | Amount of temporal in \\( t \\) when implicit solve is used. Recommended values: 0.02–0.05.
+`fields_kxkyz`  | boolean | `false` | Calculate electromagnetic fields with a local velocity grid. **Requires MPI all-to-all redistrution, and so *not* recommended.**
+`mat_gen`  | boolean | `false` | Write out response matrices. **`lu_option='local'` makes this obsolete in most cases**.
+`mat_read`  | boolean | `false` | Read in response matrices. **`lu_option='local'` makes this obsolete in most cases**.
+`rng_seed`  | integer | -1 | Seeds the random number generator used for the `noise` initial condition. If negative, then a seed is generated from the current time.
+`ky_solve_radial`  |  integer |  0 | How many \\( k_y \\) modes, starting from the zonal mode, for which quasineutrality is to be calculated exactly, rather than perturbatively, for radially global simulation. **It is recommended to calculate quasineutrality for *all* modes exactly, so set this to naky when running radially global.**
+`ky_solve_real`  | boolean | `false` | *Experimental* - solve quasineutrality in *real space excluding the boundary region* when performing a radially global simulation.
 
 
 # namelist `init_g_knobs`
@@ -305,21 +306,21 @@ Variable | Type | Default | Description
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`boundary_size` ||| 
-`krook_size` ||| 
-`zf_option` ||| 
-`krook_option` ||| 
-`RK_step` ||| 
-`nu_krook_mb` ||| 
-`mb_debug_step` |||
-`krook_exponent` |||  
-`comm_at_init` ||| 
-`phi_bound` ||| 
-`phi_pow` ||| 
-`krook_efold` ||| 
-`use_dirichlet_BC` ||| 
-`LR_debug_option` ||| 
-`smooth_ZFs` ||| 
+`boundary_size` | integer | 4 | Number of collocation points in the boundary region.
+`krook_size` | integer | 0 | Number of collocation points in the Krook region. Will automatically max out at `boundary_size`.
+`zf_option` | string | `'default'` | *Experimental* - Set how the zonal mode is handled during the communication of the multiple-flux-tube boundary condition. Should be one of
+`krook_option` | string | `''` | Shape of the Krook operator in the Krook region.
+`RK_step` | boolean | `false` | Communicate the multiple-flux-tube boundary condition at every implicit and Runge-Kutta substep, rather than one per timestep. 
+`nu_krook_mb` | real | 0.0 | Strength (i.e. damping rate) of the Krook operator in the boundary region.
+`mb_debug_step` | integer | 1000 | 
+`krook_exponent` | real | 0.0 |  
+`comm_at_init` | boolean | `false` | 
+`phi_bound` | integer | 0 | 
+`phi_pow` | real | 0.0 | 
+`krook_efold` | real | 3.0 | 
+`use_dirichlet_BC` | boolean | `false` | 
+`LR_debug_option` | string | `'default'`| 
+`smooth_ZFs` | boolean | `false` | *Experimental* - Try smoothing the zonal flows across the interface between boundary and physical region. *Never really worked properly.* 
 
 
 # namelist `sources`
@@ -327,18 +328,17 @@ Variable | Type | Default | Description
 
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
-`include_krook_operator` ||| 
-`remove_zero_projection` ||| 
-`conserve_momentum` ||| 
-`conserve_density` ||| 
-`tcorr_source` ||| 
-`nu_krook` ||| 
-`ikxmax_source` ||| 
-`krook_odd` ||| 
-`exclude_boundary_regions` ||| 
-`tcorr_source_qn` ||| 
-`exclude_boundary_regions_qn` ||| 
-`from_zero` ||| 
+`source_option` | string | `'none'` | Type of source used for radially global simulation. Should be one of <ul><li> `none` no source used. </li><li>`default` same as `none`.</li><li>`Krook` Krook operator based source.</li><li>`projection` Projection operator based source.</li></ul> 
+`conserve_momentum` | boolean | `false` | Enforce momentum conservation in the source.
+`conserve_density` | boolean | `false` |  Enforce density conservation in the source.
+`tcorr_source` | real  | 0.02 | Time correlation of the source. *Should be a longer timescale than any of interest in the problem.*
+`nu_krook` | real | 0.05 | Strength (i.e. damping rate) of the Krook source. 
+`ikxmax_source` | integer | 2 for `periodic_variation`, 1 otherwise | Maximum radial wavenumber on which the source acts.
+`krook_odd` | boolean | `true` | *Experimental* - Only act on the modes that can affect the profiles.
+`exclude_boundary_regions` | boolean | `radial_variation` and not `periodic_variation` | Ensure that source only acts on the physical region of the radial domain.
+`tcorr_source_qn` | real | 0.0 | *Experimental* - Time correlation of the source in quasineutrality.
+`exclude_boundary_regions_qn` | boolean | `exclude_boundary_regions` | Exclude boundary regions when applying the source in quasineutrality.
+`from_zero` | boolean | `true` | Time correlated source starts from zero, rather than value of the distribution function at \\( t = 0 \\). 
 
 
 # namelist `dissipation`
@@ -377,7 +377,7 @@ Variable | Type | Default | Description
 `eiediffknob` | real | 1.0 | control the electron-ion energy diffusion in Fokker-Planck operator.
 `eideflknob ` | real | 1.0 | control the electron-ion pitch angle scattering in Fokker-Planck operator. 
 `deflknob ` | real | 1.0 | control pitch angle scattering in Fokker-Planck operator, must be 1 or 0.
-`eimassr_approx ` | boolean  | `false` | use mass ratio approximation for test particle operator, *beta*.
+`eimassr_approx ` | boolean  | `false` | use mass ratio approxfimation for test particle operator, *beta*.
 `advfield_coll ` | boolean | `true` | disable electrostatic potential terms in the field particle operator, *beta*.
 `spitzer_problem ` | boolean | `false`| Solve the Spitzer problem for tests of the collision operator
 `density_conservation` | boolean | `false` | if `True` and `equally_spaced_mu_grid=True` and `conservative_wgts_vpa=True`, then test-particle operator conserves density to machine precision.
@@ -404,7 +404,7 @@ Variable | Type | Default | Description
 Variable | Type | Default | Description
 -------- | ---- | ------- | -----------
 `D_hyper` | real | 0.05 | Maximal hyperdissipation damping rate.
-`use_physical_ksqr` | boolean  | not `full_flux_surface` or `radial_variation`| If true, use actual \\( k^2_\perp = k_x^2 | \nabla x |^2 + 2 k_xk_y (\nabla x \cdot \nabla y) + k_y^2 |\nabla y |^2 \\). Otherwise, use \\( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\\).
+`use_physical_ksqr` | boolean  | `true` if global, `false` otherwise | If true, use actual \\( k^2_\perp = k_x^2 \lvert \nabla x \rvert^2 + 2 k_xk_y (\nabla x \cdot \nabla y) + k_y^2 \lvert\nabla y \rvert^2 \\). Otherwise, use \\( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\\).
 `scale_to_outboard` | boolean | `false` | If true, scale maximal damping rate to maximum \\( k_\perp^2 \\) at outboard midplane. Otherwise, scale maximal damping to maximum \\( k_\perp^2 \\) over the entire domain.
 
 # namelist `neoclassical_input`

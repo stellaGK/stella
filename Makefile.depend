@@ -454,6 +454,7 @@ sources.o: \
 	 stella_layouts.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 species.o: \
