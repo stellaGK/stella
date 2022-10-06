@@ -67,7 +67,7 @@ module multibox
    logical :: smooth_ZFs, use_dirichlet_BC
    logical :: RK_step, include_multibox_krook, comm_at_init
    integer :: krook_option_switch
-   integer, parameter:: krook_option_default = 1, &
+   integer, parameter:: krook_option_default = 2, &
                         krook_option_flat = 0, &
                         krook_option_linear = 1, &
                         krook_option_exp = 2, &
@@ -136,7 +136,7 @@ contains
       krook_exponent = 0.0
       krook_efold = 3.0
       nu_krook_mb = 0.0
-      mb_debug_step = 1000
+      mb_debug_step = -1
       smooth_ZFs = .false.
       comm_at_init = .false.
       RK_step = .false.
@@ -520,7 +520,7 @@ contains
          prefac = exp(-zi * g_exb * g_exbfac * spread(x_mb, 1, naky) * spread(aky * shift_state, 2, x_fft_size))
       end if
 
-      if (mod(temp_ind, mb_debug_step) == 0 .and. proc0) then
+      if (mb_debug_step > 0 .and. mod(temp_ind, mb_debug_step) == 0 .and. proc0) then
          ! call get_unused_unit(temp_unit)
          temp_unit = 3023 + job
          afacx = real(nx) / real(x_fft_size)

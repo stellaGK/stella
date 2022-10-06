@@ -26,7 +26,7 @@ module init_g
    real :: den1, upar1, tpar1, tperp1
    real :: den2, upar2, tpar2, tperp2
    real :: tstart, scale, kxmax, kxmin
-   logical :: chop_side, left, even, scale_to_phiinit
+   logical :: chop_side, left, scale_to_phiinit
    character(300), public :: restart_file
    character(len=150) :: restart_dir
 
@@ -91,7 +91,6 @@ contains
       call broadcast(kxmin)
       call broadcast(tstart)
       call broadcast(chop_side)
-      call broadcast(even)
       call broadcast(left)
       call broadcast(restart_file)
       call broadcast(read_many)
@@ -163,7 +162,7 @@ contains
       character(20) :: ginit_option
       namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
          restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
-         den0, upar0, tpar0, tperp0, imfac, refac, even, &
+         den0, upar0, tpar0, tperp0, imfac, refac, &
          den1, upar1, tpar1, tperp1, &
          den2, upar2, tpar2, tperp2, &
          kxmax, kxmin, scale_to_phiinit
@@ -195,7 +194,6 @@ contains
       chop_side = .false.
       scale_to_phiinit = .false.
       left = .true.
-      even = .true.
 
       restart_file = trim(run_name)//".nc"
       restart_dir = "./"
