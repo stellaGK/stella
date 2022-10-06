@@ -68,12 +68,12 @@ contains
 
       call read_parameters
 
-      if (source_option_switch .eq. source_option_krook.and. .not. allocated(g_krook)) then
+      if (source_option_switch == source_option_krook .and. .not. allocated(g_krook)) then
          allocate (g_krook(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_krook = 0.
       end if
 
-      if (source_option_switch .eq. source_option_projection .and. .not. allocated(g_proj)) then
+      if (source_option_switch == source_option_projection .and. .not. allocated(g_proj)) then
          allocate (g_proj(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_proj = 0.
       end if
@@ -134,7 +134,6 @@ contains
          ikxmax_source, krook_odd, exclude_boundary_regions, &
          tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
          conserve_momentum, conserve_density
-
 
       if (proc0) then
          exclude_boundary_regions = radial_variation .and. .not. periodic_variation
