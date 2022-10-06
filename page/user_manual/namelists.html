@@ -839,171 +839,177 @@
 <tbody>
 <tr>
 <td><code>fphi</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for electrostatic potential \( \varphi \) wherever it appears.</td>
 </tr>
 <tr>
 <td><code>fapar</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for fluctuating vector potential \( A_\parallel \) wherever it appears. <em>Currently has no effect</em>.</td>
 </tr>
 <tr>
 <td><code>fbpar</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Prefactor for fluctuating parallel magnetic field \( B_\parallel \) wherever it appears. <em>Currently has no effect</em>.</td>
 </tr>
 <tr>
 <td><code>delt</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Initial simulation timestep. CFL constraints may change this throughout the simulation.</td>
 </tr>
 <tr>
 <td><code>nstep</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>-1</td>
+<td>Number of simulation timesteps.</td>
 </tr>
 <tr>
 <td><code>tend</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-1.0</td>
+<td>End-time of the simulation. If not set, then not used.</td>
 </tr>
 <tr>
 <td><code>delt_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td>'<code>check_restart</code>'</td>
+<td>How to handle setting the timestep on restart. Should be one of <ul><li><code>check_restart</code> automatically checks the restart file for last saved time step.</li><li><code>set_by_hand</code> use <code>delt</code> from input file.</li><li><code>default</code> same as <code>check_restart</code>.</li></ul></td>
 </tr>
 <tr>
 <td><code>lu_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>default</code></td>
+<td>Parallelization of the LU decomposition. Should be one of <ul><li><code>none</code> no parallelization.</li><li><code>none</code> same as <code>default</code></li><li><code>local</code> Parallelized locally on a core using shared memory. Best case speed-up is \(j_\mathrm{twist}\times (\textrm{cores per node}). \).</li><li><code>global</code> parallelized over all cores. Currently only works on experimental branch <code>development/pLU_scalapack</code> which uses ScaLAPACK. </li></ul>If compiled with <code>HAS_ISO_C_BINDING</code>, then it is <strong><em>strongly</em></strong> recommended to run with <code>lu_option='local'</code>.</td>
 </tr>
 <tr>
 <td><code>avail_cpu_time</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>\( 10^{10} \)</td>
+<td>Available CPU time <strong>in seconds</strong>. Useful for cleanly ending a run before allocated time runs out.</td>
 </tr>
 <tr>
 <td><code>cfl_cushion</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.5</td>
+<td>Safety factor for the CFL condition.</td>
 </tr>
 <tr>
 <td><code>delt_adjust</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>2.0</td>
+<td>Additional one-way safety factor used for setting a new <em>smaller</em> timestep based off CFL condition.</td>
 </tr>
 <tr>
 <td><code>delt_max</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-1</td>
+<td>If positive, then set the maximum timestep to <code>delt_max</code>; otherwise, the maximum time step will be the initial one.</td>
 </tr>
 <tr>
 <td><code>stream_implicit</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Calculate parallel streaming implicitly using the response matrix approach.</td>
 </tr>
 <tr>
 <td><code>mirror_implicit</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Calculate the mirror term implicitly.</td>
 </tr>
 <tr>
 <td><code>driftkinetic_implicit</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>When calculating parallel streaming, only include the non-gyroaveraged electrostatic potential \( \varphi \) in the implicit calculation, and calculate the portion resulting from \( \varphi - \langle \varphi \rangle_\boldsymbol{R} \) explicitly.</td>
 </tr>
 <tr>
 <td><code>drifts_implicit</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Calculate the magnetic and \( \omega_\ast \) drifts implicitly as an extra term to the operator splitting.</td>
 </tr>
 <tr>
 <td><code>stream_matrix_inversion</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use a different tri-diagional solver for parallel streaming.</td>
 </tr>
 <tr>
 <td><code>maxwellian_inside_zed_derivative</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td><em>Experimental</em> - Evaluate the parallel streaming term with the Maxwellian background inside the parallel derivative, and also include the extra term proportional to \( \partial_z B\) that results from the product rule.</td>
 </tr>
 <tr>
 <td><code>mirror_semi_lagrange</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Use semi-Lagrange solve for mirror term. Otherwise, use tri-diagonal matrix solve.</td>
 </tr>
 <tr>
 <td><code>mirror_linear_interp</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use linear, rather than fourth-order, interpolation when using semi-Lagrange approach for mirror term.</td>
 </tr>
 <tr>
 <td><code>zed_upwind</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.02</td>
+<td>Amount of spatial upwinding in \( z \) when implicit solve is used. Recommended values: 0.02–0.05.</td>
 </tr>
 <tr>
 <td><code>vpa_upwind</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.02</td>
+<td>Amount of upwinding in \( v_\parallel \) when implicit mirror term is used with the matrix solve. Recommended values: 0.02–0.05. <em>No effect when semi-Lagrange is used.</em></td>
 </tr>
 <tr>
 <td><code>time_upwind</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.02</td>
+<td>Amount of temporal in \( t \) when implicit solve is used. Recommended values: 0.02–0.05.</td>
 </tr>
 <tr>
 <td><code>fields_kxkyz</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Calculate electromagnetic fields with a local velocity grid. <strong>Requires MPI all-to-all redistrution, and so <em>not</em> recommended.</strong></td>
 </tr>
 <tr>
 <td><code>mat_gen</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write out response matrices. <strong><code>lu_option='local'</code> makes this obsolete in most cases</strong>.</td>
+</tr>
+<tr>
+<td><code>mat_read</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Read in response matrices. <strong><code>lu_option='local'</code> makes this obsolete in most cases</strong>.</td>
 </tr>
 <tr>
 <td><code>rng_seed</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>-1</td>
+<td>Seeds the random number generator used for the <code>noise</code> initial condition. If negative, then a seed is generated from the current time.</td>
 </tr>
 <tr>
 <td><code>ky_solve_radial</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>0</td>
+<td>How many \( k_y \) modes, starting from the zonal mode, for which quasineutrality is to be calculated exactly, rather than perturbatively, for radially global simulation. <strong>It is recommended to calculate quasineutrality for <em>all</em> modes exactly, so set this to naky when running radially global.</strong></td>
 </tr>
 <tr>
 <td><code>ky_solve_real</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td><em>Experimental</em> - solve quasineutrality in <em>real space excluding the boundary region</em> when performing a radially global simulation.</td>
 </tr>
 </tbody>
 </table>
@@ -1469,93 +1475,93 @@
 <tbody>
 <tr>
 <td><code>boundary_size</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>4</td>
+<td>Number of collocation points in the boundary region.</td>
 </tr>
 <tr>
 <td><code>krook_size</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>0</td>
+<td>Number of collocation points in the Krook region. Will automatically max out at <code>boundary_size</code>.</td>
 </tr>
 <tr>
 <td><code>zf_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td><em>Experimental</em> - Set how the zonal mode is handled during the communication of the multiple-flux-tube boundary condition. Should be one of</td>
 </tr>
 <tr>
 <td><code>krook_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>''</code></td>
+<td>Shape of the Krook operator in the Krook region.</td>
 </tr>
 <tr>
 <td><code>RK_step</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Communicate the multiple-flux-tube boundary condition at every implicit and Runge-Kutta substep, rather than one per timestep.</td>
 </tr>
 <tr>
 <td><code>nu_krook_mb</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Strength (i.e. damping rate) of the Krook operator in the boundary region.</td>
 </tr>
 <tr>
 <td><code>mb_debug_step</code></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>1000</td>
 <td></td>
 </tr>
 <tr>
 <td><code>krook_exponent</code></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
 <td></td>
 </tr>
 <tr>
 <td><code>comm_at_init</code></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
 <td></td>
 </tr>
 <tr>
 <td><code>phi_bound</code></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>0</td>
 <td></td>
 </tr>
 <tr>
 <td><code>phi_pow</code></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
 <td></td>
 </tr>
 <tr>
 <td><code>krook_efold</code></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>3.0</td>
 <td></td>
 </tr>
 <tr>
 <td><code>use_dirichlet_BC</code></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
 <td></td>
 </tr>
 <tr>
 <td><code>LR_debug_option</code></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>'default'</code></td>
 <td></td>
 </tr>
 <tr>
 <td><code>smooth_ZFs</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td><em>Experimental</em> - Try smoothing the zonal flows across the interface between boundary and physical region. <em>Never really worked properly.</em></td>
 </tr>
 </tbody>
 </table>
@@ -1571,76 +1577,70 @@
 </thead>
 <tbody>
 <tr>
-<td><code>include_krook_operator</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>remove_zero_projection</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td><code>source_option</code></td>
+<td>string</td>
+<td><code>'none'</code></td>
+<td>Type of source used for radially global simulation. Should be one of <ul><li> <code>none</code> no source used. </li><li><code>default</code> same as <code>none</code>.</li><li><code>Krook</code> Krook operator based source.</li><li><code>projection</code> Projection operator based source.</li></ul></td>
 </tr>
 <tr>
 <td><code>conserve_momentum</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enforce momentum conservation in the source.</td>
 </tr>
 <tr>
 <td><code>conserve_density</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enforce density conservation in the source.</td>
 </tr>
 <tr>
 <td><code>tcorr_source</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.02</td>
+<td>Time correlation of the source. <em>Should be a longer timescale than any of interest in the problem.</em></td>
 </tr>
 <tr>
 <td><code>nu_krook</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.05</td>
+<td>Strength (i.e. damping rate) of the Krook source.</td>
 </tr>
 <tr>
 <td><code>ikxmax_source</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>integer</td>
+<td>2 for <code>periodic_variation</code>, 1 otherwise</td>
+<td>Maximum radial wavenumber on which the source acts.</td>
 </tr>
 <tr>
 <td><code>krook_odd</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td><em>Experimental</em> - Only act on the modes that can affect the profiles.</td>
 </tr>
 <tr>
 <td><code>exclude_boundary_regions</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>radial_variation</code> and not <code>periodic_variation</code></td>
+<td>Ensure that source only acts on the physical region of the radial domain.</td>
 </tr>
 <tr>
 <td><code>tcorr_source_qn</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td><em>Experimental</em> - Time correlation of the source in quasineutrality.</td>
 </tr>
 <tr>
 <td><code>exclude_boundary_regions_qn</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>exclude_boundary_regions</code></td>
+<td>Exclude boundary regions when applying the source in quasineutrality.</td>
 </tr>
 <tr>
 <td><code>from_zero</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Time correlated source starts from zero, rather than value of the distribution function at \( t = 0 \).</td>
 </tr>
 </tbody>
 </table>
@@ -1811,7 +1811,7 @@
 <td><code>eimassr_approx</code></td>
 <td>boolean</td>
 <td><code>false</code></td>
-<td>use mass ratio approximation for test particle operator, <em>beta</em>.</td>
+<td>use mass ratio approxfimation for test particle operator, <em>beta</em>.</td>
 </tr>
 <tr>
 <td><code>advfield_coll</code></td>
@@ -1943,8 +1943,8 @@
 <tr>
 <td><code>use_physical_ksqr</code></td>
 <td>boolean</td>
-<td>not <code>full_flux_surface</code> or <code>radial_variation</code></td>
-<td>If true, use actual \( k^2_\perp = k_x^2</td>
+<td><code>true</code> if global, <code>false</code> otherwise</td>
+<td>If true, use actual \( k^2_\perp = k_x^2 \lvert \nabla x \rvert^2 + 2 k_xk_y (\nabla x \cdot \nabla y) + k_y^2 \lvert\nabla y \rvert^2 \). Otherwise, use \( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\).</td>
 </tr>
 <tr>
 <td><code>scale_to_outboard</code></td>
@@ -2203,13 +2203,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-143-gf044483d8</small></p>
+<br /><small>v0.5.1-144-g7e1ff2474</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-04T12:51:50.302434           </p>
+ on 2022-10-06T02:43:30.875474           </p>
         </div>
       </div>
       <br>
