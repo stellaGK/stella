@@ -1026,177 +1026,171 @@
 <tbody>
 <tr>
 <td><code>ginit_option</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Distribution function initialization option. Should be one of <ul><li><code>default</code> Gaussian pulse along the zed dimension for every wavenumber. Suitable for linear simulation. </li><li><code>noise</code> white noise for every wavenumber. Suitable for nonlinear simulation. </li><li><code>many</code> Read from (multiple) restart netcdf files. </li><li><code>nltest</code> Not implemented. </li><li><code>kxtest</code> Not implemented. </li><li><code>kpar</code> Distribution function with particular moments and parallel shapes set by options below. </li><li><code>rh</code> Rosenbluth-Hinton initialization of \( k_y = 0\) zonal mode. Useful for testing linear parallel streaming and magnetic drift physics. </li><li><code>remap</code>  Initalizates one or two single eigenmodes with finite amplitude. Used for testing wavenumber remapping implementation of equilibrium \( \boldsymbol{E \times B} \) flow shear and, in particular, its nonlinear corrections. </li></ul></td>
 </tr>
 <tr>
 <td><code>width0</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>-3.5</td>
+<td>If using <code>ginit_option='default'</code>, sets the width of the Gaussian pulse.</td>
 </tr>
 <tr>
 <td><code>phiinit</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Rough size of the resulting root-mean-square electrostatic potential \( \varphi \)from initialization. Actual size will vary depending on species options, <code>ginit_option</code>, etc... See also <code>scale_to_phiinit</code>.</td>
 </tr>
 <tr>
 <td><code>scale_to_phiinit</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>chop_side</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>If true, then upon initialization (not restart!) rescale the distribution function so that the root-mean-squared electrostatic potential \( \varphi \) is <em>precisely</em> <code>phiinit</code>, regardless of any other option.</td>
 </tr>
 <tr>
 <td><code>restart_file</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>RUN_NAME.nc</code></td>
+<td>Name of the restart file. Note that  <code>RUN_NAME</code> derives from <code>RUN_NAME.input</code>, the input file used to run stella.</td>
 </tr>
 <tr>
 <td><code>restart_dir</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>string</td>
+<td><code>./</code></td>
+<td>Restart directory. <em>Tip to users:</em> using <code>./nc/</code> is often very convenient.</td>
 </tr>
 <tr>
 <td><code>read_many</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If false, then use MPI_IO to write to one restart file. Otherwise, every core writes to a separate restart file (<em>recommended</em>).</td>
+</tr>
+<tr>
+<td><code>chop_side</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Zero out the distribution function on one side of the \(z\) grid. See <code>left</code>.</td>
 </tr>
 <tr>
 <td><code>left</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If <code>chop_side</code> is true, then zero out the distribution on the left size (\( z &lt; 0\)) of the zed domain. Otherwise, chop it on the right side (\( z &gt; 0 \)).</td>
 </tr>
 <tr>
 <td><code>scale</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Rescale the distribution function by <code>scale</code> upon restart.</td>
 </tr>
 <tr>
 <td><code>tstart</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Start time of the simulation. Overwritten when restarting.</td>
 </tr>
 <tr>
 <td><code>zf_init</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for the \( k_y = 0 \) zonal modes. Setting to 0.0 zeros them out upon initialization.</td>
 </tr>
 <tr>
 <td><code>den0</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Constant density perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>upar0</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Constant parallel velocity perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>tpar0</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Constant parallel temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>tperp0</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>Constant perpendicular temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>den1</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) density perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>upar1</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) parallel velocity perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>tpar1</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) parallel temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>tperp1</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) perpendicular component perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>den2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) density perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>upar2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) parallel velocity perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>tpar2</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) parallel temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>tperp2</code></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>imfac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) perpendicular temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>refac</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>1.0</td>
+<td>Controls the real part of the distribution function when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
-<td><code>even</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td><code>imfac</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Controls the imaginary part of the distribution function when using <code>ginit_option='kpar'</code>.</td>
 </tr>
 <tr>
 <td><code>kxmax</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>\( 10^{100} \)</td>
+<td>The maximum radial wavenumber up to which modes are initialized when using <code>ginit_option='rh'</code>.</td>
 </tr>
 <tr>
 <td><code>kxmin</code></td>
-<td></td>
-<td></td>
-<td></td>
+<td>real</td>
+<td>0.0</td>
+<td>The maximum minimum wavenumber up fro, which modes are initialized when using <code>ginit_option='rh'</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -2203,13 +2197,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-149-gfc7166ab7</small></p>
+<br /><small>v0.5.1-150-g759b50a07</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-06T15:04:22.897581           </p>
+ on 2022-10-06T17:05:54.411484           </p>
         </div>
       </div>
       <br>
