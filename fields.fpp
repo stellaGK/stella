@@ -522,8 +522,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -880,7 +880,9 @@ contains
             call get_fields_vmulo(g, phi, apar, bpar, dist)
          end if
       end if
-
+      ! write(*,*) "advance fields: phi(1,1-nzgrid,1) = ", phi(1,1,-nzgrid,1)
+      ! write(*,*) "advance fields: apar(1,1-nzgrid,1) = ", apar(1,1,-nzgrid,1)
+      ! write(*,*) "advance fields: bpar(1,1-nzgrid,1) = ", bpar(1,1,-nzgrid,1)
       !> set a flag to indicate that the fields have been updated
       !> this helps avoid unnecessary field solves
       fields_updated = .true.
@@ -934,7 +936,7 @@ contains
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       logical :: skip_fsa_local, has_elec, adia_elec
-      complex, dimension(:, :, :, :), allocatable :: antot1, antot3
+      complex, dimension(:, :, :, :), allocatable :: antot1, antot3, denom_1
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1129,14 +1131,25 @@ contains
          call sum_allreduce(apar)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
+         allocate (denom_1(naky, nakx, -nzgrid:nzgrid, ntubes))
          if (dist == "gbar") then
-            apar = apar / spread(apar_denom, 4, ntubes)
+            denom_1 = spread(apar_denom, 4, ntubes)
+            where (abs(denom_1) < epsilon(0.))
+               apar = 0.
+            elsewhere
+               apar = apar / denom_1
+            end where
          else if (dist == "h") then
-            apar = apar / (spread(apar_denom_h, 4, ntubes))
+            denom_1 = spread(apar_denom_h, 4, ntubes)
+            where (abs(denom_1) < epsilon(0.))
+               apar = 0.
+            elsewhere
+               apar = apar / denom_1
+            end where
          else
             call mp_abort("dist not recgonised. Aborting")
          end if
-
+         deallocate(denom_1)
          deallocate (g0)
       end if
 
@@ -1208,7 +1221,7 @@ contains
 
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, iv, imu
-      complex, dimension(:, :, :, :), allocatable :: antot1, antot3
+      complex, dimension(:, :, :, :), allocatable :: antot1, antot3, denom_1, denom_2
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1295,13 +1308,40 @@ contains
 
             ! Now get phi, bpar
             if (dist == "gbar") then
-               phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-                     / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
-               bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
-                      / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+               allocate (denom_1(naky, nakx, -nzgrid:nzgrid, ntubes))
+               allocate (denom_2(naky, nakx, -nzgrid:nzgrid, ntubes))
+               denom_1 = (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
+               denom_2 = spread(gamtot33, 4, ntubes)
+               where ((abs(denom_1) < epsilon(0.)) .or. (abs(denom_2) < epsilon(0.)))
+                  phi = 0.
+               elsewhere
+                  phi = (antot1 - (spread(gamtot13, 4, ntubes) / denom_2) * antot3) &
+                      / denom_1
+               end where
+
+               denom_1 = (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+               denom_2 = spread(gamtot, 4, ntubes)
+               where ((abs(denom_1) < epsilon(0.)) .or. (abs(denom_2) < epsilon(0.)))
+                  bpar = 0.
+               elsewhere
+                  bpar = (antot3 - (spread(gamtot31, 4, ntubes) / denom_2) * antot1) &
+                        / denom_1
+               end where
+
+               deallocate(denom_1)
             else if (dist == "h") then
-               phi = antot1 / spread(gamtot_h, 4, ntubes)
+               allocate (denom_1(naky, nakx, -nzgrid:nzgrid, ntubes))
+               denom_1 = spread(gamtot_h, 4, ntubes)
+               ! write(*,*) "antot1(1,1,-nzgrid,1) = ", antot1(1,1,-nzgrid,1)
+               where (abs(denom_1) < epsilon(0.))
+                  phi = 0.
+               elsewhere
+                  phi = antot1 / denom_1
+               end where
+               ! bpar_denom_h = 1 so don't need to check abs(bpar_denom_h) < epsilon(0.)
                bpar = antot3 / bpar_denom_h
+               deallocate(denom_1)
+               ! write(*,*) "3 phi(1,1,-nzgrid,1) = ", phi(1,1,-nzgrid,1)
             else
                call mp_abort("dist not recgonised. Aborting")
             end if
@@ -1363,16 +1403,27 @@ contains
 
          ! Sum species, integrate over velocity and store in apar
          call integrate_species(g_gyro, (beta * spec%z * spec%dens_psi0 * spec%stm_psi0), apar)
+         allocate (denom_1(naky, nakx, -nzgrid:nzgrid, ntubes))
          if (dist == "gbar") then
-            apar = apar / spread(apar_denom, 4, ntubes)
+            denom_1 = spread(apar_denom, 4, ntubes)
+            where (abs(denom_1) < epsilon(0.))
+               apar = 0.
+            elsewhere
+               apar = apar / denom_1
+            end where
          else if (dist == "h") then
-            apar = apar / (spread(apar_denom_h, 4, ntubes))
+            denom_1 = spread(apar_denom_h, 4, ntubes)
+            where (abs(denom_1) < epsilon(0.))
+               apar = 0.
+            elsewhere
+               apar = apar / denom_1
+            end where
          else
             call mp_abort("dist not recgonised. Aborting")
          end if
-
+         deallocate(denom_1)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-
+         ! write(*,*) "apar(1,1,-nzgrid,1) = ", apar(1,1,-nzgrid,1)
       end if
       !!! Old code - probably just delete this.
 !       apar = 0.
@@ -1404,7 +1455,7 @@ contains
 ! !        end if
 ! !        deallocate (g0)
 !       end if
-
+      ! write(*,*) "2 phi(1,1,-nzgrid,1) = ", phi(1,1,-nzgrid,1)
    end subroutine get_fields_vmulo
 
    ! Subroutine to calculate fields for a single (kx, ky, z, tube)
