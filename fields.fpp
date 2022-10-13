@@ -522,8 +522,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1149,7 +1149,7 @@ contains
          else
             call mp_abort("dist not recgonised. Aborting")
          end if
-         deallocate(denom_1)
+         deallocate (denom_1)
          deallocate (g0)
       end if
 
@@ -1316,7 +1316,7 @@ contains
                   phi = 0.
                elsewhere
                   phi = (antot1 - (spread(gamtot13, 4, ntubes) / denom_2) * antot3) &
-                      / denom_1
+                        / denom_1
                end where
 
                denom_1 = (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
@@ -1325,10 +1325,10 @@ contains
                   bpar = 0.
                elsewhere
                   bpar = (antot3 - (spread(gamtot31, 4, ntubes) / denom_2) * antot1) &
-                        / denom_1
+                         / denom_1
                end where
 
-               deallocate(denom_1)
+               deallocate (denom_1)
             else if (dist == "h") then
                allocate (denom_1(naky, nakx, -nzgrid:nzgrid, ntubes))
                denom_1 = spread(gamtot_h, 4, ntubes)
@@ -1340,7 +1340,7 @@ contains
                end where
                ! bpar_denom_h = 1 so don't need to check abs(bpar_denom_h) < epsilon(0.)
                bpar = antot3 / bpar_denom_h
-               deallocate(denom_1)
+               deallocate (denom_1)
                ! write(*,*) "3 phi(1,1,-nzgrid,1) = ", phi(1,1,-nzgrid,1)
             else
                call mp_abort("dist not recgonised. Aborting")
@@ -1421,7 +1421,7 @@ contains
          else
             call mp_abort("dist not recgonised. Aborting")
          end if
-         deallocate(denom_1)
+         deallocate (denom_1)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          ! write(*,*) "apar(1,1,-nzgrid,1) = ", apar(1,1,-nzgrid,1)
       end if
