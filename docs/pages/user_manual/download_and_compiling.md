@@ -1,9 +1,12 @@
 ---
-title: CMake in stella
+title: Downloading and Compiling stella
 subtitle: Some notes on using and developing CMake for stella
 ---
 
 Stella now has (experimental) support for building with CMake.
+
+
+# CMake in stella
 
 # Using CMake
 
