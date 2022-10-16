@@ -1,4 +1,4 @@
 ---
-title: Coordinate system used in stella
+title: Coordinate system
 subtitles: also includes normalizations
 ---

@@ -1,5 +1,5 @@
 ---
-title: Downloading and Compiling stella
+title: Downloading and Compiling
 subtitle: Some notes on using and developing CMake for stella
 ---
 
