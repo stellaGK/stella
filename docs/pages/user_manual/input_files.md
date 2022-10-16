@@ -1,0 +1,4 @@
+---
+title: The stella input file
+subtitle: An overview on stella's input files and some tips on how to use them.
+---
