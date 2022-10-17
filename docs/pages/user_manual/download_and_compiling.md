@@ -3,10 +3,22 @@ title: Downloading and Compiling
 subtitle: Some notes on using and developing CMake for stella
 ---
 
+# Getting stella
+
+Stella is hosted on the [stella github repository](https://github.com/stellaGK/stella). 
+
+The simplest way of obtaining tstella on your system is to simply use the command line:
+
+`git clone stella`
+
+This will download stella from git into a new directory. From there, one needs to compile before running.
+
+
+
 Stella now has (experimental) support for building with CMake.
 
 
-# CMake in stella
+# Using Make
 
 # Using CMake
 
@@ -53,10 +65,3 @@ dependencies and their location variables are as follows:
 All of these dependencies, with the exception of MPI, can be turned on
 or off with the `STELLA_ENABLE_<name>` variable.
 
-# Developing the stella CMake build system
-
-One important consideration when developing stella is that any new
-files _must_ be listed in the `STELLA_SOURCES_*` variables: either
-`STELLA_SOURCES_f90` _or_ `STELLA_SOURCES_fpp` as appropriate. If you
-add a new file and do not add it to exactly one of these variables,
-you will get a build error.

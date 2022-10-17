@@ -12,6 +12,10 @@ ordered_subpage: radial_stella.md
 ordered_subpage: ffs_stella.md
 ---
 
+The user manual is divided into several helpful sections that cover various topics in depth. These sections can be seen on the index to the left.
+
+To get started, [start here to get stella up and running.](download_and_compiling.html).
+
 
 <!-- Local Variables: -->
 <!-- mode: gfm -->
