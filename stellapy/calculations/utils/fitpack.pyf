@@ -1,0 +1,72 @@
+!    -*- f90 -*-
+! f2py wrapper for interpolating tensioned splines
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
+! Modified by Gary Ruben 2012-09-03
+! This wraps the curv1() and curv2() functions in Alan K Cline's fitpack http://www.netlib.org/fitpack
+! Also requires the fitpack functions ceez(), intrvl(), snhcsh(), and terms().
+! fitpack.f contains both high and low precision versions of snhcsh(). I used the higher precision version.
+! The low precision version in fitpack.f must be commented out prior to running f2py as follows to create the wrapper:
+! f2py -c fitpack.pyf fitpack.f
+!
+! Usage of resulting functions from Python:
+! curv1 usage:
+!      yp,ierr = fitpack.curv1(x,y,sigma,[slp1,slpn,islpsw])
+!    Required arguments:
+!      x : input array of strictly increasing x values in strictly increasing order.
+!      y : input array of y values.
+!      sigma : tension value is a float where 0.0 generates a standard cubic spline and large values (e.g. 20.0)
+!              generate increasingly highly tensioned splines. A typical value might be 1.0. A practical upper value
+!              of about 40.0 seems to be about the maximum that is handled before the derivates can blow up.
+!    Optional arguments:
+!      slp1 : start slope (default=0.0)
+!      slpn : end slope (default=0.0)
+!      islpsw : switch indicating whether to use slp1 and slpn slope data or whether
+!               to estimate the end slopes:
+!               = 0 if slp1 and slpn are to be used,
+!               = 1 if slp1 is to be used but not slpn,
+!               = 2 if slpn is to be used but not slp1,
+!               = 3 (default) if both slp1 and slpn are to be estimated internally.
+!    Return objects:
+!      yp : array of derivatives at each x,y.
+!      ierr : error flag,
+!               = 0 for normal return,
+!               = 1 if n is less than 2,
+!               = 2 if x-values are not strictly increasing.
+!
+! curv2 usage:
+!      yt = fitpack.curv2(xt,x,y,yp,sigma)
+!    Required arguments:
+!      xt : evaluate spline at this x-value.
+!      yp : result of calling curv1 above.
+!      x, y, sigma : must be the same as used when curv1 was called.
+!    Return objects:
+!      yt : y-value evaluated at xt
+
+python module fitpack ! in 
+    interface  ! in :fitpack
+        subroutine curv1(n,x,y,slp1,slpn,islpsw,yp,temp,sigma,ierr) ! in :fitpack:fitpack.f
+            integer, optional,check(len(x)>=n),depend(x) :: n=len(x)
+            real dimension(n) :: x
+            real dimension(n),depend(n) :: y
+            real optional, intent(in) :: slp1=0.0
+            real optional, intent(in) :: slpn=0.0
+            integer, optional, intent(in) :: islpsw=3
+            real dimension(n), intent(out), depend(n) :: yp
+            real dimension(n), intent(hide,cache), depend(n) :: temp
+            real intent(in) :: sigma
+            integer intent(out) :: ierr
+            integer intent(hide), depend(x) :: n=len(x)
+        end subroutine curv1
+
+        function curv2(t,n,x,y,yp,sigma) ! in :fitpack:fitpack.f
+            real intent(in) :: t
+            integer intent(hide), depend(x) :: n=len(x)
+            real dimension(n), intent(in) :: x
+            real dimension(n), intent(in), depend(n) :: y
+            real dimension(n), intent(in), depend(n) :: yp
+            real intent(in) :: sigma
+            real intent(out) :: curv2
+        end function curv2
+    end interface 
+end python module fitpack

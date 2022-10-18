@@ -64,6 +64,7 @@ nakxc = center_nc.dimensions['kx']
 nakxr =  right_nc.dimensions['kx']
 ky  = np.copy(center_nc.variables['ky'][:])
 kxc  = np.copy(center_nc.variables['kx'][:])
+ny = 2 * naky - 1
 
 dx = 2*np.pi/kxc[1]/nakxc
 
@@ -84,9 +85,15 @@ jacobr  = np.copy( right_nc.variables['jacob'][:])
 
 print('1')
 
-dl_over_bl = np.squeeze(delzed*jacobl/sum(delzed*jacobl))
-dl_over_bc = np.squeeze(delzed*jacobc/sum(delzed*jacobc))
-dl_over_br = np.squeeze(delzed*jacobr/sum(delzed*jacobr))
+dl_over_bl = np.squeeze(delzed*jacobl)
+dl_over_bc = np.squeeze(delzed*jacobc)
+dl_over_br = np.squeeze(delzed*jacobr)
+dl_over_bl[nzed-1] = 0.0
+dl_over_bc[nzed-1] = 0.0
+dl_over_br[nzed-1] = 0.0
+dl_over_bl = dl_over_bl/sum(dl_over_bl)
+dl_over_bc = dl_over_bc/sum(dl_over_bc)
+dl_over_br = dl_over_br/sum(dl_over_br)
 
 dobl = np.transpose(np.matlib.tile(dl_over_bl,(naky,nakxl,1)))
 dobc = np.transpose(np.matlib.tile(dl_over_bc,(naky,nakxc,1)))
@@ -94,24 +101,24 @@ dobr = np.transpose(np.matlib.tile(dl_over_br,(naky,nakxr,1)))
 
 print('2')
 
-phil_xky = phi_vs_t_to_x(left_nc  ,'phi_vs_t',naky,nakxl)
-phic_xky = phi_vs_t_to_x(center_nc,'phi_vs_t',naky,nakxc)
-phir_xky = phi_vs_t_to_x(right_nc ,'phi_vs_t',naky,nakxr)
+phil_xky = phi_vs_t_to_x(left_nc  ,'phi_vs_t',ny,nakxl)
+phic_xky = phi_vs_t_to_x(center_nc,'phi_vs_t',ny,nakxc)
+phir_xky = phi_vs_t_to_x(right_nc ,'phi_vs_t',ny,nakxr)
 
 print('3')
 
-densl_xky = mom_vs_t_to_x(left_nc  ,'density',naky,nakxl)
-densc_xky = mom_vs_t_to_x(center_nc,'density',naky,nakxc)
-densr_xky = mom_vs_t_to_x(right_nc ,'density',naky,nakxr)
+densl_xky = mom_vs_t_to_x(left_nc  ,'density',ny,nakxl)
+densc_xky = mom_vs_t_to_x(center_nc,'density',ny,nakxc)
+densr_xky = mom_vs_t_to_x(right_nc ,'density',ny,nakxr)
 
 
-uparl_xky = mom_vs_t_to_x(left_nc  ,'upar',naky,nakxl)
-uparc_xky = mom_vs_t_to_x(center_nc,'upar',naky,nakxc)
-uparr_xky = mom_vs_t_to_x(right_nc ,'upar',naky,nakxr)
+uparl_xky = mom_vs_t_to_x(left_nc  ,'upar',ny,nakxl)
+uparc_xky = mom_vs_t_to_x(center_nc,'upar',ny,nakxc)
+uparr_xky = mom_vs_t_to_x(right_nc ,'upar',ny,nakxr)
 
-templ_xky = mom_vs_t_to_x(left_nc  ,'temperature',naky,nakxl)
-tempc_xky = mom_vs_t_to_x(center_nc,'temperature',naky,nakxc)
-tempr_xky = mom_vs_t_to_x(right_nc ,'temperature',naky,nakxr)
+templ_xky = mom_vs_t_to_x(left_nc  ,'temperature',ny,nakxl)
+tempc_xky = mom_vs_t_to_x(center_nc,'temperature',ny,nakxc)
+tempr_xky = mom_vs_t_to_x(right_nc ,'temperature',ny,nakxr)
 
 vxl = 1j*ky*phil_xky
 vxc = 1j*ky*phic_xky

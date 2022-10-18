@@ -13,7 +13,7 @@ module common_types
    type :: kxyz_layout_type
       sequence
       integer :: iproc
-      integer :: nzgrid, nzed, ntubes, ny, naky, nakx, nvgrid, nvpa, nmu, nspec
+      integer :: nzgrid, nzed, ntubes, ny, naky, nakx, ikx_max, nvgrid, nvpa, nmu, nspec
       integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc
       integer :: blocksize, pmod, modcount
    end type kxyz_layout_type
@@ -98,5 +98,10 @@ module common_types
       integer :: max_idx
       complex, dimension(:), pointer :: fourier => null()
    end type coupled_alpha_type
+
+   type gam0_ffs_type
+      integer, dimension(:), pointer :: pivot_index => null()
+      complex, dimension(:, :), pointer :: matrix => null()
+   end type gam0_ffs_type
 
 end module common_types

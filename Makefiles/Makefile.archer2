@@ -8,9 +8,9 @@ helplocal:
 		#
 		#   ARCHER defaults : cray compiler, FFTW3, netcdf, MPI
 		#   ARCHER single restart: cray compiler
-		# make FRONT_END=on : serial build (no MPI) to run gs2, ingen on ARCHER Front End.
 
 define STANDARD_SYSTEM_CONFIGURATION
+module restore PrgEnv-gnu ;\
 module load cray-fftw ;\
 module load cray-hdf5 ;\
 module load cray-libsci ;\
@@ -29,12 +29,6 @@ endif
 
 CHIP=ivy-bridge
 CRAY_SYSTEM=true
-
-ifdef FRONT_END
-      STATIC = on
-      override USE_MPI = 
-      override USE_HDF5 =
-endif
 
 # switch on netcdf
 ifdef NETCDF_DIR
@@ -61,10 +55,8 @@ include Makefile.$(COMPILER)
 
 FC=ftn
 CC=cc
-ifdef USE_MPI
-	MPIFC=ftn
-	MPICC=cc
-endif
+MPIFC=ftn
+MPICC=cc
 
 # For CRAY machines, this convention is always followed. Do not change without 
 # good reason!

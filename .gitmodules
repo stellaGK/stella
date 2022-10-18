@@ -1,0 +1,9 @@
+[submodule "externals/pFUnit"]
+	path = externals/pFUnit
+	url = https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
+[submodule "git_version"]
+	path = externals/git_version
+	url = https://github.com/PlasmaFAIR/Fortran-git-version
+[submodule "externals/neasyf"]
+	path = externals/neasyf
+	url = https://github.com/PlasmaFAIR/neasy-f.git

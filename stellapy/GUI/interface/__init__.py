@@ -1,13 +1,3 @@
-###################################################################
-# Functions to read data from stella output files
-###################################################################
-''' 
-Stella GUI
-
-
-
-'''
-
 
 #=====================================================================
 # Make function avaliable as package.func instead of package.mod.func
@@ -23,11 +13,11 @@ sub_pack_list = [folder_name.split(divider)[-2] for folder_name in glob.glob(__p
 # Import all functions from the modules
 for mod in mod_list:
     exec('from . import ' + mod)
-    exec('from .' + mod + ' import *')
+    exec('from .' + mod + ' import *') 
 
 # Import all subpackages
 for pack in sub_pack_list:
-    exec('from . import ' + pack)
+    exec('from . import ' + pack) 
 
 # Clean up
 del glob

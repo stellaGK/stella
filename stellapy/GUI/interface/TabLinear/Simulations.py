@@ -1,249 +1,219 @@
 
-import numpy as np
 import tkinter as tk
 from tkinter import ttk  
-from stellapy.GUI.graph_tools.display_information import display_information
+from stellapy.GUI.utils.display_information import display_information
         
-#################################################################
-#                  CLASS TO CHOOSE SIMULATIONS
-#################################################################
+################################################################################
+#         CLASS TO SELECT THE EXPERIMENTS/SIMULATIONS TO BE PLOTTED
+################################################################################
    
 class Simulations: 
+    ''' This frame allows one to choose which experiments and simulations 
+    will be plotted, as well as which selection of (kx,ky) modes. '''
     
     def __init__(self, parent, frame):
-        ''' This options frame controls which experiments/simulations are plotted. '''
         
         # Make the parents available
         self.tab = parent
         self.root = parent.root
+        self.style = self.tab.root.awthemes  
         
         # Attributes
         self.experiment = None
         self.simulation = None
         self.experiment_id = "All experiments"
         self.simulation_id = "All simulations"
-        self.options_kx = ["0.0"]
-        self.options_ky = ["0.0", "100"]
-        self.options_experiment = ["First plot data"]
-        self.options_simulation = ["First plot data"]
-        self.options_simulationsids = []
         
-        # Variables
-        self.var_experiment = tk.StringVar(value=self.options_experiment[0])
-        self.var_simulation = tk.StringVar(value=self.options_simulation[0])
+        # Option lists
+        self.options_kx = [0.0]
+        self.options_ky = [0.0, 100]
+        self.options_exp = ["First plot data"]
+        self.options_sim = ["First plot data"]
+        self.options_simsids = []
+        
+        # Variables for the experiment/simulation/kxmin/kxmax/kymin/kymax
+        self.var_experiment = tk.StringVar(value=self.options_exp[0])
+        self.var_simulation = tk.StringVar(value=self.options_sim[0])
         self.var_kxmin = tk.StringVar(value=self.options_kx[0])
         self.var_kxmax = tk.StringVar(value=self.options_kx[-1])
         self.var_kymin = tk.StringVar(value=self.options_ky[0])
         self.var_kymax = tk.StringVar(value=self.options_ky[-1])
         
-        # Configure the frame
-        tk.Grid.columnconfigure(frame, 0, weight=1) 
+        # Put a label in front of the menus to know what the dropdown menu is
+        self.lbl_exp   = ttk.Label(frame, text="Experiment:")
+        self.lbl_sim   = ttk.Label(frame, text="Simulation:")
+        self.lbl_kxmin = ttk.Label(frame, text="kx min:", style='opt_sign.TLabel') 
+        self.lbl_kxmax = ttk.Label(frame, text=" kx max:", style='opt_sign.TLabel')
+        self.lbl_kymin = ttk.Label(frame, text="ky min:", style='opt_sign.TLabel')
+        self.lbl_kymax = ttk.Label(frame, text=" ky max:", style='opt_sign.TLabel')
         
-        # Create subframes
-        self.frame1 = ttk.Frame(frame)
-        self.frame2 = ttk.Frame(frame)   
-        self.frame1.grid(row=0, column=0, padx=(0,0), pady=(0,0), stick='NSEW')
-        self.frame2.grid(row=2, column=0, padx=(0,0), pady=(0,0), stick='NSEW')
-        
-        # Choice between the experiments
-        self.lbl_experiment = ttk.Label(self.frame1, text="Experiment: "); width=20
-        self.mnu_experiment = ttk.OptionMenu(self.frame1, self.var_experiment, self.options_experiment[0], *self.options_experiment, style='option.TMenubutton')
-        self.mnu_experiment["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_experiment.config(width=width)
-        self.var_experiment.trace('w', self.change_plottedExperiment) # link function to a change of the dropdown options
-        
-        # Choice between the simulations
-        self.lbl_simulation = ttk.Label(self.frame1, text="Simulation: ")
-        self.mnu_simulation = ttk.OptionMenu(self.frame1, self.var_simulation, self.options_simulation[0], *self.options_simulation, style='option.TMenubutton')
-        self.mnu_simulation["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_simulation.config(width=width)
-        self.var_simulation.trace('w', self.change_plottedSimulation) # link function to a change of the dropdown options
-        
-        # Show the range of the kx and the k values
-        self.lbl_kxmin = ttk.Label(self.frame2, text="kx min: ", style='opt_sign.TLabel'); width=4
-        self.lbl_kxmax = ttk.Label(self.frame2, text=" kx max: ", style='opt_sign.TLabel')
-        self.lbl_kymin = ttk.Label(self.frame2, text="ky min: ", style='opt_sign.TLabel')
-        self.lbl_kymax = ttk.Label(self.frame2, text=" ky max: ", style='opt_sign.TLabel')
-        self.mnu_kxmin = ttk.OptionMenu(self.frame2, self.var_kxmin, self.options_kx[0], *self.options_kx, style='option.TMenubutton')
-        self.mnu_kxmin["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_kxmin.config(width=width)
-        self.mnu_kxmax = ttk.OptionMenu(self.frame2, self.var_kxmax, self.options_kx[0], *self.options_kx, style='option.TMenubutton')
-        self.mnu_kxmax["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_kxmax.config(width=width)
-        self.mnu_kymin = ttk.OptionMenu(self.frame2, self.var_kymin, self.options_ky[0], *self.options_ky, style='option.TMenubutton')
-        self.mnu_kymin["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_kymin.config(width=width)
-        self.mnu_kymax = ttk.OptionMenu(self.frame2, self.var_kymax, self.options_ky[1], *self.options_ky, style='option.TMenubutton')
-        self.mnu_kymax["menu"].config(bg=self.root.color['bbg'], fg=self.root.color['fg'], activebackground=self.root.color['bg'], activeforeground=self.root.color['fg'])
-        self.mnu_kymax.config(width=width)
-        self.var_kxmin.trace('w', self.change_selectedModes) # link function to a change of the dropdown options
-        self.var_kxmax.trace('w', self.change_selectedModes) # link function to a change of the dropdown options
-        self.var_kymin.trace('w', self.change_selectedModes) # link function to a change of the dropdown options
-        self.var_kymax.trace('w', self.change_selectedModes) # link function to a change of the dropdown options
+        # Dropwon menus for the experiments, simulations, kxmin, kxmax, kymin and kymax
+        self.mnu_exp   = ttk.OptionMenu(frame, self.var_experiment, self.options_exp[0], *self.options_exp , style='option.TMenubutton')
+        self.mnu_sim   = ttk.OptionMenu(frame, self.var_simulation, self.options_sim[0], *self.options_sim, style='option.TMenubutton')
+        self.mnu_kxmin = ttk.OptionMenu(frame, self.var_kxmin, self.options_kx[0], *self.options_kx, style='option.TMenubutton')
+        self.mnu_kxmax = ttk.OptionMenu(frame, self.var_kxmax, self.options_kx[0], *self.options_kx, style='option.TMenubutton')
+        self.mnu_kymin = ttk.OptionMenu(frame, self.var_kymin, self.options_ky[0], *self.options_ky, style='option.TMenubutton')
+        self.mnu_kymax = ttk.OptionMenu(frame, self.var_kymax, self.options_ky[1], *self.options_ky, style='option.TMenubutton')
 
-        # Configure the subframe 
-        tk.Grid.columnconfigure(self.frame1, 1, weight=1) 
-        tk.Grid.columnconfigure(self.frame2, 1, weight=1, uniform="2") 
-        tk.Grid.columnconfigure(self.frame2, 3, weight=1, uniform="2") 
+        # Link a function to a change of the dropdown options
+        self.var_experiment.trace_id = self.var_experiment.trace('w', self.change_plottedExperiment) 
+        self.var_simulation.trace_id = self.var_simulation.trace('w', self.change_plottedSimulation) 
+        self.var_kxmin.trace_id = self.var_kxmin.trace('w', self.change_plottedModes)  
+        self.var_kxmax.trace_id = self.var_kxmax.trace('w', self.change_plottedModes)  
+        self.var_kymin.trace_id = self.var_kymin.trace('w', self.change_plottedModes)  
+        self.var_kymax.trace_id = self.var_kymax.trace('w', self.change_plottedModes)  
         
-        # Place the widgets in the frame
-        self.lbl_experiment.grid(row=0, column=0, stick='NSEW', padx=(0,0), pady=(2,2))
-        self.mnu_experiment.grid(row=0, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=2, ipady=1)
-        self.lbl_simulation.grid(row=1, column=0, stick='NSEW', padx=(0,0), pady=(2,2))
-        self.mnu_simulation.grid(row=1, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=2, ipady=0)
-        self.lbl_kxmin.grid(row=0, column=0, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.mnu_kxmin.grid(row=0, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.lbl_kxmax.grid(row=0, column=2, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.mnu_kxmax.grid(row=0, column=3, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.lbl_kymin.grid(row=1, column=0, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.mnu_kymin.grid(row=1, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.lbl_kymax.grid(row=1, column=2, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        self.mnu_kymax.grid(row=1, column=3, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
-        if True: return
+        # Make the menus pretty
+        self.mnu_exp["menu"].config(**self.style['menu']); self.mnu_exp.config(width=20)
+        self.mnu_sim["menu"].config(**self.style['menu']); self.mnu_sim.config(width=20)       
+        self.mnu_kxmin["menu"].config(**self.style['menu']); self.mnu_kxmin.config(width=4)
+        self.mnu_kxmax["menu"].config(**self.style['menu']); self.mnu_kxmax.config(width=4)
+        self.mnu_kymin["menu"].config(**self.style['menu']); self.mnu_kymin.config(width=4)
+        self.mnu_kymax["menu"].config(**self.style['menu']); self.mnu_kymax.config(width=4)
 
-
-#################################################################
-#                          METHODS
-#################################################################
-
-    def change_plottedExperiment(self, *args):
+        # Configure the rows/columns of the <frame>
+        tk.Grid.columnconfigure(frame, 0, weight=0) 
+        tk.Grid.columnconfigure(frame, 1, weight=1, uniform="2") 
+        tk.Grid.columnconfigure(frame, 2, weight=0) 
+        tk.Grid.columnconfigure(frame, 3, weight=1, uniform="2") 
         
-        # Change the experiment that is plotted
-        self.experiment_id = self.var_experiment.get()
-    
-        # Get a reference to the experiment
-        self.experiment = None
-        for experiment in self.root.Research.experiments:
-            if experiment.id == self.experiment_id:
-                self.experiment = experiment
-        if self.experiment==None and self.experiment_id!="All experiments":
-            self.experiment = self.root.Research.experiments[0]
-            self.experiment_id = self.experiment.id
-        if self.experiment==None and self.experiment_id=="All experiments":
-            self.experiment = self.root.Research.experiments[0]
-            
-        # Reset the graph classes
-        self.tab.Graph[0].load_defaults()
-        self.tab.Graph[1].load_defaults()
-        self.tab.Graph[2].load_defaults()
-        
-    #------------------------------------
-    def change_plottedSimulation(self, *args):
-        
-        # Change the simulation that is plotted
-        self.simulation_id = self.var_simulation.get()
-        self.simulation_id = self.options_simulationsids[self.options_simulations.index(self.simulation_id)]
-        
-        # Get a reference to the simulation
-        self.simulation = None
-        for simulation in self.experiment.simulations:
-            if simulation.id == self.simulation_id:
-                self.simulation = simulation
-        if self.simulation==None and self.simulation_id!="All simulations":
-            self.simulation = self.experiment.simulations[0]
-            self.simulation_id = self.simulation.id
-        if self.simulation==None and self.simulation_id=="All simulations":
-            self.simulation = self.experiment.simulations[0] 
-        self.replot=True
-        return 
-    
-    #--------------------------------------
-    def change_selectedModes(self, *args): 
-        ''' Tell the graph class which modes to plot.'''
-        
-        # Get the kx and k ranges set in the GUI 
-        kxmin = float(self.var_kxmin.get())
-        kxmax = float(self.var_kxmax.get())
-        kymin = float(self.var_kymin.get())
-        kymax = float(self.var_kymax.get())
-        
-        # Make sure we don't scan over both kx and ky
-        if kxmin != kxmax and kymin != kymax:
-            message = """You can not scan over kx and ky simultaneously\n
-            Please make sure one of the ranges is a fixed number."""
-            display_information(self.root, "WARNING", message) 
-
-        # Tell the graph class which modes to plot.
-        self.tab.Graph[0].kx = [ kxmin, kxmax ] 
-        self.tab.Graph[0].ky = [ kymin, kymax ] 
-        self.tab.Graph[1].kx = [ kxmin, kxmax ] 
-        self.tab.Graph[1].ky = [ kymin, kymax ] 
-        self.tab.Graph[2].kx = [ kxmin, kxmax ] 
-        self.tab.Graph[2].ky = [ kymin, kymax ] 
-        
-        # Make sure one of the ranges is a float
-        if kxmin == kxmax:
-            self.tab.Graph[0].kx = kxmin
-            self.tab.Graph[1].kx = kxmin
-            self.tab.Graph[2].kx = kxmin
-        elif kymin == kymax:
-            self.tab.Graph[0].ky = kymin
-            self.tab.Graph[1].ky = kymin
-            self.tab.Graph[2].ky = kymin
+        # Place the widgets in the <frame>
+        self.lbl_exp.grid(  row=0, column=0, stick='NSEW', padx=(0,0), pady=(2,2), columnspan=2)
+        self.mnu_exp.grid(  row=0, column=2, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=2, ipady=1, columnspan=2)
+        self.lbl_sim.grid(  row=1, column=0, stick='NSEW', padx=(0,0), pady=(2,2), columnspan=2)
+        self.mnu_sim.grid(  row=1, column=2, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=2, ipady=0, columnspan=2)
+        self.lbl_kxmin.grid(row=2, column=0, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.mnu_kxmin.grid(row=2, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.lbl_kxmax.grid(row=2, column=2, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.mnu_kxmax.grid(row=2, column=3, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.lbl_kymin.grid(row=3, column=0, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.mnu_kymin.grid(row=3, column=1, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.lbl_kymax.grid(row=3, column=2, stick='W',    padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
+        self.mnu_kymax.grid(row=3, column=3, stick='NSEW', padx=(0,0), pady=(2,2), ipadx=1, ipady=0)
         return
 
-    #-------------------------------------------
+################################################################################
+#                                     METHODS
+################################################################################
+ 
     def display_plottedModesAndExperiments(self):
-        ''' When the graph is plotted, adjust the menus on the GUI of the modes and experiments. '''
-        
-        # Get the experiment plotted by the function
-        self.options_experiments = ["All experiments"] + [ e.id for e in self.root.Research.experiments ]
-        if self.experiment==None:
-            self.experiment = self.root.Research.experiments[0]
-            self.var_experiment.set(self.options_experiments[0])        
-        if self.experiment.id not in self.options_experiments:
-            self.experiment = self.root.Research.experiments[0]
-            self.var_experiment.set(self.options_experiments[0])      
-        if self.experiment_id not in self.options_experiments:
-            self.experiment = self.root.Research.experiments[0]
-            self.var_experiment.set(self.options_experiments[0])  
-        if self.experiment_id == "All experiments":
-            self.experiment = self.root.Research.experiments[0]
-        for experiment in self.root.Research.experiments:
-            if experiment.id == self.experiment_id:
-                self.experiment = experiment
-                self.var_experiment.set(self.experiment.id)
-            
-        # Reset the options in the menu
-        self.mnu_experiment['menu'].delete(0, 'end')
-        for experiment in self.options_experiments:
-            self.mnu_experiment['menu'].add_command(label=experiment, command=tk._setit(self.var_experiment, experiment))
+        ''' When the research is changed, we need to display the correct 
+        experiments/simulations/modes. '''
+        self.display_plottedExperiments() 
+        self.display_plottedSimulations() 
+        self.display_plottedModes()  
+        return
 
-        # Get the simulation plotted by the function
-        self.options_simulationsids = ["All simulations"] + [ s.id for s in self.experiment.simulations ]  
-        self.options_simulations = ["All simulations"] + [ s.id.split("__")[-1] for s in self.experiment.simulations ]  
-        self.options_simulations = ["All simulations"] + [ v for v in self.experiment.variedValues ]  
-        self.options_simulations = [ s.replace('\\', '').replace(',', '').replace('$', '') for s in self.options_simulations ] 
-        if self.simulation==None:
-            self.simulation = self.experiment.simulations[0]
-            self.var_simulation.set(self.options_simulations[0])
-        if self.simulation.id not in self.options_simulationsids:
-            self.simulation = self.experiment.simulations[0]
-            self.var_simulation.set(self.options_simulations[0])
-        if self.simulation_id not in self.options_simulationsids:
-            self.simulation = self.experiment.simulations[0]
-            self.var_simulation.set(self.options_simulations[0])
-        for simulation in self.experiment.simulations:
-            if simulation.id == self.simulation_id:
-                self.simulation = simulation
-                self.var_simulation.set(self.options_simulations[1+self.experiment.simulations.index(simulation)])
+    #----------------------------
+    def display_plottedExperiments(self):
+        ''' The displayed experiment is choosen from a list of experiment id's 
+        <self.options_exp>, this method puts the ids into a dropdown menu. When
+        setting <self.var_experiment>, the method <change_plottedExperiment> is 
+        called, which sets <self.experiment>. '''
+
+        # Don't plot when changing <var_experiment> which executes <change_plottedExperiment>
+        self.var_experiment.trace_vdelete("w", self.var_experiment.trace_id)
+        self.var_experiment.trace_id = self.var_experiment.trace('w', self.change_plottedExperimentWithoutPlotting) 
         
-        # Reset the options in the menu
-        self.mnu_simulation['menu'].delete(0, 'end')
-        for simulation in self.options_simulations:
-            self.mnu_simulation['menu'].add_command(label=simulation, command=tk._setit(self.var_simulation, simulation))
+        # Get the experiments that are included in the research
+        self.options_exp = ["All experiments"] + [ e.id for e in self.root.Research.experiments ]
         
-        # Update the options for the kx and ky ranges
-        self.options_kx = self.experiment.total_kx
-        self.options_ky = self.experiment.total_ky
+        # Make sure the dropdown menu displays the correct experiments
+        self.mnu_exp['menu'].delete(0, 'end')
+        for experiment_id in self.options_exp:
+            self.mnu_exp['menu'].add_command(label=experiment_id, command=tk._setit(self.var_experiment, experiment_id))
+        
+        # If we want to show all experiments, put the first experiment in self.experiment. 
         if self.experiment_id == "All experiments":
-            for experiment in self.root.Research.experiments:
-                self.options_kx = sorted(list(set(self.options_kx + experiment.total_kx)))
-                self.options_ky = sorted(list(set(self.options_ky + experiment.total_ky)))
-        self.mnu_kxmin['menu'].delete(0, 'end')
-        self.mnu_kxmax['menu'].delete(0, 'end')
-        self.mnu_kymin['menu'].delete(0, 'end')
-        self.mnu_kymax['menu'].delete(0, 'end')
+            self.var_experiment.set("All experiments") 
+
+        # If an experiment or experiment_id had already been set, make sure it is still a part 
+        # of this research. If it is not, take again the first experiment in the research, 
+        elif self.experiment.id not in self.options_exp: 
+            self.var_experiment.set(self.options_exp[0])      
+        elif self.experiment_id not in self.options_exp: 
+            self.var_experiment.set(self.options_exp[0])  
+            
+        # If the experiment_id had already been set and is a part of the current research, 
+        # make sure self.experiment is linked correctly. If we switched to a research with the same
+        # experiments, the experiment id would still be valid but the experiment link would be wrong. 
+        else: self.var_experiment.set(self.experiment_id)
+        
+        # Turn plotting back on when changing <var_experiment> in the GUI
+        self.var_experiment.trace_vdelete("w", self.var_experiment.trace_id)
+        self.var_experiment.trace_id = self.var_experiment.trace('w', self.change_plottedExperiment) 
+        return
+    
+    #----------------------------
+    def display_plottedSimulations(self):
+        ''' The displayed simulation is choosen from a list of simulation id's 
+        <self.options_sim>, this method puts the ids into a dropdown menu. When
+        setting <self.var_simulation>, the method <change_plottedSimulation> is 
+        called, which sets <self.simulation>. '''
+
+        # Don't plot when changing <var_simulation> which executes <change_plottedsimulation>
+        self.var_simulation.trace_vdelete("w", self.var_simulation.trace_id)
+        self.var_simulation.trace_id = self.var_simulation.trace('w', self.change_plottedSimulationWithoutPlotting) 
+        
+        # Get the simulations that are included in the research, get a list of the simulation ids
+        # to know which simulation to choose, but display the simulation marker labels in the dropdown
+        # menu since these are usually easier to recognize than the simulaion ids
+        for experiment in self.root.Research.experiments: sims = [ s.id for s in experiment.simulations ]  
+        self.options_simids = ["All simulations"] + sims
+        self.options_sim = ["All simulations"] + [ v for v in self.experiment.variedValues ]  
+        self.options_sim = [ s.replace('\\', '').replace(',', '').replace('$', '') for s in self.options_sim ] 
+        
+        # Make sure the dropdown menu displays the correct simulations
+        self.mnu_sim['menu'].delete(0, 'end')
+        for simulation in self.options_sim:
+            self.mnu_sim['menu'].add_command(label=simulation, command=tk._setit(self.var_simulation, simulation))
+        
+        # If we want to show all simulations, put the first simulation in self.simulation. 
+        if self.simulation_id == "All simulations":
+            self.var_simulation.set(self.options_sim[0])
+            
+        # If a simulation or simulation_id had already been set, make sure it is still a part 
+        # of this research. If it is not, take again the first simulation in the experiment.
+        elif self.simulation.id not in self.options_simids:
+            self.var_simulation.set(self.options_sim[0])
+        elif self.simulation_id not in self.options_simids:
+            self.var_simulation.set(self.options_sim[0])
+
+        # If the simulation_id had already been set and is a part of the current experiment, 
+        # make sure self.simulation is linked correctly. If we switched to a experiment with the same
+        # simulations, the simulation id would still be valid but the simulation link would be wrong. 
+        else: self.var_simulation.set(self.options_sim[self.options_simids.index(self.simulation_id)-1])
+        
+        # Turn plotting back on when changing <var_simulation> in the GUI
+        self.var_simulation.trace_vdelete("w", self.var_simulation.trace_id)
+        self.var_simulation.trace_id = self.var_simulation.trace('w', self.change_plottedSimulation) 
+        return 
+    
+    #----------------------------
+    def display_plottedModes(self):
+        ''' For the current simulation, show the range of kx/ky modes that can be plotted, this allows
+        the user to set a specific k_min and k_max to display only a selection of modes. '''
+        # Don't plot when changing <var_kmin> which executes <change_plottedModes>
+        self.var_kxmin.trace_vdelete("w", self.var_kxmin.trace_id)
+        self.var_kxmax.trace_vdelete("w", self.var_kxmax.trace_id)
+        self.var_kymin.trace_vdelete("w", self.var_kymin.trace_id)
+        self.var_kymax.trace_vdelete("w", self.var_kymax.trace_id)
+        
+        # Find the possible kx/ky values in the simulation/experiment
+        if self.simulation_id == "All simulations":
+            self.options_kx = [0] + self.experiment.vec.kx + [100]
+            self.options_ky = [0] + self.experiment.vec.ky + [100]
+        if self.simulation_id != "All simulations":
+            self.options_kx = [0] + self.simulation.vec.kx + [100]
+            self.options_ky = [0] + self.simulation.vec.ky + [100]
+            
+        # Limit the choices to 25
+        while(len(self.options_kx)>25): self.options_kx = self.options_kx[::2]
+        while(len(self.options_ky)>25): self.options_ky = self.options_ky[::2]
+            
+        # Make sure the dropdown menus display the correct kx/ky values    
+        self.mnu_kxmin['menu'].delete(0, 'end');  self.mnu_kxmax['menu'].delete(0, 'end')
+        self.mnu_kymin['menu'].delete(0, 'end');  self.mnu_kymax['menu'].delete(0, 'end')
         for kx in self.options_kx:
             self.mnu_kxmin['menu'].add_command(label=round(kx,2), command=tk._setit(self.var_kxmin, kx))
             self.mnu_kxmax['menu'].add_command(label=round(kx,2), command=tk._setit(self.var_kxmax, kx))
@@ -251,28 +221,105 @@ class Simulations:
             self.mnu_kymin['menu'].add_command(label=round(ky,2), command=tk._setit(self.var_kymin, ky))
             self.mnu_kymax['menu'].add_command(label=round(ky,2), command=tk._setit(self.var_kymax, ky))
 
-        # Update the options for the k ranges for the extraction frames!
-        for Plot in [self.tab.PlotLinearMap, self.tab.PlotParameterInfluence]:
-            mnu_kvalue = Plot.Extraction.mnu_kvalue
-            options_k  = Plot.options_k
-            var_kvalue = Plot.var_specificKvalue
-            if isinstance(self.tab.Graph[0].kx, list): options_k  = self.experiment.total_ky
-            if isinstance(self.tab.Graph[0].ky, list): options_k  = self.experiment.total_ky
-            mnu_kvalue['menu'].delete(0, 'end')
-            for k in options_k:
-                mnu_kvalue['menu'].add_command(label=round(k,2), command=tk._setit(var_kvalue, k))
-            
-        # Update the GUI variables
-        if isinstance(self.tab.Graph[0].kx, list): 
-            kx_min = round(np.max([self.tab.Graph[0].kx[0], self.options_kx[0]]),2)
-            self.var_kxmin.set(kx_min)
-            kx_max = round(np.min([self.tab.Graph[0].kx[1], self.options_kx[-1]]),2)
-            self.var_kxmax.set(kx_max) 
-        if isinstance(self.tab.Graph[0].ky, list): 
-            ky_min = round(np.max([self.tab.Graph[0].ky[0], self.options_ky[0]]),2)
-            self.var_kymin.set(ky_min)
-            ky_max = round(np.min([self.tab.Graph[0].ky[1], self.options_ky[-1]]),2) 
-            self.var_kymax.set(ky_max) 
+        # Set the selected kx_min/kx_max/ky_min/ky_max to the minimum and maxim
+        if self.tab.PlotLinearSpectrum.initiated_canvas: 
+            kx_min = 0;     self.var_kxmin.set(kx_min)
+            kx_max = 100;   self.var_kxmax.set(kx_max)  
+            ky_min = 0;     self.var_kymin.set(ky_min)
+            ky_max = 100;   self.var_kymax.set(ky_max) 
+        
+        # Attach the selected modes to the graph objects for the plotting
+        self.change_plottedModes(calledFromGui=False)
+        
+        # Turn plotting back on when changing <var_simulation> in the GUI
+        self.var_kxmin.trace_id = self.var_kxmin.trace('w', self.change_plottedModes) 
+        self.var_kxmax.trace_id = self.var_kxmax.trace('w', self.change_plottedModes) 
+        self.var_kymin.trace_id = self.var_kymin.trace('w', self.change_plottedModes) 
+        self.var_kymax.trace_id = self.var_kymax.trace('w', self.change_plottedModes)
+        return 
 
+    #----------------------------
+    def change_plottedExperiment(self, calledFromGui=True, *_):
+        ''' When an experiment id is selected from the dropdown menu, link the 
+        correct experiment and update the possible simulations and (kx,ky). '''
+        
+        # Get the experiment id that is selected from the dropdown menu
+        self.experiment_id = self.var_experiment.get()
+    
+        # Based on the experiment id, set <self.experiment>
+        if self.experiment_id=="All experiments":
+            self.experiment = self.root.Research.experiments[0]
+        if self.experiment_id!="All experiments":
+            for experiment in self.root.Research.experiments:
+                if experiment.id == self.experiment_id:
+                    self.experiment = experiment; break
+        
+        # Update the dropdown menus of simulations and the possible kx_min/kx_max/ky_min/ky_max
+        if calledFromGui: self.display_plottedSimulations()
+        if calledFromGui: self.display_plottedModes() 
+        
+        # Reset the graph classes and plot the graph
+        if calledFromGui: self.tab.reset_axes(); self.tab.plot()
+        return 
+        
+    #----------------------------
+    def change_plottedSimulation(self, calledFromGui=True, *_):
+        ''' When a simulation id is selected from the dropdown menu, link the 
+        correct experiment and update the possible (kx,ky). ''' 
+        
+        # Get the simulation id that is selected from the dropdown menu
+        self.simulation_id = self.var_simulation.get()
+        self.simulation_id = self.options_simids[self.options_sim.index(self.simulation_id)]
+            
+        # Based on the simulation id, set <self.simulation> 
+        if self.simulation_id=="All simulations":
+            self.simulation = self.experiment.simulations[0] 
+        if self.simulation_id!="All simulations": 
+            for simulation in self.experiment.simulations:
+                if simulation.id == self.simulation_id:
+                    self.simulation = simulation; break
+
+        # Update the possible kx_min/kx_max/ky_min/ky_max  
+        if calledFromGui: self.display_plottedModes()
+
+        # Reset the graph classes and plot the graph
+        if calledFromGui: self.tab.reset_axes(); self.tab.plot()
+        return 
+    
+    #----------------------------
+    def change_plottedModes(self, calledFromGui=True, *_): 
+        ''' Tell the graph class which modes (kx,ky) to plot.''' 
+        
+        # Get the kx and ky ranges set in the GUI 
+        kxmin = float(self.var_kxmin.get())
+        kxmax = float(self.var_kxmax.get())
+        kymin = float(self.var_kymin.get())
+        kymax = float(self.var_kymax.get()) 
+
+        # Tell the <Plots> which modes to plot
+        for Plot in self.tab.Plots:
+            if Plot.initiated_canvas: 
+                if Plot.identifier!="TabLinear:PlotVelocityDistribution":
+                    Plot.Axis.kx_range = [ kxmin, kxmax ]   
+                    Plot.Axis.ky_range = [ kymin, kymax ] 
+                if Plot.identifier=="TabLinear:PlotVelocityDistribution":  
+                    Plot.Axis1.kx_range = [ kxmin, kxmax ]   
+                    Plot.Axis1.ky_range = [ kymin, kymax ]   
+                    Plot.Axis2.kx_range = [ kxmin, kxmax ]   
+                    Plot.Axis2.ky_range = [ kymin, kymax ]    
+            
+        # Replot when we changed the (kx,ky) selection 
+        if calledFromGui: self.tab.reset_axes(); self.tab.plot()
         return
+
+    #----------------------------
+    def change_plottedExperimentWithoutPlotting(self, *_):
+        self.change_plottedExperiment(calledFromGui=False)
+        return
+
+    #----------------------------
+    def change_plottedSimulationWithoutPlotting(self, *_):
+        self.change_plottedSimulation(calledFromGui=False)
+        return
+         
 
