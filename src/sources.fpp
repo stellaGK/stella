@@ -167,7 +167,7 @@ contains
       int_proj = -1.
       int_krook = -1.
 
-      call broadcast(source_option)
+      call broadcast(source_option_switch)
       call broadcast(exclude_boundary_regions)
       call broadcast(exclude_boundary_regions_qn)
       call broadcast(nu_krook)
@@ -264,16 +264,21 @@ contains
 
       if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
 
+      if (debug) write (6, *) 'sources::add_krook_operator'
+
       g_work => g
       if (conserve_momentum .or. conserve_density) then
          g_work => g_symm
          g_work = g
       end if
 
+      if (debug) write (6, *) 'sources::add_krook_operator::conservation'
+
       if (conserve_momentum) call enforce_momentum_conservation(g_work)
       if (conserve_density) call enforce_density_conservation(g_work(1, :, :, :, :))
 
       if (exclude_boundary_regions) then
+         if (debug) write (6, *) 'sources::add_krook_operator::exclude_boundary_regions'
          npts = nakx - 2 * boundary_size
          allocate (g0k(1, nakx))
          allocate (g0x(1, nakx))
@@ -310,6 +315,7 @@ contains
          end do
          deallocate (g0k, g0x, g1x, basis_func)
       else
+         if (debug) write (6, *) 'sources::add_krook_operator::include_boundary_regions'
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -362,6 +368,8 @@ contains
       if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
 
       ia = 1
+
+      if (debug) write (6, *) 'sources::update_tcorr_krook'
 
       g_work => g
       if (conserve_momentum .or. conserve_density) then
@@ -573,6 +581,8 @@ contains
 
       ia = 1
       if (.not. zonal_mode(1)) return
+
+      if (debug) write (6, *) 'sources::project_out_zero'
 
       if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
 
