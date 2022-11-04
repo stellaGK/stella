@@ -2569,7 +2569,7 @@ contains
    subroutine advance_implicit(istep, phi, apar, bpar, g)
 !  subroutine advance_implicit (phi, apar, g)
 
-      use mp, only: proc0
+      use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
@@ -2577,8 +2577,9 @@ contains
       use hyper, only: advance_hyper_dissipation
       use physics_flags, only: include_parallel_streaming
       use physics_flags, only: radial_variation, full_flux_surface
-      use physics_flags, only: include_mirror, prp_shear_enabled
+      use physics_flags, only: prp_shear_enabled
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use run_parameters, only: stream_drifts_implicit
       use parallel_streaming, only: advance_parallel_streaming_implicit
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
@@ -2646,7 +2647,7 @@ contains
             fields_updated = .false.
          end if
 
-         if (mirror_implicit .and. include_mirror) then
+         if (mirror_implicit) then
 !          if (full_flux_surface) then
 !             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 !             if (.not.alpha_space) call transform_ky2y (g, gy)
@@ -2668,16 +2669,25 @@ contains
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
-         call advance_fields(g, phi, apar, bpar, dist='gbar')
-         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar, bpar)
-
+         ! Currently, we want to advance drifts implicitly, only if we're also
+         ! advancing streaming implicitly.
+         if ((drifts_implicit) .and. (.not. stream_drifts_implicit)) then
+            write (*, *) 'drifts_implicit not set up if stream_implicit=.false. Aborting'
+            call mp_abort('drifts_implicit not set up if stream_implicit=.false. Aborting')
+            ! call advance_fields(g, phi, apar, bpar, dist='gbar')
+            ! if (drifts_implicit) call advance_drifts_implicit(g, phi, apar, bpar)
+         end if
       else
 
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, bpar, dist='gbar')
-         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar, bpar)
+         if ((drifts_implicit) .and. (.not. stream_drifts_implicit)) then
+            write (*, *) 'drifts_implicit not set up if stream_implicit=.false. Aborting'
+            call mp_abort('drifts_implicit not set up if stream_implicit=.false. Aborting')
+            ! if (drifts_implicit) call advance_drifts_implicit(g, phi, apar, bpar)
+         end if
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2686,7 +2696,7 @@ contains
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
-         if (mirror_implicit .and. include_mirror) then
+         if (mirror_implicit) then
             call advance_mirror_implicit(collisions_implicit, g)
          end if
 
