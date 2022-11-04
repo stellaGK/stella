@@ -11,6 +11,7 @@ module run_parameters
    public :: avail_cpu_time
    public :: stream_implicit, mirror_implicit
    public :: drifts_implicit
+   public :: stream_drifts_implicit
    public :: driftkinetic_implicit
    public :: fully_explicit
    public :: ky_solve_radial, ky_solve_real
@@ -30,7 +31,9 @@ module run_parameters
    real :: zed_upwind_explicit
    logical :: stream_implicit, mirror_implicit
    logical :: driftkinetic_implicit
-   logical :: fully_explicit, drifts_implicit
+   logical :: fully_explicit
+   logical :: drifts_implicit
+   logical :: stream_drifts_implicit
    logical :: maxwellian_inside_zed_derivative
    logical :: stream_matrix_inversion
    logical :: mirror_semi_lagrange
@@ -65,7 +68,9 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface
+      use physics_flags, only: full_flux_surface
+      use physics_flags, only: include_mirror, include_parallel_streaming
+      use physics_flags, only: xdriftknob, ydriftknob, wstarknob
 
       implicit none
 
@@ -189,7 +194,13 @@ contains
       call broadcast(mat_gen)
       call broadcast(mat_read)
 
+      ! If physics terms are not included, then set the corresponding "implicit"
+      ! option to false (to avoid expensive redundant operations)
       if (.not. include_mirror) mirror_implicit = .false.
+      if (.not. include_parallel_streaming) stream_implicit = .false.
+      if ((wstarknob < epsilon(0.)) .and. (xdriftknob < epsilon(0.)) .and. (ydriftknob < epsilon(0.))) then
+         drifts_implicit = .false.
+      end if
 
       if (driftkinetic_implicit) then
          stream_implicit = .false.
@@ -204,19 +215,21 @@ contains
          driftkinetic_implicit = .true.
       end if
 
-      if ((mirror_implicit) .and. (fapar > epsilon(0.0)) .and. (.not. stream_implicit)) then
-         !> mirror_implicit with fapar>1 requires the response matrix to be
-         !> calculated, and this currently only happens if stream_implicit=T
-         !> Throw a warning and set mirror_implicit to .false.
+      if ((drifts_implicit) .and. (.not. stream_implicit)) then
          write (*, *)
          write (*, *) '!!!WARNING!!!'
-         write (*, *) 'The option mirror_implicit=T with fapar>0 is currently not supported for stream_implicit=F.'
-         write (*, *) 'Forcing mirror_implicit=F.'
+         write (*, *) 'The option drifts_implicit=T with is currently not supported for stream_implicit=F.'
+         write (*, *) 'Forcing drifts_implicit=F.'
          write (*, *) '!!!WARNING!!!'
          write (*, *)
-         mirror_implicit = .false.
+         drifts_implicit = .false.
       end if
 
+      if ((drifts_implicit) .and. (stream_implicit)) then
+         stream_drifts_implicit = .true.
+      end if
+
+      !> Check if we're fully explicit
       if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit .or. drifts_implicit) then
          fully_explicit = .false.
       else

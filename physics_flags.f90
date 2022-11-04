@@ -17,6 +17,7 @@ module physics_flags
    public :: adiabatic_option_switch
    public :: adiabatic_option_fieldlineavg
    public :: const_alpha_geo
+   public :: xdriftknob, ydriftknob, wstarknob
 
    private
 
@@ -31,6 +32,7 @@ module physics_flags
    logical :: prp_shear_enabled
    logical :: hammett_flow_shear
    logical :: const_alpha_geo
+   real :: xdriftknob, ydriftknob, wstarknob
 
    integer :: adiabatic_option_switch
    integer, parameter :: adiabatic_option_default = 1, &
@@ -76,7 +78,8 @@ contains
          include_parallel_nonlinearity, include_parallel_streaming, &
          include_mirror, nonlinear, &
          include_pressure_variation, include_geometric_variation, &
-         adiabatic_option, const_alpha_geo
+         adiabatic_option, const_alpha_geo, &
+         xdriftknob, ydriftknob, wstarknob
 
       if (proc0) then
          full_flux_surface = .false.
@@ -89,6 +92,9 @@ contains
          nonlinear = .false.
          adiabatic_option = 'default'
          const_alpha_geo = .false.
+         xdriftknob = 1.0
+         ydriftknob = 1.0
+         wstarknob = 1.0
 
          in_file = input_unit_exist("physics_flags", rpexist)
          if (rpexist) read (unit=in_file, nml=physics_flags)
@@ -112,6 +118,9 @@ contains
       call broadcast(nonlinear)
       call broadcast(adiabatic_option_switch)
       call broadcast(const_alpha_geo)
+      call broadcast(xdriftknob)
+      call broadcast(ydriftknob)
+      call broadcast(wstarknob)
 
    end subroutine read_parameters
 

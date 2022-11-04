@@ -45,7 +45,6 @@ module time_advance
                          explicit_option_rk2 = 2, &
                          explicit_option_rk4 = 3
 
-   real :: xdriftknob, ydriftknob, wstarknob
    logical :: flip_flop
 
    complex, dimension(:, :, :), allocatable :: gamtot_drifts!, apar_denom_drifts
@@ -158,7 +157,7 @@ contains
                                                       text_option('rk4', explicit_option_rk4)/)
       character(10) :: explicit_option
 
-      namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
+      namelist /time_advance_knobs/ explicit_option, flip_flop
 
       integer :: ierr, in_file
 
@@ -167,9 +166,6 @@ contains
 
       if (proc0) then
          explicit_option = 'default'
-         xdriftknob = 1.0
-         ydriftknob = 1.0
-         wstarknob = 1.0
          flip_flop = .false.
 
          in_file = input_unit_exist("time_advance_knobs", taexist)
@@ -182,9 +178,6 @@ contains
       end if
 
       call broadcast(explicit_option_switch)
-      call broadcast(xdriftknob)
-      call broadcast(ydriftknob)
-      call broadcast(wstarknob)
       call broadcast(flip_flop)
 
       if (fully_explicit) flip_flop = .false.
@@ -227,7 +220,7 @@ contains
    subroutine init_wdrift
 
       use mp, only: mp_abort
-      use physics_flags, only: full_flux_surface
+      use physics_flags, only: full_flux_surface, xdriftknob, ydriftknob
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
       use stella_layouts, only: vmu_lo
@@ -385,7 +378,7 @@ contains
       use dist_fn_arrays, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
-      use physics_flags, only: full_flux_surface
+      use physics_flags, only: full_flux_surface, wstarknob
 
       implicit none
 
@@ -550,7 +543,7 @@ contains
       use stella_geometry, only: cvdrift, cvdrift0
       use stella_geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
       use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
-      use physics_flags, only: radial_variation
+      use physics_flags, only: radial_variation, ydriftknob
 
       implicit none
 
@@ -620,6 +613,7 @@ contains
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
       use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
       use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
+      use physics_flags, only: xdriftknob, ydriftknob, wstarknob
 !   use neoclassical_terms, only: include_neoclassical_terms
 
       implicit none
@@ -1304,7 +1298,7 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
       call advance_fields(gin, phi, apar, bpar, dist='gbar')
 
-      !! New version of code wants the source term in h_s. Convert gbar -> h here
+      !! Calculate the source term in h_s; convert gbar -> h
       call get_h(gin, phi, apar, bpar, h)
       if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
 
