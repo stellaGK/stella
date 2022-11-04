@@ -20,7 +20,6 @@ module run_parameters
    public :: zed_upwind_explicit
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
-   public :: src_h
 
    private
 
@@ -47,7 +46,6 @@ module run_parameters
                                  lu_option_global = 3
    logical :: initialized = .false.
    logical :: knexist
-   logical :: src_h
 
 contains
 
@@ -126,9 +124,6 @@ contains
          tend = -1.0
          nstep = -1
 
-         !! Hardcode to true
-         src_h = .true.
-
          in_file = input_unit_exist("knobs", knexist)
          if (knexist) read (unit=in_file, nml=knobs)
 
@@ -193,7 +188,6 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
-      call broadcast(src_h)
 
       if (.not. include_mirror) mirror_implicit = .false.
 

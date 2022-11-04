@@ -5,7 +5,7 @@ module mirror_terms
    public :: mirror_initialized
    public :: init_mirror, finish_mirror
    public :: mirror
-   public :: advance_mirror_explicit, advance_mirror_implicit, advance_mirror_implicit_src_h
+   public :: advance_mirror_explicit, advance_mirror_implicit
    public :: add_mirror_radial_variation
    public :: time_mirror
    public :: mirror_apar_fac
@@ -45,7 +45,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
-      use run_parameters, only: mirror_implicit, fapar, src_h
+      use run_parameters, only: mirror_implicit, fapar
       use physics_flags, only: include_mirror, radial_variation
 
       implicit none
@@ -149,9 +149,7 @@ contains
          !> set up the tridiagonal matrix that must be inverted
          !> for the implicit treatment of the mirror operator
          call init_invert_mirror_operator
-         if (src_h) then
-           call init_mirror_response_matrix_src_h
-         end if
+         call init_mirror_response_matrix
       end if
 
    end subroutine init_mirror
@@ -319,7 +317,7 @@ contains
    !> (5) Invert R
    !> R is (nfields * nfields) in size, and exists independently for every
    !> (kx, ky, z)
-   subroutine init_mirror_response_matrix_src_h
+   subroutine init_mirror_response_matrix
 
       use mp, only: mp_abort
       use stella_layouts, only: kxkyz_lo, vmu_lo
@@ -472,7 +470,7 @@ contains
       end do
       deallocate (h0v, h0x, dphi, dapar, dbpar)
 
-   end subroutine init_mirror_response_matrix_src_h
+   end subroutine init_mirror_response_matrix
 
    !> For a unit impulse in a given field, construct the RHS of the mirror
    !> GKE (rhs= Z/T e^(-v^2) <dchi>), then calculate and return h_hom
@@ -826,168 +824,8 @@ contains
 
    end subroutine add_mirror_term_ffs
 
-   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
+   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dh/dvpa)
    subroutine advance_mirror_implicit(collisions_implicit, g)
-
-      use constants, only: zi
-      use mp, only: proc0
-      use job_manage, only: time_message
-      use redistribute, only: gather, scatter
-      use finite_differences, only: fd_variable_upwinding_vpa
-      use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
-      use stella_layouts, only: iz_idx, is_idx, iv_idx, imu_idx
-      use stella_transforms, only: transform_ky2y, transform_y2ky
-      use zgrid, only: nzgrid, ntubes
-      use dist_fn_arrays, only: gvmu
-      use physics_flags, only: full_flux_surface
-      use kt_grids, only: ny, nakx
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: dvpa, maxwell_vpa
-      use neoclassical_terms, only: include_neoclassical_terms
-      use run_parameters, only: vpa_upwind, time_upwind
-      use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
-
-      implicit none
-
-      logical, intent(in) :: collisions_implicit
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-
-      integer :: ikxyz, ikxkyz, ivmu
-      integer :: iv, imu, iz, is, ikx, it
-      real :: tupwnd
-      complex, dimension(:, :, :), allocatable :: g0v
-      complex, dimension(:, :, :, :, :), allocatable :: g0x
-
-      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
-
-      tupwnd = (1.0 - time_upwind) * 0.5
-
-      ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
-      ! FOR FULL_FLUX_SURFACE
-
-      ! now that we have g^{*}, need to solve
-      ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
-      ! define A_0^{-1} = dt*mu*bhat.gradB/2
-      ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
-      ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
-      ! to invert and obtain h^{n+1}
-      if (full_flux_surface) then
-         ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
-         if (.not. collisions_implicit) then
-            ! get g^{*} with v-space on processor
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-            call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         end if
-
-         allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
-         ! first must take g^{*}(ky) and transform to g^{*}(y)
-         call transform_ky2y(g, g0x)
-
-         write (*, *) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
-
-         ! convert g to g*(integrating factor), as this is what is being advected
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-         else
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
-            end do
-         end if
-
-         ! second, remap g so velocities are local
-         call scatter(kxyz2vmu, g0x, g0v)
-
-         do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-            do imu = 1, nmu
-               call invert_mirror_operator(imu, ikxyz, g0v(:, imu, ikxyz))
-            end do
-         end do
-
-         ! then take the results and remap again so y,kx,z local.
-         call gather(kxyz2vmu, g0v, g0x)
-
-         ! convert back from g*(integrating factor) to g
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-         else
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
-            end do
-         end if
-
-         ! finally transform back from y to ky space
-         call transform_y2ky(g0x, g)
-      else
-         ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
-         if (.not. collisions_implicit) then
-            ! get g^{*} with v-space on processor
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-            call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         end if
-
-         allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-         allocate (g0x(1, 1, 1, 1, 1))
-
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            do imu = 1, nmu
-               ! calculate dg/dvpa
-               call fd_variable_upwinding_vpa(1, gvmu(:, imu, ikxkyz), dvpa, &
-                                                 mirror_sign(1, iz), vpa_upwind, g0v(:, imu, ikxkyz))
-               ! construct RHS of GK equation for mirror advance;
-               ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
-               ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
-               g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
-
-               ! invert_mirror_operator takes rhs of equation and
-               ! returns g^{n+1}
-               call invert_mirror_operator(imu, ikxkyz, g0v(:, imu, ikxkyz))
-               end do
-            end do
-
-         ! then take the results and remap again so ky,kx,z local.
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         call gather(kxkyz2vmu, g0v, g)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-      end if
-
-      deallocate (g0x, g0v)
-
-      if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
-
-   end subroutine advance_mirror_implicit
-
-   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-   subroutine advance_mirror_implicit_src_h(collisions_implicit, g)
 
       use constants, only: zi
       use mp, only: proc0, mp_abort
@@ -1171,8 +1009,6 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
 
-            ! Need to check we've implemented a get_gyroaverage_chi which works
-            ! like this.
             call get_gyroaverage_chi(ikxkyz, dphi(iky, ikx, iz, it), dapar(iky, ikx, iz, it), dbpar(iky, ikx, iz, it), dchi)
 
             ia = 1
@@ -1213,7 +1049,7 @@ contains
 
       if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
 
-   end subroutine advance_mirror_implicit_src_h
+   end subroutine advance_mirror_implicit
 
    subroutine invert_mirror_response(dphi, dapar, dbpar)
 
