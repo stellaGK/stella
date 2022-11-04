@@ -16,7 +16,6 @@ module run_parameters
    public :: ky_solve_radial, ky_solve_real
    public :: maxwellian_inside_zed_derivative
    public :: stream_matrix_inversion
-   public :: mirror_semi_lagrange, mirror_linear_interp
    public :: zed_upwind, vpa_upwind, time_upwind
    public :: zed_upwind_explicit
    public :: fields_kxkyz, mat_gen, mat_read
@@ -35,7 +34,7 @@ module run_parameters
    logical :: fully_explicit, drifts_implicit
    logical :: maxwellian_inside_zed_derivative
    logical :: stream_matrix_inversion
-   logical :: mirror_semi_lagrange, mirror_linear_interp
+   logical :: mirror_semi_lagrange
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    real :: avail_cpu_time
@@ -92,7 +91,7 @@ contains
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
-         mirror_semi_lagrange, mirror_linear_interp, &
+         mirror_semi_lagrange, &
          zed_upwind, zed_upwind_explicit, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
          ky_solve_radial, ky_solve_real
@@ -107,8 +106,7 @@ contains
          drifts_implicit = .false.
          driftkinetic_implicit = .false.
          maxwellian_inside_zed_derivative = .false.
-         mirror_semi_lagrange = .true.
-         mirror_linear_interp = .false.
+         mirror_semi_lagrange = .false.
          stream_matrix_inversion = .false.
          delt_option = 'default'
          lu_option = 'default'
@@ -154,6 +152,17 @@ contains
             stop
          end if
 
+         if (mirror_semi_lagrange) then
+            !> mirror_semi_lagrange not supported when source terms are in h.
+            write (*, *)
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'The option mirror_semi_lagrange=T is no longer supported.'
+            write (*, *) 'Forcing mirror_semi_lagrange=F (using the mirror response matrix scheme).'
+            write (*, *) '!!!WARNING!!!'
+            write (*, *)
+            mirror_implicit = .true.
+         end if
+
       end if
 
       call broadcast(fields_kxkyz)
@@ -171,8 +180,6 @@ contains
       call broadcast(drifts_implicit)
       call broadcast(driftkinetic_implicit)
       call broadcast(maxwellian_inside_zed_derivative)
-      call broadcast(mirror_semi_lagrange)
-      call broadcast(mirror_linear_interp)
       call broadcast(stream_matrix_inversion)
       call broadcast(zed_upwind)
       call broadcast(zed_upwind_explicit)
@@ -189,8 +196,6 @@ contains
       call broadcast(src_h)
 
       if (.not. include_mirror) mirror_implicit = .false.
-      ! mirror_semi_lagrange is a subset of mirror_implicit
-      if (.not. mirror_implicit) mirror_semi_lagrange = .false.
 
       if (driftkinetic_implicit) then
          stream_implicit = .false.
@@ -203,18 +208,6 @@ contains
          write (*, *) "!!!WARNING!!!"
          write (*, *)
          driftkinetic_implicit = .true.
-      end if
-
-      if ((mirror_semi_lagrange) .and. (fapar > epsilon(0.0))) then
-         !> mirror_semi_lagrange not supported for apar. Throw a warning and
-         !> set mirror_semi_lagrange to .false.
-         write (*, *)
-         write (*, *) '!!!WARNING!!!'
-         write (*, *) 'The option mirror_semi_lagrange=T is not currently supported for fapar>0.'
-         write (*, *) 'Forcing mirror_semi_lagrange=F.'
-         write (*, *) '!!!WARNING!!!'
-         write (*, *)
-         mirror_semi_lagrange = .false.
       end if
 
       if ((mirror_implicit) .and. (fapar > epsilon(0.0)) .and. (.not. stream_implicit)) then
@@ -246,13 +239,6 @@ contains
             write (*, *) '!!!WARNING!!!'
             write (*, *)
             fields_kxkyz = .false.
-         end if
-         if (mirror_semi_lagrange) then
-            write (*, *)
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
-            write (*, *) 'Forcing mirror_semi_lagrange=F.'
-            write (*, *) '!!!WARNING!!!'
          end if
       end if
 
