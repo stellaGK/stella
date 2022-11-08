@@ -7,6 +7,7 @@ module parallel_streaming
    public :: advance_parallel_streaming_implicit
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
+   public :: get_gke_rhs
    public :: sweep_zed_zonal
    public :: parallel_streaming_initialized
    public :: stream, stream_c, stream_sign
@@ -766,7 +767,7 @@ contains
       character(*), intent(in) :: eqn
 
       integer :: iv, imu, is, iz, ia
-      real :: tupwnd1, chi_factor, fac
+      real :: tupwnd1, inhomogeneous_fac, homogeneous_fac, fac
       ! real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
       real, dimension(:), allocatable :: maxwell_mu_centered
@@ -781,25 +782,36 @@ contains
       ia = 1
 
       tupwnd1 = 0.5 * (1.0 - time_upwind)
-      ! Only <chi^{n+1}> appears in the RHS. If we're getting the RHS for the
-      ! inhomogeneous equation, set this to zero.
-      ! Could refactor to avoid calculating <chi> unnecessarily
+
+      ! Set flags so that certain terms are ignored when the equation isn't
+      ! "full". (The inhomogeneous and full equations are solved every timestep,
+      ! the homogeneous equation only computed when the response matrices are being
+      ! constructed.
+      ! Could refactor to avoid calculating source terms unnecessarily.
       if (eqn == 'full') then
-         chi_factor = 1.0
+        homogeneous_fac = 1.0
+        inhomogeneous_fac = 1.0
+      else if (eqn == 'inhomogeneous') then
+        homogeneous_fac = 0.0
+        inhomogeneous_fac = 1.0
+      else if (eqn == 'homogeneous') then
+        homogeneous_fac = 1.0
+        inhomogeneous_fac = 0.0
       else
-         chi_factor = 0.0
+        call mp_abort("Flavour of streaming equation not recognised")
       end if
 
+      !! Old comments - delete?
       ! now have phi^{n+1} for non-negative kx
       ! obtain RHS of GK eqn;
       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
       ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
       ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
-      !
-      !!!!!!! TO IMPLEMENT !!!!!!!!!!!!!11
-      ! New equation looks like:
-      ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
-      ! = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+      ! + drift source term
+
+      ! Construct the RHS; the equation looks like:
+      ! LHS = (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
+      ! RHS = h^{n} - Z/T exp(-v^2) <delta chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
       iv = iv_idx(vmu_lo, ivmu)
       imu = imu_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
@@ -820,12 +832,6 @@ contains
          call get_gyroaverage_chi(ivmu, phi, apar, bpar, chi)
       end if
 
-      ! From the gbar implementation
-      ! ! get <chi> = (1+alph)/2*<chi^{n+1}> + (1-alph)/2*<chi^{n}>
-      ! ! get - Z/T exp(-v^2) <chi^{n+1}>
-      ! g = tupwnd1 * chiold + tupwnd2 * chi
-
-      ! From gbar source
       if (maxwellian_inside_zed_derivative) then
          call mp_abort("Maxwellian inside zed derivative currently not supported")
          !    ! From gbar source
@@ -839,17 +845,11 @@ contains
          !    ! ! = d<phi>/dz * exp(-mu*B/T)
          !    ! dchidz = dchidz + 2.0 * mu(imu) * g
       else
-         !    ! ! obtain d<phi>/dz and store in dchidz
-         !    ! call get_dzed(iv, g, dchidz)
-         !    ! ! center Maxwellian factor in mu
-         !    ! ! and store in dummy variable gp
+         ! center Maxwellian factor in mu
          maxwell_mu_centered = maxwell_mu(ia, :, imu, is)
          call center_zed_midpoint(iv, maxwell_mu_centered)
-         !    ! ! multiply by Maxwellian factor
-         !    ! dchidz = dchidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
 
-      ! From the gbar source term implementation
       ! ! NB: could do this once at beginning of simulation to speed things up
       ! ! this is vpa*Z/T*exp(-vpa^2)
       ! vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
@@ -864,7 +864,7 @@ contains
          ! call center_zed(iv, vpadf0dE_fac)
       end if
 
-      ! Center g and chi in zed.
+      ! Center h and delta chi in zed.
       h = hold
       call center_zed(iv, h)
       call center_zed(iv, chi)
@@ -875,14 +875,25 @@ contains
          gp = gradpar_c(:, 1)
       end if
 
+      ! if (stream_drifts_implicit) then
+         ! The drift source term is
+         ! RHS = drifts_inh + drifts_hom
+         ! drifts_inh = - (1+u_t)/2 * ( (wdrift_x * dchi^n/dy) + (wdrift_y * dchi^n/dx) )
+         !            + (wstar * dchi^n/dy)
+         ! drifts_hom = - (1+u_t)/2 * wstar * d/dy(delta chi)
+         ! drifts_source =
+      ! else
+         ! drifts_source = 0.
+      ! end if
       ! construct RHS of GK eqn
-      ! RHS = g^{n} - Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-      ! where g^{n} and <chi^{n+1}> are centered in zed
+      ! RHS = h^{n} - Z/T exp(-v^2) <delta chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+      ! where h^{n} and <delta chi> are centered in zed
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
-         h(:, :, iz, :) = h(:, :, iz, :) &
-                          + spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi_factor * chi(:, :, iz, :) &
-                          - fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
+         h(:, :, iz, :) = inhomogeneous_fac * h(:, :, iz, :) &
+                          + homogeneous_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi(:, :, iz, :) &
+                          - inhomogeneous_fac * fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
+                          ! + drifts_source
       end do
 
       deallocate (maxwell_mu_centered)
