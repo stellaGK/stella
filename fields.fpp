@@ -523,8 +523,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -3161,7 +3161,7 @@ contains
 
       call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
       dchidy(:, :, :, :) = zi * spread(spread(spread(aky, 2, nakx), 3, 2 * nzgrid + 1), 4, ntubes) &
-                                    * gyro_chi
+                           * gyro_chi
 
       deallocate (gyro_chi)
 

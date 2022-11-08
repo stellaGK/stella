@@ -709,8 +709,8 @@ contains
       allocate (deltaapar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (deltabpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      h = 0. ; hold_dummy = 0. ; deltaphi = 0. ; deltaapar = 0. ;  deltabpar = 0.
-      ia = 1 ; it = 1
+      h = 0.; hold_dummy = 0.; deltaphi = 0.; deltaapar = 0.; deltabpar = 0.
+      ia = 1; it = 1
 
       if (driftkinetic_implicit) then
          if (field_name == "phi") then
@@ -742,8 +742,8 @@ contains
             ! Because we're solving the homogeneous equation, phi, apar, bpar
             ! are not used. They are included here as dummy arguments.
             call get_gke_rhs(ivmu, hold_dummy, &
-                            phi, apar, bpar, deltaphi, deltaapar, deltabpar, &
-                            h, "homogeneous")
+                             phi, apar, bpar, deltaphi, deltaapar, deltabpar, &
+                             h, "homogeneous")
 
             ! !!! Just do all the centering by calling center_zed?
             ! ! rhs(idx) = gyro_chi

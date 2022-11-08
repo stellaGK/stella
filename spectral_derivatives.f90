@@ -17,7 +17,7 @@ module spectral_derivatives
       module procedure get_dgdx_4d
    end interface
 
-contains 
+contains
    !> compute dg/dy in k-space
    !> accepts g(ky,kx)
    subroutine get_dgdy_2d(g, dgdy)

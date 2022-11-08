@@ -146,7 +146,6 @@ contains
       use extended_zgrid, only: nsegments
       use run_parameters, only: zed_upwind, time_upwind, stream_drifts_implicit
 
-
       implicit none
 
       integer :: nz, nseg_max
@@ -177,7 +176,6 @@ contains
       stream_tri_b2(:, -1) = 1.0 / delzed(0)
       stream_tri_a1(2:, -1) = 0.5 * (1.0 - zed_upwind)
       stream_tri_a2(2:, -1) = -1.0 / delzed(0)
-
 
       stream_tri_a2 = 0.5 * (1.0 + time_upwind) * stream_tri_a2
       stream_tri_b2 = 0.5 * (1.0 + time_upwind) * stream_tri_b2
@@ -919,11 +917,11 @@ contains
          allocate (ddeltachidy(naky, nakx, -nzgrid:nzgrid, ntubes))
 
          ! Center the variables in z.
-         wdrifty_g_centered = wdrifty_g(1,:,ivmu)
+         wdrifty_g_centered = wdrifty_g(1, :, ivmu)
          call center_zed(iv, wdrifty_g_centered)
-         wdriftx_g_centered = wdriftx_g(1,:,ivmu)
+         wdriftx_g_centered = wdriftx_g(1, :, ivmu)
          call center_zed(iv, wdriftx_g_centered)
-         wstar_centered = wstar(1,:,ivmu)
+         wstar_centered = wstar(1, :, ivmu)
          call center_zed(iv, wstar_centered)
 
          call get_dgdy(hold, dhdy)
@@ -947,10 +945,10 @@ contains
 
          if (stream_drifts_implicit) then
             h(:, :, iz, :) = h(:, :, iz, :) &
-                            + inhomogeneous_fac * tupwnd1 * dhdy(:, :, iz, :) * wdrifty_g_centered(iz) & ! inh. wdrifty term
-                            + inhomogeneous_fac * tupwnd1 * dhdx(:, :, iz, :) * wdriftx_g_centered(iz) & ! inh. wdriftx term
-                            + inhomogeneous_fac * dchiolddy(:, :, iz, :) * wstar_centered(iz) & ! inh. wstar term
-                            + homogeneous_fac * tupwnd2 * ddeltachidy(:, :, iz, :) * wstar_centered(iz)  ! hom. wstar term
+                             + inhomogeneous_fac * tupwnd1 * dhdy(:, :, iz, :) * wdrifty_g_centered(iz) & ! inh. wdrifty term
+                             + inhomogeneous_fac * tupwnd1 * dhdx(:, :, iz, :) * wdriftx_g_centered(iz) & ! inh. wdriftx term
+                             + inhomogeneous_fac * dchiolddy(:, :, iz, :) * wstar_centered(iz) & ! inh. wstar term
+                             + homogeneous_fac * tupwnd2 * ddeltachidy(:, :, iz, :) * wstar_centered(iz)  ! hom. wstar term
          end if
       end do
 
@@ -1073,16 +1071,16 @@ contains
          ikx = ikxmod(iseg, ie, iky)
 
          a(llim:ulim) = a(llim:ulim) - drift_tri_a1(llim:ulim, sgn) &
-                        * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                          + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+                        * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                           + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
 
          b(llim:ulim) = b(llim:ulim) - drift_tri_b1(llim:ulim, sgn) &
-                        * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                          + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+                        * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                           + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
 
          c(llim:ulim) = c(llim:ulim) - drift_tri_c1(llim:ulim, sgn) &
-                        * ( zi* wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                          + zi* wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+                        * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                           + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
       end if
 
       if (nsegments(ie, iky) > 1) then
@@ -1099,14 +1097,14 @@ contains
             if (stream_drifts_implicit) then
                ikx = ikxmod(iseg, ie, iky)
                a(llim:ulim) = a(llim:ulim) - drift_tri_a1(llim:ulim, sgn) &
-                              * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                                + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+                              * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                                 + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
                b(llim:ulim) = b(llim:ulim) - drift_tri_b1(llim:ulim, sgn) &
-                              * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                                + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+                              * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                                 + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
                c(llim:ulim) = c(llim:ulim) - drift_tri_c1(llim:ulim, sgn) &
-                              * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                                + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+                              * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                                 + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
             end if
 
          end do
@@ -1117,11 +1115,11 @@ contains
       c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
       if (stream_drifts_implicit) then
          a(ulim) = a(ulim) - drift_tri_a1(n, sgn) &
-                   * ( zi * wdrifty_g(ia, iz_up(nsegments(ie, iky)), ivmu) * aky(iky) &
-                     + zi * wdriftx_g(ia, iz_up(nsegments(ie, iky)), ivmu) * akx(ikx) )
+                   * (zi * wdrifty_g(ia, iz_up(nsegments(ie, iky)), ivmu) * aky(iky) &
+                      + zi * wdriftx_g(ia, iz_up(nsegments(ie, iky)), ivmu) * akx(ikx))
          b(ulim) = b(ulim) - drift_tri_b1(n, sgn) &
-                   * ( zi * wdrifty_g(ia, iz_up(nsegments(ie, iky)), ivmu) * aky(iky) &
-                     + zi * wdriftx_g(ia, iz_up(nsegments(ie, iky)), ivmu) * akx(ikx) )
+                   * (zi * wdrifty_g(ia, iz_up(nsegments(ie, iky)), ivmu) * aky(iky) &
+                      + zi * wdriftx_g(ia, iz_up(nsegments(ie, iky)), ivmu) * akx(ikx))
       end if
       call tridag(1, a(:ulim), b(:ulim), c(:ulim), g)
 
