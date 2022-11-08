@@ -110,7 +110,9 @@ contains
          else if (collision_model == "fokker-planck") then
             call read_parameters_fp
          end if
-      else if (hyper_dissipation) then
+      end if
+
+      if (hyper_dissipation) then
          call read_parameters_hyper
          fully_explicit = .false.
       end if

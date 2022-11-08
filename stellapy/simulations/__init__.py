@@ -1,8 +1,15 @@
 
-
 #=====================================================================
 # Make function avaliable as package.func instead of package.mod.func
 #=====================================================================
+''' 
+SIMULATIONS PACKAGE
+-------------------
+
+Analysis and diagnostic tool developed for the gyrokinetic code stella.
+
+Developed by Hanne Thienpondt.
+'''
 
 # Import the current modules and sub-package list in the package folder
 import os, glob

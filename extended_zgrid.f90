@@ -38,6 +38,7 @@ contains
       use zgrid, only: boundary_option_switch
       use zgrid, only: boundary_option_self_periodic
       use zgrid, only: boundary_option_linked
+      use zgrid, only: boundary_option_linked_stellarator
       use zgrid, only: nperiod, nzgrid, nzed, ntubes
       use kt_grids, only: nakx, naky
       use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
@@ -70,8 +71,7 @@ contains
       !> magnetic shear that use periodic boundary conditions everywhere
       phase_shift = exp(zi * aky * phase_shift_angle)
 
-      select case (boundary_option_switch)
-      case (boundary_option_linked)
+      if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
 
          !> all periodic modes (e.g., the zonal mode) have no connections
          do iky = 1, naky
@@ -206,7 +206,7 @@ contains
             allocate (iz_up(nseg_max)); iz_up = nzgrid
          end if
 
-      case default
+      else
 
          neigen = nakx; neigen_max = nakx
 
@@ -240,7 +240,7 @@ contains
             iz_up(iseg) = iz_low(iseg) + nzed
          end do
 
-      end select
+      end if
 
       if (.not. allocated(ikxmod)) then
          allocate (ikxmod(nseg_max, neigen_max, naky))

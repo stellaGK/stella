@@ -88,7 +88,6 @@ contains
    !> creating them if necessary
    subroutine write_grids(file_id)
 # ifdef NETCDF
-      use file_utils, only: num_input_lines
       use kt_grids, only: nakx, naky, akx, aky, nalpha, theta0, phase_shift_angle, x_d, rho_d
       use zgrid, only: nzgrid, ntubes, zed
       use vpamu_grids, only: nvpa, vpa, nmu, mu
@@ -124,10 +123,7 @@ contains
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
       call neasyf_dim(file_id, "char200", dim_size=200)
-      if (num_input_lines > 0) then
-         ! netCDF interprets zero-sized dimensions as unlimited, which is not what we want
-         call neasyf_dim(file_id, "nlines", dim_size=num_input_lines, long_name="Input file line number")
-      end if
+      call neasyf_dim(file_id, "nlines", unlimited=.true., long_name="Input file line number")
 
       call neasyf_dim(file_id, "ri", dim_size=2, long_name="Complex components", units="(real, imaginary)")
 
@@ -187,7 +183,8 @@ contains
    subroutine save_input(file_id)
 #ifdef NETCDF
       use file_utils, only: num_input_lines, get_input_unit
-      use neasyf, only: neasyf_write
+      use neasyf, only: neasyf_write, neasyf_error
+      use netcdf, only: nf90_inq_dimid, nf90_inquire_dimension, NF90_NOERR, NF90_EBADDIM
 #endif
       implicit none
       !> NetCDF ID of the file to write to
@@ -195,11 +192,31 @@ contains
 #ifdef NETCDF
       integer, parameter :: line_length = 200
       character(line_length), dimension(:), allocatable ::  input_file_array
-      integer :: n, unit
+      integer :: n, unit, status, dim_id, previous_nlines
 
       ! Don't attempt to write zero-sized arrays
       if (num_input_lines <= 0) return
 
+      ! If the existing input file in the output file was longer than
+      ! the current one, blank out the whole thing so that we're not
+      ! left with "extra" bits at the end
+      status = nf90_inq_dimid(file_id, "nlines", dim_id)
+      if (status == NF90_NOERR) then
+         status = nf90_inquire_dimension(file_id, dim_id, len=previous_nlines)
+         call neasyf_error(status, ncid=file_id, dim="nlines", dimid=dim_id)
+
+         if (previous_nlines > num_input_lines) then
+            allocate (input_file_array(previous_nlines))
+            call neasyf_write(file_id, "input_file", input_file_array, &
+                              long_name="Input file", dim_names=["char200", "nlines "])
+            deallocate (input_file_array)
+         end if
+      else
+         call neasyf_error(status, ncid=file_id, dim="nlines", dimid=dim_id)
+      end if
+
+      ! We need to convert the input file text into an array, one
+      ! element per line
       allocate (input_file_array(num_input_lines))
 
       call get_input_unit(unit)

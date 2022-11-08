@@ -10,9 +10,11 @@ module sources
    public :: init_quasineutrality_source
    public :: init_source_timeaverage
    public :: update_quasineutrality_source
+   public :: source_option_switch, source_option_none
+   public :: source_option_krook, source_option_projection
    public :: include_qn_source
-   public :: include_krook_operator, update_tcorr_krook
-   public :: remove_zero_projection, project_out_zero
+   public :: update_tcorr_krook
+   public :: project_out_zero
    public :: add_krook_operator
    public :: tcorr_source, exclude_boundary_regions, exp_fac
    public :: int_krook, int_proj
@@ -21,7 +23,6 @@ module sources
 
    private
 
-   logical :: include_krook_operator, remove_zero_projection
    logical :: krook_odd, exclude_boundary_regions
    logical :: from_zero
    logical :: conserve_momentum, conserve_density
@@ -34,6 +35,11 @@ module sources
    logical :: debug = .false.
 
    real, dimension(2, 2) :: time_sources = 0.
+
+   integer :: source_option_switch
+   integer, parameter :: source_option_none = 1, &
+                         source_option_krook = 2, &
+                         source_option_projection = 3
 
 contains
 
@@ -62,12 +68,12 @@ contains
 
       call read_parameters
 
-      if (include_krook_operator .and. .not. allocated(g_krook)) then
+      if (source_option_switch == source_option_krook .and. .not. allocated(g_krook)) then
          allocate (g_krook(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_krook = 0.
       end if
 
-      if (remove_zero_projection .and. .not. allocated(g_proj)) then
+      if (source_option_switch == source_option_projection .and. .not. allocated(g_proj)) then
          allocate (g_proj(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_proj = 0.
       end if
@@ -105,28 +111,33 @@ contains
 
    subroutine read_parameters
 
-      use file_utils, only: input_unit_exist
+      use file_utils, only: input_unit_exist, error_unit
       use physics_flags, only: radial_variation
       use mp, only: proc0, broadcast
       use kt_grids, only: ikx_max, periodic_variation
       use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
+      use text_options, only: text_option, get_option_value
 
       implicit none
 
+      type(text_option), dimension(4), parameter :: sourceopts = &
+                                                    (/text_option('default', source_option_none), &
+                                                      text_option('none', source_option_none), &
+                                                      text_option('krook', source_option_krook), &
+                                                      text_option('projection', source_option_projection)/)
+      character(30) :: source_option
+      integer :: in_file, ierr
+      logical :: dexist
+
       namelist /sources/ &
-         include_krook_operator, nu_krook, tcorr_source, remove_zero_projection, &
+         source_option, nu_krook, tcorr_source, &
          ikxmax_source, krook_odd, exclude_boundary_regions, &
          tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
          conserve_momentum, conserve_density
 
-      integer :: in_file
-      logical :: dexist
-
       if (proc0) then
-         include_krook_operator = .false.
          exclude_boundary_regions = radial_variation .and. .not. periodic_variation
          exclude_boundary_regions_qn = exclude_boundary_regions
-         remove_zero_projection = .false.
          nu_krook = 0.05
          tcorr_source = 0.02
          tcorr_source_qn = 0.0
@@ -135,11 +146,18 @@ contains
          krook_odd = .true. ! damp only the odd mode that can affect profiles
          from_zero = .true.
 
+         source_option = 'none'
+
          conserve_momentum = .false.
          conserve_density = .false.
 
          in_file = input_unit_exist("sources", dexist)
          if (dexist) read (unit=in_file, nml=sources)
+
+         ierr = error_unit()
+         call get_option_value &
+            (source_option, sourceopts, source_option_switch, &
+             ierr, "source_option in sources")
 
          if (tcorr_source_qn < 0) tcorr_source_qn = tcorr_source
       end if
@@ -149,14 +167,13 @@ contains
       int_proj = -1.
       int_krook = -1.
 
-      call broadcast(include_krook_operator)
+      call broadcast(source_option_switch)
       call broadcast(exclude_boundary_regions)
       call broadcast(exclude_boundary_regions_qn)
       call broadcast(nu_krook)
       call broadcast(tcorr_source)
       call broadcast(tcorr_source_qn)
       call broadcast(ikxmax_source)
-      call broadcast(remove_zero_projection)
       call broadcast(krook_odd)
       call broadcast(from_zero)
       call broadcast(conserve_momentum)
@@ -247,16 +264,21 @@ contains
 
       if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
 
+      if (debug) write (6, *) 'sources::add_krook_operator'
+
       g_work => g
       if (conserve_momentum .or. conserve_density) then
          g_work => g_symm
          g_work = g
       end if
 
+      if (debug) write (6, *) 'sources::add_krook_operator::conservation'
+
       if (conserve_momentum) call enforce_momentum_conservation(g_work)
       if (conserve_density) call enforce_density_conservation(g_work(1, :, :, :, :))
 
       if (exclude_boundary_regions) then
+         if (debug) write (6, *) 'sources::add_krook_operator::exclude_boundary_regions'
          npts = nakx - 2 * boundary_size
          allocate (g0k(1, nakx))
          allocate (g0x(1, nakx))
@@ -293,6 +315,7 @@ contains
          end do
          deallocate (g0k, g0x, g1x, basis_func)
       else
+         if (debug) write (6, *) 'sources::add_krook_operator::include_boundary_regions'
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -345,6 +368,8 @@ contains
       if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
 
       ia = 1
+
+      if (debug) write (6, *) 'sources::update_tcorr_krook'
 
       g_work => g
       if (conserve_momentum .or. conserve_density) then
@@ -556,6 +581,8 @@ contains
 
       ia = 1
       if (.not. zonal_mode(1)) return
+
+      if (debug) write (6, *) 'sources::project_out_zero'
 
       if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
 
