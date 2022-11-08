@@ -47,6 +47,7 @@ module fields
 
    interface get_dchidy
       module procedure get_dchidy_4d
+      module procedure get_dchidy_3d
       module procedure get_dchidy_2d
    end interface get_dchidy
 
@@ -522,8 +523,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -3137,6 +3138,34 @@ contains
       deallocate (gyro_chi)
 
    end subroutine get_dchidy_4d
+
+   ! Take phi, apar, bpar(ky,kx,z,tube) and return
+   ! d<chi>/dy (ky,kx,z,tube) for a particular ivmu
+   subroutine get_dchidy_3d(ivmu, phi, apar, bpar, dchidy)
+
+      use constants, only: zi
+      use stella_layouts, only: vmu_lo
+      use run_parameters, only: fphi, fapar
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, aky, naky
+
+      implicit none
+
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: dchidy
+
+      complex, dimension(:, :, :, :), allocatable :: gyro_chi
+
+      allocate (gyro_chi(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+      call get_gyroaverage_chi(ivmu, phi, apar, bpar, gyro_chi)
+      dchidy(:, :, :, :) = zi * spread(spread(spread(aky, 2, nakx), 3, 2 * nzgrid + 1), 4, ntubes) &
+                                    * gyro_chi
+
+      deallocate (gyro_chi)
+
+   end subroutine get_dchidy_3d
 
    ! Take phi, apar, bpar(ky, kx) and return
    ! d<chi>/dy (ky,kx)

@@ -32,6 +32,9 @@ module parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_a1, stream_tri_a2
    real, dimension(:, :), allocatable :: stream_tri_b1, stream_tri_b2
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
+   real, dimension(:, :), allocatable :: drift_tri_a1
+   real, dimension(:, :), allocatable :: drift_tri_b1
+   real, dimension(:, :), allocatable :: drift_tri_c1
    real, dimension(:, :), allocatable :: gradpar_c
 
    real, dimension(2, 3) :: time_parallel_streaming = 0.
@@ -141,7 +144,8 @@ contains
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zed_upwind, time_upwind, stream_drifts_implicit
+
 
       implicit none
 
@@ -166,6 +170,7 @@ contains
       stream_tri_b2(:, 1) = -1.0 / delzed(0)
       stream_tri_c1(:nz * nseg_max, 1) = 0.5 * (1.0 - zed_upwind)
       stream_tri_c2(:nz * nseg_max, 1) = 1.0 / delzed(0)
+
       ! corresponds to sign of stream term negative on RHS of equation
       ! NB: assumes equal spacing in zed
       stream_tri_b1(:, -1) = 0.5 * (1.0 + zed_upwind)
@@ -173,9 +178,31 @@ contains
       stream_tri_a1(2:, -1) = 0.5 * (1.0 - zed_upwind)
       stream_tri_a2(2:, -1) = -1.0 / delzed(0)
 
+
       stream_tri_a2 = 0.5 * (1.0 + time_upwind) * stream_tri_a2
       stream_tri_b2 = 0.5 * (1.0 + time_upwind) * stream_tri_b2
       stream_tri_c2 = 0.5 * (1.0 + time_upwind) * stream_tri_c2
+
+      if (stream_drifts_implicit) then
+         if (.not. allocated(drift_tri_a1)) then
+            allocate (drift_tri_a1(nz * nseg_max + 1, -1:1)); drift_tri_a1 = 0.
+            allocate (drift_tri_b1(nz * nseg_max + 1, -1:1)); drift_tri_b1 = 0.
+            allocate (drift_tri_c1(nz * nseg_max + 1, -1:1)); drift_tri_c1 = 0.
+         end if
+
+         ! corresponds to sign of stream term positive on RHS of equation
+         ! i.e., negative parallel advection speed
+         drift_tri_b1(:, 1) = 0.5 * (1.0 + zed_upwind)
+         drift_tri_c1(:nz * nseg_max, 1) = 0.5 * (1.0 - zed_upwind)
+
+         ! corresponds to sign of stream term negative on RHS of equation
+         drift_tri_b1(:, -1) = 0.5 * (1.0 + zed_upwind)
+         drift_tri_a1(2:, -1) = 0.5 * (1.0 - zed_upwind)
+
+         drift_tri_a1 = 0.5 * (1.0 + time_upwind) * drift_tri_a1
+         drift_tri_b1 = 0.5 * (1.0 + time_upwind) * drift_tri_b1
+         drift_tri_c1 = 0.5 * (1.0 + time_upwind) * drift_tri_c1
+      end if
 
    end subroutine init_invert_stream_operator
 
@@ -618,26 +645,20 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: ivmu
-      complex, dimension(:, :, :, :), allocatable :: dphi, dapar, dbpar
+      complex, dimension(:, :, :, :), allocatable :: deltaphi, deltaapar, deltabpar
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
-      ! write(*,*) "Fields: start"
-      ! write(*,*) "phi = ", phi
-      ! write(*,*) "apar = ", apar
-      ! write(*,*) "bpar = ", bpar
       fields_updated = .false.
 
-      allocate (dphi(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dapar(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dbpar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltaphi(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltaapar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltabpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       call advance_fields(g, phi, apar, bpar, dist='gbar')
 
       ! Get h^{n}
       call get_h(g, phi, apar, bpar, h)
-      ! write(*,*) "Fields: start, in h"
-      ! write(*,*) "h^{n} : maxval = ", maxval(abs(h))
-      ! write(*,*) "maxval(abs(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
+
       ! save the incoming h, as they will be needed later
       ! Store in the variable g1, for historical reasons
       g1 = h
@@ -652,8 +673,9 @@ contains
          ! New inhomogeneous equation looks like:
          ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h_{inh}^{n+1}
          ! = g^{n} - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi, apar, &
-                          bpar, h(:, :, :, :, ivmu), eqn='inhomogeneous')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), &
+                          phi, apar, bpar, deltaphi, deltaapar, deltabpar, &
+                          h(:, :, :, :, ivmu), eqn='inhomogeneous')
 
          if (stream_matrix_inversion) then
             ! solve (I + (1+alph)/2*dt*vpa . grad)h_{inh}^{n+1} = RHS
@@ -663,35 +685,29 @@ contains
             call sweep_g_zed(ivmu, h(:, :, :, :, ivmu))
          end if
       end do
-      ! write(*,*) "hinh : maxval = ", maxval(abs(h))
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
 
       ! we now have h_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1}, bpar_{inh}^{n+1})
-      call advance_fields(h, dphi, dapar, dbpar, dist='h')
-      ! write(*,*) "inh. fields maxval(abs(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
+      ! and store in deltaphi etc.
+      call advance_fields(h, deltaphi, deltaapar, deltabpar, dist='h')
 
-      ! Now calculate the inhomogeneous change in the fields
-      dphi = dphi - phi
-      dapar = dapar - apar
-      dbpar = dbpar - bpar
-      ! write(*,*) "Fields: after inhomogeneous"
-      ! write(*,*) "phi = ", phi
-      ! write(*,*) "apar = ", apar
-      ! write(*,*) "bpar = ", bpar
-      ! solve response_matrix*fields^{n+1} = fields_{inh}^{n+1}
+      ! Now calculate the inhomogeneous change in the fields, delta_fields_{inh}
+      deltaphi = deltaphi - phi
+      deltaapar = deltaapar - apar
+      deltabpar = deltabpar - bpar
+
+      ! solve response_matrix*fields^{n+1} = delta_fields_{inh}
       ! where fields=(phi,apar,bpar)
-      ! phi,apar,bpar = phi,apar,bpar{inh}^{n+1} is input and overwritten by phi,apar,bpar = phi,apar,bpar^{n+1}
+      ! deltaphi, deltaapar, deltabpar = delta_phi_{inh}, delta_apar_{inh}, delta_bpar_{inh}
+      ! is input and overwritten by
+      ! deltaphi, deltaapar, deltabpar = delta_phi, delta_apar, delta_bpar
+      !                                = phi^{n+1} - phi^{n}, ...
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-      call invert_parstream_response(dphi, dapar, dbpar)
+      call invert_parstream_response(deltaphi, deltaapar, deltabpar)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-
-      ! write(*,*) "Fields: after invert_parstream_response"
-      ! write(*,*) "phi = ", phi
-      ! write(*,*) "apar = ", apar
-      ! write(*,*) "bpar = ", bpar
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -704,8 +720,9 @@ contains
          ! New equation looks like:
          ! (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1}
          ! = g^{n} + Z/T exp(-v^2) <chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), dphi, dapar, &
-                          dbpar, h(:, :, :, :, ivmu), eqn='full')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), &
+                          phi, apar, bpar, deltaphi, deltaapar, deltabpar, &
+                          h(:, :, :, :, ivmu), eqn='full')
 
          if (stream_matrix_inversion) then
             ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)h^{n+1} = RHS
@@ -715,27 +732,30 @@ contains
             call sweep_g_zed(ivmu, h(:, :, :, :, ivmu))
          end if
       end do
-      ! write(*,*) "h^{n+1} : maxval = ", maxval(abs(h))
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
       call advance_fields(h, phi, apar, bpar, dist="h")
       ! Calculate g^{n+1} = h^{n+1} + <chi^{n+1}>
-      ! write(*,*) "new fields maxval(abs(phi, apar, bpar) = ", maxval(abs(phi)), maxval(abs(apar)), maxval(abs(bpar))
       call get_gbar(h, phi, apar, bpar, g)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
-      deallocate (dphi)
-      deallocate (dapar)
-      deallocate (dbpar)
+      deallocate (deltaphi)
+      deallocate (deltaapar)
+      deallocate (deltabpar)
 
    end subroutine advance_parallel_streaming_implicit
 
    !> Get the RHS of the parallel streaming piece of the GKE,
-   !> when using implicit scheme
+   !> when using implicit scheme. Optionally, this can also include the
+   !> wdrift and wstar terms (if these are treated implicitly.)
    !> h is output, corresponding to RHS
-   !> RHS = h^{n} + Z/T exp(-v^2) <chi^{n+1}-chi^{n}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-   subroutine get_gke_rhs(ivmu, hold, phi, apar, bpar, h, eqn)
+   !> RHS = RHS_stream + RHS_drifts
+   !> RHS_stream = h^{n} + Z/T exp(-v^2) <chi^{n+1}-chi^{n}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
+   !> RHS_drifts = (1-alph)/2)*(dh^{n}/dx*wdriftx + dh^{n}/dy*wdrifty)
+   !>              + wstar*dchi^{n}/dy + (1+alph)/2)*wstar* d/dy(chi^{n+1}-chi^{n})
+   subroutine get_gke_rhs(ivmu, hold, phiold, aparold, bparold, &
+                          deltaphi, deltaapar, deltabpar, h, eqn)
 
       use mp, only: mp_abort
       use stella_time, only: code_dt
@@ -745,7 +765,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use kt_grids, only: naky, nakx
       use gyro_averages, only: gyro_average
-      use fields, only: get_gyroaverage_chi, get_chi
+      use fields, only: get_gyroaverage_chi, get_chi, get_dchidy
       use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use stella_geometry, only: dbdzed
@@ -754,34 +774,40 @@ contains
       use run_parameters, only: time_upwind
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use mirror_terms, only: mirror_apar_fac
+      use run_parameters, only: stream_drifts_implicit
+      use spectral_derivatives, only: get_dgdy, get_dgdx
+      use dist_fn_arrays, only: wstar, wdrifty_g, wdriftx_g
 
       implicit none
 
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: hold
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, deltaphi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: aparold, deltaapar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bparold, deltabpar
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: h
       character(*), intent(in) :: eqn
 
       integer :: iv, imu, is, iz, ia
-      real :: tupwnd1, inhomogeneous_fac, homogeneous_fac, fac
+      real :: tupwnd1, tupwnd2, inhomogeneous_fac, homogeneous_fac, fac
       ! real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
       real, dimension(:), allocatable :: maxwell_mu_centered
+      real, dimension(:), allocatable :: wdrifty_g_centered, wdriftx_g_centered, wstar_centered
       complex, dimension(:, :, :, :), allocatable :: dhdz
-      complex, dimension(:, :, :, :), allocatable :: chi
+      complex, dimension(:, :, :, :), allocatable :: deltachi
+      complex, dimension(:, :, :, :), allocatable :: dhdy, dhdx, dchiolddy, ddeltachidy
 
       ! allocate (vpadf0dE_fac(-nzgrid:nzgrid))
       allocate (maxwell_mu_centered(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
       allocate (dhdz(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltachi(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ia = 1
 
       tupwnd1 = 0.5 * (1.0 - time_upwind)
+      tupwnd2 = 0.5 * (1.0 + time_upwind)
 
       ! Set flags so that certain terms are ignored when the equation isn't
       ! "full". (The inhomogeneous and full equations are solved every timestep,
@@ -821,15 +847,13 @@ contains
       ! as this was calculated previously
       call get_dzed(iv, hold, dhdz)
 
-      allocate (chi(naky, nakx, -nzgrid:nzgrid, ntubes))
-
       ! set g to be chi or <chi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
-         call get_chi(ivmu, phi, apar, bpar, chi)
+         call get_chi(ivmu, deltaphi, deltaapar, deltabpar, deltachi)
          ! call get_chi(ivmu, phiold, aparold, bpar, chiold)
       else
-         call get_gyroaverage_chi(ivmu, phi, apar, bpar, chi)
+         call get_gyroaverage_chi(ivmu, deltaphi, deltaapar, deltabpar, deltachi)
       end if
 
       if (maxwellian_inside_zed_derivative) then
@@ -867,7 +891,7 @@ contains
       ! Center h and delta chi in zed.
       h = hold
       call center_zed(iv, h)
-      call center_zed(iv, chi)
+      call center_zed(iv, deltachi)
 
       if (stream_sign(iv) > 0) then
          gp = gradpar_c(:, -1)
@@ -875,31 +899,72 @@ contains
          gp = gradpar_c(:, 1)
       end if
 
-      ! if (stream_drifts_implicit) then
-      ! The drift source term is
-      ! RHS = drifts_inh + drifts_hom
-      ! drifts_inh = - (1+u_t)/2 * ( (wdrift_x * dchi^n/dy) + (wdrift_y * dchi^n/dx) )
-      !            + (wstar * dchi^n/dy)
-      ! drifts_hom = - (1+u_t)/2 * wstar * d/dy(delta chi)
-      ! drifts_source =
-      ! else
-      ! drifts_source = 0.
-      ! end if
+      if (stream_drifts_implicit) then
+         ! The drift source term is
+         ! RHS = drifts_inh + drifts_hom
+         ! drifts_inh = + (1+u_t)/2 * ( (wdrift_x * dchi^n/dy) + (wdrift_y * dchi^n/dx) )
+         !              + (wstar * dchi^n/dy)
+         ! drifts_hom = + (1+u_t)/2 * wstar * d/dy(delta chi)
+         !
+         ! Center the prefactors. Could save computational cost at the expense of
+         ! memory by doing this once at the start.
+
+         ! Allocate memory
+         allocate (wdrifty_g_centered(-nzgrid:nzgrid))
+         allocate (wdriftx_g_centered(-nzgrid:nzgrid))
+         allocate (wstar_centered(-nzgrid:nzgrid))
+         allocate (dhdy(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (dhdx(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (dchiolddy(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (ddeltachidy(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+         ! Center the variables in z.
+         wdrifty_g_centered = wdrifty_g(1,:,ivmu)
+         call center_zed(iv, wdrifty_g_centered)
+         wdriftx_g_centered = wdriftx_g(1,:,ivmu)
+         call center_zed(iv, wdriftx_g_centered)
+         wstar_centered = wstar(1,:,ivmu)
+         call center_zed(iv, wstar_centered)
+
+         call get_dgdy(hold, dhdy)
+         call center_zed(iv, dhdy)
+         call get_dgdx(hold, dhdx)
+         call center_zed(iv, dhdx)
+         call get_dchidy(ivmu, phiold, aparold, bparold, dchiolddy)
+         call center_zed(iv, dchiolddy)
+         call get_dchidy(ivmu, deltaphi, deltaapar, deltabpar, ddeltachidy)
+         call center_zed(iv, ddeltachidy)
+
+      end if
       ! construct RHS of GK eqn
       ! RHS = h^{n} - Z/T exp(-v^2) <delta chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
       ! where h^{n} and <delta chi> are centered in zed
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          h(:, :, iz, :) = inhomogeneous_fac * h(:, :, iz, :) &
-                          + homogeneous_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi(:, :, iz, :) &
+                          + homogeneous_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * deltachi(:, :, iz, :) &
                           - inhomogeneous_fac * fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
-         ! + drifts_source
+
+         if (stream_drifts_implicit) then
+            h(:, :, iz, :) = h(:, :, iz, :) &
+                            + inhomogeneous_fac * tupwnd1 * dhdy(:, :, iz, :) * wdrifty_g_centered(iz) & ! inh. wdrifty term
+                            + inhomogeneous_fac * tupwnd1 * dhdx(:, :, iz, :) * wdriftx_g_centered(iz) & ! inh. wdriftx term
+                            + inhomogeneous_fac * dchiolddy(:, :, iz, :) * wstar_centered(iz) & ! inh. wstar term
+                            + homogeneous_fac * tupwnd2 * ddeltachidy(:, :, iz, :) * wstar_centered(iz)  ! hom. wstar term
+         end if
       end do
 
       deallocate (maxwell_mu_centered)
       deallocate (gp)
       deallocate (dhdz)
-      deallocate (chi)
+      deallocate (deltachi)
+      if (allocated(wdrifty_g_centered)) deallocate (wdrifty_g_centered)
+      if (allocated(wdriftx_g_centered)) deallocate (wdriftx_g_centered)
+      if (allocated(wstar_centered)) deallocate (wstar_centered)
+      if (allocated(dhdy)) deallocate (dhdy)
+      if (allocated(dhdx)) deallocate (dhdx)
+      if (allocated(dchiolddy)) deallocate (dchiolddy)
+      if (allocated(ddeltachidy)) deallocate (ddeltachidy)
 
    end subroutine get_gke_rhs
 
@@ -946,7 +1011,7 @@ contains
                   ! get g on extended domain in zed
                   call map_to_extended_zgrid(it, ie, iky, g(iky, :, :, :), gext, ulim)
                   ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-                  call stream_tridiagonal_solve(iky, ie, iv, is, gext(:ulim))
+                  call stream_tridiagonal_solve(iky, ie, ivmu, gext(:ulim))
                   ! extract g from extended domain in zed
                   call map_from_extended_zgrid(it, ie, iky, gext, g(iky, :, :, :))
                   deallocate (gext)
@@ -957,28 +1022,37 @@ contains
 
    end subroutine invert_parstream
 
-   subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
+   subroutine stream_tridiagonal_solve(iky, ie, ivmu, g)
 
+      use constants, only: zi
       use finite_differences, only: tridag
-      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: iz_low, iz_up, ikxmod
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
+      use dist_fn_arrays, only: wdrifty_g, wdriftx_g
+      use run_parameters, only: stream_drifts_implicit
+      use stella_layouts, only: iv_idx, is_idx, vmu_lo
+      use kt_grids, only: akx, aky
 
       implicit none
 
-      integer, intent(in) :: iky, ie, iv, is
+      integer, intent(in) :: iky, ie, ivmu
       complex, dimension(:), intent(in out) :: g
 
       integer :: iseg, llim, ulim, n
       integer :: nz, nseg_max, sgn, n_ext
-      integer :: ia
-      real, dimension(:), allocatable :: a, b, c
+      integer :: ia, ikx
+      integer :: iv, is
+      complex, dimension(:), allocatable :: a, b, c
 
       ia = 1
 
       ! avoid double-counting at boundaries between 2pi segments
       nz = nzed_segment
       nseg_max = nsegments(ie, iky)
+
+      iv = iv_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
       sgn = stream_sign(iv)
 
       n_ext = nseg_max * nz + 1
@@ -995,6 +1069,22 @@ contains
       c(llim:ulim) = stream_tri_c1(llim:ulim, sgn) &
                      - stream(ia, iz_low(iseg):iz_up(iseg), iv, is) * stream_tri_c2(llim:ulim, sgn)
 
+      if (stream_drifts_implicit) then
+         ikx = ikxmod(iseg, ie, iky)
+
+         a(llim:ulim) = a(llim:ulim) - drift_tri_a1(llim:ulim, sgn) &
+                        * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                          + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+
+         b(llim:ulim) = b(llim:ulim) - drift_tri_b1(llim:ulim, sgn) &
+                        * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                          + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+
+         c(llim:ulim) = c(llim:ulim) - drift_tri_c1(llim:ulim, sgn) &
+                        * ( zi* wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                          + zi* wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+      end if
+
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
             llim = ulim + 1
@@ -1005,12 +1095,34 @@ contains
                            - stream(ia, iz_low(iseg) + 1:iz_up(iseg), iv, is) * stream_tri_b2(llim:ulim, sgn)
             c(llim:ulim) = stream_tri_c1(llim:ulim, sgn) &
                            - stream(ia, iz_low(iseg) + 1:iz_up(iseg), iv, is) * stream_tri_c2(llim:ulim, sgn)
+
+            if (stream_drifts_implicit) then
+               ikx = ikxmod(iseg, ie, iky)
+               a(llim:ulim) = a(llim:ulim) - drift_tri_a1(llim:ulim, sgn) &
+                              * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                                + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+               b(llim:ulim) = b(llim:ulim) - drift_tri_b1(llim:ulim, sgn) &
+                              * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                                + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+               c(llim:ulim) = c(llim:ulim) - drift_tri_c1(llim:ulim, sgn) &
+                              * ( zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
+                                + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx) )
+            end if
+
          end do
       end if
       n = size(stream_tri_a1, 1)
       a(ulim) = stream_tri_a1(n, sgn) - stream(ia, iz_up(nsegments(ie, iky)), iv, is) * stream_tri_a2(n, sgn)
       b(ulim) = stream_tri_b1(n, sgn) - stream(ia, iz_up(nsegments(ie, iky)), iv, is) * stream_tri_b2(n, sgn)
       c(ulim) = 0. ! this line should not be necessary, as c(ulim) should not be accessed by tridag
+      if (stream_drifts_implicit) then
+         a(ulim) = a(ulim) - drift_tri_a1(n, sgn) &
+                   * ( zi * wdrifty_g(ia, iz_up(nsegments(ie, iky)), ivmu) * aky(iky) &
+                     + zi * wdriftx_g(ia, iz_up(nsegments(ie, iky)), ivmu) * akx(ikx) )
+         b(ulim) = b(ulim) - drift_tri_b1(n, sgn) &
+                   * ( zi * wdrifty_g(ia, iz_up(nsegments(ie, iky)), ivmu) * aky(iky) &
+                     + zi * wdriftx_g(ia, iz_up(nsegments(ie, iky)), ivmu) * akx(ikx) )
+      end if
       call tridag(1, a(:ulim), b(:ulim), c(:ulim), g)
 
       deallocate (a, b, c)
@@ -1405,6 +1517,11 @@ contains
          deallocate (stream_tri_b2)
          deallocate (stream_tri_c1)
          deallocate (stream_tri_c2)
+      end if
+      if (allocated(drift_tri_a1)) then
+         deallocate (drift_tri_a1)
+         deallocate (drift_tri_b1)
+         deallocate (drift_tri_c1)
       end if
 
    end subroutine finish_invert_stream_operator

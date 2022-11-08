@@ -681,7 +681,7 @@ contains
       use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use fields, only: get_gyroaverage_chi, get_dchidy
-      use fields_arrays, only: response_matrix
+      use fields_arrays, only: response_matrix, phi, apar, bpar
       use dist_fn_arrays, only: wstar
       use gyro_averages, only: aj0x, aj1x
       use run_parameters, only: driftkinetic_implicit, stream_drifts_implicit
@@ -701,16 +701,16 @@ contains
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       ! complex :: fac, fac0, fac1, gyro_chi, phi, apar, bpar, dchidy, wstar_fac
-      complex, dimension(:, :, :, :), allocatable :: hold_dummy, h, phi, apar, bpar
+      complex, dimension(:, :, :, :), allocatable :: hold_dummy, h, deltaphi, deltaapar, deltabpar
 
       allocate (hold_dummy(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (h(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltaphi(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltaapar(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (deltabpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      h = 0.; hold_dummy = 0.; phi = 0.; apar = 0.; bpar = 0.
-      ia = 1; it = 1
+      h = 0. ; hold_dummy = 0. ; deltaphi = 0. ; deltaapar = 0. ;  deltabpar = 0.
+      ia = 1 ; it = 1
 
       if (driftkinetic_implicit) then
          if (field_name == "phi") then
@@ -720,11 +720,11 @@ contains
          end if
       else
          if (field_name == "phi") then
-            phi(iky, ikx, iz, it) = 1.0
+            deltaphi(iky, ikx, iz, it) = 1.0
          else if (field_name == "apar") then
-            apar(iky, ikx, iz, it) = 1.0
+            deltaapar(iky, ikx, iz, it) = 1.0
          else if (field_name == "bpar") then
-            bpar(iky, ikx, iz, it) = 1.0
+            deltabpar(iky, ikx, iz, it) = 1.0
          else
             call mp_abort("field_name not recognised, aborting")
          end if
@@ -739,7 +739,11 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
 
-            call get_gke_rhs(ivmu, hold_dummy, phi, apar, bpar, h, "homogeneous")
+            ! Because we're solving the homogeneous equation, phi, apar, bpar
+            ! are not used. They are included here as dummy arguments.
+            call get_gke_rhs(ivmu, hold_dummy, &
+                            phi, apar, bpar, deltaphi, deltaapar, deltabpar, &
+                            h, "homogeneous")
 
             ! !!! Just do all the centering by calling center_zed?
             ! ! rhs(idx) = gyro_chi
@@ -847,7 +851,7 @@ contains
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext
-               call stream_tridiagonal_solve(iky, ie, iv, is, hext(:, ivmu))
+               call stream_tridiagonal_solve(iky, ie, ivmu, hext(:, ivmu))
             end if
 
          end do
@@ -985,9 +989,9 @@ contains
 
       deallocate (hold_dummy)
       deallocate (h)
-      deallocate (phi)
-      deallocate (apar)
-      deallocate (bpar)
+      deallocate (deltaphi)
+      deallocate (deltaapar)
+      deallocate (deltabpar)
 
    end subroutine get_dgdfield_matrix_column
 

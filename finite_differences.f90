@@ -46,6 +46,7 @@ module finite_differences
    interface tridag
       module procedure tridag_real
       module procedure tridag_complex
+      module procedure tridag_complex_complex
    end interface
 
    interface second_order_centered
@@ -1223,5 +1224,41 @@ contains
       deallocate (gam)
 
    end subroutine tridag_complex
+
+   ! RJD: this has been implemented by copying tridag_complex and making the
+   ! arguments aa, bb, cc complex. I do not know that this is correct so
+   ! needs checking.
+   subroutine tridag_complex_complex(llim, aa, bb, cc, sol)
+
+      implicit none
+
+      integer, intent(in) :: llim
+      complex, dimension(llim:), intent(in) :: aa, bb, cc
+      complex, dimension(llim:), intent(in out) :: sol
+
+      integer :: ix, npts
+      complex :: bet
+
+      complex, dimension(:), allocatable :: gam
+
+      npts = size(bb)
+      allocate (gam(llim:llim + npts - 1))
+      bet = bb(llim)
+      sol(llim) = sol(llim) / bet
+
+      do ix = llim + 1, llim + npts - 1
+         gam(ix) = cc(ix - 1) / bet
+         bet = bb(ix) - aa(ix) * gam(ix)
+         if (bet == 0.0) write (*, *) 'tridiagonal solve failed'
+         sol(ix) = (sol(ix) - aa(ix) * sol(ix - 1)) / bet
+      end do
+
+      do ix = llim + npts - 2, llim, -1
+         sol(ix) = sol(ix) - gam(ix + 1) * sol(ix + 1)
+      end do
+
+      deallocate (gam)
+
+   end subroutine tridag_complex_complex
 
 end module finite_differences
