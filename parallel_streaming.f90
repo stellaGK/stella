@@ -789,16 +789,16 @@ contains
       ! constructed.
       ! Could refactor to avoid calculating source terms unnecessarily.
       if (eqn == 'full') then
-        homogeneous_fac = 1.0
-        inhomogeneous_fac = 1.0
+         homogeneous_fac = 1.0
+         inhomogeneous_fac = 1.0
       else if (eqn == 'inhomogeneous') then
-        homogeneous_fac = 0.0
-        inhomogeneous_fac = 1.0
+         homogeneous_fac = 0.0
+         inhomogeneous_fac = 1.0
       else if (eqn == 'homogeneous') then
-        homogeneous_fac = 1.0
-        inhomogeneous_fac = 0.0
+         homogeneous_fac = 1.0
+         inhomogeneous_fac = 0.0
       else
-        call mp_abort("Flavour of streaming equation not recognised")
+         call mp_abort("Flavour of streaming equation not recognised")
       end if
 
       !! Old comments - delete?
@@ -876,14 +876,14 @@ contains
       end if
 
       ! if (stream_drifts_implicit) then
-         ! The drift source term is
-         ! RHS = drifts_inh + drifts_hom
-         ! drifts_inh = - (1+u_t)/2 * ( (wdrift_x * dchi^n/dy) + (wdrift_y * dchi^n/dx) )
-         !            + (wstar * dchi^n/dy)
-         ! drifts_hom = - (1+u_t)/2 * wstar * d/dy(delta chi)
-         ! drifts_source =
+      ! The drift source term is
+      ! RHS = drifts_inh + drifts_hom
+      ! drifts_inh = - (1+u_t)/2 * ( (wdrift_x * dchi^n/dy) + (wdrift_y * dchi^n/dx) )
+      !            + (wstar * dchi^n/dy)
+      ! drifts_hom = - (1+u_t)/2 * wstar * d/dy(delta chi)
+      ! drifts_source =
       ! else
-         ! drifts_source = 0.
+      ! drifts_source = 0.
       ! end if
       ! construct RHS of GK eqn
       ! RHS = h^{n} - Z/T exp(-v^2) <delta chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
@@ -893,7 +893,7 @@ contains
          h(:, :, iz, :) = inhomogeneous_fac * h(:, :, iz, :) &
                           + homogeneous_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * chi(:, :, iz, :) &
                           - inhomogeneous_fac * fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
-                          ! + drifts_source
+         ! + drifts_source
       end do
 
       deallocate (maxwell_mu_centered)

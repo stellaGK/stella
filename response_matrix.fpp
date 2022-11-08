@@ -709,8 +709,8 @@ contains
       allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      h = 0. ; hold_dummy = 0. ; phi = 0. ; apar = 0. ;  bpar = 0.
-      ia = 1 ; it = 1
+      h = 0.; hold_dummy = 0.; phi = 0.; apar = 0.; bpar = 0.
+      ia = 1; it = 1
 
       if (driftkinetic_implicit) then
          if (field_name == "phi") then
@@ -734,7 +734,7 @@ contains
          ! get  Z/T exp(-v^2) <chi^{n+1}> corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
-            hext(:, ivmu) = 0.0 ; h = 0.
+            hext(:, ivmu) = 0.0; h = 0.
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
