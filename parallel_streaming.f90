@@ -1097,14 +1097,14 @@ contains
             if (stream_drifts_implicit) then
                ikx = ikxmod(iseg, ie, iky)
                a(llim:ulim) = a(llim:ulim) - drift_tri_a1(llim:ulim, sgn) &
-                              * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                                 + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
+                              * (zi * wdrifty_g(ia, iz_low(iseg) + 1:iz_up(iseg), ivmu) * aky(iky) &
+                                 + zi * wdriftx_g(ia, iz_low(iseg) + 1:iz_up(iseg), ivmu) * akx(ikx))
                b(llim:ulim) = b(llim:ulim) - drift_tri_b1(llim:ulim, sgn) &
-                              * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                                 + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
+                              * (zi * wdrifty_g(ia, iz_low(iseg) + 1:iz_up(iseg), ivmu) * aky(iky) &
+                                 + zi * wdriftx_g(ia, iz_low(iseg) + 1:iz_up(iseg), ivmu) * akx(ikx))
                c(llim:ulim) = c(llim:ulim) - drift_tri_c1(llim:ulim, sgn) &
-                              * (zi * wdrifty_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * aky(iky) &
-                                 + zi * wdriftx_g(ia, iz_low(iseg):iz_up(iseg), ivmu) * akx(ikx))
+                              * (zi * wdrifty_g(ia, iz_low(iseg) + 1:iz_up(iseg), ivmu) * aky(iky) &
+                                 + zi * wdriftx_g(ia, iz_low(iseg) + 1:iz_up(iseg), ivmu) * akx(ikx))
             end if
 
          end do
