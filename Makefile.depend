@@ -50,6 +50,7 @@ stella_mod = \
 	 sfincs_interface.o \
 	 sources.o \
 	 species.o \
+	 spectral_derivatives.o \
 	 spfunc.o \
 	 spl.o \
 	 stella.o \
@@ -319,9 +320,13 @@ mirror_terms.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 fields.o \
+	 fields_arrays.o \
 	 finite_differences.o \
+	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
+	 linear_solve.o \
 	 mp.o \
 	 neoclassical_terms.o \
 	 physics_flags.o \
@@ -374,6 +379,7 @@ netcdf_utils.o: \
 	 file_utils.o \
 	 mp.o 
 parallel_streaming.o: \
+	 constants.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
@@ -388,6 +394,7 @@ parallel_streaming.o: \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
+	 spectral_derivatives.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -408,7 +415,9 @@ redistribute.o: \
 	 mp.o 
 response_matrix.o: \
 	 common_types.o \
+	 dist_fn_arrays.o \
 	 extended_zgrid.o \
+	 fields.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
 	 job_manage.o \
@@ -468,6 +477,11 @@ species.o: \
 	 physics_parameters.o \
 	 stella_geometry.o \
 	 text_options.o 
+spectral_derivatives.o: \
+	 constants.o \
+	 kt_grids.o \
+	 stella_layouts.o \
+	 zgrid.o 
 spfunc.o: \
 	 constants.o 
 spl.o: \
@@ -615,6 +629,7 @@ time_advance.o: \
 	 run_parameters.o \
 	 sources.o \
 	 species.o \
+	 spectral_derivatives.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_time.o \
