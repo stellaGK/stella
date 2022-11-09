@@ -69,7 +69,7 @@ contains
    subroutine init_time_advance
 
       use mp, only: proc0
-      use run_parameters, only: drifts_implicit
+      use run_parameters, only: drifts_implicit, stream_drifts_implicit
       use physics_flags, only: radial_variation
       use physics_flags, only: include_parallel_nonlinearity
       use neoclassical_terms, only: init_neoclassical_terms
@@ -105,10 +105,6 @@ contains
       !> be called before init_parallel_streaming
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
       call init_mirror
-      !> calculate the term multiplying dg/dz in the parallel streaming term
-      !> and set up the tridiagonal matrix to be inverted if solving implicitly
-      if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
-      call init_parallel_streaming
       !> allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
       !> in the magnetic drift terms
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wdrift'
@@ -116,6 +112,10 @@ contains
       !> allocate and calculate the factor multiplying dphi/dy in the gradient drive term
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
       call init_wstar
+      !> calculate the term multiplying dg/dz in the parallel streaming term
+      !> and set up the tridiagonal matrix to be inverted if solving implicitly
+      if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
+      call init_parallel_streaming
       if (debug) write (6, *) 'time_advance::init_time_advance::init_flow_shear'
       call init_flow_shear
       if (debug) write (6, *) 'time_advance::init_time_advance::init_parallel_nonlinearity'
@@ -123,7 +123,9 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_radial_variation'
       if (radial_variation) call init_radial_variation
       if (debug) write (6, *) 'time_advance::init_time_advance::init_drifts_implicit'
-      if (drifts_implicit) call init_drifts_implicit
+      if ((drifts_implicit) .and. (.not. stream_drifts_implicit)) then
+         call init_drifts_implicit
+      end if
       if (include_collisions) then
          if (debug) write (6, *) 'time_advance::init_time_advance::init_collisions'
          call init_collisions
@@ -889,6 +891,7 @@ contains
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+      use run_parameters, only: stream_drifts_implicit
       use response_matrix, only: response_matrix_initialized
       use response_matrix, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
@@ -930,7 +933,7 @@ contains
          if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
          call init_radial_variation
       end if
-      if (drifts_implicit) then
+      if ((drifts_implicit) .and. (.not. stream_drifts_implicit)) then
          if (debug) write (6, *) 'time_advance::reset_dt::init_drifts_implicit'
          call init_drifts_implicit
       end if

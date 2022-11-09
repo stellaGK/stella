@@ -27,6 +27,7 @@ module parallel_streaming
    integer, dimension(:), allocatable :: stream_sign
    real, dimension(:, :, :, :), allocatable :: stream
    real, dimension(:, :, :), allocatable :: stream_c
+   real, dimension(:, :), allocatable :: wdriftx_g_centered, wdrifty_g_centered
    real, dimension(:, :, :), allocatable :: stream_rad_var1
    real, dimension(:, :, :), allocatable :: stream_rad_var2
    real, dimension(:, :), allocatable :: stream_tri_a1, stream_tri_a2
@@ -54,8 +55,9 @@ contains
       use kt_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
       use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
+      use run_parameters, only: stream_implicit, driftkinetic_implicit, stream_drifts_implicit
       use physics_flags, only: include_parallel_streaming, radial_variation
+      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
 
       implicit none
 
@@ -135,6 +137,20 @@ contains
          !> get gradpar centred in zed for positive vpa (affects upwinding)
          call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)))
          stream = spread(stream_c, 1, nalpha)
+
+         if (stream_drifts_implicit) then
+            if (.not. allocated(wdriftx_g_centered)) then
+               allocate (wdriftx_g_centered(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+               allocate (wdrifty_g_centered(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            end if
+            wdriftx_g_centered(:, :) = wdriftx_g(1, :, :)
+            wdrifty_g_centered(:, :) = wdrifty_g(1, :, :)
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               call center_zed(iv, wdriftx_g_centered(:, ivmu))
+               call center_zed(iv, wdrifty_g_centered(:, ivmu))
+            end do
+         end if
       end if
 
    end subroutine init_parallel_streaming
@@ -214,13 +230,13 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
       use kt_grids, only: swap_kxky
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      ! use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: fapar, fbpar
-      use fields_arrays, only: phi, apar, bpar
+      ! use fields_arrays, only: phi, apar, bpar
       use fields, only: get_gyroaverage_chi
 
       implicit none
@@ -228,7 +244,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
-      integer :: ivmu, iv, imu, is, ia, iz, it
+      integer :: ivmu, iv, imu, is, iz, it
       complex, dimension(:, :, :, :), allocatable :: g0, dgchi_dz
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
@@ -442,8 +458,6 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
       integer, intent(in) :: ivmu
 
-      integer :: iseg, ie, it, iky, iv
-      complex, dimension(2) :: gleft, gright
       complex, dimension(:, :, :, :), allocatable :: dgdz_tmp
 
       allocate (dgdz_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -764,11 +778,11 @@ contains
       use kt_grids, only: naky, nakx
       use gyro_averages, only: gyro_average
       use fields, only: get_gyroaverage_chi, get_chi, get_dchidy
-      use vpamu_grids, only: vpa, mu
+      use vpamu_grids, only: vpa! , mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use stella_geometry, only: dbdzed
+      ! use stella_geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dfneo_dvpa
+      ! use neoclassical_terms, only: dfneo_dvpa
       use run_parameters, only: time_upwind
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
@@ -791,7 +805,7 @@ contains
       ! real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
       real, dimension(:), allocatable :: maxwell_mu_centered
-      real, dimension(:), allocatable :: wdrifty_g_centered, wdriftx_g_centered, wstar_centered
+      real, dimension(:), allocatable :: wdrifty_g_centered_tmp, wdriftx_g_centered_tmp, wstar_centered_tmp
       complex, dimension(:, :, :, :), allocatable :: dhdz
       complex, dimension(:, :, :, :), allocatable :: deltachi
       complex, dimension(:, :, :, :), allocatable :: dhdy, dhdx, dchiolddy, ddeltachidy
@@ -908,21 +922,23 @@ contains
          ! memory by doing this once at the start.
 
          ! Allocate memory
-         allocate (wdrifty_g_centered(-nzgrid:nzgrid))
-         allocate (wdriftx_g_centered(-nzgrid:nzgrid))
-         allocate (wstar_centered(-nzgrid:nzgrid))
+         ! These are called "tmp" because they get calculated anyway for
+         ! sweep_g_zed.
+         allocate (wdrifty_g_centered_tmp(-nzgrid:nzgrid))
+         allocate (wdriftx_g_centered_tmp(-nzgrid:nzgrid))
+         allocate (wstar_centered_tmp(-nzgrid:nzgrid))
          allocate (dhdy(naky, nakx, -nzgrid:nzgrid, ntubes))
          allocate (dhdx(naky, nakx, -nzgrid:nzgrid, ntubes))
          allocate (dchiolddy(naky, nakx, -nzgrid:nzgrid, ntubes))
          allocate (ddeltachidy(naky, nakx, -nzgrid:nzgrid, ntubes))
 
          ! Center the variables in z.
-         wdrifty_g_centered = wdrifty_g(1, :, ivmu)
-         call center_zed(iv, wdrifty_g_centered)
-         wdriftx_g_centered = wdriftx_g(1, :, ivmu)
-         call center_zed(iv, wdriftx_g_centered)
-         wstar_centered = wstar(1, :, ivmu)
-         call center_zed(iv, wstar_centered)
+         wdrifty_g_centered_tmp = wdrifty_g(1, :, ivmu)
+         call center_zed(iv, wdrifty_g_centered_tmp)
+         wdriftx_g_centered_tmp = wdriftx_g(1, :, ivmu)
+         call center_zed(iv, wdriftx_g_centered_tmp)
+         wstar_centered_tmp = wstar(1, :, ivmu)
+         call center_zed(iv, wstar_centered_tmp)
 
          call get_dgdy(hold, dhdy)
          call center_zed(iv, dhdy)
@@ -945,10 +961,10 @@ contains
 
          if (stream_drifts_implicit) then
             h(:, :, iz, :) = h(:, :, iz, :) &
-                             + inhomogeneous_fac * tupwnd1 * dhdy(:, :, iz, :) * wdrifty_g_centered(iz) & ! inh. wdrifty term
-                             + inhomogeneous_fac * tupwnd1 * dhdx(:, :, iz, :) * wdriftx_g_centered(iz) & ! inh. wdriftx term
-                             + inhomogeneous_fac * dchiolddy(:, :, iz, :) * wstar_centered(iz) & ! inh. wstar term
-                             + homogeneous_fac * tupwnd2 * ddeltachidy(:, :, iz, :) * wstar_centered(iz)  ! hom. wstar term
+                             + inhomogeneous_fac * tupwnd1 * dhdy(:, :, iz, :) * wdrifty_g_centered_tmp(iz) & ! inh. wdrifty term
+                             + inhomogeneous_fac * tupwnd1 * dhdx(:, :, iz, :) * wdriftx_g_centered_tmp(iz) & ! inh. wdriftx term
+                             + inhomogeneous_fac * dchiolddy(:, :, iz, :) * wstar_centered_tmp(iz) & ! inh. wstar term
+                             + homogeneous_fac * tupwnd2 * ddeltachidy(:, :, iz, :) * wstar_centered_tmp(iz)  ! hom. wstar term
          end if
       end do
 
@@ -956,9 +972,9 @@ contains
       deallocate (gp)
       deallocate (dhdz)
       deallocate (deltachi)
-      if (allocated(wdrifty_g_centered)) deallocate (wdrifty_g_centered)
-      if (allocated(wdriftx_g_centered)) deallocate (wdriftx_g_centered)
-      if (allocated(wstar_centered)) deallocate (wstar_centered)
+      if (allocated(wdrifty_g_centered_tmp)) deallocate (wdrifty_g_centered_tmp)
+      if (allocated(wdriftx_g_centered_tmp)) deallocate (wdriftx_g_centered_tmp)
+      if (allocated(wstar_centered_tmp)) deallocate (wstar_centered_tmp)
       if (allocated(dhdy)) deallocate (dhdy)
       if (allocated(dhdx)) deallocate (dhdx)
       if (allocated(dchiolddy)) deallocate (dchiolddy)
@@ -1131,15 +1147,18 @@ contains
    ! g = g^{n+1} is output
    subroutine sweep_g_zed(ivmu, g)
 
+      use constants, only: zi
       use zgrid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments, nzed_segment
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: map_from_extended_zgrid
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use extended_zgrid, only: ikxmod_zext
+      use kt_grids, only: naky, akx, aky
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: stream_drifts_implicit
 
       implicit none
 
@@ -1147,10 +1166,10 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
 
       integer :: iv, is
-      integer :: iky, ie, it
+      integer :: iky, ie, it, ikx
       integer :: ulim, sgn
       integer :: iz, izext, iz1, iz2
-      real :: fac1, fac2
+      complex :: fac1, fac2
       complex, dimension(:), allocatable :: gext
 
       iv = iv_idx(vmu_lo, ivmu)
@@ -1177,17 +1196,32 @@ contains
                      iz1 = ulim; iz2 = 1
                   end if
                   izext = iz1; iz = sgn * nzgrid
-                  fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                  gext(izext) = gext(izext) * 2.0 / fac1
+                  fac1 = 0.5 * (1.0 + zed_upwind) + sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+                  if (stream_drifts_implicit) then
+                     ikx = ikxmod_zext(izext, iky, ie)
+                     fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
+                                 * ( zi * wdriftx_g_centered(iz,ivmu) *akx(ikx) &
+                                   + zi * wdrifty_g_centered(iz,ivmu) *aky(iky) )
+                  end if
+                  gext(izext) = gext(izext) / fac1
                   do izext = iz1 - sgn, iz2, -sgn
                      if (iz == -sgn * nzgrid) then
                         iz = sgn * nzgrid - sgn
                      else
                         iz = iz - sgn
                      end if
-                     fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                     fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                     gext(izext) = (-gext(izext + sgn) * fac2 + 2.0 * gext(izext)) / fac1
+                     fac1 = 0.5 * (1.0 + zed_upwind) + sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+                     fac2 = 0.5 * (1.0 - zed_upwind) - sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+                     if (stream_drifts_implicit) then
+                        ikx = ikxmod_zext(izext, iky, ie)
+                        fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
+                                    * ( zi * wdriftx_g_centered(iz,ivmu) *akx(ikx) &
+                                      + zi * wdrifty_g_centered(iz,ivmu) *aky(iky) )
+                        fac2 = fac2 - 0.25 * (1.0 - zed_upwind) * (1.0 + time_upwind) &
+                                    * ( zi * wdriftx_g_centered(iz,ivmu) *akx(ikx) &
+                                      + zi * wdrifty_g_centered(iz,ivmu) *aky(iky) )
+                     end if
+                     gext(izext) = (-gext(izext + sgn) * fac2 + gext(izext)) / fac1
                   end do
                   ! extract g from extended domain in zed
                   call map_from_extended_zgrid(it, ie, iky, gext, g(iky, :, :, :))
@@ -1261,7 +1295,7 @@ contains
 
       integer :: iky, ie, it, ulim, nfields, ifield, nresponse_per_field
       integer :: ikx
-      complex, dimension(:), allocatable :: fields_ext, phi_ext, apar_ext, bpar_ext
+      complex, dimension(:), allocatable :: fields_ext, phi_ext
 
       nfields = 0
       if (fphi > epsilon(0.)) nfields = nfields + 1
@@ -1497,6 +1531,8 @@ contains
       if (allocated(gradpar_c)) deallocate (gradpar_c)
       if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
+      if (allocated(wdriftx_g_centered)) deallocate (wdriftx_g_centered)
+      if (allocated(wdrifty_g_centered)) deallocate (wdrifty_g_centered)
 
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 

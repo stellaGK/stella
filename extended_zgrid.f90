@@ -5,6 +5,7 @@ module extended_zgrid
    public :: nsegments
    public :: neigen
    public :: ikxmod
+   public :: ikxmod_zext
    public :: iz_low, iz_mid, iz_up
    public :: periodic
    public :: nzed_segment
@@ -20,6 +21,7 @@ module extended_zgrid
    integer, dimension(:), allocatable :: iz_low, iz_mid, iz_up
    integer, dimension(:, :), allocatable :: nsegments
    integer, dimension(:, :, :), allocatable :: ikxmod
+   integer, dimension(:, :, :), allocatable :: ikxmod_zext
    !> arrays indicate which flux tube index to connect to
    !> on the left and on the right
    !> as a function of current flux tube index
@@ -49,6 +51,7 @@ contains
 
       integer :: iseg, iky, ie, ikx, it
       integer :: nseg_max, neigen_max
+      integer :: llim, ulim, nz_ext_max
       integer, dimension(:), allocatable :: ikx_shift_end
       integer, dimension(:, :), allocatable :: ikx_shift
 
@@ -291,6 +294,34 @@ contains
       !> with the previous segment due to periodicity)
       nzed_segment = iz_up(1) - iz_low(1)
 
+      !> Initialise ikxmod_zext, which maps a given z location in the
+      !> extended z grid to an ikx.
+      nz_ext_max = maxval(nsegments(:, :)) * nzed_segment + 1
+
+      if (.not. allocated(ikxmod_zext)) then
+         allocate (ikxmod_zext(nz_ext_max, neigen_max, naky))
+         !> initialize ikxmod_zext to nakx
+         !> should not be necessary but just in case one tries to access
+         !> a value beyond nzext for a particular (ie,iky)
+         ikxmod_zext = nakx
+      end if
+      ! Populate ikxmod_zext (logic copied from map_to_extended_zgrid)
+      do iky = 1, naky
+         do ie = 1, neigen(iky)
+            iseg = 1
+            ikx = ikxmod(iseg, ie, iky)
+            llim = 1; ulim = nzed_segment + 1
+            ikxmod_zext(llim:ulim, ie, iky) = ikx
+            if (nsegments(ie, iky) > 1) then
+              do iseg = 2, nsegments(ie, iky)
+                 ikx = ikxmod(iseg, ie, iky)
+                 llim = ulim + 1
+                 ulim = llim + nzed_segment - 1
+                 ikxmod_zext(llim:ulim, ie, iky) = ikx
+              end do
+            end if
+         end do
+      end do
    end subroutine init_extended_zgrid
 
    subroutine fill_zed_ghost_zones(it, iseg, ie, iky, g, gleft, gright)
@@ -411,6 +442,7 @@ contains
       if (allocated(nsegments)) deallocate (nsegments)
       if (allocated(iz_low)) deallocate (iz_low, iz_mid, iz_up)
       if (allocated(ikxmod)) deallocate (ikxmod)
+      if (allocated(ikxmod_zext)) deallocate (ikxmod_zext)
       if (allocated(it_right)) deallocate (it_right)
       if (allocated(it_left)) deallocate (it_left)
       if (allocated(phase_shift)) deallocate (phase_shift)
