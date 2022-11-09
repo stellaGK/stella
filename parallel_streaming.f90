@@ -1200,8 +1200,8 @@ contains
                   if (stream_drifts_implicit) then
                      ikx = ikxmod_zext(izext, iky, ie)
                      fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
-                                 * ( zi * wdriftx_g_centered(iz,ivmu) *akx(ikx) &
-                                   + zi * wdrifty_g_centered(iz,ivmu) *aky(iky) )
+                            * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                               + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
                   end if
                   gext(izext) = gext(izext) / fac1
                   do izext = iz1 - sgn, iz2, -sgn
@@ -1215,11 +1215,11 @@ contains
                      if (stream_drifts_implicit) then
                         ikx = ikxmod_zext(izext, iky, ie)
                         fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
-                                    * ( zi * wdriftx_g_centered(iz,ivmu) *akx(ikx) &
-                                      + zi * wdrifty_g_centered(iz,ivmu) *aky(iky) )
+                               * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                                  + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
                         fac2 = fac2 - 0.25 * (1.0 - zed_upwind) * (1.0 + time_upwind) &
-                                    * ( zi * wdriftx_g_centered(iz,ivmu) *akx(ikx) &
-                                      + zi * wdrifty_g_centered(iz,ivmu) *aky(iky) )
+                               * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                                  + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
                      end if
                      gext(izext) = (-gext(izext + sgn) * fac2 + gext(izext)) / fac1
                   end do

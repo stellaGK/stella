@@ -313,12 +313,12 @@ contains
             llim = 1; ulim = nzed_segment + 1
             ikxmod_zext(llim:ulim, ie, iky) = ikx
             if (nsegments(ie, iky) > 1) then
-              do iseg = 2, nsegments(ie, iky)
-                 ikx = ikxmod(iseg, ie, iky)
-                 llim = ulim + 1
-                 ulim = llim + nzed_segment - 1
-                 ikxmod_zext(llim:ulim, ie, iky) = ikx
-              end do
+               do iseg = 2, nsegments(ie, iky)
+                  ikx = ikxmod(iseg, ie, iky)
+                  llim = ulim + 1
+                  ulim = llim + nzed_segment - 1
+                  ikxmod_zext(llim:ulim, ie, iky) = ikx
+               end do
             end if
          end do
       end do
