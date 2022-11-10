@@ -523,8 +523,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1210,6 +1210,7 @@ contains
       logical :: skip_fsa_local, has_elec, adia_elec
       integer :: ivmu, iv, imu
       complex, dimension(:, :, :, :), allocatable :: antot1, antot3
+      real, dimension(:, :, :, :), allocatable :: denom_1, denom_2
 
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
@@ -1269,6 +1270,8 @@ contains
             ! timestep at the expense of memory?
             allocate (antot1(naky, nakx, -nzgrid:nzgrid, ntubes)); antot1 = 0.
             allocate (antot3(naky, nakx, -nzgrid:nzgrid, ntubes)); antot3 = 0.
+            allocate (denom_1(naky, nakx, -nzgrid:nzgrid, ntubes)); denom_1 = 0.
+            allocate (denom_2(naky, nakx, -nzgrid:nzgrid, ntubes)); denom_2 = 0.
 
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -1293,22 +1296,41 @@ contains
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), antot3)
 
             if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-
             ! Now get phi, bpar
             if (dist == "gbar") then
-               phi = (antot1 - (spread(gamtot13, 4, ntubes) / spread(gamtot33, 4, ntubes)) * antot3) &
-                     / (spread(gamtot, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / spread(gamtot33, 4, ntubes)))
-               bpar = (antot3 - (spread(gamtot31, 4, ntubes) / spread(gamtot, 4, ntubes)) * antot1) &
-                      / (spread(gamtot33, 4, ntubes) - (spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes)) / spread(gamtot, 4, ntubes))
+               denom_1 = spread(gamtot33, 4, ntubes)
+               where (denom_1 < epsilon(0.0))
+                  phi = 0.
+               elsewhere
+                  denom_2 = spread(gamtot, 4, ntubes) - spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / denom_1
+                  where (denom_2 < epsilon(0.0))
+                     phi = 0.
+                  elsewhere
+                     phi = (antot1 - (spread(gamtot13, 4, ntubes) / denom_1) * antot3) / denom_2
+                  end where
+               end where
+
+               denom_1 = spread(gamtot, 4, ntubes)
+               where (denom_1 < epsilon(0.0))
+                  bpar = 0.
+               elsewhere
+                  denom_2 = spread(gamtot33, 4, ntubes) - spread(gamtot13, 4, ntubes) * spread(gamtot31, 4, ntubes) / denom_1
+                  where (denom_2 < epsilon(0.0))
+                     bpar = 0.
+                  elsewhere
+                     bpar = (antot3 - (spread(gamtot31, 4, ntubes) / denom_1) * antot1) / denom_2
+                  end where
+               end where
             else if (dist == "h") then
                phi = antot1 / spread(gamtot_h, 4, ntubes)
                bpar = antot3 / bpar_denom_h
             else
                call mp_abort("dist not recgonised. Aborting")
             end if
-
             deallocate (antot1)
             deallocate (antot3)
+            deallocate (denom_1)
+            deallocate (denom_2)
          else
             ! Calculate bpar only. The formulae is
             !   bpar = (antot3 / gamtot33 )
@@ -1375,36 +1397,6 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
       end if
-      !!! Old code - probably just delete this.
-!       apar = 0.
-!       if (fapar > epsilon(0.0)) then
-!          ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
-!          call mp_abort('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
-! !        allocate (g0(-nvgrid:nvgrid,nmu))
-! !        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-! !           iz = iz_idx(kxkyz_lo,ikxkyz)
-! !           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-! !           iky = iky_idx(kxkyz_lo,ikxkyz)
-! !           is = is_idx(kxkyz_lo,ikxkyz)
-! !           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
-! !           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
-! !           call integrate_vmu (g0, iz, tmp)
-! !           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
-! !        end do
-! !        call sum_allreduce (apar)
-! !        if (dist == 'h') then
-! !           apar = apar/kperp2
-! !        else if (dist == 'gbar') then
-! !           apar = apar/apar_denom
-! !        else if (dist == 'gstar') then
-! !           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
-! !           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
-! !        else
-! !           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
-! !           call mp_abort ('unknown dist option in get_fields. aborting')
-! !        end if
-! !        deallocate (g0)
-!       end if
 
    end subroutine get_fields_vmulo
 
