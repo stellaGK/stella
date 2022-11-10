@@ -1268,15 +1268,15 @@ contains
          fac2 = 0.5 * (1.0 - zed_upwind) - sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
 
          if (stream_drifts_implicit) then
-           ! Need to get ikx. Since these are zonal modes, they only have
-           ! 1 segment.
-           ikx = ikxmod(1, ie, iky)
-           fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
-                  * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
-                     + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
-           fac2 = fac2 - 0.25 * (1.0 - zed_upwind) * (1.0 + time_upwind) &
-                  * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
-                     + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
+            ! Need to get ikx. Since these are zonal modes, they only have
+            ! 1 segment.
+            ikx = ikxmod(1, ie, iky)
+            fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
+                   * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                      + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
+            fac2 = fac2 - 0.25 * (1.0 - zed_upwind) * (1.0 + time_upwind) &
+                   * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                      + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
          end if
          gpi(iz) = (-gpi(iz + sgn) * fac2 + g(iz)) / fac1
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
