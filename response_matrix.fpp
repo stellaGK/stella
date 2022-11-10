@@ -607,7 +607,7 @@ contains
       do iz = iz_low(iseg), izup
          idx = idx + 1
          matrix_idx = matrix_idx + 1
-         call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, hext, field_name)
+         call get_dgdfield_matrix_column(iky, ikx, iz, ie, hext, field_name)
          ! Check - do we need do anything special fo the first seg?
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
@@ -640,7 +640,7 @@ contains
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
                matrix_idx = matrix_idx + 1
-               call get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, hext, field_name)
+               call get_dgdfield_matrix_column(iky, ikx, iz, ie, hext, field_name)
 #ifdef ISO_C_BINDING
                call mpi_win_fence(0, response_window, ierr)
 #endif
@@ -667,39 +667,28 @@ contains
 
    !> Apply a unit impulse in a field (phi, apar, or bpar) at time {n+1} at a
    !> single iz location. Get the corresponding value g_h at every z value.
-   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, hext, field_name)
+   subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, hext, field_name)
 
       use mp, only: mp_abort
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_time, only: code_dt
-      use zgrid, only: delzed, nzgrid, ntubes
-      use extended_zgrid, only: periodic, phase_shift
+      use zgrid, only: nzgrid, ntubes
+      use extended_zgrid, only: periodic
       use extended_zgrid, only: map_to_extended_zgrid
-      use species, only: spec
-      use stella_geometry, only: gradpar, dbdzed
-      use vpamu_grids, only: vpa, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use fields, only: get_gyroaverage_chi, get_dchidy
-      use fields_arrays, only: response_matrix, phi, apar, bpar
-      use dist_fn_arrays, only: wstar
-      use gyro_averages, only: aj0x, aj1x
-      use run_parameters, only: driftkinetic_implicit, stream_drifts_implicit
+      use fields_arrays, only: phi, apar, bpar
+      use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
       use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal, get_gke_rhs
-      use parallel_streaming, only: stream_sign!, center_zed
       use run_parameters, only: zed_upwind, time_upwind
       use kt_grids, only: nakx, naky
 
       implicit none
 
-      integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
+      integer, intent(in) :: iky, ikx, iz, ie
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: hext
       character(*), intent(in) :: field_name
 
-      integer :: ivmu, iv, imu, is, ia, ulim, it
-      integer :: izp, izm
-      real :: mu_dbdzed_p, mu_dbdzed_m
+      integer :: ivmu, ia, ulim, it
       ! complex :: fac, fac0, fac1, gyro_chi, phi, apar, bpar, dchidy, wstar_fac
       complex, dimension(:, :, :, :), allocatable :: hold_dummy, h, deltaphi, deltaapar, deltabpar
 
@@ -735,9 +724,6 @@ contains
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
             hext(:, ivmu) = 0.0; h = 0.
-            iv = iv_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            is = is_idx(vmu_lo, ivmu)
 
             ! Because we're solving the homogeneous equation, phi, apar, bpar
             ! are not used. They are included here as dummy arguments.
@@ -847,7 +833,7 @@ contains
             call map_to_extended_zgrid(it, ie, iky, h(iky, :, :, :), hext(:, ivmu), ulim)
 
             if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu))
+               call sweep_zed_zonal(iky, ie, ivmu, hext(:, ivmu))
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext
@@ -1101,15 +1087,11 @@ contains
    subroutine get_fields_for_response_matrix(hext, fields_ext, iky, ie, nresponse_per_field)
 
       use stella_layouts, only: vmu_lo
-      use species, only: spec
       use species, only: has_electron_species
-      use stella_geometry, only: dl_over_b
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod, periodic
       use extended_zgrid, only: nsegments
       use kt_grids, only: zonal_mode, akx
-      use zgrid, only: nzgrid
-      use fields_arrays, only: gamtot, gamtot3
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields, only: get_fields_vmulo_0D
@@ -1124,12 +1106,7 @@ contains
 
       integer :: g_idx, phi_idx, apar_idx, bpar_idx, iseg, ikx, ia, ifield, iz
       integer :: izl_offset, izup
-      complex :: tmp
       complex :: phi, apar, bpar
-
-      ! allocate (phi(-nzgrid:nzgrid))
-      ! allocate (apar(-nzgrid:nzgrid))
-      ! allocate (bpar(-nzgrid:nzgrid))
 
       fields_ext = 0.
       ia = 1

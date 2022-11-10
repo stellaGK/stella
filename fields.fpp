@@ -523,8 +523,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -2308,13 +2308,12 @@ contains
       use physics_flags, only: radial_variation
       use run_parameters, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: dl_over_b
       use kt_grids, only: nakx, naky, zonal_mode
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use fields_arrays, only: gamtot, gamtot3, gamtot_h
+      use fields_arrays, only: gamtot, gamtot_h
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -2960,7 +2959,6 @@ contains
       use vpamu_grids, only: nvpa, nmu, vpa, mu
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use run_parameters, only: fphi, fapar, fbpar
 
@@ -3144,8 +3142,6 @@ contains
    subroutine get_dchidy_3d(ivmu, phi, apar, bpar, dchidy)
 
       use constants, only: zi
-      use stella_layouts, only: vmu_lo
-      use run_parameters, only: fphi, fapar
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, aky, naky
 

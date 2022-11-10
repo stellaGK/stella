@@ -1464,7 +1464,6 @@ contains
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
       use fields, only: get_dchidy
-      use fields_arrays, only: phi, apar, bpar
       use spectral_derivatives, only: get_dgdy
 
       implicit none
@@ -1561,7 +1560,6 @@ contains
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
       use fields, only: get_dchidx
-      use fields_arrays, only: phi, apar, bpar
       use spectral_derivatives, only: get_dgdx
 
       implicit none

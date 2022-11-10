@@ -993,8 +993,6 @@ contains
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: map_from_extended_zgrid
       use extended_zgrid, only: periodic
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
       use kt_grids, only: naky
 
       implicit none
@@ -1002,20 +1000,15 @@ contains
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
 
-      integer :: iv, is
       integer :: iky, ie, it
-      integer :: ulim, sgn
+      integer :: ulim
       complex, dimension(:), allocatable :: gext
-
-      iv = iv_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-      sgn = stream_sign(iv)
 
       do iky = 1, naky
          if (periodic(iky)) then
             do it = 1, ntubes
                do ie = 1, neigen(iky)
-                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
+                  call sweep_zed_zonal(iky, ie, ivmu, g(iky, ie, :, it))
                end do
             end do
          else
@@ -1181,7 +1174,7 @@ contains
          if (periodic(iky)) then
             do it = 1, ntubes
                do ie = 1, neigen(iky)
-                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
+                  call sweep_zed_zonal(iky, ie, ivmu, g(iky, ie, :, it))
                end do
             end do
          else
@@ -1233,21 +1226,29 @@ contains
 
    end subroutine sweep_g_zed
 
-   subroutine sweep_zed_zonal(iky, iv, is, sgn, g)
+   subroutine sweep_zed_zonal(iky, ie, ivmu, g)
 
+      use constants, only: zi
       use zgrid, only: nzgrid, delzed
-      use extended_zgrid, only: phase_shift
-      use run_parameters, only: zed_upwind, time_upwind
+      use extended_zgrid, only: phase_shift, ikxmod
+      use run_parameters, only: zed_upwind, time_upwind, stream_drifts_implicit
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx, is_idx
+      use kt_grids, only: akx, aky
 
       implicit none
 
-      integer, intent(in) :: iky, iv, is, sgn
+      integer, intent(in) :: iky, ie, ivmu
       complex, dimension(-nzgrid:), intent(in out) :: g
 
-      integer :: iz, iz1, iz2
-      real :: fac1, fac2
+      integer :: iz, iz1, iz2, iv, is, sgn, ikx
+      complex :: fac1, fac2
       complex :: pf
       complex, dimension(:), allocatable :: gcf, gpi
+
+      iv = iv_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      sgn = stream_sign(iv)
 
       allocate (gpi(-nzgrid:nzgrid))
       allocate (gcf(-nzgrid:nzgrid))
@@ -1263,9 +1264,21 @@ contains
       pf = phase_shift(iky)**(-sgn)
       gpi(iz1) = 0.; gcf(iz1) = 1.
       do iz = iz1 - sgn, iz2, -sgn
-         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz)) / fac1
+         fac1 = 0.5 * (1.0 + zed_upwind) + sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+         fac2 = 0.5 * (1.0 - zed_upwind) - sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+
+         if (stream_drifts_implicit) then
+           ! Need to get ikx. Since these are zonal modes, they only have
+           ! 1 segment.
+           ikx = ikxmod(1, ie, iky)
+           fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
+                  * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                     + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
+           fac2 = fac2 - 0.25 * (1.0 - zed_upwind) * (1.0 + time_upwind) &
+                  * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
+                     + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
+         end if
+         gpi(iz) = (-gpi(iz + sgn) * fac2 + g(iz)) / fac1
          gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF

@@ -31,7 +31,6 @@ contains
 
    subroutine init_mirror
 
-      use mp, only: iproc, nproc
       use stella_time, only: code_dt
       use species, only: spec, nspec
       use vpamu_grids, only: nmu
@@ -122,7 +121,7 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
-            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
+            allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec));
             mirror_rad_var = 0.
          end if
          !FLAG should include neoclassical corrections here?
@@ -326,17 +325,15 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use kt_grids, only: naky, nakx
       ! use physics_flags, only: full_flux_surface
-      use species, only: spec
       use fields, only: get_fields
       use fields_arrays, only: mirror_response_matrix, mirror_response_matrix_idx
       use run_parameters, only: fphi, fapar, fbpar
-      use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
       use linear_solve, only: lu_decomposition
 
       implicit none
 
       integer :: nfields, ifield, jfield
-      integer :: ikxkyz, iz, is, iky, ikx, it
+      integer :: ikxkyz, iz, iky, ikx, it
       real :: dum
       complex, dimension(:, :, :), allocatable :: h0v
       complex, dimension(:, :, :, :, :), allocatable :: h0x
@@ -480,7 +477,7 @@ contains
       use stella_layouts, only: is_idx, imu_idx, iv_idx, iy_idx, iz_idx
       use stella_layouts, only: kxkyz_lo
       use species, only: spec
-      use vpamu_grids, only: nvpa, nmu
+      use vpamu_grids, only: nmu
       use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use gyro_averages, only: aj0v, aj1v
