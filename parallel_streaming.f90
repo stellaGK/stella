@@ -1191,7 +1191,7 @@ contains
                   izext = iz1; iz = sgn * nzgrid
                   fac1 = 0.5 * (1.0 + zed_upwind) + sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
                   if (stream_drifts_implicit) then
-                     ikx = ikxmod_zext(izext, iky, ie)
+                     ikx = ikxmod_zext(izext, ie, iky)
                      fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
                             * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
                                + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
@@ -1206,7 +1206,7 @@ contains
                      fac1 = 0.5 * (1.0 + zed_upwind) + sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
                      fac2 = 0.5 * (1.0 - zed_upwind) - sgn * 0.5 * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
                      if (stream_drifts_implicit) then
-                        ikx = ikxmod_zext(izext, iky, ie)
+                        ikx = ikxmod_zext(izext, ie, iky)
                         fac1 = fac1 - 0.25 * (1.0 + zed_upwind) * (1.0 + time_upwind) &
                                * (zi * wdriftx_g_centered(iz, ivmu) * akx(ikx) &
                                   + zi * wdrifty_g_centered(iz, ivmu) * aky(iky))
