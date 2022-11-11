@@ -523,8 +523,8 @@ contains
          end do
 
          if (adia_elec) then
-            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx));
-            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid));
+            if (.not. allocated(c_mat)) allocate (c_mat(nakx, nakx)); 
+            if (.not. allocated(theta)) allocate (theta(nakx, nakx, -nzgrid:nzgrid)); 
             !get C
             do ikx = 1, nakx
                g0k(1, :) = 0.0
@@ -1062,7 +1062,7 @@ contains
                   elsewhere
                      bpar = 0.
                   end where
-                end where
+               end where
 
             else if (dist == "h") then
                denom_1 = spread(gamtot_h, 4, ntubes)
@@ -1821,7 +1821,7 @@ contains
             ! Sum species, integrate over velocity and store in bpar
             call integrate_species(g_gyro, (-2 * beta * spec%dens_psi0 * spec%temp_psi0), bpar)
             if (dist == "gbar") then
-               denom_1 =  gamtot33(iky, ikx, :)
+               denom_1 = gamtot33(iky, ikx, :)
                where (denom_1 < epsilon(0.))
                   bpar = 0.
                elsewhere
@@ -1887,8 +1887,8 @@ contains
       deallocate (g_gyro)
       deallocate (antot1)
       deallocate (antot3)
-      deallocate(denom_1)
-      deallocate(denom_2)
+      deallocate (denom_1)
+      deallocate (denom_2)
 
    end subroutine get_fields_vmulo_1D
 
