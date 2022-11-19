@@ -670,9 +670,9 @@ contains
    subroutine get_dgdfield_matrix_column(iky, ikx, iz, ie, hext, field_name)
 
       use mp, only: mp_abort
-      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: vmu_lo, iv_idx
       use zgrid, only: nzgrid, ntubes
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
       use extended_zgrid, only: map_to_extended_zgrid
       use fields, only: get_gyroaverage_chi, get_dchidy
       use fields_arrays, only: phi, apar, bpar
@@ -681,6 +681,7 @@ contains
       use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal, get_gke_rhs
       use run_parameters, only: zed_upwind, time_upwind
       use kt_grids, only: nakx, naky
+      use parallel_streaming, only: stream_sign
 
       implicit none
 
@@ -688,7 +689,7 @@ contains
       complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: hext
       character(*), intent(in) :: field_name
 
-      integer :: ivmu, ia, ulim, it
+      integer :: ivmu, ia, ulim, it, iv, sgn
       ! complex :: fac, fac0, fac1, gyro_chi, phi, apar, bpar, dchidy, wstar_fac
       complex, dimension(:, :, :, :), allocatable :: hold_dummy, h, deltaphi, deltaapar, deltabpar
 
@@ -724,6 +725,19 @@ contains
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
             hext(:, ivmu) = 0.0; h = 0.
+
+            ! Enforce periodicity for zonal modes
+            if (periodic(iky)) then
+               iv = iv_idx(vmu_lo, ivmu)
+               !> stream_sign > 0 corresponds to dz/dt < 0
+               sgn = stream_sign(iv)
+               deltaphi(iky, ikx, sgn * nzgrid, it) = &
+                  deltaphi(iky, ikx, -sgn * nzgrid, it) * phase_shift(iky)**(-sgn)
+               deltaapar(iky, ikx, sgn * nzgrid, it) = &
+                  deltaapar(iky, ikx, -sgn * nzgrid, it) * phase_shift(iky)**(-sgn)
+               deltabpar(iky, ikx, sgn * nzgrid, it) = &
+                  deltabpar(iky, ikx, -sgn * nzgrid, it) * phase_shift(iky)**(-sgn)
+            end if
 
             ! Because we're solving the homogeneous equation, phi, apar, bpar
             ! are not used. They are included here as dummy arguments.
@@ -829,6 +843,21 @@ contains
             !       end if
             !    end if
             ! end if
+            ! if (periodic(iky)) then
+            !
+            ! end if
+
+            ! Enforce periodicity for zonal modes
+            ! I don't think this is needed (the redundant point should be
+            ! ignored), but just in case; this reproduces the algorithm in which
+            ! the entries are calculated in this subroutine.
+            if (periodic(iky)) then
+               iv = iv_idx(vmu_lo, ivmu)
+               !> stream_sign > 0 corresponds to dz/dt < 0
+               sgn = stream_sign(iv)
+               h(iky, ikx, sgn * nzgrid, it) = &
+                  h(iky, ikx, -sgn * nzgrid, it) * phase_shift(iky)**(-sgn)
+            end if
 
             call map_to_extended_zgrid(it, ie, iky, h(iky, :, :, :), hext(:, ivmu), ulim)
 
