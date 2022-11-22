@@ -1,4 +1,3 @@
-
 module time_advance
 
    public :: init_time_advance, finish_time_advance
@@ -1262,6 +1261,7 @@ contains
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
 
+      use run_parameters, only: driftkinetic_implicit
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1342,9 +1342,11 @@ contains
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming .and. (.not. stream_implicit)) then
-            if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-            call advance_parallel_streaming_explicit(gin, phi, rhs)
+         if (include_parallel_streaming) then 
+            if(.not. stream_implicit .or. driftkinetic_implicit) then 
+               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+               call advance_parallel_streaming_explicit(gin, phi, rhs)
+            end if
          end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated

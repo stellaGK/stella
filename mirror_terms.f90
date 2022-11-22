@@ -620,7 +620,7 @@ contains
          ! first must take g^{*}(ky) and transform to g^{*}(y)
          call transform_ky2y(g, g0x)
 
-         write (*, *) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
+!         write (*, *) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
 
          ! convert g to g*(integrating factor), as this is what is being advected
          ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
@@ -639,7 +639,7 @@ contains
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                iv = iv_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
-               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
+               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
             end do
          end if
 
@@ -672,7 +672,7 @@ contains
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                iv = iv_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
-               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
+               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
             end do
          end if
 
