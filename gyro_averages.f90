@@ -272,8 +272,8 @@ contains
       complex, dimension(:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
 
       !! GA
-      real, dimension(:), allocatable :: B_maxwell 
-      complex, dimension(:), allocatable :: B_maxwell_kalpha
+!      real, dimension(:), allocatable :: B_maxwell 
+!      complex, dimension(:), allocatable :: B_maxwell_kalpha
 
       !       call open_output_file (j0_ffs_unit, '.j0_ffs')
       !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
@@ -298,11 +298,11 @@ contains
       end if
       
       !! GA
-      allocate (B_maxwell(nalpha))
-      allocate (B_maxwell_kalpha(naky))
-      if (.not. allocated(B_maxwell_ffs)) then
-         allocate (B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      end if
+      ! allocate (B_maxwell(nalpha))
+      ! allocate (B_maxwell_kalpha(naky))
+      ! if (.not. allocated(B_maxwell_ffs)) then
+      !    allocate (B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      ! end if
 
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
       do iz = -nzgrid, nzgrid
@@ -329,7 +329,7 @@ contains
                      !> compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
                      !> due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
                      j0_B_maxwell(ia) = aj0_alpha(ia) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
-                     B_maxwell(ia) = bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+!>>                     B_maxwell(ia) = bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                   end do
                   !> fourier transform aj0_alpha and j0_B_maxwell.
                   !> note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
@@ -337,7 +337,7 @@ contains
                   call transform_alpha2kalpha(aj0_alpha, aj0_kalpha)
                   call transform_alpha2kalpha(j0_B_maxwell, j0_B_maxwell_kalpha)
                   !! GA
-                  call transform_alpha2kalpha(B_maxwell, B_maxwell_kalpha)
+!>>                  call transform_alpha2kalpha(B_maxwell, B_maxwell_kalpha)
                   !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
@@ -346,7 +346,7 @@ contains
                   j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                   j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky 
                   !! GA
-                  B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky
+!>>                  B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky
 !                  call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
@@ -364,21 +364,20 @@ contains
                   if (.not. associated(j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier)) &
                      allocate (j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx))
                   !! GA
-                  if (.not. associated(B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                     allocate (B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier(B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx))
+!>>                  if (.not. associated(B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier)) &
+!>>                     allocate (B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier(B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx))
                   !> fill the array with the requisite coefficients
                   j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
                   !! GA 
-                  B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = B_maxwell_kalpha(:B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
+!>>                  B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = B_maxwell_kalpha(:B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
                end do
             end do
          end do
       end do
       deallocate (aj0_alpha, j0_B_maxwell, j0_B_maxwell_kalpha)
       !! GA
-      deallocate(B_maxwell, B_maxwell_kalpha)
-
+!>>      deallocate(B_maxwell, B_maxwell_kalpha)
       !> calculate the reduction factor of Fourier modes
       !> used to represent J0
       !> avoid overflow by converting integers to reals before multiplying
@@ -394,7 +393,6 @@ contains
             ia_max_j0_B_maxwell_reduction_factor * naky, 'out of ', naky
          write (*, *)
       end if
-
       deallocate (wgts)
       deallocate (aj0_kalpha)
       deallocate (kperp2_swap)

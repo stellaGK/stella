@@ -58,12 +58,15 @@ contains
       use physics_flags, only: include_parallel_streaming, radial_variation
 
       use run_parameters, only: driftkinetic_implicit
+      use mp, only: proc0
+      use volume_averages, only: alpha_average_ffs_realspace
       implicit none
 
       integer :: iv, imu, is, ivmu
       integer :: ia, iz
 
       real, dimension(:), allocatable :: energy
+      real, dimension (:,:,:), allocatable :: stream_store 
 
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
@@ -73,6 +76,7 @@ contains
       
       if(driftkinetic_implicit) then 
          if(.not. allocated(stream_correction)) allocate(stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
+         if(.not. allocated(stream_store)) allocate(stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
       end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
@@ -83,6 +87,10 @@ contains
                do ia = 1, nalpha
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
+               
+               do is = 1, nspec 
+                  call alpha_average_ffs_realspace (stream(:,iz,iv,is), stream_store(iz,iv,is), iz) 
+               end do
             end do
          end do
       else
@@ -90,9 +98,10 @@ contains
       end if
 
       !! GA get correction term [ (b.grad z) - (b.grad z)_0 ]
-      if(driftkinetic_implicit) then 
-         stream_correction = stream - spread(stream(1,:,:,:),1,nalpha)
+      if(driftkinetic_implicit) then          
+         stream_correction = stream - spread(stream_store,1,nalpha)
       end if
+      deallocate(stream_store) 
 
       if (radial_variation) then
          allocate (energy(-nzgrid:nzgrid))
@@ -221,11 +230,11 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
       
-      complex, dimension(:, :, :, :), allocatable :: g0_correction, dgphi_dz_correction
+      complex, dimension(:, :, :, :), allocatable :: dgphi_dz_correction
       complex, dimension(:, :, :, :), allocatable :: g1y_correction
       complex, dimension(:, :), allocatable :: g0_swap_correction 
       complex, dimension (:,:,:,:), allocatable :: phi1
-      logical :: modify_for_par
+      logical :: const_in_alpha
 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
@@ -244,9 +253,7 @@ contains
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          
          if (driftkinetic_implicit) then 
-            allocate (g0_correction(naky, nakx, -nzgrid:nzgrid, ntubes))
             allocate (dgphi_dz_correction(naky, nakx, -nzgrid:nzgrid, ntubes))
-!            allocate (g0y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes))
             allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes))
             allocate (g0_swap_correction(naky_all, ikx_max))
 
@@ -255,13 +262,9 @@ contains
       end if
 
       if (driftkinetic_implicit) then
-         !! GA - get the part of phi that is constant in alpha and call this phi0
-         !! GA - gamma0 * phi0 = avg in alpha (int d^3v g)
-!         fields_updated = .false.
-!         call advance_fields(g, phi0, apar, dist='gbar', const_in_alpha = .true.)
-          !! GA get phibar = int d^3v <g> - avg in alpha (int d^3v g) 
+         !! GA get avgphi
          fields_updated = .false.
-         call advance_fields(g, phi1, apar, dist='gbar', modify_for_par=.true.)
+         call advance_fields(g, phi1, apar, dist='gbar', const_in_alpha = const_in_alpha) 
       end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -270,16 +273,13 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
-         !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-         !! GA - g0 = <phi>
-         call gyro_average(phi, ivmu, g0(:, :, :, :))
-
          if (driftkinetic_implicit) then 
-!            call gyro_average(phi1, ivmu, g0(:, :, :, :))
-            !! GA store <phi> - avg(phi)
-            g0_correction = g0 - spread(phi1(:,:,:,1), 4,ntubes)
-            !! GA get d<phi>/dz - d/dz (avg(phi))
-            call get_dgdz_centered(g0_correction, ivmu, dgphi_dz_correction) 
+            !! GA get d(avgphi)/dz
+            call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction) 
+            !! GA get <phi>
+            call gyro_average(phi, ivmu, g0(:, :, :, :))
+         else
+            call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
@@ -294,16 +294,7 @@ contains
 
          !> compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
-         !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
-         !> in y-space, so FFT d(g/F)/dz from ky to y
-         if (full_flux_surface) then
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  call swap_kxky(g0(:, :, iz, it), g0_swap)
-                  call transform_ky2y(g0_swap, g0y(:, :, iz, it))
-               end do
-            end do
-         end if
+
          ! ! if simulating a full flux surface, must calculate F * d/dz (g/F) rather than dg/dz
          ! ! since F=F(y) in this case, avoid multiple Fourier transforms by applying chain rule
          ! ! to z derivative: F * d/dz (g/F) = dg/dz - g * d ln F / dz = dg/dz + g * mu/T * dB/dz
@@ -312,7 +303,7 @@ contains
          !    g1y = g(:,:,:,:,ivmu)
          !    do it = 1, ntubes
          !       do iz = -nzgrid, nzgrid
-         !          call transform_ky2y (g1y(:,:,iz,it), g0y(:,:,iz,it))
+        !          call transform_ky2y (g1y(:,:,iz,it), g0y(:,:,iz,it))
          !          ! no longer need g1y so re-use as FFT of dg/dz (g0)
          !          call transform_ky2y (g0(:,:,iz,it), g1y(:,:,iz,it))
          !       end do
@@ -324,10 +315,16 @@ contains
 
 
          if (full_flux_surface) then
+            !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
+            !> in y-space, so FFT d(g/F)/dz from ky to y
+
             !> transform d<phi>/dz (fully explicit) or d(<phi>-phi)/dz (if driftkinetic_implicit)
             !> from kalpha (ky) to alpha (y) space and store in g1y
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
+                  call swap_kxky(g0(:, :, iz, it), g0_swap)
+                  call transform_ky2y(g0_swap, g0y(:, :, iz, it))
+
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
 
@@ -339,15 +336,15 @@ contains
             end do
 
             if (driftkinetic_implicit) then
-               !! GA Add stream contribution with (b . grad z) constant in alpha
-               !! this multiplies d/dz( g - avg(g) ) + Z/T * d/dz( <phi> - avg(phi)) 
-               g1y_correction = g0y(:, :, :, :) - spread(g0y(:, :, :, 1), 4, ntubes) & 
-                    + g1y_correction* spec(is)%zt
-               call add_stream_term(g1y_correction, ivmu, gout(:, :, :, :, ivmu))
                !! GA Here g0y = dg/dz + Z/T * d<phi>/dz
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
-               !! GA get contribution from part of (b . grad z) that is not constant in alpha 
+               !! GA get contribution from part of [(b . grad z) - avg(b . grad z)]-> not constant in alpha 
                call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
+
+               !! GA Add stream contribution with (b . grad z) constant in alpha
+               !! this multiplies Z/T * d/dz( <phi> - avg(phi) )
+               g1y =  (g1y- g1y_correction) * spec(is)%zt
+               call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
             else
                !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
@@ -358,7 +355,6 @@ contains
                !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
                call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
             end if
-
          else
             ia = 1
             g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
@@ -374,7 +370,7 @@ contains
       deallocate (g0, dgphi_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
 
-      if(driftkinetic_implicit) deallocate(g0_correction, dgphi_dz_correction, g0_swap_correction, g1y_correction)
+      if(driftkinetic_implicit) deallocate(dgphi_dz_correction, g0_swap_correction, g1y_correction)
       if(driftkinetic_implicit) deallocate(phi1) 
       !> finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
@@ -668,7 +664,8 @@ contains
       use dist_fn_arrays, only: g1
       use run_parameters, only: stream_matrix_inversion
       use fields, only: advance_fields, fields_updated
-
+      
+      use run_parameters, only: driftkinetic_implicit
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -676,6 +673,7 @@ contains
 
       integer :: ivmu
       complex, dimension(:, :, :, :), allocatable :: phi1
+      logical :: const_in_alpha 
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
@@ -684,6 +682,13 @@ contains
       ! save the incoming g and phi, as they will be needed later
       g1 = g
       phi1 = phi
+
+      if(driftkinetic_implicit) then
+         const_in_alpha = .true.
+         fields_updated = .false. 
+         call advance_fields(g, phi, apar, dist='gbar', const_in_alpha = const_in_alpha)
+         phi1 = phi
+      end if
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -707,7 +712,11 @@ contains
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist='gbar', const_in_alpha =.true.)
+      if(driftkinetic_implicit) then 
+         call advance_fields(g, phi, apar, dist='gbar', const_in_alpha = const_in_alpha)
+      else
+         call advance_fields(g, phi, apar, dist='gbar')
+      end if
 
       ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
       ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
@@ -834,7 +843,6 @@ contains
             ! multiply by Maxwellian factor
             dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
          end if
-         
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
@@ -842,7 +850,9 @@ contains
          !! GA - no maxwellian when doing FFS 
          call get_dzed(iv, g, dphidz)
          call center_zed(iv, g)
+         vpadf0dE_fac = vpa(iv) * spec(is)%zt
       end if
+
          ! if including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*Z/T
          ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -1300,6 +1310,7 @@ contains
          deallocate (stream_tri_c2)
       end if
 
+      if (allocated(stream_correction)) deallocate (stream_correction)
    end subroutine finish_invert_stream_operator
 
 end module parallel_streaming
