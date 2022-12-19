@@ -87,10 +87,11 @@ contains
                do ia = 1, nalpha
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
-               
-               do is = 1, nspec 
-                  call alpha_average_ffs_realspace (stream(:,iz,iv,is), stream_store(iz,iv,is), iz) 
-               end do
+               if(driftkinetic_implicit) then 
+                  do is = 1, nspec 
+                     call alpha_average_ffs_realspace (stream(:,iz,iv,is), stream_store(iz,iv,is), iz) 
+                  end do
+               end if
             end do
          end do
       else
@@ -100,8 +101,8 @@ contains
       !! GA get correction term [ (b.grad z) - (b.grad z)_0 ]
       if(driftkinetic_implicit) then          
          stream_correction = stream - spread(stream_store,1,nalpha)
+         deallocate(stream_store) 
       end if
-      deallocate(stream_store) 
 
       if (radial_variation) then
          allocate (energy(-nzgrid:nzgrid))
