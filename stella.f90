@@ -13,7 +13,7 @@ program stella
    use dist_fn_arrays, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
-   
+
    use mp, only: proc0
    implicit none
 
@@ -27,7 +27,7 @@ program stella
    real, dimension(2) :: time_diagnostics = 0.
    real, dimension(2) :: time_total = 0.
 
-   logical :: const_in_alpha 
+   logical :: const_in_alpha
 
    call parse_command_line()
 

@@ -272,7 +272,7 @@ contains
       complex, dimension(:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
 
       !! GA
-!      real, dimension(:), allocatable :: B_maxwell 
+!      real, dimension(:), allocatable :: B_maxwell
 !      complex, dimension(:), allocatable :: B_maxwell_kalpha
 
       !       call open_output_file (j0_ffs_unit, '.j0_ffs')
@@ -296,7 +296,7 @@ contains
       if (.not. allocated(j0_B_maxwell_ffs)) then
          allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
-      
+
       !! GA
       ! allocate (B_maxwell(nalpha))
       ! allocate (B_maxwell_kalpha(naky))
@@ -343,8 +343,8 @@ contains
                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
                   !                ! TMP FOR TESTING
                   !!!!!!!!!!!!!!!!!!!!
-                  j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
-                  j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky 
+                  j0_ffs(iky, ikx, iz, ivmu)%max_idx = naky
+                  j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky
                   !! GA
 !>>                  B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky
 !                  call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
@@ -369,7 +369,7 @@ contains
                   !> fill the array with the requisite coefficients
                   j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
-                  !! GA 
+                  !! GA
 !>>                  B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = B_maxwell_kalpha(:B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
                end do
             end do

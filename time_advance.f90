@@ -1347,14 +1347,14 @@ contains
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming) then 
-            if(.not.( stream_implicit) .or. driftkinetic_implicit) then 
+         if (include_parallel_streaming) then
+            if (.not. (stream_implicit) .or. driftkinetic_implicit) then
                if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
                call advance_parallel_streaming_explicit(gin, phi, rhs)
 !!>               if(proc0) write(*,*) 'after parallel streaming explicit', maxval(real(rhs))
             end if
          end if
-!         if(proc0) write(*,*) 'end of explicit befpre swap', maxval(real(rhs)) 
+!         if(proc0) write(*,*) 'end of explicit befpre swap', maxval(real(rhs))
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
          !> in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
          !> NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
@@ -2635,7 +2635,7 @@ contains
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
-         
+
          if (mirror_implicit .and. include_mirror) then
 !          if (full_flux_surface) then
 !             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -2703,7 +2703,7 @@ contains
 
       ! stop the timer for the implict part of the solve
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
-!!>      if(proc0) write(*,*) 'end of implicit' , maxval(real(g))  
+!!>      if(proc0) write(*,*) 'end of implicit' , maxval(real(g))
    end subroutine advance_implicit
 
    subroutine advance_drifts_implicit(g, phi, apar)

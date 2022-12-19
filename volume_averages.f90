@@ -6,7 +6,7 @@ module volume_averages
    public :: flux_surface_average_ffs
 
    public :: mode_fac
-   
+
    public :: alpha_average_ffs_realspace
 
    private
@@ -21,7 +21,7 @@ module volume_averages
 !      module procedure alpha_average_ffs_local
 !      module procedure alpha_average_ffs_realspace
 !   end interface alpha_average_ffs
-      
+
    real, dimension(:), allocatable :: mode_fac
    !> Fourier coefficients in y of the Jacobian;
    !> needed for full flux surface simulations
@@ -242,24 +242,24 @@ contains
 
    end subroutine flux_surface_average_ffs
 
-   ! subroutine alpha_average_ffs_nonlocal (no_avg, avg) 
+   ! subroutine alpha_average_ffs_nonlocal (no_avg, avg)
 
    !   use zgrid, only: nzgrid, ntubes
    !   use kt_grids, only: naky, naky_all, nalpha
    !   use stella_geometry, only: jacob
    !   use kt_grids, only: dy, nakx
 
-   !   implicit none 
+   !   implicit none
 
    !   complex, dimension(:,:,-nzgrid:), intent(in) :: no_avg
    !   complex, dimension(:,-nzgrid:), intent(out) :: avg
    !   real, dimension (-nzgrid:nzgrid) :: norm
    !   integer :: iky, ikymod
-   !   integer :: ia 
+   !   integer :: ia
 
    !   avg = 0.0
    !   norm = sum(jacob* dy , dim = 1)
-     
+
    !   do iky = 1, naky - 1
    !      ikymod = naky - iky + 1
    !      avg(:,:) = avg(:,:) + no_avg(iky, :, :) &
@@ -271,9 +271,9 @@ contains
    !      avg(:,:) = avg(:,:) + no_avg(iky, :, :) &
    !           *spread(conjg(jacobian_ky(ikymod, :)),1,nakx)
    !   end do
-     
+
    !   avg = avg/spread(norm,1,nakx)
-     
+
    ! end subroutine alpha_average_ffs_nonlocal
 
    ! subroutine alpha_average_ffs_local (no_avg, avg, iz)
@@ -285,7 +285,7 @@ contains
    !   use stella_transforms , only: transform_kalpha2alpha
 
    !   implicit none
-     
+
    !   complex, dimension(naky), intent(in) :: no_avg
    !   complex, intent(out) :: avg
    !   real, dimension (:), allocatable :: no_avg_alpha
@@ -298,9 +298,9 @@ contains
 
    !   avg = 0.0
    !   norm = sum(jacob(:,iz)* dy)
-     
+
    !   call transform_kalpha2alpha (no_avg, no_avg_alpha)
-     
+
    !   do ia = 1, nalpha
    !      avg = avg + no_avg_alpha(ia)* jacob(ia,iz)
    !   end do
@@ -319,35 +319,35 @@ contains
 
    !   avg = avg/norm
 
-   !   deallocate (no_avg_alpha) 
+   !   deallocate (no_avg_alpha)
 
    ! end subroutine alpha_average_ffs_local
 
-   subroutine alpha_average_ffs_realspace (no_avg, avg, iz) 
+   subroutine alpha_average_ffs_realspace(no_avg, avg, iz)
 
-     use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, naky_all, nalpha
-     use stella_geometry, only: jacob
-     use kt_grids, only: dy, nakx
-     
-     use mp, only: proc0
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, naky_all, nalpha
+      use stella_geometry, only: jacob
+      use kt_grids, only: dy, nakx
 
-     implicit none
+      use mp, only: proc0
 
-     real, dimension(nalpha), intent(in) :: no_avg
-     integer, intent (in) :: iz
-     real, intent(out) :: avg
-     real :: norm
-     integer :: ia
-     
-     avg = 0.0
-     norm = sum(jacob(:,iz)*dy) 
+      implicit none
 
-     do ia = 1, nalpha 
-        avg = avg + no_avg(ia)* jacob(ia,iz) *dy 
-     end do
+      real, dimension(nalpha), intent(in) :: no_avg
+      integer, intent(in) :: iz
+      real, intent(out) :: avg
+      real :: norm
+      integer :: ia
 
-     avg = avg/norm
+      avg = 0.0
+      norm = sum(jacob(:, iz) * dy)
+
+      do ia = 1, nalpha
+         avg = avg + no_avg(ia) * jacob(ia, iz) * dy
+      end do
+
+      avg = avg / norm
 
    end subroutine alpha_average_ffs_realspace
 
